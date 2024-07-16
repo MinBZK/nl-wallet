@@ -47,7 +47,7 @@ pub struct MockVerifierSession<F> {
     pub request_uri_object: VpRequestUriObject,
     pub request_uri_override: Option<String>,
     pub response_uri: BaseUrl,
-    pub wallet_messages: Mutex<WalletMessages>,
+    pub wallet_messages: Mutex<Vec<WalletMessage>>,
 
     key_pair: KeyPair,
     transform_auth_request: F,
@@ -129,7 +129,7 @@ where
             request_uri_object,
             request_uri_override: None,
             response_uri,
-            wallet_messages: Mutex::new(WalletMessages::new()),
+            wallet_messages: Mutex::new(Vec::new()),
         }
     }
 
@@ -195,7 +195,11 @@ where
         assert_eq!(url, self.session.request_uri_object.request_uri);
 
         let wallet_request = WalletRequest { wallet_nonce };
-        self.session.wallet_messages.lock().unwrap().request = Some(wallet_request.clone());
+        self.session
+            .wallet_messages
+            .lock()
+            .unwrap()
+            .push(WalletMessage::Request(wallet_request.clone()));
 
         Ok(self.session.auth_request(wallet_request).await)
     }
@@ -205,7 +209,11 @@ where
         _url: BaseUrl,
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.session.wallet_messages.lock().unwrap().disclosure = Some(jwe);
+        self.session
+            .wallet_messages
+            .lock()
+            .unwrap()
+            .push(WalletMessage::Disclosure(jwe));
 
         Ok(self.session.redirect_uri.clone())
     }
@@ -215,7 +223,11 @@ where
         _url: BaseUrl,
         error: ErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.session.wallet_messages.lock().unwrap().error = Some(error);
+        self.session
+            .wallet_messages
+            .lock()
+            .unwrap()
+            .push(WalletMessage::Error(error));
 
         Ok(self.session.redirect_uri.clone())
     }
@@ -294,7 +306,7 @@ where
 /// allowing inspection of the messages that were sent.
 pub struct MockFactoryVpMessageClient<F> {
     pub response_factory: F,
-    pub wallet_messages: Arc<Mutex<WalletMessages>>,
+    pub wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
 }
 
 impl<F> fmt::Debug for MockFactoryVpMessageClient<F> {
@@ -305,21 +317,33 @@ impl<F> fmt::Debug for MockFactoryVpMessageClient<F> {
     }
 }
 
-/// Messages that the wallet sends to the verifier through one of the mock [`VpMessageClient`] implementations.
-/// `None` means the wallet did not send the message.
+/// Message that the wallet sends to the verifier through one of the mock [`VpMessageClient`] implementations.
 #[derive(Debug, Clone)]
-pub struct WalletMessages {
-    pub request: Option<WalletRequest>,
-    pub disclosure: Option<String>,
-    pub error: Option<ErrorResponse<VpAuthorizationErrorCode>>,
+pub enum WalletMessage {
+    Request(WalletRequest),
+    Disclosure(String),
+    Error(ErrorResponse<VpAuthorizationErrorCode>),
 }
 
-impl WalletMessages {
-    pub fn new() -> Self {
-        Self {
-            request: None,
-            disclosure: None,
-            error: None,
+impl WalletMessage {
+    pub fn request(&self) -> &WalletRequest {
+        match self {
+            WalletMessage::Request(request) => request,
+            _ => panic!("not a request"),
+        }
+    }
+
+    pub fn disclosure(&self) -> &str {
+        match self {
+            WalletMessage::Disclosure(jwe) => jwe,
+            _ => panic!("not a disclosure"),
+        }
+    }
+
+    pub fn error(&self) -> &ErrorResponse<VpAuthorizationErrorCode> {
+        match self {
+            WalletMessage::Error(error) => error,
+            _ => panic!("not a error"),
         }
     }
 }
@@ -333,7 +357,10 @@ where
         _url: BaseUrl,
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
-        self.wallet_messages.lock().unwrap().request = Some(WalletRequest { wallet_nonce });
+        self.wallet_messages
+            .lock()
+            .unwrap()
+            .push(WalletMessage::Request(WalletRequest { wallet_nonce }));
         Err((self.response_factory)().unwrap())
     }
 
@@ -342,7 +369,10 @@ where
         _url: BaseUrl,
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.wallet_messages.lock().unwrap().disclosure = Some(jwe);
+        self.wallet_messages
+            .lock()
+            .unwrap()
+            .push(WalletMessage::Disclosure(jwe));
         Err((self.response_factory)().unwrap())
     }
 
@@ -351,7 +381,7 @@ where
         _url: BaseUrl,
         error: ErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.wallet_messages.lock().unwrap().error = Some(error);
+        self.wallet_messages.lock().unwrap().push(WalletMessage::Error(error));
 
         match (self.response_factory)() {
             Some(err) => Err(err),
@@ -360,17 +390,11 @@ where
     }
 }
 
-pub async fn test_disclosure_session_start_error_http_client<F>(
-    error_factory: F,
-) -> (
-    VpClientError,
-    Option<WalletRequest>,
-    Option<ErrorResponse<VpAuthorizationErrorCode>>,
-)
+pub async fn test_disclosure_session_start_error_http_client<F>(error_factory: F) -> (VpClientError, Vec<WalletMessage>)
 where
     F: Fn() -> Option<VpMessageClientError>,
 {
-    let wallet_messages = Arc::new(Mutex::new(WalletMessages::new()));
+    let wallet_messages = Arc::new(Mutex::new(Vec::new()));
     let client = MockFactoryVpMessageClient {
         response_factory: error_factory,
         wallet_messages: Arc::clone(&wallet_messages),
@@ -401,7 +425,7 @@ where
 
     // Collect the messages sent through the `VpMessageClient`.
     let wallet_messages = wallet_messages.lock().unwrap();
-    (error, wallet_messages.request.clone(), wallet_messages.error.clone())
+    (error, wallet_messages.clone())
 }
 
 pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
@@ -434,7 +458,7 @@ pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
 
 pub async fn test_disclosure_session_terminate<H>(
     session: DisclosureSession<H, MdocIdentifier>,
-    wallet_messages: Arc<Mutex<WalletMessages>>,
+    wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
 ) -> Result<Option<BaseUrl>, VpClientError>
 where
     H: VpMessageClient,
@@ -442,12 +466,11 @@ where
     let result = session.terminate().await;
 
     let wallet_messages = wallet_messages.lock().unwrap();
-    let wallet_error = wallet_messages
-        .error
-        .as_ref()
-        .expect("wallet should have sent an error");
+    let WalletMessage::Error(error) = wallet_messages.last().unwrap() else {
+        panic!("wallet should have sent an error");
+    };
     assert_matches!(
-        wallet_error.error,
+        error.error,
         VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
     );
 
