@@ -12,7 +12,10 @@ export default mergeConfig(
       coverage: {
         reporter: ["text", "lcov"],
       },
-      reporters: [["junit", { suiteName: "wallet_web tests", outputFile: "coverage/tests.xml" }]],
+      reporters: [
+        "default",
+        ["junit", { suiteName: "wallet_web tests", outputFile: "coverage/tests.xml" }],
+      ],
     },
   }),
 )
