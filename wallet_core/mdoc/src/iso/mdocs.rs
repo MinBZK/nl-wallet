@@ -311,19 +311,7 @@ impl IssuerSignedItem {
 mod test {
     use std::mem;
 
-    use crate::holder::Mdoc;
-
     use super::*;
-
-    impl Mdoc {
-        pub fn modify_attributes<F>(&mut self, name_space: &str, modify_func: F)
-        where
-            F: FnOnce(&mut Vec<IssuerSignedItemBytes>),
-        {
-            let name_spaces = self.issuer_signed.name_spaces.as_mut().unwrap();
-            name_spaces.modify_attributes(name_space, modify_func);
-        }
-    }
 
     impl IssuerNameSpaces {
         pub fn modify_namespaces<F>(&mut self, modify_func: F)

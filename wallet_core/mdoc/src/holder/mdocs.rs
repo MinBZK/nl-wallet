@@ -157,3 +157,20 @@ fn flatten_map<'a>(
         })
         .collect()
 }
+
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use crate::IssuerSignedItemBytes;
+
+    use super::Mdoc;
+
+    impl Mdoc {
+        pub fn modify_attributes<F>(&mut self, name_space: &str, modify_func: F)
+        where
+            F: FnOnce(&mut Vec<IssuerSignedItemBytes>),
+        {
+            let name_spaces = self.issuer_signed.name_spaces.as_mut().unwrap();
+            name_spaces.modify_attributes(name_space, modify_func);
+        }
+    }
+}
