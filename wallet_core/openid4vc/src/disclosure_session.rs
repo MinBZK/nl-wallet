@@ -1344,6 +1344,30 @@ mod tests {
         assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
     }
 
+    async fn try_disclose<F>(
+        proposal_session: DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
+        wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
+    ) -> DisclosureError<VpClientError>
+    where
+        F: Fn() -> Option<VpMessageClientError>,
+    {
+        // Disclosing the session should result in the payload being sent while returning an error.
+        let error = match proposal_session {
+            DisclosureSession::Proposal(proposal) => proposal
+                .disclose(&SoftwareKeyFactory::default())
+                .await
+                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
+            _ => unreachable!(),
+        };
+
+        // Check that the payload was sent.
+        let wallet_messages = wallet_messages.lock().unwrap();
+        assert_eq!(wallet_messages.len(), 1);
+        _ = wallet_messages.first().unwrap().disclosure();
+
+        error
+    }
+
     #[tokio::test]
     async fn test_disclosure_session_proposal_disclose_error_http_client_request() {
         // Create a `DisclosureSession` containing a proposal
@@ -1358,27 +1382,13 @@ mod tests {
             Some(VpMessageClientError::Http(reqwest_error))
         });
 
-        // Disclosing this session should result in the payload
-        // being sent while returning the wrapped HTTP error.
-        let error = match proposal_session {
-            DisclosureSession::Proposal(proposal) => proposal
-                .disclose(&SoftwareKeyFactory::default())
-                .await
-                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
-            _ => unreachable!(),
-        };
-
         assert_matches!(
-            error,
+            try_disclose(proposal_session, wallet_messages).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
             } if data_shared
         );
-
-        let wallet_messages = wallet_messages.lock().unwrap();
-        assert_eq!(wallet_messages.len(), 1);
-        _ = wallet_messages.last().unwrap().disclosure();
     }
 
     #[tokio::test]
@@ -1394,23 +1404,13 @@ mod tests {
             })))
         });
 
-        // Disclosing this session should result in the payload
-        // being sent while returning the wrapped HTTP error.
-        let error = match proposal_session {
-            DisclosureSession::Proposal(proposal) => proposal
-                .disclose(&SoftwareKeyFactory::default())
-                .await
-                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
-            _ => unreachable!(),
-        };
-
         // No data should have been shared in this case
-        assert_matches!(error, DisclosureError {
-            data_shared, error: VpClientError::Request(VpMessageClientError::Http(_))
-        } if !data_shared);
-
-        let wallet_messages = wallet_messages.lock().unwrap();
-        assert_eq!(wallet_messages.len(), 1);
-        _ = wallet_messages.last().unwrap().disclosure();
+        assert_matches!(
+            try_disclose(proposal_session, wallet_messages).await,
+            DisclosureError {
+                data_shared,
+                error: VpClientError::Request(VpMessageClientError::Http(_))
+            } if !data_shared
+        );
     }
 }
