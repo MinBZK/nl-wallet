@@ -280,8 +280,9 @@ pub enum AuthRequestValidationError {
 }
 
 impl VpAuthorizationRequest {
-    /// Verify an Authorization Request JWT against the specified trust anchors.
-    pub fn verify(
+    /// Construct a new Authorization Request by verifying an Authorization Request JWT against
+    /// the specified trust anchors.
+    pub fn try_new(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, Certificate), AuthRequestValidationError> {
@@ -820,7 +821,7 @@ mod tests {
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
         let (auth_request, cert) =
-            VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
+            VpAuthorizationRequest::try_new(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
         auth_request.validate(&cert, None).unwrap();
     }
 

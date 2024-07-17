@@ -97,7 +97,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
-    let (auth_request, cert) = VpAuthorizationRequest::verify(&auth_request, trust_anchors).unwrap();
+    let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request, trust_anchors).unwrap();
     let auth_request = auth_request.validate(&cert, None).unwrap();
 
     // Check if we have the requested attributes.

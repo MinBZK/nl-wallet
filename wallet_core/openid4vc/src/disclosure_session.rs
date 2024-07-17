@@ -298,7 +298,7 @@ where
             .get_authorization_request(request_uri_object.request_uri.clone(), request_nonce.clone())
             .await?;
 
-        let (vp_auth_request, certificate) = VpAuthorizationRequest::verify(&jws, trust_anchors)?;
+        let (vp_auth_request, certificate) = VpAuthorizationRequest::try_new(&jws, trust_anchors)?;
         let response_uri = vp_auth_request.response_uri.clone().unwrap();
 
         // Use async here so we get the async-version of .or_else(), as report_error_back() is async.
