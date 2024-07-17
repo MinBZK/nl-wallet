@@ -472,6 +472,9 @@ sonar-wallet-web:
     - sonar-scanner
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-web
+      -Dsonar.sources=lib
+      -Dsonar.exclusions=lib/__tests__
+      -Dsonar.tests=lib/__tests__
       -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
       -Dsonar.junit.reportPaths=coverage/tests.xml
 
