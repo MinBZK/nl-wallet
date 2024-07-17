@@ -75,12 +75,11 @@ if is_macos
 then
     expect_command gsed "Missing binary 'gsed', please install gnu-sed"
     GNUSED="gsed"
-    BASE64="base64"
 else
     GNUSED="sed"
-    BASE64="base64 --wrap=0"
 fi
 
+BASE64="openssl base64 -e -A"
 base64_url_encode() { ${BASE64} | tr '/+' '_-' | tr -d '=\n'; }
 
 ########################################################################
