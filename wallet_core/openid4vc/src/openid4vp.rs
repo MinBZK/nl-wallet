@@ -601,9 +601,6 @@ impl VpAuthorizationResponse {
     }
 
     /// Create a JWE containing a new encrypted Authorization Request.
-    ///
-    /// NB: this method assumes that the provided Authorization Request has been validated with
-    ///  `auth_request.validate()?` before.
     pub fn new_encrypted(
         device_response: DeviceResponse,
         auth_request: &IsoVpAuthorizationRequest,

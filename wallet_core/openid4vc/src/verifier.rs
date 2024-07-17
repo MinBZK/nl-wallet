@@ -1181,7 +1181,7 @@ mod tests {
     async fn disclosure() {
         let (verifier, session_token, request_uri_object) = init_and_start_disclosure(&TimeGenerator).await;
 
-        // sending first device protocol message should succeed
+        // Getting the Authorization Request should succeed
         verifier
             .process_get_request(
                 &session_token,

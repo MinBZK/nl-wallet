@@ -632,8 +632,7 @@ mod tests {
         .await
         .expect("Could not start DisclosureSession");
 
-        // Remember the `AttributeIdentifier`s that were in the request,
-        // as well as what is needed to reconstruct the `SessionTranscript`.
+        // Remember the `AttributeIdentifier`s that were in the request.
         let request_identifiers = verifier_session
             .items_requests
             .as_ref()
@@ -1023,7 +1022,7 @@ mod tests {
         })
         .await;
 
-        // Trying to start a session in which the transport gives a JSON error
+        // Trying to start a session in which the transport gives a HTTP error
         // should result in the error being forwarded.
         assert_matches!(error, VpClientError::Request(VpMessageClientError::Http(_)));
         assert_eq!(wallet_messages.len(), 1);
