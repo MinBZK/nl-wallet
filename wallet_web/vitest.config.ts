@@ -8,7 +8,11 @@ export default mergeConfig(
     test: {
       environment: "happy-dom",
       exclude: [...configDefaults.exclude, "e2e/**"],
-      root: fileURLToPath(new URL("./", import.meta.url))
-    }
-  })
+      root: fileURLToPath(new URL("./", import.meta.url)),
+      coverage: {
+        reporter: ["text", "lcov"],
+      },
+      reporters: [["junit", { suiteName: "wallet_web tests", outputFile: "coverage/tests.xml" }]],
+    },
+  }),
 )
