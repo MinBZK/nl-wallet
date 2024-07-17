@@ -7,6 +7,7 @@ use std::{
 use assert_matches::assert_matches;
 use chrono::Utc;
 use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
+use url::Url;
 
 use nl_wallet_mdoc::{
     examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
@@ -21,7 +22,6 @@ use nl_wallet_mdoc::{
     utils::reader_auth::ReaderRegistration,
     verifier::{ItemsRequests, SessionType},
 };
-use url::Url;
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, trust_anchor::DerTrustAnchor, utils::random_string};
 
 use crate::{
