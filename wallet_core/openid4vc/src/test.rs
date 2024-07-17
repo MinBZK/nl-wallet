@@ -146,8 +146,7 @@ where
 
     pub fn request_uri_query(&self) -> String {
         self.request_uri_override
-            .as_ref()
-            .cloned()
+            .clone()
             .unwrap_or(serde_urlencoded::to_string(&self.request_uri_object).unwrap())
     }
 
@@ -159,7 +158,7 @@ where
             self.nonce.clone(),
             self.encryption_keypair.to_jwk_public_key().try_into().unwrap(),
             self.response_uri.clone(),
-            wallet_request.wallet_nonce.clone(),
+            wallet_request.wallet_nonce,
         )
         .unwrap()
         .into();
