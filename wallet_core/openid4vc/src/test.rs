@@ -176,7 +176,7 @@ pub struct MockVerifierVpMessageClient<F> {
 
 impl<F> fmt::Debug for MockVerifierVpMessageClient<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockVerifierSessionClient")
+        f.debug_struct("MockVerifierVpMessageClient")
             .field("session", &self.session)
             .finish()
     }
