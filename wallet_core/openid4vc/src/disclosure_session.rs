@@ -1278,7 +1278,10 @@ mod tests {
         test_disclosure_session_terminate(proposal_session, wallet_messages)
             .await
             .expect("Could not terminate DisclosureSession with proposal");
+    }
 
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_terminate_json_error() {
         let (proposal_session, wallet_messages) =
             create_disclosure_session_proposal(|| Some(VpMessageClientError::Json(serde_json::Error::custom(""))));
 
@@ -1291,43 +1294,46 @@ mod tests {
         assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
     }
 
+    fn missing_attributes_session<F>(
+        client: MockErrorFactoryVpMessageClient<F>,
+    ) -> DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>
+    where
+        F: Fn() -> Option<VpMessageClientError>,
+    {
+        DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+            data: CommonDisclosureData {
+                client,
+                certificate: vec![].into(),
+                reader_registration: ReaderRegistration::new_mock(),
+                session_type: SessionType::SameDevice,
+                auth_request: iso_auth_request(),
+            },
+            missing_attributes: Default::default(),
+        })
+    }
+
     #[tokio::test]
     async fn test_disclosure_session_missing_attributes_terminate() {
         let wallet_messages = Arc::new(Mutex::new(Vec::new()));
         let client = MockErrorFactoryVpMessageClient::new(|| None, Arc::clone(&wallet_messages));
 
         // Terminating a `DisclosureSession` with missing attributes should succeed.
-        let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
-            data: CommonDisclosureData {
-                client,
-                certificate: vec![].into(),
-                reader_registration: ReaderRegistration::new_mock(),
-                session_type: SessionType::SameDevice,
-                auth_request: iso_auth_request(),
-            },
-            missing_attributes: Default::default(),
-        });
+        let missing_attr_session = missing_attributes_session(client);
 
         test_disclosure_session_terminate(missing_attr_session, wallet_messages)
             .await
             .expect("Could not terminate DisclosureSession with missing attributes");
+    }
 
+    #[tokio::test]
+    async fn test_disclosure_session_missing_attributes_terminate_json_error() {
         let wallet_messages = Arc::new(Mutex::new(Vec::new()));
         let client = MockErrorFactoryVpMessageClient::new(
             || Some(VpMessageClientError::Json(serde_json::Error::custom(""))),
             Arc::clone(&wallet_messages),
         );
 
-        let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
-            data: CommonDisclosureData {
-                client,
-                certificate: vec![].into(),
-                reader_registration: ReaderRegistration::new_mock(),
-                session_type: SessionType::SameDevice,
-                auth_request: iso_auth_request(),
-            },
-            missing_attributes: Default::default(),
-        });
+        let missing_attr_session = missing_attributes_session(client);
 
         // Terminating a `DisclosureSession` with missing attributes where the
         // `VpMessageClient` gives an error should result in that error being forwarded.
