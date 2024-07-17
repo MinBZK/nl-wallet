@@ -587,7 +587,7 @@ mod tests {
             },
             DisclosureError, DisclosureUriSource, HolderError,
         },
-        identifiers::AttributeIdentifierHolder,
+        identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
         software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::ClonePayload,
@@ -1151,10 +1151,14 @@ mod tests {
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
-        assert_matches!(
-            error,
-            VpClientError::RequestedAttributesValidation(ValidationError::UnregisteredAttributes(_))
-        );
+        let unregistered_attribute = AttributeIdentifier {
+            doc_type: "org.iso.18013.5.1.mDL".to_string(),
+            namespace: "org.iso.18013.5.1".to_string(),
+            attribute: "foobar".to_string(),
+        };
+        assert_matches!(error, VpClientError::RequestedAttributesValidation(
+            ValidationError::UnregisteredAttributes(ids)
+        ) if ids == vec![unregistered_attribute]);
 
         let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
         assert_eq!(wallet_messages.len(), 2);
