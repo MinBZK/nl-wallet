@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 225
+description: "BSN: 999997750"
+expression: attributes
+---
+given_name:
+  String: Siny Rose
+family_name:
+  String: Pinto
+own_family_name:
+  String: Pinto
+gender:
+  Gender: Female
+birth_date:
+  Date: 1980-03-12
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999997750"
+resident_street:
+  String: Eemstein
+resident_house_number:
+  String: "21"
+resident_postal_code:
+  String: 3073KA
+resident_city:
+  String: Rotterdam
+resident_country:
+  String: Nederland

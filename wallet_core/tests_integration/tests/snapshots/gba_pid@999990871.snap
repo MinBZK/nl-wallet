@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 176
+description: "BSN: 999990871"
+expression: attributes
+---
+given_name:
+  String: Petri
+family_name:
+  String: Vornowski
+own_family_name:
+  String: Vornowski
+gender:
+  Gender: Male
+birth_date:
+  Date: 1994-07-04
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999990871"
+resident_street:
+  String: Prinsengracht
+resident_house_number:
+  String: "27"
+resident_postal_code:
+  String: 2512EW
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

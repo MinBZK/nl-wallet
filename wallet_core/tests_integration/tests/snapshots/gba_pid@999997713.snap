@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 192
+description: "BSN: 999997713"
+expression: attributes
+---
+given_name:
+  String: Shireen
+family_name:
+  String: Verbeek
+own_family_name:
+  String: Verbeek
+gender:
+  Gender: Female
+birth_date:
+  Date: 2000-10-08
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999997713"
+resident_street:
+  String: Europaboulevard
+resident_house_number:
+  String: "1"
+resident_postal_code:
+  String: 1079PC
+resident_city:
+  String: Amsterdam
+resident_country:
+  String: Nederland

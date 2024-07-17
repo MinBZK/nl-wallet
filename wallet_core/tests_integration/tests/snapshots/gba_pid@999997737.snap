@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 192
+description: "BSN: 999997737"
+expression: attributes
+---
+given_name:
+  String: Allegonda
+family_name:
+  String: Rood
+own_family_name:
+  String: Rood
+gender:
+  Gender: Female
+birth_date:
+  Date: 1965-05-26
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999997737"
+resident_street:
+  String: Eemstein
+resident_house_number:
+  String: "21"
+resident_postal_code:
+  String: 3073KA
+resident_city:
+  String: Rotterdam
+resident_country:
+  String: Nederland

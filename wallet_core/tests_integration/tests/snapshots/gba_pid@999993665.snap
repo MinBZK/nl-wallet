@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 176
+description: "BSN: 999993665"
+expression: attributes
+---
+given_name:
+  String: Annemieke
+family_name:
+  String: Verpalen
+own_family_name:
+  String: Verpalen
+gender:
+  Gender: Female
+birth_date:
+  Date: 1969-12-05
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999993665"
+resident_street:
+  String: Colensostraat
+resident_house_number:
+  String: "2"
+resident_postal_code:
+  String: 2572NR
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

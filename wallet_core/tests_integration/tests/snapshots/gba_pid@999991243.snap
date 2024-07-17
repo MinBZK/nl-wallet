@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 176
+description: "BSN: 999991243"
+expression: attributes
+---
+given_name:
+  String: Remi
+family_name:
+  String: Zaal
+own_family_name:
+  String: Zaal
+gender:
+  Gender: Male
+birth_date:
+  Date: 2002-02-02
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999991243"
+resident_street:
+  String: Johan de Wittlaan
+resident_house_number:
+  String: "22"
+resident_postal_code:
+  String: 2517JR
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

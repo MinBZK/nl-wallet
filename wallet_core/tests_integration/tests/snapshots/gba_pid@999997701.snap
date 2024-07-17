@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 192
+description: "BSN: 999997701"
+expression: attributes
+---
+given_name:
+  String: Lars
+family_name:
+  String: Meerman
+own_family_name:
+  String: Meerman
+gender:
+  Gender: Male
+birth_date:
+  Date: 1965-11-12
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999997701"
+resident_street:
+  String: Thorbeckelaan
+resident_house_number:
+  String: "16"
+resident_postal_code:
+  String: 3552CS
+resident_city:
+  String: Utrecht
+resident_country:
+  String: Nederland

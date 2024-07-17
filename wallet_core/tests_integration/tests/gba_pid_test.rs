@@ -20,9 +20,9 @@ use wallet_common::keys::software::SoftwareEcdsaKey;
 
 #[tokio::test]
 #[rstest]
-#[should_panic(expected = "could not continue pid issuance")]
-async fn test_gba_pid_pl_opgeschort(
-    #[values("999993318", "999993896", "999990585", "999991127", "999991024", "999992326")] bsn: &str,
+#[should_panic(expected = "conversion error")]
+async fn test_gba_pid_conversion_error(
+    #[values("999993318", "999993896", "999990585", "999991127", "999992326", "999997658")] bsn: &str,
 ) {
     gba_pid(bsn).await
 }
@@ -72,18 +72,30 @@ async fn test_gba_pid_success(
         "999991814",
         "999994359",
         "999994542",
-        "999993112",
         "999990160",
         "999992065",
-
-
-        // "999991565",
-        // "999991243",
-        // "999990871",
-        // "999990500",
-        // "999993665",
-        // "999990627",
-        // "999993409"
+        "999991565",
+        "999991243",
+        "999990871",
+        "999990500",
+        "999993665",
+        "999990627",
+        "999993409",
+        "999997634",
+        "999997646",
+        "999997671",
+        "999997683",
+        "999997695",
+        "999997701",
+        "999997713",
+        "999997725",
+        "999997737",
+        "999997749",
+        "999997750",
+        "010245741",
+        "010755561",
+        "999998341",
+        "999998353"
     )]
     bsn: &str,
 ) {
@@ -147,14 +159,11 @@ async fn gba_pid(bsn: &str) {
     let unsigned_mdocs_result = wallet.continue_pid_issuance(redirect_url).await;
     let unsigned_mdocs = match unsigned_mdocs_result {
         Ok(mdocs) => mdocs,
-        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(e)))
-            if e.error_description
-                == Some(String::from(
-                    "failed to get attributes to be issued: could not find attributes for BSN",
-                )) =>
-        {
-            panic!("unknown bsn")
-        }
+        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(e))) if e.error_description.clone().unwrap().starts_with("failed to get attributes to be issued: error retrieving from BRP: Error converting GBA-V XML to Haal-Centraal JSON: GBA-V error") =>
+            panic!("conversion error"),
+        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(e))) if e.error_description ==
+            Some(String::from("failed to get attributes to be issued: could not find attributes for BSN")) =>
+                panic!("unknown bsn"),
         Err(e) => {
             dbg!("{:?}", e);
             panic!("could not continue pid issuance")

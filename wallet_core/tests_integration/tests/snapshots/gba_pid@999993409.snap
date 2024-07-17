@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 176
+description: "BSN: 999993409"
+expression: attributes
+---
+given_name:
+  String: Thea
+family_name:
+  String: Groeman
+own_family_name:
+  String: Kouwenhoven
+gender:
+  Gender: Female
+birth_date:
+  Date: 1951-11-17
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: true
+bsn:
+  String: "999993409"
+resident_street:
+  String: Zuiderparklaan
+resident_house_number:
+  String: "12"
+resident_postal_code:
+  String: 2574HK
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

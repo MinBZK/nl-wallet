@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 192
+description: "BSN: 999997683"
+expression: attributes
+---
+given_name:
+  String: Mariëlla
+family_name:
+  String: Janssen
+own_family_name:
+  String: Janssen
+gender:
+  Gender: Female
+birth_date:
+  Date: 1972-10-24
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999997683"
+resident_street:
+  String: Thorbeckelaan
+resident_house_number:
+  String: "16"
+resident_postal_code:
+  String: 3552CS
+resident_city:
+  String: Utrecht
+resident_country:
+  String: Nederland

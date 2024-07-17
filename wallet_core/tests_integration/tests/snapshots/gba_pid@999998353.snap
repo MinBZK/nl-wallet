@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 225
+description: "BSN: 999998353"
+expression: attributes
+---
+given_name:
+  String: Xander
+family_name:
+  String: Arendsen
+own_family_name:
+  String: Arendsen
+gender:
+  Gender: Male
+birth_date:
+  Date: 2015-12-01
+age_over_18:
+  Boolean: false
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999998353"
+resident_street:
+  String: Turfmarkt
+resident_house_number:
+  String: "1"
+resident_postal_code:
+  String: 2511CA
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

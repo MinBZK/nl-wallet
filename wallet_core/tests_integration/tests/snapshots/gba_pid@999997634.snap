@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 224
+description: "BSN: 999997634"
+expression: attributes
+---
+given_name:
+  String: Fedde
+family_name:
+  String: Wybenga
+own_family_name:
+  String: Wybenga
+gender:
+  Gender: Male
+birth_date:
+  Date: 1990-12-01
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999997634"
+resident_street:
+  String: Tsjerkepaed
+resident_house_number:
+  String: "6"
+resident_postal_code:
+  String: 9178GN
+resident_city:
+  String: Wânswert
+resident_country:
+  String: Nederland

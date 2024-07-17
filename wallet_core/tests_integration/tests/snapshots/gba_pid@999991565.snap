@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 176
+description: "BSN: 999991565"
+expression: attributes
+---
+given_name:
+  String: Joost Jan
+family_name:
+  String: Haarlem
+own_family_name:
+  String: Haarlem
+gender:
+  Gender: Male
+birth_date:
+  Date: 1945-05-05
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999991565"
+resident_street:
+  String: Dam
+resident_house_number:
+  String: "1"
+resident_postal_code:
+  String: 1012JS
+resident_city:
+  String: Amsterdam
+resident_country:
+  String: Nederland

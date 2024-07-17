@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 225
+description: "BSN: 010755561"
+expression: attributes
+---
+given_name:
+  String: Karel
+family_name:
+  String: Koolmees
+own_family_name:
+  String: Koolmees
+gender:
+  Gender: Male
+birth_date:
+  Date: 2001-12-31
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "010755561"
+resident_street:
+  String: Trompenburgstraat
+resident_house_number:
+  String: "2"
+resident_postal_code:
+  String: 1079TX
+resident_city:
+  String: Amsterdam
+resident_country:
+  String: Nederland

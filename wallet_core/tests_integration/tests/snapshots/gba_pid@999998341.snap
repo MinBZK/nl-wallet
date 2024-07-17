@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 225
+description: "BSN: 999998341"
+expression: attributes
+---
+given_name:
+  String: Alicia
+family_name:
+  String: Arendsen
+own_family_name:
+  String: Arendsen
+gender:
+  Gender: Female
+birth_date:
+  Date: 2014-04-01
+age_over_18:
+  Boolean: false
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999998341"
+resident_street:
+  String: Turfmarkt
+resident_house_number:
+  String: "1"
+resident_postal_code:
+  String: 2511CA
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland
