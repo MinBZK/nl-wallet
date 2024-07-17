@@ -573,10 +573,12 @@ mod tests {
 
     use assert_matches::assert_matches;
     use indexmap::{IndexMap, IndexSet};
-    use p256::ecdsa::VerifyingKey;
+    use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+    use rand_core::OsRng;
     use reqwest::StatusCode;
     use rstest::rstest;
     use serde::ser::Error;
+    use serde_json::json;
 
     use nl_wallet_mdoc::{
         examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
@@ -588,9 +590,10 @@ mod tests {
             DisclosureError, DisclosureUriSource, HolderError,
         },
         identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-        software_key_factory::SoftwareKeyFactory,
+        software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
         utils::{
             cose::ClonePayload,
+            keys::KeyFactory,
             reader_auth::{ReaderRegistration, ValidationError},
             serialization::{cbor_deserialize, cbor_serialize, CborBase64, CborSeq, TaggedBytes},
             x509::CertificateError,
@@ -598,7 +601,7 @@ mod tests {
         verifier::SessionType,
         DeviceAuth, DeviceAuthenticationKeyed, ItemsRequest, MobileSecurityObject, SessionTranscript,
     };
-    use wallet_common::utils::random_string;
+    use wallet_common::{keys::software::SoftwareEcdsaKey, utils::random_string};
 
     use crate::{
         jwt::JwtX5cError,
@@ -1030,6 +1033,62 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_disclosure_session_start_error_request_uri_without_query() {
+        // Starting a `DisclosureSession` with a request URI without query parameters
+        // should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                let mut request_uri = verifier_session.request_uri_object.request_uri.clone().into_inner();
+                request_uri.set_query(None);
+                verifier_session.request_uri_object.request_uri = request_uri.try_into().unwrap();
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, VpClientError::MissingSessionType);
+        assert_eq!(verifier_session.wallet_messages.lock().unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_incorrect_client_id() {
+        // Starting a `DisclosureSession` with a request URI object in which the `client_id`
+        // does not match the one from the RP's certificate should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                verifier_session.request_uri_object.client_id = "client_id_from_request_uri_object".to_string();
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            VpClientError::IncorrectClientId {
+                expected,
+                ..
+            } if expected == *"client_id_from_request_uri_object"
+        );
+
+        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        assert_eq!(wallet_messages.len(), 2);
+        _ = wallet_messages.first().unwrap().request();
+        _ = wallet_messages.last().unwrap().error(); // This RP error should be reported back to the RP
+    }
+
+    #[tokio::test]
     async fn test_disclosure_session_start_error_verifier_encryption_missing() {
         // Starting a `DisclosureSession` with a `VpAuthorizationRequest` without an encryption public key
         // should result in an error.
@@ -1347,6 +1406,8 @@ mod tests {
     async fn try_disclose<F>(
         proposal_session: DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
         wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
+        key_factory: &impl KeyFactory,
+        expect_report_error: bool,
     ) -> DisclosureError<VpClientError>
     where
         F: Fn() -> Option<VpMessageClientError>,
@@ -1354,18 +1415,83 @@ mod tests {
         // Disclosing the session should result in the payload being sent while returning an error.
         let error = match proposal_session {
             DisclosureSession::Proposal(proposal) => proposal
-                .disclose(&SoftwareKeyFactory::default())
+                .disclose(key_factory)
                 .await
-                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
+                .expect_err("disclosing should have resulted in an error"),
             _ => unreachable!(),
         };
 
-        // Check that the payload was sent.
-        let wallet_messages = wallet_messages.lock().unwrap();
-        assert_eq!(wallet_messages.len(), 1);
-        _ = wallet_messages.first().unwrap().disclosure();
+        if expect_report_error {
+            let wallet_messages = wallet_messages.lock().unwrap();
+            assert_eq!(wallet_messages.len(), 1);
+            _ = wallet_messages.first().unwrap().disclosure();
+        } else {
+            assert_eq!(wallet_messages.lock().unwrap().len(), 0);
+        }
 
         error
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose_error_device_response() {
+        /// A mock key factory that just returns errors.
+        struct MockKeyFactory;
+        impl KeyFactory for MockKeyFactory {
+            type Key = SoftwareEcdsaKey;
+            type Error = SoftwareKeyFactoryError;
+
+            fn generate_existing<I: Into<String>>(&self, identifier: I, _: VerifyingKey) -> Self::Key {
+                // Normally this method is expected to return a key whose public key equals the specified
+                // `VerifyingKey`, but for the purposes of this test, it doesn't matter that we don't do so here.
+                SoftwareEcdsaKey::new(identifier.into(), SigningKey::random(&mut OsRng))
+            }
+            async fn sign_multiple_with_existing_keys(
+                &self,
+                _: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+            ) -> Result<Vec<Vec<Signature>>, Self::Error> {
+                Err(SoftwareKeyFactoryError::Signing)
+            }
+            async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+                unimplemented!()
+            }
+            async fn generate_new_multiple(&self, _: u64) -> Result<Vec<Self::Key>, Self::Error> {
+                unimplemented!()
+            }
+        }
+
+        // Attempting to create a disclosure with a malfunctioning key store should result in an error.
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None);
+        assert_matches!(
+            try_disclose(proposal_session, wallet_messages, &MockKeyFactory, false).await,
+            DisclosureError {
+                data_shared,
+                error: VpClientError::DeviceResponse(_)
+            } if !data_shared
+        );
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose_error_invalid_encryption_key() {
+        // Attempting to encrypt a disclosure to a malformed encryption key should result in an error.
+        let (mut proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None);
+
+        let DisclosureSession::Proposal(ref mut proposal) = proposal_session else {
+            panic!("disclosure session should have been a proposal")
+        };
+        proposal
+            .data
+            .auth_request
+            .encryption_pubkey
+            .set_parameter("kty", Some(json!("invalid_value"))) // kty (key type) is normally EC
+            .unwrap();
+
+        assert_matches!(
+            try_disclose(proposal_session, wallet_messages, &SoftwareKeyFactory::default(), false).await,
+            DisclosureError {
+                data_shared,
+                error: VpClientError::AuthResponseEncryption(_)
+            } if !data_shared
+        );
     }
 
     #[tokio::test]
@@ -1383,7 +1509,7 @@ mod tests {
         });
 
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages).await,
+            try_disclose(proposal_session, wallet_messages,  &SoftwareKeyFactory::default(),true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
@@ -1406,7 +1532,7 @@ mod tests {
 
         // No data should have been shared in this case
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages).await,
+            try_disclose(proposal_session, wallet_messages,&SoftwareKeyFactory::default(), true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
