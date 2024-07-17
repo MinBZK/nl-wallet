@@ -341,7 +341,7 @@ build-wallet-web:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:e39c667e35c85a7ddb6af091ae79c64e5455e11495ca2d441e0e41e3a45248e8"
   script:
     - set -euxo pipefail
-    - (cd wallet_web; npm ci && npm run type-check && npm run test -- --run)
+    - (cd wallet_web; npm ci && npm run type-check && npm run coverage -- --run)
     - (cd wallet_web; CUSTOM_ELEMENT=false npm run build)
     - (cd wallet_web; EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build)
     - WALLET_WEB_SHA256_FILENAME=$(cat wallet_web/dist/nl-wallet-web.iife.js | openssl sha256 -binary | base64 | tr '/+' '_-' | tr -d '=\n') # url safe to prevent '/' to appear in filename
@@ -352,6 +352,7 @@ build-wallet-web:
   artifacts:
     paths:
       - wallet_web/dist
+      - wallet_web/coverage
       - wallet_core/mock_relying_party/assets/nl-wallet-web.*
 
 dependency-check:
@@ -456,6 +457,28 @@ sonar-flutter:
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
       -Dsonar.flutter.tests.reportPath=build/reports/test-results.json
       -Dsonar.flutter.coverage.reportPath=coverage/lcov.info
+
+sonar-wallet-web:
+  extends: .default-sonar
+  needs:
+    - job: build-wallet-web
+      artifacts: true
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - cd wallet_web
+    - set -euxo pipefail
+  script:
+    - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-web
+      -Dsonar.sources=lib/
+      -Dsonar.exclusions=lib/__tests__/**/*
+      -Dsonar.tests=lib/
+      -Dsonar.test.inclusions=lib/__tests__/**/*
+      -Dsonar.coverage.exclusions=lib/__tests__
+      -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+      -Dsonar.junit.reportPaths=coverage/tests.xml
 
 sonar-ios:
   extends: .default-sonar

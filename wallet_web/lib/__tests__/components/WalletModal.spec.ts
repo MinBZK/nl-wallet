@@ -7,6 +7,7 @@ import { translations, translationsKey } from "@/util/translations"
 import { isMobileKey } from "@/util/useragent"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { type AppUL } from "../../models/status"
 
 await import("../setup")
 
@@ -26,7 +27,7 @@ describe("WalletModal", () => {
     })
 
     expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
-    await flushPromises()
+    await vi.advanceTimersToNextTimerAsync()
     expect(wrapper.find("[data-testid=loading]").exists()).toBe(false)
   })
 
@@ -40,7 +41,7 @@ describe("WalletModal", () => {
         },
       },
     })
-    await flushPromises()
+    await vi.advanceTimersToNextTimerAsync()
     expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
   })
 
@@ -52,13 +53,29 @@ describe("WalletModal", () => {
       },
     })
 
-    await flushPromises()
-    await wrapper.find("[data-testid=cross_device_button]").trigger("click")
-
-    expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
     await vi.advanceTimersToNextTimerAsync()
-    expect(wrapper.find("[data-testid=loading]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+    const button = wrapper.find("[data-testid=cross_device_button]")
+    expect(button.exists()).toBe(true)
+
+    await vi.mocked(getStatus).withImplementation(
+      async () => {
+        await new Promise((r) => setTimeout(r, 10000))
+        return {
+          status: "CREATED",
+          ul: "ul_456" as AppUL,
+        }
+      },
+      async () => {
+        await button.trigger("click")
+
+        expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
+        await vi.advanceTimersToNextTimerAsync()
+        await vi.advanceTimersToNextTimerAsync()
+        expect(wrapper.find("[data-testid=loading]").exists()).toBe(false)
+
+        expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+      },
+    )
   })
 
   it("should show qr code for mobile after choosing", async () => {
@@ -68,11 +85,11 @@ describe("WalletModal", () => {
         provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
-    await flushPromises()
+    await vi.advanceTimersToNextTimerAsync()
     await wrapper.find("[data-testid=cross_device_button]").trigger("click")
-    await vi.waitFor(() => {
-      expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
-    })
+
+    await vi.advanceTimersToNextTimerAsync()
+    expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
   })
 
   it("should refresh qr code", async () => {
@@ -230,20 +247,18 @@ describe("WalletModal", () => {
         provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
-    await flushPromises()
+    await vi.advanceTimersToNextTimerAsync()
 
     vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
     expect(wrapper.find("[data-testid=device_choice]").exists()).toBe(true)
     await wrapper.find("[data-testid=same_device_button]").trigger("click")
 
-    await flushPromises()
     await vi.advanceTimersToNextTimerAsync()
 
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=device_choice]").exists()).toBe(false)
 
     await wrapper.find("[data-testid=retry_button]").trigger("click")
-    await flushPromises()
 
     expect(wrapper.find("[data-testid=device_choice]").exists()).toBe(true)
   })
