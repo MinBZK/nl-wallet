@@ -24,16 +24,11 @@ SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
 export SCRIPTS_DIR
 BASE_DIR=$(dirname "${SCRIPTS_DIR}")
 export BASE_DIR
+DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.yml
+export DOCKER_COMPOSE_FILE
 
 source "${SCRIPTS_DIR}/utils.sh"
 source "${SCRIPTS_DIR}/configuration.sh"
-
-if is_macos
-then
-    DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.yml
-else
-    DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.linux.yml
-fi
 
 ########################################################################
 # Functions
@@ -63,13 +58,13 @@ Where:
     brp:                        Start the Haal-Centraal BRP proxy with GBA HC converter.
     brpproxy:                   Start the Haal-Centraal BRP proxy.
     gba, gba_hc_converter:      Start the GBA HC converter.
-    postgres:                   Start a PostgreSQL database, including pgadmin4, on docker.
+    postgres:                   Start a PostgreSQL database, using Docker.
 
   OPTION is any of:
     --all                       Start all of the above services.
-    --default                   Start all of the above services, excluding docker and wallet.
+    --default                   Start all of the above services, excluding postgres and wallet.
                                 This option is provided when a PostgreSQL database is run and managed by the user.
-    --stop                      Just stop all services
+    --stop                      Combine with --all, --default or specific service name(s) to stop said services.
     -h, --help                  Show this help
 "
 }
@@ -175,6 +170,7 @@ do
             CONFIG_SERVER=0
             BRP_PROXY=0
             GBA_HC=0
+
             shift # past argument
             ;;
         -h|--help)
@@ -233,12 +229,12 @@ then
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Stopping postgres services${NC}"
-        docker compose --file "${DOCKER_COMPOSE_FILE}" down postgresql pgadmin4 || true
+        docker compose --file "${DOCKER_COMPOSE_FILE}" down postgres || true
     fi
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Starting postgres services${NC}"
-        docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach postgresql pgadmin4
+        docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach postgres
     fi
 fi
 
@@ -375,6 +371,7 @@ then
         pushd "${WALLET_CORE_DIR}"
         cargo run --bin wallet_provider_migrations -- fresh
         popd
+
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
         RUST_LOG=debug cargo run --bin wallet_provider > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
 
