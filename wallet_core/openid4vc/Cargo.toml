@@ -69,7 +69,6 @@ http.workspace = true
 mockall.workspace = true
 rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 wiremock.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "software_key_factory", "generate", "test", "examples"] }
