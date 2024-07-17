@@ -468,7 +468,6 @@ sonar-wallet-web:
   before_script:
     - cd wallet_web
     - set -euxo pipefail
-    - npm ci
   script:
     - sonar-scanner
       -Dsonar.sourceEncoding=UTF-8
