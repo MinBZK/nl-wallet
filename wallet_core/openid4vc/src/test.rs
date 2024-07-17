@@ -310,6 +310,15 @@ pub struct MockErrorFactoryVpMessageClient<F> {
     pub wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
 }
 
+impl<F> MockErrorFactoryVpMessageClient<F> {
+    pub fn new(response_factory: F, wallet_messages: Arc<Mutex<Vec<WalletMessage>>>) -> Self {
+        Self {
+            response_factory,
+            wallet_messages,
+        }
+    }
+}
+
 impl<F> fmt::Debug for MockErrorFactoryVpMessageClient<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MockHttpClient")
@@ -396,10 +405,7 @@ where
     F: Fn() -> Option<VpMessageClientError>,
 {
     let wallet_messages = Arc::new(Mutex::new(Vec::new()));
-    let client = MockErrorFactoryVpMessageClient {
-        response_factory: error_factory,
-        wallet_messages: Arc::clone(&wallet_messages),
-    };
+    let client = MockErrorFactoryVpMessageClient::new(error_factory, Arc::clone(&wallet_messages));
 
     let request_query = serde_urlencoded::to_string(request_uri_object(
         BaseUrl::from_str(VERIFIER_URL)
