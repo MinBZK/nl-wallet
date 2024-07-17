@@ -143,12 +143,12 @@ impl VpClientMetadata {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientMetadata {
     #[serde(flatten)]
-    pub(crate) jwks: VpJwks,
-    vp_formats: VpFormat,
+    pub jwks: VpJwks,
+    pub vp_formats: VpFormat,
 
     // These two are defined in https://openid.net/specs/oauth-v2-jarm-final.html
-    authorization_encryption_alg_values_supported: VpAlgValues,
-    authorization_encryption_enc_values_supported: VpEncValues,
+    pub authorization_encryption_alg_values_supported: VpAlgValues,
+    pub authorization_encryption_enc_values_supported: VpEncValues,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
