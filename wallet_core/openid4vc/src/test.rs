@@ -297,9 +297,10 @@ where
     )
     .await;
 
-    result
-        .map(|disclosure_session| (disclosure_session, Arc::clone(&verifier_session)))
-        .map_err(|err| (err, verifier_session))
+    match result {
+        Ok(disclosure_session) => Ok((disclosure_session, Arc::clone(&verifier_session))),
+        Err(err) => Err((err, verifier_session)),
+    }
 }
 
 /// An implementation of [`VpMessageClient`] that sends a response made by the factory,
