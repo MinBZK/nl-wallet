@@ -634,7 +634,7 @@ where
                     ul_base,
                     request_uri,
                     time,
-                    self.generate_ephemeral_id(session_token, &time),
+                    Self::generate_ephemeral_id(&self.ephemeral_id_secret, session_token, &time),
                     session_type,
                     client_id,
                 )?;
@@ -685,9 +685,13 @@ where
 }
 
 impl<S> Verifier<S> {
-    fn generate_ephemeral_id(&self, session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
+    fn generate_ephemeral_id(
+        ephemeral_id_secret: &hmac::Key,
+        session_token: &SessionToken,
+        time: &DateTime<Utc>,
+    ) -> Vec<u8> {
         let ephemeral_id = hmac::sign(
-            &self.ephemeral_id_secret,
+            ephemeral_id_secret,
             &Self::format_ephemeral_id_payload(session_token, time),
         )
         .as_ref()
@@ -1381,11 +1385,9 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_verifier_url() {
-        // The verifier contains a time-based session cleanup job using `tokio` code, which makes this
-        // test function fail if it is not async, even though it contains no async code.
-        let verifier = create_verifier();
+    #[test]
+    fn test_verifier_url() {
+        let ephemeral_id_secret = hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap();
 
         let session_token = "session_token".into();
         let time_str = "1969-07-21T02:56:15Z";
@@ -1396,7 +1398,7 @@ mod tests {
             &"https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             time,
-            verifier.generate_ephemeral_id(&session_token, &time),
+            Verifier::<()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
             SessionType::CrossDevice,
             "client_id".to_string(),
         )
@@ -1404,7 +1406,7 @@ mod tests {
 
         // Format the ephemeral ID and sign it as a HMAC, then include it as hex in the URL we expect.
         let ephemeral_id = hmac::sign(
-            &verifier.ephemeral_id_secret,
+            &ephemeral_id_secret,
             (session_token.to_string() + "|" + time_str).as_bytes(),
         );
         let expected_url = format!(
