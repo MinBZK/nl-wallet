@@ -303,14 +303,14 @@ where
     }
 }
 
-/// An implementation of [`VpMessageClient`] that sends a response made by the factory,
+/// An implementation of [`VpMessageClient`] that sends an error made by the response factory,
 /// allowing inspection of the messages that were sent.
-pub struct MockFactoryVpMessageClient<F> {
+pub struct MockErrorFactoryVpMessageClient<F> {
     pub response_factory: F,
     pub wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
 }
 
-impl<F> fmt::Debug for MockFactoryVpMessageClient<F> {
+impl<F> fmt::Debug for MockErrorFactoryVpMessageClient<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MockHttpClient")
             .field("wallet_messages", &self.wallet_messages)
@@ -349,7 +349,7 @@ impl WalletMessage {
     }
 }
 
-impl<F> VpMessageClient for MockFactoryVpMessageClient<F>
+impl<F> VpMessageClient for MockErrorFactoryVpMessageClient<F>
 where
     F: Fn() -> Option<VpMessageClientError>,
 {
@@ -396,7 +396,7 @@ where
     F: Fn() -> Option<VpMessageClientError>,
 {
     let wallet_messages = Arc::new(Mutex::new(Vec::new()));
-    let client = MockFactoryVpMessageClient {
+    let client = MockErrorFactoryVpMessageClient {
         response_factory: error_factory,
         wallet_messages: Arc::clone(&wallet_messages),
     };

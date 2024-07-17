@@ -603,7 +603,7 @@ mod tests {
         },
         test::{
             disclosure_session_start, iso_auth_request, test_disclosure_session_start_error_http_client,
-            test_disclosure_session_terminate, MockFactoryVpMessageClient, WalletMessage,
+            test_disclosure_session_terminate, MockErrorFactoryVpMessageClient, WalletMessage,
         },
     };
 
@@ -1234,7 +1234,7 @@ mod tests {
     fn create_disclosure_session_proposal<F>(
         response_factory: F,
     ) -> (
-        DisclosureSession<MockFactoryVpMessageClient<F>, MdocIdentifier>,
+        DisclosureSession<MockErrorFactoryVpMessageClient<F>, MdocIdentifier>,
         Arc<Mutex<Vec<WalletMessage>>>,
     )
     where
@@ -1243,7 +1243,7 @@ mod tests {
         let session_type = SessionType::SameDevice;
 
         let wallet_messages = Arc::new(Mutex::new(Vec::new()));
-        let client = MockFactoryVpMessageClient {
+        let client = MockErrorFactoryVpMessageClient {
             response_factory,
             wallet_messages: Arc::clone(&wallet_messages),
         };
@@ -1289,7 +1289,7 @@ mod tests {
     #[tokio::test]
     async fn test_disclosure_session_missing_attributes_terminate() {
         let wallet_messages = Arc::new(Mutex::new(Vec::new()));
-        let client = MockFactoryVpMessageClient {
+        let client = MockErrorFactoryVpMessageClient {
             response_factory: || None,
             wallet_messages: Arc::clone(&wallet_messages),
         };
@@ -1311,7 +1311,7 @@ mod tests {
             .expect("Could not terminate DisclosureSession with missing attributes");
 
         let wallet_messages = Arc::new(Mutex::new(Vec::new()));
-        let client = MockFactoryVpMessageClient {
+        let client = MockErrorFactoryVpMessageClient {
             response_factory: || Some(VpMessageClientError::Json(serde_json::Error::custom(""))),
             wallet_messages: Arc::clone(&wallet_messages),
         };
