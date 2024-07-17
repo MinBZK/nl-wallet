@@ -299,11 +299,16 @@ where
             .await?;
 
         let (vp_auth_request, certificate) = VpAuthorizationRequest::try_new(&jws, trust_anchors)?;
-        let response_uri = vp_auth_request.response_uri.clone().unwrap();
+        let response_uri = vp_auth_request.response_uri.clone();
 
         // Use async here so we get the async-version of .or_else(), as report_error_back() is async.
         let auth_request = async { vp_auth_request.validate(&certificate, request_nonce) }
-            .or_else(|error| Self::report_error_back(error.into(), &client, response_uri))
+            .or_else(|error| async {
+                match response_uri {
+                    None => Err(error.into()), // just return the error if we don't know the URL to report it to
+                    Some(response_uri) => Self::report_error_back(error.into(), &client, response_uri).await,
+                }
+            })
             .await?;
 
         let mdoc_nonce = random_string(32);
