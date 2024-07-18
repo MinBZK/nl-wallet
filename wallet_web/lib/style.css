@@ -37,6 +37,7 @@
   --text-color: #152a62;
   --success-color: #3d8540;
   --error-color: #ab0065;
+  --error-hover: #750045;
   --spacer-color: #e8eaef;
   --overlay-color: rgba(0, 0, 0, 0.6);
 
@@ -106,8 +107,20 @@
 }
 
 .modal .button.secondary:hover {
+  background-color: var(--secondary-hover);
   color: var(--primary-hover);
   border: 1px solid var(--primary-hover);
+}
+
+.modal .button.error {
+  background-color: var(--error-color);
+  border: 1px solid var(--error-color);
+  color: white;
+}
+
+.modal .button.error:hover {
+  background-color: var(--error-hover);
+  border: 1px solid var(--error-hover);
 }
 
 .modal .button:disabled,
@@ -212,6 +225,7 @@
   outline: none;
 }
 
+.modal.creating main,
 .modal.created main,
 .modal.loading main,
 .modal.in-progress main {
@@ -232,14 +246,16 @@
   gap: 1rem;
 }
 
-.modal.loading main,
+.modal.creating main,
 .modal.created main,
+.modal.loading main,
 .modal.in-progress main,
 .modal.success.cross_device main {
   align-items: center;
   text-align: center;
 }
 
+.modal.confirm-stop main,
 .modal.error main,
 .modal.success.cross_device main {
   text-align: left;
@@ -277,8 +293,10 @@
 }
 
 /* show the buttons seperately */
+.modal.creating footer,
 .modal.loading footer,
 .modal.in-progress footer,
+.modal.confirm-stop footer,
 .modal.error footer,
 .modal.success.same_device footer {
   padding: 1.5rem;

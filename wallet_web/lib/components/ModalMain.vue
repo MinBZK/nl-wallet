@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ConfirmStopSection from "@/components/ConfirmStopSection.vue"
 import CreatedSection from "@/components/CreatedSection.vue"
 import ErrorSection from "@/components/ErrorSection.vue"
 import HelpSection from "@/components/HelpSection.vue"
@@ -25,17 +26,18 @@ onMounted(async () => setTimeout(() => main.value && main.value.focus(), 0))
 
 <template>
   <main ref="main" tabindex="0">
-    <loading-section v-if="modalState.kind === 'loading'"></loading-section>
+    <loading-section v-if="['creating', 'loading'].includes(modalState.kind)"></loading-section>
     <created-section
       v-if="modalState.kind === 'created'"
       :ul="modalState.ul"
-      :sessionType="modalState.sessionType"
+      :sessionType="modalState.session.sessionType"
       @choice="handleChoice"
     ></created-section>
     <in-progress-section v-if="modalState.kind === 'in-progress'"></in-progress-section>
+    <confirm-stop-section v-if="modalState.kind === 'confirm-stop'"></confirm-stop-section>
     <success-section
       v-if="modalState.kind === 'success'"
-      :sessionType="modalState.sessionType"
+      :sessionType="modalState.session.sessionType"
     ></success-section>
     <error-section
       v-if="modalState.kind === 'error'"
