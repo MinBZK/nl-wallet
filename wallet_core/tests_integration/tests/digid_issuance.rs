@@ -1,9 +1,9 @@
-use std::{net::IpAddr, process, str::FromStr};
-use std::io::ErrorKind;
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, HttpVcMessageClient, IssuanceSession},
     oidc::HttpOidcClient,
 };
+use std::io::ErrorKind;
+use std::{net::IpAddr, process, str::FromStr};
 
 use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
