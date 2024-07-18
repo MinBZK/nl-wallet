@@ -9,6 +9,7 @@ import 'package:wallet/src/feature/history/overview/history_overview_screen.dart
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
+import '../../../util/test_utils.dart';
 
 class MockHistoryOverviewBloc extends MockBloc<HistoryOverviewEvent, HistoryOverviewState>
     implements HistoryOverviewBloc {}
@@ -111,6 +112,19 @@ void main() {
 
       // Interaction attribute renders the title of the organization
       expect(find.text(WalletMockData.organization.displayName.testValue), findsOneWidget);
+    });
+
+    testWidgets('HistoryOverviewLoadFailure shows error description and retry cta', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
+          MockHistoryOverviewBloc(),
+          const HistoryOverviewLoadFailure(),
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.errorScreenGenericDescription), findsOneWidget);
+      expect(find.text(l10n.generalRetry), findsOneWidget);
     });
   });
 }

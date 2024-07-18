@@ -8,6 +8,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/localized_text_extension.dart';
+import '../../util/extension/object_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/dialog/scan_with_wallet_dialog.dart';
 import '../common/page/generic_loading_page.dart';
@@ -119,7 +120,7 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureLeftFeedback() => _buildLeftFeedbackPage(context, state),
           DisclosureSuccess() => _buildSuccessPage(context, state),
           DisclosureNetworkError() => _buildNetworkErrorPage(context, state),
-          DisclosureGenericError() => _buildGenericErrorPage(context),
+          DisclosureGenericError() => _buildGenericErrorPage(context, returnUrl: state.returnUrl),
           DisclosureSessionExpired() => _buildSessionExpiredPage(context, state),
           DisclosureExternalScannerError() => _buildGenericErrorPage(context),
         };
@@ -226,7 +227,7 @@ class DisclosureScreen extends StatelessWidget {
       organization: state.organization,
       onClosePressed: (returnUrl) {
         Navigator.pop(context);
-        if (returnUrl != null) launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
+        returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
       },
       isLoginFlow: state.isLoginFlow,
       returnUrl: state.returnUrl,
@@ -247,7 +248,7 @@ class DisclosureScreen extends StatelessWidget {
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
       onPrimaryPressed: (returnUrl) {
         Navigator.pop(context);
-        if (returnUrl != null) launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
+        returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
       },
     );
   }
@@ -259,9 +260,12 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGenericErrorPage(BuildContext context) {
+  Widget _buildGenericErrorPage(BuildContext context, {String? returnUrl}) {
     return DisclosureGenericErrorPage(
-      onStopPressed: () => Navigator.pop(context),
+      onStopPressed: () {
+        returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
+        Navigator.pop(context);
+      },
     );
   }
 

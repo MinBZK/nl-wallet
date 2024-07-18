@@ -45,6 +45,8 @@ import '../domain/usecase/navigation/impl/perform_pre_navigation_actions_usecase
 import '../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import '../domain/usecase/network/check_has_internet_usecase.dart';
 import '../domain/usecase/network/impl/check_has_internet_usecase_impl.dart';
+import '../domain/usecase/permission/check_has_permission_usecase.dart';
+import '../domain/usecase/permission/impl/check_has_permission_usecase_impl.dart';
 import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/continue_pid_issuance_usecase.dart';
@@ -228,6 +230,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetWalletEventsForCardUseCase>(
           create: (context) => GetWalletEventsForCardUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<CheckHasPermissionUseCase>(
+          create: (context) => CheckHasPermissionUseCaseImpl(),
         ),
       ],
       child: child,

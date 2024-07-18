@@ -20,15 +20,15 @@ import 'bloc/menu_bloc.dart';
 import 'widget/menu_row.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final bool showDesignSystemRow;
+
+  const MenuScreen({this.showDesignSystemRow = kDebugMode, super.key});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen> {
-  bool get showDesignSystemRow => kDebugMode;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -136,7 +136,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
         onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.aboutRoute),
       ),
     ];
-    if (showDesignSystemRow) {
+    if (widget.showDesignSystemRow) {
       final designSystemItem = MenuRow(
         label: context.l10n.menuScreenDesignCta,
         icon: Icons.design_services,

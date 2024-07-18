@@ -18,6 +18,7 @@ import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/bloc_extension.dart';
+import '../../../wallet_core/error/core_error.dart';
 import '../../report_issue/report_issue_screen.dart';
 
 part 'disclosure_event.dart';
@@ -86,30 +87,38 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           if (error.isCrossDevice) {
             emit(DisclosureExternalScannerError(error: error));
           } else {
-            emit(DisclosureGenericError(error: error));
+            emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl));
           }
         },
+        onCoreError: (error) => emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl)),
         onUnhandledError: (error) => emit(DisclosureGenericError(error: error)),
       );
     }
   }
 
   Future<void> _onStopRequested(DisclosureStopRequested event, emit) async {
+    String? returnUrl;
     try {
       emit(DisclosureLoadInProgress());
-      await _cancelDisclosureUseCase.invoke();
+      returnUrl = await _cancelDisclosureUseCase.invoke();
     } catch (ex) {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
+      returnUrl = tryCast<CoreError>(ex)?.returnUrl;
     } finally {
       final relyingParty = _startDisclosureResult?.relyingParty;
       if (relyingParty == null) {
-        emit(const DisclosureGenericError(error: 'Invalid state, no relying party to render stopped'));
+        emit(
+          DisclosureGenericError(
+            error: 'Invalid state, no relying party to render stopped',
+            returnUrl: returnUrl,
+          ),
+        );
       } else {
         emit(
           DisclosureStopped(
             organization: _startDisclosureResult!.relyingParty,
             isLoginFlow: isLoginFlow,
-            returnUrl: null, // See PVW-2577,
+            returnUrl: returnUrl,
           ),
         );
       }
@@ -229,27 +238,32 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   Future<void> _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
     Fimber.d('User selected reporting option ${event.option}');
+    String? returnUrl;
     try {
       emit(DisclosureLoadInProgress());
-      await _cancelDisclosureUseCase.invoke();
+      returnUrl = await _cancelDisclosureUseCase.invoke();
     } catch (ex) {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
+      returnUrl = tryCast<CoreError>(ex)?.returnUrl;
     } finally {
-      emit(const DisclosureLeftFeedback());
+      emit(DisclosureLeftFeedback(returnUrl: returnUrl));
     }
   }
 
   Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
+    String? returnUrl;
     try {
       emit(DisclosureLoadInProgress());
-      await _cancelDisclosureUseCase.invoke();
+      returnUrl = await _cancelDisclosureUseCase.invoke();
     } catch (ex) {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
+      returnUrl = tryCast<CoreError>(ex)?.returnUrl;
     } finally {
       await handleError(
         event.error,
-        onNetworkError: (ex, hasInternet) => emit(DisclosureNetworkError(error: ex, hasInternet: hasInternet)),
-        onUnhandledError: (ex) => emit(DisclosureGenericError(error: ex)),
+        onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(error: error, hasInternet: hasInternet)),
+        onCoreError: (error) => emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl ?? returnUrl)),
+        onUnhandledError: (error) => emit(DisclosureGenericError(error: error, returnUrl: returnUrl)),
       );
     }
   }
@@ -259,4 +273,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     await _startDisclosureStreamSubscription?.cancel();
     return super.close();
   }
+}
+
+extension _CoreErrorExtension on CoreError {
+  String? get returnUrl => data?['return_url'];
 }

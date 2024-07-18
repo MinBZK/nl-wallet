@@ -5,8 +5,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
+import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
+import 'package:wallet/src/feature/organization/approve/organization_approve_page.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/sign/bloc/sign_bloc.dart';
+import 'package:wallet/src/feature/sign/page/check_agreement_page.dart';
+import 'package:wallet/src/feature/sign/page/confirm_agreement_page.dart';
+import 'package:wallet/src/feature/sign/page/sign_confirm_pin_page.dart';
+import 'package:wallet/src/feature/sign/page/sign_generic_error_page.dart';
+import 'package:wallet/src/feature/sign/page/sign_stopped_page.dart';
+import 'package:wallet/src/feature/sign/page/sign_success_page.dart';
 import 'package:wallet/src/feature/sign/sign_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -203,6 +211,109 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.signSuccessPageCloseCta), findsOneWidget);
+    });
+
+    testWidgets('SignSuccess renders the SignSuccessPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          SignSuccess(organization: WalletMockData.organization),
+        ),
+      );
+      expect(find.byType(SignSuccessPage), findsOneWidget);
+    });
+
+    testWidgets('SignInitial state renders loader', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          const SignInitial(),
+        ),
+      );
+      expect(find.byType(CenteredLoadingIndicator), findsOneWidget);
+    });
+
+    testWidgets('SignLoadInProgress state renders loader', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          const SignLoadInProgress(),
+        ),
+      );
+      expect(find.byType(CenteredLoadingIndicator), findsOneWidget);
+    });
+
+    testWidgets('SignCheckOrganization state renders OrganizationApprovePage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          SignCheckOrganization(organization: WalletMockData.organization),
+        ),
+      );
+      expect(find.byType(OrganizationApprovePage), findsOneWidget);
+    });
+
+    testWidgets('SignCheckAgreement state renders CheckAgreementPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          SignCheckAgreement(
+            organization: WalletMockData.organization,
+            trustProvider: WalletMockData.organization,
+            document: WalletMockData.document,
+          ),
+        ),
+      );
+      expect(find.byType(CheckAgreementPage), findsOneWidget);
+    });
+
+    testWidgets('SignConfirmAgreement state renders ConfirmAgreementPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          SignConfirmAgreement(
+            trustProvider: WalletMockData.organization,
+            document: WalletMockData.document,
+            policy: WalletMockData.policy,
+            requestedAttributes: const [],
+          ),
+        ),
+      );
+      expect(find.byType(ConfirmAgreementPage), findsOneWidget);
+    });
+
+    testWidgets('SignConfirmPin state renders SignConfirmPinPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          const SignConfirmPin(),
+        ),
+        providers: [
+          RepositoryProvider<PinBloc>(create: (_) => MockPinBloc()),
+          RepositoryProvider<AcceptSignAgreementUseCase>(create: (_) => MockAcceptSignAgreementUseCase()),
+        ],
+      );
+      expect(find.byType(SignConfirmPinPage), findsOneWidget);
+    });
+
+    testWidgets('SignError state renders SignGenericErrorPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          const SignError(),
+        ),
+      );
+      expect(find.byType(SignGenericErrorPage), findsOneWidget);
+    });
+
+    testWidgets('SignStopped state renders SignStoppedPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SignScreen().withState<SignBloc, SignState>(
+          MockSignBloc(),
+          const SignStopped(),
+        ),
+      );
+      expect(find.byType(SignStoppedPage), findsOneWidget);
     });
   });
 }

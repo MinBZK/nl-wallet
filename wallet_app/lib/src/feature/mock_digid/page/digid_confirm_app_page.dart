@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'package:flutter/material.dart';
 
 import '../../common/widget/sliver_sized_box.dart';

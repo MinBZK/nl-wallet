@@ -10,8 +10,10 @@ import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
+import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/organization.dart';
+import 'package:wallet/src/domain/model/pid/pid_issuance_status.dart';
 import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
@@ -59,7 +61,14 @@ void _setupMockitoDummies() {
       sharedDataWithOrganizationBefore: false,
     ),
   );
-  provideDummy<CoreError>(const CoreGenericError('dummy'));
+  provideDummy<CoreError>(const CoreGenericError('dummy', data: {}));
+  provideDummy<domain.StartIssuanceResult>(
+    domain.StartIssuanceReadyToDisclose(
+      relyingParty: WalletMockData.organization,
+      policy: WalletMockData.policy,
+      requestedAttributes: {},
+    ),
+  );
   provideDummy<StartSignResult>(
     StartSignReadyToSign(
       document: WalletMockData.document,
@@ -69,6 +78,7 @@ void _setupMockitoDummies() {
       requestedAttributes: {},
     ),
   );
+  provideDummy<PidIssuanceStatus>(PidIssuanceSuccess(const []));
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

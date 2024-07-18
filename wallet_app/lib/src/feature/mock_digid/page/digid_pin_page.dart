@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:math';
 
 import 'package:flutter/material.dart';

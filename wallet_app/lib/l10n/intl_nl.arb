@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-07-05T16:50:06+02:00",
+    "@@last_modified": "2024-07-17T13:19:22+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -438,6 +438,24 @@
     "historyDetailScreenErrorTitleForDisclosure": "Delen mogelijk mislukt met {organization}",
     "historyDetailScreenErrorTitleForLogin": "Inloggen bij {organization} mislukt",
     "historyDetailScreenIssuanceSuccessDescription": "Kaart aangemaakt",
+    "historyDetailScreenLoginCancelledDescription": "Gegevens zijn niet gedeeld met {organization} want je hebt het inloggen gestopt.",
+    "@historyDetailScreenLoginCancelledDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenLoginErrorDescription": "Gegevens zijn niet gedeeld met {organization} want er is iets mis gegaan.",
+    "@historyDetailScreenLoginErrorDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
     "historyDetailScreenOperationStatusExpiredDescription": "Je kaart is verlopen.",
     "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
     "historyDetailScreenPurposeTitle": "Reden voor delen",
