@@ -5,8 +5,9 @@ import { getStatus } from "@/api/status"
 import ModalFooter from "@/components/ModalFooter.vue"
 import ModalHeader from "@/components/ModalHeader.vue"
 import ModalMain from "@/components/ModalMain.vue"
-import { type ModalState, type Session, type StatusUrl } from "@/models/state"
+import { type ModalState, type Session } from "@/models/state"
 import { type SessionType } from "@/models/status"
+import { errorTypeOrDefault } from "@/util/error_type"
 import { isMobileKey } from "@/util/useragent"
 import { inject, onMounted, onUnmounted, ref, watch } from "vue"
 
@@ -78,10 +79,9 @@ const startSession = async () => {
       sessionToken: response.session_token,
     })
   } catch (e) {
-    console.error(e)
     modalState.value = {
       kind: "error",
-      errorType: "failed",
+      errorType: errorTypeOrDefault(e),
       // session is undefined
     }
   }
@@ -134,10 +134,9 @@ const checkStatus = async (session: Session) => {
         break
     }
   } catch (e) {
-    console.error(e)
     modalState.value = {
       kind: "error",
-      errorType: "failed",
+      errorType: errorTypeOrDefault(e),
       session,
     }
   }

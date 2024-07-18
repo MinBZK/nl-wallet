@@ -30,5 +30,9 @@ const t = injectStrict(translationsKey)
       <h2 data-testid="cancelled_header">{{ t("cancelled_title") }}</h2>
       <p>{{ t("cancelled_body") }}</p>
     </template>
+    <template v-else-if="errorType === 'timeout'">
+      <h2 data-testid="timeout_header">{{ t("timeout_title") }}</h2>
+      <p>{{ t("timeout_body") }}</p>
+    </template>
   </section>
 </template>

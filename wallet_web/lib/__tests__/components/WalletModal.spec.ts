@@ -8,6 +8,7 @@ import { isMobileKey } from "@/util/useragent"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { type AppUL } from "../../models/status"
+import type { ErrorType } from "@/models/state"
 
 await import("../setup")
 
@@ -242,16 +243,24 @@ describe("WalletModal", () => {
     })
 
     it("should show error for get status failure", async () => {
-      vi.mocked(getStatus).mockRejectedValueOnce(new Error("mock http error"))
+      vi.mocked(getStatus).mockRejectedValueOnce("failed" as ErrorType)
       // twice needed because of "focus-hack"
       await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     })
+
+    it("should show error for get status timeout", async () => {
+      vi.mocked(getStatus).mockRejectedValueOnce("timeout" as ErrorType)
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
+      await vi.advanceTimersToNextTimerAsync()
+      expect(wrapper.find("[data-testid=timeout_header]").exists()).toBe(true)
+    })
   })
 
   it("should show error for post engagement failure", async () => {
-    vi.mocked(createSession).mockRejectedValueOnce(new Error("mock http error"))
+    vi.mocked(createSession).mockRejectedValueOnce("failed" as ErrorType)
 
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
@@ -260,6 +269,18 @@ describe("WalletModal", () => {
     await flushPromises()
 
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
+  })
+
+  it("should show error for post engagement timeout", async () => {
+    vi.mocked(createSession).mockRejectedValueOnce("timeout" as ErrorType)
+
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
+    })
+    await flushPromises()
+
+    expect(wrapper.find("[data-testid=timeout_header]").exists()).toBe(true)
   })
 
   it("should show qr code again after retrying for desktop mode", async () => {
