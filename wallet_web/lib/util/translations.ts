@@ -25,6 +25,10 @@ export type Word =
   | "stop"
   | "retry"
   | "close"
+  | "yes_stop"
+  | "no"
+  | "confirm_stop_title"
+  | "confirm_stop_body"
   | "device_choice_title"
   | "device_choice_same_device"
   | "device_choice_cross_device"
@@ -52,6 +56,10 @@ const dictionary: Record<Language, Record<Word, string>> = {
     stop: "Stop",
     retry: "Try again",
     close: "Close",
+    yes_stop: "Yes, stop",
+    no: "No",
+    confirm_stop_title: "Are you sure you want to stop?",
+    confirm_stop_body: "If you stop now, no data will be shared.",
     device_choice_title: "Which device is your NL Wallet is installed?",
     device_choice_same_device: "On this device",
     device_choice_cross_device: "On another device",
@@ -80,6 +88,10 @@ const dictionary: Record<Language, Record<Word, string>> = {
     stop: "Stoppen",
     retry: "Probeer opnieuw",
     close: "Sluiten",
+    yes_stop: "Ja, stop",
+    no: "Nee",
+    confirm_stop_title: "Weet je zeker dat je wilt stoppen?",
+    confirm_stop_body: "Als je stopt worden er geen gegevens gedeeld.",
     device_choice_title: "Op welk apparaat staat je NL Wallet app?",
     device_choice_same_device: "Op dit apparaat",
     device_choice_cross_device: "Op een ander apparaat",
