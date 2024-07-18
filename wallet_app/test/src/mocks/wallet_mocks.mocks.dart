@@ -1272,14 +1272,14 @@ class MockDisclosureRepository extends _i1.Mock implements _i17.DisclosureReposi
       ) as _i9.Future<_i18.StartDisclosureResult>);
 
   @override
-  _i9.Future<void> cancelDisclosure() => (super.noSuchMethod(
+  _i9.Future<String?> cancelDisclosure() => (super.noSuchMethod(
         Invocation.method(
           #cancelDisclosure,
           [],
         ),
-        returnValue: _i9.Future<void>.value(),
-        returnValueForMissingStub: _i9.Future<void>.value(),
-      ) as _i9.Future<void>);
+        returnValue: _i9.Future<String?>.value(),
+        returnValueForMissingStub: _i9.Future<String?>.value(),
+      ) as _i9.Future<String?>);
 
   @override
   _i9.Future<bool> hasActiveDisclosureSession() => (super.noSuchMethod(
@@ -1775,14 +1775,14 @@ class MockTypedWalletCore extends _i1.Mock implements _i26.TypedWalletCore {
       ) as _i9.Future<_i7.StartDisclosureResult>);
 
   @override
-  _i9.Future<void> cancelDisclosure() => (super.noSuchMethod(
+  _i9.Future<String?> cancelDisclosure() => (super.noSuchMethod(
         Invocation.method(
           #cancelDisclosure,
           [],
         ),
-        returnValue: _i9.Future<void>.value(),
-        returnValueForMissingStub: _i9.Future<void>.value(),
-      ) as _i9.Future<void>);
+        returnValue: _i9.Future<String?>.value(),
+        returnValueForMissingStub: _i9.Future<String?>.value(),
+      ) as _i9.Future<String?>);
 
   @override
   _i9.Future<_i7.AcceptDisclosureResult> acceptDisclosure(String? pin) => (super.noSuchMethod(
@@ -2234,14 +2234,14 @@ class MockStartDisclosureUseCase extends _i1.Mock implements _i42.StartDisclosur
 /// See the documentation for Mockito's code generation for more information.
 class MockCancelDisclosureUseCase extends _i1.Mock implements _i43.CancelDisclosureUseCase {
   @override
-  _i9.Future<void> invoke() => (super.noSuchMethod(
+  _i9.Future<String?> invoke() => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [],
         ),
-        returnValue: _i9.Future<void>.value(),
-        returnValueForMissingStub: _i9.Future<void>.value(),
-      ) as _i9.Future<void>);
+        returnValue: _i9.Future<String?>.value(),
+        returnValueForMissingStub: _i9.Future<String?>.value(),
+      ) as _i9.Future<String?>);
 }
 
 /// A class which mocks [ObserveWalletCardsUseCase].

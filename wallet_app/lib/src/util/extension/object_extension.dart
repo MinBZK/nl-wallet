@@ -6,4 +6,6 @@ extension GenericExtension<T> on T {
       return null;
     }
   }
+
+  R let<R>(R Function(T that) op) => op(this);
 }

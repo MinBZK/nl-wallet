@@ -2,34 +2,30 @@ import 'package:equatable/equatable.dart';
 
 sealed class CoreError extends Equatable {
   final String? description;
+  final Map<String, dynamic>? data;
 
-  const CoreError(this.description);
+  const CoreError(this.description, {this.data});
 
   @override
-  List<Object?> get props => [description];
+  List<Object?> get props => [description, data];
 }
 
 class CoreGenericError extends CoreError {
-  const CoreGenericError(super.description);
+  const CoreGenericError(super.description, {super.data});
 }
 
 class CoreNetworkError extends CoreError {
-  const CoreNetworkError(super.description);
+  const CoreNetworkError(super.description, {super.data});
 }
 
 class CoreStateError extends CoreError {
-  final Map<String, dynamic>? data;
-
-  const CoreStateError(super.description, this.data);
-
-  @override
-  List<Object?> get props => [data, ...super.props];
+  const CoreStateError(super.description, {super.data});
 }
 
 class CoreRedirectUriError extends CoreError {
   final RedirectError redirectError;
 
-  const CoreRedirectUriError(super.description, {required this.redirectError});
+  const CoreRedirectUriError(super.description, {super.data, required this.redirectError});
 
   @override
   List<Object?> get props => [redirectError, ...super.props];
@@ -38,13 +34,13 @@ class CoreRedirectUriError extends CoreError {
 enum RedirectError { accessDenied, serverError, unknown }
 
 class CoreHardwareKeyUnsupportedError extends CoreError {
-  const CoreHardwareKeyUnsupportedError(super.description);
+  const CoreHardwareKeyUnsupportedError(super.description, {super.data});
 }
 
 class CoreDisclosureSourceMismatchError extends CoreError {
   final bool isCrossDevice;
 
-  const CoreDisclosureSourceMismatchError(super.description, {required this.isCrossDevice});
+  const CoreDisclosureSourceMismatchError(super.description, {super.data, required this.isCrossDevice});
 
   @override
   List<Object?> get props => [isCrossDevice, ...super.props];
