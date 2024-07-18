@@ -32,7 +32,7 @@ async fn start_gba_hc_converter(settings: GbaSettings) {
         if let Err(error) = gba_hc_converter::app::serve_from_settings(settings).await {
             if let Some(io_error) = error.downcast_ref::<std::io::Error>() {
                 if io_error.kind() == ErrorKind::AddrInUse {
-                    println!("TCP address or port for gba_hc_converter is already in use, assuming you started it yourself, continuing...");
+                    println!("TCP address/port for gba_hc_converter is already in use, assuming you started it yourself, continuing...");
                     return;
                 }
             }
