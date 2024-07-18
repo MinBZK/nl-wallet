@@ -18,6 +18,7 @@ use tower_http::{
     trace::TraceLayer,
 };
 use tracing::warn;
+use url::Url;
 
 use nl_wallet_mdoc::{server_state::SessionToken, verifier::DisclosedAttributes};
 use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
@@ -112,7 +113,7 @@ struct SessionOptions {
 
 #[derive(Serialize)]
 struct SessionResponse {
-    status_url: String,
+    status_url: Url,
     session_token: SessionToken,
 }
 
@@ -136,12 +137,6 @@ struct UsecaseTemplate<'a> {
 pub struct DisclosedAttributesParams {
     pub nonce: Option<String>,
     pub session_token: SessionToken,
-}
-
-#[derive(Deserialize, Serialize)]
-struct EngagementUrls {
-    status_url: String,
-    disclosed_attributes_url: String,
 }
 
 async fn create_session(
@@ -177,8 +172,7 @@ async fn create_session(
     let result = SessionResponse {
         status_url: state
             .public_wallet_server_url
-            .join(&format!("disclosure/sessions/{session_token}"))
-            .to_string(),
+            .join(&format!("disclosure/sessions/{session_token}")),
         session_token,
     };
     Ok(result.into())

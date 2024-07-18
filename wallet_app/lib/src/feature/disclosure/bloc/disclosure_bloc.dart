@@ -29,7 +29,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   final CancelDisclosureUseCase _cancelDisclosureUseCase;
 
   StartDisclosureResult? _startDisclosureResult;
-  StreamSubscription? _startDisclosureStreamSubscription;
 
   Organization? get relyingParty => _startDisclosureResult?.relyingParty;
 
@@ -90,6 +89,14 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
             emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl));
           }
         },
+        onCoreExpiredSessionError: (error) => emit(
+          DisclosureSessionExpired(
+            error: error,
+            canRetry: error.canRetry,
+            isCrossDevice: event.isQrCode,
+            returnUrl: error.returnUrl,
+          ),
+        ),
         onCoreError: (error) => emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl)),
         onUnhandledError: (error) => emit(DisclosureGenericError(error: error)),
       );
@@ -254,24 +261,30 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     String? returnUrl;
     try {
       emit(DisclosureLoadInProgress());
+      Fimber.d('Disclosure failed when entering pin, cause: ${event.error}. Calling cancelSession explicitly as well.');
       returnUrl = await _cancelDisclosureUseCase.invoke();
     } catch (ex) {
-      Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
+      Fimber.e('Failed to explicitly cancel disclosure session', ex: ex);
       returnUrl = tryCast<CoreError>(ex)?.returnUrl;
     } finally {
       await handleError(
         event.error,
         onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(error: error, hasInternet: hasInternet)),
+        onCoreExpiredSessionError: (error) {
+          final isCrossDevice = _startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
+          emit(
+            DisclosureSessionExpired(
+              error: error,
+              canRetry: error.canRetry,
+              isCrossDevice: isCrossDevice,
+              returnUrl: error.returnUrl ?? returnUrl,
+            ),
+          );
+        },
         onCoreError: (error) => emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl ?? returnUrl)),
         onUnhandledError: (error) => emit(DisclosureGenericError(error: error, returnUrl: returnUrl)),
       );
     }
-  }
-
-  @override
-  Future<void> close() async {
-    await _startDisclosureStreamSubscription?.cancel();
-    return super.close();
   }
 }
 

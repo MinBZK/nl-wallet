@@ -53,22 +53,6 @@ void main() {
       );
       await screenMatchesGolden(tester, 'page_3.light');
     });
-    testGoldens('Page 4 light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const IntroductionScreen(),
-            name: 'page_4',
-            onCreate: (scenarioWidgetKey) async {
-              await _skipPage(scenarioWidgetKey, tester);
-              await _skipPage(scenarioWidgetKey, tester);
-              await _skipPage(scenarioWidgetKey, tester);
-            },
-          ),
-        wrapper: walletAppWrapper(),
-      );
-      await screenMatchesGolden(tester, 'page_4.light');
-    });
 
     testGoldens('Page 1 dark', (tester) async {
       await tester.pumpDeviceBuilder(
@@ -85,6 +69,39 @@ void main() {
     testGoldens('Page 1 individual to render portrait and thus show stepper correctly', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
       await screenMatchesGolden(tester, 'page_1.stepper.light');
+    });
+  });
+
+  group('widgets', () {
+    testWidgets('page 1 title and description are shown', (WidgetTester tester) async {
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.introductionPage1Title), findsAtLeast(1));
+      expect(find.text(l10n.introductionPage1Description), findsOneWidget);
+    });
+
+    testWidgets('page 2 title and description are shown', (WidgetTester tester) async {
+      const Key key = Key('introduction');
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen(key: key));
+
+      await _skipPage(key, tester);
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.introductionPage2Title), findsAtLeast(1));
+      expect(find.text(l10n.introductionPage2Description), findsOneWidget);
+    });
+
+    testWidgets('page 3 title and description are shown', (WidgetTester tester) async {
+      const Key key = Key('introduction');
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen(key: key));
+
+      await _skipPage(key, tester);
+      await _skipPage(key, tester);
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.introductionPage3Title), findsAtLeast(1));
+      expect(find.text(l10n.introductionPage3Description), findsOneWidget);
     });
   });
 }

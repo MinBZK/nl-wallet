@@ -11,6 +11,7 @@ import { type AppUL } from "../../models/status"
 
 await import("../setup")
 
+vi.mock("@/api/cancel")
 vi.mock("@/api/session")
 vi.mock("@/api/status")
 
@@ -92,6 +93,22 @@ describe("WalletModal", () => {
     expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
   })
 
+  it("should show loading when closing model", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: {
+        provide: {
+          [translationsKey as symbol]: translations("nl"),
+        },
+      },
+    })
+    await vi.advanceTimersToNextTimerAsync()
+    expect(wrapper.find("[data-testid=loading]").exists()).toBe(false)
+    await wrapper.find("[data-testid=close_button]").trigger("click")
+    await vi.advanceTimersToNextTimerAsync()
+    expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
+  })
+
   it("should refresh qr code", async () => {
     vi.clearAllMocks()
 
@@ -127,6 +144,35 @@ describe("WalletModal", () => {
         await vi.advanceTimersToNextTimerAsync()
         await vi.advanceTimersToNextTimerAsync()
         await vi.waitFor(() => {
+          expect(wrapper.find("[data-testid=in_progress]").exists()).toBe(true)
+        })
+      },
+    )
+  })
+
+  it("should show confirm stop when clicking stop on in-progress screen", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
+    })
+    await flushPromises()
+    const qr = wrapper.getComponent(QrCode)
+    expect(qr.find("[data-testid=qr]").exists()).toBe(true)
+
+    await vi.mocked(getStatus).withImplementation(
+      async () => ({ status: "WAITING_FOR_RESPONSE" }),
+      async () => {
+        // twice needed because of "focus-hack"
+        await vi.advanceTimersToNextTimerAsync()
+        await vi.advanceTimersToNextTimerAsync()
+        await vi.waitFor(async () => {
+          expect(wrapper.find("[data-testid=in_progress]").exists()).toBe(true)
+          await wrapper.find("[data-testid=cancel_button]").trigger("click")
+          await vi.advanceTimersToNextTimerAsync()
+          expect(wrapper.find("[data-testid=confirm_stop]").exists()).toBe(true)
+          expect(wrapper.find("[data-testid=in_progress]").exists()).toBe(false)
+          // back button should just go back
+          await wrapper.find("[data-testid=back_button]").trigger("click")
           expect(wrapper.find("[data-testid=in_progress]").exists()).toBe(true)
         })
       },

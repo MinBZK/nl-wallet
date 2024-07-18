@@ -78,6 +78,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
             WalletPersonalizeNetworkError(error: ex, hasInternet: hasInternet),
           ),
         ),
+        onCoreExpiredSessionError: (ex) => emit(WalletPersonalizeSessionExpired(error: ex)),
         onUnhandledError: (ex) => add(WalletPersonalizeLoginWithDigidFailed(error: ex)),
       );
     }
@@ -135,6 +136,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       await handleError(
         error,
         onNetworkError: (ex, hasInternet) => emit(WalletPersonalizeNetworkError(error: ex, hasInternet: hasInternet)),
+        onCoreExpiredSessionError: (ex) => emit(WalletPersonalizeSessionExpired(error: ex)),
         onUnhandledError: (ex) => emit(WalletPersonalizeGenericError(error: ex)),
       );
     }

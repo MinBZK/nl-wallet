@@ -570,6 +570,55 @@ void main() {
   );
 
   blocTest(
+    'when a CoreExpiredSessionError is thrown when starting disclosure, emit DisclosureSessionExpired',
+    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
+        .thenThrow(const CoreExpiredSessionError('', canRetry: true)),
+    build: create,
+    act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [
+      const DisclosureSessionExpired(
+        canRetry: true,
+        isCrossDevice: false,
+        error: CoreExpiredSessionError('', canRetry: true),
+      ),
+    ],
+  );
+
+  blocTest(
+    'when a CoreExpiredSessionError is thrown when accepting disclosure, emit DisclosureSessionExpired',
+    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer(
+      (_) async => StartDisclosureReadyToDisclose(
+        WalletMockData.organization,
+        'originUrl',
+        ''.untranslated,
+        DisclosureSessionType.crossDevice,
+        DisclosureType.regular,
+        {},
+        WalletMockData.policy,
+        sharedDataWithOrganizationBefore: false,
+      ),
+    ),
+    build: create,
+    act: (bloc) async {
+      bloc.add(const DisclosureSessionStarted(''));
+      await Future.delayed(const Duration(milliseconds: 20));
+      bloc.add(const DisclosureOrganizationApproved());
+      await Future.delayed(const Duration(milliseconds: 20));
+      bloc.add(const DisclosureConfirmPinFailed(error: CoreExpiredSessionError('', canRetry: false)));
+    },
+    expect: () => [
+      isA<DisclosureCheckOrganization>(),
+      isA<DisclosureConfirmDataAttributes>(),
+      isA<DisclosureLoadInProgress>(),
+      const DisclosureSessionExpired(
+        canRetry: false,
+        isCrossDevice: true,
+        error: CoreExpiredSessionError('', canRetry: false),
+      ),
+    ],
+  );
+
+  blocTest(
     'when a CoreGenericError with a returnUrl is thrown, the bloc emits a GenericError that contains this returnUrl',
     setUp: () {
       return when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenThrow(

@@ -546,7 +546,7 @@ async fn test_client_and_server_cancel_after_created() {
         .expect("should be able to cancel newly created session");
 
     // The session should now be cancelled
-    let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
+    let status_response = request_status_endpoint(&verifier, &session_token, None).await;
 
     assert_matches!(status_response, StatusResponse::Cancelled);
 
@@ -609,7 +609,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
         .expect("should be able to cancel session that is waiting for response");
 
     // The session should now be cancelled
-    let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
+    let status_response = request_status_endpoint(&verifier, &session_token, None).await;
 
     assert_matches!(status_response, StatusResponse::Cancelled);
 
@@ -730,7 +730,9 @@ async fn request_uri_from_status_endpoint(
     session_token: &SessionToken,
     session_type: SessionType,
 ) -> String {
-    let StatusResponse::Created { ul } = request_status_endpoint(verifier, session_token, session_type).await else {
+    let StatusResponse::Created { ul: Some(ul) } =
+        request_status_endpoint(verifier, session_token, Some(session_type)).await
+    else {
         panic!("unexpected state")
     };
 
@@ -740,7 +742,7 @@ async fn request_uri_from_status_endpoint(
 async fn request_status_endpoint(
     verifier: &MockVerifier,
     session_token: &SessionToken,
-    session_type: SessionType,
+    session_type: Option<SessionType>,
 ) -> StatusResponse {
     verifier
         .status_response(

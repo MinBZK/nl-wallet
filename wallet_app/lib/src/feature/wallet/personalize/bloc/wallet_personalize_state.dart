@@ -76,7 +76,7 @@ class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
   bool get canGoBack => true;
 
   @override
-  List<Object?> get props => [...super.props];
+  List<Object?> get props => [attributes, ...super.props];
 }
 
 class WalletPersonalizeSuccess extends WalletPersonalizeState {

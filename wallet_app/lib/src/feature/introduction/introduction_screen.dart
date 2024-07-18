@@ -194,6 +194,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                 child: Lottie.asset(
                   lottieAsset,
                   fit: BoxFit.contain,
+                  animate: !Environment.isTest,
                 ),
               ),
             ),

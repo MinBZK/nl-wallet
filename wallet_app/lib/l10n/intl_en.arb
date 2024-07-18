@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-07-17T13:19:22+02:00",
+    "@@last_modified": "2024-07-17T15:49:36+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -315,9 +315,11 @@
     "errorScreenServerDescription": "Unable to reach the system. There could be several reasons for this.\nCheck if you are connected to the internet or use another network. Try again after doing so.",
     "errorScreenServerDescriptionCloseVariant": "Unable to reach the system. There could be several reasons for this.\nCheck the internet connection or use a different network. Close the app and try again later.",
     "errorScreenServerHeadline": "Sorry, no response",
+    "errorScreenSessionExpiredCrossDeviceCta": "Scan QR code again",
     "errorScreenSessionExpiredDescription": "This action has stopped because too much time has passed. This is intended to keep your data secure. Please try again.",
     "errorScreenSessionExpiredDescriptionCloseVariant": "This action has stopped because too much time has passed. This is intended to keep your data secure. Close the app and try again later.",
     "errorScreenSessionExpiredHeadline": "Sorry, you're out of time",
+    "errorScreenSessionExpiredReturnUrlCta": "Go to website",
     "flashlightDisabledWCAGAnnouncement": "Flashlight turned off",
     "flashlightEnabledWCAGAnnouncement": "Flashlight turned on",
     "forgotPinScreenCta": "Delete Wallet",

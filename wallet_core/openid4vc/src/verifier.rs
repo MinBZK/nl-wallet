@@ -14,7 +14,7 @@ use josekit::{
 use nutype::nutype;
 use ring::hmac;
 use serde::{Deserialize, Serialize};
-use serde_with::{hex::Hex, serde_as};
+use serde_with::{hex::Hex, serde_as, skip_serializing_none};
 use strum;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
@@ -367,10 +367,11 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
 }
 
 /// Session status for the frontend.
+#[skip_serializing_none]
 #[derive(Debug, Deserialize, Serialize, strum::Display)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
 pub enum StatusResponse {
-    Created { ul: BaseUrl },
+    Created { ul: Option<BaseUrl> },
     WaitingForResponse,
     Done,
     Failed,
@@ -623,22 +624,27 @@ where
     pub async fn status_response(
         &self,
         session_token: &SessionToken,
-        session_type: SessionType,
+        session_type: Option<SessionType>,
         ul_base: &BaseUrl,
         request_uri: BaseUrl,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusResponse, VerificationError> {
         let response = match self.get_session_state(session_token).await?.data {
             DisclosureData::Created(Created { client_id, .. }) => {
-                let time = time.generate();
-                let ul = Self::format_ul(
-                    ul_base,
-                    request_uri,
-                    time,
-                    Self::generate_ephemeral_id(&self.ephemeral_id_secret, session_token, &time),
-                    session_type,
-                    client_id,
-                )?;
+                let ul = session_type
+                    .map(|session_type| {
+                        let time = time.generate();
+                        Self::format_ul(
+                            ul_base,
+                            request_uri,
+                            time,
+                            Self::generate_ephemeral_id(&self.ephemeral_id_secret, session_token, &time),
+                            session_type,
+                            client_id,
+                        )
+                    })
+                    .transpose()?;
+
                 StatusResponse::Created { ul }
             }
             DisclosureData::WaitingForResponse(_) => StatusResponse::WaitingForResponse,
@@ -1191,7 +1197,7 @@ mod tests {
         let response = verifier
             .status_response(
                 &session_token,
-                SessionType::SameDevice,
+                Some(SessionType::SameDevice),
                 &"https://app.example.com/app".parse().unwrap(),
                 format!("https://example.com/disclosure/{session_token}")
                     .parse()
@@ -1206,7 +1212,7 @@ mod tests {
         };
 
         let request_query_object: VpRequestUriObject =
-            serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap();
+            serde_urlencoded::from_str(ul.unwrap().as_ref().query().unwrap()).unwrap();
 
         (verifier, session_token, request_query_object)
     }

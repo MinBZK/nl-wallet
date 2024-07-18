@@ -23,6 +23,7 @@ extension BlocExtensions on Bloc {
     Function(CoreRedirectUriError)? onRedirectUriError,
     Function(CoreHardwareKeyUnsupportedError)? onHardwareKeyUnsupportedError,
     Function(CoreDisclosureSourceMismatchError)? onDisclosureSourceMismatchError,
+    Function(CoreExpiredSessionError)? onCoreExpiredSessionError,
     Function(CoreError)? onCoreError,
     required Function(Object) onUnhandledError,
   }) async {
@@ -43,6 +44,9 @@ extension BlocExtensions on Bloc {
         case CoreDisclosureSourceMismatchError():
           await onDisclosureSourceMismatchError?.call(ex);
           if (onDisclosureSourceMismatchError != null) return;
+        case CoreExpiredSessionError():
+          await onCoreExpiredSessionError?.call(ex);
+          if (onCoreExpiredSessionError != null) return;
         case CoreStateError():
           // This is a programming error and thus should not be handled gracefully.
           throw ex;
