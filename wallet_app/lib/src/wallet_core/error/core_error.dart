@@ -45,3 +45,12 @@ class CoreDisclosureSourceMismatchError extends CoreError {
   @override
   List<Object?> get props => [isCrossDevice, ...super.props];
 }
+
+class CoreExpiredSessionError extends CoreError {
+  final bool canRetry;
+
+  const CoreExpiredSessionError(super.description, {required this.canRetry});
+
+  @override
+  List<Object?> get props => [canRetry, ...super.props];
+}

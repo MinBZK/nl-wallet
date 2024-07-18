@@ -33,6 +33,12 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
           data: flutterApiError.data,
           isCrossDevice: isCrossDevice,
         );
+      case FlutterApiErrorType.expiredSession:
+        final canRetry = flutterApiError.data?['can_retry'] == true;
+        return CoreExpiredSessionError(
+          flutterApiError.description,
+          canRetry: canRetry,
+        );
     }
   }
 

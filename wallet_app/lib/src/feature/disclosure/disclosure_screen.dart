@@ -413,7 +413,31 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildSessionExpiredPage(BuildContext context, DisclosureSessionExpired state) {
-    return ErrorPage.sessionExpired(context, style: ErrorCtaStyle.close);
+    final userShouldRetryScan = state.isCrossDevice && state.canRetry;
+    final hasReturnUrl = state.returnUrl != null;
+    final userShouldRedirectToReturnUrl = !state.isCrossDevice && hasReturnUrl;
+    String? cta;
+    if (userShouldRetryScan) {
+      cta = context.l10n.errorScreenSessionExpiredCrossDeviceCta;
+    } else if (userShouldRedirectToReturnUrl) {
+      cta = context.l10n.errorScreenSessionExpiredReturnUrlCta;
+    }
+    return ErrorPage.sessionExpired(
+      context,
+      style: state.canRetry ? ErrorCtaStyle.retry : ErrorCtaStyle.close,
+      cta: cta,
+      onPrimaryActionPressed: () {
+        if (userShouldRetryScan) {
+          Navigator.popUntil(context, ModalRoute.withName(WalletRoutes.dashboardRoute));
+          Navigator.pushNamed(context, WalletRoutes.qrRoute);
+        } else if (hasReturnUrl) {
+          Navigator.maybePop(context);
+          launchUrlStringCatching(state.returnUrl!, mode: LaunchMode.externalApplication);
+        } else {
+          Navigator.maybePop(context);
+        }
+      },
+    );
   }
 }
 
