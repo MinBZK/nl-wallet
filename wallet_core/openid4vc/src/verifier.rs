@@ -81,10 +81,6 @@ pub enum VerificationError {
     RedirectUriNonceMismatch(String),
     #[error("missing nonce in redirect URI")]
     RedirectUriNonceMissing,
-    #[error("missing DNS SAN from RP certificate")]
-    MissingSAN,
-    #[error("RP certificate error: {0}")]
-    Certificate(#[from] CertificateError),
 
     // status endpoint error
     #[error("URL encoding error: {0}")]
@@ -123,6 +119,15 @@ pub enum PostAuthResponseError {
     Session(#[from] SessionError),
     #[error("error decrypting or verifying Authorization Response JWE: {0}")]
     AuthResponse(#[from] AuthResponseError),
+}
+
+/// Errors that can occur when creating a [`UseCase`] instance.
+#[derive(Debug, thiserror::Error)]
+pub enum UseCertificateCaseError {
+    #[error("missing DNS SAN from RP certificate")]
+    MissingSAN,
+    #[error("RP certificate error: {0}")]
+    Certificate(#[from] CertificateError),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -390,16 +395,21 @@ pub struct UseCase {
 }
 
 impl UseCase {
-    pub fn new(key_pair: KeyPair, session_type_return_url: SessionTypeReturnUrl) -> Result<Self, VerificationError> {
+    pub fn try_new(
+        key_pair: KeyPair,
+        session_type_return_url: SessionTypeReturnUrl,
+    ) -> Result<Self, UseCertificateCaseError> {
         let client_id = key_pair
             .certificate()
             .san_dns_name()?
-            .ok_or(VerificationError::MissingSAN)?;
-        Ok(Self {
+            .ok_or(UseCertificateCaseError::MissingSAN)?;
+        let use_case = Self {
             key_pair,
             client_id,
             session_type_return_url,
-        })
+        };
+
+        Ok(use_case)
     }
 }
 

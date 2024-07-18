@@ -317,9 +317,7 @@ impl From<VerificationError> for VerificationErrorCode {
             }
             VerificationError::UnknownUseCase(_)
             | VerificationError::ReturnUrlConfigurationMismatch
-            | VerificationError::NoItemsRequests
-            | VerificationError::MissingSAN
-            | VerificationError::Certificate(_) => VerificationErrorCode::InvalidRequest,
+            | VerificationError::NoItemsRequests => VerificationErrorCode::InvalidRequest,
             VerificationError::RedirectUriNonceMismatch(_) | VerificationError::RedirectUriNonceMissing => {
                 VerificationErrorCode::Nonce
             }
