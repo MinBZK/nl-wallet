@@ -1,7 +1,7 @@
 use tracing::{info, instrument};
 use url::Url;
 
-use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::{config::wallet_config::WalletConfiguration, sentry_capture_error, ErrorCategory};
 
 use crate::{
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
@@ -17,11 +17,13 @@ pub enum UriType {
     Disclosure(Url),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum UriIdentificationError {
     #[error("could not parse URI: {0}")]
+    #[category(pd)]
     Parse(#[from] url::ParseError),
     #[error("unknown URI")]
+    #[category(critical)]
     Unknown,
 }
 
@@ -31,6 +33,7 @@ where
     DS: DigidSession,
 {
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
         info!("Identifying type of URI: {}", uri_str);
 

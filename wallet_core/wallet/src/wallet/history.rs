@@ -9,7 +9,7 @@ use nl_wallet_mdoc::{
         x509::{CertificateError, MdocCertificateExtension},
     },
 };
-use wallet_common::ErrorCategory;
+use wallet_common::{sentry_capture_error, ErrorCategory};
 
 pub use crate::storage::EventStatus;
 use crate::{
@@ -21,11 +21,14 @@ use crate::{
 
 use super::Wallet;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum HistoryError {
     #[error("wallet is not registered")]
+    #[category(expected)]
     NotRegistered,
     #[error("wallet is locked")]
+    #[category(expected)]
     Locked,
     #[error("could not access history database: {0}")]
     EventStorage(#[from] EventStorageError),
@@ -84,6 +87,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn get_history(&self) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving history");
 

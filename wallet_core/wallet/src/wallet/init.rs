@@ -4,6 +4,7 @@ use platform_support::{
     hw_keystore::{hardware::HardwareEncryptionKey, PlatformEcdsaKey},
     utils::{hardware::HardwareUtilities, PlatformUtilities, UtilitiesError},
 };
+use wallet_common::{sentry_capture_error, ErrorCategory};
 
 use crate::{
     account_provider::HttpAccountProviderClient,
@@ -17,7 +18,8 @@ use crate::{
 
 use super::{Wallet, WalletRegistration};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum WalletInitError {
     #[error("wallet configuration error")]
     Configuration(#[from] ConfigurationError),
@@ -28,6 +30,7 @@ pub enum WalletInitError {
 }
 
 impl Wallet {
+    #[sentry_capture_error]
     pub async fn init_all() -> Result<Self, WalletInitError> {
         init_universal_link_base_url();
 

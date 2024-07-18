@@ -7,8 +7,11 @@ pub mod test;
 
 use std::path::PathBuf;
 
+use wallet_common::ErrorCategory;
+
 // implementation of UtilitiesError from UDL
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)] // Not sure what get's into the `reason` fields
 pub enum UtilitiesError {
     #[error("platform error: {reason}")]
     PlatformError { reason: String },

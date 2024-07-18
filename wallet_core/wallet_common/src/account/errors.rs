@@ -34,9 +34,9 @@ impl ErrorCategory for Error {
             Error::SequenceNumberMismatch => Category::Critical,
             Error::JsonParsing(_) => Category::PersonalData,
             Error::Ecdsa(_) => Category::Critical,
-            Error::VerifyingKey(_) => todo!(),
-            Error::Signing(_) => todo!(),
-            Error::Jwt(_) => todo!(),
+            Error::VerifyingKey(_) => Category::PersonalData,
+            Error::Signing(_) => Category::PersonalData,
+            Error::Jwt(error) => error.category(),
         }
     }
 }

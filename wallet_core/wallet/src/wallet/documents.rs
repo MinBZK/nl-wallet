@@ -5,7 +5,7 @@ use nl_wallet_mdoc::utils::{
     issuer_auth::IssuerRegistration,
     x509::{CertificateError, MdocCertificateExtension},
 };
-use wallet_common::ErrorCategory;
+use wallet_common::{sentry_capture_error, ErrorCategory};
 
 use crate::{
     document::{Document, DocumentPersistence},
@@ -71,6 +71,7 @@ where
         Ok(())
     }
 
+    #[sentry_capture_error]
     pub async fn set_documents_callback(
         &mut self,
         callback: DocumentsCallback,
