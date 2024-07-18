@@ -639,14 +639,12 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        convert::identity,
-        sync::{Arc, Mutex},
-    };
+    use std::{convert::identity, sync::Arc};
 
     use assert_matches::assert_matches;
     use indexmap::{IndexMap, IndexSet};
     use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+    use parking_lot::Mutex;
     use rand_core::OsRng;
     use reqwest::StatusCode;
     use rstest::rstest;
@@ -753,7 +751,7 @@ mod tests {
         let expected_redirect_uri = verifier_session.redirect_uri.as_ref().unwrap();
         assert_eq!(redirect_uri, expected_redirect_uri);
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
 
         // Decrypt the disclosure and extract the contained disclosed documents.
@@ -823,7 +821,7 @@ mod tests {
         };
 
         // Check that the wallet sent a nonce to be included in the Authorization Request JWT.
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 1);
         assert!(wallet_messages.first().unwrap().request().wallet_nonce.is_some());
 
@@ -879,7 +877,7 @@ mod tests {
             verifier_session.reader_registration.as_ref().unwrap()
         );
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
 
@@ -919,7 +917,7 @@ mod tests {
             verifier_session.reader_registration.as_ref().unwrap()
         );
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
 
@@ -956,7 +954,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::RequestUri(_));
-        assert_eq!(verifier_session.wallet_messages.lock().unwrap().len(), 0);
+        assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
     #[tokio::test]
@@ -982,7 +980,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::RequestUri(_));
-        assert_eq!(verifier_session.wallet_messages.lock().unwrap().len(), 0);
+        assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
     #[tokio::test]
@@ -1014,7 +1012,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::MalformedSessionType(_));
-        assert_eq!(verifier_session.wallet_messages.lock().unwrap().len(), 0);
+        assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
     #[tokio::test]
@@ -1040,7 +1038,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::MalformedSessionType(_));
-        assert_eq!(verifier_session.wallet_messages.lock().unwrap().len(), 0);
+        assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
     #[rstest]
@@ -1070,7 +1068,7 @@ mod tests {
                 typ,
                 source
             ) if typ == session_type && source == uri_source);
-        assert_eq!(verifier_session.wallet_messages.lock().unwrap().len(), 0);
+        assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
     #[tokio::test]
@@ -1126,7 +1124,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::MissingSessionType);
-        assert_eq!(verifier_session.wallet_messages.lock().unwrap().len(), 0);
+        assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
     #[tokio::test]
@@ -1155,7 +1153,7 @@ mod tests {
             } if expected == *"client_id_from_request_uri_object"
         );
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
         _ = wallet_messages.first().unwrap().request();
         _ = wallet_messages.last().unwrap().error(); // This RP error should be reported back to the RP
@@ -1189,7 +1187,7 @@ mod tests {
             VpClientError::AuthRequestValidation(AuthRequestValidationError::UnexpectedJwkAmount(0))
         );
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
         _ = wallet_messages.first().unwrap().request();
         _ = wallet_messages.last().unwrap().error(); // This RP error should be reported back to the RP
@@ -1221,7 +1219,7 @@ mod tests {
             VpClientError::AuthRequestValidation(AuthRequestValidationError::NoAttributesRequested)
         );
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
         _ = wallet_messages.first().unwrap().request();
         _ = wallet_messages.last().unwrap().error(); // This RP error should be reported back to the RP
@@ -1251,7 +1249,7 @@ mod tests {
             ))
         );
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
     }
@@ -1292,7 +1290,7 @@ mod tests {
             ValidationError::UnregisteredAttributes(ids)
         ) if ids == vec![unregistered_attribute]);
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
         _ = wallet_messages.first().unwrap().request();
         _ = wallet_messages.last().unwrap().error(); // This RP error should be reported back to the RP
@@ -1364,7 +1362,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
         assert_matches!(error, VpClientError::MissingReaderRegistration);
 
-        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
         _ = wallet_messages.first().unwrap().request();
         _ = wallet_messages.last().unwrap().error(); // This RP error should be reported back to the RP
@@ -1495,11 +1493,11 @@ mod tests {
         };
 
         if expect_report_error {
-            let wallet_messages = wallet_messages.lock().unwrap();
+            let wallet_messages = wallet_messages.lock();
             assert_eq!(wallet_messages.len(), 1);
             _ = wallet_messages.first().unwrap().disclosure();
         } else {
-            assert_eq!(wallet_messages.lock().unwrap().len(), 0);
+            assert_eq!(wallet_messages.lock().len(), 0);
         }
 
         error

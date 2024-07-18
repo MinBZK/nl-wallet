@@ -1,12 +1,9 @@
-use std::{
-    fmt,
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::{fmt, str::FromStr, sync::Arc};
 
 use assert_matches::assert_matches;
 use chrono::Utc;
 use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
+use parking_lot::Mutex;
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -198,7 +195,6 @@ where
         self.session
             .wallet_messages
             .lock()
-            .unwrap()
             .push(WalletMessage::Request(wallet_request.clone()));
 
         Ok(self.session.auth_request(wallet_request).await)
@@ -209,11 +205,7 @@ where
         _url: BaseUrl,
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.session
-            .wallet_messages
-            .lock()
-            .unwrap()
-            .push(WalletMessage::Disclosure(jwe));
+        self.session.wallet_messages.lock().push(WalletMessage::Disclosure(jwe));
 
         Ok(self.session.redirect_uri.clone())
     }
@@ -223,11 +215,7 @@ where
         _url: BaseUrl,
         error: ErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.session
-            .wallet_messages
-            .lock()
-            .unwrap()
-            .push(WalletMessage::Error(error));
+        self.session.wallet_messages.lock().push(WalletMessage::Error(error));
 
         Ok(self.session.redirect_uri.clone())
     }
@@ -369,7 +357,6 @@ where
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         self.wallet_messages
             .lock()
-            .unwrap()
             .push(WalletMessage::Request(WalletRequest { wallet_nonce }));
         Err((self.response_factory)().unwrap())
     }
@@ -379,10 +366,7 @@ where
         _url: BaseUrl,
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.wallet_messages
-            .lock()
-            .unwrap()
-            .push(WalletMessage::Disclosure(jwe));
+        self.wallet_messages.lock().push(WalletMessage::Disclosure(jwe));
         Err((self.response_factory)().unwrap())
     }
 
@@ -391,7 +375,7 @@ where
         _url: BaseUrl,
         error: ErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.wallet_messages.lock().unwrap().push(WalletMessage::Error(error));
+        self.wallet_messages.lock().push(WalletMessage::Error(error));
 
         match (self.response_factory)() {
             Some(err) => Err(err),
@@ -431,7 +415,7 @@ where
     .expect_err("Starting disclosure session should have resulted in an error");
 
     // Collect the messages sent through the `VpMessageClient`.
-    let wallet_messages = wallet_messages.lock().unwrap();
+    let wallet_messages = wallet_messages.lock();
     (error, wallet_messages.clone())
 }
 
@@ -472,7 +456,7 @@ where
 {
     let result = session.terminate().await;
 
-    let wallet_messages = wallet_messages.lock().unwrap();
+    let wallet_messages = wallet_messages.lock();
     let WalletMessage::Error(error) = wallet_messages.last().unwrap() else {
         panic!("wallet should have sent an error");
     };
