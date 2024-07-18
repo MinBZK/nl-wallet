@@ -14,4 +14,23 @@ void main() {
       expect(result, expected);
     },
   );
+
+  test(
+    'hashcode behaves as expected',
+    () {
+      const a = DisclosureScreenArgument(uri: 'a', isQrCode: true);
+      const b = DisclosureScreenArgument(uri: 'a', isQrCode: false);
+      expect(a.hashCode, a.hashCode);
+      expect(a.hashCode, isNot(b.hashCode));
+    },
+  );
+
+  test(
+    'toString contains uri and isQrCode',
+    () {
+      const a = DisclosureScreenArgument(uri: 'www.example.org', isQrCode: true);
+      expect(a.toString(), contains('www.example.org'));
+      expect(a.toString(), contains(true.toString()));
+    },
+  );
 }

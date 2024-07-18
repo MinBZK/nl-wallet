@@ -152,7 +152,7 @@ async fn test_disclosure_usecases_ok(
     let mut status_url = ws_settings
         .urls
         .public_url
-        .join(&format!("disclosure/{session_token}/status"));
+        .join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
     status_url.set_query(status_query.as_str().into());
 
@@ -295,7 +295,7 @@ async fn test_disclosure_without_pid() {
     let mut status_url = ws_settings
         .urls
         .public_url
-        .join(&format!("disclosure/{session_token}/status"));
+        .join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })

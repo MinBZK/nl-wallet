@@ -12,6 +12,7 @@ import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart'
 import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/organization.dart';
+import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
@@ -58,7 +59,16 @@ void _setupMockitoDummies() {
       sharedDataWithOrganizationBefore: false,
     ),
   );
-  provideDummy<CoreError>(const CoreGenericError('dummy'));
+  provideDummy<CoreError>(const CoreGenericError('dummy', data: {}));
+  provideDummy<StartSignResult>(
+    StartSignReadyToSign(
+      document: WalletMockData.document,
+      policy: WalletMockData.policy,
+      relyingParty: WalletMockData.organization,
+      trustProvider: WalletMockData.organization,
+      requestedAttributes: {},
+    ),
+  );
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

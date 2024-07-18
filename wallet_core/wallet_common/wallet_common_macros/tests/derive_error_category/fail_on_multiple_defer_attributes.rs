@@ -1,7 +1,6 @@
-use wallet_common::error_category::ErrorCategory;
+use wallet_common::ErrorCategory;
 
 #[derive(ErrorCategory)]
-#[allow(dead_code)]
 enum RootError {
     #[category(defer)]
     SingleStruct {

@@ -402,6 +402,7 @@ impl UseCase {
     }
 }
 
+#[derive(Debug)]
 pub struct Verifier<S> {
     use_cases: UseCases,
     sessions: Arc<S>,
@@ -656,6 +657,35 @@ where
         };
 
         Ok(response)
+    }
+
+    pub async fn cancel(&self, session_token: &SessionToken) -> Result<(), VerificationError> {
+        let session_state = self.get_session_state(session_token).await?;
+
+        match session_state.data {
+            DisclosureData::Created(_) => {
+                self.cancel_active_session(Session::<Created>::try_from(session_state)?)
+                    .await?;
+            }
+            DisclosureData::WaitingForResponse(_) => {
+                self.cancel_active_session(Session::<WaitingForResponse>::try_from(session_state)?)
+                    .await?;
+            }
+            _ => return Err(SessionError::UnexpectedState)?,
+        };
+
+        Ok(())
+    }
+
+    async fn cancel_active_session<T: DisclosureState>(&self, session: Session<T>) -> Result<(), SessionError> {
+        let cancelled_session = session.transition(Done {
+            session_result: SessionResult::Cancelled,
+        });
+
+        self.sessions
+            .write(cancelled_session.into(), false)
+            .await
+            .map_err(SessionError::SessionStore)
     }
 
     /// Returns the disclosed attributes for a session with status `Done` and an error otherwise

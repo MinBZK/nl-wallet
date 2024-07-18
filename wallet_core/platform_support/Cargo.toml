@@ -15,11 +15,7 @@ doctest = false
 # Implement the PlatformEcdsaKey trait on SoftwareEcdsaKey
 software = ["wallet_common/software_keys", "dep:tokio"]
 # Enable helper code for integration tests
-integration_test = [
-    "wallet_common/integration_test",
-    "tokio/fs",
-    "tokio/io-util",
-]
+integration_test = ["wallet_common/integration_test", "tokio/fs", "tokio/io-util"]
 # Enable helper code for iOS and Android integration tests
 hardware_integration_test = ["integration_test", "dep:jni", "tokio/rt"]
 

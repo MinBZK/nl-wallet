@@ -5,6 +5,7 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/feature/card/history/bloc/card_history_bloc.dart';
 import 'package:wallet/src/feature/card/history/card_history_screen.dart';
+import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -120,6 +121,33 @@ void main() {
       expect(stickyJanFinder, findsOneWidget);
       expect(stickyDecFinder, findsOneWidget);
       expect(stickyNovFinder, findsOneWidget);
+    });
+
+    testWidgets('loading is rendered as expected', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
+          MockCardHistoryBloc(),
+          const CardHistoryLoadInProgress(),
+        ),
+      );
+
+      expect(find.byType(CenteredLoadingIndicator), findsOneWidget);
+    });
+
+    testWidgets('error is rendered as expected, with error description and retry cta', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
+          MockCardHistoryBloc(),
+          const CardHistoryLoadFailure(),
+        ),
+      );
+
+      // Validate that the widget exists
+      final l10n = await TestUtils.englishLocalizations;
+      final retryCtaFinder = find.text(l10n.generalRetry);
+      final descriptionFinder = find.text(l10n.errorScreenGenericDescription);
+      expect(retryCtaFinder, findsOneWidget);
+      expect(descriptionFinder, findsOneWidget);
     });
   });
 }

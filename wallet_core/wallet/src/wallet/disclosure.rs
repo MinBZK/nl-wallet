@@ -389,24 +389,30 @@ where
         let return_url = match result {
             Ok(return_url) => return_url,
             Err(error) => {
-                if let Err(e) = self
-                    .log_disclosure_error(
-                        session_proposal.proposed_attributes(),
-                        error.data_shared,
-                        session.rp_certificate().clone(),
-                    )
-                    .await
-                {
-                    error!("Could not store error in history: {e}");
+                let disclosure_error = DisclosureError::from(error.error);
+
+                // IncorrectPin is a functional error and does not need to be recorded.
+                if !matches!(
+                    disclosure_error,
+                    DisclosureError::Instruction(InstructionError::IncorrectPin { .. })
+                ) {
+                    if let Err(e) = self
+                        .log_disclosure_error(
+                            session_proposal.proposed_attributes(),
+                            error.data_shared,
+                            session.rp_certificate().clone(),
+                        )
+                        .await
+                    {
+                        error!("Could not store error in history: {e}");
+                    }
                 }
 
-                let error = DisclosureError::from(error.error);
-
                 if matches!(
-                    error,
+                    disclosure_error,
                     DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)
                 ) {
-                    // On a PIN timeout we should proactively terminate the disclosure session,
+                    // On a PIN timeout we should proactively terminate the disclosure session
                     // and lock the wallet, as the user is probably not the owner of the wallet.
                     // The UI should catch this specific error and close the disclosure screens.
 
@@ -422,7 +428,7 @@ where
                     self.lock.lock();
                 }
 
-                return Err(error);
+                return Err(disclosure_error);
             }
         };
 
@@ -512,7 +518,9 @@ mod tests {
         verifier::SessionType,
         DataElementValue,
     };
-    use openid4vc::{disclosure_session::VpMessageClientError, DisclosureErrorResponse, ErrorResponse};
+    use openid4vc::{
+        disclosure_session::VpMessageClientError, DisclosureErrorResponse, ErrorResponse, GetRequestErrorCode,
+    };
 
     use crate::{
         config::UNIVERSAL_LINK_BASE_URL,
@@ -690,17 +698,14 @@ mod tests {
         // Set up an `MdocDisclosureSession` start to return the following error.
         let return_url = Url::parse("https://example.com/return/here").unwrap();
         MockMdocDisclosureSession::next_start_error(
-            VpClientError::Request(VpMessageClientError::Response(
-                DisclosureErrorResponse {
-                    error_response: ErrorResponse {
-                        error: "error".to_string(),
-                        error_description: None,
-                        error_uri: None,
-                    },
-                    redirect_uri: Some(return_url.clone().try_into().unwrap()),
-                }
-                .into(),
-            ))
+            VpClientError::Request(VpMessageClientError::AuthGetResponse(DisclosureErrorResponse {
+                error_response: ErrorResponse {
+                    error: GetRequestErrorCode::ServerError,
+                    error_description: None,
+                    error_uri: None,
+                },
+                redirect_uri: Some(return_url.clone().try_into().unwrap()),
+            }))
             .into(),
         );
 
@@ -1345,14 +1350,15 @@ mod tests {
     }
 
     #[rstest]
-    #[case(InstructionError::IncorrectPin { attempts_left_in_round: 1, is_final_round: false }, false)]
-    #[case(InstructionError::Timeout { timeout_millis: 10_000 }, true)]
-    #[case(InstructionError::Blocked, true)]
-    #[case(InstructionError::InstructionValidation, false)]
+    #[case(InstructionError::IncorrectPin { attempts_left_in_round: 1, is_final_round: false }, false, false)]
+    #[case(InstructionError::Timeout { timeout_millis: 10_000 }, true, true)]
+    #[case(InstructionError::Blocked, true, true)]
+    #[case(InstructionError::InstructionValidation, false, true)]
     #[tokio::test]
     async fn test_wallet_accept_disclosure_error_instruction(
         #[case] instruction_error: InstructionError,
         #[case] expect_termination: bool,
+        #[case] expect_history_log: bool,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -1417,35 +1423,44 @@ mod tests {
         // Get latest emitted recent_history events
         let events = events.lock().pop().unwrap();
 
-        if expect_termination {
-            // Verify both a disclosure cancellation and error event are logged
-            assert_eq!(events.len(), 2);
-            assert_matches!(
-                &events[0],
-                HistoryEvent::Disclosure {
-                    status: EventStatus::Cancelled,
-                    ..
-                }
-            );
-            assert_matches!(
-                &events[1],
-                HistoryEvent::Disclosure {
-                    status: EventStatus::Error,
-                    attributes: None,
-                    ..
-                }
-            );
-        } else {
-            // Verify a disclosure error event is logged
-            assert_eq!(events.len(), 1);
-            assert_matches!(
-                &events[0],
-                HistoryEvent::Disclosure {
-                    status: EventStatus::Error,
-                    attributes: None,
-                    ..
-                }
-            );
+        match (expect_termination, expect_history_log) {
+            (true, true) => {
+                // Verify both a disclosure cancellation and error event are logged
+                assert_eq!(events.len(), 2);
+                assert_matches!(
+                    &events[0],
+                    HistoryEvent::Disclosure {
+                        status: EventStatus::Cancelled,
+                        ..
+                    }
+                );
+                assert_matches!(
+                    &events[1],
+                    HistoryEvent::Disclosure {
+                        status: EventStatus::Error,
+                        attributes: None,
+                        ..
+                    }
+                );
+            }
+            (false, true) => {
+                // Verify a disclosure error event is logged
+                assert_eq!(events.len(), 1);
+                assert_matches!(
+                    &events[0],
+                    HistoryEvent::Disclosure {
+                        status: EventStatus::Error,
+                        attributes: None,
+                        ..
+                    }
+                );
+            }
+            (false, false) => {
+                assert_eq!(events.len(), 0);
+            }
+            (true, false) => {
+                panic!("In practice this cannot happen, as the InstructionError cannot be both (Timeout or Blocked) and IncorrectPin");
+            }
         }
     }
 

@@ -20,12 +20,12 @@ function is_macos() {
 
 function detect_softhsm() {
   # shellcheck disable=SC2206
-  local locations=("/usr/local/lib" ${NIX_PROFILES:-} "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/lib}" "/usr/lib/")
+  local locations=("/usr/local/lib" ${NIX_PROFILES:-} "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/lib}" "/usr/lib")
 
   for location in "${locations[@]}"; do
       local library_path
       if [ -n "$location" ]; then
-        library_path=$(find -L "$location" -name "libsofthsm2.so" | head -n 1)
+        library_path=$(find -L "$location" -maxdepth 2 -name "libsofthsm2.so" | head -n 1)
         if [ -n "$library_path" ]; then
             echo "$library_path"
             return

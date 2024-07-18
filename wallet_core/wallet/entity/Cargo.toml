@@ -12,10 +12,5 @@ doctest = false
 
 [dependencies]
 chrono.workspace = true
-sea-orm = { workspace = true, features = [
-    "macros",
-    "with-json",
-    "with-uuid",
-    "with-chrono",
-] }
+sea-orm = { workspace = true, features = ["macros", "with-json", "with-uuid", "with-chrono"] }
 uuid.workspace = true

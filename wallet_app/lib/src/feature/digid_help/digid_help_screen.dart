@@ -14,9 +14,7 @@ final kRequestDigidUri = Uri.parse('https://www.digid.nl/aanvragen-en-activeren/
 final kDigidHelpUri = Uri.parse('https://www.digid.nl/hulp/');
 
 class DigidHelpScreen extends StatelessWidget {
-  final String title;
-
-  const DigidHelpScreen({required this.title, super.key});
+  const DigidHelpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +25,12 @@ class DigidHelpScreen extends StatelessWidget {
     );
   }
 
-  static void show(BuildContext context, {required String title, bool secured = true}) {
+  static void show(BuildContext context, {bool secured = true}) {
     Navigator.push(
       context,
       secured
-          ? SecuredPageRoute(builder: (c) => DigidHelpScreen(title: title))
-          : MaterialPageRoute(builder: (c) => DigidHelpScreen(title: title)),
+          ? SecuredPageRoute(builder: (c) => const DigidHelpScreen())
+          : MaterialPageRoute(builder: (c) => const DigidHelpScreen()),
     );
   }
 

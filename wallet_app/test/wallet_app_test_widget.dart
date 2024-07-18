@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
 import 'package:wallet/src/theme/wallet_theme.dart';
 
 /// Widget that is to be used to wrap pumped test widgets.
@@ -37,12 +39,16 @@ class WalletAppTestWidget extends StatelessWidget {
   }
 }
 
-WidgetWrapper walletAppWrapper({Brightness brightness = Brightness.light, List<BlocProvider>? providers}) {
+WidgetWrapper walletAppWrapper({
+  Brightness brightness = Brightness.light,
+  List<SingleChildWidget>? providers,
+}) {
   return (child) {
-    if (providers == null) return WalletAppTestWidget(brightness: brightness, child: child);
-    return MultiBlocProvider(
-      providers: providers,
-      child: WalletAppTestWidget(brightness: brightness, child: child),
+    final walletAppTestWidget = WalletAppTestWidget(brightness: brightness, child: child);
+    if (providers?.nonNulls.isEmpty ?? true) return walletAppTestWidget;
+    return MultiRepositoryProvider(
+      providers: providers ?? [],
+      child: walletAppTestWidget,
     );
   };
 }
@@ -68,8 +74,10 @@ extension TestWidgetExtensions on Widget {
   /// Wraps the widget with a RepositoryProvider to provide the result of [create].
   ///
   /// Useful to provide a widget under test with a dependency.
-  Widget withDependency<T>(T Function(BuildContext context) create) => Builder(
-        builder: (context) => RepositoryProvider(create: (c) => create(c), child: this),
+  Widget withDependency<T>(T Function(BuildContext context) create) => Provider(
+        create: (c) => create(c),
+        builder: (context, child) => child!,
+        child: this,
       );
 }
 
@@ -81,12 +89,16 @@ extension WidgetTesterExtensions on WidgetTester {
     Size surfaceSize = const Size(375, 812), // Iphone X
     double textScaleSize = 1.0,
     Brightness brightness = Brightness.light,
+    List<SingleChildWidget>? providers,
   }) async {
     return pumpWidgetBuilder(
       widget,
       surfaceSize: surfaceSize,
       textScaleSize: textScaleSize,
-      wrapper: walletAppWrapper(brightness: brightness),
+      wrapper: walletAppWrapper(
+        brightness: brightness,
+        providers: providers,
+      ),
     );
   }
 

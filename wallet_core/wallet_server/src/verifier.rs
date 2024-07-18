@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, Query, State},
-    routing::{get, post},
+    routing::{delete, get, post},
     Form, Json, Router,
 };
-use http::{header, HeaderMap, HeaderValue, Method, Uri};
+use http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri};
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn};
@@ -61,6 +61,16 @@ where
 {
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
+    let wallet_web = Router::new()
+        .route("/:session_token", get(status::<S>))
+        .route("/:session_token", delete(cancel::<S>))
+        // The CORS headers should be set for these routes, so that any web browser may call them.
+        .layer(
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::DELETE])
+                .allow_origin(Any),
+        );
+
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
     // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
@@ -68,21 +78,18 @@ where
         .route("/:session_token/request_uri", get(retrieve_request::<S>))
         .route("/:session_token/request_uri", post(retrieve_request::<S>))
         .route("/:session_token/response_uri", post(post_response::<S>))
-        .route(
-            "/:session_token/status",
-            get(status::<S>)
-                // to be able to request the status from a browser, the cors headers should be set
-                // but only on this endpoint
-                .layer(CorsLayer::new().allow_methods([Method::GET]).allow_origin(Any)),
-        )
-        .with_state(application_state.clone());
+        .merge(wallet_web)
+        .with_state(Arc::clone(&application_state));
 
     let requester_router = Router::new()
         .route("/", post(start::<S>))
         .route("/:session_token/disclosed_attributes", get(disclosed_attributes::<S>))
         .with_state(application_state);
 
-    Ok((wallet_router, requester_router))
+    Ok((
+        Router::new().nest("/sessions", wallet_router),
+        Router::new().nest("/sessions", requester_router),
+    ))
 }
 
 async fn retrieve_request<S>(
@@ -102,7 +109,7 @@ where
             &session_token,
             state
                 .public_url
-                .join_base_url(&format!("disclosure/{session_token}/response_uri")),
+                .join_base_url(&format!("disclosure/sessions/{session_token}/response_uri")),
             uri.query(),
             wallet_request.wallet_nonce,
         )
@@ -159,16 +166,32 @@ where
         .status_response(
             &session_token,
             params.session_type,
-            &state.universal_link_base_url.join_base_url("disclosure"),
+            &state.universal_link_base_url.join_base_url("disclosure/sessions"),
             state
                 .public_url
-                .join_base_url(&format!("disclosure/{session_token}/request_uri")),
+                .join_base_url(&format!("disclosure/sessions/{session_token}/request_uri")),
             &TimeGenerator,
         )
         .await
         .inspect_err(|error| warn!("querying session status failed: {error}"))?;
 
     Ok(Json(response))
+}
+
+async fn cancel<S>(
+    State(state): State<Arc<ApplicationState<S>>>,
+    Path(session_token): Path<SessionToken>,
+) -> Result<StatusCode, HttpJsonError<VerificationErrorCode>>
+where
+    S: SessionStore<DisclosureData>,
+{
+    state
+        .verifier
+        .cancel(&session_token)
+        .await
+        .inspect_err(|error| warn!("cancelling session failed: {error}"))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Debug, Serialize, Deserialize)]

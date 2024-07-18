@@ -2,6 +2,7 @@ use std::{
     collections::{HashMap, HashSet},
     convert::Infallible,
     num::NonZeroU8,
+    str::FromStr,
     sync::Arc,
 };
 
@@ -32,14 +33,14 @@ use nl_wallet_mdoc::{
     DeviceResponse, DocType, SessionTranscript,
 };
 use openid4vc::{
-    disclosure_session::{DisclosureSession, VpMessageClient, VpMessageClientError},
+    disclosure_session::{DisclosureSession, VpClientError, VpMessageClient, VpMessageClientError},
     jwt,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
     verifier::{
         DisclosureData, StatusResponse, UseCase, VerificationError, Verifier, VerifierUrlParameters, VpToken,
         WalletAuthResponse,
     },
-    ErrorResponse, VpAuthorizationErrorCode,
+    ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
 };
 use wallet_common::{
     config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor,
@@ -484,7 +485,7 @@ async fn test_client_and_server(
         .unwrap();
 
     // frontend receives the UL to feed to the wallet when fetching the session status
-    let request_uri = request_uri_from_status_endpoint(verifier.as_ref(), &session_token, session_type).await;
+    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Determine the correct source for the session type
     let uri_source = match session_type {
@@ -557,12 +558,174 @@ async fn test_client_and_server(
     expected_documents.assert_matches(&disclosed_documents);
 }
 
+#[tokio::test]
+async fn test_client_and_server_cancel_after_created() {
+    let items_requests = Examples::items_requests();
+    let session_type = SessionType::SameDevice;
+
+    let (verifier, trust_anchor) = setup_verifier(&items_requests);
+
+    // Start the session
+    let session_token = new_session(&verifier, items_requests).await;
+
+    // The front-end receives the UL to feed to the wallet when fetching the session status
+    // (this also verifies that the status is Created)
+    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
+
+    // Cancel the session
+    verifier
+        .cancel(&session_token)
+        .await
+        .expect("should be able to cancel newly created session");
+
+    // The session should now be cancelled
+    let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
+
+    assert_matches!(status_response, StatusResponse::Cancelled);
+
+    // Starting the session in the wallet should result in an error
+    let error = start_disclosure_session(
+        Arc::clone(&verifier),
+        DisclosureUriSource::Link,
+        &request_uri,
+        &trust_anchor,
+    )
+    .await
+    .expect_err("should not be able to start the disclosure session in the wallet");
+
+    assert_matches!(
+        error,
+        VpClientError::Request(VpMessageClientError::AuthGetResponse(error))
+            if error.error_response.error == GetRequestErrorCode::InvalidRequest
+    );
+}
+
+#[tokio::test]
+async fn test_client_and_server_cancel_after_wallet_start() {
+    let items_requests = Examples::items_requests();
+    let session_type = SessionType::SameDevice;
+
+    let (verifier, trust_anchor) = setup_verifier(&items_requests);
+
+    // Start the session
+    let session_token = new_session(&verifier, items_requests).await;
+
+    // The front-end receives the UL to feed to the wallet when fetching the session status
+    // (this also verifies that the status is Created)
+    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
+
+    // Start session in the wallet
+    let session = start_disclosure_session(
+        Arc::clone(&verifier),
+        DisclosureUriSource::Link,
+        &request_uri,
+        &trust_anchor,
+    )
+    .await
+    .unwrap();
+
+    // Cancel the session
+    verifier
+        .cancel(&session_token)
+        .await
+        .expect("should be able to cancel session that is waiting for response");
+
+    // The session should now be cancelled
+    let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
+
+    assert_matches!(status_response, StatusResponse::Cancelled);
+
+    // Disclosing attributes at this point should result in an error.
+    let DisclosureSession::Proposal(proposal) = session else {
+        panic!("should have requested attributes")
+    };
+
+    let error = proposal
+        .disclose(&SoftwareKeyFactory::default())
+        .await
+        .expect_err("should not be able to disclose attributes");
+
+    assert_matches!(
+        error.error,
+        VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
+            if error.error_response.error == PostAuthResponseErrorCode::InvalidRequest
+    );
+}
+
+fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTrustAnchor) {
+    // Initialize key material
+    let ca = KeyPair::generate_reader_mock_ca().unwrap();
+    let disclosure_key = ca
+        .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(items_requests)))
+        .unwrap();
+    let trust_anchor: TrustAnchor = ca.certificate().try_into().unwrap();
+
+    // Initialize the verifier
+    let verifier = Arc::new(MockVerifier::new(
+        HashMap::from([(
+            "usecase_id".to_string(),
+            UseCase::new(disclosure_key, SessionTypeReturnUrl::SameDevice).unwrap(),
+        )])
+        .into(),
+        MemorySessionStore::default(),
+        Examples::iaca_trust_anchors()
+            .iter()
+            .map(OwnedTrustAnchor::from)
+            .collect_vec(),
+        hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+    ));
+
+    (verifier, (&trust_anchor).into())
+}
+
+async fn new_session(verifier: &MockVerifier, items_requests: ItemsRequests) -> SessionToken {
+    verifier
+        .new_session(
+            items_requests,
+            "usecase_id".to_string(),
+            Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
+        )
+        .await
+        .unwrap()
+}
+
+async fn start_disclosure_session(
+    verifier: Arc<MockVerifier>,
+    uri_source: DisclosureUriSource,
+    request_uri: &str,
+    trust_anchor: &OwnedTrustAnchor,
+) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpClientError> {
+    let mdocs = IsoMockMdocDataSource::default();
+    let message_client = VerifierMockVpMessageClient::new(verifier);
+
+    DisclosureSession::start(
+        message_client,
+        request_uri,
+        uri_source,
+        &mdocs,
+        &[(trust_anchor).into()],
+    )
+    .await
+}
+
 async fn request_uri_from_status_endpoint(
     verifier: &MockVerifier,
     session_token: &SessionToken,
     session_type: SessionType,
 ) -> String {
-    let StatusResponse::Created { ul } = verifier
+    let StatusResponse::Created { ul } = request_status_endpoint(verifier, session_token, session_type).await else {
+        panic!("unexpected state")
+    };
+
+    ul.as_ref().query().unwrap().to_string()
+}
+
+async fn request_status_endpoint(
+    verifier: &MockVerifier,
+    session_token: &SessionToken,
+    session_type: SessionType,
+) -> StatusResponse {
+    verifier
         .status_response(
             session_token,
             session_type,
@@ -574,15 +737,11 @@ async fn request_uri_from_status_endpoint(
         )
         .await
         .unwrap()
-    else {
-        panic!("unexpected state")
-    };
-
-    ul.as_ref().query().unwrap().to_string()
 }
 
 type MockVerifier = Verifier<MemorySessionStore<DisclosureData>>;
 
+#[derive(Debug)]
 struct VerifierMockVpMessageClient {
     verifier: Arc<MockVerifier>,
 }
@@ -613,7 +772,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
                 wallet_nonce,
             )
             .await
-            .unwrap();
+            .map_err(|error| VpMessageClientError::AuthGetResponse(error.into()))?;
 
         Ok(jws)
     }
@@ -634,7 +793,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
                 &TimeGenerator,
             )
             .await
-            .unwrap();
+            .map_err(|error| VpMessageClientError::AuthPostResponse(error.into()))?;
 
         Ok(response.redirect_uri)
     }
