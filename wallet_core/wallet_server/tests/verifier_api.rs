@@ -439,7 +439,7 @@ async fn test_disclosure_cancel() {
 
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
-        StatusResponse::Created { ul } if ul.is_some()
+        StatusResponse::Created { ul: Some(_) }
     );
 
     // Cancel the newly created session, which should return 204 and no body.
@@ -481,7 +481,7 @@ async fn test_disclosure_expired<S>(
     let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(SessionType::SameDevice));
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
-        StatusResponse::Created { ul } if ul.is_some()
+        StatusResponse::Created { ul: Some(_) }
     );
 
     // Fetching the disclosed attributes should return 400, since the session is not finished.

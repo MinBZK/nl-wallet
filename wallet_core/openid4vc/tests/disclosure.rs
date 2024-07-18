@@ -468,12 +468,13 @@ async fn request_uri_from_status_endpoint(
     session_token: &SessionToken,
     session_type: SessionType,
 ) -> String {
-    let StatusResponse::Created { ul } = request_status_endpoint(verifier, session_token, Some(session_type)).await
+    let StatusResponse::Created { ul: Some(ul) } =
+        request_status_endpoint(verifier, session_token, Some(session_type)).await
     else {
         panic!("unexpected state")
     };
 
-    ul.unwrap().as_ref().query().unwrap().to_string()
+    ul.as_ref().query().unwrap().to_string()
 }
 
 async fn request_status_endpoint(
