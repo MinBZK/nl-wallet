@@ -4,7 +4,10 @@ use tokio::fs;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
-use openid4vc::issuance_session::{HttpIssuanceSession, IssuanceSessionError};
+use openid4vc::{
+    issuance_session::{HttpIssuanceSession, IssuanceSessionError},
+    ErrorResponse,
+};
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::{
@@ -159,11 +162,16 @@ async fn gba_pid(bsn: &str) {
     let unsigned_mdocs_result = wallet.continue_pid_issuance(redirect_url).await;
     let unsigned_mdocs = match unsigned_mdocs_result {
         Ok(mdocs) => mdocs,
-        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(e))) if e.error_description.clone().unwrap().starts_with("failed to get attributes to be issued: error retrieving from BRP: Error converting GBA-V XML to Haal-Centraal JSON: GBA-V error") =>
-            panic!("conversion error"),
-        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(e))) if e.error_description ==
-            Some(String::from("failed to get attributes to be issued: could not find attributes for BSN")) =>
-                panic!("unknown bsn"),
+        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
+            error_description: Some(description),
+            ..
+        }))) if description.contains("Error converting GBA-V XML to Haal-Centraal JSON: GBA-V error") => {
+            panic!("conversion error")
+        }
+        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
+            error_description: Some(description),
+            ..
+        }))) if description.contains("could not find attributes for BSN") => panic!("unknown bsn"),
         Err(e) => {
             dbg!("{:?}", e);
             panic!("could not continue pid issuance")
