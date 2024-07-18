@@ -20,4 +20,14 @@ void main() {
       expect(result, expected);
     },
   );
+
+  test(
+    'hashcode behaves as expected',
+    () {
+      final a = HistoryDetailScreenArgument(walletEvent: WalletMockData.disclosureEvent);
+      final b = HistoryDetailScreenArgument(walletEvent: WalletMockData.signEvent);
+      expect(a.hashCode, a.hashCode);
+      expect(a.hashCode, isNot(b.hashCode));
+    },
+  );
 }
