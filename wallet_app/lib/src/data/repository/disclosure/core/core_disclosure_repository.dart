@@ -69,7 +69,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
   }
 
   @override
-  Future<void> cancelDisclosure() => _walletCore.cancelDisclosure();
+  Future<String?> cancelDisclosure() => _walletCore.cancelDisclosure();
 
   @override
   Future<bool> hasActiveDisclosureSession() => _walletCore.hasActiveDisclosureSession();

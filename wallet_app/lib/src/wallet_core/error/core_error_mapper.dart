@@ -12,22 +12,25 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
     final flutterApiError = FlutterApiError.fromJson(decodedJson);
     switch (flutterApiError.type) {
       case FlutterApiErrorType.generic:
-        return CoreGenericError(flutterApiError.description);
+      case FlutterApiErrorType.server:
+        return CoreGenericError(flutterApiError.description, data: flutterApiError.data);
       case FlutterApiErrorType.networking:
-        return CoreNetworkError(flutterApiError.description);
+        return CoreNetworkError(flutterApiError.description, data: flutterApiError.data);
       case FlutterApiErrorType.walletState:
-        return CoreStateError(flutterApiError.description, flutterApiError.data);
+        return CoreStateError(flutterApiError.description, data: flutterApiError.data);
       case FlutterApiErrorType.redirectUri:
         return CoreRedirectUriError(
           flutterApiError.description,
+          data: flutterApiError.data,
           redirectError: _mapRedirectError(flutterApiError.data),
         );
       case FlutterApiErrorType.hardwareKeyUnsupported:
-        return CoreHardwareKeyUnsupportedError(flutterApiError.description);
+        return CoreHardwareKeyUnsupportedError(flutterApiError.description, data: flutterApiError.data);
       case FlutterApiErrorType.disclosureSourceMismatch:
         final isCrossDevice = flutterApiError.data?['session_type'] == 'cross_device';
         return CoreDisclosureSourceMismatchError(
           flutterApiError.description,
+          data: flutterApiError.data,
           isCrossDevice: isCrossDevice,
         );
     }

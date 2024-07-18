@@ -20,6 +20,7 @@ Map<String, dynamic> _$FlutterApiErrorToJson(FlutterApiError instance) => <Strin
 
 const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.generic: 'Generic',
+  FlutterApiErrorType.server: 'Server',
   FlutterApiErrorType.networking: 'Networking',
   FlutterApiErrorType.walletState: 'WalletState',
   FlutterApiErrorType.hardwareKeyUnsupported: 'HardwareKeyUnsupported',

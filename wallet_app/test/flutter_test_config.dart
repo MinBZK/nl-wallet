@@ -59,7 +59,7 @@ void _setupMockitoDummies() {
       sharedDataWithOrganizationBefore: false,
     ),
   );
-  provideDummy<CoreError>(const CoreGenericError('dummy'));
+  provideDummy<CoreError>(const CoreGenericError('dummy', data: {}));
   provideDummy<StartSignResult>(
     StartSignReadyToSign(
       document: WalletMockData.document,
