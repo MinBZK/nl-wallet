@@ -437,52 +437,16 @@ async fn test_client_and_server(
     #[case] requested_documents: ItemsRequests,
     #[case] expected_documents: TestDocuments,
 ) {
-    // Initialize key material
-    let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
-    let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchors = &[rp_ca.certificate().try_into().unwrap()];
-
-    // Initialize the verifier
-    let reader_registration = Some(ReaderRegistration::new_mock_from_requests(&requested_documents));
-    let usecases = HashMap::from([
-        (
-            NO_RETURN_URL_USE_CASE.to_string(),
-            UseCase::new(
-                rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
-                SessionTypeReturnUrl::Neither,
-            )
-            .unwrap(),
-        ),
-        (
-            DEFAULT_RETURN_URL_USE_CASE.to_string(),
-            UseCase::new(
-                rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
-                SessionTypeReturnUrl::SameDevice,
-            )
-            .unwrap(),
-        ),
-        (
-            ALL_RETURN_URL_USE_CASE.to_string(),
-            UseCase::new(
-                rp_ca.generate_reader_mock(reader_registration).unwrap(),
-                SessionTypeReturnUrl::Both,
-            )
-            .unwrap(),
-        ),
-    ])
-    .into();
-    let verifier = Arc::new(MockVerifier::new(
-        usecases,
-        MemorySessionStore::default(),
-        vec![OwnedTrustAnchor::from(&(issuer_ca.certificate().try_into().unwrap()))],
-        hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
-    ));
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&requested_documents);
 
     // Start the session
-    let session_token = verifier
-        .new_session(requested_documents, use_case.to_string(), return_url_template)
-        .await
-        .unwrap();
+    let session_token = new_session(
+        &verifier,
+        requested_documents,
+        use_case.to_string(),
+        return_url_template,
+    )
+    .await;
 
     // frontend receives the UL to feed to the wallet when fetching the session status
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
@@ -493,21 +457,17 @@ async fn test_client_and_server(
         SessionType::CrossDevice => DisclosureUriSource::QrCode,
     };
 
-    // Prepare the wallet
-    let key_factory = SoftwareKeyFactory::default();
-    let mdocs = future::join_all(
-        stored_documents
-            .into_iter()
-            .map(|doc| async { doc.sign(&issuer_ca, &key_factory, NonZeroU8::new(1).unwrap()).await }),
-    )
-    .await;
-    let mdocs = MockMdocDataSource::from(mdocs);
-
     // Start session in the wallet
-    let message_client = VerifierMockVpMessageClient::new(Arc::clone(&verifier));
-    let session = DisclosureSession::start(message_client, &request_uri, uri_source, &mdocs, rp_trust_anchors)
-        .await
-        .unwrap();
+    let (session, key_factory) = start_disclosure_session(
+        Arc::clone(&verifier),
+        stored_documents,
+        &issuer_ca,
+        uri_source,
+        &request_uri,
+        &rp_trust_anchor,
+    )
+    .await
+    .unwrap();
 
     let DisclosureSession::Proposal(proposal) = session else {
         panic!("should have requested attributes")
@@ -560,13 +520,20 @@ async fn test_client_and_server(
 
 #[tokio::test]
 async fn test_client_and_server_cancel_after_created() {
-    let items_requests = Examples::items_requests();
+    let stored_documents = pid_full_name();
+    let items_requests = pid_full_name().into();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor) = setup_verifier(&items_requests);
+    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests);
 
     // Start the session
-    let session_token = new_session(&verifier, items_requests).await;
+    let session_token = new_session(
+        &verifier,
+        items_requests,
+        DEFAULT_RETURN_URL_USE_CASE.to_string(),
+        Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
+    )
+    .await;
 
     // The front-end receives the UL to feed to the wallet when fetching the session status
     // (this also verifies that the status is Created)
@@ -586,6 +553,8 @@ async fn test_client_and_server_cancel_after_created() {
     // Starting the session in the wallet should result in an error
     let error = start_disclosure_session(
         Arc::clone(&verifier),
+        stored_documents,
+        &issuer_ca,
         DisclosureUriSource::Link,
         &request_uri,
         &trust_anchor,
@@ -602,21 +571,30 @@ async fn test_client_and_server_cancel_after_created() {
 
 #[tokio::test]
 async fn test_client_and_server_cancel_after_wallet_start() {
-    let items_requests = Examples::items_requests();
+    let stored_documents = pid_full_name();
+    let items_requests = pid_full_name().into();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor) = setup_verifier(&items_requests);
+    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests);
 
     // Start the session
-    let session_token = new_session(&verifier, items_requests).await;
+    let session_token = new_session(
+        &verifier,
+        items_requests,
+        DEFAULT_RETURN_URL_USE_CASE.to_string(),
+        Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
+    )
+    .await;
 
     // The front-end receives the UL to feed to the wallet when fetching the session status
     // (this also verifies that the status is Created)
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Start session in the wallet
-    let session = start_disclosure_session(
+    let (session, key_factory) = start_disclosure_session(
         Arc::clone(&verifier),
+        stored_documents,
+        &issuer_ca,
         DisclosureUriSource::Link,
         &request_uri,
         &trust_anchor,
@@ -641,7 +619,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     };
 
     let error = proposal
-        .disclose(&SoftwareKeyFactory::default())
+        .disclose(&key_factory)
         .await
         .expect_err("should not be able to disclose attributes");
 
@@ -652,60 +630,99 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     );
 }
 
-fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTrustAnchor) {
+fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTrustAnchor, KeyPair) {
     // Initialize key material
-    let ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let disclosure_key = ca
-        .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(items_requests)))
-        .unwrap();
-    let trust_anchor: TrustAnchor = ca.certificate().try_into().unwrap();
+    let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
+    let rp_trust_anchor: TrustAnchor = rp_ca.certificate().try_into().unwrap();
 
     // Initialize the verifier
+    let reader_registration = Some(ReaderRegistration::new_mock_from_requests(items_requests));
+    let usecases = HashMap::from([
+        (
+            NO_RETURN_URL_USE_CASE.to_string(),
+            UseCase::new(
+                rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                SessionTypeReturnUrl::Neither,
+            )
+            .unwrap(),
+        ),
+        (
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            UseCase::new(
+                rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                SessionTypeReturnUrl::SameDevice,
+            )
+            .unwrap(),
+        ),
+        (
+            ALL_RETURN_URL_USE_CASE.to_string(),
+            UseCase::new(
+                rp_ca.generate_reader_mock(reader_registration).unwrap(),
+                SessionTypeReturnUrl::Both,
+            )
+            .unwrap(),
+        ),
+    ])
+    .into();
+
     let verifier = Arc::new(MockVerifier::new(
-        HashMap::from([(
-            "usecase_id".to_string(),
-            UseCase::new(disclosure_key, SessionTypeReturnUrl::SameDevice).unwrap(),
-        )])
-        .into(),
+        usecases,
         MemorySessionStore::default(),
-        Examples::iaca_trust_anchors()
-            .iter()
-            .map(OwnedTrustAnchor::from)
-            .collect_vec(),
+        vec![OwnedTrustAnchor::from(&(issuer_ca.certificate().try_into().unwrap()))],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     ));
 
-    (verifier, (&trust_anchor).into())
+    (verifier, (&rp_trust_anchor).into(), issuer_ca)
 }
 
-async fn new_session(verifier: &MockVerifier, items_requests: ItemsRequests) -> SessionToken {
+async fn new_session(
+    verifier: &MockVerifier,
+    items_requests: ItemsRequests,
+    usecase: String,
+    return_url_template: Option<ReturnUrlTemplate>,
+) -> SessionToken {
     verifier
-        .new_session(
-            items_requests,
-            "usecase_id".to_string(),
-            Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
-        )
+        .new_session(items_requests, usecase, return_url_template)
         .await
         .unwrap()
 }
 
 async fn start_disclosure_session(
     verifier: Arc<MockVerifier>,
+    stored_documents: TestDocuments,
+    issuer_ca: &KeyPair,
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: &OwnedTrustAnchor,
-) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpClientError> {
-    let mdocs = IsoMockMdocDataSource::default();
-    let message_client = VerifierMockVpMessageClient::new(verifier);
+) -> Result<
+    (
+        DisclosureSession<VerifierMockVpMessageClient, String>,
+        SoftwareKeyFactory,
+    ),
+    VpClientError,
+> {
+    let key_factory = SoftwareKeyFactory::default();
 
+    // Populate the wallet with the specified test documents
+    let mdocs = future::join_all(
+        stored_documents
+            .into_iter()
+            .map(|doc| async { doc.sign(issuer_ca, &key_factory, NonZeroU8::new(1).unwrap()).await }),
+    )
+    .await;
+    let mdocs = MockMdocDataSource::from(mdocs);
+
+    // Start session in the wallet
     DisclosureSession::start(
-        message_client,
+        VerifierMockVpMessageClient::new(verifier),
         request_uri,
         uri_source,
         &mdocs,
         &[(trust_anchor).into()],
     )
     .await
+    .map(|session| (session, key_factory))
 }
 
 async fn request_uri_from_status_endpoint(
