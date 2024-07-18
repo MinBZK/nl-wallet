@@ -380,7 +380,11 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureSessionExpired(error: CoreGenericError('expired')),
+          const DisclosureSessionExpired(
+            error: CoreExpiredSessionError('expired', canRetry: false),
+            canRetry: false,
+            isCrossDevice: false,
+          ),
         ),
       );
 

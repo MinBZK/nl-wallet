@@ -33,4 +33,6 @@ enum FlutterApiErrorType {
   redirectUri,
   @JsonValue('DisclosureSourceMismatch')
   disclosureSourceMismatch,
+  @JsonValue('ExpiredSession')
+  expiredSession,
 }

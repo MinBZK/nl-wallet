@@ -16,15 +16,16 @@ class ErrorButtonBuilder {
     BuildContext context,
     ErrorCtaStyle style, {
     VoidCallback? onPressed,
+    String? cta,
   }) {
     return switch (style) {
       ErrorCtaStyle.retry => PrimaryButton(
-          text: Text(context.l10n.generalRetry),
+          text: Text(cta ?? context.l10n.generalRetry),
           icon: const Icon(Icons.replay_outlined),
           onPressed: onPressed ?? () => Navigator.maybePop(context),
         ),
       ErrorCtaStyle.close => PrimaryButton(
-          text: Text(context.l10n.generalClose),
+          text: Text(cta ?? context.l10n.generalClose),
           icon: const Icon(Icons.close_outlined),
           onPressed: onPressed ?? () => Navigator.maybePop(context),
         ),

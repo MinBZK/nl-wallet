@@ -26,4 +26,5 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.hardwareKeyUnsupported: 'HardwareKeyUnsupported',
   FlutterApiErrorType.redirectUri: 'RedirectUri',
   FlutterApiErrorType.disclosureSourceMismatch: 'DisclosureSourceMismatch',
+  FlutterApiErrorType.expiredSession: 'ExpiredSession',
 };
