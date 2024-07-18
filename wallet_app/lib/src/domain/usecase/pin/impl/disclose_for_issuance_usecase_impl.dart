@@ -3,13 +3,13 @@ import '../../../../util/extension/wallet_instruction_result_extension.dart';
 import '../disclose_for_issuance_usecase.dart';
 
 class DiscloseForIssuanceUseCaseImpl extends DiscloseForIssuanceUseCase {
-  final IssuanceRepository walletRepository;
+  final IssuanceRepository issuanceRepository;
 
-  DiscloseForIssuanceUseCaseImpl(this.walletRepository);
+  DiscloseForIssuanceUseCaseImpl(this.issuanceRepository);
 
   @override
   Future<CheckPinResult> invoke(String pin) async {
-    final result = await walletRepository.discloseForIssuance(pin);
+    final result = await issuanceRepository.discloseForIssuance(pin);
     return result.asCheckPinResult();
   }
 }

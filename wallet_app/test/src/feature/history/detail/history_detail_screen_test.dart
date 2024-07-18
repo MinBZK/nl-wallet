@@ -16,6 +16,7 @@ import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
+import '../../../util/test_utils.dart';
 
 class MockHistoryDetailBloc extends MockBloc<HistoryDetailEvent, HistoryDetailState> implements HistoryDetailBloc {}
 
@@ -119,6 +120,22 @@ void main() {
       );
 
       expect(find.byType(HistoryDetailSignPage), findsOneWidget);
+    });
+
+    testWidgets('Error screen is rendered for HistoryDetailLoadFailure', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen()
+            .withState<HistoryDetailBloc, HistoryDetailState>(
+              MockHistoryDetailBloc(),
+              const HistoryDetailLoadFailure(),
+            )
+            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.historyDetailScreenTitle), findsAtLeast(1));
+      expect(find.text(l10n.errorScreenGenericDescription), findsOneWidget);
+      expect(find.text(l10n.generalRetry), findsOneWidget); // CTA to retry is visible
     });
   });
 }

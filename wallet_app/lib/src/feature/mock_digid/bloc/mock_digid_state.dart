@@ -1,3 +1,4 @@
+// coverage:ignore-file
 part of 'mock_digid_bloc.dart';
 
 sealed class MockDigidState extends Equatable {
