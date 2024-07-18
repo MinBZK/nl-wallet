@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-07-05T16:50:06+02:00",
+    "@@last_modified": "2024-07-17T13:19:22+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -442,6 +442,24 @@
     "historyDetailScreenErrorTitleForDisclosure": "Sharing with {organization} has potentially failed",
     "historyDetailScreenErrorTitleForLogin": "Login at {organization} failed",
     "historyDetailScreenIssuanceSuccessDescription": "Card created",
+    "historyDetailScreenLoginCancelledDescription": "No data was shared with {organization} because you stopped logging in.",
+    "@historyDetailScreenLoginCancelledDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenLoginErrorDescription": "No data was shared with {organization} because something went wrong.",
+    "@historyDetailScreenLoginErrorDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
     "historyDetailScreenOperationStatusExpiredDescription": "Your card is expired.",
     "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
     "historyDetailScreenPurposeTitle": "Sharing reason",
