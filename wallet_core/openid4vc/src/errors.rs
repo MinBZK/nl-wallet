@@ -378,9 +378,42 @@ impl From<CancelSessionError> for HttpJsonError<VerificationErrorCode> {
     }
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct DisclosedAttributesErrorData {
+    pub session_status: Option<String>,
+    pub session_error: Option<String>,
+}
+
 impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
     fn from(error: DisclosedAttributesError) -> Self {
-        HttpJsonError::from_error(&error)
+        let r#type = (&error).into();
+        let detail = error.to_string();
+
+        // The `session_status` field is only included if the session was in an unexpected state,
+        // while the `session_error` field is further only included if that status is "FAILED".
+        let data = match error {
+            DisclosedAttributesError::Session(SessionError::UnexpectedState(session_status)) => {
+                let status = Some(session_status.to_string());
+                let error = match session_status {
+                    SessionStatus::Failed { error } => Some(error),
+                    _ => None,
+                };
+
+                DisclosedAttributesErrorData {
+                    session_status: status,
+                    session_error: error,
+                }
+            }
+            _ => Default::default(),
+        };
+        let serde_json::Value::Object(data) =
+            serde_json::to_value(data).expect("DisclosedAttributesErrorData should serialize")
+        else {
+            panic!("serialized DisclosedAttributesErrorData should be an object");
+        };
+
+        Self::new(r#type, detail, data)
     }
 }
 
