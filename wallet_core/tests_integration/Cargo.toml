@@ -7,7 +7,6 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-
 [[bin]]
 name = "performance_test"
 required-features = ["performance_test"]
