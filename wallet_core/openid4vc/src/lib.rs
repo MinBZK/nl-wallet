@@ -30,6 +30,9 @@ pub mod verifier;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
+#[cfg(test)]
+mod test;
+
 pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]

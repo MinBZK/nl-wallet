@@ -11,6 +11,15 @@ class IssuanceOrganizationApproved extends IssuanceEvent {
   List<Object?> get props => [];
 }
 
+class IssuanceInitiated extends IssuanceEvent {
+  final String issuanceUri;
+
+  const IssuanceInitiated(this.issuanceUri);
+
+  @override
+  List<Object?> get props => [issuanceUri];
+}
+
 class IssuanceBackPressed extends IssuanceEvent {
   const IssuanceBackPressed();
 

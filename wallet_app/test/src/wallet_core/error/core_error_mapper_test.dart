@@ -29,11 +29,24 @@ void main() {
       expect(result, const CoreGenericError(defaultDescription));
     });
 
+    test('mapping FlutterApiErrorType.server results in CoreGenericError', () {
+      // Server errors don't require any dedicated handling just yet (rust side is still defining when exactly this is relevant). So
+      // it should be treated as a generic error for now.
+      final error = FlutterApiError(
+        type: FlutterApiErrorType.server,
+        description: defaultDescription,
+        data: {'http_error': 'some extra error information might show up here'},
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, CoreGenericError(defaultDescription, data: error.data));
+    });
+
     test('mapping FlutterApiErrorType.walletState results in CoreStateError', () {
       final error = FlutterApiError(type: FlutterApiErrorType.walletState, description: defaultDescription, data: null);
       final errorJson = jsonEncode(error);
       final result = errorMapper.map(errorJson);
-      expect(result, const CoreStateError(defaultDescription, null));
+      expect(result, const CoreStateError(defaultDescription));
     });
 
     test('mapping FlutterApiErrorType.networking results in CoreNetworkError', () {
@@ -60,7 +73,7 @@ void main() {
       );
       final errorJson = jsonEncode(error);
       final result = errorMapper.map(errorJson);
-      expect(result, const CoreRedirectUriError(defaultDescription, redirectError: RedirectError.unknown));
+      expect(result, CoreRedirectUriError(defaultDescription, redirectError: RedirectError.unknown, data: error.data));
     });
 
     test(
@@ -73,7 +86,10 @@ void main() {
       );
       final errorJson = jsonEncode(error);
       final result = errorMapper.map(errorJson);
-      expect(result, const CoreRedirectUriError(defaultDescription, redirectError: RedirectError.accessDenied));
+      expect(
+        result,
+        CoreRedirectUriError(defaultDescription, redirectError: RedirectError.accessDenied, data: error.data),
+      );
     });
 
     test(
@@ -86,7 +102,10 @@ void main() {
       );
       final errorJson = jsonEncode(error);
       final result = errorMapper.map(errorJson);
-      expect(result, const CoreRedirectUriError(defaultDescription, redirectError: RedirectError.serverError));
+      expect(
+        result,
+        CoreRedirectUriError(defaultDescription, redirectError: RedirectError.serverError, data: error.data),
+      );
     });
   });
 }

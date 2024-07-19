@@ -20,7 +20,6 @@ class ChangeLanguageBloc extends Bloc<ChangeLanguageEvent, ChangeLanguageState> 
   ChangeLanguageBloc(this._languageRepository, this._defaultLocaleProvider) : super(ChangeLanguageInitial()) {
     on<ChangeLanguageLoadTriggered>(_onChangeLanguageLoadTriggered);
     on<ChangeLanguageLocaleSelected>(_onChangeLanguageLocaleSelected);
-    add(ChangeLanguageLoadTriggered());
   }
 
   Future<void> _onChangeLanguageLocaleSelected(event, emit) async {
@@ -43,9 +42,12 @@ class ChangeLanguageBloc extends Bloc<ChangeLanguageEvent, ChangeLanguageState> 
 
 typedef DefaultLocaleProvider = Locale Function();
 
-class Language {
+class Language extends Equatable {
   final String name;
   final Locale locale;
 
   const Language(this.name, this.locale);
+
+  @override
+  List<Object?> get props => [name, locale];
 }

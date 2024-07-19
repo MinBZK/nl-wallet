@@ -59,6 +59,7 @@ source "${SCRIPTS_DIR}/utils.sh"
 expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
 expect_command openssl "Missing binary 'openssl', please install OpenSSL"
 expect_command jq "Missing binary 'jq', please install"
+expect_command tr "Missing binary 'tr', please install"
 expect_command xxd "Missing binary 'xxd', please install"
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
     expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
@@ -74,12 +75,11 @@ if is_macos
 then
     expect_command gsed "Missing binary 'gsed', please install gnu-sed"
     GNUSED="gsed"
-    BASE64="base64"
 else
     GNUSED="sed"
-    BASE64="base64 --wrap=0"
 fi
 
+BASE64="openssl base64 -e -A"
 base64_url_encode() { ${BASE64} | tr '/+' '_-' | tr -d '=\n'; }
 
 ########################################################################
@@ -151,6 +151,30 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
 fi
 
 ########################################################################
+# Build wallet_web frontend library
+
+if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
+    echo
+    echo -e "${SECTION}Build wallet_web frontend${NC}"
+
+    cd "${WALLET_WEB_DIR}"
+
+    if [[ -n "${RM_OLD_WALLET_WEB:-}" ]]; then
+        rm ../wallet_core/mock_relying_party/assets/*.iife.js
+    fi
+
+    npm ci && npm run build
+    WALLET_WEB_SHA256=$(cat dist/nl-wallet-web.iife.js | openssl sha256 -binary | ${BASE64})
+    export WALLET_WEB_SHA256
+    WALLET_WEB_SHA256_FILENAME=$(cat dist/nl-wallet-web.iife.js | openssl sha256 -binary | base64_url_encode) # url safe to prevent '/' to appear in filename
+    export WALLET_WEB_SHA256_FILENAME
+    WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
+    export WALLET_WEB_FILENAME
+    cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME}
+fi
+
+
+########################################################################
 # Configure wallet_server and mock_relying_party
 
 echo
@@ -218,7 +242,13 @@ export MOCK_RELYING_PARTY_KEY_MONKEY_BIKE
 MOCK_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_bike.crt.der" ${BASE64})
 export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
 
-render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
+if [[ -z "${SKIP_MOCK_RELYING_PARTY:-}" ]]; then
+    WALLET_WEB_FILENAME="${WALLET_WEB_FILENAME:-nl-wallet-web.iife.js}"
+    export WALLET_WEB_FILENAME
+    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(cat ../wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME} | openssl sha256 -binary | ${BASE64})}"
+    export WALLET_WEB_SHA256
+    render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
+fi
 
 # Generate relying party ephemeral ID secret
 generate_ws_random_key ephemeral_id_secret
@@ -379,19 +409,6 @@ then
 
     "${SCRIPTS_DIR}"/map_android_ports.sh
 fi
-
-########################################################################
-# Build wallet_web frontend library
-
-if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
-    echo
-    echo -e "${SECTION}Build wallet_web frontend${NC}"
-
-    cd "${WALLET_WEB_DIR}"
-    npm ci && npm run build
-    cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/
-fi
-
 
 ########################################################################
 # Done

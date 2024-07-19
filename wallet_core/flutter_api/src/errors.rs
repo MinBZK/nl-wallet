@@ -2,12 +2,18 @@ use std::{error::Error, fmt::Display};
 
 use anyhow::Chain;
 use serde::Serialize;
+use serde_with::skip_serializing_none;
+use url::Url;
 
-use wallet::errors::{
-    mdoc::{self, HolderError},
-    openid4vc::{IssuanceSessionError, OidcError, VpClientError},
-    reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
-    PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
+use wallet::{
+    errors::{
+        mdoc::{self, HolderError},
+        openid4vc::{IssuanceSessionError, OidcError, VpClientError, VpMessageClientErrorType},
+        reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
+        PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
+        WalletUnlockError,
+    },
+    mdoc::SessionType,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -17,7 +23,8 @@ pub struct FlutterApiError {
     #[serde(rename = "type")]
     typ: FlutterApiErrorType,
     description: String,
-    data: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "serde_json::Value::is_null")]
+    data: serde_json::Value,
     /// This property is present only for debug logging purposes and will not be encoded to JSON.
     #[serde(skip)]
     source: Box<dyn Error>,
@@ -43,6 +50,9 @@ enum FlutterApiErrorType {
     /// The disclosure URI source (universal link or QR code) does not match the received session type.
     DisclosureSourceMismatch,
 
+    /// A remote session is expired, the user may or may not be able to retry the operation.
+    ExpiredSession,
+
     /// Indicating something unexpected went wrong.
     Generic,
 }
@@ -52,8 +62,8 @@ trait FlutterApiErrorFields {
         FlutterApiErrorType::Generic
     }
 
-    fn data(&self) -> Option<serde_json::Value> {
-        None
+    fn data(&self) -> serde_json::Value {
+        serde_json::Value::Null
     }
 }
 
@@ -180,17 +190,24 @@ impl FlutterApiErrorFields for PidIssuanceError {
         }
     }
 
-    fn data(&self) -> Option<serde_json::Value> {
+    fn data(&self) -> serde_json::Value {
         match self {
             Self::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(err))) => {
                 [("redirect_error", format!("{:?}", &err.error))]
                     .into_iter()
                     .collect::<serde_json::Value>()
-                    .into()
             }
-            _ => None,
+            _ => serde_json::Value::Null,
         }
     }
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize)]
+struct DisclosureErrorData<'a> {
+    session_type: Option<SessionType>,
+    can_retry: Option<bool>,
+    return_url: Option<&'a Url>,
 }
 
 impl FlutterApiErrorFields for DisclosureError {
@@ -206,6 +223,11 @@ impl FlutterApiErrorFields for DisclosureError {
             | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }
+            DisclosureError::VpDisclosureSession(VpClientError::Request(error))
+                if matches!(error.error_type(), VpMessageClientErrorType::Expired { .. }) =>
+            {
+                FlutterApiErrorType::ExpiredSession
+            }
             DisclosureError::IsoDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
@@ -217,19 +239,35 @@ impl FlutterApiErrorFields for DisclosureError {
         }
     }
 
-    fn data(&self) -> Option<serde_json::Value> {
-        match self {
+    fn data(&self) -> serde_json::Value {
+        let session_type = match self {
             DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::DisclosureUriSourceMismatch(
                 session_type,
                 _,
             )))
             | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
-                [("session_type", serde_json::to_value(session_type).unwrap())] // This conversion should never fail.
-                    .into_iter()
-                    .collect::<serde_json::Value>()
-                    .into()
+                Some(*session_type)
             }
             _ => None,
+        };
+        let can_retry = match self {
+            DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
+                VpMessageClientErrorType::Expired { can_retry } => Some(can_retry),
+                VpMessageClientErrorType::Other => None,
+            },
+            _ => None,
+        };
+        let return_url = self.return_url();
+
+        if session_type.is_some() || can_retry.is_some() || return_url.is_some() {
+            serde_json::to_value(DisclosureErrorData {
+                session_type,
+                can_retry,
+                return_url,
+            })
+            .unwrap() // This conversion should never fail.
+        } else {
+            serde_json::Value::Null
         }
     }
 }

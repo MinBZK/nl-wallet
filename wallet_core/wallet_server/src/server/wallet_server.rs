@@ -30,7 +30,7 @@ where
         Router::new()
             .nest("/issuance", wallet_issuance_router)
             .nest("/disclosure", wallet_disclosure_router),
-        Router::new().nest("/disclosure/sessions", requester_router),
+        Router::new().nest("/disclosure", requester_router),
         log_requests,
     )
     .await

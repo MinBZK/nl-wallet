@@ -61,7 +61,7 @@ pub trait MdocDisclosureSession<D> {
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
     fn session_type(&self) -> SessionType;
 
-    async fn terminate(self) -> Result<(), MdocDisclosureError>;
+    async fn terminate(self) -> Result<Option<Url>, MdocDisclosureError>;
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -139,8 +139,10 @@ where
         self.session_type()
     }
 
-    async fn terminate(self) -> Result<(), MdocDisclosureError> {
-        Ok(self.terminate().await?)
+    async fn terminate(self) -> Result<Option<Url>, MdocDisclosureError> {
+        let return_url = self.terminate().await?.map(|url| url.into_inner());
+
+        Ok(return_url)
     }
 }
 
@@ -226,8 +228,11 @@ where
         }
     }
 
-    async fn terminate(self) -> Result<(), MdocDisclosureError> {
-        Ok(self.terminate().await?)
+    async fn terminate(self) -> Result<Option<Url>, MdocDisclosureError> {
+        self.terminate().await?;
+
+        // Since the ISO disclosure code will be archived soon, just return no return URL.
+        Ok(None)
     }
 
     fn session_type(&self) -> SessionType {
@@ -278,9 +283,9 @@ mod mock {
     use super::*;
 
     type SessionState = MdocDisclosureSessionState<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
-    type MockFields = (ReaderRegistration, SessionState);
+    type MockFields = (ReaderRegistration, SessionState, Option<Url>);
 
-    pub static NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> = Lazy::new(|| Mutex::new(None));
+    pub static NEXT_START_ERROR: Lazy<Mutex<Option<MdocDisclosureError>>> = Lazy::new(|| Mutex::new(None));
     pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
 
     // For convenience, the default `SessionState` is a proposal.
@@ -292,7 +297,7 @@ mod mock {
 
     #[derive(Debug)]
     pub struct MockMdocDisclosureProposal {
-        pub return_url: Option<Url>,
+        pub disclose_return_url: Option<Url>,
         pub proposed_source_identifiers: Vec<Uuid>,
         pub proposed_attributes: ProposedAttributes,
         pub disclosure_count: Arc<AtomicUsize>,
@@ -304,7 +309,7 @@ mod mock {
     impl Default for MockMdocDisclosureProposal {
         fn default() -> Self {
             Self {
-                return_url: Default::default(),
+                disclose_return_url: Default::default(),
                 proposed_source_identifiers: Default::default(),
                 proposed_attributes: Default::default(),
                 disclosure_count: Default::default(),
@@ -336,7 +341,7 @@ mod mock {
             self.disclosure_count
                 .store(self.disclosure_count.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
 
-            Ok(self.return_url.clone())
+            Ok(self.disclose_return_url.clone())
         }
     }
 
@@ -348,14 +353,21 @@ mod mock {
         pub session_state: SessionState,
         pub was_terminated: Arc<AtomicBool>,
         pub session_type: SessionType,
+        pub terminate_return_url: Option<Url>,
     }
 
     impl MockMdocDisclosureSession {
-        pub fn next_fields(reader_registration: ReaderRegistration, session_state: SessionState) {
-            NEXT_MOCK_FIELDS.lock().replace((reader_registration, session_state));
+        pub fn next_fields(
+            reader_registration: ReaderRegistration,
+            session_state: SessionState,
+            terminate_return_url: Option<Url>,
+        ) {
+            NEXT_MOCK_FIELDS
+                .lock()
+                .replace((reader_registration, session_state, terminate_return_url));
         }
 
-        pub fn next_start_error(error: nl_wallet_mdoc::Error) {
+        pub fn next_start_error(error: MdocDisclosureError) {
             NEXT_START_ERROR.lock().replace(error);
         }
     }
@@ -377,6 +389,7 @@ mod mock {
                 session_state: Default::default(),
                 was_terminated: Default::default(),
                 session_type: SessionType::SameDevice,
+                terminate_return_url: Default::default(),
             }
         }
     }
@@ -404,15 +417,16 @@ mod mock {
                 Err(error)?;
             }
 
-            let (reader_registration, session_state) = NEXT_MOCK_FIELDS
+            let (reader_registration, session_state, terminate_return_url) = NEXT_MOCK_FIELDS
                 .lock()
                 .take()
-                .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default()));
+                .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default(), None));
 
             let session = MockMdocDisclosureSession {
                 disclosure_uri_source,
                 reader_registration,
                 session_state,
+                terminate_return_url,
                 ..Default::default()
             };
 
@@ -432,10 +446,10 @@ mod mock {
             &self.reader_registration
         }
 
-        async fn terminate(self) -> Result<(), MdocDisclosureError> {
+        async fn terminate(self) -> Result<Option<Url>, MdocDisclosureError> {
             self.was_terminated.store(true, Ordering::Relaxed);
 
-            Ok(())
+            Ok(self.terminate_return_url)
         }
 
         fn rp_certificate(&self) -> &Certificate {

@@ -195,12 +195,12 @@ class WalletRoutes {
 }
 
 Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBloc>(
-      create: (BuildContext context) => SplashBloc(context.read(), context.read()),
+      create: (BuildContext context) => SplashBloc(context.read(), context.read())..add(const InitSplashEvent()),
       child: const SplashScreen(),
     );
 
 Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
-      create: (BuildContext context) => QrBloc(context.read()),
+      create: (BuildContext context) => QrBloc(context.read(), context.read())..add(const QrScanCheckPermission()),
       child: const QrScreen(),
     );
 
@@ -316,9 +316,8 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
           context.read(),
           context.read(),
           context.read(),
-          issuanceUri: argument.uri!,
           isRefreshFlow: argument.isRefreshFlow,
-        );
+        )..add(IssuanceInitiated(argument.uri!));
       },
       child: const IssuanceScreen(),
     );
@@ -363,7 +362,7 @@ WidgetBuilder _createWalletPersonalizeScreenBuilder(RouteSettings settings) {
 
 Widget _createHistoryOverviewScreenBuilder(BuildContext context) {
   return BlocProvider<HistoryOverviewBloc>(
-    create: (BuildContext context) => HistoryOverviewBloc(context.read()),
+    create: (BuildContext context) => HistoryOverviewBloc(context.read())..add(const HistoryOverviewLoadTriggered()),
     child: const HistoryOverviewScreen(),
   );
 }
@@ -383,7 +382,8 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
 
 Widget _createChangeLanguageScreenBuilder(BuildContext context) {
   return BlocProvider<ChangeLanguageBloc>(
-    create: (BuildContext context) => ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context)),
+    create: (BuildContext context) =>
+        ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context))..add(ChangeLanguageLoadTriggered()),
     child: const ChangeLanguageScreen(),
   );
 }

@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, Query, State},
-    routing::{get, post},
+    routing::{delete, get, post},
     Form, Json, Router,
 };
-use http::{header, HeaderMap, HeaderValue, Method, Uri};
+use http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri};
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn};
@@ -18,14 +18,11 @@ use openid4vc::{
     disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
     openid4vp::{VpResponse, WalletRequest},
     verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
-    GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
+    DisclosureErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonError};
 
-use crate::{
-    errors::ErrorResponse,
-    settings::{self, Urls},
-};
+use crate::settings::{self, Urls};
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,
@@ -64,6 +61,16 @@ where
 {
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
+    let wallet_web = Router::new()
+        .route("/:session_token", get(status::<S>))
+        .route("/:session_token", delete(cancel::<S>))
+        // The CORS headers should be set for these routes, so that any web browser may call them.
+        .layer(
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::DELETE])
+                .allow_origin(Any),
+        );
+
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
     // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
@@ -71,21 +78,18 @@ where
         .route("/:session_token/request_uri", get(retrieve_request::<S>))
         .route("/:session_token/request_uri", post(retrieve_request::<S>))
         .route("/:session_token/response_uri", post(post_response::<S>))
-        .route(
-            "/:session_token/status",
-            get(status::<S>)
-                // to be able to request the status from a browser, the cors headers should be set
-                // but only on this endpoint
-                .layer(CorsLayer::new().allow_methods([Method::GET]).allow_origin(Any)),
-        )
-        .with_state(application_state.clone());
+        .merge(wallet_web)
+        .with_state(Arc::clone(&application_state));
 
     let requester_router = Router::new()
         .route("/", post(start::<S>))
         .route("/:session_token/disclosed_attributes", get(disclosed_attributes::<S>))
         .with_state(application_state);
 
-    Ok((wallet_router, requester_router))
+    Ok((
+        Router::new().nest("/sessions", wallet_router),
+        Router::new().nest("/sessions", requester_router),
+    ))
 }
 
 async fn retrieve_request<S>(
@@ -93,7 +97,7 @@ async fn retrieve_request<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Form(wallet_request): Form<WalletRequest>,
-) -> Result<(HeaderMap, String), ErrorResponse<GetRequestErrorCode>>
+) -> Result<(HeaderMap, String), DisclosureErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -105,13 +109,14 @@ where
             &session_token,
             state
                 .public_url
-                .join_base_url(&format!("disclosure/{session_token}/response_uri")),
+                .join_base_url(&format!("disclosure/sessions/{session_token}/response_uri")),
             uri.query(),
             wallet_request.wallet_nonce,
         )
         .await
-        .inspect_err(|error| warn!("processing request for Authorization Request JWT failed, returning error: {error}"))
-        .map_err(ErrorResponse::with_uri)?;
+        .inspect_err(|error| {
+            warn!("processing request for Authorization Request JWT failed, returning error: {error}")
+        })?;
 
     info!("processing request for Authorization Request JWT successful, returning response");
 
@@ -126,7 +131,7 @@ async fn post_response<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Form(wallet_response): Form<WalletAuthResponse>,
-) -> Result<Json<VpResponse>, ErrorResponse<PostAuthResponseErrorCode>>
+) -> Result<Json<VpResponse>, DisclosureErrorResponse<PostAuthResponseErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -136,8 +141,7 @@ where
         .verifier
         .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
         .await
-        .inspect_err(|error| warn!("processing Verifiable Presentation failed, returning error: {error}"))
-        .map_err(ErrorResponse::with_uri)?;
+        .inspect_err(|error| warn!("processing Verifiable Presentation failed, returning error: {error}"))?;
 
     info!("Verifiable Presentation processed successfully, returning response");
 
@@ -152,7 +156,7 @@ pub struct StatusParams {
 async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
-    Query(params): Query<StatusParams>,
+    query: Option<Query<StatusParams>>,
 ) -> Result<Json<StatusResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -161,17 +165,33 @@ where
         .verifier
         .status_response(
             &session_token,
-            params.session_type,
-            &state.universal_link_base_url.join_base_url("disclosure"),
+            query.map(|Query(params)| params.session_type),
+            &state.universal_link_base_url.join_base_url("disclosure/sessions"),
             state
                 .public_url
-                .join_base_url(&format!("disclosure/{session_token}/request_uri")),
+                .join_base_url(&format!("disclosure/sessions/{session_token}/request_uri")),
             &TimeGenerator,
         )
         .await
         .inspect_err(|error| warn!("querying session status failed: {error}"))?;
 
     Ok(Json(response))
+}
+
+async fn cancel<S>(
+    State(state): State<Arc<ApplicationState<S>>>,
+    Path(session_token): Path<SessionToken>,
+) -> Result<StatusCode, HttpJsonError<VerificationErrorCode>>
+where
+    S: SessionStore<DisclosureData>,
+{
+    state
+        .verifier
+        .cancel(&session_token)
+        .await
+        .inspect_err(|error| warn!("cancelling session failed: {error}"))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Debug, Serialize, Deserialize)]

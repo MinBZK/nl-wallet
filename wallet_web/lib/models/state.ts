@@ -1,25 +1,30 @@
 import { type AppUL, type SessionType } from "./status"
 
-export type ErrorType = "failed" | "cancelled" | "expired"
+const errors = ["failed", "cancelled", "expired", "timeout"] as const
+export type ErrorType = (typeof errors)[number]
+
+export const isError = (e: any): e is ErrorType => errors.includes(e)
 
 export type StatusUrl = string & { __typename: "status_url" }
 
-export type SessionState = "loading" | "created" | "in-progress" | "success" | "error"
+export type Session = {
+  statusUrl: StatusUrl
+  sessionType: SessionType
+  sessionToken: string
+}
 
 export type ModalState =
-  | { kind: "loading" }
+  | { kind: "creating" }
   | {
       kind: "created"
       ul: AppUL
-      statusUrl: StatusUrl
-      sessionType: SessionType
-      sessionToken: string
+      session: Session
     }
+  | { kind: "loading"; session: Session }
   | {
       kind: "in-progress"
-      statusUrl: StatusUrl
-      sessionType: SessionType
-      sessionToken: string
+      session: Session
     }
-  | { kind: "success"; sessionType: SessionType; sessionToken: string }
-  | { kind: "error"; errorType: ErrorType }
+  | { kind: "success"; session: Session }
+  | { kind: "error"; errorType: ErrorType; session?: Session }
+  | { kind: "confirm-stop"; prev: ModalState; session: Session }

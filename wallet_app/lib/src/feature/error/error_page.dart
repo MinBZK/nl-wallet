@@ -100,6 +100,7 @@ class ErrorPage extends StatelessWidget {
     BuildContext context, {
     VoidCallback? onPrimaryActionPressed,
     required ErrorCtaStyle style,
+    String? cta,
   }) {
     return ErrorPage(
       headline: context.l10n.errorScreenSessionExpiredHeadline,
@@ -111,6 +112,7 @@ class ErrorPage extends StatelessWidget {
         context,
         style,
         onPressed: onPrimaryActionPressed,
+        cta: cta,
       ),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
     );

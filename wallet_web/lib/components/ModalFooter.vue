@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { type SessionState } from "@/models/state"
-import { type SessionType } from "@/models/status"
+import { type ModalState } from "@/models/state"
 import { injectStrict, translationsKey } from "@/util/translations"
 
 defineProps<{
-  state: SessionState
-  type?: SessionType
+  modalState: ModalState
 }>()
 
 const t = injectStrict(translationsKey)
 
-const emit = defineEmits(["close", "stop", "retry", "success"])
+const emit = defineEmits(["close", "stop", "confirm", "retry", "back"])
 </script>
 
 <template>
   <footer>
     <a
-      v-if="state === 'loading' || state === 'in-progress'"
+      v-if="['creating', 'loading', 'in-progress'].includes(modalState.kind)"
       href="/help"
       class="button link"
       data-testid="help"
@@ -28,22 +26,26 @@ const emit = defineEmits(["close", "stop", "retry", "success"])
     </a>
 
     <button
-      v-if="state === 'loading' || state === 'in-progress'"
+      v-if="['creating', 'loading', 'in-progress', 'confirm-stop'].includes(modalState.kind)"
       type="button"
-      class="button secondary"
+      class="button"
+      :class="{
+        secondary: ['creating', 'loading', 'in-progress'].includes(modalState.kind),
+        error: modalState.kind === 'confirm-stop',
+      }"
       data-testid="cancel_button"
-      @click="emit('stop')"
+      @click="modalState.kind === 'confirm-stop' ? emit('stop') : emit('confirm')"
     >
       <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
         <path
           d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31A7.9 7.9 0 0 1 12 20m6.31-3.1L7.1 5.69A7.9 7.9 0 0 1 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9"
         />
       </svg>
-      <span>{{ t("stop") }}</span>
+      <span>{{ modalState.kind === "confirm-stop" ? t("yes_stop") : t("stop") }}</span>
     </button>
 
     <button
-      v-if="state === 'error'"
+      v-if="modalState.kind === 'error'"
       type="button"
       class="button primary"
       data-testid="retry_button"
@@ -58,18 +60,17 @@ const emit = defineEmits(["close", "stop", "retry", "success"])
     </button>
 
     <button
-      v-if="state === 'created' || state === 'error' || state === 'success'"
+      v-if="['created', 'error', 'success'].includes(modalState.kind)"
       type="button"
       class="button"
       :class="{
         link:
-          state === 'created' ||
-          state === 'error' ||
-          (state === 'success' && type === 'cross_device'),
-        primary: state === 'success' && type === 'same_device',
+          ['created', 'error'].includes(modalState.kind) ||
+          (modalState.kind === 'success' && modalState.session.sessionType === 'cross_device'),
+        primary: modalState.kind === 'success' && modalState.session.sessionType === 'same_device',
       }"
       data-testid="close_button"
-      @click="state === 'success' ? emit('success') : emit('close')"
+      @click="modalState.kind === 'created' ? emit('stop') : emit('close')"
     >
       <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
         <path
@@ -77,6 +78,19 @@ const emit = defineEmits(["close", "stop", "retry", "success"])
         />
       </svg>
       <span>{{ t("close") }}</span>
+    </button>
+
+    <button
+      v-if="modalState.kind === 'confirm-stop'"
+      type="button"
+      class="button link"
+      data-testid="back_button"
+      @click="emit('back')"
+    >
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z" />
+      </svg>
+      <span>{{ t("no") }}</span>
     </button>
   </footer>
 </template>

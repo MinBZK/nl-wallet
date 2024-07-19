@@ -3,10 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:provider/provider.dart';
 import 'package:wallet/src/domain/model/multiple_cards_flow.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
+import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import 'package:wallet/src/feature/issuance/issuance_screen.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_check_card_page.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_check_data_offering_page.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_confirm_pin_page.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_identity_validation_failed_page.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_proof_identity_page.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_select_cards_page.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_stopped_page.dart';
+import 'package:wallet/src/feature/organization/approve/organization_approve_page.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -269,6 +280,105 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.walletPersonalizeSuccessPageContinueCta), findsOneWidget);
+    });
+
+    testWidgets('IssuanceLoadInProgress shows loader', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceLoadInProgress(isRefreshFlow: false),
+        ),
+      );
+      expect(find.byType(CenteredLoadingIndicator), findsOneWidget);
+    });
+
+    testWidgets('IssuanceCheckOrganization shows OrganizationApprovePage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceCheckOrganization(isRefreshFlow: false, organization: WalletMockData.organization),
+        ),
+      );
+      expect(find.byType(OrganizationApprovePage), findsOneWidget);
+    });
+
+    testWidgets('IssuanceProofIdentity shows IssuanceProofIdentityPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceProofIdentity(
+            isRefreshFlow: false,
+            organization: WalletMockData.organization,
+            policy: WalletMockData.policy,
+            requestedAttributes: const [],
+          ),
+        ),
+      );
+      expect(find.byType(IssuanceProofIdentityPage), findsOneWidget);
+    });
+
+    testWidgets('IssuanceProvidePin shows IssuanceConfirmPinPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceProvidePin(isRefreshFlow: false),
+        ),
+        providers: [
+          Provider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
+          Provider<PinBloc>(create: (c) => MockPinBloc()),
+        ],
+      );
+      expect(find.byType(IssuanceConfirmPinPage), findsOneWidget);
+    });
+
+    testWidgets('IssuanceCheckDataOffering shows IssuanceCheckDataOfferingPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceCheckDataOffering(isRefreshFlow: false, card: WalletMockData.card),
+        ),
+      );
+      expect(find.byType(IssuanceCheckDataOfferingPage), findsOneWidget);
+    });
+
+    testWidgets('IssuanceStopped shows IssuanceCheckDataOfferingPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceStopped(isRefreshFlow: false),
+        ),
+      );
+      expect(find.byType(IssuanceStoppedPage), findsOneWidget);
+    });
+
+    testWidgets('IssuanceIdentityValidationFailure shows IssuanceIdentityValidationFailedPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceIdentityValidationFailure(isRefreshFlow: false),
+        ),
+      );
+      expect(find.byType(IssuanceIdentityValidationFailedPage), findsOneWidget);
+    });
+
+    testWidgets('IssuanceSelectCards shows IssuanceSelectCardsPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceSelectCards(isRefreshFlow: false, multipleCardsFlow: mockMultipleCardsFlow),
+        ),
+      );
+      expect(find.byType(IssuanceSelectCardsPage), findsOneWidget);
+    });
+
+    testWidgets('IssuanceCheckCards shows IssuanceCheckCardPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceCheckCards(isRefreshFlow: false, multipleCardsFlow: mockMultipleCardsFlow),
+        ),
+      );
+      expect(find.byType(IssuanceCheckCardPage), findsOneWidget);
     });
   });
 }

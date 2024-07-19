@@ -132,6 +132,11 @@ open class MobileActions {
         } else {
             throw Exception("Platform $platform is not supported")
         }
+
+        // Explicit timeout; waiting for the browser to be fully started and the viewport stabilized.
+        // This fixes the issue where the (Chrome) browser viewport flickers back and forth between
+        // the loaded web page and the browser startup screen shortly after browser startup.
+        Thread.sleep(BROWSER_STARTUP_TIMEOUT)
     }
 
     protected fun switchToAppContext() {
@@ -163,6 +168,7 @@ open class MobileActions {
         private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 60000L
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 1200000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 1200000L
+        private const val BROWSER_STARTUP_TIMEOUT = 5000L
 
         private const val FLUTTER_APP_CONTEXT = "FLUTTER"
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"

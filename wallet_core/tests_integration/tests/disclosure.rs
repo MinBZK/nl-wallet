@@ -152,7 +152,7 @@ async fn test_disclosure_usecases_ok(
     let mut status_url = ws_settings
         .urls
         .public_url
-        .join(&format!("disclosure/{session_token}/status"));
+        .join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
     status_url.set_query(status_query.as_str().into());
 
@@ -175,7 +175,7 @@ async fn test_disclosure_usecases_ok(
     };
 
     let proposal = wallet
-        .start_disclosure(&ul.into_inner(), source)
+        .start_disclosure(&ul.unwrap().into_inner(), source)
         .await
         .expect("should start disclosure");
     assert_eq!(proposal.documents.len(), expected_documents.len());
@@ -295,7 +295,7 @@ async fn test_disclosure_without_pid() {
     let mut status_url = ws_settings
         .urls
         .public_url
-        .join(&format!("disclosure/{session_token}/status"));
+        .join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })
@@ -318,7 +318,7 @@ async fn test_disclosure_without_pid() {
     };
 
     let error = wallet
-        .start_disclosure(&ul.into_inner(), DisclosureUriSource::Link)
+        .start_disclosure(&ul.unwrap().into_inner(), DisclosureUriSource::Link)
         .await
         .expect_err("Should return error that attributes are not available");
 

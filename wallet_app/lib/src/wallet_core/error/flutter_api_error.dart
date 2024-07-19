@@ -21,6 +21,8 @@ class FlutterApiError {
 enum FlutterApiErrorType {
   @JsonValue('Generic')
   generic,
+  @JsonValue('Server')
+  server,
   @JsonValue('Networking')
   networking,
   @JsonValue('WalletState')
@@ -31,4 +33,6 @@ enum FlutterApiErrorType {
   redirectUri,
   @JsonValue('DisclosureSourceMismatch')
   disclosureSourceMismatch,
+  @JsonValue('ExpiredSession')
+  expiredSession,
 }

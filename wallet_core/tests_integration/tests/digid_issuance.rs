@@ -1,4 +1,4 @@
-use std::{net::IpAddr, process, str::FromStr};
+use std::{io, net::IpAddr, process, str::FromStr};
 
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, HttpVcMessageClient, IssuanceSession},
@@ -30,6 +30,12 @@ async fn start_gba_hc_converter(settings: GbaSettings) {
 
     tokio::spawn(async {
         if let Err(error) = gba_hc_converter::app::serve_from_settings(settings).await {
+            if let Some(io_error) = error.downcast_ref::<io::Error>() {
+                if io_error.kind() == io::ErrorKind::AddrInUse {
+                    println!("TCP address/port for gba_hc_converter is already in use, assuming you started it yourself, continuing...");
+                    return;
+                }
+            }
             println!("Could not start gba_hc_converter: {:?}", error);
             process::exit(1);
         }
@@ -43,9 +49,9 @@ async fn start_gba_hc_converter(settings: GbaSettings) {
 ///
 /// Before running this, ensure that you have nl-rdo-max and brpproxy properly configured and running locally:
 /// - Run `setup-devenv.sh` if not recently done,
-/// - Run `start-devenv.sh digid brpproxy`,
-///     or else `docker compose up` in your nl-rdo-max checkout
-///     and `docker compose --file docker-compose-brp.yml up` in /scripts.
+/// - Run `start-devenv.sh digid brpproxy`, or
+///     else `docker compose up` in your nl-rdo-max checkout,
+///     and `docker compose up brpproxy` in /scripts.
 ///
 /// Run the test itself with `cargo test --package tests_integration --features=digid_test`.
 ///

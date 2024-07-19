@@ -552,7 +552,7 @@ void main() {
   );
 
   blocTest(
-    'When a CoreDisclosureSourceMismatchError(isCrossDevice=true) is thrown, emit the DisclosureExternalScannerError',
+    'when a CoreDisclosureSourceMismatchError(isCrossDevice=true) is thrown, emit the DisclosureExternalScannerError',
     setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
         .thenThrow(const CoreDisclosureSourceMismatchError('description', isCrossDevice: true)),
     build: create,
@@ -561,11 +561,113 @@ void main() {
   );
 
   blocTest(
-    'When a CoreDisclosureSourceMismatchError(isCrossDevice=false) is thrown, emit the DisclosureGenericError',
+    'when a CoreDisclosureSourceMismatchError(isCrossDevice=false) is thrown, emit the DisclosureGenericError',
     setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
         .thenThrow(const CoreDisclosureSourceMismatchError('description', isCrossDevice: false)),
     build: create,
     act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
     expect: () => [isA<DisclosureGenericError>()],
+  );
+
+  blocTest(
+    'when a CoreExpiredSessionError is thrown when starting disclosure, emit DisclosureSessionExpired',
+    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode')))
+        .thenThrow(const CoreExpiredSessionError('', canRetry: true)),
+    build: create,
+    act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [
+      const DisclosureSessionExpired(
+        canRetry: true,
+        isCrossDevice: false,
+        error: CoreExpiredSessionError('', canRetry: true),
+      ),
+    ],
+  );
+
+  blocTest(
+    'when a CoreExpiredSessionError is thrown when accepting disclosure, emit DisclosureSessionExpired',
+    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer(
+      (_) async => StartDisclosureReadyToDisclose(
+        WalletMockData.organization,
+        'originUrl',
+        ''.untranslated,
+        DisclosureSessionType.crossDevice,
+        DisclosureType.regular,
+        {},
+        WalletMockData.policy,
+        sharedDataWithOrganizationBefore: false,
+      ),
+    ),
+    build: create,
+    act: (bloc) async {
+      bloc.add(const DisclosureSessionStarted(''));
+      await Future.delayed(const Duration(milliseconds: 20));
+      bloc.add(const DisclosureOrganizationApproved());
+      await Future.delayed(const Duration(milliseconds: 20));
+      bloc.add(const DisclosureConfirmPinFailed(error: CoreExpiredSessionError('', canRetry: false)));
+    },
+    expect: () => [
+      isA<DisclosureCheckOrganization>(),
+      isA<DisclosureConfirmDataAttributes>(),
+      isA<DisclosureLoadInProgress>(),
+      const DisclosureSessionExpired(
+        canRetry: false,
+        isCrossDevice: true,
+        error: CoreExpiredSessionError('', canRetry: false),
+      ),
+    ],
+  );
+
+  blocTest(
+    'when a CoreGenericError with a returnUrl is thrown, the bloc emits a GenericError that contains this returnUrl',
+    setUp: () {
+      return when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenThrow(
+        const CoreGenericError(
+          '',
+          data: {'return_url': 'https://example.org'},
+        ),
+      );
+    },
+    build: create,
+    act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [
+      const DisclosureGenericError(
+        error: CoreGenericError('', data: {'return_url': 'https://example.org'}),
+        returnUrl: 'https://example.org',
+      ),
+    ],
+  );
+
+  blocTest(
+    'when disclosure is stopped and a returnUrl is provided, this returnUrl is available inside the stopped state',
+    setUp: () {
+      when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
+        return StartDisclosureReadyToDisclose(
+          WalletMockData.organization,
+          'http://origin.org',
+          'requestPurpose'.untranslated,
+          DisclosureSessionType.crossDevice,
+          DisclosureType.login,
+          {},
+          WalletMockData.policy,
+          sharedDataWithOrganizationBefore: false,
+        );
+      });
+      when(cancelDisclosureUseCase.invoke()).thenAnswer((_) async => 'http://example.org');
+    },
+    build: create,
+    act: (bloc) async {
+      bloc.add(const DisclosureSessionStarted(''));
+      bloc.add(const DisclosureStopRequested());
+    },
+    expect: () => [
+      isA<DisclosureLoadInProgress>(),
+      isA<DisclosureCheckOrganizationForLogin>(),
+      DisclosureStopped(
+        organization: WalletMockData.organization,
+        isLoginFlow: true,
+        returnUrl: 'http://example.org',
+      ),
+    ],
   );
 }

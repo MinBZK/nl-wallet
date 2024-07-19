@@ -5,6 +5,7 @@ import 'package:wallet/src/feature/introduction/introduction_conditions_screen.d
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 void main() {
   group('goldens', () {
@@ -29,6 +30,18 @@ void main() {
       );
       await tester.pumpAndSettle();
       await screenMatchesGolden(tester, 'conditions/dark');
+    });
+  });
+
+  group('widgets', () {
+    testWidgets('conditions title and bullet points are shown', (WidgetTester tester) async {
+      await tester.pumpWidgetWithAppWrapper(const IntroductionConditionsScreen());
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.introductionConditionsScreenHeadline), findsAtLeast(1));
+      l10n.introductionConditionsScreenBulletPoints.split('\n').forEach((bulletPoint) {
+        expect(find.text(bulletPoint), findsOneWidget);
+      });
     });
   });
 }

@@ -24,6 +24,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   success: [sessionToken: string, sessionType: string]
+  failed: [sessionToken?: string, sessionType?: string]
 }>()
 
 const isVisible = ref(false)
@@ -37,6 +38,11 @@ const absoluteBaseUrl = computed(() =>
 const success = (sessionToken: string, sessionType: string) => {
   close()
   emit("success", sessionToken, sessionType)
+}
+
+const failed = (sessionToken?: string, sessionType?: string) => {
+  close()
+  emit("failed", sessionToken, sessionType)
 }
 
 const close = () => {
@@ -84,6 +90,7 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
     :usecase
     @close="close"
     @success="success"
+    @failed="failed"
   ></wallet-modal>
 </template>
 

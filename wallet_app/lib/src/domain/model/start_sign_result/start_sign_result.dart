@@ -10,7 +10,7 @@ sealed class StartSignResult {
   final Policy policy;
   final Document document;
 
-  StartSignResult({
+  const StartSignResult({
     required this.relyingParty,
     required this.trustProvider,
     required this.policy,

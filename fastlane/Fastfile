@@ -156,12 +156,12 @@ platform :android do
   desc "Deploy Android app from GitLab CI"
   lane :ci_deploy do |options|
     json_key_data = ENV["JSON_KEY_DATA"]
-    UI.user_error!("No JSON_KEY_DATA environment variable set") if json_key_data.blank?
+    UI.user_error!("No JSON_KEY_DATA environment variable given") if json_key_data.blank?
 
     package_name = options[:package_name]
-    UI.user_error!("No package_name or package_name option set") if package_name.blank?
+    UI.user_error!("No package_name given") if package_name.blank?
 
-    # retrieve local version
+    # Retrieve local version
     local_version, _ = get_local_version_and_build
     version = options[:version].blank? ? local_version : options[:version]
 
@@ -215,19 +215,37 @@ platform :ios do
     build(options)
   end
 
-#   desc "Deploy iOS app from GitLab CI"
-#   lane :ci_deploy do
-#     app_identifier, version, suffix = ci_get_version
-#
-#     api_key_secrets = ci_get_k8s_secrets(name: "nl-wallet-app-store-api-key")
-#     api_key = app_store_connect_api_key(
-#       key_id: api_key_secrets["key_id"],
-#       issuer_id: api_key_secrets["issuer_id"],
-#       key_content: api_key_secrets["private_key"]
-#     )
-#
-#     deploy(bundle_id: app_identifier)
-#   end
+  desc "Deploy iOS app from GitLab CI"
+  lane :ci_deploy do |options|
+    # Get app identifier
+    app_identifier = options[:app_identifier]
+    UI.user_error!("No app_identifier given") if app_identifier.blank?
+
+    # Parse API key values and convert to a Fastlane API key object
+    asc_secrets_base64_json = ENV["APP_STORE_CONNECT_SECRETS_BASE64_JSON"]
+    UI.user_error!("No APP_STORE_CONNECT_API_KEY_SECRETS_BASE64 environment variable given") if asc_secrets_base64_json.blank?
+
+    asc_secrets = begin
+      JSON.parse(asc_secrets_base64_json).map{ |k, v| [k, Base64.strict_decode64(v)] }.to_h
+    rescue JSON::ParserError
+      UI.user_error!("Unable to JSON parse APP_STORE_CONNECT_SECRETS_BASE64_JSON")
+    rescue ArgumentError
+      UI.user_error!("Unable to base64 decode values in APP_STORE_CONNECT_SECRETS_BASE64_JSON")
+    end
+
+    api_key = app_store_connect_api_key(
+      key_id: asc_secrets["key_id"],
+      issuer_id: asc_secrets["issuer_id"],
+      key_content: asc_secrets["private_key"],
+    )
+
+    upload_to_testflight(
+      skip_submission: true,
+      skip_waiting_for_build_processing: true,
+      app_identifier: app_identifier,
+      api_key: api_key,
+    )
+  end
 #
 #   desc "Upload iOS app to BrowserStack from GitLab CI"
 #   lane :ci_browserstack do

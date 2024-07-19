@@ -13,7 +13,7 @@ use webpki::{Error, TrustAnchor};
 /// Can be converted from a reference to a [`TrustAnchor`] or a byte-slice
 /// reference `&[u8]` using the `From<>` trait. Conversely a [`TrustAnchor`]
 /// may be created from a reference to [`OwnedTrustAnchor`].
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct OwnedTrustAnchor {
     subject: Vec<u8>,
     spki: Vec<u8>,

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
@@ -32,22 +30,22 @@ void main() {
   });
 
   group('invoke', () {
-    test('should return card detail on repository stream emit', () async* {
+    test('card detail usecase should enrich card data through event repository', () async {
       final WalletCard mockCard = WalletMockData.card;
 
       when(mockWalletCardRepository.observeWalletCards()).thenAnswer((_) => mockWalletCardsStream);
       when(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.id, EventStatus.success))
-          .thenAnswer((_) => Future.value(null));
+          .thenAnswer((_) async => Future.value(null));
       when(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.id, EventStatus.success))
-          .thenAnswer((_) => Future.value(null));
+          .thenAnswer((_) async => Future.value(null));
 
-      unawaited(expectLater(usecase.invoke(WalletMockData.card.id), emits(WalletMockData.cardDetail)));
+      mockWalletCardsStream.add([WalletMockData.altCard, mockCard]);
 
-      mockWalletCardsStream.add([WalletMockData.altCard, WalletMockData.card]);
+      final detail = await usecase.invoke(mockCard.id).first;
+      expect(detail, WalletMockData.cardDetail);
 
-      verify(mockWalletCardRepository.read(mockCard.id)).called(1);
-      verify(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.id, EventStatus.success)).called(1);
-      verify(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.id, EventStatus.success)).called(1);
+      verify(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.docType, EventStatus.success)).called(1);
+      verify(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.docType, EventStatus.success)).called(1);
     });
   });
 }

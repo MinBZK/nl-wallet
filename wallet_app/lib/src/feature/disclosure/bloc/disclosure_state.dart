@@ -48,10 +48,12 @@ class DisclosureGenericError extends DisclosureState implements ErrorState {
   @override
   final Object error;
 
+  final String? returnUrl;
+
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureGenericError({required this.error});
+  const DisclosureGenericError({required this.error, this.returnUrl});
 
   @override
   List<Object?> get props => [error, ...super.props];
@@ -64,10 +66,21 @@ class DisclosureSessionExpired extends DisclosureState implements ErrorState {
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureSessionExpired({required this.error});
+  final bool isCrossDevice;
+
+  final bool canRetry;
+
+  final String? returnUrl;
+
+  const DisclosureSessionExpired({
+    required this.error,
+    required this.isCrossDevice,
+    required this.canRetry,
+    this.returnUrl,
+  });
 
   @override
-  List<Object?> get props => [error, ...super.props];
+  List<Object?> get props => [error, canRetry, isCrossDevice, returnUrl, ...super.props];
 }
 
 class DisclosureNetworkError extends DisclosureState implements NetworkErrorState {
@@ -289,5 +302,7 @@ class DisclosureLeftFeedback extends DisclosureState {
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureLeftFeedback();
+  final String? returnUrl;
+
+  const DisclosureLeftFeedback({this.returnUrl});
 }

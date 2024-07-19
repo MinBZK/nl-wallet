@@ -13,8 +13,6 @@ class HistoryOverviewBloc extends Bloc<HistoryOverviewEvent, HistoryOverviewStat
 
   HistoryOverviewBloc(this.getWalletEventsUseCase) : super(HistoryOverviewInitial()) {
     on<HistoryOverviewLoadTriggered>(_onHistoryOverviewLoadTriggered);
-
-    add(const HistoryOverviewLoadTriggered());
   }
 
   Future<void> _onHistoryOverviewLoadTriggered(HistoryOverviewLoadTriggered event, emit) async {

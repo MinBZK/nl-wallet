@@ -40,9 +40,9 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     this.continueIssuanceUseCase,
     this.acceptIssuanceUseCase,
     this.cancelIssuanceUseCase, {
-    required String issuanceUri,
     required this.isRefreshFlow,
   }) : super(const IssuanceInitial()) {
+    on<IssuanceInitiated>(_onIssuanceInitiated);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
     on<IssuanceOrganizationApproved>(_onIssuanceOrganizationApproved);
     on<IssuanceShareRequestedAttributesDeclined>(_onIssuanceShareRequestedAttributesDeclined);
@@ -55,34 +55,31 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceCardApproved>(_onIssuanceCardApproved);
     on<IssuanceStopRequested>(_onIssuanceStopRequested);
     on<IssuanceUpdateState>((state, emit) => emit(state.state));
-
-    _initIssuance(issuanceUri);
   }
 
-  Future<void> _initIssuance(String issuanceUri) async {
+  Future<void> _onIssuanceInitiated(IssuanceInitiated event, emit) async {
     try {
+      final issuanceUri = event.issuanceUri;
       _startIssuanceResult = await startIssuanceUseCase.invoke(issuanceUri);
       if (isRefreshFlow) {
         /// We assume all the app is in [StartIssuanceReadyToDisclose] state for ALL refresh flows, as the
         /// requested attributes were available for the initial issuance. If that's somehow not the case the
         /// user will always be presented with the [IssuanceGenericError] state.
         final attributes = (_startIssuanceResult! as StartIssuanceReadyToDisclose).requestedAttributes;
-        add(
-          IssuanceUpdateState(
-            IssuanceProofIdentity(
-              organization: _startIssuanceResult!.relyingParty,
-              policy: _startIssuanceResult!.policy,
-              requestedAttributes: attributes.values.flattened.toList(),
-              isRefreshFlow: isRefreshFlow,
-            ),
+        emit(
+          IssuanceProofIdentity(
+            organization: _startIssuanceResult!.relyingParty,
+            policy: _startIssuanceResult!.policy,
+            requestedAttributes: attributes.values.flattened.toList(),
+            isRefreshFlow: isRefreshFlow,
           ),
         );
       } else {
-        add(IssuanceUpdateState(IssuanceCheckOrganization(organization: _startIssuanceResult!.relyingParty)));
+        emit(IssuanceCheckOrganization(organization: _startIssuanceResult!.relyingParty));
       }
     } catch (ex) {
       Fimber.e('Failed to start issuance', ex: ex);
-      add(IssuanceUpdateState(IssuanceGenericError(isRefreshFlow: isRefreshFlow)));
+      emit(IssuanceGenericError(isRefreshFlow: isRefreshFlow));
     }
   }
 

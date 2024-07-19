@@ -213,6 +213,7 @@ test-rust:
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
+    SKIP_MOCK_RELYING_PARTY: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
@@ -334,18 +335,25 @@ test-codegen:
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
-build-frontend-lib:
+build-wallet-web:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:e39c667e35c85a7ddb6af091ae79c64e5455e11495ca2d441e0e41e3a45248e8"
   script:
     - set -euxo pipefail
-    - (cd wallet_web; npm ci && npm run type-check && npm run test -- --run && npm run build)
-    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/
+    - (cd wallet_web; npm ci && npm run type-check && npm run coverage -- --run)
+    - (cd wallet_web; CUSTOM_ELEMENT=false npm run build)
+    - (cd wallet_web; EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build)
+    - WALLET_WEB_SHA256_FILENAME=$(cat wallet_web/dist/nl-wallet-web.iife.js | openssl sha256 -binary | base64 | tr '/+' '_-' | tr -d '=\n') # url safe to prevent '/' to appear in filename
+    - export WALLET_WEB_SHA256_FILENAME
+    - WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
+    - export WALLET_WEB_FILENAME
+    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME}
   artifacts:
     paths:
       - wallet_web/dist
-      - wallet_core/mock_relying_party/assets/nl-wallet-web.iife.js
+      - wallet_web/coverage
+      - wallet_core/mock_relying_party/assets/nl-wallet-web.*
 
 dependency-check:
   extends: [.env-ont-k8s]
@@ -450,6 +458,28 @@ sonar-flutter:
       -Dsonar.flutter.tests.reportPath=build/reports/test-results.json
       -Dsonar.flutter.coverage.reportPath=coverage/lcov.info
 
+sonar-wallet-web:
+  extends: .default-sonar
+  needs:
+    - job: build-wallet-web
+      artifacts: true
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - cd wallet_web
+    - set -euxo pipefail
+  script:
+    - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-web
+      -Dsonar.sources=lib/
+      -Dsonar.exclusions=lib/__tests__/**/*
+      -Dsonar.tests=lib/
+      -Dsonar.test.inclusions=lib/__tests__/**/*
+      -Dsonar.coverage.exclusions=lib/__tests__
+      -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+      -Dsonar.junit.reportPaths=coverage/tests.xml
+
 sonar-ios:
   extends: .default-sonar
   needs:
@@ -520,7 +550,7 @@ build-mock-relying-party-image:
   extends: .build-docker-image
   needs:
     - !reference [.build-docker-image, needs]
-    - job: build-frontend-lib
+    - job: build-wallet-web
       artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/mock_relying_party/Dockerfile
@@ -594,9 +624,9 @@ build-gba-hc-converter-image:
         file_format:"${APP_FILE_FORMAT}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
-        universal_link_base:"${UL_HOSTNAME}" \
+        universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${RELEASE_VERSION}"
+        version:"${RELEASE_VERSION:-}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -715,7 +745,7 @@ build-android-app-demo-profile:
         app_name:"${APP_NAME}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
-        universal_link_base:"${UL_HOSTNAME}" \
+        universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
 
@@ -745,7 +775,8 @@ build-ios-app-latest-profile:
     APP_BUILD_MODE: "profile"
 
 .build-ios-app-demo:
-  extends: [.demo-release-tag, .build-ios-app]
+  extends: .build-ios-app
+  rules: !reference [.demo-release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
@@ -768,12 +799,17 @@ build-ios-app-demo-profile:
   variables:
     APP_BUILD_MODE: "profile"
 
-build-ios-app-mock:
-  extends: [.mock-release-tag, .build-ios-app]
+.build-ios-app-mock:
+  extends: .build-ios-app
+  rules: !reference [.mock-release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
     APP_MOCK: "true"
+
+build-ios-app-mock-release:
+  extends: .build-ios-app-mock
+  variables:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
@@ -785,9 +821,6 @@ build-ios-app-mock:
 ### Android deploying
 .deploy-android-app:
   extends: .ruby-cache
-  # needs:
-  #   - job: build-ios-app # only deploy apps when both apps have been built successfully
-  #     artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
   variables:
@@ -795,9 +828,9 @@ build-ios-app-mock:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - bundle install
     - JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
     - export JSON_KEY_DATA
+    - bundle install
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
@@ -877,41 +910,33 @@ upload-browserstack-android-app-demo:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
 ## iOS Deploying
-# .deploy-ios-app:
-#  extends: .env-macos-runner
-#  rules: !reference [.default-or-release, rules]
-#  needs:
-#    - job: build-ios-app
-#      artifacts: true
-#   # Only deploy apps when both apps have been built successfully
-#   #  - job: build-android-app
-#   #    artifacts: false
-#  tags:
-#    - macos
-#  image: sonoma-wallet:latest
-#  variables:
-#    FASTLANE_OPT_OUT_USAGE: "YES"
-#  script:
-#    - bundle install
-#    - bundle exec fastlane disable_flutter_analytics
-#    # TODO: Authentication
-#    - |
-#      bundle exec fastlane ios ci_deploy \
-#        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-#        version:"${RELEASE_VERSION}"
+.deploy-ios-app:
+  extends: [.env-macos-runner, .ruby-cache-macos]
+  tags:
+    - macos
+  image: sonoma-wallet:latest
+  variables:
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  before_script:
+    - !reference [.env-macos-runner, before_script]
+    - !reference [.ruby-cache-macos, before_script]
+  script:
+    - APP_STORE_CONNECT_SECRETS_BASE64_JSON="$(kubectl get secret nl-wallet-app-store-api-key -o jsonpath='{.data}')"
+    - export APP_STORE_CONNECT_SECRETS_BASE64_JSON
+    - bundle install
+    - |
+      bundle exec fastlane ios ci_deploy \
+        app_identifier:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
 
-# deploy-ios-app-latest:
-#   extends: .deploy-ios-app
-#   rules: !reference [.default-branch, rules]
-#   needs:
-#     - job: build-ios-app-latest-release
-#       artifacts: true
-#   environment:
-#     action: start
-#   variables:
-#     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+deploy-ios-app-latest:
+  extends: .deploy-ios-app
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: build-ios-app-latest-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
 
-# TODO: Decide if we have an iOS mock version of the app
 # deploy-ios-app-mock:
 #   extends: .deploy-ios-app
 #   rules: !reference [.mock-release-tag, rules]
@@ -921,15 +946,14 @@ upload-browserstack-android-app-demo:
 #   variables:
 #     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
 
-# TODO: Probably need another environment for demo app deployment
-# deploy-ios-app-demo:
-#   extends: .deploy-ios-app
-#   rules: !reference [.demo-release-tag, rules]
-#   needs:
-#     - job: build-ios-app-demo-release
-#       artifacts: true
-#   variables:
-#     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+deploy-ios-app-demo:
+  extends: .deploy-ios-app
+  rules: !reference [.demo-release-tag, rules]
+  needs:
+    - job: build-ios-app-demo-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
 # .upload-browserstack-ios-app:
 #   extends: .ruby-cache
@@ -1099,6 +1123,8 @@ run-mrp-vs-migrations-demo:
       artifacts: false
     - job: build-verification-server-image
       artifacts: false
+    - job: build-wallet-web
+      artifacts: true
   variables:
     MOCK_RELYING_PARTY_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-mock-relying-party:${CI_COMMIT_SHORT_SHA}
     MRP_VERIFICATION_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-verification-server:${CI_COMMIT_SHORT_SHA}
@@ -1106,12 +1132,24 @@ run-mrp-vs-migrations-demo:
   script:
     - envsubst < kubernetes/brpproxy-deployment.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/brpproxy-service.yaml
+    - WALLET_WEB_FILENAME=$(basename `find wallet_core/mock_relying_party/assets/ -maxdepth 1 -type f -iname "*.iife.js" | head -1`)
+    - export WALLET_WEB_FILENAME
+    - WALLET_WEB_SHA256=$(cat wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME} | openssl sha256 -binary | base64)
+    - export WALLET_WEB_SHA256
     - envsubst < kubernetes/mrp-verification-server-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/mrp-verification-server-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mrp-verification-server-service.yaml
     - kubectl apply -f kubernetes/mrp-verification-server-network-policies.yaml
     - kubectl rollout status deployment/mrp-verification-server
     - envsubst < kubernetes/mock-relying-party-deployment.yaml | kubectl apply -f -
+    # take the sha256 hash of every JS files and format them accordingly
+    - JS_HASHES=$(find wallet_core/mock_relying_party/assets -regex '.*\.js' -exec bash -c 'echo sha256-`openssl sha256 -binary "$1" | base64`' _ {} \; | tr '\n' ';' | sed "s/;$/'\n/; s/^/'/; s/;/' '/g")
+    - CSP_SCRIPT_SRC_MRP=${JS_HASHES:-\'none\'}
+    - export CSP_SCRIPT_SRC_MRP
+    # take the sha256 hash of the inlined style and add it to the default directive
+    - STYLE_INJECTED_HASH=$(echo \'sha256-`cat wallet_web/dist/style.css | tr -d "\n" | openssl sha256 -binary | base64`\')
+    - CSP_STYLE_SRC_MRP="\'self\' ${STYLE_INJECTED_HASH}"
+    - export CSP_STYLE_SRC_MRP
     - envsubst < kubernetes/mock-relying-party-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mock-relying-party-service.yaml
     - kubectl rollout status deployment/mock-relying-party

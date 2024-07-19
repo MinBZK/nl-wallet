@@ -18,17 +18,22 @@ class WalletEventStatusDescriptionMapper extends ContextMapper<WalletEvent, Stri
   }
 
   String mapDisclosureEvent(BuildContext context, DisclosureEvent event) {
+    final organizationName = event.relyingParty.displayName.l10nValue(context);
     switch (event.status) {
       case EventStatus.success:
         return '';
       case EventStatus.cancelled:
-        return context.l10n.historyDetailScreenDisclosureCancelledDescription(
-          event.relyingParty.displayName.l10nValue(context),
-        );
+        if (event.type == DisclosureType.login) {
+          return context.l10n.historyDetailScreenLoginCancelledDescription(organizationName);
+        } else {
+          return context.l10n.historyDetailScreenDisclosureCancelledDescription(organizationName);
+        }
       case EventStatus.error:
-        return context.l10n.historyDetailScreenDisclosureErrorDescription(
-          event.relyingParty.displayName.l10nValue(context),
-        );
+        if (event.type == DisclosureType.login) {
+          return context.l10n.historyDetailScreenLoginErrorDescription(organizationName);
+        } else {
+          return context.l10n.historyDetailScreenDisclosureErrorDescription(organizationName);
+        }
     }
   }
 

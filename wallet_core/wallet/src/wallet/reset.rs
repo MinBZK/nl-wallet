@@ -37,6 +37,15 @@ where
             self.issuance_session.take();
             self.disclosure_session.take();
 
+            // Send empty collections to both the documents and recent history callbacks, if present.
+            if let Some(ref mut documents_callback) = self.documents_callback {
+                documents_callback(vec![]);
+            }
+
+            if let Some(ref mut recent_history_callback) = self.recent_history_callback {
+                recent_history_callback(vec![]);
+            }
+
             // The wallet should be locked in its initial state.
             self.lock.lock();
 
@@ -72,7 +81,11 @@ mod tests {
     use crate::{disclosure::MockMdocDisclosureSession, storage::StorageState};
 
     use super::{
-        super::{issuance::PidIssuanceSession, registration, test::WalletWithMocks},
+        super::{
+            issuance::PidIssuanceSession,
+            registration,
+            test::{self, WalletWithMocks},
+        },
         *,
     };
 
@@ -81,6 +94,18 @@ mod tests {
         // Test resetting a registered and unlocked Wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
+        // Register callbacks for both documents and history events and clear anything received on them.
+        let documents = test::setup_mock_documents_callback(&mut wallet)
+            .await
+            .expect("Failed to set mock documents callback");
+        let events = test::setup_mock_recent_history_callback(&mut wallet)
+            .await
+            .expect("Failed to set mock recent history callback");
+
+        documents.lock().clear();
+        events.lock().clear();
+
+        // Double check that the hardware private key exists.
         assert!(SoftwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
@@ -102,6 +127,15 @@ mod tests {
             registration::wallet_key_id().as_ref()
         ));
         assert!(wallet.is_locked());
+
+        // We should have received both an empty documents and history events callback during the reset.
+        let documents = documents.lock();
+        assert_eq!(documents.len(), 1);
+        assert!(documents.first().unwrap().is_empty());
+
+        let events = events.lock();
+        assert_eq!(events.len(), 1);
+        assert!(events.first().unwrap().is_empty());
     }
 
     #[tokio::test]
