@@ -1,6 +1,5 @@
 use indexmap::IndexMap;
 use rstest::rstest;
-use tokio::fs;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
@@ -8,15 +7,11 @@ use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSessionError},
     ErrorResponse,
 };
-use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::{
     errors::PidIssuanceError,
-    mock::{default_configuration, MockStorage},
-    wallet_deps::{
-        ConfigServerConfiguration, ConfigurationRepository, HttpAccountProviderClient, HttpConfigurationRepository,
-        HttpDigidSession, UpdateableConfigurationRepository,
-    },
+    mock::{default_configuration, LocalConfigurationRepository, MockStorage},
+    wallet_deps::{ConfigurationRepository, HttpAccountProviderClient, HttpDigidSession},
     Wallet,
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
@@ -106,28 +101,11 @@ async fn test_gba_pid_success(
 }
 
 async fn gba_pid(bsn: &str) {
-    let storage_path = SoftwareUtilities::storage_path().await.unwrap();
-    let etag_file = storage_path.join("latest-configuration-etag.txt");
-    // make sure there are no storage files from previous test runs
-    let _ = fs::remove_file(etag_file.as_path()).await;
-
-    let config_server_config = ConfigServerConfiguration::default();
-    let wallet_config = default_configuration();
-
-    let config_repository = HttpConfigurationRepository::new(
-        config_server_config.base_url,
-        config_server_config.trust_anchors,
-        (&config_server_config.signing_public_key).into(),
-        storage_path,
-        wallet_config,
-    )
-    .await
-    .unwrap();
-    config_repository.fetch().await.unwrap();
+    let config_repository = LocalConfigurationRepository::new(default_configuration());
     let pid_issuance_config = &config_repository.config().pid_issuance;
 
     let mut wallet: Wallet<
-        HttpConfigurationRepository,
+        LocalConfigurationRepository,
         MockStorage,
         SoftwareEcdsaKey,
         HttpAccountProviderClient,

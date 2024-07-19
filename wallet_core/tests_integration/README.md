@@ -62,8 +62,7 @@ Then run the actual test with:
 ### Running externally
 
 Change the values in `test_integration/.env` appropriately. The `allow_http_return_url` feature is not necessary (but
-also
-doesn't hurt).
+also doesn't hurt).
 
 ## GBA-V to PID tests
 
@@ -76,11 +75,11 @@ according to the configuration as can be seen in `wallet_core/gba_hc_converter/g
 
 To run the test, the following servers need to be started:
 
-    ./scripts/start-devenv.sh postgres wallet_provider configuration_server pid_issuer digid_connector brp
+    ./scripts/start-devenv.sh postgres wallet_provider pid_issuer digid_connector brp
 
 or shorter:
 
-    ./scripts/start-devenv.sh postgres wp cs pi digid brp
+    ./scripts/start-devenv.sh postgres wp pi digid brp
 
 And run the actual test with:
 
