@@ -51,7 +51,6 @@ pub struct PersonAttributes {
     birth_state: Option<String>,
     birth_city: Option<String>,
     gender: Option<Gender>,
-    has_spouse_or_partner: bool,
 }
 
 impl From<PersonAttributes> for Vec<Entry> {
@@ -103,11 +102,6 @@ impl From<PersonAttributes> for Vec<Entry> {
                 name: PID_GENDER.to_string(),
                 value: v.into(),
             }),
-            Entry {
-                name: PID_SPOUSE_OR_PARTNER.to_string(),
-                value: Value::Bool(value.has_spouse_or_partner),
-            }
-            .into(),
         ]
         .into_iter()
         .flatten()
@@ -187,7 +181,6 @@ impl Default for MockAttributesLookup {
                     birth_country: Some("NL".to_owned()),
                     birth_city: Some("Delft".to_owned()),
                     birth_state: Some("Zuid-Holland".to_owned()),
-                    has_spouse_or_partner: true,
                 },
                 Some(ResidentAttributes {
                     street: Some("Turfmarkt".to_owned()),

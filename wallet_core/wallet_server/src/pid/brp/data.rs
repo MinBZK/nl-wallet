@@ -9,12 +9,6 @@ use nl_wallet_mdoc::{unsigned, unsigned::UnsignedMdoc, Tdate};
 
 use crate::pid::constants::*;
 
-#[derive(Debug, thiserror::Error)]
-pub enum BrpDataError {
-    #[error("missing partner")]
-    MissingPartner,
-}
-
 #[derive(Deserialize)]
 pub struct BrpPersons {
     #[serde(rename = "personen")]
@@ -43,46 +37,25 @@ pub struct BrpPerson {
 
     #[serde(rename = "verblijfplaats")]
     residence: BrpResidence,
-
-    #[serde(rename = "partners", default)]
-    partners: Vec<BrpPartner>,
 }
 
 impl BrpPerson {
     fn is_over_18(&self) -> bool {
         self.age >= 18
     }
-
-    fn partner(&self) -> Option<&BrpPartner> {
-        self.partners.first()
-    }
-
-    fn has_spouse_or_partner(&self) -> bool {
-        self.partner()
-            .map(|partner| {
-                partner.start.is_some() && partner.end.is_none() && partner.kind != BrpMaritalStatus::Onbekend
-            })
-            .unwrap_or(false)
-    }
 }
 
-impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
-    type Error = BrpDataError;
-
-    fn try_from(value: BrpPerson) -> Result<Self, Self::Error> {
-        let family_name = value
-            .name
-            .clone()
-            .info_family_name(value.partner().cloned().map(|p| p.name))?;
+impl From<BrpPerson> for Vec<UnsignedMdoc> {
+    fn from(value: BrpPerson) -> Self {
         let given_names = value.name.given_names.clone();
         let is_over_18 = value.is_over_18();
-        let has_spouse_or_partner = value.has_spouse_or_partner();
+        let family_name = value.name.into_name_with_prefix();
         let birth_country = value.birth.country;
         let birth_place = value.birth.place;
         let street = value.residence.address.street().map(String::from);
         let house_number = value.residence.address.locator_designator();
 
-        let mdocs = vec![
+        vec![
             UnsignedMdoc {
                 doc_type: String::from(MOCK_PID_DOCTYPE),
                 copy_count: NonZeroU8::new(2).unwrap(),
@@ -98,12 +71,12 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_FAMILY_NAME),
-                            value: ciborium::Value::Text(family_name),
+                            value: ciborium::Value::Text(family_name.clone()),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_OWN_FAMILY_NAME),
-                            value: ciborium::Value::Text(value.name.into_name_with_prefix()),
+                            value: ciborium::Value::Text(family_name),
                         }
                         .into(),
                         given_names.map(|names| unsigned::Entry {
@@ -131,11 +104,6 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                         unsigned::Entry {
                             name: String::from(PID_GENDER),
                             value: value.gender.code.into(),
-                        }
-                        .into(),
-                        unsigned::Entry {
-                            name: String::from(PID_SPOUSE_OR_PARTNER),
-                            value: ciborium::Value::Bool(has_spouse_or_partner),
                         }
                         .into(),
                     ]
@@ -186,9 +154,7 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                 .try_into()
                 .unwrap(),
             },
-        ];
-
-        Ok(mdocs)
+        ]
     }
 }
 
@@ -226,28 +192,9 @@ pub struct BrpName {
 
     #[serde(rename = "geslachtsnaam")]
     family_name: String,
-
-    #[serde(rename = "aanduidingNaamgebruik")]
-    name_usage: Option<BrpNameUsage>,
 }
 
 impl BrpName {
-    fn info_family_name(self, partner_name: Option<BrpName>) -> Result<String, BrpDataError> {
-        let name = match self.name_usage.unwrap_or(BrpNameUsage::Own) {
-            BrpNameUsage::Own => self.into_name_with_prefix(),
-            BrpNameUsage::Partner => partner_name
-                .ok_or(BrpDataError::MissingPartner)?
-                .into_name_with_prefix(),
-            BrpNameUsage::OwnThenPartner => {
-                self.into_combined_name_with_prefix(partner_name.ok_or(BrpDataError::MissingPartner)?)
-            }
-            BrpNameUsage::PartnerThenOwn => partner_name
-                .ok_or(BrpDataError::MissingPartner)?
-                .into_combined_name_with_prefix(self),
-        };
-        Ok(name)
-    }
-
     fn into_name_with_prefix(self) -> String {
         if let Some(prefix) = self.family_name_prefix {
             format!("{} {}", prefix, self.family_name)
@@ -255,23 +202,6 @@ impl BrpName {
             self.family_name
         }
     }
-
-    fn into_combined_name_with_prefix(self, other: BrpName) -> String {
-        format!("{}-{}", self.into_name_with_prefix(), other.into_name_with_prefix())
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
-#[serde(tag = "code")]
-pub enum BrpNameUsage {
-    #[serde(rename = "E")]
-    Own,
-    #[serde(rename = "P")]
-    Partner,
-    #[serde(rename = "V")]
-    PartnerThenOwn,
-    #[serde(rename = "N")]
-    OwnThenPartner,
 }
 
 #[derive(Deserialize)]
@@ -362,38 +292,6 @@ impl BrpAddress {
     }
 }
 
-#[derive(Clone, Deserialize)]
-pub struct BrpPartner {
-    #[serde(rename = "soortVerbintenis")]
-    kind: BrpMaritalStatus,
-
-    #[serde(rename = "naam")]
-    name: BrpName,
-
-    #[serde(rename = "aangaanHuwelijkPartnerschap")]
-    start: Option<GbaMarriagePartnershipStart>,
-
-    #[serde(rename = "ontbindingHuwelijkPartnerschap")]
-    end: Option<GbaMarriagePartnershipEnd>,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct GbaMarriagePartnershipStart {}
-
-#[derive(Clone, Deserialize)]
-pub struct GbaMarriagePartnershipEnd {}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[serde(tag = "code")]
-pub enum BrpMaritalStatus {
-    #[serde(rename = "H")]
-    Huwelijk,
-    #[serde(rename = "P")]
-    GeregistreerdPartnerschap,
-    #[serde(rename = ".")]
-    Onbekend,
-}
-
 #[cfg(test)]
 mod tests {
     use std::{env, fs, path::PathBuf};
@@ -406,7 +304,7 @@ mod tests {
         DataElementValue, NameSpace,
     };
 
-    use crate::pid::brp::data::{BrpDataError, BrpPersons};
+    use crate::pid::brp::data::BrpPersons;
 
     fn read_json(name: &str) -> String {
         fs::read_to_string(
@@ -431,72 +329,11 @@ mod tests {
         assert!(brp_persons.persons.is_empty());
     }
 
-    #[rstest]
-    #[case("frouke", "Jansen", "Jansen")]
-    #[case("naamgebruik-eigen", "van Buren", "van Buren")]
-    #[case("naamgebruik-partner", "Postma", "van Buren")]
-    #[case("naamgebruik-partner-divorced", "Postma", "van Buren")]
-    #[case("naamgebruik-partner-first", "ten Hag-van Buren", "van Buren")]
-    #[case("naamgebruik-partner-last", "van Buren-ten Hag", "van Buren")]
-    #[case("prefix-family-name", "van Buren", "van Buren")]
-    fn should_handle_family_name(
-        #[case] json_file_name: &str,
-        #[case] expected_family_name: &str,
-        #[case] expected_own_family_name: &str,
-    ) {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
-        let brp_person = brp_persons.persons.first().unwrap();
-        assert_eq!(
-            expected_family_name,
-            brp_person
-                .name
-                .clone()
-                .info_family_name(brp_person.partner().cloned().map(|p| p.name))
-                .unwrap()
-        );
-        assert_eq!(
-            expected_own_family_name,
-            brp_person.name.clone().into_name_with_prefix()
-        );
-    }
-
-    #[test]
-    fn should_error_for_naamgebruik_partner_without_partner() {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json("naamgebruik-illegal")).unwrap();
-        let brp_person = brp_persons.persons.first().unwrap();
-        assert!(matches!(
-            brp_person
-                .name
-                .clone()
-                .info_family_name(brp_person.partner().cloned().map(|p| p.name)),
-            Err(BrpDataError::MissingPartner)
-        ));
-    }
-
     #[test]
     fn should_be_over_18() {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
         let brp_person = brp_persons.persons.first().unwrap();
         assert!(brp_person.is_over_18());
-    }
-
-    #[rstest]
-    #[case("married")]
-    #[case("remarried")]
-    #[case("geregistreerd-partnerschap")]
-    fn should_have_spouse_or_partner(#[case] json_file_name: &str) {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
-        let brp_person = brp_persons.persons.first().unwrap();
-        assert!(brp_person.has_spouse_or_partner());
-    }
-
-    #[rstest]
-    #[case("divorced")]
-    #[case("frouke")]
-    fn should_not_have_spouse_or_partner(#[case] json_file_name: &str) {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
-        let brp_person = brp_persons.persons.first().unwrap();
-        assert!(!brp_person.has_spouse_or_partner());
     }
 
     #[rstest]
@@ -545,7 +382,6 @@ mod tests {
                 ("birth_city", "Luik".into()),
                 ("age_over_18", true.into()),
                 ("gender", 2.into()),
-                ("has_spouse_or_partner", false.into()),
             ],
             readable_attrs(pid_card.attributes.as_ref())
         );

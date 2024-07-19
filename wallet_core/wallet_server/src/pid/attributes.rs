@@ -9,10 +9,7 @@ use openid4vc::{
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
-use crate::pid::brp::{
-    client::{BrpClient, BrpError, HttpBrpClient},
-    data::BrpDataError,
-};
+use crate::pid::brp::client::{BrpClient, BrpError, HttpBrpClient};
 
 use super::digid::{self, OpenIdClient};
 
@@ -34,8 +31,6 @@ pub enum Error {
     MissingCertificate(String),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
-    #[error("error mapping BRP data to PID data: {0}")]
-    BrpData(#[from] BrpDataError),
 }
 
 pub struct AttributeCertificates {
@@ -105,7 +100,7 @@ impl AttributeService for BrpPidAttributeService {
         }
 
         let person = persons.persons.remove(0);
-        let unsigned_mdocs: Vec<UnsignedMdoc> = person.try_into()?;
+        let unsigned_mdocs: Vec<UnsignedMdoc> = person.into();
         let previews = unsigned_mdocs
             .into_iter()
             .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
