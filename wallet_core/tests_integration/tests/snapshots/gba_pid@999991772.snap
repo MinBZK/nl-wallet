@@ -1,6 +1,6 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
-assertion_line: 166
+assertion_line: 193
 description: "BSN: 999991772"
 expression: attributes
 ---
@@ -21,12 +21,12 @@ has_spouse_or_partner:
 bsn:
   String: "999991772"
 resident_street:
-  String: Van Wijngaerdenstraat
+  String: Groenewoudsedijk
 resident_house_number:
-  String: "1"
+  String: "51"
 resident_postal_code:
-  String: 2596TW
+  String: 3528BG
 resident_city:
-  String: Toetsoog
+  String: Utrecht
 resident_country:
   String: Nederland
