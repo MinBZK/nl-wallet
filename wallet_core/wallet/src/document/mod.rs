@@ -5,9 +5,10 @@ use std::collections::HashMap;
 
 use chrono::NaiveDate;
 use indexmap::IndexMap;
+
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 
-#[cfg(any(test, feature = "snapshot_test"))]
+#[cfg(feature = "snapshot_test")]
 use serde::Serialize;
 
 pub use mdoc::{AttributeValueType, DisclosureType, DocumentMdocError};
@@ -49,7 +50,7 @@ pub struct Attribute {
     pub value: AttributeValue,
 }
 
-#[cfg_attr(any(test, feature = "snapshot_test"), derive(Serialize))]
+#[cfg_attr(feature = "snapshot_test", derive(Serialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AttributeValue {
     String(String),
@@ -58,7 +59,7 @@ pub enum AttributeValue {
     Gender(GenderAttributeValue),
 }
 
-#[cfg_attr(any(test, feature = "snapshot_test"), derive(Serialize))]
+#[cfg_attr(feature = "snapshot_test", derive(Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GenderAttributeValue {
     Unknown,
