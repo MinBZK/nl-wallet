@@ -440,13 +440,10 @@ async fn test_client_and_server(
     let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&requested_documents);
 
     // Start the session
-    let session_token = new_session(
-        &verifier,
-        requested_documents,
-        use_case.to_string(),
-        return_url_template,
-    )
-    .await;
+    let session_token = verifier
+        .new_session(requested_documents, use_case.to_string(), return_url_template)
+        .await
+        .unwrap();
 
     // frontend receives the UL to feed to the wallet when fetching the session status
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
@@ -527,13 +524,14 @@ async fn test_client_and_server_cancel_after_created() {
     let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests);
 
     // Start the session
-    let session_token = new_session(
-        &verifier,
-        items_requests,
-        DEFAULT_RETURN_URL_USE_CASE.to_string(),
-        Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
-    )
-    .await;
+    let session_token = verifier
+        .new_session(
+            items_requests,
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
+        )
+        .await
+        .unwrap();
 
     // The front-end receives the UL to feed to the wallet when fetching the session status
     // (this also verifies that the status is Created)
@@ -578,13 +576,14 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests);
 
     // Start the session
-    let session_token = new_session(
-        &verifier,
-        items_requests,
-        DEFAULT_RETURN_URL_USE_CASE.to_string(),
-        Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
-    )
-    .await;
+    let session_token = verifier
+        .new_session(
+            items_requests,
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
+        )
+        .await
+        .unwrap();
 
     // The front-end receives the UL to feed to the wallet when fetching the session status
     // (this also verifies that the status is Created)
@@ -674,18 +673,6 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTr
     ));
 
     (verifier, (&rp_trust_anchor).into(), issuer_ca)
-}
-
-async fn new_session(
-    verifier: &MockVerifier,
-    items_requests: ItemsRequests,
-    usecase: String,
-    return_url_template: Option<ReturnUrlTemplate>,
-) -> SessionToken {
-    verifier
-        .new_session(items_requests, usecase, return_url_template)
-        .await
-        .unwrap()
 }
 
 async fn start_disclosure_session(
