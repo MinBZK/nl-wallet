@@ -151,7 +151,7 @@ async fn main() {
 
     let status = response.json::<StatusResponse>().await.unwrap();
     let ul = match status {
-        StatusResponse::Created { ul, .. } => ul,
+        StatusResponse::Created { ul: Some(ul), .. } => ul,
         _ => panic!("should match StatusResponse::Created"),
     };
 
