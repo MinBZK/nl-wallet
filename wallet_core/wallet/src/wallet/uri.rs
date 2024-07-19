@@ -1,7 +1,8 @@
 use tracing::{info, instrument};
 use url::Url;
 
-use wallet_common::{config::wallet_config::WalletConfiguration, sentry_capture_error, ErrorCategory};
+use error_category::{sentry_capture_error, ErrorCategory};
+use wallet_common::config::wallet_config::WalletConfiguration;
 
 use crate::{
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},

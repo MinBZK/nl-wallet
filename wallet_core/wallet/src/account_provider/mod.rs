@@ -3,6 +3,7 @@ mod client;
 use reqwest::StatusCode;
 use url::ParseError;
 
+use error_category::ErrorCategory;
 use wallet_common::{
     account::{
         messages::{
@@ -13,7 +14,6 @@ use wallet_common::{
         signed::SignedDouble,
     },
     config::wallet_config::BaseUrl,
-    ErrorCategory,
 };
 
 pub use self::client::HttpAccountProviderClient;

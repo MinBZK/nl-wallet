@@ -6,8 +6,7 @@ use once_cell::sync::Lazy;
 use reqwest::{header::ACCEPT, Method, Response};
 use tracing::{info, warn};
 
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string, ErrorCategory};
-
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
@@ -23,6 +22,7 @@ use nl_wallet_mdoc::{
     },
     verifier::SessionType,
 };
+use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
 
 use crate::{
     openid4vp::{

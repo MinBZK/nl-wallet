@@ -4,7 +4,7 @@ use tracing::debug;
 use url::Url;
 use x509_parser::nom::AsBytes;
 
-use wallet_common::ErrorCategory;
+use error_category::ErrorCategory;
 
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},

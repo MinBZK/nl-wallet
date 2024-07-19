@@ -12,6 +12,7 @@ use josekit::{
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::PreferOne, serde_as, skip_serializing_none, OneOrMany};
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     utils::{
@@ -26,7 +27,6 @@ use wallet_common::{
     generator::{Generator, TimeGenerator},
     jwt::Jwt,
     utils::random_string,
-    ErrorCategory,
 };
 
 use crate::{

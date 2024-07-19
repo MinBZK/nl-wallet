@@ -5,10 +5,11 @@ use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+use error_category::{Category, ErrorCategory};
+
 use crate::{
     account::serialization::DerVerifyingKey,
     keys::{EcdsaKey, SecureEcdsaKey},
-    Category, ErrorCategory,
 };
 
 /// JWT type, generic over its contents.

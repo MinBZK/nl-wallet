@@ -3,6 +3,7 @@ use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
@@ -11,7 +12,6 @@ use openid4vc::{
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     config::wallet_config::WalletConfiguration, jwt::JwtError, reqwest::trusted_reqwest_client_builder,
-    sentry_capture_error, ErrorCategory,
 };
 
 use crate::{

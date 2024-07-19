@@ -9,8 +9,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{verifier::ItemsRequests, Document, ItemsRequest};
-use wallet_common::{utils::random_string, ErrorCategory};
+use wallet_common::utils::random_string;
 
 use crate::{
     openid4vp::{FormatAlg, VpFormat},

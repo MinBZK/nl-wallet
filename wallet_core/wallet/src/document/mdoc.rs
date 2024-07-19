@@ -3,6 +3,7 @@ use ciborium::value::Integer;
 use indexmap::IndexMap;
 use itertools::Itertools;
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::{ProposedAttributes, ProposedDocumentAttributes},
     identifiers::AttributeIdentifier,
@@ -13,7 +14,6 @@ use nl_wallet_mdoc::{
     },
     DataElementIdentifier, DataElementValue, NameSpace,
 };
-use wallet_common::ErrorCategory;
 
 use super::{
     mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},

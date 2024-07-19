@@ -1,10 +1,10 @@
 use tokio::sync::RwLock;
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use platform_support::{
     hw_keystore::{hardware::HardwareEncryptionKey, PlatformEcdsaKey},
     utils::{hardware::HardwareUtilities, PlatformUtilities, UtilitiesError},
 };
-use wallet_common::{sentry_capture_error, ErrorCategory};
 
 use crate::{
     account_provider::HttpAccountProviderClient,

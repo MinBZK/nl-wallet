@@ -51,11 +51,12 @@ use serde_with::{
     serde_as, skip_serializing_none,
 };
 use url::Url;
+
+use error_category::ErrorCategory;
 use wallet_common::{
     jwt::{EcdsaDecodingKey, Jwt, JwtError},
     keys::EcdsaKey,
     utils::random_string,
-    ErrorCategory,
 };
 
 use crate::{

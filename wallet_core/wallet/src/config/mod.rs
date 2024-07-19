@@ -11,7 +11,8 @@ use std::sync::Arc;
 
 use url::ParseError;
 
-use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError, ErrorCategory};
+use error_category::ErrorCategory;
+use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError};
 
 pub use self::{
     data::{default_configuration, init_universal_link_base_url, ConfigServerConfiguration, UNIVERSAL_LINK_BASE_URL},

@@ -1,6 +1,6 @@
 //! Holder software to store and disclose mdocs.
 
-use wallet_common::ErrorCategory;
+use error_category::ErrorCategory;
 pub use webpki::TrustAnchor;
 
 use crate::{

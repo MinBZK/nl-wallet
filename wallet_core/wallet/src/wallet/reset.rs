@@ -1,6 +1,7 @@
 use tracing::{info, instrument, warn};
 
-use wallet_common::{keys::StoredByIdentifier, sentry_capture_error, ErrorCategory};
+use error_category::{sentry_capture_error, ErrorCategory};
+use wallet_common::keys::StoredByIdentifier;
 
 use crate::storage::Storage;
 

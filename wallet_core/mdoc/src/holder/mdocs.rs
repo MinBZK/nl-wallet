@@ -6,7 +6,8 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
-use wallet_common::{generator::Generator, ErrorCategory};
+use error_category::ErrorCategory;
+use wallet_common::generator::Generator;
 
 use crate::{
     identifiers::AttributeIdentifier,

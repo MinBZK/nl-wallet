@@ -5,6 +5,7 @@ use tracing::{error, info, instrument};
 use url::Url;
 use uuid::Uuid;
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::{
     holder::{MdocDataSource, ProposedAttributes, StoredMdoc},
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
@@ -12,7 +13,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::disclosure_session::VpClientError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{config::wallet_config::WalletConfiguration, sentry_capture_error, ErrorCategory};
+use wallet_common::config::wallet_config::WalletConfiguration;
 
 use crate::{
     account_provider::AccountProviderClient,

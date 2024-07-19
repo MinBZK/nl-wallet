@@ -1302,6 +1302,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "error_category"
+version = "0.1.0"
+dependencies = [
+ "error_category_derive",
+ "sentry",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "error_category_derive"
+version = "0.1.0"
+dependencies = [
+ "error_category",
+ "proc-macro2",
+ "quote",
+ "rstest",
+ "sentry",
+ "syn 2.0.68",
+ "thiserror",
+ "tokio",
+ "trybuild",
+]
+
+[[package]]
 name = "etag"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2419,6 +2444,7 @@ dependencies = [
  "coset",
  "dashmap",
  "derive_more",
+ "error_category",
  "futures",
  "hex",
  "hex-literal",
@@ -2614,6 +2640,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "derive_more",
+ "error_category",
  "futures",
  "hex",
  "indexmap 2.2.6",
@@ -2896,6 +2923,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.1.0"
 dependencies = [
+ "error_category",
  "jni",
  "once_cell",
  "p256",
@@ -5234,6 +5262,7 @@ dependencies = [
  "ciborium",
  "dotenvy",
  "entity",
+ "error_category",
  "futures",
  "http",
  "indexmap 2.2.6",
@@ -5302,6 +5331,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "error_category",
  "etag",
  "futures",
  "http",
@@ -5327,22 +5357,6 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wallet_common_macros",
-]
-
-[[package]]
-name = "wallet_common_macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "rstest",
- "sentry",
- "syn 2.0.68",
- "thiserror",
- "tokio",
- "trybuild",
- "wallet_common",
 ]
 
 [[package]]

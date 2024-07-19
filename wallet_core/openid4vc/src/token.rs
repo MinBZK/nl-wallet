@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
 use url::Url;
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     server_state::SessionToken,
     unsigned::UnsignedMdoc,
@@ -18,7 +19,6 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     nonempty::NonEmpty,
     utils::{random_string, sha256},
-    ErrorCategory,
 };
 
 use crate::authorization::AuthorizationDetails;

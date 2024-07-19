@@ -1,7 +1,7 @@
 use base64::prelude::*;
 use url::Url;
 
-use wallet_common::ErrorCategory;
+use error_category::ErrorCategory;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]

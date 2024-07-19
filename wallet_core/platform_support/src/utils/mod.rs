@@ -7,7 +7,7 @@ pub mod test;
 
 use std::path::PathBuf;
 
-use wallet_common::ErrorCategory;
+use error_category::ErrorCategory;
 
 // implementation of UtilitiesError from UDL
 #[derive(Debug, thiserror::Error, ErrorCategory)]

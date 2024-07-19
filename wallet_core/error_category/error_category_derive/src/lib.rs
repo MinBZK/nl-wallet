@@ -55,7 +55,7 @@ fn sentry_capture_error_function(
                 {
                     #(#stmts)*
                 },
-                ::wallet_common::sentry::classify_and_report_to_sentry)
+                ::error_category::sentry::classify_and_report_to_sentry)
         }
     }
 }
@@ -111,7 +111,7 @@ fn sentry_capture_error_impl_fn(
     sentry_capture_error_function(&attrs, &vis, &defaultness, &sig, &block)
 }
 
-/// Derive `wallet_common::ErrorCategory` for Error types.
+/// Derive `error_category::ErrorCategory` for Error types.
 ///
 /// Errors can be classified using the `category` attribute, which can have the following values:
 ///
@@ -127,7 +127,7 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io::{self, ErrorKind};
-/// # use wallet_common::{Category, ErrorCategory};
+/// # use error_category::{Category, ErrorCategory};
 /// # struct Attribute;
 /// #[derive(ErrorCategory)]
 /// #[category(expected)] // default category
@@ -148,7 +148,7 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use wallet_common::{Category, ErrorCategory};
+/// # use error_category::{Category, ErrorCategory};
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
@@ -171,7 +171,7 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use wallet_common::{Category, ErrorCategory};
+/// # use error_category::{Category, ErrorCategory};
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
@@ -197,7 +197,7 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use wallet_common::{Category, ErrorCategory};
+/// # use error_category::{Category, ErrorCategory};
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
@@ -237,8 +237,8 @@ fn expand(input: DeriveInput) -> Result<TokenStream> {
 
     let expanded = quote! {
         #[automatically_derived]
-        impl ::wallet_common::ErrorCategory for #name {
-            fn category(&self) -> ::wallet_common::Category {
+        impl ::error_category::ErrorCategory for #name {
+            fn category(&self) -> ::error_category::Category {
                 #body
             }
         }
@@ -398,10 +398,10 @@ fn category_defer_pattern(span: Span, fields: &Fields) -> Result<TokenStream> {
 fn category_code(category: &MetaList) -> Result<TokenStream> {
     let cat = category.tokens.to_string();
     let result = match cat.as_str() {
-        CRITICAL => quote! { ::wallet_common::Category::Critical },
-        EXPECTED => quote! { ::wallet_common::Category::Expected },
-        PD => quote! { ::wallet_common::Category::PersonalData },
-        DEFER => quote! { ::wallet_common::ErrorCategory::category(defer) },
+        CRITICAL => quote! { ::error_category::Category::Critical },
+        EXPECTED => quote! { ::error_category::Category::Expected },
+        PD => quote! { ::error_category::Category::PersonalData },
+        DEFER => quote! { ::error_category::ErrorCategory::category(defer) },
         _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     };
 

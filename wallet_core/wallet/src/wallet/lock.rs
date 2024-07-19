@@ -2,7 +2,8 @@ use futures::future::TryFutureExt;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
 
-use wallet_common::{account::messages::instructions::CheckPin, sentry_capture_error, ErrorCategory};
+use error_category::{sentry_capture_error, ErrorCategory};
+use wallet_common::account::messages::instructions::CheckPin;
 
 pub use crate::lock::LockCallback;
 

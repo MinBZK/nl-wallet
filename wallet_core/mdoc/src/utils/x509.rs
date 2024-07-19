@@ -18,7 +18,8 @@ use x509_parser::{
     prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
 };
 
-use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor, ErrorCategory};
+use error_category::ErrorCategory;
+use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
 
 use super::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
 

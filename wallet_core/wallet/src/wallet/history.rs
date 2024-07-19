@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use tracing::{info, instrument};
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::{
     holder::ProposedDocumentAttributes,
     utils::{
@@ -9,7 +10,6 @@ use nl_wallet_mdoc::{
         x509::{CertificateError, MdocCertificateExtension},
     },
 };
-use wallet_common::{sentry_capture_error, ErrorCategory};
 
 pub use crate::storage::EventStatus;
 use crate::{

@@ -12,6 +12,7 @@ use reqwest::{
 };
 use url::Url;
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::{IssuedAttributesMismatch, Mdoc, MdocCopies, TrustAnchor},
     utils::{
@@ -22,7 +23,7 @@ use nl_wallet_mdoc::{
     },
     ATTR_RANDOM_LENGTH,
 };
-use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError, ErrorCategory};
+use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError};
 
 use crate::{
     credential::{

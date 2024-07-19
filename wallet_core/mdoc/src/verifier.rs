@@ -19,12 +19,13 @@ use tracing::{debug, info, warn};
 use url::Url;
 use webpki::TrustAnchor;
 
+use error_category::ErrorCategory;
 use wallet_common::{
     account::serialization::DerSecretKey,
     config::wallet_config::BaseUrl,
     generator::{Generator, TimeGenerator},
     trust_anchor::OwnedTrustAnchor,
-    utils, ErrorCategory,
+    utils,
 };
 
 use crate::{

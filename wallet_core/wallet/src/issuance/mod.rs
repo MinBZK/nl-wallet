@@ -2,8 +2,9 @@ mod app2app;
 
 use url::Url;
 
+use error_category::ErrorCategory;
 use openid4vc::{oidc::OidcError, token::TokenRequest};
-use wallet_common::{config::wallet_config::PidIssuanceConfiguration, ErrorCategory};
+use wallet_common::config::wallet_config::PidIssuanceConfiguration;
 
 pub use app2app::HttpDigidSession;
 

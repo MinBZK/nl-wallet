@@ -2,7 +2,7 @@
 
 use rstest::rstest;
 
-use wallet_common::{Category, ErrorCategory};
+use error_category::{Category, ErrorCategory};
 
 #[derive(ErrorCategory)]
 enum ChildError {

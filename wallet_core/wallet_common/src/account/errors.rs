@@ -1,5 +1,8 @@
-use crate::{account::signed::SignedType, jwt::JwtError, Category, ErrorCategory};
+use error_category::{Category, ErrorCategory};
+
 use p256::pkcs8;
+
+use crate::{account::signed::SignedType, jwt::JwtError};
 
 pub type Result<T> = std::result::Result<T, Error>;
 

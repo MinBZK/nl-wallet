@@ -16,7 +16,8 @@ use serde_aux::serde_introspection::serde_introspect;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use url::Url;
-use wallet_common::ErrorCategory;
+
+use error_category::ErrorCategory;
 
 use crate::{
     iso::*,

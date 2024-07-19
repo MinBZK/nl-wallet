@@ -14,10 +14,8 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 
-use wallet_common::{
-    utils::{hkdf, sha256},
-    ErrorCategory,
-};
+use error_category::ErrorCategory;
+use wallet_common::utils::{hkdf, sha256};
 
 use crate::{
     utils::{

@@ -13,7 +13,8 @@ use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
 
-use wallet_common::{generator::Generator, keys::SecureEcdsaKey, ErrorCategory};
+use error_category::ErrorCategory;
+use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
 
 use crate::{
     server_keys::KeysError,

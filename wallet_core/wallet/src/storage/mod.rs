@@ -13,11 +13,11 @@ use std::{array::TryFromSliceError, collections::HashSet, io};
 use sea_orm::DbErr;
 use uuid::Uuid;
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies},
     utils::{serialization::CborError, x509::Certificate},
 };
-use wallet_common::ErrorCategory;
 
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},

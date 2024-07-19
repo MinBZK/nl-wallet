@@ -5,7 +5,8 @@ use std::{
 
 use tokio::fs;
 
-use wallet_common::{keys::SecureEncryptionKey, utils, ErrorCategory};
+use error_category::ErrorCategory;
+use wallet_common::{keys::SecureEncryptionKey, utils};
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]

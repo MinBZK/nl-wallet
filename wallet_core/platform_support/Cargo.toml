@@ -33,6 +33,7 @@ uniffi.workspace = true
 jni = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 
+error_category.path = "../error_category"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]

@@ -5,10 +5,8 @@ use p256::{
     pkcs8::DecodePrivateKey,
 };
 
-use wallet_common::{
-    keys::{EcdsaKey, SecureEcdsaKey},
-    ErrorCategory,
-};
+use error_category::ErrorCategory;
+use wallet_common::keys::{EcdsaKey, SecureEcdsaKey};
 
 use crate::{utils::x509::Certificate, Result};
 

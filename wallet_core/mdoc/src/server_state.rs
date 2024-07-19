@@ -9,10 +9,10 @@ use tokio::{
 };
 use tracing::warn;
 
+use error_category::ErrorCategory;
 use wallet_common::{
     generator::{Generator, TimeGenerator},
     utils::random_string,
-    ErrorCategory,
 };
 
 /// The cleanup task that removes stale sessions runs every so often.

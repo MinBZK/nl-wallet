@@ -1,11 +1,11 @@
 use tracing::info;
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::utils::{
     cose::CoseError,
     issuer_auth::IssuerRegistration,
     x509::{CertificateError, MdocCertificateExtension},
 };
-use wallet_common::{sentry_capture_error, ErrorCategory};
 
 use crate::{
     document::{Document, DocumentPersistence},

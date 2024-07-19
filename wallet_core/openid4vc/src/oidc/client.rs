@@ -11,7 +11,8 @@ pub use josekit::{
 use reqwest::header;
 use url::Url;
 
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder, utils, ErrorCategory};
+use error_category::ErrorCategory;
+use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder, utils};
 
 use crate::{
     authorization::{AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge, ResponseType},

@@ -19,6 +19,7 @@ use p256::{
 };
 use serde::{de::DeserializeOwned, Serialize};
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::KeyPair,
@@ -32,7 +33,6 @@ use wallet_common::{
     generator::Generator,
     jwt::{Jwt, JwtError},
     keys::EcdsaKey,
-    ErrorCategory,
 };
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

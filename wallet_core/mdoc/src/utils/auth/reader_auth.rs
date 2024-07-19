@@ -2,7 +2,8 @@ use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
-use wallet_common::ErrorCategory;
+
+use error_category::ErrorCategory;
 
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
