@@ -84,3 +84,9 @@ or shorter:
 And run the actual test with:
 
     cargo test --package tests_integration --features=gba_pid_test
+
+### Maintenance
+
+For mass accepting all `.snap.new` files, use the following command in the `tests/snapshots` folder:
+
+    for i in ./*.snap.new ; do mv "$i" $(echo "$i" | cut -d . -f1-3); done

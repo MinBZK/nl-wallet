@@ -161,7 +161,7 @@ async fn gba_pid(bsn: &str) {
 
     let attributes = unsigned_mdocs.into_iter().fold(IndexMap::new(), |mut attrs, mdoc| {
         mdoc.attributes.into_iter().for_each(|(key, attr)| {
-            attrs.insert(key, attr.value);
+            attrs.insert(format!("{}__{}", mdoc.doc_type, key), attr.value);
         });
         attrs
     });
