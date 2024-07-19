@@ -1672,7 +1672,7 @@ mod tests {
         let error = verifier
             .process_message(&msg, &session_token.clone(), verifier_url.clone())
             .await
-            .expect_err("should result in VerificationError::ExpiredEphemeralId");
+            .expect_err("processing message should result in error");
 
         let ephemeral_id = verifier_url
             .query_pairs()
@@ -1708,7 +1708,7 @@ mod tests {
         let error = verifier
             .process_message(&msg, &session_token.clone(), verifier_url)
             .await
-            .expect_err("should result in VerificationError::InvalidEphemeralId(...)");
+            .expect_err("processing message should result in error");
 
         assert!(matches!(
             error,
