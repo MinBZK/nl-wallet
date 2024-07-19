@@ -118,6 +118,24 @@ class ErrorPage extends StatelessWidget {
     );
   }
 
+  factory ErrorPage.cancelledSession(
+    BuildContext context, {
+    required String organizationName,
+    VoidCallback? onPrimaryActionPressed,
+  }) {
+    return ErrorPage(
+      headline: context.l10n.errorScreenCancelledSessionHeadline,
+      description: context.l10n.errorScreenCancelledSessionDescription(organizationName),
+      illustration: WalletAssets.svg_stopped,
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        ErrorCtaStyle.close,
+        onPressed: onPrimaryActionPressed,
+      ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(

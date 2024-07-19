@@ -38,7 +38,10 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
         return CoreExpiredSessionError(
           flutterApiError.description,
           canRetry: canRetry,
+          data: flutterApiError.data,
         );
+      case FlutterApiErrorType.cancelledSession:
+        return CoreCancelledSessionError(flutterApiError.description, data: flutterApiError.data);
     }
   }
 

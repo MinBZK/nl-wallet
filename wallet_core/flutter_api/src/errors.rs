@@ -53,6 +53,10 @@ enum FlutterApiErrorType {
     /// A remote session is expired, the user may or may not be able to retry the operation.
     ExpiredSession,
 
+    /// A remote session is cancelled.
+    #[allow(dead_code)]
+    CancelledSession,
+
     /// Indicating something unexpected went wrong.
     Generic,
 }

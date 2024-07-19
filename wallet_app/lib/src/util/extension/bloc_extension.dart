@@ -24,6 +24,7 @@ extension BlocExtensions on Bloc {
     Function(CoreHardwareKeyUnsupportedError)? onHardwareKeyUnsupportedError,
     Function(CoreDisclosureSourceMismatchError)? onDisclosureSourceMismatchError,
     Function(CoreExpiredSessionError)? onCoreExpiredSessionError,
+    Function(CoreCancelledSessionError)? onCoreCancelledSessionError,
     Function(CoreError)? onCoreError,
     required Function(Object) onUnhandledError,
   }) async {
@@ -47,6 +48,9 @@ extension BlocExtensions on Bloc {
         case CoreExpiredSessionError():
           await onCoreExpiredSessionError?.call(ex);
           if (onCoreExpiredSessionError != null) return;
+        case CoreCancelledSessionError():
+          await onCoreCancelledSessionError?.call(ex);
+          if (onCoreCancelledSessionError != null) return;
         case CoreStateError():
           // This is a programming error and thus should not be handled gracefully.
           throw ex;
