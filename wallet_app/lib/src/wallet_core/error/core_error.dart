@@ -49,8 +49,12 @@ class CoreDisclosureSourceMismatchError extends CoreError {
 class CoreExpiredSessionError extends CoreError {
   final bool canRetry;
 
-  const CoreExpiredSessionError(super.description, {required this.canRetry});
+  const CoreExpiredSessionError(super.description, {super.data, required this.canRetry});
 
   @override
   List<Object?> get props => [canRetry, ...super.props];
+}
+
+class CoreCancelledSessionError extends CoreError {
+  const CoreCancelledSessionError(super.description, {super.data});
 }

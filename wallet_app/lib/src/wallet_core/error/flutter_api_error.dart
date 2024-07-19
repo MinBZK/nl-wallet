@@ -35,4 +35,6 @@ enum FlutterApiErrorType {
   disclosureSourceMismatch,
   @JsonValue('ExpiredSession')
   expiredSession,
+  @JsonValue('CancelledSession')
+  cancelledSession,
 }
