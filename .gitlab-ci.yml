@@ -229,6 +229,7 @@ test-rust:
     - ./scripts/setup-devenv.sh
     - cd wallet_core
   script:
+    - cargo clean
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
     - cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
