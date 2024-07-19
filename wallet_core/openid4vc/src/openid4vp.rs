@@ -61,7 +61,7 @@ pub struct VpRequestUriObject {
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")] // SCREAMING_SNAKE_CASE might make more sense but the spec says lowercase
+#[serde(rename_all = "lowercase")] // Keeping these names as is might make more sense, but the spec says lowercase
 pub enum RequestUriMethod {
     #[default]
     GET,
@@ -143,12 +143,12 @@ impl VpClientMetadata {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientMetadata {
     #[serde(flatten)]
-    jwks: VpJwks,
-    vp_formats: VpFormat,
+    pub jwks: VpJwks,
+    pub vp_formats: VpFormat,
 
     // These two are defined in https://openid.net/specs/oauth-v2-jarm-final.html
-    authorization_encryption_alg_values_supported: VpAlgValues,
-    authorization_encryption_enc_values_supported: VpEncValues,
+    pub authorization_encryption_alg_values_supported: VpAlgValues,
+    pub authorization_encryption_enc_values_supported: VpEncValues,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -280,38 +280,48 @@ pub enum AuthRequestValidationError {
 }
 
 impl VpAuthorizationRequest {
-    /// Verify an Authorization Request JWT against the specified trust anchors, additionally checking that
-    /// - the request contents are compliant with the profile from ISO 18013-7 Appendix B,
-    /// - the `client_id` equals the DNS SAN name in the X.509 certificate, as required by the
-    ///   [`x509_san_dns` value for `client_id_scheme`](https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-5.7-12.2),
-    ///   which is used by the mentioned profile.
-    pub fn verify(
+    /// Construct a new Authorization Request by verifying an Authorization Request JWT against
+    /// the specified trust anchors.
+    pub fn try_new(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
-        wallet_nonce: Option<String>,
-    ) -> Result<(IsoVpAuthorizationRequest, Certificate), AuthRequestValidationError> {
-        let (auth_request, rp_cert) = jwt::verify_against_trust_anchors(
+    ) -> Result<(VpAuthorizationRequest, Certificate), AuthRequestValidationError> {
+        Ok(jwt::verify_against_trust_anchors(
             jws,
             &[VpAuthorizationRequestAudience::SelfIssued],
             trust_anchors,
             &TimeGenerator,
-        )?;
+        )?)
+    }
 
+    /// Validate that an Authorization Request satisfies the following:
+    /// - the request contents are compliant with the profile from ISO 18013-7 Appendix B,
+    /// - the `client_id` equals the DNS SAN name in the X.509 certificate, as required by the
+    ///   [`x509_san_dns` value for `client_id_scheme`](https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-5.7-12.2),
+    ///   which is used by the mentioned profile.
+    ///
+    /// This method consumes `self` and turns it into an [`IsoVpAuthorizationRequest`], which
+    /// contains only the fields we need and use.
+    pub fn validate(
+        self,
+        rp_cert: &Certificate,
+        wallet_nonce: Option<String>,
+    ) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
-        if dns_san != auth_request.oauth_request.client_id {
+        if dns_san != self.oauth_request.client_id {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
-                client_id: auth_request.oauth_request.client_id,
+                client_id: self.oauth_request.client_id,
                 dns_san,
             });
         }
 
-        if wallet_nonce != auth_request.wallet_nonce {
+        if wallet_nonce != self.wallet_nonce {
             return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
 
-        let validated_auth_request = IsoVpAuthorizationRequest::try_from(auth_request)?;
+        let validated_auth_request = IsoVpAuthorizationRequest::try_from(self)?;
 
-        Ok((validated_auth_request, rp_cert))
+        Ok(validated_auth_request)
     }
 }
 
@@ -591,9 +601,6 @@ impl VpAuthorizationResponse {
     }
 
     /// Create a JWE containing a new encrypted Authorization Request.
-    ///
-    /// NB: this method assumes that the provided Authorization Request has been validated with
-    ///  `auth_request.validate()?` before.
     pub fn new_encrypted(
         device_response: DeviceResponse,
         auth_request: &IsoVpAuthorizationRequest,
@@ -813,7 +820,9 @@ mod tests {
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
-        VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()], None).unwrap();
+        let (auth_request, cert) =
+            VpAuthorizationRequest::try_new(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
+        auth_request.validate(&cert, None).unwrap();
     }
 
     #[test]

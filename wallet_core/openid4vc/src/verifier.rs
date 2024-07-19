@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, SecondsFormat, Utc};
 use itertools::Itertools;
 use josekit::{
     jwk::{
@@ -638,7 +638,7 @@ where
                             ul_base,
                             request_uri,
                             time,
-                            self.generate_ephemeral_id(session_token, &time),
+                            Self::generate_ephemeral_id(&self.ephemeral_id_secret, session_token, &time),
                             session_type,
                             client_id,
                         )
@@ -721,9 +721,13 @@ where
 }
 
 impl<S> Verifier<S> {
-    fn generate_ephemeral_id(&self, session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
+    fn generate_ephemeral_id(
+        ephemeral_id_secret: &hmac::Key,
+        session_token: &SessionToken,
+        time: &DateTime<Utc>,
+    ) -> Vec<u8> {
         let ephemeral_id = hmac::sign(
-            &self.ephemeral_id_secret,
+            ephemeral_id_secret,
             &Self::format_ephemeral_id_payload(session_token, time),
         )
         .as_ref()
@@ -759,7 +763,12 @@ impl<S> Verifier<S> {
     // formats the payload to hash to the ephemeral ID in a consistent way
     fn format_ephemeral_id_payload(session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
         // default (de)serialization of DateTime is the RFC 3339 format
-        format!("{}|{}", session_token, time.to_rfc3339()).into()
+        format!(
+            "{}|{}",
+            session_token,
+            time.to_rfc3339_opts(SecondsFormat::AutoSi, true)
+        )
+        .into()
     }
 }
 
@@ -1035,5 +1044,413 @@ impl Session<WaitingForResponse> {
         self.transition(Done {
             session_result: SessionResult::Cancelled,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use chrono::{DateTime, Duration, Utc};
+    use indexmap::IndexMap;
+    use itertools::Itertools;
+    use ring::{hmac, rand};
+    use rstest::rstest;
+
+    use nl_wallet_mdoc::{
+        server_keys::KeyPair,
+        server_state::{MemorySessionStore, SessionToken},
+        utils::reader_auth::ReaderRegistration,
+        ItemsRequest,
+    };
+    use wallet_common::{
+        generator::{Generator, TimeGenerator},
+        trust_anchor::DerTrustAnchor,
+    };
+
+    use super::{
+        AuthorizationErrorCode, DisclosureData, Done, ErrorResponse, GetAuthRequestError, HashMap, ItemsRequests,
+        SessionResult, SessionState, SessionStore, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase,
+        VerificationError, Verifier, VpAuthorizationErrorCode, VpRequestUriObject, WalletAuthResponse,
+        EPHEMERAL_ID_VALIDITY_SECONDS,
+    };
+
+    const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
+    const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
+    const DISCLOSURE_ATTRS: [(&str, bool); 2] = [("first_name", true), ("family_name", false)];
+
+    const DISCLOSURE_USECASE_NO_REDIRECT_URI: &str = "example_usecase_no_redirect_uri";
+    const DISCLOSURE_USECASE: &str = "example_usecase";
+    const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
+
+    fn new_disclosure_request() -> ItemsRequests {
+        vec![ItemsRequest {
+            doc_type: DISCLOSURE_DOC_TYPE.to_string(),
+            request_info: None,
+            name_spaces: IndexMap::from([(
+                DISCLOSURE_NAME_SPACE.to_string(),
+                IndexMap::from_iter(
+                    DISCLOSURE_ATTRS
+                        .iter()
+                        .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
+                ),
+            )]),
+        }]
+        .into()
+    }
+
+    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
+        // Initialize server state
+        let ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let trust_anchors = vec![
+            DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec())
+                .unwrap()
+                .owned_trust_anchor,
+        ];
+        let reader_registration = Some(ReaderRegistration::new_mock());
+
+        let use_cases = HashMap::from([
+            (
+                DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+                UseCase {
+                    key_pair: ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                    session_type_return_url: SessionTypeReturnUrl::Neither,
+                    client_id: "client_id".to_string(),
+                },
+            ),
+            (
+                DISCLOSURE_USECASE.to_string(),
+                UseCase {
+                    key_pair: ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                    session_type_return_url: SessionTypeReturnUrl::SameDevice,
+                    client_id: "client_id".to_string(),
+                },
+            ),
+            (
+                DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
+                UseCase {
+                    key_pair: ca.generate_reader_mock(reader_registration).unwrap(),
+                    session_type_return_url: SessionTypeReturnUrl::Both,
+                    client_id: "client_id".to_string(),
+                },
+            ),
+        ])
+        .into();
+
+        let session_store = MemorySessionStore::default();
+
+        Verifier::new(
+            use_cases,
+            session_store,
+            trust_anchors,
+            hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+        )
+    }
+
+    #[rstest]
+    #[case(DISCLOSURE_USECASE_NO_REDIRECT_URI, false, true)]
+    #[case(DISCLOSURE_USECASE_NO_REDIRECT_URI, true, false)]
+    #[case(DISCLOSURE_USECASE, false, false)]
+    #[case(DISCLOSURE_USECASE, true, true)]
+    #[case(DISCLOSURE_USECASE_ALL_REDIRECT_URI, false, false)]
+    #[case(DISCLOSURE_USECASE_ALL_REDIRECT_URI, true, true)]
+    #[tokio::test]
+    async fn test_verifier_new_session_redirect_uri_configuration_mismatch(
+        #[case] usecase_id: &str,
+        #[case] has_return_url: bool,
+        #[case] should_succeed: bool,
+    ) {
+        let verifier = create_verifier();
+        let return_url_template = has_return_url.then(|| "https://example.com/{session_token}".parse().unwrap());
+
+        let result = verifier
+            .new_session(new_disclosure_request(), usecase_id.to_string(), return_url_template)
+            .await;
+
+        if should_succeed {
+            let _ = result.expect("creating a new session should succeed");
+        } else {
+            let error = result.expect_err("creating a new session should not succeed");
+            assert_matches!(error, VerificationError::ReturnUrlConfigurationMismatch)
+        }
+    }
+
+    async fn init_and_start_disclosure(
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> (
+        Verifier<MemorySessionStore<DisclosureData>>,
+        SessionToken,
+        VpRequestUriObject,
+    ) {
+        let verifier = create_verifier();
+
+        // Start session
+        let session_token = verifier
+            .new_session(
+                new_disclosure_request(),
+                DISCLOSURE_USECASE.to_string(),
+                Some("https://example.com/{session_token}".parse().unwrap()),
+            )
+            .await
+            .unwrap();
+
+        // Invoke status endpoint to get the UL for the wallet from it
+        let response = verifier
+            .status_response(
+                &session_token,
+                Some(SessionType::SameDevice),
+                &"https://app.example.com/app".parse().unwrap(),
+                format!("https://example.com/disclosure/{session_token}")
+                    .parse()
+                    .unwrap(),
+                time,
+            )
+            .await
+            .expect("should result in status response for session");
+
+        let StatusResponse::Created { ul } = response else {
+            panic!("should match DisclosureData::Created")
+        };
+
+        let request_query_object: VpRequestUriObject =
+            serde_urlencoded::from_str(ul.unwrap().as_ref().query().unwrap()).unwrap();
+
+        (verifier, session_token, request_query_object)
+    }
+
+    #[tokio::test]
+    async fn disclosure() {
+        let (verifier, session_token, request_uri_object) = init_and_start_disclosure(&TimeGenerator).await;
+
+        // Getting the Authorization Request should succeed
+        verifier
+            .process_get_request(
+                &session_token,
+                format!("https://example.com/disclosure/{session_token}/response_uri")
+                    .parse()
+                    .unwrap(),
+                request_uri_object.request_uri.as_ref().query(),
+                None,
+            )
+            .await
+            .unwrap();
+
+        // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
+        let end_session_message = WalletAuthResponse::Error(ErrorResponse {
+            error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+            error_description: None,
+            error_uri: None,
+        });
+        let ended_session_response = verifier
+            .process_authorization_response(&session_token, end_session_message, &TimeGenerator)
+            .await
+            .unwrap();
+        assert!(ended_session_response.redirect_uri.is_some());
+
+        // Session state should show the session has been cancelled
+        let DisclosureData::Done(session_state) = verifier.sessions.get(&session_token).await.unwrap().unwrap().data
+        else {
+            panic!("unexpected session state")
+        };
+        assert_matches!(session_state.session_result, SessionResult::Cancelled);
+    }
+
+    struct ExpiredEphemeralIdGenerator;
+
+    impl Generator<DateTime<Utc>> for ExpiredEphemeralIdGenerator {
+        fn generate(&self) -> DateTime<Utc> {
+            Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS - Duration::seconds(1)
+        }
+    }
+
+    #[tokio::test]
+    async fn disclosure_expired_id() {
+        let (verifier, session_token, request_uri_object) =
+            init_and_start_disclosure(&ExpiredEphemeralIdGenerator).await;
+
+        let error = verifier
+            .process_get_request(
+                &session_token,
+                format!("https://example.com/disclosure/{session_token}/response_uri")
+                    .parse()
+                    .unwrap(),
+                request_uri_object.request_uri.as_ref().query(),
+                None,
+            )
+            .await
+            .expect_err("should result in VerificationError::ExpiredEphemeralId");
+
+        let ephemeral_id = request_uri_object
+            .request_uri
+            .as_ref()
+            .query_pairs()
+            .find_map(|(key, value)| (key == "ephemeral_id").then(|| hex::decode(value.as_bytes()).unwrap()))
+            .unwrap();
+
+        assert!(matches!(
+            error.error,
+            GetAuthRequestError::ExpiredEphemeralId(id) if id == ephemeral_id
+        ));
+    }
+
+    #[tokio::test]
+    async fn disclosure_invalid_id() {
+        let (verifier, session_token, request_uri_object) = init_and_start_disclosure(&TimeGenerator).await;
+
+        let invalid_ephemeral_id = b"\xde\xad\xbe\xef".to_vec();
+
+        // set an invalid ephemeral id
+        let mut request_uri = request_uri_object.request_uri.into_inner();
+        let query = request_uri
+            .query_pairs()
+            .filter_map(|(key, value)| (key != "ephemeral_id").then(|| (key.into_owned(), value.into_owned())))
+            .collect_vec();
+        request_uri
+            .query_pairs_mut()
+            .clear()
+            .extend_pairs(query)
+            .append_pair("ephemeral_id", &hex::encode(&invalid_ephemeral_id));
+        let request_uri_object = VpRequestUriObject {
+            request_uri: request_uri.try_into().unwrap(),
+            ..request_uri_object
+        };
+
+        let error = verifier
+            .process_get_request(
+                &session_token,
+                format!("https://example.com/disclosure/{session_token}/response_uri")
+                    .parse()
+                    .unwrap(),
+                request_uri_object.request_uri.as_ref().query(),
+                None,
+            )
+            .await
+            .expect_err("should result in VerificationError::InvalidEphemeralId(...)");
+
+        assert!(matches!(
+            error.error,
+            GetAuthRequestError::InvalidEphemeralId(id) if id == invalid_ephemeral_id
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_verifier_disclosed_attributes() {
+        let verifier = create_verifier();
+
+        // Add three sessions to the store:
+        // * One with disclosed attributes and a return URL
+        // * One with disclosed attributes and no return URL
+        // * One expired session
+        let session1 = SessionState::new(
+            "token1".into(),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Done {
+                    disclosed_attributes: Default::default(),
+                    redirect_uri_nonce: None,
+                },
+            }),
+        );
+        let session2 = SessionState::new(
+            "token2".into(),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Done {
+                    disclosed_attributes: Default::default(),
+                    redirect_uri_nonce: "this-is-the-nonce".to_string().into(),
+                },
+            }),
+        );
+        let session3 = SessionState::new(
+            "token3".into(),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Expired,
+            }),
+        );
+
+        verifier.sessions.write(session1, true).await.unwrap();
+        verifier.sessions.write(session2, true).await.unwrap();
+        verifier.sessions.write(session3, true).await.unwrap();
+
+        // The finished session without a return URL should return the
+        // attributes, regardless of the return URL nonce provided.
+        assert!(verifier
+            .disclosed_attributes(&"token1".into(), None)
+            .await
+            .expect("should return disclosed attributes")
+            .is_empty());
+        assert!(verifier
+            .disclosed_attributes(&"token1".into(), "nonsense".to_string().into())
+            .await
+            .expect("should return disclosed attributes")
+            .is_empty());
+
+        // The finished session with a return URL should only return the
+        // disclosed attributes when given the correct return URL nonce.
+        assert!(verifier
+            .disclosed_attributes(&"token2".into(), "this-is-the-nonce".to_string().into())
+            .await
+            .expect("should return disclosed attributes")
+            .is_empty());
+        assert_matches!(
+            verifier
+                .disclosed_attributes(&"token2".into(), "incorrect".to_string().into())
+                .await
+                .expect_err("should fail to return disclosed attributes"),
+            VerificationError::RedirectUriNonceMismatch(nonce) if nonce == "incorrect"
+        );
+        assert_matches!(
+            verifier
+                .disclosed_attributes(&"token2".into(), None)
+                .await
+                .expect_err("should fail to return disclosed attributes"),
+            VerificationError::RedirectUriNonceMissing
+        );
+
+        // The expired session should always return an error, with or without a nonce.
+        assert_matches!(
+            verifier
+                .disclosed_attributes(&"token3".into(), None)
+                .await
+                .expect_err("should fail to return disclosed attributes"),
+            VerificationError::SessionNotDone
+        );
+        assert_matches!(
+            verifier
+                .disclosed_attributes(&"token3".into(), "nonsense".to_string().into())
+                .await
+                .expect_err("should fail to return disclosed attributes"),
+            VerificationError::SessionNotDone
+        );
+    }
+
+    #[test]
+    fn test_verifier_url() {
+        let ephemeral_id_secret = hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap();
+
+        let session_token = "session_token".into();
+        let time_str = "1969-07-21T02:56:15Z";
+        let time = time_str.parse().unwrap();
+
+        // Create a UL for the wallet, given the provided parameters.
+        let verifier_url = Verifier::<()>::format_ul(
+            &"https://app-ul.example.com".parse().unwrap(),
+            "https://rp.example.com".parse().unwrap(),
+            time,
+            Verifier::<()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
+            SessionType::CrossDevice,
+            "client_id".to_string(),
+        )
+        .unwrap();
+
+        // Format the ephemeral ID and sign it as a HMAC, then include it as hex in the URL we expect.
+        let ephemeral_id = hmac::sign(
+            &ephemeral_id_secret,
+            (session_token.to_string() + "|" + time_str).as_bytes(),
+        );
+        let expected_url = format!(
+            "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
+            %26ephemeral_id%3D{}%26time%3D1969-07-21T02%253A56%253A15Z&request_uri_method=post&client_id=client_id",
+            hex::encode(ephemeral_id)
+        );
+
+        assert_eq!(verifier_url.as_ref().as_str(), expected_url);
     }
 }
