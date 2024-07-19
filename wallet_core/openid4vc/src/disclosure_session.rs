@@ -1580,7 +1580,7 @@ mod tests {
         });
 
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages,  &SoftwareKeyFactory::default(),true).await,
+            try_disclose(proposal_session, wallet_messages, &SoftwareKeyFactory::default(), true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
@@ -1603,7 +1603,7 @@ mod tests {
 
         // No data should have been shared in this case
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages,&SoftwareKeyFactory::default(), true).await,
+            try_disclose(proposal_session, wallet_messages, &SoftwareKeyFactory::default(), true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
