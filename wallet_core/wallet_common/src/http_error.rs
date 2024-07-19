@@ -73,21 +73,17 @@ pub trait HttpJsonErrorType {
 }
 
 impl<T> HttpJsonError<T> {
-    pub fn new(r#type: T, description: String, data: Map<String, Value>) -> Self {
-        HttpJsonError {
-            r#type,
-            detail: description,
-            data,
-        }
+    pub fn new(r#type: T, detail: String, data: Map<String, Value>) -> Self {
+        HttpJsonError { r#type, detail, data }
     }
 
     /// This convenience constructor allows for a [`HttpJsonError`] to be built
     /// from any type that both implements [`Error`] and can be converted into
     /// its associated error type, without extra data.
     pub fn from_error(error: impl Error + Into<T>) -> Self {
-        let description = error.to_string();
+        let detail = error.to_string();
 
-        Self::new(error.into(), description, Default::default())
+        Self::new(error.into(), detail, Default::default())
     }
 }
 
