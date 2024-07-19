@@ -1,11 +1,12 @@
 use indexmap::IndexMap;
 use rstest::rstest;
+use tracing::error;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSessionError},
-    ErrorResponse,
+    ErrorResponse, TokenErrorCode,
 };
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::{
@@ -141,17 +142,19 @@ async fn gba_pid(bsn: &str) {
     let unsigned_mdocs = match unsigned_mdocs_result {
         Ok(mdocs) => mdocs,
         Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
+            error: TokenErrorCode::ServerError,
             error_description: Some(description),
             ..
         }))) if description.contains("Error converting GBA-V XML to Haal-Centraal JSON: GBA-V error") => {
             panic!("conversion error")
         }
         Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
+            error: TokenErrorCode::ServerError,
             error_description: Some(description),
             ..
         }))) if description.contains("could not find attributes for BSN") => panic!("unknown bsn"),
         Err(e) => {
-            dbg!("{:?}", e);
+            error!("{:?}", e);
             panic!("could not continue pid issuance")
         }
     };
