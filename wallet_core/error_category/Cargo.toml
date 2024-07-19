@@ -8,15 +8,14 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-sentry = ["dep:sentry"]
+sentry = ["dep:sentry", "dep:tracing"]
 
 [dependencies]
-thiserror.workspace = true
-tracing.workspace = true
-
 error_category_derive.path = "./error_category_derive"
 
 sentry = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
 sentry = { workspace = true, features = ["test"] }
+thiserror.workspace = true

@@ -21,7 +21,7 @@ software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Enable helper code for integration tests
 integration_test = []
 # Enable sentry feature
-sentry = ["dep:sentry", "dep:tracing", "error_category/sentry"]
+sentry = ["dep:sentry", "error_category/sentry"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -53,7 +53,6 @@ axum = { workspace = true, optional = true, features = ["json"] }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
-tracing = { workspace = true, optional = true }
 
 error_category = { path = "../error_category" }
 
