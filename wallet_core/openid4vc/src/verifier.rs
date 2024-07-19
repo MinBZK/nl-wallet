@@ -15,7 +15,6 @@ use nutype::nutype;
 use ring::hmac;
 use serde::{Deserialize, Serialize};
 use serde_with::{hex::Hex, serde_as, skip_serializing_none};
-use strum;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
 
@@ -50,41 +49,53 @@ use crate::{
 };
 
 /// Errors that can occur during processing of any of the endpoints.
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum SessionError {
-    #[error("session not in expected state")]
-    UnexpectedState,
-    #[error("session expired")]
-    Expired,
+    #[error("error with sessionstore: {0}")]
+    SessionStore(#[from] SessionStoreError),
     #[error("unknown session: {0}")]
     UnknownSession(SessionToken),
-    #[error("error with sessionstore: {0}")]
-    SessionStore(SessionStoreError),
+    #[error("session not in expected state, found: {0}")]
+    UnexpectedState(SessionStatus),
 }
 
-/// Errors returned by endpoints used by the RP.
-#[derive(thiserror::Error, Debug)]
-pub enum VerificationError {
+/// Errors returned by the new session endpoint, used by the RP.
+#[derive(Debug, thiserror::Error)]
+pub enum NewSessionError {
     #[error("session error: {0}")]
     Session(#[from] SessionError),
-
-    // RP errors
+    #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
+    NoItemsRequests,
     #[error("unknown use case: {0}")]
     UnknownUseCase(String),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
     ReturnUrlConfigurationMismatch,
-    #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
-    NoItemsRequests,
-    #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
-    SessionNotDone,
-    #[error("redirect URI nonce '{0}' does not equal the expected nonce")]
-    RedirectUriNonceMismatch(String),
-    #[error("missing nonce in redirect URI")]
-    RedirectUriNonceMissing,
+}
 
-    // status endpoint error
+/// Errors returned by the session status endpoint, used by the web front-end.
+#[derive(Debug, thiserror::Error)]
+pub enum SessionStatusError {
+    #[error("session error: {0}")]
+    Session(#[from] SessionError),
     #[error("URL encoding error: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CancelSessionError {
+    #[error("session error: {0}")]
+    Session(#[from] SessionError),
+}
+
+/// Errors returned by the disclosed attributes endpoint, used by the RP.
+#[derive(Debug, thiserror::Error)]
+pub enum DisclosedAttributesError {
+    #[error("session error: {0}")]
+    Session(#[from] SessionError),
+    #[error("missing nonce in redirect URI")]
+    RedirectUriNonceMissing,
+    #[error("redirect URI nonce '{0}' does not equal the expected nonce")]
+    RedirectUriNonceMismatch(String),
 }
 
 /// Errors returned by the endpoint that returns the Authorization Request.
@@ -313,10 +324,7 @@ impl TryFrom<SessionState<DisclosureData>> for Session<Created> {
     fn try_from(value: SessionState<DisclosureData>) -> Result<Self, Self::Error> {
         let session_data = match value.data {
             DisclosureData::Created(session_data) => Ok(session_data),
-            DisclosureData::Done(Done {
-                session_result: SessionResult::Expired,
-            }) => Err(SessionError::Expired),
-            _ => Err(SessionError::UnexpectedState),
+            data => Err(SessionError::UnexpectedState(data.into())),
         }?;
 
         Ok(Session::<Created> {
@@ -345,10 +353,7 @@ impl TryFrom<SessionState<DisclosureData>> for Session<WaitingForResponse> {
     fn try_from(value: SessionState<DisclosureData>) -> Result<Self, Self::Error> {
         let session_data = match value.data {
             DisclosureData::WaitingForResponse(session_data) => Ok(session_data),
-            DisclosureData::Done(Done {
-                session_result: SessionResult::Expired,
-            }) => Err(SessionError::Expired),
-            _ => Err(SessionError::UnexpectedState),
+            data => Err(SessionError::UnexpectedState(data.into())),
         }?;
 
         Ok(Session::<WaitingForResponse> {
@@ -373,7 +378,7 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
 
 /// Session status for the frontend.
 #[skip_serializing_none]
-#[derive(Debug, Deserialize, Serialize, strum::Display)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
 pub enum StatusResponse {
     Created { ul: Option<BaseUrl> },
@@ -382,6 +387,33 @@ pub enum StatusResponse {
     Failed,
     Cancelled,
     Expired,
+}
+
+/// Session status as contained in [`SessionError`].
+#[derive(Debug, Clone, strum::Display)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum SessionStatus {
+    Created,
+    WaitingForResponse,
+    Done,
+    Failed { error: String },
+    Cancelled,
+    Expired,
+}
+
+impl From<DisclosureData> for SessionStatus {
+    fn from(value: DisclosureData) -> Self {
+        match value {
+            DisclosureData::Created(_) => Self::Created,
+            DisclosureData::WaitingForResponse(_) => Self::WaitingForResponse,
+            DisclosureData::Done(Done { session_result }) => match session_result {
+                SessionResult::Done { .. } => Self::Done,
+                SessionResult::Failed { error } => Self::Failed { error },
+                SessionResult::Cancelled => Self::Cancelled,
+                SessionResult::Expired => Self::Expired,
+            },
+        }
+    }
 }
 
 #[nutype(derive(Debug, From, AsRef))]
@@ -471,18 +503,17 @@ where
         items_requests: ItemsRequests,
         usecase_id: String,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<SessionToken, VerificationError> {
+    ) -> Result<SessionToken, NewSessionError> {
         info!("create verifier session: {usecase_id}");
 
         if items_requests.0.is_empty() {
-            return Err(VerificationError::NoItemsRequests);
+            return Err(NewSessionError::NoItemsRequests);
         }
 
-        let use_case = self
-            .use_cases
-            .as_ref()
-            .get(&usecase_id)
-            .ok_or_else(|| VerificationError::UnknownUseCase(usecase_id.clone()))?;
+        let use_case = match self.use_cases.as_ref().get(&usecase_id) {
+            Some(use_case) => use_case,
+            None => return Err(NewSessionError::UnknownUseCase(usecase_id)),
+        };
 
         // Check if we should or should not have received a return URL
         // template, based on the configuration for the use case.
@@ -490,7 +521,7 @@ where
             SessionTypeReturnUrl::Neither => return_url_template.is_some(),
             SessionTypeReturnUrl::SameDevice | SessionTypeReturnUrl::Both => return_url_template.is_none(),
         } {
-            return Err(VerificationError::ReturnUrlConfigurationMismatch);
+            return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         }
 
         let session_state = Session::<Created>::new(
@@ -534,8 +565,7 @@ where
     ) -> Result<SessionState<DisclosureData>, SessionError> {
         self.sessions
             .get(session_token)
-            .await
-            .map_err(SessionError::SessionStore)?
+            .await?
             .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))
     }
 
@@ -638,7 +668,7 @@ where
         ul_base: &BaseUrl,
         request_uri: BaseUrl,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<StatusResponse, VerificationError> {
+    ) -> Result<StatusResponse, SessionStatusError> {
         let response = match self.get_session_state(session_token).await?.data {
             DisclosureData::Created(Created { client_id, .. }) => {
                 let ul = session_type
@@ -675,19 +705,20 @@ where
         Ok(response)
     }
 
-    pub async fn cancel(&self, session_token: &SessionToken) -> Result<(), VerificationError> {
+    pub async fn cancel(&self, session_token: &SessionToken) -> Result<(), CancelSessionError> {
         let session_state = self.get_session_state(session_token).await?;
 
+        // The `.unwrap()` calls below are safe, as we check the correct precondition in the match statement.
         match session_state.data {
             DisclosureData::Created(_) => {
-                self.cancel_active_session(Session::<Created>::try_from(session_state)?)
+                self.cancel_active_session(Session::<Created>::try_from(session_state).unwrap())
                     .await?;
             }
             DisclosureData::WaitingForResponse(_) => {
-                self.cancel_active_session(Session::<WaitingForResponse>::try_from(session_state)?)
+                self.cancel_active_session(Session::<WaitingForResponse>::try_from(session_state).unwrap())
                     .await?;
             }
-            _ => return Err(SessionError::UnexpectedState)?,
+            data => return Err(SessionError::UnexpectedState(data.into()))?,
         };
 
         Ok(())
@@ -698,10 +729,9 @@ where
             session_result: SessionResult::Cancelled,
         });
 
-        self.sessions
-            .write(cancelled_session.into(), false)
-            .await
-            .map_err(SessionError::SessionStore)
+        self.sessions.write(cancelled_session.into(), false).await?;
+
+        Ok(())
     }
 
     /// Returns the disclosed attributes for a session with status `Done` and an error otherwise
@@ -709,7 +739,7 @@ where
         &self,
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
-    ) -> Result<DisclosedAttributes, VerificationError> {
+    ) -> Result<DisclosedAttributes, DisclosedAttributesError> {
         let disclosure_data = self.get_session_state(session_token).await?.data;
 
         match disclosure_data {
@@ -721,11 +751,11 @@ where
                     },
             }) => match (redirect_uri_nonce, expected_nonce) {
                 (_, None) => Ok(disclosed_attributes),
-                (None, Some(_)) => Err(VerificationError::RedirectUriNonceMissing),
+                (None, Some(_)) => Err(DisclosedAttributesError::RedirectUriNonceMissing),
                 (Some(received), Some(expected)) if received == expected => Ok(disclosed_attributes),
-                (Some(received), Some(_)) => Err(VerificationError::RedirectUriNonceMismatch(received)),
+                (Some(received), Some(_)) => Err(DisclosedAttributesError::RedirectUriNonceMismatch(received)),
             },
-            _ => Err(VerificationError::SessionNotDone),
+            data => Err(SessionError::UnexpectedState(data.into()))?,
         }
     }
 }
@@ -752,7 +782,7 @@ impl<S> Verifier<S> {
         ephemeral_id: Vec<u8>,
         session_type: SessionType,
         client_id: String,
-    ) -> Result<BaseUrl, VerificationError> {
+    ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
         let mut request_uri = request_uri.into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
             time,
@@ -1078,10 +1108,10 @@ mod tests {
     };
 
     use super::{
-        AuthorizationErrorCode, DisclosureData, Done, ErrorResponse, GetAuthRequestError, HashMap, ItemsRequests,
-        SessionResult, SessionState, SessionStore, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase,
-        VerificationError, Verifier, VpAuthorizationErrorCode, VpRequestUriObject, WalletAuthResponse,
-        EPHEMERAL_ID_VALIDITY_SECONDS,
+        AuthorizationErrorCode, DisclosedAttributesError, DisclosureData, Done, ErrorResponse, GetAuthRequestError,
+        HashMap, ItemsRequests, NewSessionError, SessionError, SessionResult, SessionState, SessionStatus,
+        SessionStore, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase, Verifier, VpAuthorizationErrorCode,
+        VpRequestUriObject, WalletAuthResponse, EPHEMERAL_ID_VALIDITY_SECONDS,
     };
 
     const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
@@ -1180,7 +1210,7 @@ mod tests {
             let _ = result.expect("creating a new session should succeed");
         } else {
             let error = result.expect_err("creating a new session should not succeed");
-            assert_matches!(error, VerificationError::ReturnUrlConfigurationMismatch)
+            assert_matches!(error, NewSessionError::ReturnUrlConfigurationMismatch)
         }
     }
 
@@ -1404,14 +1434,14 @@ mod tests {
                 .disclosed_attributes(&"token2".into(), "incorrect".to_string().into())
                 .await
                 .expect_err("should fail to return disclosed attributes"),
-            VerificationError::RedirectUriNonceMismatch(nonce) if nonce == "incorrect"
+                DisclosedAttributesError::RedirectUriNonceMismatch(nonce) if nonce == "incorrect"
         );
         assert_matches!(
             verifier
                 .disclosed_attributes(&"token2".into(), None)
                 .await
                 .expect_err("should fail to return disclosed attributes"),
-            VerificationError::RedirectUriNonceMissing
+            DisclosedAttributesError::RedirectUriNonceMissing
         );
 
         // The expired session should always return an error, with or without a nonce.
@@ -1420,14 +1450,14 @@ mod tests {
                 .disclosed_attributes(&"token3".into(), None)
                 .await
                 .expect_err("should fail to return disclosed attributes"),
-            VerificationError::SessionNotDone
+            DisclosedAttributesError::Session(SessionError::UnexpectedState(SessionStatus::Expired))
         );
         assert_matches!(
             verifier
                 .disclosed_attributes(&"token3".into(), "nonsense".to_string().into())
                 .await
                 .expect_err("should fail to return disclosed attributes"),
-            VerificationError::SessionNotDone
+            DisclosedAttributesError::Session(SessionError::UnexpectedState(SessionStatus::Expired))
         );
     }
 

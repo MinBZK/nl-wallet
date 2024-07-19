@@ -37,7 +37,7 @@ use openid4vc::{
     jwt,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
     verifier::{
-        DisclosureData, StatusResponse, UseCase, VerificationError, Verifier, VerifierUrlParameters, VpToken,
+        DisclosedAttributesError, DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken,
         WalletAuthResponse,
     },
     ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
@@ -494,7 +494,7 @@ async fn test_client_and_server(
             .disclosed_attributes(&session_token, None)
             .await
             .expect_err("fetching disclosed attributes without a return URL nonce should fail");
-        assert_matches!(error, VerificationError::RedirectUriNonceMissing);
+        assert_matches!(error, DisclosedAttributesError::RedirectUriNonceMissing);
 
         let error = verifier
             .disclosed_attributes(&session_token, "incorrect".to_string().into())
@@ -502,7 +502,7 @@ async fn test_client_and_server(
             .expect_err("fetching disclosed attributes with incorrect return URL nonce should fail");
         assert_matches!(
             error,
-            VerificationError::RedirectUriNonceMismatch(nonce) if nonce == "incorrect"
+            DisclosedAttributesError::RedirectUriNonceMismatch(nonce) if nonce == "incorrect"
         );
     }
 

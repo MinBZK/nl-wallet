@@ -10,7 +10,10 @@ use wallet_common::{
 
 use crate::{
     issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
-    verifier::{GetAuthRequestError, PostAuthResponseError, SessionError, VerificationError, WithRedirectUri},
+    verifier::{
+        CancelSessionError, DisclosedAttributesError, GetAuthRequestError, NewSessionError, PostAuthResponseError,
+        SessionError, SessionStatus, SessionStatusError, WithRedirectUri,
+    },
 };
 
 /// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
@@ -178,7 +181,9 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
         ErrorResponse {
             error: match err {
                 GetAuthRequestError::ExpiredEphemeralId(_) => GetRequestErrorCode::ExpiredEphemeralId,
-                GetAuthRequestError::Session(SessionError::Expired) => GetRequestErrorCode::ExpiredSession,
+                GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
+                    GetRequestErrorCode::ExpiredSession
+                }
                 GetAuthRequestError::Session(SessionError::UnknownSession(_)) => GetRequestErrorCode::UnknownSession,
                 GetAuthRequestError::EncryptionKey(_)
                 | GetAuthRequestError::AuthRequest(_)
@@ -189,7 +194,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 GetAuthRequestError::QueryParametersMissing
                 | GetAuthRequestError::QueryParametersDeserialization(_)
                 | GetAuthRequestError::InvalidEphemeralId(_)
-                | GetAuthRequestError::Session(SessionError::UnexpectedState) => GetRequestErrorCode::InvalidRequest,
+                | GetAuthRequestError::Session(SessionError::UnexpectedState(_)) => GetRequestErrorCode::InvalidRequest,
             },
             error_description: Some(description),
             error_uri: None,
@@ -226,13 +231,15 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
-                PostAuthResponseError::Session(SessionError::Expired) => PostAuthResponseErrorCode::ExpiredSession,
+                PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
+                    PostAuthResponseErrorCode::ExpiredSession
+                }
                 PostAuthResponseError::Session(SessionError::SessionStore(_)) => PostAuthResponseErrorCode::ServerError,
                 PostAuthResponseError::Session(SessionError::UnknownSession(_)) => {
                     PostAuthResponseErrorCode::UnknownSession
                 }
                 PostAuthResponseError::AuthResponse(_)
-                | PostAuthResponseError::Session(SessionError::UnexpectedState) => {
+                | PostAuthResponseError::Session(SessionError::UnexpectedState(_)) => {
                     PostAuthResponseErrorCode::InvalidRequest
                 }
             },
@@ -266,12 +273,12 @@ where
     }
 }
 
-// The `VerificationError` and `VerificationErrorCode` is handled differently from the errors above:
+// The RP error types and `VerificationErrorCode` are handled differently from the errors above:
 // instead of returning them as an `ErrorResponse`, they are returned as a `HttpJsonErrorBody`.
 // This is because the endpoints that return these errors are not part of a protocol from the
 // OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
 
-/// Error codes sent to the Relying Party when an error occurs when handling their request.
+/// Error codes sent to the Relying Party or web front-end when an error occurs when handling their request.
 #[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
@@ -305,29 +312,75 @@ impl HttpJsonErrorType for VerificationErrorCode {
     }
 }
 
-impl From<VerificationError> for VerificationErrorCode {
-    fn from(err: VerificationError) -> Self {
-        match err {
-            VerificationError::Session(SessionError::Expired)
-            | VerificationError::Session(SessionError::UnexpectedState)
-            | VerificationError::SessionNotDone => VerificationErrorCode::SessionState,
-            VerificationError::Session(SessionError::UnknownSession(_)) => VerificationErrorCode::UnknownSession,
-            VerificationError::Session(SessionError::SessionStore(_)) | VerificationError::UrlEncoding(_) => {
-                VerificationErrorCode::ServerError
-            }
-            VerificationError::UnknownUseCase(_)
-            | VerificationError::ReturnUrlConfigurationMismatch
-            | VerificationError::NoItemsRequests => VerificationErrorCode::InvalidRequest,
-            VerificationError::RedirectUriNonceMismatch(_) | VerificationError::RedirectUriNonceMissing => {
-                VerificationErrorCode::Nonce
-            }
+impl From<&SessionError> for VerificationErrorCode {
+    fn from(error: &SessionError) -> Self {
+        match error {
+            SessionError::SessionStore(_) => VerificationErrorCode::ServerError,
+            SessionError::UnknownSession(_) => VerificationErrorCode::UnknownSession,
+            SessionError::UnexpectedState(_) => VerificationErrorCode::SessionState,
         }
     }
 }
 
-impl From<VerificationError> for HttpJsonError<VerificationErrorCode> {
-    fn from(value: VerificationError) -> Self {
-        HttpJsonError::from_error(value)
+impl From<&NewSessionError> for VerificationErrorCode {
+    fn from(error: &NewSessionError) -> Self {
+        match error {
+            NewSessionError::Session(session_error) => session_error.into(),
+            NewSessionError::NoItemsRequests
+            | NewSessionError::UnknownUseCase(_)
+            | NewSessionError::ReturnUrlConfigurationMismatch => VerificationErrorCode::InvalidRequest,
+        }
+    }
+}
+
+impl From<&SessionStatusError> for VerificationErrorCode {
+    fn from(error: &SessionStatusError) -> Self {
+        match error {
+            SessionStatusError::Session(session_error) => session_error.into(),
+            SessionStatusError::UrlEncoding(_) => VerificationErrorCode::ServerError,
+        }
+    }
+}
+
+impl From<&CancelSessionError> for VerificationErrorCode {
+    fn from(error: &CancelSessionError) -> Self {
+        match error {
+            CancelSessionError::Session(session_error) => session_error.into(),
+        }
+    }
+}
+
+impl From<&DisclosedAttributesError> for VerificationErrorCode {
+    fn from(error: &DisclosedAttributesError) -> Self {
+        match error {
+            DisclosedAttributesError::Session(session_error) => session_error.into(),
+            DisclosedAttributesError::RedirectUriNonceMissing
+            | DisclosedAttributesError::RedirectUriNonceMismatch(_) => Self::Nonce,
+        }
+    }
+}
+
+impl From<NewSessionError> for HttpJsonError<VerificationErrorCode> {
+    fn from(error: NewSessionError) -> Self {
+        HttpJsonError::from_error(&error)
+    }
+}
+
+impl From<SessionStatusError> for HttpJsonError<VerificationErrorCode> {
+    fn from(error: SessionStatusError) -> Self {
+        HttpJsonError::from_error(&error)
+    }
+}
+
+impl From<CancelSessionError> for HttpJsonError<VerificationErrorCode> {
+    fn from(error: CancelSessionError) -> Self {
+        HttpJsonError::from_error(&error)
+    }
+}
+
+impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
+    fn from(error: DisclosedAttributesError) -> Self {
+        HttpJsonError::from_error(&error)
     }
 }
 
