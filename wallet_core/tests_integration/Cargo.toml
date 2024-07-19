@@ -15,7 +15,7 @@ required-features = ["performance_test"]
 [[test]]
 name = "gba_pid_test"
 path = "tests/gba_pid_test.rs"
-required-features = ["gba_pid_test"]
+required-features = ["gba_pid_test", "wallet/snapshot_test"]
 
 [[test]]
 name = "config_server"
