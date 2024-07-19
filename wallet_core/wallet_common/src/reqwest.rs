@@ -1,8 +1,9 @@
-use std::{error::Error, ops::Deref, time::Duration};
+use std::{error::Error, time::Duration};
 
 use base64::prelude::*;
 use http::header;
 use mime::Mime;
+use once_cell::sync::Lazy;
 use reqwest::{Certificate, Client, ClientBuilder, Response};
 use serde::{Deserialize, Deserializer};
 
@@ -47,16 +48,11 @@ pub fn parse_content_type(response: &Response) -> Option<Mime> {
         .headers()
         .get(header::CONTENT_TYPE)
         .and_then(|content_type| content_type.to_str().ok())
-        .and_then(|content_type| content_type.parse::<Mime>().ok())
+        .and_then(|content_type| content_type.parse().ok())
 }
 
 pub fn is_problem_json_response(response: &Response) -> bool {
-    let content_type = parse_content_type(response);
-    if let Some(ct) = content_type {
-        &ct == APPLICATION_PROBLEM_JSON.deref()
-    } else {
-        false
-    }
+    parse_content_type(response).as_ref() == Some(Lazy::force(&APPLICATION_PROBLEM_JSON))
 }
 
 pub fn default_reqwest_client_builder() -> ClientBuilder {
