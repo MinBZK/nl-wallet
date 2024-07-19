@@ -34,6 +34,7 @@ pub enum AccountProviderError {
 /// Remove URL which might contain PII.
 impl From<reqwest::Error> for AccountProviderError {
     fn from(source: reqwest::Error) -> Self {
+        tracing::debug!("Account Provider HTTP error: {}", source);
         AccountProviderError::Networking(source.without_url())
     }
 }

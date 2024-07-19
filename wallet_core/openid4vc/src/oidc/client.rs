@@ -64,6 +64,7 @@ pub enum OidcError {
 
 impl From<reqwest::Error> for OidcError {
     fn from(source: reqwest::Error) -> Self {
+        tracing::debug!("Oidc HTTP error: {}", source);
         OidcError::Http(source.without_url())
     }
 }

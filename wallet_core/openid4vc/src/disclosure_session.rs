@@ -91,6 +91,7 @@ pub enum VpMessageClientError {
 // TODO: Does the URL contain PII for OIDC4VC?
 impl From<reqwest::Error> for VpMessageClientError {
     fn from(source: reqwest::Error) -> Self {
+        tracing::debug!("Vp Message HTTP error: {}", source);
         VpMessageClientError::Http(source.without_url())
     }
 }

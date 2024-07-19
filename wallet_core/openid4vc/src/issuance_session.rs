@@ -107,6 +107,7 @@ pub enum IssuanceSessionError {
 
 impl From<reqwest::Error> for IssuanceSessionError {
     fn from(source: reqwest::Error) -> Self {
+        tracing::debug!("Issuance Session HTTP error: {}", source);
         IssuanceSessionError::Network(source.without_url())
     }
 }
