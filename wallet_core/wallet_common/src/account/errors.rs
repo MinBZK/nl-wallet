@@ -28,6 +28,7 @@ pub enum Error {
     Jwt(#[from] JwtError),
 }
 
+// Must implement manually, as deriving cannot be done in this crate.
 impl ErrorCategory for Error {
     fn category(&self) -> Category {
         match self {

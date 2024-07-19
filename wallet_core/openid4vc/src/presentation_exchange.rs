@@ -52,13 +52,15 @@ pub enum LimitDisclosure {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(critical)]
 pub enum PdConversionError {
     #[error("too many paths")]
+    #[category(critical)]
     TooManyPaths,
     #[error("unsupported JsonPath expression")]
+    #[category(critical)]
     UnsupportedJsonPathExpression,
     #[error("signature algorithms not supported")]
+    #[category(critical)]
     UnsupportedAlgs,
 }
 

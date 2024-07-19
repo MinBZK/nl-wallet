@@ -1185,13 +1185,15 @@ impl DeviceResponse {
 }
 
 #[derive(Debug, Clone, thiserror::Error, ErrorCategory)]
-#[category(critical)]
 pub enum ValidityError {
     #[error("validity parsing failed: {0}")]
+    #[category(critical)] // No sensitive data just parsing DateTime
     ParsingFailed(#[from] chrono::ParseError),
     #[error("not yet valid: valid from {0}")]
+    #[category(critical)]
     NotYetValid(String),
     #[error("expired at {0}")]
+    #[category(critical)]
     Expired(String),
 }
 

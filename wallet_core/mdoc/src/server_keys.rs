@@ -16,7 +16,7 @@ pub struct KeyPair {
 }
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
-#[category(critical)]
+#[category(pd)]
 pub enum KeysError {
     #[error("failed to parse DER-encoded private key: {0}")]
     DerParsing(#[from] p256::pkcs8::Error),

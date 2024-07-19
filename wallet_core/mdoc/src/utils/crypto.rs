@@ -28,25 +28,33 @@ use crate::{
 use super::serialization::cbor_deserialize;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
-#[category(critical)]
 pub enum CryptoError {
     #[error("HKDF failed")]
+    #[category(critical)]
     Hkdf,
     #[error("missing coordinate")]
+    #[category(critical)]
     KeyMissingCoordinate,
     #[error("wrong key type")]
+    #[category(critical)]
     KeyWrongType,
     #[error("missing key ID")]
+    #[category(critical)]
     KeyMissingKeyID,
     #[error("unexpected COSE_Key label")]
+    #[category(critical)]
     KeyUnepectedCoseLabel,
     #[error("coordinate parse failed")]
+    #[category(critical)]
     KeyCoordinateParseFailed,
     #[error("key parse failed: {0}")]
+    #[category(pd)]
     KeyParseFailed(#[from] p256::ecdsa::Error),
     #[error("AES encryption/decryption failed")]
+    #[category(critical)]
     Aes,
     #[error("AES encryption/decryption failed: missing ciphertext")]
+    #[category(critical)]
     MissingCiphertext,
 }
 

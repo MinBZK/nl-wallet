@@ -24,7 +24,7 @@ use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
 use super::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
-#[category(critical)]
+#[category(pd)]
 pub enum CertificateError {
     #[error("certificate verification failed: {0}")]
     Verification(#[source] webpki::Error),
@@ -40,12 +40,15 @@ pub enum CertificateError {
     #[error("failed to parse certificate public key: {0}")]
     KeyParsingFailed(p256::pkcs8::spki::Error),
     #[error("EKU count incorrect ({0})")]
+    #[category(critical)]
     IncorrectEkuCount(usize),
     #[error("EKU incorrect")]
+    #[category(critical)]
     IncorrectEku(String),
     #[error("PEM decoding error: {0}")]
     Pem(#[from] nom::Err<PEMError>),
     #[error("unexpected PEM header: found {found}, expected {expected}")]
+    #[category(critical)]
     UnexpectedPemHeader { found: String, expected: String },
     #[error("DER coding error: {0}")]
     DerEncodingError(#[from] p256::pkcs8::der::Error),
