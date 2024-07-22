@@ -16,6 +16,7 @@ class KeyboardDigitKey extends StatelessWidget {
         child: Center(
           child: Semantics(
             keyboardKey: true,
+            button: true,
             onTapHint: context.l10n.pinKeyboardWCAGDigitKeyTapHint,
             child: Text(
               digit.toString(),
