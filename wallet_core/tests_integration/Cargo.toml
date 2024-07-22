@@ -14,7 +14,7 @@ required-features = ["performance_test"]
 [[test]]
 name = "gba_pid_test"
 path = "tests/gba_pid_test.rs"
-required-features = ["gba_pid_test", "wallet/snapshot_test"]
+required-features = ["gba_pid_test"]
 
 [[test]]
 name = "config_server"
@@ -121,6 +121,7 @@ gba_pid_test = [
     "logging",
     "fake_digid",
     "dep:ctor",
+    "dep:dotenvy",
     "dep:indexmap",
     "dep:insta",
     "dep:reqwest",
@@ -135,10 +136,9 @@ gba_pid_test = [
     "dep:serde_urlencoded",
     "dep:serde_yaml",
     "dep:tokio",
-    "dep:wallet",
     "dep:wallet_common",
     "dep:wallet_server",
-    "dep:dotenvy",
+    "wallet/snapshot_test",
 ]
 
 [dependencies]
