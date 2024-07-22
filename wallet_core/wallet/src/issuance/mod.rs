@@ -14,7 +14,7 @@ pub enum DigidSessionError {
     #[error("OIDC error: {0}")]
     Oidc(#[from] OidcError),
     #[error("HTTP error: {0}")]
-    #[category(critical)] // TODO: DigiD/OIDC urls do not contain sensitive data?
+    #[category(critical)] // DigiD/OIDC urls do not contain sensitive data
     Http(#[from] reqwest::Error),
     #[error("missing location header")]
     #[category(critical)]
@@ -38,7 +38,7 @@ pub enum DigidSessionError {
     #[category(pd)]
     UrlSerialize(#[from] serde_urlencoded::ser::Error),
     #[error("error in app2app response: {0}")]
-    #[category(pd)] // TODO: what is in this error?
+    #[category(pd)]
     App2AppError(String),
 }
 

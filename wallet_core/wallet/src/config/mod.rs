@@ -36,7 +36,7 @@ pub enum ConfigurationError {
     #[category(critical)]
     Networking(#[from] reqwest::Error),
     #[error("could not get config from config server: {0} - Response body: {1}")]
-    #[category(pd)] // TODO: do we expose sensitive data
+    #[category(critical)]
     Response(#[source] reqwest::Error, String),
     #[error("could not parse base URL: {0}")]
     #[category(critical)]

@@ -11,7 +11,7 @@ use error_category::ErrorCategory;
 
 // implementation of UtilitiesError from UDL
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(pd)] // Not sure what get's into the `reason` fields
+#[category(pd)] // reason field might leak sensitive data
 pub enum UtilitiesError {
     #[error("platform error: {reason}")]
     PlatformError { reason: String },

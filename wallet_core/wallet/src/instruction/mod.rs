@@ -34,7 +34,7 @@ pub enum InstructionError {
     #[error("server error: {0}")]
     ServerError(#[source] AccountProviderError),
     #[error("Wallet Provider could not validate instruction")]
-    #[category(expected)] // TODO: critical?
+    #[category(critical)]
     InstructionValidation,
     #[error("could not sign instruction: {0}")]
     Signing(#[source] wallet_common::account::errors::Error),
