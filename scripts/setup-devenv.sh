@@ -160,7 +160,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     cd "${WALLET_WEB_DIR}"
 
     if [[ -n "${RM_OLD_WALLET_WEB:-}" ]]; then
-        rm ../wallet_core/mock_relying_party/assets/*.iife.js
+        rm ../wallet_core/mock_relying_party/assets/*.iife.js || true
     fi
 
     npm ci && npm run build
