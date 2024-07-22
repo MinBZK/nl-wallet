@@ -134,7 +134,7 @@ pub enum PostAuthResponseError {
 
 /// Errors that can occur when creating a [`UseCase`] instance.
 #[derive(Debug, thiserror::Error)]
-pub enum UseCertificateCaseError {
+pub enum UseCaseCertificateError {
     #[error("missing DNS SAN from RP certificate")]
     MissingSAN,
     #[error("RP certificate error: {0}")]
@@ -430,11 +430,11 @@ impl UseCase {
     pub fn try_new(
         key_pair: KeyPair,
         session_type_return_url: SessionTypeReturnUrl,
-    ) -> Result<Self, UseCertificateCaseError> {
+    ) -> Result<Self, UseCaseCertificateError> {
         let client_id = key_pair
             .certificate()
             .san_dns_name()?
-            .ok_or(UseCertificateCaseError::MissingSAN)?;
+            .ok_or(UseCaseCertificateError::MissingSAN)?;
         let use_case = Self {
             key_pair,
             client_id,
