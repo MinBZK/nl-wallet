@@ -82,6 +82,7 @@ pub enum VpMessageClientError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VpMessageClientErrorType {
     Expired { can_retry: bool },
+    Cancelled,
     Other,
 }
 
@@ -128,6 +129,24 @@ impl VpMessageClientError {
                     },
                 ..
             }) => VpMessageClientErrorType::Expired { can_retry: false },
+            // The verifier could report that the session has been cancelled by the RP,
+            // both when getting the disclosure request and posting the response.
+            Self::AuthGetResponse(DisclosureErrorResponse {
+                error_response:
+                    ErrorResponse {
+                        error: GetRequestErrorCode::CancelledSession,
+                        ..
+                    },
+                ..
+            })
+            | Self::AuthPostResponse(DisclosureErrorResponse {
+                error_response:
+                    ErrorResponse {
+                        error: PostAuthResponseErrorCode::CancelledSession,
+                        ..
+                    },
+                ..
+            }) => VpMessageClientErrorType::Cancelled,
             // Any other reported error is classified under `VpMessageClientErrorType::Other`.
             _ => VpMessageClientErrorType::Other,
         }

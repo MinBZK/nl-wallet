@@ -563,7 +563,7 @@ async fn test_client_and_server_cancel_after_created() {
     assert_matches!(
         error,
         VpClientError::Request(VpMessageClientError::AuthGetResponse(error))
-            if error.error_response.error == GetRequestErrorCode::InvalidRequest
+            if error.error_response.error == GetRequestErrorCode::CancelledSession
     );
 }
 
@@ -625,7 +625,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(
         error.error,
         VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
-            if error.error_response.error == PostAuthResponseErrorCode::InvalidRequest
+            if error.error_response.error == PostAuthResponseErrorCode::CancelledSession
     );
 }
 
