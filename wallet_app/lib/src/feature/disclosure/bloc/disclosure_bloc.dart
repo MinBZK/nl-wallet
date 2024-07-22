@@ -281,6 +281,13 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
             ),
           );
         },
+        onCoreCancelledSessionError: (error) => emit(
+          DisclosureCancelledSessionError(
+            error: error,
+            relyingParty: relyingParty!,
+            returnUrl: error.returnUrl ?? returnUrl,
+          ),
+        ),
         onCoreError: (error) => emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl ?? returnUrl)),
         onUnhandledError: (error) => emit(DisclosureGenericError(error: error, returnUrl: returnUrl)),
       );

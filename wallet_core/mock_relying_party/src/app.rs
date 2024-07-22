@@ -1,20 +1,19 @@
-use std::{collections::HashMap, env, path::PathBuf, result::Result as StdResult, sync::Arc};
+use std::{collections::HashMap, result::Result as StdResult, sync::Arc};
 
 use askama::Template;
 use axum::{
     extract::{Path, Query, State},
-    handler::HandlerWithoutStateExt,
     http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
 use base64::prelude::*;
+use memory_serve::{load_assets, CacheControl, MemoryServe};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use tower_http::{
     cors::{Any, CorsLayer},
-    services::ServeDir,
     trace::TraceLayer,
 };
 use tracing::warn;
@@ -87,14 +86,15 @@ pub fn create_router(settings: Settings) -> Router {
         wallet_web: settings.wallet_web,
     });
 
-    let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-
     let mut app = Router::new()
         .route("/sessions", post(create_session))
         .route("/:usecase/", get(usecase))
         .route(&format!("/:usecase/{}", RETURN_URL_SEGMENT), get(disclosed_attributes))
         .fallback_service(
-            ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+            MemoryServe::new(load_assets!("assets"))
+                .cache_control(CacheControl::NoCache)
+                .into_router()
+                .into_service(),
         )
         .with_state(application_state)
         .layer(TraceLayer::new_for_http());
@@ -182,6 +182,10 @@ static USECASE_JS_SHA256: Lazy<String> =
     Lazy::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
 
 async fn usecase(State(state): State<Arc<ApplicationState>>, Path(usecase): Path<String>) -> Result<Response> {
+    if !state.usecases.contains_key(&usecase) {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    }
+
     let result = UsecaseTemplate {
         usecase: &usecase,
         usecase_js_sha256: &USECASE_JS_SHA256,
@@ -197,6 +201,10 @@ async fn disclosed_attributes(
     Path(usecase): Path<String>,
     Query(params): Query<DisclosedAttributesParams>,
 ) -> Result<Response> {
+    if !state.usecases.contains_key(&usecase) {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    }
+
     let attributes = state
         .client
         .disclosed_attributes(params.session_token, params.nonce)

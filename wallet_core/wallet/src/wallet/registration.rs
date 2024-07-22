@@ -24,10 +24,10 @@ const WALLET_KEY_ID: &str = "wallet";
 /// when running tests. This allows multiple `Wallet` instances to be
 /// created in parallel.
 pub(super) fn wallet_key_id() -> Cow<'static, str> {
-    #[cfg(not(test))]
+    #[cfg(not(any(test, feature = "test")))]
     return Cow::from(WALLET_KEY_ID);
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test"))]
     {
         use std::{
             cell::Cell,

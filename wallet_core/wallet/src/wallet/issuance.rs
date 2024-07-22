@@ -172,7 +172,7 @@ where
             return Err(PidIssuanceError::SessionState);
         }
 
-        // Take ownership of the active session, now that we now that it exists.
+        // Take ownership of the active session, now that we know that it exists.
         let session = match self.issuance_session.take().unwrap() {
             PidIssuanceSession::Digid(session) => session,
             PidIssuanceSession::Openid4vci(_) => panic!(),

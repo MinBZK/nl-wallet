@@ -12,6 +12,11 @@ name = "performance_test"
 required-features = ["performance_test"]
 
 [[test]]
+name = "gba_pid_test"
+path = "tests/gba_pid_test.rs"
+required-features = ["gba_pid_test"]
+
+[[test]]
 name = "config_server"
 path = "tests/config_server.rs"
 required-features = ["integration_test"]
@@ -57,6 +62,7 @@ test_common = [
     "dep:serde_json",
     "dep:tokio",
     "dep:configuration_server",
+    "dep:gba_hc_converter",
     "dep:nl_wallet_mdoc",
     "dep:openid4vc",
     "dep:platform_support",
@@ -111,11 +117,35 @@ performance_test = [
     "dep:wallet_server",
     "dep:dotenvy",
 ]
+gba_pid_test = [
+    "logging",
+    "fake_digid",
+    "dep:ctor",
+    "dep:dotenvy",
+    "dep:indexmap",
+    "dep:insta",
+    "dep:reqwest",
+    "dep:tracing",
+    "dep:url",
+    "dep:uuid",
+    "dep:nl_wallet_mdoc",
+    "dep:openid4vc",
+    "dep:platform_support",
+    "dep:rstest",
+    "dep:serial_test",
+    "dep:serde_urlencoded",
+    "dep:serde_yaml",
+    "dep:tokio",
+    "dep:wallet_common",
+    "dep:wallet_server",
+    "wallet/snapshot_test",
+]
 
 [dependencies]
 assert_matches = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
+insta = { workspace = true, optional = true, features = ["yaml"] }
 jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, optional = true, features = [
@@ -125,6 +155,7 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-uuid",
     "debug-print",
 ] }
+serde_yaml = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true, features = ["pkcs8"] }
 rand_core = { workspace = true, optional = true }
@@ -144,12 +175,12 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 
-gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 configuration_server = { path = "../configuration_server", optional = true }
+gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate"] }
 openid4vc = { path = "../openid4vc", optional = true }
 platform_support = { path = "../platform_support", optional = true, features = ["software"] }
-wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "env_config"] }
+wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "env_config", "test"] }
 wallet_common = { path = "../wallet_common", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }

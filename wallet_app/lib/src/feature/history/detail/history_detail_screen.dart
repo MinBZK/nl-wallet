@@ -30,6 +30,7 @@ class HistoryDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('historyDetailScreen'),
       body: SafeArea(
         child: Column(
           children: [

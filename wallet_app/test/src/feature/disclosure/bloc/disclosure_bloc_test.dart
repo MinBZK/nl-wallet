@@ -670,4 +670,37 @@ void main() {
       ),
     ],
   );
+
+  blocTest(
+    'when a CoreSessionCancelledError is thrown when accepting disclosure, emit DisclosureCancelledSessionError',
+    setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer(
+      (_) async => StartDisclosureReadyToDisclose(
+        WalletMockData.organization,
+        'originUrl',
+        ''.untranslated,
+        DisclosureSessionType.crossDevice,
+        DisclosureType.regular,
+        {},
+        WalletMockData.policy,
+        sharedDataWithOrganizationBefore: false,
+      ),
+    ),
+    build: create,
+    act: (bloc) async {
+      bloc.add(const DisclosureSessionStarted(''));
+      await Future.delayed(const Duration(milliseconds: 20));
+      bloc.add(const DisclosureOrganizationApproved());
+      await Future.delayed(const Duration(milliseconds: 20));
+      bloc.add(const DisclosureConfirmPinFailed(error: CoreCancelledSessionError('cancelled')));
+    },
+    expect: () => [
+      isA<DisclosureCheckOrganization>(),
+      isA<DisclosureConfirmDataAttributes>(),
+      isA<DisclosureLoadInProgress>(),
+      DisclosureCancelledSessionError(
+        error: const CoreCancelledSessionError('cancelled'),
+        relyingParty: WalletMockData.organization,
+      ),
+    ],
+  );
 }
