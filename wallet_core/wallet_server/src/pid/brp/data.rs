@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn should_convert_brp_person_to_mdoc() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.remove(0).try_into().unwrap();
+        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.remove(0).into();
 
         assert_eq!(2, unsigned_mdoc.len());
 

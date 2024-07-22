@@ -907,7 +907,6 @@
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
     "walletPersonalizeCheckDataOfferingPageGenderLabel": "Gender",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Name",
-    "walletPersonalizeCheckDataOfferingPageSpouseOrPartnerLabel": "Married or registered partnership",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Your data is retrieved using DigiD.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Is the following data correct?",
     "walletPersonalizeConfirmPinPageTitle": "Add data using your PIN code",
