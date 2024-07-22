@@ -48,7 +48,8 @@ pub enum AccountProviderResponseError {
     #[error("status code {0} and contents: {1}")]
     Text(StatusCode, String),
     #[error("error with type and detail: ({}) {}", AccountErrorType::from(.0), .1.as_deref().unwrap_or("<NO DETAIL>"))]
-    Account(AccountError, Option<String>),
+    #[category(defer)]
+    Account(#[defer] AccountError, Option<String>),
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
