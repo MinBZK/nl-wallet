@@ -17,20 +17,31 @@ use wallet::{
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
-#[tokio::test]
-#[rstest]
-#[should_panic(expected = "conversion error")]
-async fn test_gba_pid_conversion_error(
-    #[values("999993318", "999993896", "999990585", "999991127", "999992326", "999997658")] bsn: &str,
-) {
-    gba_pid(bsn).await
+#[derive(Debug, Eq, PartialEq)]
+enum TestError {
+    Conversion,
+    UnknownBsn,
+    Unknown,
 }
 
 #[tokio::test]
 #[rstest]
-#[should_panic(expected = "unknown bsn")]
+async fn test_gba_pid_conversion_error(
+    #[values("999993318", "999993896", "999990585", "999991127", "999992326", "999997658")] bsn: &str,
+) {
+    assert_eq!(
+        TestError::Conversion,
+        gba_pid(bsn).await.expect_err("should return error")
+    );
+}
+
+#[tokio::test]
+#[rstest]
 async fn test_gba_pid_unknown_bsn(#[values("999992306", "999995657")] bsn: &str) {
-    gba_pid(bsn).await
+    assert_eq!(
+        TestError::UnknownBsn,
+        gba_pid(bsn).await.expect_err("should return error")
+    );
 }
 
 #[tokio::test]
@@ -98,10 +109,10 @@ async fn test_gba_pid_success(
     )]
     bsn: &str,
 ) {
-    gba_pid(bsn).await
+    assert!(gba_pid(bsn).await.is_ok());
 }
 
-async fn gba_pid(bsn: &str) {
+async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let config_repository = LocalConfigurationRepository::new(default_configuration());
     let pid_issuance_config = &config_repository.config().pid_issuance;
 
@@ -146,16 +157,16 @@ async fn gba_pid(bsn: &str) {
             error_description: Some(description),
             ..
         }))) if description.contains("Error converting GBA-V XML to Haal-Centraal JSON: GBA-V error") => {
-            panic!("conversion error")
+            return Err(TestError::Conversion)
         }
         Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
             error: TokenErrorCode::ServerError,
             error_description: Some(description),
             ..
-        }))) if description.contains("could not find attributes for BSN") => panic!("unknown bsn"),
+        }))) if description.contains("could not find attributes for BSN") => return Err(TestError::UnknownBsn),
         Err(e) => {
             error!("{:?}", e);
-            panic!("could not continue pid issuance")
+            return Err(TestError::Unknown);
         }
     };
 
@@ -173,4 +184,6 @@ async fn gba_pid(bsn: &str) {
     }, {
         insta::assert_yaml_snapshot!(attributes);
     });
+
+    Ok(())
 }
