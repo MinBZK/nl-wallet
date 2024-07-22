@@ -1130,6 +1130,7 @@ run-mrp-vs-migrations-demo:
     MRP_VERIFICATION_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-verification-server:${CI_COMMIT_SHORT_SHA}
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
+    - set -euxo pipefail
     - envsubst < kubernetes/brpproxy-deployment.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/brpproxy-service.yaml
     - WALLET_WEB_FILENAME=$(basename `find wallet_core/mock_relying_party/assets/ -maxdepth 1 -type f -iname "*.iife.js" | head -1`)
