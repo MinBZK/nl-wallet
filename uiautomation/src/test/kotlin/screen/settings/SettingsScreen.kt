@@ -18,4 +18,6 @@ class SettingsScreen : MobileActions() {
             isElementVisible(changeLanguageButton) && isElementVisible(clearDataButton)
 
     fun clickChangeLanguageButton() = clickElement(changeLanguageButton)
+
+    fun clickClearDataButton() = clickElement(clearDataButton)
 }

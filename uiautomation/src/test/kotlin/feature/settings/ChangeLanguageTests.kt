@@ -10,9 +10,9 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junitpioneer.jupiter.RetryingTest
-import screen.change_language.ChangeLanguageScreen
 import screen.dashboard.DashboardScreen
 import screen.menu.MenuScreen
+import screen.settings.ChangeLanguageScreen
 import screen.settings.SettingsScreen
 
 @DisplayName("${ChangeLanguageTests.USE_CASE} User changes language [${ChangeLanguageTests.JIRA_ID}]")
