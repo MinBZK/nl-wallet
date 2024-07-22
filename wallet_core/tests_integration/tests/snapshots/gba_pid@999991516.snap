@@ -1,14 +1,12 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
-assertion_line: 173
+assertion_line: 184
 description: "BSN: 999991516"
 expression: attributes
 ---
 com.example.pid__given_name:
   String: Karin
 com.example.pid__family_name:
-  String: Holthuizen
-com.example.pid__own_family_name:
   String: Holthuizen
 com.example.pid__gender:
   Gender: Female

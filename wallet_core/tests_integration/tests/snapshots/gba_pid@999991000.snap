@@ -1,14 +1,12 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
-assertion_line: 173
+assertion_line: 184
 description: "BSN: 999991000"
 expression: attributes
 ---
 com.example.pid__given_name:
   String: "Liselotte-Anne Daniëlle Celèste Elise 26 Avril Stéphane Maroni jr. Isiah dé Maria de las Mercedes Rosalía J'adore Grace a Dieu Rhiannon San-che-he-ray Lou'Lou Elona L'vovna d'Alessandra Ariëlle"
 com.example.pid__family_name:
-  String: "voor in 't C"
-com.example.pid__own_family_name:
   String: "voor in 't C"
 com.example.pid__gender:
   Gender: Female
