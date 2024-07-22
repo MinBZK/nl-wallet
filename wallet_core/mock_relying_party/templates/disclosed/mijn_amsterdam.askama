@@ -1,6 +1,6 @@
 {% let title = "Gemeente Amsterdam" %}
 
-{% call header::header(title, "Willeke") %}
+{% call header::header(title, "Profiel") %}
 <main>
     {% call notification::notification("Gelukt", "Je bent ingelogd.") %}
     <section>
