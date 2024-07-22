@@ -22,7 +22,7 @@
     {% when "xyz_bank" %}
         {% include "xyz_bank.askama" %}
     {% else %}
-        Usecase not found
+        {% call attributes::attributes(attributes) %}
 {% endmatch %}
 
 {# should be last for accessibility purposes #}
