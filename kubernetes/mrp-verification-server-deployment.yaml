@@ -61,6 +61,10 @@ spec:
               value: "SSSS"
             - name: VERIFICATION_SERVER_ISSUER__BRP_SERVER
               value: "http://brpproxy:5001/"
+            - name: VERIFICATION_SERVER_SENTRY__DSN
+              value: ${SENTRY_DSN}
+            - name: VERIFICATION_SERVER_SENTRY__ENVIRONMENT
+              value: ${SENTRY_ENVIRONMENT}
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
