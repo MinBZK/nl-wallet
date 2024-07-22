@@ -6,3 +6,4 @@
 /gba_hc_converter.toml
 /wallet-config.json
 /*.pem
+*.snap.new

@@ -1,5 +1,4 @@
 use http::{header, HeaderMap, HeaderValue, StatusCode};
-use mime::Mime;
 use reqwest::{Client, Request};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
@@ -18,7 +17,7 @@ use wallet_common::{
     },
     config::wallet_config::BaseUrl,
     http_error::HttpJsonErrorBody,
-    reqwest::default_reqwest_client_builder,
+    reqwest::{default_reqwest_client_builder, parse_content_type},
 };
 
 use super::{AccountProviderClient, AccountProviderError, AccountProviderResponseError};
@@ -71,12 +70,7 @@ impl HttpAccountProviderClient {
         if status.is_client_error() || status.is_server_error() {
             let content_length = response.content_length();
             // Parse any `Content-Type` header that is present to a Mime type...
-            let content_type = response
-                .headers()
-                .get(header::CONTENT_TYPE)
-                .and_then(|content_type| content_type.to_str().ok())
-                .and_then(|content_type| content_type.parse::<Mime>().ok());
-            // ...and get the media type, subtype and optional suffix.
+            let content_type = parse_content_type(&response);
             let content_type_components = content_type
                 .as_ref()
                 .map(|content_type| (content_type.type_(), content_type.subtype(), content_type.suffix()));
