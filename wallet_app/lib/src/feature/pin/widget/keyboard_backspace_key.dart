@@ -19,6 +19,7 @@ class KeyboardBackspaceKey extends StatelessWidget {
     return Expanded(
       child: Semantics(
         button: true,
+        keyboardKey: true,
         onLongPressHint: context.l10n.pinKeyboardWCAGBackspaceLongPressHint,
         label: context.l10n.pinKeyboardWCAGBackspaceLabel,
         child: InkWell(
