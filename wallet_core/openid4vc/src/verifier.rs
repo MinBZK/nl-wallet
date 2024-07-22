@@ -181,24 +181,24 @@ struct Session<S: DisclosureState> {
 /// State for a session that has just been created.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    items_requests: ItemsRequests,
-    usecase_id: String,
-    client_id: String,
-    redirect_uri_template: Option<ReturnUrlTemplate>,
+    pub items_requests: ItemsRequests,
+    pub usecase_id: String,
+    pub client_id: String,
+    pub redirect_uri_template: Option<ReturnUrlTemplate>,
 }
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has contacted us at the session URL.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
-    auth_request: IsoVpAuthorizationRequest,
-    encryption_key: EncryptionPrivateKey,
-    redirect_uri: Option<RedirectUri>,
+    pub auth_request: IsoVpAuthorizationRequest,
+    pub encryption_key: EncryptionPrivateKey,
+    pub redirect_uri: Option<RedirectUri>,
 }
 
 /// State for a session that has ended (for any reason).
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Done {
-    session_result: SessionResult,
+    pub session_result: SessionResult,
 }
 
 /// The outcome of a session: the disclosed attributes if they have been successfully received and verified.
@@ -217,7 +217,7 @@ pub enum SessionResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct RedirectUri {
+pub struct RedirectUri {
     uri: BaseUrl,
     nonce: String,
 }

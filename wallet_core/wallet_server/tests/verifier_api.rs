@@ -10,19 +10,30 @@ use assert_matches::assert_matches;
 use chrono::{DateTime, Utc};
 use http::StatusCode;
 use indexmap::IndexMap;
+use itertools::Itertools;
+use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use reqwest::{Client, Response};
 use rstest::rstest;
 use tokio::time;
 
 use nl_wallet_mdoc::{
-    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS},
-    utils::mock_time::MockTimeGenerator,
-    verifier::{ReturnUrlTemplate, SessionType},
-    ItemsRequest,
+    examples::{
+        Example, Examples, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE,
+        EXAMPLE_NAMESPACE,
+    },
+    server_state::{
+        MemorySessionStore, SessionState, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS,
+    },
+    utils::{
+        mock_time::MockTimeGenerator,
+        serialization::{CborSeq, TaggedBytes},
+    },
+    verifier::{DisclosedAttributes, ReturnUrlTemplate, SessionType},
+    DeviceAuthenticationBytes, DeviceResponse, ItemsRequest,
 };
 use openid4vc::{
-    verifier::{DisclosureData, StatusResponse, VerifierUrlParameters},
+    verifier::{DisclosureData, Done, SessionResult, StatusResponse, VerifierUrlParameters},
     ErrorResponse,
 };
 use url::Url;
@@ -263,7 +274,11 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
-async fn test_http_json_error_body(response: Response, status_code: StatusCode, error_type: &str) {
+async fn test_http_json_error_body(
+    response: Response,
+    status_code: StatusCode,
+    error_type: &str,
+) -> HttpJsonErrorBody<String> {
     assert_eq!(response.status(), status_code);
 
     let body = serde_json::from_slice::<HttpJsonErrorBody<String>>(&response.bytes().await.unwrap())
@@ -271,6 +286,8 @@ async fn test_http_json_error_body(response: Response, status_code: StatusCode, 
 
     assert_eq!(body.r#type, error_type);
     assert_eq!(body.status, Some(status_code));
+
+    body
 }
 
 async fn test_error_response(response: Response, status_code: StatusCode, error_type: &str) {
@@ -370,7 +387,7 @@ async fn test_disclosure_not_found() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await
+    test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 }
 
 fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: Option<SessionType>) -> Url {
@@ -569,4 +586,172 @@ async fn test_disclosure_expired_postgres() {
         .unwrap();
 
     test_disclosure_expired(settings, session_store, mock_time.as_ref(), true).await;
+}
+
+#[rstest]
+#[tokio::test]
+async fn test_disclosed_attributes(#[values(None, Some("nonce"))] nonce: Option<&str>) {
+    // Create a `DisclosedAttributes` object, based on the example `DeviceResponse`.
+    let device_response = DeviceResponse::example();
+    let TaggedBytes(CborSeq(device_auth_keyed)) = DeviceAuthenticationBytes::example();
+    let disclosed_attributes = device_response
+        .verify(
+            Some(&Examples::ephemeral_reader_key()),
+            &device_auth_keyed.session_transcript,
+            &IsoCertTimeGenerator,
+            Examples::iaca_trust_anchors(),
+        )
+        .unwrap();
+
+    // Populate a session store with one session that is `Done` and has these `DisclosedAttributes` available.
+    let session_token = SessionToken::new("foobar");
+    let session = SessionState::new(
+        session_token.clone(),
+        DisclosureData::Done(Done {
+            session_result: SessionResult::Done {
+                disclosed_attributes,
+                redirect_uri_nonce: nonce.map(ToOwned::to_owned),
+            },
+        }),
+    );
+
+    let session_store = MemorySessionStore::<DisclosureData>::default();
+    session_store.write(session, true).await.unwrap();
+
+    // Start the wallet server with this session store.
+    let settings = wallet_server_settings();
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+    start_wallet_server(settings.clone(), session_store).await;
+    let client = default_reqwest_client_builder().build().unwrap();
+
+    // Check if the disclosed attributes endpoint returns a 200 for the session, with the attributes.
+    let mut disclosed_attributes_url = internal_url.join(&format!(
+        "disclosure/sessions/{}/disclosed_attributes",
+        session_token.as_ref()
+    ));
+    if let Some(nonce) = nonce {
+        // Set the return URL nonce as query parameter.
+        disclosed_attributes_url.query_pairs_mut().append_pair("nonce", nonce);
+    }
+
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+
+    itertools::assert_equal(disclosed_attributes.keys(), [EXAMPLE_DOC_TYPE]);
+    let attributes = &disclosed_attributes.get(EXAMPLE_DOC_TYPE).unwrap().attributes;
+    itertools::assert_equal(attributes.keys(), [EXAMPLE_NAMESPACE]);
+    let first_entry = attributes.get(EXAMPLE_NAMESPACE).unwrap().first().unwrap();
+    assert_eq!(first_entry.name, EXAMPLE_ATTR_NAME);
+    assert_eq!(&first_entry.value, Lazy::force(&EXAMPLE_ATTR_VALUE));
+}
+
+#[tokio::test]
+async fn test_disclosed_attributes_error_nonce() {
+    // Populate a session store with one session that is `Done` and has a nonce.
+    let session_token = SessionToken::new("foobar");
+    let session = SessionState::new(
+        session_token.clone(),
+        DisclosureData::Done(Done {
+            session_result: SessionResult::Done {
+                disclosed_attributes: Default::default(),
+                redirect_uri_nonce: Some("nonce".to_string()),
+            },
+        }),
+    );
+
+    let session_store = MemorySessionStore::<DisclosureData>::default();
+    session_store.write(session, true).await.unwrap();
+
+    // Start the wallet server with this session store.
+    let settings = wallet_server_settings();
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+    start_wallet_server(settings.clone(), session_store).await;
+    let client = default_reqwest_client_builder().build().unwrap();
+
+    // Check that requesting the disclosed attributes for this session returns the correct errors.
+    let mut disclosed_attributes_url = internal_url.join(&format!(
+        "disclosure/sessions/{}/disclosed_attributes",
+        session_token.as_ref()
+    ));
+
+    let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
+
+    test_http_json_error_body(response, StatusCode::UNAUTHORIZED, "nonce").await;
+
+    disclosed_attributes_url
+        .query_pairs_mut()
+        .append_pair("none", "incorrect");
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+
+    test_http_json_error_body(response, StatusCode::UNAUTHORIZED, "nonce").await;
+}
+
+#[tokio::test]
+async fn test_disclosed_attributes_error_session_state() {
+    let cancelled_session_token = SessionToken::new("cancelled");
+    let cancelled_session = SessionState::new(
+        cancelled_session_token.clone(),
+        DisclosureData::Done(Done {
+            session_result: SessionResult::Cancelled,
+        }),
+    );
+
+    let failed_session_token = SessionToken::new("failed");
+    let failed_session = SessionState::new(
+        failed_session_token.clone(),
+        DisclosureData::Done(Done {
+            session_result: SessionResult::Failed {
+                error: "This is the error reason.".to_string(),
+            },
+        }),
+    );
+
+    let session_store = MemorySessionStore::<DisclosureData>::default();
+    session_store.write(cancelled_session, true).await.unwrap();
+    session_store.write(failed_session, true).await.unwrap();
+
+    // Start the wallet server with this session store.
+    let settings = wallet_server_settings();
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+    start_wallet_server(settings.clone(), session_store).await;
+    let client = default_reqwest_client_builder().build().unwrap();
+
+    let response = client
+        .get(internal_url.join(&format!(
+            "disclosure/sessions/{}/disclosed_attributes",
+            cancelled_session_token.as_ref()
+        )))
+        .send()
+        .await
+        .unwrap();
+
+    let error_body = test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
+    itertools::assert_equal(error_body.extra.keys(), ["session_status"]);
+    assert_eq!(
+        error_body.extra.get("session_status").unwrap(),
+        &serde_json::Value::from("CANCELLED")
+    );
+
+    let response = client
+        .get(internal_url.join(&format!(
+            "disclosure/sessions/{}/disclosed_attributes",
+            failed_session_token.as_ref()
+        )))
+        .send()
+        .await
+        .unwrap();
+
+    let error_body = test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
+    itertools::assert_equal(error_body.extra.keys().sorted(), ["session_error", "session_status"]);
+    assert_eq!(
+        error_body.extra.get("session_status").unwrap(),
+        &serde_json::Value::from("FAILED")
+    );
+    assert_eq!(
+        error_body.extra.get("session_error").unwrap(),
+        &serde_json::Value::from("This is the error reason.")
+    );
 }
