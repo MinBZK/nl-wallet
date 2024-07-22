@@ -40,7 +40,6 @@ impl From<Gender> for Value {
 pub struct PersonAttributes {
     bsn: String,
     family_name: String,
-    own_family_name: String,
     given_name: String,
     birth_date: NaiveDate,
     age_over_18: bool,
@@ -64,11 +63,6 @@ impl From<PersonAttributes> for Vec<Entry> {
             Entry {
                 name: PID_FAMILY_NAME.to_string(),
                 value: Value::Text(value.family_name),
-            }
-            .into(),
-            Entry {
-                name: PID_OWN_FAMILY_NAME.to_string(),
-                value: Value::Text(value.own_family_name),
             }
             .into(),
             Entry {
@@ -174,7 +168,6 @@ impl Default for MockAttributesLookup {
                     bsn: "999991772".to_owned(),
                     given_name: "Willeke Liselotte".to_owned(),
                     family_name: "De Bruijn".to_owned(),
-                    own_family_name: "Molenaar".to_owned(),
                     gender: Some(Gender::Female),
                     birth_date: NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
                     age_over_18: true,

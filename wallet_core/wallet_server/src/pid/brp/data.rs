@@ -74,11 +74,6 @@ impl From<BrpPerson> for Vec<UnsignedMdoc> {
                             value: ciborium::Value::Text(family_name.clone()),
                         }
                         .into(),
-                        unsigned::Entry {
-                            name: String::from(PID_OWN_FAMILY_NAME),
-                            value: ciborium::Value::Text(family_name),
-                        }
-                        .into(),
                         given_names.map(|names| unsigned::Entry {
                             name: String::from(PID_GIVEN_NAME),
                             value: ciborium::Value::Text(names),
@@ -375,7 +370,6 @@ mod tests {
             vec![
                 ("bsn", "999991772".into()),
                 ("family_name", "Jansen".into()),
-                ("own_family_name", "Jansen".into()),
                 ("given_name", "Frouke".into()),
                 ("birth_date", "2000-03-24".into()),
                 ("birth_country", "België".into()),
