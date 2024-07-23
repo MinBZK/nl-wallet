@@ -101,52 +101,25 @@ impl From<DisclosureErrorResponse<PostAuthResponseErrorCode>> for VpMessageClien
 impl VpMessageClientError {
     pub fn error_type(&self) -> VpMessageClientErrorType {
         match self {
-            // When the verifier reports that the ephemeral session id is expired,
-            // the user could retry getting the request with a new ephemeral id.
+            // Consider the different error codes when getting the disclosure request.
             Self::AuthGetResponse(DisclosureErrorResponse {
-                error_response:
-                    ErrorResponse {
-                        error: GetRequestErrorCode::ExpiredEphemeralId,
-                        ..
-                    },
+                error_response: ErrorResponse { error, .. },
                 ..
-            }) => VpMessageClientErrorType::Expired { can_retry: true },
-            // When the verifier reports that the session is expired, either when getting
-            // the request or posting the response, the user cannot retry the operation.
-            Self::AuthGetResponse(DisclosureErrorResponse {
-                error_response:
-                    ErrorResponse {
-                        error: GetRequestErrorCode::ExpiredSession,
-                        ..
-                    },
+            }) => match error {
+                GetRequestErrorCode::ExpiredEphemeralId => VpMessageClientErrorType::Expired { can_retry: true },
+                GetRequestErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
+                GetRequestErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
+                _ => VpMessageClientErrorType::Other,
+            },
+            // Consider the different error codes when posting the disclosure response.
+            Self::AuthPostResponse(DisclosureErrorResponse {
+                error_response: ErrorResponse { error, .. },
                 ..
-            })
-            | Self::AuthPostResponse(DisclosureErrorResponse {
-                error_response:
-                    ErrorResponse {
-                        error: PostAuthResponseErrorCode::ExpiredSession,
-                        ..
-                    },
-                ..
-            }) => VpMessageClientErrorType::Expired { can_retry: false },
-            // The verifier could report that the session has been cancelled by the RP,
-            // both when getting the disclosure request and posting the response.
-            Self::AuthGetResponse(DisclosureErrorResponse {
-                error_response:
-                    ErrorResponse {
-                        error: GetRequestErrorCode::CancelledSession,
-                        ..
-                    },
-                ..
-            })
-            | Self::AuthPostResponse(DisclosureErrorResponse {
-                error_response:
-                    ErrorResponse {
-                        error: PostAuthResponseErrorCode::CancelledSession,
-                        ..
-                    },
-                ..
-            }) => VpMessageClientErrorType::Cancelled,
+            }) => match error {
+                PostAuthResponseErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
+                PostAuthResponseErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
+                _ => VpMessageClientErrorType::Other,
+            },
             // Any other reported error is classified under `VpMessageClientErrorType::Other`.
             _ => VpMessageClientErrorType::Other,
         }
