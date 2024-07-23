@@ -18,8 +18,9 @@ use std::{future::Future, io};
 
 use anyhow::Result;
 use axum::{routing::get, Router};
+use http::{header, HeaderValue};
 use tokio::net::TcpListener;
-use tower_http::trace::TraceLayer;
+use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 use tracing::debug;
 
 use crate::{
@@ -33,6 +34,11 @@ fn health_router() -> Router {
 
 pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
     router = router.merge(health_router());
+
+    router = router.layer(SetResponseHeaderLayer::overriding(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("no-store"),
+    ));
 
     if log_requests {
         router = router.layer(axum::middleware::from_fn(log_request_response));
