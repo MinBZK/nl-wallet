@@ -805,28 +805,30 @@ mod tests {
             .await
             .expect("Could not accept PID issuance");
 
-        // Test which `Document` instances we have received through the callback.
-        let documents = documents.lock();
+        {
+            // Test which `Document` instances we have received through the callback.
+            let documents = documents.lock();
 
-        // The first entry should be empty, because there are no mdocs in the database.
-        assert_eq!(documents.len(), 2);
-        assert!(documents[0].is_empty());
+            // The first entry should be empty, because there are no mdocs in the database.
+            assert_eq!(documents.len(), 2);
+            assert!(documents[0].is_empty());
 
-        // The second entry should contain a single document with the PID.
-        assert_eq!(documents[1].len(), 1);
-        let document = &documents[1][0];
-        assert_matches!(document.persistence, DocumentPersistence::Stored(_));
-        assert_eq!(document.doc_type, "com.example.pid");
+            // The second entry should contain a single document with the PID.
+            assert_eq!(documents[1].len(), 1);
+            let document = &documents[1][0];
+            assert_matches!(document.persistence, DocumentPersistence::Stored(_));
+            assert_eq!(document.doc_type, "com.example.pid");
 
-        // Test that one successful issuance event is logged
-        let events = events.lock();
-        assert_eq!(events.len(), 2);
-        assert!(events[0].is_empty());
-        assert_eq!(events[1].len(), 1);
-        assert_matches!(&events[1][0], HistoryEvent::Issuance { .. });
+            // Test that one successful issuance event is logged
+            let events = events.lock();
+            assert_eq!(events.len(), 2);
+            assert!(events[0].is_empty());
+            assert_eq!(events[1].len(), 1);
+            assert_matches!(&events[1][0], HistoryEvent::Issuance { .. });
 
-        assert!(wallet.has_registration());
-        assert!(!wallet.is_locked());
+            assert!(wallet.has_registration());
+            assert!(!wallet.is_locked());
+        }
 
         // Starting another PID issuance should fail
         const AUTH_URL: &str = "http://example.com/auth";
