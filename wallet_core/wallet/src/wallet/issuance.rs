@@ -13,16 +13,15 @@ use wallet_common::{
     config::wallet_config::WalletConfiguration, jwt::JwtError, reqwest::trusted_reqwest_client_builder,
 };
 
+use super::{documents::DocumentsError, history::EventStorageError, Wallet};
 use crate::{
     account_provider::AccountProviderClient,
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
-    document::{Document, DocumentMdocError},
+    document::{Document, DocumentMdocError, PID_DOCTYPE},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     issuance::{DigidSession, DigidSessionError, HttpDigidSession},
     storage::{Storage, StorageError, WalletEvent},
 };
-
-use super::{documents::DocumentsError, history::EventStorageError, Wallet};
 
 pub(super) enum PidIssuanceSession<DS = HttpDigidSession, IS = HttpIssuanceSession> {
     Digid(DS),
@@ -90,6 +89,17 @@ where
 
         info!("Checking if there is an active issuance session");
         if self.issuance_session.is_some() {
+            return Err(PidIssuanceError::SessionState);
+        }
+
+        info!("Checking if there already has been a pid issuance");
+        let has_pid = self
+            .storage
+            .get_mut()
+            .has_any_mdocs_with_doctype(PID_DOCTYPE)
+            .await
+            .map_err(PidIssuanceError::MdocStorage)?;
+        if has_pid {
             return Err(PidIssuanceError::SessionState);
         }
 
@@ -817,6 +827,21 @@ mod tests {
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());
+
+        // Starting another PID issuance should fail
+        const AUTH_URL: &str = "http://example.com/auth";
+        // Set up a mock DigiD session.
+        let session_start_context = MockDigidSession::start_context();
+        session_start_context.expect().returning(|_, _| {
+            let client = MockDigidSession::default();
+            Ok((client, Url::parse(AUTH_URL).unwrap()))
+        });
+
+        let err = wallet
+            .create_pid_issuance_auth_url()
+            .await
+            .expect_err("creating new PID issuance auth URL when there already is a PID should fail");
+        assert_matches!(err, PidIssuanceError::SessionState);
     }
 
     #[tokio::test]
