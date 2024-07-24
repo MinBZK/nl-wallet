@@ -13,7 +13,6 @@ use wallet_common::{
     config::wallet_config::WalletConfiguration, jwt::JwtError, reqwest::trusted_reqwest_client_builder,
 };
 
-use super::{documents::DocumentsError, history::EventStorageError, Wallet};
 use crate::{
     account_provider::AccountProviderClient,
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
@@ -22,6 +21,8 @@ use crate::{
     issuance::{DigidSession, DigidSessionError, HttpDigidSession},
     storage::{Storage, StorageError, WalletEvent},
 };
+
+use super::{documents::DocumentsError, history::EventStorageError, Wallet};
 
 pub(super) enum PidIssuanceSession<DS = HttpDigidSession, IS = HttpIssuanceSession> {
     Digid(DS),
@@ -36,6 +37,8 @@ pub enum PidIssuanceError {
     Locked,
     #[error("issuance session is not in the correct state")]
     SessionState,
+    #[error("PID has already been issued")]
+    PidAlreadyIssued,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidSessionError),
     #[error("could not finish DigiD session: {0}")]
@@ -100,7 +103,7 @@ where
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
         if has_pid {
-            return Err(PidIssuanceError::SessionState);
+            return Err(PidIssuanceError::PidAlreadyIssued);
         }
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
@@ -843,7 +846,7 @@ mod tests {
             .create_pid_issuance_auth_url()
             .await
             .expect_err("creating new PID issuance auth URL when there already is a PID should fail");
-        assert_matches!(err, PidIssuanceError::SessionState);
+        assert_matches!(err, PidIssuanceError::PidAlreadyIssued);
     }
 
     #[tokio::test]
