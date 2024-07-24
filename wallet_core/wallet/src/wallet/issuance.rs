@@ -37,8 +37,8 @@ pub enum PidIssuanceError {
     Locked,
     #[error("issuance session is not in the correct state")]
     SessionState,
-    #[error("PID has already been issued")]
-    PidAlreadyIssued,
+    #[error("PID already present")]
+    PidAlreadyPresent,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidSessionError),
     #[error("could not finish DigiD session: {0}")]
@@ -95,7 +95,7 @@ where
             return Err(PidIssuanceError::SessionState);
         }
 
-        info!("Checking if there already has been a pid issuance");
+        info!("Checking if a pid is already present");
         let has_pid = self
             .storage
             .get_mut()
@@ -103,7 +103,7 @@ where
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
         if has_pid {
-            return Err(PidIssuanceError::PidAlreadyIssued);
+            return Err(PidIssuanceError::PidAlreadyPresent);
         }
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
@@ -846,7 +846,7 @@ mod tests {
             .create_pid_issuance_auth_url()
             .await
             .expect_err("creating new PID issuance auth URL when there already is a PID should fail");
-        assert_matches!(err, PidIssuanceError::PidAlreadyIssued);
+        assert_matches!(err, PidIssuanceError::PidAlreadyPresent);
     }
 
     #[tokio::test]
