@@ -19,7 +19,7 @@ pub use mdoc::tests::{
     create_minimal_unsigned_pid_mdoc,
 };
 
-const PID_DOCTYPE: &str = "com.example.pid";
+pub const PID_DOCTYPE: &str = "com.example.pid";
 const ADDRESS_DOCTYPE: &str = "com.example.address";
 
 pub type DocumentType = &'static str;
