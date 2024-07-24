@@ -50,7 +50,7 @@ In the above diagram, we see the main components involved in a disclosure
 session. The main components are:
 
   * [DigiD][1]: Digitale Identiteit, a digital identification system;
-  * [(BSNk) Pseudonym Service][2]: A service that pseudonimizes BSN numbers;
+  * [Pseudonym Service][2]: A service that pseudonimizes BSN numbers;
   * [(BRP-V) Authentic Source][3]: A source of attributes, made accessible by
     a so-called Verstrekkende Voorziening (VV);
   * [VV][4]: Verstrekkende Voorziening, the party that issues attributes;
@@ -61,10 +61,15 @@ session. The main components are:
     verification of attributes;
   * [Wallet App][5]: The wallet app running on a mobile device;
 
+Missing from the above diagram, but worth mentioning:
+
+  * [Wallet Web][14] The frontend helper Javascript/Typescript library which
+    helps relying parties integrate their application with the Wallet platform.
+
 
 For the purpose of this document, we won't go into all components mentioned
-above, in particular, DigiD and and BSNk are out-of-scope with regards to this
-outline.
+above, in particular, "DigiD" and "Pseudonym Service" are out-of-scope with
+regards to this outline.
 
 The Wallet platform largely consists of "Verstrekkende Voorziening(en)", that
 can issue attributes and attestations, "Ontvangende Voorziening(en)" that handle
@@ -108,7 +113,7 @@ Attributes in the wallet are grouped in things called attestations and the
 wallet app displays these attestations as cards. The attestations are stored in
 the `mdoc` format (see [ISO/IEC 18013-5:2021][8] and [ISO/IEC 23220-4][9]).
 
-We currently (as of 2024-04-17) support two `mdoc` doctypes: `PID_DOCTYPE`
+We currently (as of 2024-07-24) support two `mdoc` doctypes: `PID_DOCTYPE`
 and `ADDRESS_DOCTYPE`. An `mdoc` contains one or multiple attributes that you
 can verify. For your convenience, we list the attributes for both doctypes here:
 
@@ -408,7 +413,8 @@ Note the "actors/components" we distinguish between:
   * `user`: *user of the wallet_app, initiating an attribute disclosure session*
   * `wallet_app`: *the wallet app, running on a users' mobile phone*
   * `wallet_server`: *the wallet_server component of the OV*
-  * `rp_frontend`: *the (javascript/html/css) frontend of the relying party application*
+  * `rp_frontend`: *the (javascript/html/css) frontend of the relying party app*
+    *can be-or-use previously mentioned `wallet_web` javascript helper library*
   * `rp_backend`: *the (server) backend of the relying party application*
 
 In the diagram, the `user` is the small stick-figure at the top, the actor who
@@ -435,8 +441,8 @@ Overview of a flow for cross device attribute disclosure:
 
 The `user` can now activate their `wallet_app` QR scanner and scan the QR or
 navigate to the universal link (UL). In parallel, `rp_frontend` will poll the
-`session_url` which will change status due to action (or inaction) by the `user`
-(barring any unforeseen circumstances). So, assuming everything goes fine:
+`session_url` which will change status due to action (or inaction) by the
+`user`. So, assuming everything goes fine:
 
   6. `rp_frontend` polls `session_url` for status. It will re-poll for a
      configured time-limit when receiving a `CREATED` or `WAITING_FOR_RESPONSE`
@@ -488,13 +494,19 @@ Below a list of things to know about the wallet platform and more specifically,
 what you need to keep in mind when you integrate the usage of the wallet for
 identification or verification of attributes with your application:
 
-* The wallet app presents attestations using the [ISO/IEC 18013-5:2021][8],
-  [ISO/IEC 23220-4][9] and [OpenID4VP][10] standards;
+* The wallet app presents attestations using the [OpenID4VP][10] protocol
+  standard using the [ISO/IEC 18013-5:2021][8] mdoc credential format;
 * Any disclosure session initiation request must include the reason why the
   relying party is requesting the attributes;
 * A relying party **MUST NOT** track, in the broadest sense of the word;
-* A relying party needs to adhere to the EU-AVG [GDPR][12];
-* It is required to follow accessibility guidelines set forth in the [WCAG][13].
+* A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG) [GDPR][12];
+* It is required to follow accessibility guidelines set forth in the [WCAG][13];
+* It is expected that you use the `wallet_web` frontend helper library;
+* The standard buttons for login and sharing should be used, but one can
+  use custom button text (within reason);
+* Button styling and call-to-action can be customized by relying party;
+* The text "NL Wallet" should always be visible in the call-to-action;
+* Logo of "NL Wallet" should be visible next to the call-to-action.
 
 ## Integration
 
@@ -505,8 +517,9 @@ verification of identity and/or certain specific attributes, in order to allow
 or disallow usage of (a part of) said application).
 
 To integrate with the "Ontvangende Voorziening", you modify your frontend and
-backend application, integrating with the `wallet_server` (the implementation
-of the "Ontvangende Voorziening" on your premises or in your cloud environment).
+backend application, using the `wallet_web` frontend library, integrating with
+the `wallet_server` (the implementation of the "Ontvangende Voorziening" on
+your premises or in your cloud environment).
 
 In the disclosure flow diagram, on the right, where the "Relying Party
 Application" is shown, you see a four integration/call points: "Configure
@@ -540,54 +553,138 @@ referenced here.
 
 ## Example calls
 
-A collection of sample calls that illustrate how you interact with the OV.
+The `wallet_server` has two ports: a "wallet server" port, which is a a "public"
+endpoint that can be queried for session status, usually running on TCP port
+`3005`, and a so-called "requester port" which is a "private" endpoint that can
+optionally be configured to have authentication mechanisms (or otherwise bind to
+a private/trusted/internal network), used to initiate sessions and retrieve
+sensitive data, usually running on TCP port `3006`.
+
+Following is a collection of sample calls that illustrate how you interact with
+the OV. Note that we're using `localhost`, in your case it might be another
+hostname, FQDN or IP address, depending on how you've set-up `wallet_server`:
 
 ### Initiate a Disclosure Session
 
-Here's an example of a disclosure session initiation. This is usually executed
-by the backend of the relying party application:
-
 ```sh
-curl --silent --request POST --json '{"usecase":"mijn_amsterdam", "items_requests": [{"docType": "com.example.pid", "nameSpaces": {"com.example.pid": {"given_name": true}}}], "session_type": "cross_device"}' http://localhost:3002/disclosure/sessions
-```
-
-Example Response:
-
-```json
-{
-  "session_url": "http://localhost:3001/disclosure/J3GQDvzGIx0fEYzycTCWhDtrqi4BVtnk/status",
-  "engagement_url": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/owBjMS4wAYIB2BhYS6QBAiABIVgg7Su1HeFCzCitIsBuE71u4CuFv19MTFOKNd418IETj1MiWCBj11U_fVOsipfduQgGLObdMskHQ6AvcaGH4yVEah4WvAKBgwQBgXhBaHR0cDovL2xvY2FsaG9zdDozMDAxL2Rpc2Nsb3N1cmUvSjNHUUR2ekdJeDBmRVl6eWNUQ1doRHRycWk0QlZ0bms?session_type=cross_device",
-  "disclosed_attributes_url": "http://localhost:3002/disclosure/sessions/J3GQDvzGIx0fEYzycTCWhDtrqi4BVtnk/disclosed_attributes"
-}
-```
-
-### Check Status of Session
-
-Example status check. This is usually executed by the frontend of the relying
-party application:
-
-```sh
-curl --silent --request GET http://localhost:3001/disclosure/J3GQDvzGIx0fEYzycTCWhDtrqi4BVtnk/status
+curl --silent --request POST --json '{
+  "usecase": "mijn_amsterdam",
+  "items_requests": [
+    {
+      "docType": "com.example.pid",
+      "nameSpaces": {
+        "com.example.pid": {
+          "given_name": true,
+          "family_name": true,
+          "own_family_name": true
+        }
+      }
+    }
+  ],
+  "return_url_template": "http://localhost:3004/return"
+}' 'http://localhost:3006/disclosure/sessions'
 ```
 
 Example response:
 
 ```json
 {
-  "status": "CREATED"
+  "session_token":"387f8vMgeE1NunRPqn55Tha1761EC54i"
+}
+```
+
+### Check Status of Session
+
+```sh
+curl --silent --request GET 'http://localhost:3005/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i?session_type=same_device'
+```
+
+Example responses:
+
+```json
+{
+  "status": "CREATED",
+  "ul": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/sessions?request_uri=http%3A%2F%2Flocalhost%3A33245%2Fdisclosure%2Fsessions%2F387f8vMgeE1NunRPqn55Tha1761EC54i%2Frequest_uri%3Fsession_type%3Dsame_device%26ephemeral_id%3D6f169a2e10b9733d2fd5d83acb169753506a37d6a49b0abcc6790ba23300ed74%26time%3D2024-07-20T14%253A00%253A58.471204138Z&request_uri_method=post&client_id=mijn.amsterdam.nl"
+}
+```
+
+*(note that in the above response you see a `ul` universal link value with the*
+*scheme `walletdebuginteraction://`. In acceptance and (pre)production*
+*environments, you'd see a proper universal link.)*
+
+```json
+{
+  "status":"WAITING_FOR_RESPONSE"
+}
+```
+
+```json
+{
+  "status":"DONE"
 }
 ```
 
 ### Retrieve Disclosure Results
 
 ```sh
-curl --silent --request GET http://localhost:3002/disclosure/sessions/J3GQDvzGIx0fEYzycTCWhDtrqi4BVtnk/disclosed_attributes
+curl --silent --request GET 'http://localhost:3006/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes'
 ```
 
-Example response:
+and with (required, see error response below too) `nonce` query parameter:
+
+```sh
+curl --silent --request GET' http://localhost:3006/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes?nonce=rcofnse1SThIdSYAqXhnJNOTk9EmBweT'
+```
+
+Example responses:
 
 ```json
-{ "TODO": true }
+{
+  "type": "session_state",
+  "title": "Session is not in the required state",
+  "status": 400,
+  "detail": "disclosed attributes requested for disclosure session with status other than 'Done'"
+}
+```
+
+```json
+{
+  "type": "nonce",
+  "title": "Redirect URI nonce incorrect or missing",
+  "status": 401,
+  "detail": "missing nonce in redirect URI"
+}
+```
+
+```json
+{
+  "com.example.pid": {
+    "attributes": {
+      "com.example.pid": [
+        {
+          "name": "family_name",
+          "value": "De Bruijn"
+        },
+        {
+          "name": "own_family_name",
+          "value": "Molenaar"
+        },
+        {
+          "name": "given_name",
+          "value": "Willeke Liselotte"
+        }
+      ]
+    },
+    "issuer": [
+      "pid.example.com"
+    ],
+    "validityInfo": {
+      "signed": "2024-07-20T14:00:58Z",
+      "validFrom": "2024-07-20T14:00:58Z",
+      "validUntil": "2025-07-20T14:00:58Z"
+    }
+  }
+}
 ```
 
 ## References
@@ -611,3 +708,4 @@ TODO: Link to VV/OV SAD, which are still in draft and not published yet.
 [11]: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
 [12]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
 [13]: https://www.w3.org/WAI/WCAG21/Understanding/intro
+[14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
