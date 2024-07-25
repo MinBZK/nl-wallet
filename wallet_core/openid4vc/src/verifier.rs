@@ -706,30 +706,24 @@ where
     }
 
     pub async fn cancel(&self, session_token: &SessionToken) -> Result<(), CancelSessionError> {
-        let session_state = self.get_session_state(session_token).await?;
+        let SessionState { data, token, .. } = self.get_session_state(session_token).await?;
 
-        // The `.unwrap()` calls below are safe, as we check the correct precondition in the match statement.
-        match session_state.data {
-            DisclosureData::Created(_) => {
-                self.cancel_active_session(Session::<Created>::try_from(session_state).unwrap())
-                    .await?;
-            }
-            DisclosureData::WaitingForResponse(_) => {
-                self.cancel_active_session(Session::<WaitingForResponse>::try_from(session_state).unwrap())
-                    .await?;
-            }
-            data => return Err(SessionError::UnexpectedState(data.into()))?,
+        // Create a new `SessionState<DisclosureData>` if the session
+        // is in the `CREATED` or `WAITING_FOR_RESPONSE` state.
+        let cancelled_session_state = match data {
+            DisclosureData::Created(_) | DisclosureData::WaitingForResponse(_) => SessionState::new(
+                token,
+                DisclosureData::Done(Done {
+                    session_result: SessionResult::Cancelled,
+                }),
+            ),
+            DisclosureData::Done(_) => return Err(SessionError::UnexpectedState(data.into()).into()),
         };
 
-        Ok(())
-    }
-
-    async fn cancel_active_session<T: DisclosureState>(&self, session: Session<T>) -> Result<(), SessionError> {
-        let cancelled_session = session.transition(Done {
-            session_result: SessionResult::Cancelled,
-        });
-
-        self.sessions.write(cancelled_session.into(), false).await?;
+        self.sessions
+            .write(cancelled_session_state, false)
+            .await
+            .map_err(SessionError::SessionStore)?;
 
         Ok(())
     }
