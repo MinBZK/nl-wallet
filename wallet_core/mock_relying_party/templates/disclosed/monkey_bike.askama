@@ -2,7 +2,7 @@
 
 {% call header::header("MonkeyBike", username) %}
 <main>
-    {% call notification::notification(format!("Welkom {username}"), "") %}
+    {% call notification::notification(format!("Welkom {username}"), "", "") %}
     {% call search::search("Zoek product...") %}
     {% call products::products(6) %}
 </main>

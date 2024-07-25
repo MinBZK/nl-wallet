@@ -1,13 +1,4 @@
 @import url("./xyz_bank.css");
-@import url("./notification.css");
-
-:root {
-    --notification-color: #007279;
-}
-
-.notification {
-    padding: 8px 24px;
-}
 
 button {
     width: fit-content;
