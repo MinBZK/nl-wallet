@@ -278,7 +278,7 @@ where
 // This is because the endpoints that return these errors are not part of a protocol from the
 // OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
 
-/// Error codes sent to the Relying Party or web front-end when an error occurs when handling their request.
+/// Error codes sent to the Relying Party when an error occurs when handling their request.
 #[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
