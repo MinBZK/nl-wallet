@@ -407,9 +407,10 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
             }
             _ => Default::default(),
         };
-        let serde_json::Value::Object(data) =
-            serde_json::to_value(data).expect("DisclosedAttributesErrorData should serialize")
-        else {
+
+        // As `DisclosedAttributesErrorData` is a struct that only contains two simple strings,
+        // we can assume that this will serialize to a `serde_json::Map` without fault.
+        let Ok(serde_json::Value::Object(data)) = serde_json::to_value(data) else {
             panic!("serialized DisclosedAttributesErrorData should be an object");
         };
 
