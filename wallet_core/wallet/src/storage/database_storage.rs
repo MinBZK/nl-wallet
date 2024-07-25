@@ -445,6 +445,11 @@ where
         .await
     }
 
+    async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool> {
+        let result = self.fetch_unique_mdocs_by_doctypes(&HashSet::from([doc_type])).await?;
+        Ok(!result.is_empty())
+    }
+
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
         let transaction = self.database()?.connection().begin().await?;
 

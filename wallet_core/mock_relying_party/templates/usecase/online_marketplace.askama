@@ -2,7 +2,14 @@
     <h1>Marktplek</h1>
 </header>
 <main>
-    <h2>Meld je aan of log in</h2>
+    <section>
+        <h2>Meld je aan of log in</h2>
+    </section>
+    {% match error %}
+        {% when Some with (error) %}
+            {% call notification::notification("Inloggen mislukt. Probeer het opnieuw.", "", error) %}
+        {% when None %}
+    {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
             text="Verder met NL Wallet"
