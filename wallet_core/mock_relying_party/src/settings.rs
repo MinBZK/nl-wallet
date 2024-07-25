@@ -15,6 +15,7 @@ pub struct Settings {
     pub internal_wallet_server_url: BaseUrl,
     pub public_wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
+    pub structured_logging: bool,
     #[serde(default)]
     pub allow_origins: Vec<Origin>,
     pub wallet_web: WalletWeb,
@@ -92,6 +93,7 @@ impl Settings {
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3004)?
             .set_default("public_url", "http://localhost:3004/")?
+            .set_default("structured_logging", false)?
             .add_source(File::from(config_path.join("mock_relying_party.toml")).required(false))
             .add_source(
                 Environment::with_prefix("mock_relying_party")

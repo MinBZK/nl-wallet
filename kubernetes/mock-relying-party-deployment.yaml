@@ -50,6 +50,8 @@ spec:
               value: "http://mrp-verification-server:3002/"
             - name: MOCK_RELYING_PARTY_PUBLIC_URL
               value: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+            - name: MOCK_RELYING_PARTY_STRUCTURED_LOGGING
+              value: "true"
             - name: MOCK_RELYING_PARTY_WALLET_WEB__FILENAME
               value: "${WALLET_WEB_FILENAME}"
             - name: MOCK_RELYING_PARTY_WALLET_WEB__SHA256

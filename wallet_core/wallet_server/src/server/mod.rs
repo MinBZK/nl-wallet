@@ -21,7 +21,8 @@ use axum::{routing::get, Router};
 use http::{header, HeaderValue};
 use tokio::net::TcpListener;
 use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
-use tracing::debug;
+use tracing::{debug, level_filters::LevelFilter};
+use tracing_subscriber::EnvFilter;
 
 use crate::{
     log_requests::log_request_response,
@@ -149,10 +150,19 @@ pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
     env_prefix: &str,
     app: impl FnOnce(Settings) -> Fut,
 ) -> Result<()> {
-    // Initialize tracing.
-    tracing_subscriber::fmt::init();
-
     let settings = Settings::new_custom(config_file, env_prefix)?;
+
+    // Initialize tracing.
+    let builder = tracing_subscriber::fmt().with_env_filter(
+        EnvFilter::builder()
+            .with_default_directive(LevelFilter::INFO.into())
+            .from_env_lossy(),
+    );
+    if settings.structured_logging {
+        builder.json().init();
+    } else {
+        builder.init()
+    }
 
     // Retain [`ClientInitGuard`]
     let _guard = settings
