@@ -22,7 +22,6 @@ base64.workspace = true
 config = { workspace = true, features = ["toml"] }
 futures = { workspace = true, features = ["std"] }
 http.workspace = true
-memory-serve.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 once_cell.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
