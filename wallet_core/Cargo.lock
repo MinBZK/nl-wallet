@@ -1620,7 +1620,6 @@ dependencies = [
  "ctor",
  "http",
  "indexmap 2.2.6",
- "lazy_static",
  "nutype",
  "pem",
  "quick-xml",

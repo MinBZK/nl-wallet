@@ -79,7 +79,6 @@ itertools = "0.13.0"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = { version = "9.3.0", default-features = false }
-lazy_static = "1.4.0"
 libsqlite3-sys = { version = "0.27.0", default-features = false }
 mime = "0.3.17"
 mockall = "0.12.1"

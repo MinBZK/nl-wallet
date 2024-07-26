@@ -100,8 +100,10 @@ fn csv_path(name: &str) -> PathBuf {
         .join(format!("resources/stamdata/{}.csv", name))
 }
 
+static BSN_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[0-9]{8,9}$").unwrap());
+
 #[nutype(
-    validate(regex = "^[0-9]{8,9}$"),
+    validate(regex = BSN_REGEX),
     derive(Deserialize, Serialize, Clone, Debug, Display)
 )]
 pub struct Bsn(String);
