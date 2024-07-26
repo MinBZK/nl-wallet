@@ -16,6 +16,7 @@
             text="Gebruik NL Wallet"
             usecase="{{ usecase }}"
             base-url="../"
+            lang="{{ language }}">
         ></nl-wallet-button>
         <a href="#" disabled>Kies een ander middel</a>
     </section>

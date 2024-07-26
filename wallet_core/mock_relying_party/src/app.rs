@@ -142,11 +142,20 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
+#[derive(Default, Serialize, Deserialize, strum::Display)]
+#[strum(serialize_all = "kebab-case")]
+enum Language {
+    #[default]
+    NL,
+    EN,
+}
+
 #[derive(Template, Serialize)]
 #[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
 struct DisclosureTemplate<'a> {
     usecase: &'a str,
     attributes: DisclosedAttributes,
+    language: Language,
 }
 
 #[derive(Template, Serialize)]
@@ -157,6 +166,7 @@ struct UsecaseTemplate<'a> {
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
     error: Option<&'a str>,
+    language: Language,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -218,6 +228,7 @@ async fn usecase(State(state): State<Arc<ApplicationState>>, Path(usecase): Path
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
         error: None,
+        language: Language::default(),
     };
 
     Ok(askama_axum::into_response(&result))
@@ -242,6 +253,7 @@ async fn disclosed_attributes(
             let result = DisclosureTemplate {
                 usecase: &usecase,
                 attributes,
+                language: Language::default(),
             };
             Ok(askama_axum::into_response(&result))
         }
@@ -253,6 +265,7 @@ async fn disclosed_attributes(
                 wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
                 wallet_web_sha256: &state.wallet_web.sha256,
                 error: Some(&err),
+                language: Language::default(),
             };
             Ok(askama_axum::into_response(&result))
         }

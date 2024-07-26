@@ -15,6 +15,7 @@
             text="Verder met NL Wallet"
             usecase="{{ usecase }}"
             base-url="../"
+             lang="{{ language }}"
         ></nl-wallet-button>
         <button id="google" disabled>Verder met Google</button>
         <button id="email" disabled>Verder met email</button>
