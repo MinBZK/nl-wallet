@@ -288,7 +288,7 @@ where
 // This is because the endpoints that return these errors are not part of a protocol from the
 // OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
 
-/// Error codes sent to the Relying Party or web front-end when an error occurs when handling their request.
+/// Error codes sent to the Relying Party when an error occurs when handling their request.
 #[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
@@ -417,9 +417,10 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
             }
             _ => Default::default(),
         };
-        let serde_json::Value::Object(data) =
-            serde_json::to_value(data).expect("DisclosedAttributesErrorData should serialize")
-        else {
+
+        // As `DisclosedAttributesErrorData` is a struct that only contains two simple strings,
+        // we can assume that this will serialize to a `serde_json::Map` without fault.
+        let Ok(serde_json::Value::Object(data)) = serde_json::to_value(data) else {
             panic!("serialized DisclosedAttributesErrorData should be an object");
         };
 

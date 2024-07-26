@@ -376,7 +376,9 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
     }
 }
 
-/// Session status for the frontend.
+/// Session status as returned by the `status_response()` method and eventually the status endpoint in `wallet_server`.
+/// As this endpoint is meant to be public, it contains no other data than the (flattened) state, plus a potential
+/// universal link that the wallet app can use to start disclosure.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
@@ -389,7 +391,10 @@ pub enum StatusResponse {
     Expired,
 }
 
-/// Session status as contained in [`SessionError`].
+/// Session status as contained in `SessionError::UnexpectedState`. This has the same flattened structure as
+/// [`StatusResponse`], but is meant for internal use only to indicate the current state of the session.
+/// Note that the error reason included in the `Failed` state is only meant to be included in an error response
+/// from the `disclosed_attributes` endpoint in `wallet_server`, not any other endpoint.
 #[derive(Debug, Clone, strum::Display)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum SessionStatus {
@@ -706,30 +711,24 @@ where
     }
 
     pub async fn cancel(&self, session_token: &SessionToken) -> Result<(), CancelSessionError> {
-        let session_state = self.get_session_state(session_token).await?;
+        let SessionState { data, token, .. } = self.get_session_state(session_token).await?;
 
-        // The `.unwrap()` calls below are safe, as we check the correct precondition in the match statement.
-        match session_state.data {
-            DisclosureData::Created(_) => {
-                self.cancel_active_session(Session::<Created>::try_from(session_state).unwrap())
-                    .await?;
-            }
-            DisclosureData::WaitingForResponse(_) => {
-                self.cancel_active_session(Session::<WaitingForResponse>::try_from(session_state).unwrap())
-                    .await?;
-            }
-            data => return Err(SessionError::UnexpectedState(data.into()))?,
+        // Create a new `SessionState<DisclosureData>` if the session
+        // is in the `CREATED` or `WAITING_FOR_RESPONSE` state.
+        let cancelled_session_state = match data {
+            DisclosureData::Created(_) | DisclosureData::WaitingForResponse(_) => SessionState::new(
+                token,
+                DisclosureData::Done(Done {
+                    session_result: SessionResult::Cancelled,
+                }),
+            ),
+            DisclosureData::Done(_) => return Err(SessionError::UnexpectedState(data.into()).into()),
         };
 
-        Ok(())
-    }
-
-    async fn cancel_active_session<T: DisclosureState>(&self, session: Session<T>) -> Result<(), SessionError> {
-        let cancelled_session = session.transition(Done {
-            session_result: SessionResult::Cancelled,
-        });
-
-        self.sessions.write(cancelled_session.into(), false).await?;
+        self.sessions
+            .write(cancelled_session_state, false)
+            .await
+            .map_err(SessionError::SessionStore)?;
 
         Ok(())
     }

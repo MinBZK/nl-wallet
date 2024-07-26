@@ -16,7 +16,7 @@ use wallet_common::{
 use crate::{
     account_provider::AccountProviderClient,
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
-    document::{Document, DocumentMdocError},
+    document::{Document, DocumentMdocError, PID_DOCTYPE},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     issuance::{DigidSession, DigidSessionError, HttpDigidSession},
     storage::{Storage, StorageError, WalletEvent},
@@ -37,6 +37,8 @@ pub enum PidIssuanceError {
     Locked,
     #[error("issuance session is not in the correct state")]
     SessionState,
+    #[error("PID already present")]
+    PidAlreadyPresent,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidSessionError),
     #[error("could not finish DigiD session: {0}")]
@@ -91,6 +93,17 @@ where
         info!("Checking if there is an active issuance session");
         if self.issuance_session.is_some() {
             return Err(PidIssuanceError::SessionState);
+        }
+
+        info!("Checking if a pid is already present");
+        let has_pid = self
+            .storage
+            .get_mut()
+            .has_any_mdocs_with_doctype(PID_DOCTYPE)
+            .await
+            .map_err(PidIssuanceError::MdocStorage)?;
+        if has_pid {
+            return Err(PidIssuanceError::PidAlreadyPresent);
         }
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
@@ -795,28 +808,45 @@ mod tests {
             .await
             .expect("Could not accept PID issuance");
 
-        // Test which `Document` instances we have received through the callback.
-        let documents = documents.lock();
+        {
+            // Test which `Document` instances we have received through the callback.
+            let documents = documents.lock();
 
-        // The first entry should be empty, because there are no mdocs in the database.
-        assert_eq!(documents.len(), 2);
-        assert!(documents[0].is_empty());
+            // The first entry should be empty, because there are no mdocs in the database.
+            assert_eq!(documents.len(), 2);
+            assert!(documents[0].is_empty());
 
-        // The second entry should contain a single document with the PID.
-        assert_eq!(documents[1].len(), 1);
-        let document = &documents[1][0];
-        assert_matches!(document.persistence, DocumentPersistence::Stored(_));
-        assert_eq!(document.doc_type, "com.example.pid");
+            // The second entry should contain a single document with the PID.
+            assert_eq!(documents[1].len(), 1);
+            let document = &documents[1][0];
+            assert_matches!(document.persistence, DocumentPersistence::Stored(_));
+            assert_eq!(document.doc_type, "com.example.pid");
 
-        // Test that one successful issuance event is logged
-        let events = events.lock();
-        assert_eq!(events.len(), 2);
-        assert!(events[0].is_empty());
-        assert_eq!(events[1].len(), 1);
-        assert_matches!(&events[1][0], HistoryEvent::Issuance { .. });
+            // Test that one successful issuance event is logged
+            let events = events.lock();
+            assert_eq!(events.len(), 2);
+            assert!(events[0].is_empty());
+            assert_eq!(events[1].len(), 1);
+            assert_matches!(&events[1][0], HistoryEvent::Issuance { .. });
 
-        assert!(wallet.has_registration());
-        assert!(!wallet.is_locked());
+            assert!(wallet.has_registration());
+            assert!(!wallet.is_locked());
+        }
+
+        // Starting another PID issuance should fail
+        const AUTH_URL: &str = "http://example.com/auth";
+        // Set up a mock DigiD session.
+        let session_start_context = MockDigidSession::start_context();
+        session_start_context.expect().returning(|_, _| {
+            let client = MockDigidSession::default();
+            Ok((client, Url::parse(AUTH_URL).unwrap()))
+        });
+
+        let err = wallet
+            .create_pid_issuance_auth_url()
+            .await
+            .expect_err("creating new PID issuance auth URL when there already is a PID should fail");
+        assert_matches!(err, PidIssuanceError::PidAlreadyPresent);
     }
 
     #[tokio::test]
