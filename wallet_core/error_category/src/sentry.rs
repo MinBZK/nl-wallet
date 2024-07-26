@@ -9,27 +9,28 @@ use tracing::debug;
 
 use crate::{Category, ErrorCategory};
 
-pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: &T) {
+pub fn classify_and_report_to_sentry<T: ErrorCategory + Error + ?Sized>(error: &T) {
     match error.category() {
         Category::Expected => {
             debug!("expected error, not reporting to sentry: {}", error);
         }
         Category::Critical => {
             debug!("critical error, reporting to sentry: {}", error);
-            let _uuid = sentry::capture_error(error);
+            let event = privacy_sensitive_event_from_error(error, false);
+            let _uuid = sentry::capture_event(event);
         }
         Category::PersonalData => {
             debug!(
                 "critical error with possible PII, reporting to sentry without data: {}",
                 error
             );
-            let event = privacy_sensitive_event_from_error(error);
+            let event = privacy_sensitive_event_from_error(error, true);
             let _uuid = sentry::capture_event(event);
         }
     }
 }
 
-/// Create a sentry `Event` from a `std::error::Error`, without any PII.
+/// Create a sentry `Event` from a `std::error::Error`, remove PII by setting `sensitive` to true.
 ///
 /// Copied from `sentry::event_from_error`.
 ///
@@ -49,22 +50,22 @@ pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: &T) {
 /// #[error("outer")]
 /// struct OuterError(#[from] InnerError);
 ///
-/// let event = error_category::sentry::privacy_sensitive_event_from_error(&OuterError(InnerError));
+/// let event = error_category::sentry::privacy_sensitive_event_from_error(&OuterError(InnerError), true);
 /// assert_eq!(event.level, sentry::protocol::Level::Error);
 /// assert_eq!(event.exception.len(), 2);
 /// assert_eq!(&event.exception[0].ty, "InnerError");
 /// assert_eq!(event.exception[0].value, None);
-/// assert_eq!(&event.exception[1].ty, "OuterError");
+/// assert!(&event.exception[1].ty.ends_with("::OuterError"));
 /// assert_eq!(event.exception[1].value, None);
 /// ```
 ///
 /// [sentry event payloads]: https://develop.sentry.dev/sdk/event-payloads/exception/
-pub fn privacy_sensitive_event_from_error<E: Error + ?Sized>(err: &E) -> Event<'static> {
-    let mut exceptions = vec![privacy_sensitive_exception_from_error(err)];
+pub fn privacy_sensitive_event_from_error<E: Error + ?Sized>(err: &E, sensitive: bool) -> Event<'static> {
+    let mut exceptions = vec![privacy_sensitive_exception_from_error(err, sensitive)];
 
     let mut source = err.source();
     while let Some(err) = source {
-        exceptions.push(privacy_sensitive_exception_from_error(err));
+        exceptions.push(privacy_sensitive_exception_from_error(err, sensitive));
         source = err.source();
     }
 
@@ -77,25 +78,43 @@ pub fn privacy_sensitive_event_from_error<E: Error + ?Sized>(err: &E) -> Event<'
 }
 
 /// Copied from `sentry::exception_from_error`.
-fn privacy_sensitive_exception_from_error<E: Error + ?Sized>(err: &E) -> Exception {
+/// Extended with `sensitive` argument, to allow for removing sensitive data.
+fn privacy_sensitive_exception_from_error<E: Error + ?Sized>(err: &E, sensitive: bool) -> Exception {
     let dbg = format!("{err:?}");
     let value = err.to_string();
+    let type_name = std::any::type_name::<E>();
 
-    // A generic `anyhow::msg` will just `Debug::fmt` the `String` that you feed
-    // it. Trying to parse the type name from that will result in a leading quote
-    // and the first word, so quite useless.
-    // To work around this, we check if the `Debug::fmt` of the complete error
-    // matches its `Display::fmt`, in which case there is no type to parse and
-    // we will be using `type_name::<E>`.
-    let ty = if dbg == format!("{value:?}") {
-        // Here we diverge from the original which returns "Error"
-        std::any::type_name::<E>().to_string()
-    } else {
+    // Determine type identifier to use in the Sentry event.
+    let ty = if type_name == "dyn core::error::Error" {
+        // `std::any::type_name` will only work successfully for the root error in the
+        // chain, because the compiler loses type information as `err.source()` is used
+        // to iterate the chain. In case `type_name == dyn std::error::Error`, we will
+        // not use it in the type identifier.
         parse_type_from_debug(&dbg).to_owned()
+    } else if dbg == format!("{value:?}") {
+        // A generic `anyhow::msg` will just `Debug::fmt` the `String` that you feed
+        // it. Trying to parse the type name from that will result in a leading quote
+        // and the first word, so quite useless.
+        // To work around this, we check if the `Debug::fmt` of the complete error
+        // matches its `Display::fmt`, in which case there is no type to parse and
+        // we will be using `type_name::<E>`.
+
+        // Here we diverge from the original which returns "Error"
+        type_name.to_owned()
+    } else {
+        let variant = parse_type_from_debug(&dbg);
+        // For a struct, `variant` will be the type name, so if the fully qualified
+        // `type_name` ends with `variant`, we will just use `type_name` as type
+        // identifier.
+        if type_name.ends_with(variant) {
+            type_name.to_owned()
+        } else {
+            format!("{}::{}", type_name, variant)
+        }
     };
     Exception {
         ty,
-        value: None,
+        value: (!sensitive).then_some(value),
         ..Default::default()
     }
 }
@@ -158,7 +177,29 @@ mod tests {
         assert_eq!(events[0].level, Level::Error);
         assert_eq!(events[0].exception.values.len(), 2);
         assert_eq!(events[0].exception.values[0].ty, "SpecificError".to_string());
-        assert_eq!(events[0].exception.values[1].ty, "Specific".to_string());
+        assert_eq!(
+            events[0].exception.values[1].ty,
+            "error_category::sentry::tests::ErrorEnum::Specific".to_string()
+        );
+        assert_eq!(events[0].exception.values[0].value, Some(ERROR_MSG.to_string()));
+        assert!(format!("{:?}", events[0]).contains(ERROR_MSG));
+    }
+
+    #[test]
+    fn test_classify_and_report_to_sentry_critical_struct() {
+        let error = SpecificError {
+            category: Category::Critical,
+        };
+        let events = with_captured_events(|| {
+            classify_and_report_to_sentry(&error);
+        });
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].level, Level::Error);
+        assert_eq!(events[0].exception.values.len(), 1);
+        assert_eq!(
+            events[0].exception.values[0].ty,
+            "error_category::sentry::tests::SpecificError".to_string()
+        );
         assert_eq!(events[0].exception.values[0].value, Some(ERROR_MSG.to_string()));
         assert!(format!("{:?}", events[0]).contains(ERROR_MSG));
     }
@@ -174,7 +215,10 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].level, Level::Error);
         assert_eq!(events[0].exception.values[0].ty, "SpecificError".to_string());
-        assert_eq!(events[0].exception.values[1].ty, "Specific".to_string());
+        assert_eq!(
+            events[0].exception.values[1].ty,
+            "error_category::sentry::tests::ErrorEnum::Specific".to_string()
+        );
         assert_eq!(events[0].exception.values[0].value, None);
         assert_eq!(events[0].exception.values[1].value, None);
         assert!(!format!("{:?}", events[0]).contains(ERROR_MSG));
