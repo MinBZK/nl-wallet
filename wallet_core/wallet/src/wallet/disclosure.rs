@@ -500,12 +500,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{atomic::Ordering, Arc};
+    use std::sync::{atomic::Ordering, Arc, LazyLock};
 
     use assert_matches::assert_matches;
     use itertools::Itertools;
     use mockall::predicate::*;
-    use once_cell::sync::Lazy;
     use parking_lot::Mutex;
     use rstest::rstest;
     use serial_test::serial;
@@ -533,8 +532,8 @@ mod tests {
         *,
     };
 
-    static DISCLOSURE_URI: Lazy<Url> =
-        Lazy::<Url>::new(|| WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
+    static DISCLOSURE_URI: LazyLock<Url> =
+        LazyLock::<Url>::new(|| WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
     #[tokio::test]

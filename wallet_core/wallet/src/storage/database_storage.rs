@@ -598,10 +598,9 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::mem;
+    use std::{mem, sync::LazyLock};
 
     use chrono::{TimeZone, Utc};
-    use once_cell::sync::Lazy;
     use tokio::fs;
 
     use nl_wallet_mdoc::{
@@ -621,14 +620,14 @@ pub(crate) mod tests {
     const PID_DOCTYPE: &str = "com.example.pid";
     const ADDRESS_DOCTYPE: &str = "com.example.address";
 
-    static ISSUER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+    static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
         issuer_ca
             .generate_issuer_mock(IssuerRegistration::new_mock().into())
             .unwrap()
     });
 
-    static READER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+    static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
         reader_ca
             .generate_reader_mock(ReaderRegistration::new_mock().into())

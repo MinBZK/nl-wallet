@@ -1,8 +1,9 @@
+use std::sync::LazyLock;
+
 use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
 use mime::Mime;
-use once_cell::sync::Lazy;
 use reqwest::{header::ACCEPT, Method, Response};
 use serde::de::DeserializeOwned;
 use tracing::{info, warn};
@@ -175,7 +176,7 @@ pub trait VpMessageClient {
     }
 }
 
-pub static APPLICATION_OAUTH_AUTHZ_REQ_JWT: Lazy<Mime> = Lazy::new(|| {
+pub static APPLICATION_OAUTH_AUTHZ_REQ_JWT: LazyLock<Mime> = LazyLock::new(|| {
     "application/oauth-authz-req+jwt"
         .parse()
         .expect("could not parse MIME type")

@@ -2,11 +2,10 @@ use std::{
     collections::HashMap,
     convert::Infallible,
     fmt::{self, Debug},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 
 use aes_gcm::{aead::KeyInit, Aes256Gcm};
-use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
 use rand_core::OsRng;
@@ -16,9 +15,10 @@ use crate::keys::WithIdentifier;
 use super::{EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
 
 // Static for storing identifier to signing key mapping.
-static SIGNING_KEYS: Lazy<Mutex<HashMap<String, Arc<SigningKey>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static SIGNING_KEYS: LazyLock<Mutex<HashMap<String, Arc<SigningKey>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 // Static for storing identifier to AES cipher mapping.
-static ENCRYPTION_CIPHERS: Lazy<Mutex<HashMap<String, Arc<Aes256Gcm>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static ENCRYPTION_CIPHERS: LazyLock<Mutex<HashMap<String, Arc<Aes256Gcm>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub struct SoftwareEcdsaKey {
     identifier: String,

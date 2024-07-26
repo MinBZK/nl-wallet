@@ -1,7 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::LazyLock};
 
 use indexmap::IndexMap;
-use once_cell::sync::Lazy;
 
 use super::{mdoc::AttributeValueType, AttributeKey, AttributeLabels, ADDRESS_DOCTYPE, PID_DOCTYPE};
 
@@ -20,7 +19,7 @@ pub(super) type AttributeMapping = IndexMap<(MappingNameSpace, MappingDataElemen
 pub(super) type MappingDocType = &'static str;
 pub(super) type MdocDocumentMapping = HashMap<MappingDocType, AttributeMapping>;
 
-pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|| {
+pub(super) static MDOC_DOCUMENT_MAPPING: LazyLock<MdocDocumentMapping> = LazyLock::new(|| {
     HashMap::from([
         (
             PID_DOCTYPE,

@@ -1,4 +1,10 @@
-use std::{collections::HashMap, env, path::PathBuf, result::Result as StdResult, sync::Arc};
+use std::{
+    collections::HashMap,
+    env,
+    path::PathBuf,
+    result::Result as StdResult,
+    sync::{Arc, LazyLock},
+};
 
 use askama::Template;
 use axum::{
@@ -10,7 +16,6 @@ use axum::{
     Json, Router,
 };
 use base64::prelude::*;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -179,8 +184,8 @@ async fn create_session(
     Ok(result.into())
 }
 
-static USECASE_JS_SHA256: Lazy<String> =
-    Lazy::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
+static USECASE_JS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
 
 async fn usecase(State(state): State<Arc<ApplicationState>>, Path(usecase): Path<String>) -> Result<Response> {
     if !state.usecases.contains_key(&usecase) {

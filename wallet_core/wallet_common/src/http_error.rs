@@ -1,14 +1,13 @@
-use std::{error::Error, fmt::Display, str::FromStr};
+use std::{error::Error, fmt::Display, str::FromStr, sync::LazyLock};
 
 use http::StatusCode;
 use mime::Mime;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use serde_with::{serde_as, skip_serializing_none, DisplayFromStr, TryFromInto};
 
-pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
-    Lazy::new(|| "application/problem+json".parse().expect("could not parse MIME type"));
+pub static APPLICATION_PROBLEM_JSON: LazyLock<Mime> =
+    LazyLock::new(|| "application/problem+json".parse().expect("could not parse MIME type"));
 
 /// The HTTP body for an error response, as defined in RFC 7807.
 /// If the `axum` feature is enabled, `IntoResponse` will be implemented for this
