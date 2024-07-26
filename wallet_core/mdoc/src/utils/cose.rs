@@ -44,10 +44,10 @@ pub enum CoseError {
     #[category(critical)]
     MissingLabel(Label),
     #[error("ECDSA signature parsing failed: {0}")]
-    #[category(critical)]
+    #[category(pd)]
     EcdsaSignatureParsingFailed(p256::ecdsa::Error),
     #[error("ECDSA signature verification failed: {0}")]
-    #[category(critical)]
+    #[category(pd)]
     EcdsaSignatureVerificationFailed(p256::ecdsa::Error),
     #[error("MAC verification failed")]
     #[category(critical)]
@@ -60,11 +60,11 @@ pub enum CoseError {
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
     #[error("signing failed: {0}")]
-    #[category(critical)]
+    #[category(pd)]
     Signing(Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("no signature received")]
     #[category(critical)]
-    SignatureMissing(),
+    SignatureMissing,
 }
 
 impl Cose for CoseSign1 {
@@ -341,7 +341,7 @@ pub async fn sign_coses<K: MdocEcdsaKey>(
         .zip(challenges)
         .map(|(signature, payload)| {
             let cose = CoseSign1 {
-                signature: signature.first().ok_or(CoseError::SignatureMissing())?.to_vec(),
+                signature: signature.first().ok_or(CoseError::SignatureMissing)?.to_vec(),
                 payload: include_payload.then(|| payload.to_vec()),
                 protected: protected_header.clone(),
                 unprotected: unprotected_header.clone(),
