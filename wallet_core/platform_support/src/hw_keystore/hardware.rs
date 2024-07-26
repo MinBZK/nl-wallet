@@ -1,9 +1,9 @@
 use std::{
     any::TypeId,
     collections::{HashMap, HashSet},
+    sync::LazyLock,
 };
 
-use once_cell::sync::Lazy;
 use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
@@ -21,7 +21,8 @@ use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncr
 
 /// A static hash map of sets that contains all the identifiers for which an instance
 /// of that type currently exists within the application, keyed by the type's `TypeId`.
-static UNIQUE_IDENTIFIERS: Lazy<Mutex<HashMap<TypeId, HashSet<String>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static UNIQUE_IDENTIFIERS: LazyLock<Mutex<HashMap<TypeId, HashSet<String>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 impl From<KeyStoreError> for p256::ecdsa::Error {
     // Wrap KeyStoreError in `p256::ecdsa::Error`,

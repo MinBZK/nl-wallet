@@ -30,7 +30,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.76"
+rust-version = "1.80"
 
 [workspace.lints.rust]
 async_fn_in_trait = "allow"
@@ -79,12 +79,10 @@ itertools = "0.13.0"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = { version = "9.3.0", default-features = false }
-lazy_static = "1.4.0"
 libsqlite3-sys = { version = "0.27.0", default-features = false }
 mime = "0.3.17"
 mockall = "0.12.1"
 nutype = "0.4.0"
-once_cell = "1.17.1"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 parking_lot = "0.12.1"

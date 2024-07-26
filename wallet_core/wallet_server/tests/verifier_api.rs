@@ -2,7 +2,7 @@ use std::{
     net::{IpAddr, TcpListener},
     process,
     str::FromStr,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     time::Duration,
 };
 
@@ -11,7 +11,6 @@ use chrono::{DateTime, Utc};
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use reqwest::{Client, Response};
 use rstest::rstest;
@@ -645,7 +644,7 @@ async fn test_disclosed_attributes(#[values(None, Some("nonce"))] nonce: Option<
     itertools::assert_equal(attributes.keys(), [EXAMPLE_NAMESPACE]);
     let first_entry = attributes.get(EXAMPLE_NAMESPACE).unwrap().first().unwrap();
     assert_eq!(first_entry.name, EXAMPLE_ATTR_NAME);
-    assert_eq!(&first_entry.value, Lazy::force(&EXAMPLE_ATTR_VALUE));
+    assert_eq!(&first_entry.value, LazyLock::force(&EXAMPLE_ATTR_VALUE));
 }
 
 #[tokio::test]

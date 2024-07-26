@@ -1,7 +1,8 @@
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
+
 use tokio::runtime::{Builder, Runtime};
 
-static ASYNC_RUNTIME: OnceCell<Runtime> = OnceCell::new();
+static ASYNC_RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
 pub fn init_async_runtime() {
     _ = ASYNC_RUNTIME.get_or_init(|| {

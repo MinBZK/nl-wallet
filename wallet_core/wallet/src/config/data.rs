@@ -1,7 +1,6 @@
-use std::{str::FromStr, time::Duration};
+use std::{str::FromStr, sync::LazyLock, time::Duration};
 
 use base64::prelude::*;
-use once_cell::sync::Lazy;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 use reqwest::Certificate;
 
@@ -71,14 +70,14 @@ macro_rules! config_default {
     };
 }
 
-pub static UNIVERSAL_LINK_BASE_URL: Lazy<BaseUrl> = Lazy::new(|| {
+pub static UNIVERSAL_LINK_BASE_URL: LazyLock<BaseUrl> = LazyLock::new(|| {
     config_default!(UNIVERSAL_LINK_BASE)
         .parse::<BaseUrl>()
         .expect("Could not parse universal link base url")
 });
 
 pub fn init_universal_link_base_url() {
-    Lazy::force(&UNIVERSAL_LINK_BASE_URL);
+    LazyLock::force(&UNIVERSAL_LINK_BASE_URL);
 }
 
 #[derive(Debug, Clone)]

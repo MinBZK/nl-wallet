@@ -1405,7 +1405,6 @@ dependencies = [
  "flutter_api_macros",
  "flutter_rust_bridge",
  "itertools",
- "once_cell",
  "oslog",
  "parking_lot",
  "sentry",
@@ -1621,9 +1620,7 @@ dependencies = [
  "ctor",
  "http",
  "indexmap 2.2.6",
- "lazy_static",
  "nutype",
- "once_cell",
  "pem",
  "quick-xml",
  "regex",
@@ -2402,7 +2399,6 @@ dependencies = [
  "http",
  "nl_wallet_mdoc",
  "nutype",
- "once_cell",
  "reqwest",
  "sentry",
  "serde",
@@ -2465,7 +2461,6 @@ dependencies = [
  "indexmap 2.2.6",
  "itertools",
  "nutype",
- "once_cell",
  "p256",
  "parking_lot",
  "rand_core",
@@ -2633,9 +2628,6 @@ name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
-dependencies = [
- "parking_lot_core",
-]
 
 [[package]]
 name = "opaque-debug"
@@ -2665,7 +2657,6 @@ dependencies = [
  "mockall",
  "nl_wallet_mdoc",
  "nutype",
- "once_cell",
  "p256",
  "parking_lot",
  "rand_core",
@@ -2939,7 +2930,6 @@ name = "platform_support"
 version = "0.1.0"
 dependencies = [
  "jni",
- "once_cell",
  "p256",
  "parking_lot",
  "thiserror",
@@ -5313,7 +5303,6 @@ dependencies = [
  "mime",
  "mockall",
  "nl_wallet_mdoc",
- "once_cell",
  "openid4vc",
  "p256",
  "parking_lot",
@@ -5377,7 +5366,6 @@ dependencies = [
  "jsonwebtoken",
  "mime",
  "nutype",
- "once_cell",
  "p256",
  "parking_lot",
  "rand",
@@ -5549,7 +5537,6 @@ dependencies = [
  "mime",
  "nl_wallet_mdoc",
  "nutype",
- "once_cell",
  "openid4vc",
  "p256",
  "parking_lot",
