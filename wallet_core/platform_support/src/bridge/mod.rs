@@ -1,14 +1,14 @@
 pub mod hw_keystore;
 pub mod utils;
 
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
 
 use self::{
     hw_keystore::{EncryptionKeyBridge, SigningKeyBridge},
     utils::UtilitiesBridge,
 };
 
-static PLATFORM_SUPPORT: OnceCell<PlatformSupport> = OnceCell::new();
+static PLATFORM_SUPPORT: OnceLock<PlatformSupport> = OnceLock::new();
 
 #[derive(Debug)]
 struct PlatformSupport {

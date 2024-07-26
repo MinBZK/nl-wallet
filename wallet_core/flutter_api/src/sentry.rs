@@ -1,9 +1,9 @@
 pub use std::borrow::Cow;
+use std::sync::OnceLock;
 
-use once_cell::sync::OnceCell;
 pub use sentry::{init, release_name, ClientInitGuard, ClientOptions};
 
-static SENTRY: OnceCell<Option<ClientInitGuard>> = OnceCell::new();
+static SENTRY: OnceLock<Option<ClientInitGuard>> = OnceLock::new();
 
 pub(crate) fn init_sentry() {
     let _ = SENTRY.get_or_init(|| {

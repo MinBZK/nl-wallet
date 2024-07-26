@@ -46,7 +46,6 @@ verifier_test = [
     "dep:assert_matches",
     "dep:indexmap",
     "dep:itertools",
-    "dep:once_cell",
     "dep:parking_lot",
     "dep:reqwest",
     "dep:serde_urlencoded",
@@ -108,7 +107,6 @@ ciborium = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 itertools = { workspace = true, optional = true }
-once_cell = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
