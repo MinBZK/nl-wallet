@@ -103,6 +103,7 @@ tracing-subscriber = { workspace = true, features = [
     "fmt",
     "json",
     "ansi",
+    "smallvec",
     "tracing-log",
     "parking_lot"
 ] }
