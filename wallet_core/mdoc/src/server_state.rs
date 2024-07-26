@@ -9,7 +9,6 @@ use tokio::{
 };
 use tracing::warn;
 
-use error_category::ErrorCategory;
 use wallet_common::{
     generator::{Generator, TimeGenerator},
     utils::random_string,
@@ -40,8 +39,7 @@ pub struct SessionState<T> {
     pub last_active: DateTime<Utc>,
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(pd)]
+#[derive(Debug, thiserror::Error)]
 pub enum SessionStoreError {
     #[error("token {0} already exists")]
     DuplicateToken(SessionToken),

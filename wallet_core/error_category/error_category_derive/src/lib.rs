@@ -10,6 +10,7 @@ const CATEGORY: &str = "category";
 
 const CRITICAL: &str = "critical";
 const EXPECTED: &str = "expected";
+const UNEXPECTED: &str = "unexpected";
 const PD: &str = "pd";
 const DEFER: &str = "defer";
 
@@ -119,6 +120,7 @@ fn sentry_capture_error_impl_fn(
 /// - `critical`: This is a critical error that must be reported.
 /// - `pd`: This is a critical error that must be reported, but the contents may contain privacy sensitive data.
 /// - `defer`: Analysis of categorization is deferred to one of the fields of this variant.
+/// - `unexpected`: This is an unexpected error and should never be found by `categorize_and_report` and will cause a panic.
 ///
 /// The `category` attribute for enums can be set on the `enum` variants, or on the `enum` to set a default for variants
 /// that are not annotated.
@@ -288,7 +290,7 @@ fn expand_struct(input: &DeriveInput, struct_data: &DataStruct) -> Result<TokenS
     let category_code = category_code(category)?;
     let cat = category.tokens.to_string();
     match cat.as_str() {
-        CRITICAL | EXPECTED | PD => Ok(quote! { #category_code }),
+        CRITICAL | EXPECTED | PD | UNEXPECTED => Ok(quote! { #category_code }),
         DEFER => {
             let category_defer_pattern = category_defer_pattern(name.span(), &struct_data.fields)?;
             Ok(quote! {
@@ -333,7 +335,7 @@ fn find_list_attribute<'a>(attrs: &'a [Attribute], name: &str) -> Option<&'a Met
 fn enum_variant_category_pattern(variant: &Variant, category: &MetaList) -> Result<TokenStream> {
     let cat = category.tokens.to_string();
     let pattern = match cat.as_str() {
-        CRITICAL | EXPECTED | PD => variant_pattern(&variant.fields),
+        CRITICAL | EXPECTED | PD | UNEXPECTED => variant_pattern(&variant.fields),
         DEFER => category_defer_pattern(variant.ident.span(), &variant.fields)?,
         _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     };
@@ -402,6 +404,7 @@ fn category_code(category: &MetaList) -> Result<TokenStream> {
         EXPECTED => quote! { ::error_category::Category::Expected },
         PD => quote! { ::error_category::Category::PersonalData },
         DEFER => quote! { ::error_category::ErrorCategory::category(defer) },
+        UNEXPECTED => quote! { ::error_category::Category::Unexpected },
         _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     };
 
@@ -412,7 +415,7 @@ fn category_code(category: &MetaList) -> Result<TokenStream> {
 fn invalid_category_error(cat: &String) -> String {
     format!(
         "expected any of {:?}, got {:?}",
-        vec![EXPECTED, CRITICAL, PD, DEFER],
+        vec![EXPECTED, CRITICAL, PD, DEFER, UNEXPECTED],
         cat
     )
 }

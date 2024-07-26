@@ -60,6 +60,7 @@ pub enum VpClientError {
     #[category(pd)] // we don't want to leak information about what's in the wallet
     MultipleCandidates(Vec<String>),
     #[error("error encrypting Authorization Response: {0}")]
+    #[category(unexpected)]
     AuthResponseEncryption(#[from] AuthResponseError),
     #[error("error deserializing request_uri object: {0}")]
     #[category(pd)] // we cannot be sure that the URL is not included in the error.

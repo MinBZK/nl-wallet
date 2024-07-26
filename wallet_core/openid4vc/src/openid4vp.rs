@@ -525,50 +525,36 @@ impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
     }
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(defer)]
+#[derive(Debug, thiserror::Error)]
 pub enum AuthResponseError {
     #[error("error (de)serializing JWE payload: {0}")]
-    #[category(pd)]
     Json(#[from] serde_json::Error),
     #[error("error parsing JWK: {0}")]
-    #[category(pd)]
     JwkConversion(#[source] JoseError),
     #[error("error encrypting/decrypting JWE: {0}")]
-    #[category(pd)]
     Jwe(#[source] JoseError),
     #[error("apv (nonce) field in JWE had incorrect value")]
-    #[category(critical)]
     NonceIncorrect,
     #[error("state had incorrect value: expected {expected:?}, found {found:?}")]
-    #[category(pd)]
     StateIncorrect {
         expected: Option<String>,
         found: Option<String>,
     },
     #[error("failed to base64 decode JWE header fields: {0}")]
-    #[category(critical)]
     Base64(#[from] DecodeError),
     #[error("missing apu field from JWE")]
-    #[category(critical)]
     MissingApu,
     #[error("missing apv field from JWE")]
-    #[category(critical)]
     MissingApv,
     #[error("failed to decode apu/apv field from JWE")]
-    #[category(critical)]
     Utf8(#[from] FromUtf8Error),
     #[error("error verifying disclosed mdoc(s): {0}")]
-    #[category(defer)]
     Verification(#[source] nl_wallet_mdoc::Error),
     #[error("missing requested attributes: {0}")]
-    #[category(defer)]
     MissingAttributes(#[source] nl_wallet_mdoc::Error),
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
-    #[category(critical)]
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
-    #[category(defer)]
     PresentationSubmission(#[from] PsError),
 }
 

@@ -27,6 +27,12 @@ pub fn classify_and_report<T: ErrorCategory + Error + ?Sized>(error: &T) {
             let event = privacy_sensitive_event_from_error(error, true);
             let _uuid = sentry::capture_event(event);
         }
+        Category::Unexpected => {
+            panic!(
+                "encountered unexpected error, which means that it should never occur in the Wallet: {}",
+                error
+            );
+        }
     }
 }
 
@@ -163,6 +169,17 @@ mod tests {
             classify_and_report(&error);
         });
         assert_eq!(events.len(), 0);
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "encountered unexpected error, which means that it should never occur in the Wallet: Some error: My error message"
+    )]
+    fn test_classify_and_report_unexpected() {
+        let error = ErrorEnum::Specific(SpecificError {
+            category: Category::Unexpected,
+        });
+        classify_and_report(&error);
     }
 
     #[test]

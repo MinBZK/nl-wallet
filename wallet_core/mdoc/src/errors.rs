@@ -21,6 +21,7 @@ pub enum Error {
     #[error("holder error: {0}")]
     Holder(#[from] HolderError),
     #[error("verification error: {0}")]
+    #[category(unexpected)]
     Verification(#[from] VerificationError),
     #[error("keys error: {0}")]
     KeysError(#[from] KeysError),

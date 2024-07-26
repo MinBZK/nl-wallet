@@ -1,4 +1,4 @@
-error: expected any of ["expected", "critical", "pd", "defer"], got "invalid"
+error: expected any of ["expected", "critical", "pd", "defer", "unexpected"], got "invalid"
  --> tests/derive_error_category/fail_on_invalid_category.rs:5:16
   |
 5 |     #[category(invalid)]
