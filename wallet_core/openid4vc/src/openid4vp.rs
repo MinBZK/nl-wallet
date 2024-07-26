@@ -282,7 +282,6 @@ pub enum AuthRequestValidationError {
     #[error("Subject Alternative Name missing from X.509 certificate")]
     #[category(critical)]
     MissingSAN,
-    #[category(critical)]
     #[error("error parsing X.509 certificate: {0}")]
     CertificateParsing(#[from] CertificateError),
     #[error("failed to verify Authorization Request JWT: {0}")]

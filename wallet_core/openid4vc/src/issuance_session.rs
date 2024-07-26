@@ -65,10 +65,10 @@ pub enum IssuanceSessionError {
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("error requesting access token: {0:?}")]
-    #[category(critical)]
+    #[category(pd)]
     TokenRequest(ErrorResponse<TokenErrorCode>),
     #[error("error requesting credentials: {0:?}")]
-    #[category(critical)]
+    #[category(pd)]
     CredentialRequest(ErrorResponse<CredentialErrorCode>),
     #[error("generating attestation private keys failed: {0}")]
     #[category(pd)]

@@ -5,7 +5,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use error_category::{Category, ErrorCategory};
+use error_category::ErrorCategory;
 
 use crate::{
     account::serialization::DerVerifyingKey,
@@ -31,25 +31,17 @@ impl<T, S: Into<String>> From<S> for Jwt<T> {
 
 pub type Result<T, E = JwtError> = std::result::Result<T, E>;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum JwtError {
     #[error("JSON parsing error: {0}")]
+    #[category(critical)]
     JsonParsing(#[from] serde_json::Error),
     #[error("error validating JWT: {0}")]
+    #[category(critical)]
     Validation(#[source] jsonwebtoken::errors::Error),
     #[error("error signing JWT: {0}")]
+    #[category(critical)]
     Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-}
-
-// Must implement manually, as deriving cannot be done in this crate.
-impl ErrorCategory for JwtError {
-    fn category(&self) -> Category {
-        match self {
-            JwtError::JsonParsing(_) => Category::Critical,
-            JwtError::Validation(_) => Category::Critical,
-            JwtError::Signing(_) => Category::Critical,
-        }
-    }
 }
 
 pub trait JwtSubject {

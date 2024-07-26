@@ -54,7 +54,7 @@ parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
 
-error_category = { path = "../error_category" }
+error_category.path = "../error_category"
 
 [dev-dependencies]
 assert_matches.workspace = true

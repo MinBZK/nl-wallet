@@ -177,10 +177,9 @@ pub struct InputDescriptorMappingObject {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(pd)] // TODO: Not sure if these fields are PII?
+#[category(critical)]
 pub enum PsError {
     #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
-    #[category(critical)]
     UnexpectedDescriptorCount { expected: usize, found: usize },
     #[error("received unexpected Presentation Submission ID: expected '{expected}', found '{found}'")]
     UnexpectedSubmissionId { expected: String, found: String },

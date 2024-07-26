@@ -28,6 +28,7 @@ pub enum DocumentMdocError {
     #[category(critical)]
     UnknownDocType { doc_type: String },
     #[error("mandatory attributes for \"{doc_type}\" not found at \"{name_space} / {name}\"")]
+    #[category(critical)]
     MissingAttribute {
         doc_type: String,
         name_space: NameSpace,
