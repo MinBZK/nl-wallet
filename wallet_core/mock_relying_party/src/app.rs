@@ -19,6 +19,7 @@ use axum::{
 use base64::prelude::*;
 use http::{header::CACHE_CONTROL, HeaderValue};
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -142,12 +143,13 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
-#[derive(Default, Serialize, Deserialize, strum::Display)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, strum::Display, strum::EnumIter)]
+#[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
-enum Language {
+pub enum Language {
     #[default]
-    NL,
-    EN,
+    Nl,
+    En,
 }
 
 #[derive(Template, Serialize)]
@@ -173,6 +175,12 @@ struct UsecaseTemplate<'a> {
 pub struct DisclosedAttributesParams {
     pub nonce: Option<String>,
     pub session_token: SessionToken,
+    pub lang: Option<Language>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UsecaseParams {
+    pub lang: Option<Language>,
 }
 
 async fn create_session(
@@ -217,7 +225,11 @@ async fn create_session(
 static USECASE_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
 
-async fn usecase(State(state): State<Arc<ApplicationState>>, Path(usecase): Path<String>) -> Result<Response> {
+async fn usecase(
+    State(state): State<Arc<ApplicationState>>,
+    Path(usecase): Path<String>,
+    Query(params): Query<UsecaseParams>,
+) -> Result<Response> {
     if !state.usecases.contains_key(&usecase) {
         return Ok(StatusCode::NOT_FOUND.into_response());
     }
@@ -228,7 +240,7 @@ async fn usecase(State(state): State<Arc<ApplicationState>>, Path(usecase): Path
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
         error: None,
-        language: Language::default(),
+        language: params.lang.unwrap_or_default(),
     };
 
     Ok(askama_axum::into_response(&result))
@@ -248,12 +260,14 @@ async fn disclosed_attributes(
         .disclosed_attributes(params.session_token, params.nonce)
         .await;
 
+    let language = params.lang.unwrap_or_default();
+
     match attributes {
         Ok(attributes) => {
             let result = DisclosureTemplate {
                 usecase: &usecase,
                 attributes,
-                language: Language::default(),
+                language,
             };
             Ok(askama_axum::into_response(&result))
         }
@@ -265,7 +279,7 @@ async fn disclosed_attributes(
                 wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
                 wallet_web_sha256: &state.wallet_web.sha256,
                 error: Some(&err),
-                language: Language::default(),
+                language,
             };
             Ok(askama_axum::into_response(&result))
         }
