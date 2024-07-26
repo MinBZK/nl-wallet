@@ -50,8 +50,8 @@ pub enum IssuanceSessionError {
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
     #[error("http request failed: {0}")]
-    #[category(critical)]
-    Network(#[source] reqwest::Error),
+    #[category(expected)]
+    Network(#[from] reqwest::Error),
     #[error("missing c_nonce")]
     #[category(critical)]
     MissingNonce,
@@ -92,10 +92,10 @@ pub enum IssuanceSessionError {
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
     #[error("error discovering Oauth metadata: {0}")]
-    #[category(critical)] // apply without_url()
+    #[category(expected)]
     OauthDiscovery(#[source] reqwest::Error),
     #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
-    #[category(critical)] // apply without_url()
+    #[category(expected)]
     OpenId4vciDiscovery(#[source] reqwest::Error),
     #[error("issuer has no batch credential endpoint")]
     #[category(critical)]
@@ -103,13 +103,6 @@ pub enum IssuanceSessionError {
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]
     AttributeRandomLength(usize, usize),
-}
-
-impl From<reqwest::Error> for IssuanceSessionError {
-    fn from(source: reqwest::Error) -> Self {
-        tracing::debug!("Issuance Session HTTP error: {}", source);
-        IssuanceSessionError::Network(source.without_url())
-    }
 }
 
 pub trait IssuanceSession<H = HttpVcMessageClient> {
@@ -177,7 +170,7 @@ impl VcMessageClient for HttpVcMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
         let metadata = IssuerMetadata::discover(&self.http_client, url)
             .await
-            .map_err(|e| IssuanceSessionError::OpenId4vciDiscovery(e.without_url()))?;
+            .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
         Ok(metadata)
     }
 
@@ -190,7 +183,7 @@ impl VcMessageClient for HttpVcMessageClient {
             .error_for_status()?
             .json()
             .await
-            .map_err(|e| IssuanceSessionError::OauthDiscovery(e.without_url()))?;
+            .map_err(IssuanceSessionError::OauthDiscovery)?;
         Ok(metadata)
     }
 

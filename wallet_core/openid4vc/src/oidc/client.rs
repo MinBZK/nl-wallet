@@ -27,8 +27,8 @@ use super::Config;
 #[category(pd)]
 pub enum OidcError {
     #[error("transport error: {0}")]
-    #[category(critical)]
-    Http(#[source] reqwest::Error),
+    #[category(expected)]
+    Http(#[from] reqwest::Error),
     #[error("url: path segments is cannot-be-a-base")]
     #[category(critical)]
     CannotBeABase,
@@ -60,13 +60,6 @@ pub enum OidcError {
     #[error("config has no userinfo url")]
     #[category(critical)]
     NoUserinfoUrl,
-}
-
-impl From<reqwest::Error> for OidcError {
-    fn from(source: reqwest::Error) -> Self {
-        tracing::debug!("Oidc HTTP error: {}", source);
-        OidcError::Http(source.without_url())
-    }
 }
 
 const APPLICATION_JWT: &str = "application/jwt";

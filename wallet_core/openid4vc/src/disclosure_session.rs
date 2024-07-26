@@ -79,8 +79,8 @@ pub enum VpClientError {
 #[category(pd)]
 pub enum VpMessageClientError {
     #[error("HTTP request error: {0}")]
-    #[category(critical)]
-    Http(#[source] reqwest::Error),
+    #[category(expected)]
+    Http(#[from] reqwest::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("auth request server error response: {0:?}")]
@@ -149,14 +149,6 @@ impl VpMessageClientError {
             Self::AuthPostResponse(response) => response.redirect_uri.as_ref(),
             _ => None,
         }
-    }
-}
-
-/// Remove url, which can contain privacy sensitive data
-impl From<reqwest::Error> for VpMessageClientError {
-    fn from(source: reqwest::Error) -> Self {
-        tracing::debug!("Vp Message HTTP error: {}", source);
-        VpMessageClientError::Http(source.without_url())
     }
 }
 

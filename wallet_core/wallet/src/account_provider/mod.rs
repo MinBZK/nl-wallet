@@ -24,19 +24,11 @@ pub enum AccountProviderError {
     #[error("server responded with {0}")]
     Response(#[from] AccountProviderResponseError),
     #[error("networking error: {0}")]
-    #[category(critical)]
-    Networking(#[source] reqwest::Error),
+    #[category(expected)]
+    Networking(#[from] reqwest::Error),
     #[error("could not parse base URL: {0}")]
     #[category(pd)]
     BaseUrl(#[from] ParseError),
-}
-
-/// Remove URL which might contain PII.
-impl From<reqwest::Error> for AccountProviderError {
-    fn from(source: reqwest::Error) -> Self {
-        tracing::debug!("Account Provider HTTP error: {}", source);
-        AccountProviderError::Networking(source.without_url())
-    }
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

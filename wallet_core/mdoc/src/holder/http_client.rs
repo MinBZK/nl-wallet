@@ -1,6 +1,5 @@
 use futures::future::TryFutureExt;
 use serde::{de::DeserializeOwned, Serialize};
-use tracing::debug;
 use url::Url;
 use x509_parser::nom::AsBytes;
 
@@ -19,16 +18,8 @@ pub enum HttpClientError {
     #[error("CBOR error: {0}")]
     Cbor(#[from] CborError),
     #[error("HTTP request error: {0}")]
-    #[category(critical)]
-    Request(#[source] reqwest::Error),
-}
-
-/// Remove URL which can contain privacy sensitive data
-impl From<reqwest::Error> for HttpClientError {
-    fn from(source: reqwest::Error) -> Self {
-        debug!("HTTP client error: {}", source);
-        HttpClientError::Request(source.without_url())
-    }
+    #[category(expected)]
+    Request(#[from] reqwest::Error),
 }
 
 impl From<HttpClientError> for Error {
