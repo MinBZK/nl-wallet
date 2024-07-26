@@ -9,19 +9,19 @@ use tracing::debug;
 
 use crate::{Category, ErrorCategory};
 
-pub fn classify_and_report_to_sentry<T: ErrorCategory + Error + ?Sized>(error: &T) {
+pub fn classify_and_report<T: ErrorCategory + Error + ?Sized>(error: &T) {
     match error.category() {
         Category::Expected => {
-            debug!("expected error, not reporting to sentry: {}", error);
+            debug!("encountered expected error, not reporting to sentry: {}", error);
         }
         Category::Critical => {
-            debug!("critical error, reporting to sentry: {}", error);
+            debug!("encountered critical error, reporting to sentry: {}", error);
             let event = privacy_sensitive_event_from_error(error, false);
             let _uuid = sentry::capture_event(event);
         }
         Category::PersonalData => {
             debug!(
-                "critical error with possible PII, reporting to sentry without data: {}",
+                "encountered critical error with possible PII, reporting to sentry without data: {}",
                 error
             );
             let event = privacy_sensitive_event_from_error(error, true);
@@ -155,23 +155,23 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_and_report_to_sentry_expected() {
+    fn test_classify_and_report_expected() {
         let error = ErrorEnum::Specific(SpecificError {
             category: Category::Expected,
         });
         let events = with_captured_events(|| {
-            classify_and_report_to_sentry(&error);
+            classify_and_report(&error);
         });
         assert_eq!(events.len(), 0);
     }
 
     #[test]
-    fn test_classify_and_report_to_sentry_critical() {
+    fn test_classify_and_report_critical() {
         let error = ErrorEnum::Specific(SpecificError {
             category: Category::Critical,
         });
         let events = with_captured_events(|| {
-            classify_and_report_to_sentry(&error);
+            classify_and_report(&error);
         });
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].level, Level::Error);
@@ -186,12 +186,12 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_and_report_to_sentry_critical_struct() {
+    fn test_classify_and_report_critical_struct() {
         let error = SpecificError {
             category: Category::Critical,
         };
         let events = with_captured_events(|| {
-            classify_and_report_to_sentry(&error);
+            classify_and_report(&error);
         });
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].level, Level::Error);
@@ -205,12 +205,12 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_and_report_to_sentry_personal_data() {
+    fn test_classify_and_report_personal_data() {
         let error = ErrorEnum::Specific(SpecificError {
             category: Category::PersonalData,
         });
         let events = with_captured_events(|| {
-            classify_and_report_to_sentry(&error);
+            classify_and_report(&error);
         });
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].level, Level::Error);
