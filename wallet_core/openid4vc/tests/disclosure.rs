@@ -37,7 +37,7 @@ use openid4vc::{
     jwt,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
     verifier::{
-        DisclosureData, StatusResponse, UseCase, VerificationError, Verifier, VerifierUrlParameters, VpToken,
+        DisclosedAttributesError, DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken,
         WalletAuthResponse,
     },
     ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
@@ -494,7 +494,7 @@ async fn test_client_and_server(
             .disclosed_attributes(&session_token, None)
             .await
             .expect_err("fetching disclosed attributes without a return URL nonce should fail");
-        assert_matches!(error, VerificationError::RedirectUriNonceMissing);
+        assert_matches!(error, DisclosedAttributesError::RedirectUriNonceMissing);
 
         let error = verifier
             .disclosed_attributes(&session_token, "incorrect".to_string().into())
@@ -502,7 +502,7 @@ async fn test_client_and_server(
             .expect_err("fetching disclosed attributes with incorrect return URL nonce should fail");
         assert_matches!(
             error,
-            VerificationError::RedirectUriNonceMismatch(nonce) if nonce == "incorrect"
+            DisclosedAttributesError::RedirectUriNonceMismatch(nonce) if nonce == "incorrect"
         );
     }
 
@@ -640,7 +640,7 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTr
     let usecases = HashMap::from([
         (
             NO_RETURN_URL_USE_CASE.to_string(),
-            UseCase::new(
+            UseCase::try_new(
                 rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::Neither,
             )
@@ -648,7 +648,7 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTr
         ),
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
-            UseCase::new(
+            UseCase::try_new(
                 rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::SameDevice,
             )
@@ -656,7 +656,7 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTr
         ),
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
-            UseCase::new(
+            UseCase::try_new(
                 rp_ca.generate_reader_mock(reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
             )

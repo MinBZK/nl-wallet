@@ -92,12 +92,12 @@ impl From<WalletProviderError> for AccountError {
 
 impl From<WalletProviderError> for HttpJsonError<WalletProviderErrorType> {
     fn from(value: WalletProviderError) -> Self {
-        let description = value.to_string();
+        let detail = value.to_string();
         let account_error = AccountError::from(value);
 
-        HttpJsonError::new(
+        Self::new(
             AccountErrorType::from(&account_error).into(),
-            description,
+            detail,
             account_error.into(),
         )
     }

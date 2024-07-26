@@ -59,7 +59,7 @@ impl TryFrom<&VerifierUseCase> for UseCase {
     type Error = anyhow::Error;
 
     fn try_from(value: &VerifierUseCase) -> Result<Self, Self::Error> {
-        let use_case = UseCase::new((&value.key_pair).try_into()?, value.session_type_return_url)?;
+        let use_case = UseCase::try_new((&value.key_pair).try_into()?, value.session_type_return_url)?;
 
         Ok(use_case)
     }
