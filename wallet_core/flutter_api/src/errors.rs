@@ -54,7 +54,6 @@ enum FlutterApiErrorType {
     ExpiredSession,
 
     /// A remote session is cancelled.
-    #[allow(dead_code)]
     CancelledSession,
 
     /// Indicating something unexpected went wrong.
@@ -227,14 +226,14 @@ impl FlutterApiErrorFields for DisclosureError {
             | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }
-            DisclosureError::VpDisclosureSession(VpClientError::Request(error))
-                if matches!(error.error_type(), VpMessageClientErrorType::Expired { .. }) =>
-            {
-                FlutterApiErrorType::ExpiredSession
-            }
             DisclosureError::IsoDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
+            DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
+                VpMessageClientErrorType::Expired { .. } => FlutterApiErrorType::ExpiredSession,
+                VpMessageClientErrorType::Cancelled => FlutterApiErrorType::CancelledSession,
+                _ => detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic),
+            },
             DisclosureError::VpDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
@@ -257,7 +256,7 @@ impl FlutterApiErrorFields for DisclosureError {
         let can_retry = match self {
             DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
                 VpMessageClientErrorType::Expired { can_retry } => Some(can_retry),
-                VpMessageClientErrorType::Other => None,
+                VpMessageClientErrorType::Cancelled | VpMessageClientErrorType::Other => None,
             },
             _ => None,
         };

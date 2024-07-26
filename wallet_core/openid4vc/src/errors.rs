@@ -170,6 +170,7 @@ pub enum GetRequestErrorCode {
     InvalidRequest,
     ExpiredEphemeralId,
     ExpiredSession,
+    CancelledSession,
     UnknownSession,
 
     ServerError,
@@ -183,6 +184,9 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 GetAuthRequestError::ExpiredEphemeralId(_) => GetRequestErrorCode::ExpiredEphemeralId,
                 GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
                     GetRequestErrorCode::ExpiredSession
+                }
+                GetAuthRequestError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
+                    GetRequestErrorCode::CancelledSession
                 }
                 GetAuthRequestError::Session(SessionError::UnknownSession(_)) => GetRequestErrorCode::UnknownSession,
                 GetAuthRequestError::EncryptionKey(_)
@@ -206,7 +210,9 @@ impl ErrorStatusCode for GetRequestErrorCode {
     fn status_code(&self) -> reqwest::StatusCode {
         match self {
             GetRequestErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            GetRequestErrorCode::ExpiredSession | GetRequestErrorCode::UnknownSession => StatusCode::NOT_FOUND,
+            GetRequestErrorCode::ExpiredSession
+            | GetRequestErrorCode::CancelledSession
+            | GetRequestErrorCode::UnknownSession => StatusCode::NOT_FOUND,
             GetRequestErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
 
             // Per RFC 7235 we MUST include a `WWW-Authenticate` HTTP header with this, but we can't do that
@@ -221,6 +227,7 @@ impl ErrorStatusCode for GetRequestErrorCode {
 pub enum PostAuthResponseErrorCode {
     InvalidRequest,
     ExpiredSession,
+    CancelledSession,
     UnknownSession,
 
     ServerError,
@@ -233,6 +240,9 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
             error: match err {
                 PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Expired)) => {
                     PostAuthResponseErrorCode::ExpiredSession
+                }
+                PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
+                    PostAuthResponseErrorCode::CancelledSession
                 }
                 PostAuthResponseError::Session(SessionError::SessionStore(_)) => PostAuthResponseErrorCode::ServerError,
                 PostAuthResponseError::Session(SessionError::UnknownSession(_)) => {
@@ -252,9 +262,9 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
 impl ErrorStatusCode for PostAuthResponseErrorCode {
     fn status_code(&self) -> reqwest::StatusCode {
         match self {
-            PostAuthResponseErrorCode::ExpiredSession | PostAuthResponseErrorCode::UnknownSession => {
-                StatusCode::NOT_FOUND
-            }
+            PostAuthResponseErrorCode::ExpiredSession
+            | PostAuthResponseErrorCode::CancelledSession
+            | PostAuthResponseErrorCode::UnknownSession => StatusCode::NOT_FOUND,
             PostAuthResponseErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             PostAuthResponseErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
         }
