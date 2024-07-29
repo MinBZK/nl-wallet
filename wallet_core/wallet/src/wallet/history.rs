@@ -109,6 +109,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving Card history");
 
@@ -147,6 +148,7 @@ where
         Ok(())
     }
 
+    #[sentry_capture_error]
     pub async fn set_recent_history_callback(
         &mut self,
         callback: RecentHistoryCallback,

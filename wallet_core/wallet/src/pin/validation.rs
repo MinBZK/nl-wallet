@@ -1,4 +1,7 @@
-#[derive(Debug, thiserror::Error)]
+use error_category::{sentry_capture_error, ErrorCategory};
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(expected)]
 pub enum PinValidationError {
     #[error("PIN contains characters that are not digits")]
     NonDigits,
@@ -85,6 +88,7 @@ fn pin_should_not_be_ascending_or_descending(digits: &[u8]) -> Result<(), PinVal
 }
 
 /// This function will check whether a pin is not too simple.
+#[sentry_capture_error]
 pub fn validate_pin(pin: &str) -> Result<(), PinValidationError> {
     pin_length_should_be_correct(pin)?;
     let digits = parse_pin_to_digits(pin)?;
