@@ -71,7 +71,7 @@ impl From<BrpPerson> for Vec<UnsignedMdoc> {
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_FAMILY_NAME),
-                            value: ciborium::Value::Text(family_name.clone()),
+                            value: ciborium::Value::Text(family_name),
                         }
                         .into(),
                         given_names.map(|names| unsigned::Entry {
