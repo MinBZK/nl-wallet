@@ -372,8 +372,6 @@ mod tests {
                 ("family_name", "Jansen".into()),
                 ("given_name", "Frouke".into()),
                 ("birth_date", "2000-03-24".into()),
-                ("birth_country", "België".into()),
-                ("birth_city", "Luik".into()),
                 ("age_over_18", true.into()),
                 ("gender", 2.into()),
             ],
