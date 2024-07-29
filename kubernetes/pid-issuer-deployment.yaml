@@ -47,6 +47,8 @@ spec:
               value: "3007"
             - name: PID_ISSUER_PUBLIC_URL
               value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
+            - name: PID_ISSUER_STRUCTURED_LOGGING
+              value: "true"
             - name: PID_ISSUER_ISSUER__DIGID__ISSUER_URL
               value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
             - name: PID_ISSUER_ISSUER__BRP_SERVER
@@ -63,6 +65,10 @@ spec:
                   key: password
             - name: PID_ISSUER_STORAGE__URL
               value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-pi-rw:5432/pid_issuer"
+            - name: PID_ISSUER_SENTRY__DSN
+              value: ${SENTRY_DSN}
+            - name: PID_ISSUER_SENTRY__ENVIRONMENT
+              value: ${SENTRY_ENVIRONMENT}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

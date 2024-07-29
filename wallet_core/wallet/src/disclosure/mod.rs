@@ -272,10 +272,9 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
 mod mock {
     use std::sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc,
+        Arc, LazyLock,
     };
 
-    use once_cell::sync::Lazy;
     use parking_lot::Mutex;
 
     use nl_wallet_mdoc::{holder::DisclosureError, server_keys::KeyPair, verifier::SessionType};
@@ -285,8 +284,8 @@ mod mock {
     type SessionState = MdocDisclosureSessionState<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
     type MockFields = (ReaderRegistration, SessionState, Option<Url>);
 
-    pub static NEXT_START_ERROR: Lazy<Mutex<Option<MdocDisclosureError>>> = Lazy::new(|| Mutex::new(None));
-    pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
+    pub static NEXT_START_ERROR: LazyLock<Mutex<Option<MdocDisclosureError>>> = LazyLock::new(|| Mutex::new(None));
+    pub static NEXT_MOCK_FIELDS: LazyLock<Mutex<Option<MockFields>>> = LazyLock::new(|| Mutex::new(None));
 
     // For convenience, the default `SessionState` is a proposal.
     impl Default for SessionState {
@@ -373,7 +372,7 @@ mod mock {
     }
 
     /// The reader key, generated once for testing.
-    static READER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+    static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
         reader_ca
             .generate_reader_mock(ReaderRegistration::new_mock().into())

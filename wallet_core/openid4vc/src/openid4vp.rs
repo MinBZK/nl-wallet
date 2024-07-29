@@ -631,7 +631,7 @@ impl VpAuthorizationResponse {
 
         // Use the AES key size that the server wants.
         header.set_content_encryption(
-            &auth_request
+            auth_request
                 .client_metadata
                 .authorization_encryption_enc_values_supported
                 .to_string(),

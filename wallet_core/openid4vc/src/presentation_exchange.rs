@@ -3,9 +3,9 @@
 //! implementing only the fields used by the OpenID4VP profile from ISO 18013-7.
 //! Other fields are left out of the various structs and enums for now, and some fields that are optional per
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
+use std::sync::LazyLock;
 
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -74,8 +74,8 @@ pub struct Field {
 /// "$['namespace']['attribute_name']".
 ///
 /// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
-static FIELD_PATH_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
+static FIELD_PATH_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
 
 impl Field {
     fn parse_paths(&self) -> Result<(String, String), PdConversionError> {

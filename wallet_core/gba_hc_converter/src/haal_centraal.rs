@@ -1,7 +1,6 @@
-use std::{collections::HashMap, env, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, env, path::PathBuf, str::FromStr, sync::LazyLock};
 
 use nutype::nutype;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -10,14 +9,14 @@ use crate::{
     gba::data::{Categorievoorkomen, GbaResponse},
 };
 
-static NATIONALITY_TABLE: Lazy<HashMap<String, String>> =
-    Lazy::new(|| read_csv("Tabel32 Nationaliteitentabel (gesorteerd op code)").unwrap());
+static NATIONALITY_TABLE: LazyLock<HashMap<String, String>> =
+    LazyLock::new(|| read_csv("Tabel32 Nationaliteitentabel (gesorteerd op code)").unwrap());
 
-static MUNICIPALITIES_TABLE: Lazy<HashMap<String, String>> =
-    Lazy::new(|| read_csv("Tabel33 Gemeententabel (gesorteerd op code)").unwrap());
+static MUNICIPALITIES_TABLE: LazyLock<HashMap<String, String>> =
+    LazyLock::new(|| read_csv("Tabel33 Gemeententabel (gesorteerd op code)").unwrap());
 
-static COUNTRIES_TABLE: Lazy<HashMap<String, String>> =
-    Lazy::new(|| read_csv("Tabel34 Landentabel (gesorteerd op code)").unwrap());
+static COUNTRIES_TABLE: LazyLock<HashMap<String, String>> =
+    LazyLock::new(|| read_csv("Tabel34 Landentabel (gesorteerd op code)").unwrap());
 
 pub enum Category {
     Person = 1,
@@ -71,9 +70,9 @@ impl Element {
 }
 
 pub fn initialize_eager() {
-    let _ = Lazy::force(&NATIONALITY_TABLE);
-    let _ = Lazy::force(&MUNICIPALITIES_TABLE);
-    let _ = Lazy::force(&COUNTRIES_TABLE);
+    let _ = LazyLock::force(&NATIONALITY_TABLE);
+    let _ = LazyLock::force(&MUNICIPALITIES_TABLE);
+    let _ = LazyLock::force(&COUNTRIES_TABLE);
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -101,8 +100,10 @@ fn csv_path(name: &str) -> PathBuf {
         .join(format!("resources/stamdata/{}.csv", name))
 }
 
+static BSN_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[0-9]{8,9}$").unwrap());
+
 #[nutype(
-    validate(regex = "^[0-9]{8,9}$"),
+    validate(regex = BSN_REGEX),
     derive(Deserialize, Serialize, Clone, Debug, Display)
 )]
 pub struct Bsn(String);

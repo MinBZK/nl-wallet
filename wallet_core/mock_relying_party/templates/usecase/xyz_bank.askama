@@ -6,6 +6,11 @@
         <h4>Bankrekening openen</h4>
         <h2>Stap 1. Identificeer uzelf</h2>
     </section>
+    {% match error %}
+        {% when Some with (error) %}
+            {% call notification::notification("Identificatie mislukt. Probeer het opnieuw.", "", error) %}
+        {% when None %}
+    {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
             text="Gebruik NL Wallet"

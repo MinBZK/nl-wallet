@@ -50,10 +50,16 @@ spec:
               value: "http://mrp-verification-server:3002/"
             - name: MOCK_RELYING_PARTY_PUBLIC_URL
               value: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+            - name: MOCK_RELYING_PARTY_STRUCTURED_LOGGING
+              value: "true"
             - name: MOCK_RELYING_PARTY_WALLET_WEB__FILENAME
               value: "${WALLET_WEB_FILENAME}"
             - name: MOCK_RELYING_PARTY_WALLET_WEB__SHA256
               value: "${WALLET_WEB_SHA256}"
+            - name: MOCK_RELYING_PARTY_SENTRY__DSN
+              value: ${SENTRY_DSN}
+            - name: MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT
+              value: ${SENTRY_ENVIRONMENT}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

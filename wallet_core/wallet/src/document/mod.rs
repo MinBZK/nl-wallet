@@ -8,6 +8,9 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 
+#[cfg(feature = "snapshot_test")]
+use serde::Serialize;
+
 pub use mdoc::{AttributeValueType, DisclosureType, DocumentMdocError};
 
 #[cfg(test)]
@@ -16,7 +19,7 @@ pub use mdoc::tests::{
     create_minimal_unsigned_pid_mdoc,
 };
 
-const PID_DOCTYPE: &str = "com.example.pid";
+pub const PID_DOCTYPE: &str = "com.example.pid";
 const ADDRESS_DOCTYPE: &str = "com.example.address";
 
 pub type DocumentType = &'static str;
@@ -47,6 +50,7 @@ pub struct Attribute {
     pub value: AttributeValue,
 }
 
+#[cfg_attr(feature = "snapshot_test", derive(Serialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AttributeValue {
     String(String),
@@ -55,6 +59,7 @@ pub enum AttributeValue {
     Gender(GenderAttributeValue),
 }
 
+#[cfg_attr(feature = "snapshot_test", derive(Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GenderAttributeValue {
     Unknown,

@@ -1,7 +1,13 @@
+use futures::TryFutureExt;
+use reqwest::Response;
 use serde::Serialize;
 use url::ParseError;
 
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
+use wallet_common::{
+    config::wallet_config::BaseUrl,
+    http_error::HttpJsonErrorBody,
+    reqwest::{default_reqwest_client_builder, is_problem_json_response},
+};
 
 use crate::pid::brp::data::*;
 
@@ -13,6 +19,8 @@ pub enum BrpError {
     BaseUrl(#[from] ParseError),
     #[error("could not deserialize JSON: {0}")]
     Deserialization(#[from] serde_json::Error),
+    #[error("{0}")]
+    Conversion(String),
 }
 
 pub trait BrpClient {
@@ -32,6 +40,28 @@ impl HttpBrpClient {
                 .expect("Could not build reqwest HTTP client"),
             base_url,
         }
+    }
+
+    async fn error_for_response(response: Response) -> Result<Response, BrpError> {
+        let status = response.status();
+
+        if status.is_client_error() || status.is_server_error() {
+            let error = if is_problem_json_response(&response) {
+                let bytes = response.bytes().await?;
+                let body = serde_json::from_slice::<HttpJsonErrorBody<String>>(&bytes)?;
+                BrpError::Conversion(body.detail.unwrap_or(body.r#type))
+            } else {
+                BrpError::Networking(
+                    response
+                        .error_for_status()
+                        .expect_err("it is already known there is an error"),
+                )
+            };
+
+            return Err(error);
+        }
+
+        Ok(response)
     }
 }
 
@@ -79,7 +109,13 @@ impl BrpClient for HttpBrpClient {
             })
             .build()?;
 
-        let response = self.http_client.execute(request).await?.error_for_status()?;
+        let response = self
+            .http_client
+            .execute(request)
+            .map_err(BrpError::Networking)
+            .and_then(|response| async { Self::error_for_response(response).await })
+            .await?;
+
         let body = response.json().await?;
 
         Ok(body)

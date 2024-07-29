@@ -1,8 +1,15 @@
 <header>
     <h1>MonkeyBike</h1>
 </header>
-<main>
-    <h2>Meld je aan</h2>
+<section>
+    <section
+        <h2>Meld je aan</h2>
+    </section>
+    {% match error %}
+        {% when Some with (error) %}
+            {% call notification::notification("Inloggen mislukt. Probeer het opnieuw.", "", error) %}
+        {% when None %}
+    {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
             text="Verder met NL Wallet"

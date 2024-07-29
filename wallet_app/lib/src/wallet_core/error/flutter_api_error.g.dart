@@ -27,4 +27,5 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.redirectUri: 'RedirectUri',
   FlutterApiErrorType.disclosureSourceMismatch: 'DisclosureSourceMismatch',
   FlutterApiErrorType.expiredSession: 'ExpiredSession',
+  FlutterApiErrorType.cancelledSession: 'CancelledSession',
 };

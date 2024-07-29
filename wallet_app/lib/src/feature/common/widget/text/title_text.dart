@@ -12,7 +12,7 @@ class TitleText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      header: false,
+      header: true,
       container: true /* make sure it's always an individual semantics node */,
       child: SizedBox(
         width: double.infinity,

@@ -34,7 +34,6 @@ http.workspace = true
 jsonwebtoken.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 rand.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }

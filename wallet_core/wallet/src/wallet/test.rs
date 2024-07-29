@@ -1,6 +1,9 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::{Arc, LazyLock},
+    time::Duration,
+};
 
-use once_cell::sync::Lazy;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
 use rand_core::OsRng;
@@ -32,8 +35,8 @@ use crate::{
 
 use super::{documents::DocumentsError, HistoryError, Wallet, WalletInitError, WalletRegistration};
 
-static FALLIBLE_KEY_ERRORS: Lazy<Mutex<HashMap<String, FallibleSoftwareEcdsaKeyErrors>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+static FALLIBLE_KEY_ERRORS: LazyLock<Mutex<HashMap<String, FallibleSoftwareEcdsaKeyErrors>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {
@@ -72,13 +75,13 @@ pub type WalletWithMocks = Wallet<
 >;
 
 /// The account server key material, generated once for testing.
-pub static ACCOUNT_SERVER_KEYS: Lazy<AccountServerKeys> = Lazy::new(|| AccountServerKeys {
+pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| AccountServerKeys {
     certificate_signing_key: SigningKey::random(&mut OsRng),
     instruction_result_signing_key: SigningKey::random(&mut OsRng),
 });
 
 /// The issuer key material, generated once for testing.
-pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
+pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
@@ -89,7 +92,7 @@ pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
 });
 
 /// The unauthenticated issuer key material, generated once for testing.
-pub static ISSUER_KEY_UNAUTHENTICATED: Lazy<IssuerKey> = Lazy::new(|| {
+pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(None).unwrap();
 
@@ -233,7 +236,7 @@ impl EcdsaKey for FallibleSoftwareEcdsaKey {
 impl WalletWithMocks {
     /// Creates an unregistered `Wallet` with mock dependencies.
     pub async fn new_unregistered() -> Self {
-        let keys = Lazy::force(&ACCOUNT_SERVER_KEYS);
+        let keys = LazyLock::force(&ACCOUNT_SERVER_KEYS);
 
         // Override public key material in the `Configuration`.
         let config = {

@@ -53,6 +53,9 @@ enum FlutterApiErrorType {
     /// A remote session is expired, the user may or may not be able to retry the operation.
     ExpiredSession,
 
+    /// A remote session is cancelled.
+    CancelledSession,
+
     /// Indicating something unexpected went wrong.
     Generic,
 }
@@ -223,14 +226,14 @@ impl FlutterApiErrorFields for DisclosureError {
             | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }
-            DisclosureError::VpDisclosureSession(VpClientError::Request(error))
-                if matches!(error.error_type(), VpMessageClientErrorType::Expired { .. }) =>
-            {
-                FlutterApiErrorType::ExpiredSession
-            }
             DisclosureError::IsoDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
+            DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
+                VpMessageClientErrorType::Expired { .. } => FlutterApiErrorType::ExpiredSession,
+                VpMessageClientErrorType::Cancelled => FlutterApiErrorType::CancelledSession,
+                _ => detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic),
+            },
             DisclosureError::VpDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
@@ -253,7 +256,7 @@ impl FlutterApiErrorFields for DisclosureError {
         let can_retry = match self {
             DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
                 VpMessageClientErrorType::Expired { can_retry } => Some(can_retry),
-                VpMessageClientErrorType::Other => None,
+                VpMessageClientErrorType::Cancelled | VpMessageClientErrorType::Other => None,
             },
             _ => None,
         };

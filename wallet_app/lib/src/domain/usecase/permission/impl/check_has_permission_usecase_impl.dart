@@ -9,7 +9,9 @@ class CheckHasPermissionUseCaseImpl implements CheckHasPermissionUseCase {
   @override
   Future<PermissionCheckResult> invoke(Permission permission) async {
     try {
-      final bool isGranted = await permission.isGranted;
+      // Request the permission and check the status.
+      final PermissionStatus status = await permission.request();
+      final isGranted = status.isGranted;
       if (isGranted) return PermissionCheckResult(isGranted: isGranted, isPermanentlyDenied: false);
       final isPermanentlyDenied = await permission.isPermanentlyDenied;
       return PermissionCheckResult(isGranted: isGranted, isPermanentlyDenied: isPermanentlyDenied);

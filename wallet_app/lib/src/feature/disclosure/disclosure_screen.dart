@@ -123,6 +123,7 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureGenericError() => _buildGenericErrorPage(context, returnUrl: state.returnUrl),
           DisclosureSessionExpired() => _buildSessionExpiredPage(context, state),
           DisclosureExternalScannerError() => _buildGenericErrorPage(context),
+          DisclosureCancelledSessionError() => _buildCancelledSessionPage(context, state),
         };
 
         final skipAnim = !state.didGoBack && state is DisclosureCheckOrganization;
@@ -331,6 +332,7 @@ class DisclosureScreen extends StatelessWidget {
       case DisclosureNetworkError():
       case DisclosureSuccess():
       case DisclosureStopped():
+      case DisclosureCancelledSessionError():
       case DisclosureLeftFeedback():
         Fimber.d('No ReportingOptions provided for $state');
         return <ReportingOption>[];
@@ -405,6 +407,11 @@ class DisclosureScreen extends StatelessWidget {
               visibleOffset: 70,
               child: Text(context.l10n.errorScreenSessionExpiredHeadline),
             ),
+          DisclosureCancelledSessionError() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(context.l10n.errorScreenCancelledSessionHeadline),
+            ),
         };
 
         return result ?? const SizedBox.shrink();
@@ -436,6 +443,17 @@ class DisclosureScreen extends StatelessWidget {
         } else {
           Navigator.maybePop(context);
         }
+      },
+    );
+  }
+
+  Widget _buildCancelledSessionPage(BuildContext context, DisclosureCancelledSessionError state) {
+    return ErrorPage.cancelledSession(
+      context,
+      organizationName: state.relyingParty.displayName.l10nValue(context),
+      onPrimaryActionPressed: () {
+        Navigator.pop(context);
+        state.returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
       },
     );
   }

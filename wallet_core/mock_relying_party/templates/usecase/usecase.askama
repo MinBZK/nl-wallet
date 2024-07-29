@@ -1,6 +1,7 @@
 {% extends "../base.askama" %}
 {%- import "components/demo_bar.askama" as demo_bar -%}
 {%- import "components/header.askama" as header -%}
+{%- import "components/notification.askama" as notification -%}
 
 {% block styles %}
 <link rel="stylesheet" href="../css/demo_bar.css" />
@@ -23,7 +24,7 @@
     {% when "xyz_bank" %}
         {% include "xyz_bank.askama" %}
     {% else %}
-        Usecase not found
+        <nl-wallet-button text="Verder met NL Wallet" usecase="{{ usecase }}" base-url="../"></nl-wallet-button>
 {% endmatch %}
 
 {# should be last for accessibility purposes #}

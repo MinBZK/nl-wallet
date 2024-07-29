@@ -6,12 +6,12 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{
-    holder::{CborHttpClient, DisclosureSession},
-    verifier::{SessionType, StatusResponse},
-    ItemsRequest,
+use nl_wallet_mdoc::{verifier::SessionType, ItemsRequest};
+use openid4vc::{
+    disclosure_session::{DisclosureSession, HttpVpMessageClient},
+    issuance_session::HttpIssuanceSession,
+    verifier::StatusResponse,
 };
-use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use tests_integration::{fake_digid::fake_digid_auth, logging::init_logging};
 use wallet::{
@@ -39,7 +39,8 @@ async fn main() {
     let _ = fs::remove_file(etag_file.as_path()).await;
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
-    let wallet_server_requester_url = option_env!("WALLET_SERVER_REQUESTER_URL").unwrap_or("http://localhost:3002/");
+    let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
+    let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
 
     let config_server_config = ConfigServerConfiguration::default();
     let wallet_config = default_configuration();
@@ -63,7 +64,7 @@ async fn main() {
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,
-        DisclosureSession<CborHttpClient, Uuid>,
+        DisclosureSession<HttpVpMessageClient, Uuid>,
     > = Wallet::init_registration(
         config_repository,
         MockStorage::default(),
@@ -85,6 +86,7 @@ async fn main() {
         &authorization_url,
         &pid_issuance_config.digid_url,
         pid_issuance_config.digid_trust_anchors(),
+        "999991772",
     )
     .await;
 
@@ -117,11 +119,12 @@ async fn main() {
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 
-    let mrp_url: Url = wallet_server_requester_url.parse().unwrap();
+    let internal_mrp_url: Url = internal_wallet_server_url.parse().unwrap();
+    let public_mrp_url: Url = public_wallet_server_url.parse().unwrap();
 
     let response = client
         .post(
-            mrp_url
+            internal_mrp_url
                 .join("/disclosure/sessions")
                 .expect("could not join url with endpoint"),
         )
@@ -129,12 +132,13 @@ async fn main() {
         .send()
         .await
         .unwrap();
-
     assert_eq!(response.status(), StatusCode::OK);
 
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
-    let mut status_url = mrp_url.join(&format!("disclosure/sessions/{session_token}")).unwrap();
+    let mut status_url = public_mrp_url
+        .join(&format!("disclosure/sessions/{session_token}"))
+        .unwrap();
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })
@@ -143,17 +147,16 @@ async fn main() {
 
     // obtain engagement_url
     let response = client.get(status_url).send().await.unwrap();
-
     assert_eq!(response.status(), StatusCode::OK);
 
     let status = response.json::<StatusResponse>().await.unwrap();
-    let engagement_url = match status {
-        StatusResponse::Created { engagement_url, .. } => engagement_url,
+    let ul = match status {
+        StatusResponse::Created { ul: Some(ul), .. } => ul,
         _ => panic!("should match StatusResponse::Created"),
     };
 
     let proposal = wallet
-        .start_disclosure(&engagement_url, DisclosureUriSource::Link)
+        .start_disclosure(&ul.into_inner(), DisclosureUriSource::Link)
         .await
         .expect("Could not start disclosure");
     assert_eq!(proposal.documents.len(), 1);

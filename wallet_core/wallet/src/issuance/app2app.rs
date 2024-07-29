@@ -1,5 +1,6 @@
+use std::sync::LazyLock;
+
 use http::{header::LOCATION, StatusCode};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use reqwest::{redirect::Policy, Client, Response};
 use serde::{Deserialize, Serialize};
@@ -95,7 +96,7 @@ where
     {
         // the icon must be within the same domain as the return URL, but the path is stripped off the UL
         const LOGO_PATH: &str = "/.well-known/logo.png";
-        static ICON_URL: Lazy<Url> = Lazy::new(|| UNIVERSAL_LINK_BASE_URL.as_ref().join(LOGO_PATH).unwrap());
+        static ICON_URL: LazyLock<Url> = LazyLock::new(|| UNIVERSAL_LINK_BASE_URL.as_ref().join(LOGO_PATH).unwrap());
 
         let trust_anchors = config.digid_trust_anchors();
         let (oidc_client, mut auth_url) = OIC::start(
@@ -207,7 +208,7 @@ impl<OIC> HttpDigidSession<OIC> {
     }
 
     fn format_app2app_url(mut app2app_url: Url, json_request: DigidJsonRequest) -> Result<Url, DigidSessionError> {
-        static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"%3[dD]").unwrap());
+        static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%3[dD]").unwrap());
         app2app_url.set_query(Some(
             RE.replace_all(
                 &serde_urlencoded::to_string(RedirectUrlParameters { app_app: json_request })?,

@@ -1,4 +1,5 @@
 use std::{
+    io,
     net::{IpAddr, TcpListener},
     process,
     str::FromStr,
@@ -13,6 +14,7 @@ use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use tokio::time;
 
 use configuration_server::settings::Settings as CsSettings;
+use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::{server_state::SessionState, utils::x509};
 use openid4vc::{
     issuance_session::HttpIssuanceSession,
@@ -281,6 +283,34 @@ pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: Vec<Certificate>)
     })
     .await
     .unwrap();
+}
+
+pub fn gba_hc_converter_settings() -> GbaSettings {
+    // We cannot use a random port here, since the BRP proxy needs to connect to the converter on a set port.
+    let mut settings = GbaSettings::new().expect("Could not read settings");
+    settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
+    settings
+}
+
+pub async fn start_gba_hc_converter(settings: GbaSettings) {
+    let base_url = format!("http://localhost:{}/", settings.port)
+        .parse()
+        .expect("hardcode values should always parse successfully");
+
+    tokio::spawn(async {
+        if let Err(error) = gba_hc_converter::app::serve_from_settings(settings).await {
+            if let Some(io_error) = error.downcast_ref::<io::Error>() {
+                if io_error.kind() == io::ErrorKind::AddrInUse {
+                    println!("TCP address/port for gba_hc_converter is already in use, assuming you started it yourself, continuing...");
+                    return;
+                }
+            }
+            println!("Could not start gba_hc_converter: {:?}", error);
+            process::exit(1);
+        }
+    });
+
+    wait_for_server(base_url, vec![]).await;
 }
 
 pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: String) -> WalletWithMocks {

@@ -83,6 +83,27 @@ class DisclosureSessionExpired extends DisclosureState implements ErrorState {
   List<Object?> get props => [error, canRetry, isCrossDevice, returnUrl, ...super.props];
 }
 
+/// State that is exposed when the session has been stopped remotely (e.g. the user pressed stop in wallet_web)
+class DisclosureCancelledSessionError extends DisclosureState implements ErrorState {
+  final Organization relyingParty;
+  final String? returnUrl;
+
+  @override
+  final Object error;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  const DisclosureCancelledSessionError({
+    required this.error,
+    required this.relyingParty,
+    this.returnUrl,
+  });
+
+  @override
+  List<Object?> get props => [error, relyingParty, returnUrl, ...super.props];
+}
+
 class DisclosureNetworkError extends DisclosureState implements NetworkErrorState {
   @override
   bool get showStopConfirmation => false;

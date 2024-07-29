@@ -2,11 +2,10 @@ use std::{
     collections::HashMap,
     convert::Infallible,
     fmt::{self, Debug},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 
 use aes_gcm::{aead::KeyInit, Aes256Gcm};
-use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
 use rand_core::OsRng;
@@ -16,9 +15,10 @@ use crate::keys::WithIdentifier;
 use super::{EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
 
 // Static for storing identifier to signing key mapping.
-static SIGNING_KEYS: Lazy<Mutex<HashMap<String, Arc<SigningKey>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static SIGNING_KEYS: LazyLock<Mutex<HashMap<String, Arc<SigningKey>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 // Static for storing identifier to AES cipher mapping.
-static ENCRYPTION_CIPHERS: Lazy<Mutex<HashMap<String, Arc<Aes256Gcm>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static ENCRYPTION_CIPHERS: LazyLock<Mutex<HashMap<String, Arc<Aes256Gcm>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub struct SoftwareEcdsaKey {
     identifier: String,
@@ -91,7 +91,6 @@ impl StoredByIdentifier for SoftwareEcdsaKey {
 
         // Otherwise, increment the reference count or create a new random key
         // and insert it into the static hashmap.
-        #[allow(clippy::map_clone)]
         let key = maybe_key.map(Arc::clone).unwrap_or_else(|| {
             let signing_key = SigningKey::random(&mut OsRng).into();
 
@@ -184,7 +183,6 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
 
         // Otherwise, increment the reference count or create a new random cipher
         // and insert it into the static hashmap.
-        #[allow(clippy::map_clone)]
         let cipher = maybe_cipher.map(Arc::clone).unwrap_or_else(|| {
             let encryption_cipher = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)).into();
 

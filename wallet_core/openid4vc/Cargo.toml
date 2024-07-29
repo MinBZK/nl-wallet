@@ -38,7 +38,6 @@ josekit = { workspace = true, features = ["vendored"] }
 jsonwebtoken.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 rand_core.workspace = true
 regex.workspace = true

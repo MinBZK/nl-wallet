@@ -19,6 +19,10 @@ env_config = ["dep:dotenvy"]
 mock = ["dep:mockall", "nl_wallet_mdoc/mdocs_map", "nl_wallet_mdoc/mock", "openid4vc/mock"]
 # Export the traits and actual implementations of the Wallet dependencies
 wallet_deps = []
+# Adds serializability for snapshot tests
+snapshot_test = []
+# Various test related functionality
+test = []
 
 [dependencies]
 base64.workspace = true
@@ -30,7 +34,6 @@ indexmap.workspace = true
 itertools.workspace = true
 libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
 mime.workspace = true
-once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 parking_lot.workspace = true
 regex.workspace = true

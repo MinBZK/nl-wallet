@@ -363,11 +363,10 @@ impl DisclosureDocument {
 
 #[cfg(test)]
 pub mod tests {
-    use std::{collections::HashMap, mem, num::NonZeroU8};
+    use std::{collections::HashMap, mem, num::NonZeroU8, sync::LazyLock};
 
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
-    use once_cell::sync::Lazy;
     use rstest::rstest;
 
     use nl_wallet_mdoc::{server_keys::KeyPair, Tdate};
@@ -377,7 +376,7 @@ pub mod tests {
         *,
     };
 
-    static ISSUER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+    static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
     });

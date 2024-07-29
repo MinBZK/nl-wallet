@@ -1,12 +1,12 @@
 //! Contains example data structures from the ISO 18013-5 spec,
 //! and methods to retrieve and parse them in tests.
+use std::sync::LazyLock;
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use ciborium::Value;
 use hex_literal::hex;
 use indexmap::IndexMap;
-use once_cell::sync::Lazy;
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     EncodedPoint, SecretKey,
@@ -26,7 +26,7 @@ pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
 pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
 pub const EXAMPLE_ATTR_NAME: &str = "family_name";
 // Lazy since can't have a const String
-pub static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_string()));
+pub static EXAMPLE_ATTR_VALUE: LazyLock<Value> = LazyLock::new(|| Value::Text("Doe".to_string()));
 
 /// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
 /// This generator returns a time in that window.

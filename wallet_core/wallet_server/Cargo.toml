@@ -45,11 +45,13 @@ verifier_test = [
     "disclosure",
     "dep:assert_matches",
     "dep:indexmap",
+    "dep:itertools",
     "dep:parking_lot",
     "dep:reqwest",
     "dep:serde_urlencoded",
     "tokio/macros",
     "tokio/test-util",
+    "nl_wallet_mdoc/examples",
     "nl_wallet_mdoc/mock_time",
 ] # Include and run test that depend on a valid configuration file
 # Enable issuance
@@ -71,7 +73,6 @@ mock = ["dep:rand", "issuance"]
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
-axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 base64.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
@@ -95,15 +96,26 @@ serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
-tower-http = { workspace = true, features = ["auth", "cors", "trace"] }
+tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
+tracing-subscriber = { workspace = true, features = [
+    "std",
+    "env-filter",
+    "fmt",
+    "json",
+    "ansi",
+    "smallvec",
+    "tracing-log",
+    "parking_lot"
+] }
 url = { workspace = true, features = ["serde"] }
 
 assert_matches = { workspace = true, optional = true }
+axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 ciborium = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
+itertools = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }

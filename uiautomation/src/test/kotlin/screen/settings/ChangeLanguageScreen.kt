@@ -1,4 +1,4 @@
-package screen.change_language
+package screen.settings
 
 import util.MobileActions
 

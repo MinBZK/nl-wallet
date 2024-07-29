@@ -12,6 +12,7 @@ pub async fn fake_digid_auth(
     authorization_url: &Url,
     digid_base_url: &BaseUrl,
     trust_anchors: Vec<Certificate>,
+    bsn: &str,
 ) -> Url {
     let client = trusted_reqwest_client_builder(trust_anchors)
         .redirect(Policy::none())
@@ -38,8 +39,8 @@ pub async fn fake_digid_auth(
 
     // Get the HTML page containing the redirect_uri back to our own app
     let finish_digid_url = format!(
-        "{}acs?SAMLart=999991772&RelayState={}&mocking=1",
-        digid_base_url, relay_state
+        "{}acs?SAMLart={}&RelayState={}&mocking=1",
+        digid_base_url, bsn, relay_state
     );
 
     let response = do_get_request(&client, finish_digid_url).await;

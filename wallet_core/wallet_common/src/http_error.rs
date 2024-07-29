@@ -1,14 +1,13 @@
-use std::{error::Error, fmt::Display, str::FromStr};
+use std::{error::Error, fmt::Display, str::FromStr, sync::LazyLock};
 
 use http::StatusCode;
 use mime::Mime;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use serde_with::{serde_as, skip_serializing_none, DisplayFromStr, TryFromInto};
 
-pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
-    Lazy::new(|| "application/problem+json".parse().expect("could not parse MIME type"));
+pub static APPLICATION_PROBLEM_JSON: LazyLock<Mime> =
+    LazyLock::new(|| "application/problem+json".parse().expect("could not parse MIME type"));
 
 /// The HTTP body for an error response, as defined in RFC 7807.
 /// If the `axum` feature is enabled, `IntoResponse` will be implemented for this
@@ -73,21 +72,17 @@ pub trait HttpJsonErrorType {
 }
 
 impl<T> HttpJsonError<T> {
-    pub fn new(r#type: T, description: String, data: Map<String, Value>) -> Self {
-        HttpJsonError {
-            r#type,
-            detail: description,
-            data,
-        }
+    pub fn new(r#type: T, detail: String, data: Map<String, Value>) -> Self {
+        HttpJsonError { r#type, detail, data }
     }
 
     /// This convenience constructor allows for a [`HttpJsonError`] to be built
     /// from any type that both implements [`Error`] and can be converted into
     /// its associated error type, without extra data.
     pub fn from_error(error: impl Error + Into<T>) -> Self {
-        let description = error.to_string();
+        let detail = error.to_string();
 
-        Self::new(error.into(), description, Default::default())
+        Self::new(error.into(), detail, Default::default())
     }
 }
 

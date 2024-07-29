@@ -1,4 +1,10 @@
-use std::{collections::HashMap, env, path::PathBuf, result::Result as StdResult, sync::Arc};
+use std::{
+    collections::HashMap,
+    env,
+    path::PathBuf,
+    result::Result as StdResult,
+    sync::{Arc, LazyLock},
+};
 
 use askama::Template;
 use axum::{
@@ -10,7 +16,6 @@ use axum::{
     Json, Router,
 };
 use base64::prelude::*;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -131,6 +136,7 @@ struct UsecaseTemplate<'a> {
     usecase_js_sha256: &'a str,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
+    error: Option<&'a str>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -178,15 +184,20 @@ async fn create_session(
     Ok(result.into())
 }
 
-static USECASE_JS_SHA256: Lazy<String> =
-    Lazy::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
+static USECASE_JS_SHA256: LazyLock<String> =
+    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
 
 async fn usecase(State(state): State<Arc<ApplicationState>>, Path(usecase): Path<String>) -> Result<Response> {
+    if !state.usecases.contains_key(&usecase) {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    }
+
     let result = UsecaseTemplate {
         usecase: &usecase,
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
+        error: None,
     };
 
     Ok(askama_axum::into_response(&result))
@@ -197,17 +208,35 @@ async fn disclosed_attributes(
     Path(usecase): Path<String>,
     Query(params): Query<DisclosedAttributesParams>,
 ) -> Result<Response> {
+    if !state.usecases.contains_key(&usecase) {
+        return Ok(StatusCode::NOT_FOUND.into_response());
+    }
+
     let attributes = state
         .client
         .disclosed_attributes(params.session_token, params.nonce)
-        .await?;
+        .await;
 
-    let result = DisclosureTemplate {
-        usecase: &usecase,
-        attributes,
-    };
-
-    Ok(askama_axum::into_response(&result))
+    match attributes {
+        Ok(attributes) => {
+            let result = DisclosureTemplate {
+                usecase: &usecase,
+                attributes,
+            };
+            Ok(askama_axum::into_response(&result))
+        }
+        Err(err) => {
+            let err = err.to_string();
+            let result = UsecaseTemplate {
+                usecase: &usecase,
+                usecase_js_sha256: &USECASE_JS_SHA256,
+                wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
+                wallet_web_sha256: &state.wallet_web.sha256,
+                error: Some(&err),
+            };
+            Ok(askama_axum::into_response(&result))
+        }
+    }
 }
 
 mod filters {
