@@ -31,9 +31,6 @@ class CorePidAttributeMapper extends PidAttributeMapper<DataAttribute> {
   String get lastNameKey => 'family_name';
 
   @override
-  String get hasSpouseOrPartnerKey => 'has_spouse_or_partner';
-
-  @override
   String get residencePostalCodeKey => 'resident_postal_code';
 
   @override
