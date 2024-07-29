@@ -17,7 +17,7 @@ nameSpaces = { "com.example.pid" = { bsn = true } }
 
 [[usecases.xyz_bank.items_requests]]
 docType = "com.example.pid"
-nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, own_family_name = true, birth_date = true, bsn = true } }
+nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, bsn = true } }
 
 [[usecases.xyz_bank.items_requests]]
 docType = "com.example.address"

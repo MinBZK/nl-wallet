@@ -1,6 +1,6 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
-assertion_line: 174
+assertion_line: 184
 description: "BSN: 999997701"
 expression: attributes
 ---
@@ -8,16 +8,12 @@ com.example.pid__given_name:
   String: Lars
 com.example.pid__family_name:
   String: Meerman
-com.example.pid__own_family_name:
-  String: Meerman
 com.example.pid__gender:
   Gender: Male
 com.example.pid__birth_date:
   Date: 1965-11-12
 com.example.pid__age_over_18:
   Boolean: true
-com.example.pid__has_spouse_or_partner:
-  Boolean: false
 com.example.pid__bsn:
   String: "999997701"
 com.example.address__resident_street:

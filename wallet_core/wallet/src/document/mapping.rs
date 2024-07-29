@@ -43,15 +43,6 @@ pub(super) static MDOC_DOCUMENT_MAPPING: LazyLock<MdocDocumentMapping> = LazyLoc
                     },
                 ),
                 (
-                    (PID_DOCTYPE, "own_family_name"),
-                    DataElementValueMapping {
-                        key: "own_family_name",
-                        is_mandatory: true,
-                        key_labels: HashMap::from([("en", "Family name"), ("nl", "Geslachtsnaam")]),
-                        value_type: AttributeValueType::String,
-                    },
-                ),
-                (
                     (PID_DOCTYPE, "given_name_birth"),
                     DataElementValueMapping {
                         key: "given_name_birth",
@@ -133,18 +124,6 @@ pub(super) static MDOC_DOCUMENT_MAPPING: LazyLock<MdocDocumentMapping> = LazyLoc
                         is_mandatory: false,
                         key_labels: HashMap::from([("en", "Country of birth"), ("nl", "Geboorteland")]),
                         value_type: AttributeValueType::String,
-                    },
-                ),
-                (
-                    (PID_DOCTYPE, "has_spouse_or_partner"),
-                    DataElementValueMapping {
-                        key: "has_spouse_or_partner",
-                        is_mandatory: false,
-                        key_labels: HashMap::from([
-                            ("en", "Married or registered partnership"),
-                            ("nl", "Getrouwd of geregistreerd partnerschap"),
-                        ]),
-                        value_type: AttributeValueType::Bool,
                     },
                 ),
                 (

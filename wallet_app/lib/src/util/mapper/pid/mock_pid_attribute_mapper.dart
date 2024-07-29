@@ -31,9 +31,6 @@ class MockPidAttributeMapper extends PidAttributeMapper<DataAttribute> {
   String get lastNameKey => 'mock.lastName';
 
   @override
-  String get hasSpouseOrPartnerKey => 'mock.hasSpouseOrPartner';
-
-  @override
   String get residencePostalCodeKey => 'mock.postalCode';
 
   @override

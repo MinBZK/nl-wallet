@@ -1,6 +1,5 @@
 use indexmap::IndexMap;
 use rstest::rstest;
-use tracing::error;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
@@ -165,7 +164,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
             ..
         }))) if description.contains("could not find attributes for BSN") => return Err(TestError::UnknownBsn),
         Err(e) => {
-            error!("{:?}", e);
+            dbg!("{:?}", e);
             return Err(TestError::Unknown);
         }
     };

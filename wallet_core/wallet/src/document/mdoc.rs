@@ -402,10 +402,6 @@ pub mod tests {
                 value: DataElementValue::Text("De Bruijn".to_string()),
             },
             Entry {
-                name: "own_family_name".to_string(),
-                value: DataElementValue::Text("Molenaar".to_string()),
-            },
-            Entry {
                 name: "given_name".to_string(),
                 value: DataElementValue::Text("Willeke Liselotte".to_string()),
             },
@@ -534,14 +530,7 @@ pub mod tests {
         assert_eq!(document.doc_type, PID_DOCTYPE);
         assert_eq!(
             document.attributes.keys().cloned().collect::<Vec<_>>(),
-            vec![
-                "given_name",
-                "family_name",
-                "own_family_name",
-                "birth_date",
-                "age_over_18",
-                "bsn"
-            ]
+            vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
         );
         assert_matches!(
             document.attributes.get("given_name").unwrap(),
@@ -557,13 +546,6 @@ pub mod tests {
                 key_labels: _,
                 value: AttributeValue::String(family_name),
             } if family_name == "De Bruijn"
-        );
-        assert_matches!(
-            document.attributes.get("own_family_name").unwrap(),
-            Attribute {
-                key_labels: _,
-                value: AttributeValue::String(own_family_name),
-            } if own_family_name == "Molenaar"
         );
         assert_matches!(
             document.attributes.get("birth_date").unwrap(),
@@ -679,7 +661,7 @@ pub mod tests {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
         _ = mem::replace(
-            &mut attributes.get_mut(PID_DOCTYPE).unwrap()[4],
+            &mut attributes.get_mut(PID_DOCTYPE).unwrap()[3],
             Entry {
                 name: "birth_date".to_string(),
                 value: DataElementValue::Text("1997-04-31".to_string()),
@@ -769,14 +751,7 @@ pub mod tests {
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
             disclosure_document.attributes.keys().cloned().collect::<Vec<_>>(),
-            vec![
-                "given_name",
-                "family_name",
-                "own_family_name",
-                "birth_date",
-                "age_over_18",
-                "bsn"
-            ]
+            vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
         );
         assert_matches!(
             disclosure_document.attributes.get("given_name").unwrap(),
@@ -792,13 +767,6 @@ pub mod tests {
                 key_labels: _,
                 value: AttributeValue::String(family_name),
             } if family_name == "De Bruijn"
-        );
-        assert_matches!(
-            disclosure_document.attributes.get("own_family_name").unwrap(),
-            Attribute {
-                key_labels: _,
-                value: AttributeValue::String(own_family_name),
-            } if own_family_name == "Molenaar"
         );
         assert_matches!(
             disclosure_document.attributes.get("birth_date").unwrap(),
