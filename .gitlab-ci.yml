@@ -151,7 +151,7 @@ default:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:7e741ecb10b07adec21f7328bbb8e8407ab80f299050fbff32ba764314390f97"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:f1db1900aa2f2f9606ada600f4529af4d331c09a44a112dbbc87bd3aef90ebe7"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -183,7 +183,7 @@ test-flutter-ui:
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:7e741ecb10b07adec21f7328bbb8e8407ab80f299050fbff32ba764314390f97"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:f1db1900aa2f2f9606ada600f4529af4d331c09a44a112dbbc87bd3aef90ebe7"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -259,7 +259,7 @@ test-rust:
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:554ae0dd0e78df936464fb7c3fe8578742f9c800af126268e1a38b19d26a04d9"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:82a232254c252b545b7924caba9612f884ddbee2ef968ad64fc418127d13dd1a"
   script:
     - !reference [.test-rust-compilation, script]
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
@@ -324,7 +324,7 @@ test-ios:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:783f2f057806b774a16ce2b070b16b8f8d828e336815e91ca709820edae403d2"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:4654115311b25f28041b8aa936b3fc8a0c26587b30471f5f7a7a7049ebc597a1"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -443,7 +443,7 @@ sonar-flutter:
     - job: dependency-check
       artifacts: true
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:56bb32022328b2f9067181494540787088eed9d750f62606047f33dd26533468"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:1825008d760293f202396f892a285985022adc5a53905cf8175143eb78944621"
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -599,7 +599,7 @@ build-gba-hc-converter-image:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:554ae0dd0e78df936464fb7c3fe8578742f9c800af126268e1a38b19d26a04d9"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:82a232254c252b545b7924caba9612f884ddbee2ef968ad64fc418127d13dd1a"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -1011,7 +1011,7 @@ dependency-check-images:
     - job: build-pid-issuer-image
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:56bb32022328b2f9067181494540787088eed9d750f62606047f33dd26533468"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:1825008d760293f202396f892a285985022adc5a53905cf8175143eb78944621"
   variables:
     GIT_STRATEGY: none
   before_script:
@@ -1386,7 +1386,7 @@ run-automation-smoke-test-ont:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:35c2a8188254f55d372f37baab6e9f03a35d0bf4713a8708a1249d25d8501ba6"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:4be692a9c8b1bcbaa539157dd57a41248d26cc8caee7c3a7589ea42a449209a8"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json
