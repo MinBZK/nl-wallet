@@ -47,6 +47,7 @@ pub struct Settings {
     pub urls: Urls,
 
     pub log_requests: bool,
+    pub structured_logging: bool,
 
     pub storage: Storage,
 
@@ -139,6 +140,7 @@ impl Settings {
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("log_requests", false)?
+            .set_default("structured_logging", false)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",
