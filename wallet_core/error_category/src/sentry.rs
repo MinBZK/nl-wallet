@@ -16,7 +16,7 @@ pub fn classify_and_report<T: ErrorCategory + Error + ?Sized>(error: &T) {
         }
         Category::Critical => {
             debug!("encountered critical error, reporting to sentry: {}", error);
-            let event = privacy_sensitive_event_from_error(error, false);
+            let event = event_from_error(error, false);
             let _uuid = sentry::capture_event(event);
         }
         Category::PersonalData => {
@@ -24,7 +24,7 @@ pub fn classify_and_report<T: ErrorCategory + Error + ?Sized>(error: &T) {
                 "encountered critical error with possible PII, reporting to sentry without data: {}",
                 error
             );
-            let event = privacy_sensitive_event_from_error(error, true);
+            let event = event_from_error(error, true);
             let _uuid = sentry::capture_event(event);
         }
         Category::Unexpected => {
@@ -56,7 +56,7 @@ pub fn classify_and_report<T: ErrorCategory + Error + ?Sized>(error: &T) {
 /// #[error("outer")]
 /// struct OuterError(#[from] InnerError);
 ///
-/// let event = error_category::sentry::privacy_sensitive_event_from_error(&OuterError(InnerError), true);
+/// let event = error_category::sentry::event_from_error(&OuterError(InnerError), true);
 /// assert_eq!(event.level, sentry::protocol::Level::Error);
 /// assert_eq!(event.exception.len(), 2);
 /// assert_eq!(&event.exception[0].ty, "InnerError");
@@ -66,12 +66,12 @@ pub fn classify_and_report<T: ErrorCategory + Error + ?Sized>(error: &T) {
 /// ```
 ///
 /// [sentry event payloads]: https://develop.sentry.dev/sdk/event-payloads/exception/
-pub fn privacy_sensitive_event_from_error<E: Error + ?Sized>(err: &E, sensitive: bool) -> Event<'static> {
-    let mut exceptions = vec![privacy_sensitive_exception_from_error(err, sensitive)];
+pub fn event_from_error<E: Error + ?Sized>(err: &E, sensitive: bool) -> Event<'static> {
+    let mut exceptions = vec![exception_from_error(err, sensitive)];
 
     let mut source = err.source();
     while let Some(err) = source {
-        exceptions.push(privacy_sensitive_exception_from_error(err, sensitive));
+        exceptions.push(exception_from_error(err, sensitive));
         source = err.source();
     }
 
@@ -85,7 +85,7 @@ pub fn privacy_sensitive_event_from_error<E: Error + ?Sized>(err: &E, sensitive:
 
 /// Copied from `sentry::exception_from_error`.
 /// Extended with `sensitive` argument, to allow for removing sensitive data.
-fn privacy_sensitive_exception_from_error<E: Error + ?Sized>(err: &E, sensitive: bool) -> Exception {
+fn exception_from_error<E: Error + ?Sized>(err: &E, sensitive: bool) -> Exception {
     let dbg = format!("{err:?}");
     let value = err.to_string();
     let type_name = std::any::type_name::<E>();
