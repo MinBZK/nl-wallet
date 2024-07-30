@@ -32,10 +32,13 @@ pub enum CertificateError {
     ValidationParsing(#[from] webpki::Error),
     #[error("certificate content parsing failed: {0}")]
     ContentParsing(#[from] x509_parser::nom::Err<X509Error>),
+    #[cfg(any(test, feature = "generate"))]
     #[error("certificate private key generation failed: {0}")]
+    #[category(unexpected)]
     GeneratingPrivateKey(p256::pkcs8::Error),
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate creation failed: {0}")]
+    #[category(unexpected)]
     GeneratingFailed(#[from] rcgen::RcgenError),
     #[error("failed to parse certificate public key: {0}")]
     KeyParsingFailed(p256::pkcs8::spki::Error),
