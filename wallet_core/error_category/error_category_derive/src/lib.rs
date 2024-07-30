@@ -56,7 +56,7 @@ fn sentry_capture_error_function(
                 {
                     #(#stmts)*
                 },
-                ::error_category::sentry::classify_and_report)
+                ::error_category::sentry::classify_mask_and_capture)
         }
     }
 }
