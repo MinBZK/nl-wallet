@@ -1,0 +1,102 @@
+.default-sonar:
+  rules: !reference [.default-or-merge-request, rules]
+  image:
+    name: "$HARBOR_REGISTRY/docker-hub-proxy/sonarsource/sonar-scanner-cli:4.8.1"
+
+sonar-rust:
+  extends: .default-sonar
+  needs:
+    - job: test-rust
+      artifacts: true
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - cd wallet_core
+  script:
+    - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-demo-app-rust
+      -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
+      -Dcommunity.rust.lcov.reportPaths="lcov.info"
+
+sonar-flutter:
+  rules: !reference [.default-or-merge-request, rules]
+  needs:
+    - job: test-flutter
+      artifacts: true
+    - job: dependency-check
+      artifacts: true
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:1825008d760293f202396f892a285985022adc5a53905cf8175143eb78944621"
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - cd $FLUTTER_APP_PROJECT_DIR
+  script:
+    - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-demo-app
+      -Dsonar.exclusions="android/**,ios/**"
+      -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
+      -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
+      -Dsonar.flutter.tests.reportPath=build/reports/test-results.json
+      -Dsonar.flutter.coverage.reportPath=coverage/lcov.info
+
+sonar-wallet-web:
+  extends: .default-sonar
+  needs:
+    - job: build-wallet-web
+      artifacts: true
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - cd wallet_web
+    - set -euxo pipefail
+  script:
+    - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-web
+      -Dsonar.sources=lib/
+      -Dsonar.exclusions=lib/__tests__/**/*
+      -Dsonar.tests=lib/
+      -Dsonar.test.inclusions=lib/__tests__/**/*
+      -Dsonar.coverage.exclusions=lib/__tests__
+      -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+      -Dsonar.junit.reportPaths=coverage/tests.xml
+
+sonar-ios:
+  extends: .default-sonar
+  needs:
+    - job: test-ios
+      artifacts: true
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - cd wallet_core/platform_support/ios
+  script:
+    - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios
+      -Dsonar.exclusions="*Tests*/**"
+      -Dsonar.c.file.suffixes=-
+      -Dsonar.cpp.file.suffixes=-
+      -Dsonar.objc.file.suffixes=-
+      -Dsonar.coverageReportPaths=../../../fastlane/test_output/sonarqube-generic-coverage.xml
+
+sonar-android:
+  extends: .default-sonar
+  #  needs:
+  #    - job: test-android
+  #      artifacts: true
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - cd wallet_core/platform_support/android
+  script:
+    - sonar-scanner
+      -Dsonar.sourceEncoding=UTF-8
+      -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
+      -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**"
+      -Dsonar.findbugs.allowuncompiledcode=true
+#      -Dsonar.junit.reportPaths="platform_support/build/outputs/androidTest-results/*/*.xml"
+#      -Dsonar.coverage.jacoco.xmlReportPaths="platform_support/build/reports/coverage/androidTest/*/*/report.xml"
