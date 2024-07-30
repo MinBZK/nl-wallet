@@ -12,6 +12,7 @@ use josekit::{
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::PreferOne, serde_as, skip_serializing_none, OneOrMany};
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     utils::{
@@ -241,41 +242,52 @@ impl JwePublicKey {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum AuthRequestValidationError {
     #[error("unexpected field: {0}")]
+    #[category(critical)]
     UnexpectedField(&'static str),
     #[error("missing required field: {0}")]
+    #[category(critical)]
     ExpectedFieldMissing(&'static str),
     #[error("unsupported value for field {field}: expected {expected}, found {found}")]
+    #[category(pd)]
     UnsupportedFieldValue {
         field: &'static str,
         expected: &'static str,
         found: String,
     },
     #[error("field {0}_uri found, expected field directly")]
+    #[category(critical)]
     UriVariantNotSupported(&'static str),
     #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
+    #[category(critical)]
     UnexpectedJwkAmount(usize),
     #[error("unsupported JWK: expected {expected}, found {found:?} in {field}")]
+    #[category(pd)] // might leak sensitive data
     UnsupportedJwk {
         field: &'static str,
         expected: &'static str,
         found: Option<serde_json::Value>,
     },
     #[error("no attributes were requested")]
+    #[category(critical)]
     NoAttributesRequested,
     #[error("unsupported Presentation Definition: {0}")]
     UnsupportedPresentationDefinition(#[from] PdConversionError),
     #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
+    #[category(critical)]
     UnauthorizedClientId { client_id: String, dns_san: String },
     #[error("Subject Alternative Name missing from X.509 certificate")]
+    #[category(critical)]
     MissingSAN,
     #[error("error parsing X.509 certificate: {0}")]
     CertificateParsing(#[from] CertificateError),
     #[error("failed to verify Authorization Request JWT: {0}")]
     JwtVerification(#[from] JwtX5cError),
     #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
+    #[category(critical)]
     WalletNonceMismatch,
 }
 

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
 use url::Url;
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     server_state::SessionToken,
     unsigned::UnsignedMdoc,
@@ -178,11 +179,13 @@ impl From<AttestationPreview> for UnsignedMdoc {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationPreviewError {
     #[error("certificate error: {0}")]
+    #[category(defer)]
     Certificate(#[from] CertificateError),
     #[error("issuer registration not found in certificate")]
+    #[category(critical)]
     NoIssuerRegistration,
 }
 

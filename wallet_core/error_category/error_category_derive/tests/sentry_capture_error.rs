@@ -4,7 +4,7 @@ use sentry::{test::with_captured_events, Level};
 mod my_module {
     use thiserror::Error;
 
-    use wallet_common::{sentry_capture_error, ErrorCategory};
+    use error_category::{sentry_capture_error, ErrorCategory};
 
     // Test `sentry_capture_error` on regular functions
     #[sentry_capture_error]
@@ -100,7 +100,10 @@ fn test_foo() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -111,7 +114,10 @@ fn test_bar() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -125,7 +131,10 @@ fn test_baz() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -137,7 +146,10 @@ fn test_test_method() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -148,7 +160,10 @@ fn test_test_associated_fn() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -161,7 +176,10 @@ fn test_wallet_foo() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -173,7 +191,10 @@ fn test_wallet_bar() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -188,7 +209,10 @@ fn test_wallet_baz() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -201,7 +225,10 @@ fn test_purse_foo() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -214,7 +241,10 @@ fn test_purse_bar() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 
@@ -230,7 +260,10 @@ fn test_purse_baz() {
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
-    assert_eq!(events[0].exception.values[0].ty, "CriticalError".to_string());
+    assert_eq!(
+        events[0].exception.values[0].ty,
+        "sentry_capture_error::my_module::Error::CriticalError".to_string()
+    );
     assert_eq!(events[0].exception.values[0].value, Some("Just some error".to_string()));
 }
 

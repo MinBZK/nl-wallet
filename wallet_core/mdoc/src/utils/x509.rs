@@ -18,11 +18,13 @@ use x509_parser::{
     prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
 };
 
+use error_category::ErrorCategory;
 use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
 
 use super::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(pd)]
 pub enum CertificateError {
     #[error("certificate verification failed: {0}")]
     Verification(#[source] webpki::Error),
@@ -30,20 +32,26 @@ pub enum CertificateError {
     ValidationParsing(#[from] webpki::Error),
     #[error("certificate content parsing failed: {0}")]
     ContentParsing(#[from] x509_parser::nom::Err<X509Error>),
+    #[cfg(any(test, feature = "generate"))]
     #[error("certificate private key generation failed: {0}")]
+    #[category(unexpected)]
     GeneratingPrivateKey(p256::pkcs8::Error),
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate creation failed: {0}")]
+    #[category(unexpected)]
     GeneratingFailed(#[from] rcgen::RcgenError),
     #[error("failed to parse certificate public key: {0}")]
     KeyParsingFailed(p256::pkcs8::spki::Error),
     #[error("EKU count incorrect ({0})")]
+    #[category(critical)]
     IncorrectEkuCount(usize),
     #[error("EKU incorrect")]
+    #[category(critical)]
     IncorrectEku(String),
     #[error("PEM decoding error: {0}")]
     Pem(#[from] nom::Err<PEMError>),
     #[error("unexpected PEM header: found {found}, expected {expected}")]
+    #[category(critical)]
     UnexpectedPemHeader { found: String, expected: String },
     #[error("DER coding error: {0}")]
     DerEncodingError(#[from] p256::pkcs8::der::Error),

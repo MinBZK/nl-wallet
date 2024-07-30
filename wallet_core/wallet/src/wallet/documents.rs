@@ -1,5 +1,6 @@
 use tracing::info;
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::utils::{
     cose::CoseError,
     issuer_auth::IssuerRegistration,
@@ -13,7 +14,8 @@ use crate::{
 
 use super::Wallet;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum DocumentsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
@@ -22,6 +24,7 @@ pub enum DocumentsError {
     #[error("could not interpret X.509 certificate: {0}")]
     Cose(#[from] CoseError),
     #[error("X.509 certificate does not contain IssuerRegistration")]
+    #[category(critical)]
     MissingIssuerRegistration,
 }
 
@@ -68,6 +71,7 @@ where
         Ok(())
     }
 
+    #[sentry_capture_error]
     pub async fn set_documents_callback(
         &mut self,
         callback: DocumentsCallback,

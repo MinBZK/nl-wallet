@@ -2,12 +2,14 @@
 
 use rstest::rstest;
 
-use wallet_common::{Category, ErrorCategory};
+use error_category::{Category, ErrorCategory};
 
 #[derive(ErrorCategory)]
 enum ChildError {
     #[category(expected)]
     Unit,
+    #[category(unexpected)]
+    Unexpected,
     #[category(expected)]
     EmptyTuple(),
     #[category(critical)]
@@ -111,6 +113,7 @@ fn derive_error_category() {
 
 #[rstest]
 #[case(ChildError::Unit, Category::Expected)]
+#[case(ChildError::Unexpected, Category::Unexpected)]
 #[case(ChildError::EmptyTuple(), Category::Expected)]
 #[case(ChildError::SingleTuple(42), Category::Critical)]
 #[case(ChildError::DoubleTuple(42, 42), Category::PersonalData)]

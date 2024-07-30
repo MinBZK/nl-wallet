@@ -1,6 +1,7 @@
 mod client;
 mod keys;
 
+use error_category::ErrorCategory;
 use wallet_common::{account::messages::errors::AccountError, jwt::JwtError};
 
 use crate::{
@@ -13,22 +14,27 @@ pub use self::{
     keys::{RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum InstructionError {
     #[error(
         "PIN provided is incorrect: (attempts_left_in_round: {attempts_left_in_round}, is_final_round: {is_final_round})"
     )]
+    #[category(expected)]
     IncorrectPin {
         attempts_left_in_round: u8,
         is_final_round: bool,
     },
     #[error("unlock disabled due to timeout")]
+    #[category(expected)]
     Timeout { timeout_millis: u64 },
     #[error("unlock permanently disabled")]
+    #[category(expected)]
     Blocked,
     #[error("server error: {0}")]
     ServerError(#[source] AccountProviderError),
     #[error("Wallet Provider could not validate instruction")]
+    #[category(critical)]
     InstructionValidation,
     #[error("could not sign instruction: {0}")]
     Signing(#[source] wallet_common::account::errors::Error),

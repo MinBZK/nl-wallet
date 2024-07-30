@@ -1,9 +1,9 @@
-use wallet_common::ErrorCategory;
+use error_category::ErrorCategory;
 
 #[derive(ErrorCategory)]
 enum Error {
     #[category(defer)]
-    SingleStruct,
+    SingleStruct {},
 }
 
 fn main() {}

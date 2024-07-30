@@ -19,6 +19,7 @@ use p256::{
 };
 use serde::{de::DeserializeOwned, Serialize};
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::KeyPair,
@@ -34,17 +35,21 @@ use wallet_common::{
     keys::EcdsaKey,
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum JwkConversionError {
     #[error("unsupported JWK EC curve: expected P256, found {found:?}")]
+    #[category(critical)]
     UnsupportedJwkEcCurve { found: EllipticCurve },
     #[error("unsupported JWK algorithm")]
+    #[category(critical)]
     UnsupportedJwkAlgorithm,
     #[error("base64 decoding failed: {0}")]
     Base64Error(#[from] base64::DecodeError),
     #[error("failed to construct verifying key: {0}")]
     VerifyingKeyConstruction(#[from] signature::Error),
     #[error("missing coordinate in conversion to P256 public key")]
+    #[category(critical)]
     MissingCoordinate,
     #[error("failed to get public key: {0}")]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
@@ -146,13 +151,16 @@ pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
     Ok(jwts)
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum JwtX5cError {
     #[error("error validating JWT: {0}")]
     Jwt(#[from] JwtError),
     #[error("missing X.509 certificate(s) in JWT header to validate JWT against")]
+    #[category(critical)]
     MissingCertificates,
     #[error("error base64-decoding certificate: {0}")]
+    #[category(critical)]
     CertificateBase64(#[source] DecodeError),
     #[error("error verifying certificate: {0}")]
     CertificateValidation(#[source] CertificateError),

@@ -1,14 +1,16 @@
 use tracing::{info, instrument, warn};
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use wallet_common::keys::StoredByIdentifier;
 
 use crate::storage::Storage;
 
 use super::Wallet;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ResetError {
     #[error("wallet is not registered")]
+    #[category(expected)]
     NotRegistered,
 }
 
@@ -54,6 +56,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn reset(&mut self) -> ResetResult<()> {
         info!("Resetting of wallet requested");
 

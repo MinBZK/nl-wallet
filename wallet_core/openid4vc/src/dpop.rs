@@ -51,6 +51,8 @@ use serde_with::{
     serde_as, skip_serializing_none,
 };
 use url::Url;
+
+use error_category::ErrorCategory;
 use wallet_common::{
     jwt::{EcdsaDecodingKey, Jwt, JwtError},
     keys::EcdsaKey,
@@ -65,25 +67,34 @@ use crate::{
 pub const DPOP_HEADER_NAME: &str = "DPoP";
 pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum DpopError {
     #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
+    #[category(critical)]
     UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("incorrect DPoP JWT HTTP method")]
+    #[category(critical)]
     IncorrectMethod,
     #[error("incorrect DPoP JWT url")]
+    #[category(critical)]
     IncorrectUrl,
     #[error("incorrect DPoP JWT nonce")]
+    #[category(critical)]
     IncorrectNonce,
     #[error("incorrect DPoP JWT access token hash")]
+    #[category(critical)]
     IncorrectAccessTokenHash,
     #[error("missing JWK")]
+    #[category(critical)]
     MissingJwk,
     #[error("incorrect JWK public key")]
+    #[category(critical)]
     IncorrectJwkPublicKey,
     #[error("failed to convert key from/to JWK format: {0}")]
     JwkConversion(#[from] JwkConversionError),
     #[error("JWT decoding failed: {0}")]
+    #[category(pd)]
     JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),

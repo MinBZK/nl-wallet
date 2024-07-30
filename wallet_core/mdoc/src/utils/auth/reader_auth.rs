@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use error_category::ErrorCategory;
+
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     utils::x509::{CertificateType, MdocCertificateExtension},
@@ -100,9 +102,10 @@ pub struct AuthorizedNamespace(pub IndexMap<String, AuthorizedAttribute>);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizedAttribute {}
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ValidationError {
     #[error("requested unregistered attributes: {0:?}")]
+    #[category(critical)] // RP data, no user data
     UnregisteredAttributes(Vec<AttributeIdentifier>),
 }
 

@@ -1,20 +1,25 @@
+use error_category::ErrorCategory;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 /// The list of uniquely identifiable error types. A client
 /// can use these types to distinguish between different errors.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumDiscriminants)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumDiscriminants, ErrorCategory)]
 #[strum_discriminants(
     name(AccountErrorType),
     derive(strum::Display, strum::EnumString),
     strum(serialize_all = "snake_case")
 )]
+#[category(critical)]
 pub enum AccountError {
     Unexpected,
     ChallengeValidation,
     RegistrationParsing,
+    #[category(expected)]
     IncorrectPin(IncorrectPinData),
+    #[category(expected)]
     PinTimeout(PinTimeoutData),
+    #[category(expected)]
     AccountBlocked,
     InstructionValidation,
 }

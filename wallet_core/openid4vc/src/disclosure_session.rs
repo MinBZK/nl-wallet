@@ -8,8 +8,7 @@ use reqwest::{header::ACCEPT, Method, Response};
 use serde::de::DeserializeOwned;
 use tracing::{info, warn};
 
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
-
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
@@ -25,6 +24,7 @@ use nl_wallet_mdoc::{
     },
     verifier::SessionType,
 };
+use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
 
 use crate::{
     openid4vp::{
@@ -36,7 +36,8 @@ use crate::{
     VpAuthorizationErrorCode,
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[from] VpMessageClientError),
@@ -45,8 +46,10 @@ pub enum VpClientError {
     #[error("error verifying Authorization Request: {0}")]
     AuthRequestValidation(#[from] AuthRequestValidationError),
     #[error("incorrect client_id: expected {expected}, found {found}")]
+    #[category(critical)]
     IncorrectClientId { expected: String, found: String },
     #[error("no reader registration in RP certificate")]
+    #[category(critical)]
     MissingReaderRegistration,
     #[error("error validating requested attributes: {0}")]
     RequestedAttributesValidation(#[from] ValidationError),
@@ -55,22 +58,30 @@ pub enum VpClientError {
     #[error("error parsing RP certificate: {0}")]
     RpCertificate(#[from] CertificateError),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
+    #[category(pd)] // we don't want to leak information about what's in the wallet
     MultipleCandidates(Vec<String>),
     #[error("error encrypting Authorization Response: {0}")]
+    #[category(unexpected)]
     AuthResponseEncryption(#[from] AuthResponseError),
     #[error("error deserializing request_uri object: {0}")]
+    #[category(pd)] // we cannot be sure that the URL is not included in the error.
     RequestUri(#[source] serde_urlencoded::de::Error),
     #[error("missing session_type query parameter in request URI")]
+    #[category(critical)]
     MissingSessionType,
     #[error("malformed session_type query parameter in request URI: {0}")]
+    #[category(pd)] // we cannot be sure that the URL is not included in the error
     MalformedSessionType(#[source] serde_urlencoded::de::Error),
     #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
+    #[category(critical)]
     DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum VpMessageClientError {
     #[error("HTTP request error: {0}")]
+    #[category(expected)]
     Http(#[from] reqwest::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),

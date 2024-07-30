@@ -2,6 +2,7 @@ use futures::future::TryFutureExt;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use wallet_common::account::messages::instructions::CheckPin;
 
 pub use crate::lock::LockCallback;
@@ -15,13 +16,16 @@ use crate::{
 
 use super::Wallet;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum WalletUnlockError {
     #[error("wallet is not registered")]
+    #[category(expected)]
     NotRegistered,
     #[error("wallet is not locked")]
+    #[category(expected)]
     NotLocked,
     #[error("error sending instruction to Wallet Provider: {0}")]
+    #[category(defer)]
     Instruction(#[from] InstructionError),
 }
 
@@ -44,6 +48,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: ConfigurationRepository,

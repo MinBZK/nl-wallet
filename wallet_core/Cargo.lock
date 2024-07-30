@@ -617,9 +617,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.6.1"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a12916984aab3fa6e39d655a33e09c0071eb36d6ab3aea5c2d78551f1df6d952"
+checksum = "514de17de45fdb8dc022b1a7975556c53c86f9f0aa5f534b98977b171857c2c9"
 
 [[package]]
 name = "camino"
@@ -1316,6 +1316,31 @@ checksum = "534c5cf6194dfab3db3242765c03bbe257cf92f22b38f6bc0c58d59108a820ba"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "error_category"
+version = "0.1.0"
+dependencies = [
+ "error_category_derive",
+ "sentry",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "error_category_derive"
+version = "0.1.0"
+dependencies = [
+ "error_category",
+ "proc-macro2",
+ "quote",
+ "rstest",
+ "sentry",
+ "syn 2.0.68",
+ "thiserror",
+ "tokio",
+ "trybuild",
 ]
 
 [[package]]
@@ -2454,6 +2479,7 @@ dependencies = [
  "coset",
  "dashmap",
  "derive_more",
+ "error_category",
  "futures",
  "hex",
  "hex-literal",
@@ -2646,6 +2672,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "derive_more",
+ "error_category",
  "futures",
  "hex",
  "http",
@@ -2682,9 +2709,9 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.10.66"
+version = "0.10.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9529f4786b70a3e8c61e11179af17ab6188ad8d0ded78c5529441ed39d4bd9c1"
+checksum = "95a0481286a310808298130d22dd1fef0fa571e05a8f44ec801801e84b216b1f"
 dependencies = [
  "bitflags 2.6.0",
  "cfg-if",
@@ -2717,9 +2744,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.103"
+version = "0.9.102"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f9e8deee91df40a943c71b917e5874b951d32a802526c85721ce3b776c929d6"
+checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
 dependencies = [
  "cc",
  "libc",
@@ -2929,6 +2956,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.1.0"
 dependencies = [
+ "error_category",
  "jni",
  "p256",
  "parking_lot",
@@ -4114,9 +4142,9 @@ dependencies = [
 
 [[package]]
 name = "similar"
-version = "2.5.0"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa42c91313f1d05da9b26f267f931cf178d4aba455b4c4622dd7355eb80c6640"
+checksum = "1de1d4f81173b03af4c0cbed3c898f6bff5b870e4a7f5d6f4057d62a7a4b686e"
 
 [[package]]
 name = "simple_asn1"
@@ -5293,6 +5321,7 @@ dependencies = [
  "ciborium",
  "dotenvy",
  "entity",
+ "error_category",
  "futures",
  "http",
  "indexmap 2.2.6",
@@ -5360,6 +5389,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "error_category",
  "etag",
  "futures",
  "http",
@@ -5383,22 +5413,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wallet_common_macros",
-]
-
-[[package]]
-name = "wallet_common_macros"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "rstest",
- "sentry",
- "syn 2.0.68",
- "thiserror",
- "tokio",
- "trybuild",
- "wallet_common",
 ]
 
 [[package]]

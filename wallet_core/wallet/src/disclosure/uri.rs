@@ -1,7 +1,10 @@
 use base64::prelude::*;
 use url::Url;
 
-#[derive(Debug, thiserror::Error)]
+use error_category::ErrorCategory;
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum DisclosureUriError {
     #[error("URI is malformed: {0}")]
     Malformed(Url),

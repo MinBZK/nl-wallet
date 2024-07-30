@@ -1,4 +1,4 @@
-use wallet_common::sentry_capture_error;
+use error_category::sentry_capture_error;
 
 #[sentry_capture_error]
 const FOO: &str = "str";

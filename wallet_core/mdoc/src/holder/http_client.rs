@@ -3,6 +3,8 @@ use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use x509_parser::nom::AsBytes;
 
+use error_category::ErrorCategory;
+
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
     Error,
@@ -10,11 +12,13 @@ use crate::{
 
 use super::HolderError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum HttpClientError {
     #[error("CBOR error: {0}")]
     Cbor(#[from] CborError),
     #[error("HTTP request error: {0}")]
+    #[category(expected)]
     Request(#[from] reqwest::Error),
 }
 

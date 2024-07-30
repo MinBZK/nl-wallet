@@ -96,7 +96,7 @@ pub enum VerificationError {
     #[error("attributes mismatch: {0:?}")]
     MissingAttributes(Vec<AttributeIdentifier>),
     #[error("error with sessionstore: {0}")]
-    SessionStore(SessionStoreError),
+    SessionStore(#[source] SessionStoreError),
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
     SessionNotDone,
     #[error("return URL nonce not provided")]

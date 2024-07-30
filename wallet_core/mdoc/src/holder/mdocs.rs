@@ -6,6 +6,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
+use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
 
 use crate::{
@@ -130,8 +131,9 @@ impl Mdoc {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 #[error("missing attributes: {missing:?}; unexpected attributes: {unexpected:?}")]
+#[category(pd)]
 pub struct IssuedAttributesMismatch {
     pub missing: Vec<AttributeIdentifier>,
     pub unexpected: Vec<AttributeIdentifier>,

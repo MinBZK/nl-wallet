@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "configuration_server",
+    "error_category",
+    "error_category/error_category_derive",
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "gba_hc_converter",
@@ -14,7 +16,6 @@ members = [
     "wallet/migration",
     "wallet_ca",
     "wallet_common",
-    "wallet_common/wallet_common_macros",
     "wallet_provider",
     "wallet_provider/database_settings",
     "wallet_provider/domain",

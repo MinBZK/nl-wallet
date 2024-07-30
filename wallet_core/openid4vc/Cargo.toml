@@ -59,8 +59,9 @@ axum = { workspace = true, optional = true, features = ["json"] }
 ciborium = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 
-wallet_common.path = "../wallet_common"
+error_category.path = "../error_category"
 nl_wallet_mdoc.path = "../mdoc"
+wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
 assert_matches.workspace = true

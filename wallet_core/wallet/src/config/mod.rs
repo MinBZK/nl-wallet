@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use url::ParseError;
 
+use error_category::ErrorCategory;
 use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError};
 
 pub use self::{
@@ -28,13 +29,17 @@ pub use self::mock::LocalConfigurationRepository;
 
 pub type ConfigCallback = Box<dyn FnMut(Arc<WalletConfiguration>) + Send + Sync>;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum ConfigurationError {
     #[error("networking error: {0}")]
+    #[category(critical)]
     Networking(#[from] reqwest::Error),
     #[error("could not get config from config server: {0} - Response body: {1}")]
+    #[category(critical)]
     Response(#[source] reqwest::Error, String),
     #[error("could not parse base URL: {0}")]
+    #[category(critical)]
     BaseUrl(#[from] ParseError),
     #[error("could not store or load configuration: {0}")]
     ConfigFile(#[from] FileStorageError),
@@ -42,7 +47,8 @@ pub enum ConfigurationError {
     Jwt(#[from] JwtError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum FileStorageError {
     #[error("config file I/O error: {0}")]
     Io(#[from] std::io::Error),

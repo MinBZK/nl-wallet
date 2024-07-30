@@ -17,13 +17,16 @@ use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use url::Url;
 
+use error_category::ErrorCategory;
+
 use crate::{
     iso::*,
     utils::cose::{CoseKey, MdocCose},
 };
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(pd)] // might leak PII
 pub enum CborError {
     #[error("deserialization failed: {0}")]
     Deserialization(#[from] ciborium::de::Error<std::io::Error>),

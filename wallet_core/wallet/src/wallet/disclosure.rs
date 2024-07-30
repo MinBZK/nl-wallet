@@ -5,6 +5,7 @@ use tracing::{error, info, instrument};
 use url::Url;
 use uuid::Uuid;
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::{
     holder::{MdocDataSource, ProposedAttributes, StoredMdoc},
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
@@ -37,13 +38,17 @@ pub struct DisclosureProposal {
     pub is_login_flow: bool,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum DisclosureError {
     #[error("wallet is not registered")]
+    #[category(expected)]
     NotRegistered,
     #[error("wallet is locked")]
+    #[category(expected)]
     Locked,
     #[error("disclosure session is not in the correct state")]
+    #[category(expected)]
     SessionState,
     #[error("could not parse disclosure URI: {0}")]
     DisclosureUri(#[source] DisclosureUriError),
@@ -54,6 +59,7 @@ pub enum DisclosureError {
     #[error("could not fetch if attributes were shared before: {0}")]
     HistoryRetrieval(#[source] StorageError),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
+    #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
         missing_attributes: Vec<MissingDisclosureAttributes>,
@@ -116,6 +122,7 @@ where
     S: Storage,
 {
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn start_disclosure(
         &mut self,
         uri: &Url,
@@ -256,6 +263,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub fn has_active_disclosure_session(&self) -> Result<bool, DisclosureError> {
         info!("Checking for active disclosure session");
 
@@ -275,6 +283,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn cancel_disclosure(&mut self) -> Result<Option<Url>, DisclosureError> {
         info!("Cancelling disclosure");
 
@@ -313,6 +322,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,

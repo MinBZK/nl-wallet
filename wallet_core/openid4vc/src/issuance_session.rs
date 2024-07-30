@@ -12,6 +12,7 @@ use reqwest::{
 };
 use url::Url;
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::{IssuedAttributesMismatch, Mdoc, MdocCopies, TrustAnchor},
     utils::{
@@ -36,9 +37,11 @@ use crate::{
     CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum IssuanceSessionError {
     #[error("failed to get public key: {0}")]
+    #[category(pd)]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("DPoP error: {0}")]
     Dpop(#[from] DpopError),
@@ -47,44 +50,58 @@ pub enum IssuanceSessionError {
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
     #[error("http request failed: {0}")]
+    #[category(expected)]
     Network(#[from] reqwest::Error),
     #[error("missing c_nonce")]
+    #[category(critical)]
     MissingNonce,
     #[error("CBOR (de)serialization error: {0}")]
     Cbor(#[from] CborError),
     #[error("base64 decoding failed: {0}")]
+    #[category(pd)]
     Base64Error(#[from] base64::DecodeError),
     #[error("mismatch between issued and expected attributes: {0}")]
-    IssuedAttributesMismatch(IssuedAttributesMismatch),
+    IssuedAttributesMismatch(#[source] IssuedAttributesMismatch),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("error requesting access token: {0:?}")]
+    #[category(pd)]
     TokenRequest(ErrorResponse<TokenErrorCode>),
     #[error("error requesting credentials: {0:?}")]
+    #[category(pd)]
     CredentialRequest(ErrorResponse<CredentialErrorCode>),
     #[error("generating attestation private keys failed: {0}")]
+    #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("public key contained in mdoc not equal to expected value")]
+    #[category(critical)]
     PublicKeyMismatch,
     #[error("failed to get mdoc public key: {0}")]
     PublicKeyFromMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("received {found} responses, expected {expected}")]
+    #[category(critical)]
     UnexpectedCredentialResponseCount { found: usize, expected: usize },
     #[error("error reading HTTP error: {0}")]
+    #[category(pd)]
     HeaderToStr(#[from] ToStrError),
     #[error("error verifying certificate of attestation preview: {0}")]
     Certificate(#[from] CertificateError),
     #[error("issuer certificate contained in mdoc not equal to expected value")]
+    #[category(critical)]
     IssuerCertificateMismatch,
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
     #[error("error discovering Oauth metadata: {0}")]
+    #[category(expected)]
     OauthDiscovery(#[source] reqwest::Error),
     #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
+    #[category(expected)]
     OpenId4vciDiscovery(#[source] reqwest::Error),
     #[error("issuer has no batch credential endpoint")]
+    #[category(critical)]
     NoBatchCredentialEndpoint,
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
+    #[category(critical)]
     AttributeRandomLength(usize, usize),
 }
 

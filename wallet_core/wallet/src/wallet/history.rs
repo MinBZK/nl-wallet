@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use tracing::{info, instrument};
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::{
     holder::ProposedDocumentAttributes,
     utils::{
@@ -20,17 +21,21 @@ use crate::{
 
 use super::Wallet;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum HistoryError {
     #[error("wallet is not registered")]
+    #[category(expected)]
     NotRegistered,
     #[error("wallet is locked")]
+    #[category(expected)]
     Locked,
     #[error("could not access history database: {0}")]
     EventStorage(#[from] EventStorageError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum EventStorageError {
     #[error("could not access event in history database: {0}")]
     Storage(#[from] StorageError),
@@ -38,15 +43,18 @@ pub enum EventStorageError {
     Conversion(#[from] EventConversionError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum EventConversionError {
     #[error("could not prepare event for UI: {0}")]
     Mapping(#[from] DocumentMdocError),
     #[error("could not read organization info from certificate: {0}")]
     Certificate(#[from] CertificateError),
     #[error("certificate does not contain reader registration")]
+    #[category(critical)]
     NoReaderRegistrationFound,
     #[error("certificate does not contain issuer registration")]
+    #[category(critical)]
     NoIssuerRegistrationFound,
 }
 
@@ -79,6 +87,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn get_history(&self) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving history");
 
@@ -100,6 +109,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving Card history");
 
@@ -138,6 +148,7 @@ where
         Ok(())
     }
 
+    #[sentry_capture_error]
     pub async fn set_recent_history_callback(
         &mut self,
         callback: RecentHistoryCallback,

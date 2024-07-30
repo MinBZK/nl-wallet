@@ -76,6 +76,7 @@ rcgen = { workspace = true, optional = true, features = ["x509-parser"] }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 
+error_category.path = "../error_category"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]

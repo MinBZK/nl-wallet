@@ -9,6 +9,7 @@ use indexmap::{IndexMap, IndexSet};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::{verifier::ItemsRequests, Document, ItemsRequest};
 use wallet_common::utils::random_string;
 
@@ -50,13 +51,16 @@ pub enum LimitDisclosure {
     Preferred,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum PdConversionError {
     #[error("too many paths")]
+    #[category(critical)]
     TooManyPaths,
     #[error("unsupported JsonPath expression")]
+    #[category(critical)]
     UnsupportedJsonPathExpression,
     #[error("signature algorithms not supported")]
+    #[category(critical)]
     UnsupportedAlgs,
 }
 
@@ -172,7 +176,8 @@ pub struct InputDescriptorMappingObject {
     pub path: String,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(critical)]
 pub enum PsError {
     #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
     UnexpectedDescriptorCount { expected: usize, found: usize },

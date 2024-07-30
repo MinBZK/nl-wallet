@@ -3,6 +3,7 @@ use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
@@ -29,15 +30,20 @@ pub(super) enum PidIssuanceSession<DS = HttpDigidSession, IS = HttpIssuanceSessi
     Openid4vci(IS),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum PidIssuanceError {
     #[error("wallet is not registered")]
+    #[category(expected)]
     NotRegistered,
     #[error("wallet is locked")]
+    #[category(expected)]
     Locked,
     #[error("issuance session is not in the correct state")]
+    #[category(expected)]
     SessionState,
     #[error("PID already present")]
+    #[category(expected)]
     PidAlreadyPresent,
     #[error("could not start DigiD session: {0}")]
     DigidSessionStart(#[source] DigidSessionError),
@@ -48,8 +54,10 @@ pub enum PidIssuanceError {
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
+    #[category(critical)]
     Signature(#[from] signature::Error),
     #[error("no signature received from Wallet Provider")]
+    #[category(critical)]
     MissingSignature,
     #[error("could not interpret mdoc attributes: {0}")]
     MdocDocument(#[from] DocumentMdocError),
@@ -58,10 +66,12 @@ pub enum PidIssuanceError {
     #[error("could not store event in history database: {0}")]
     EventStorage(#[source] EventStorageError),
     #[error("key '{0}' not found in Wallet Provider")]
+    #[category(pd)]
     KeyNotFound(String),
     #[error("invalid issuer certificate: {0}")]
     InvalidIssuerCertificate(#[source] CoseError),
     #[error("issuer not authenticated")]
+    #[category(critical)]
     MissingIssuerRegistration,
     #[error("could not read documents from storage: {0}")]
     Document(#[source] DocumentsError),
@@ -77,6 +87,7 @@ where
     S: Storage,
 {
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn create_pid_issuance_auth_url(&mut self) -> Result<Url, PidIssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
@@ -123,6 +134,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub fn has_active_pid_issuance_session(&self) -> Result<bool, PidIssuanceError> {
         info!("Checking for active PID issuance session");
 
@@ -142,6 +154,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn cancel_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
         info!("PID issuance cancelled / rejected");
 
@@ -167,6 +180,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn continue_pid_issuance(&mut self, redirect_uri: Url) -> Result<Vec<Document>, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
@@ -231,6 +245,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
         S: Storage,

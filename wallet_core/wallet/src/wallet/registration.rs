@@ -1,5 +1,6 @@
 use std::{borrow::Cow, error::Error};
 
+use error_category::{sentry_capture_error, ErrorCategory};
 use tracing::{info, instrument};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -44,15 +45,18 @@ pub(super) fn wallet_key_id() -> Cow<'static, str> {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum WalletRegistrationError {
     #[error("wallet is already registered")]
+    #[category(expected)]
     AlreadyRegistered,
     #[error("PIN provided for registration does not adhere to requirements: {0}")]
     InvalidPin(#[from] PinValidationError),
     #[error("could not request registration challenge from Wallet Provider: {0}")]
     ChallengeRequest(#[source] AccountProviderError),
     #[error("could not get hardware public key: {0}")]
+    #[category(pd)]
     HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
     Signing(#[source] wallet_common::account::errors::Error),
@@ -61,6 +65,7 @@ pub enum WalletRegistrationError {
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
     CertificateValidation(#[source] JwtError),
     #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
+    #[category(expected)] // This error can happen during development, but should not happen in production
     PublicKeyMismatch,
     #[error("could not store registration certificate in database: {0}")]
     StoreCertificate(#[from] StorageError),
@@ -83,6 +88,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn register(&mut self, pin: String) -> Result<(), WalletRegistrationError>
     where
         CR: ConfigurationRepository,
