@@ -26,5 +26,5 @@
 {% endmatch %}
 
 {# should be last for accessibility purposes #}
-{% call demo_bar::demo_bar("Bekijk andere", "../", "voorbeelden", language) %}
+{% call demo_bar::demo_bar("Bekijk andere", "../", "voorbeelden", language, t) %}
 {% endblock %}

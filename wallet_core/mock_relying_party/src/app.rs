@@ -36,6 +36,7 @@ use crate::{
     askama_axum,
     client::WalletServerClient,
     settings::{Origin, ReturnUrlMode, Settings, Usecase, WalletWeb},
+    translations::{Words, TRANSLATIONS},
 };
 
 #[derive(Debug)]
@@ -143,7 +144,7 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, strum::Display, strum::EnumIter)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Hash, strum::Display, strum::EnumIter)]
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 pub enum Language {
@@ -158,6 +159,7 @@ struct DisclosureTemplate<'a> {
     usecase: &'a str,
     attributes: DisclosedAttributes,
     language: Language,
+    t: &'a Words<'a>,
 }
 
 #[derive(Template, Serialize)]
@@ -169,6 +171,7 @@ struct UsecaseTemplate<'a> {
     wallet_web_sha256: &'a str,
     error: Option<&'a str>,
     language: Language,
+    t: &'a Words<'a>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -234,13 +237,16 @@ async fn usecase(
         return Ok(StatusCode::NOT_FOUND.into_response());
     }
 
+    let language = params.lang.unwrap_or_default();
+    let t = TRANSLATIONS.get(&language).unwrap(); // TODO unwrap?
     let result = UsecaseTemplate {
         usecase: &usecase,
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
         error: None,
-        language: params.lang.unwrap_or_default(),
+        language,
+        t,
     };
 
     Ok(askama_axum::into_response(&result))
@@ -261,13 +267,14 @@ async fn disclosed_attributes(
         .await;
 
     let language = params.lang.unwrap_or_default();
-
+    let t = TRANSLATIONS.get(&language).unwrap(); // TODO unwrap?
     match attributes {
         Ok(attributes) => {
             let result = DisclosureTemplate {
                 usecase: &usecase,
                 attributes,
                 language,
+                t,
             };
             Ok(askama_axum::into_response(&result))
         }
@@ -280,6 +287,7 @@ async fn disclosed_attributes(
                 wallet_web_sha256: &state.wallet_web.sha256,
                 error: Some(&err),
                 language,
+                t,
             };
             Ok(askama_axum::into_response(&result))
         }

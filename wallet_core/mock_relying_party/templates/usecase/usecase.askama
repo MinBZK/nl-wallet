@@ -33,5 +33,5 @@
 {% endmatch %}
 
 {# should be last for accessibility purposes #}
-{% call demo_bar::demo_bar("Volg de ontwikkelingen op", "https://edi.pleio.nl", "edi.pleio.nl", language) %}
+{% call demo_bar::demo_bar("Volg de ontwikkelingen op", "https://edi.pleio.nl", "edi.pleio.nl", language, t) %}
 {% endblock %}
