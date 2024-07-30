@@ -48,7 +48,7 @@ pub enum ConfigurationError {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(critical)]
+#[category(pd)]
 pub enum FileStorageError {
     #[error("config file I/O error: {0}")]
     Io(#[from] std::io::Error),
