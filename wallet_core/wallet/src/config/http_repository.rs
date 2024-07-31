@@ -56,10 +56,15 @@ impl UpdateableConfigurationRepository for HttpConfigurationRepository {
                 }
             }
 
+            info!("Received new wallet configuration with version: {}", new_config.version);
+
             let mut config = self.config.write();
             *config = Arc::new(new_config);
+
             Ok(ConfigurationUpdateState::Updated)
         } else {
+            info!("No new wallet configuration received");
+
             Ok(ConfigurationUpdateState::Unmodified)
         }
     }
