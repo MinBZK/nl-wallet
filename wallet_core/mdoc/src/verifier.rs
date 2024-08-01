@@ -1,6 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use derive_more::AsRef;
@@ -18,8 +18,7 @@ use wallet_common::generator::Generator;
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
-    server_keys::KeyPair,
-    server_state::{SessionStoreError, SessionToken},
+    server_state::SessionToken,
     unsigned::Entry,
     utils::{
         cose::ClonePayload,
@@ -62,36 +61,8 @@ pub enum VerificationError {
     EphemeralKeyMissing,
     #[error("validity error: {0}")]
     Validity(#[from] ValidityError),
-    #[error("missing OriginInfo in engagement: {0}")]
-    MissingOriginInfo(usize),
-    #[error("incorrect OriginInfo in engagement")]
-    IncorrectOriginInfo,
-    #[error("missing verifier URL params")]
-    MissingVerifierUrlParameters,
-    #[error("unknown use case: {0}")]
-    UnknownUseCase(String),
-    #[error("presence or absence of return url template does not match configuration for the required use case")]
-    ReturnUrlConfigurationMismatch,
-    #[error("unknown session ID: {0}")]
-    UnknownSessionId(SessionToken),
-    #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
-    NoItemsRequests,
     #[error("attributes mismatch: {0:?}")]
     MissingAttributes(Vec<AttributeIdentifier>),
-    #[error("error with sessionstore: {0}")]
-    SessionStore(#[source] SessionStoreError),
-    #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
-    SessionNotDone,
-    #[error("return URL nonce not provided")]
-    ReturnUrlNonceMissing,
-    #[error("return URL nonce '{0}' does not match expected")]
-    ReturnUrlNonceMismatch(String),
-    #[error("the ephemeral ID {} is invalid", hex::encode(.0))]
-    InvalidEphemeralId(Vec<u8>),
-    #[error("the ephemeral ID {} has expired", hex::encode(.0))]
-    ExpiredEphemeralId(Vec<u8>),
-    #[error("URL encoding error: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, AsRef)]
@@ -140,15 +111,6 @@ impl ReturnUrlTemplate {
 
         url.is_ok_and(|url| ALLOWED_SCHEMES.contains(&url.scheme()))
     }
-}
-
-#[nutype(derive(Debug, From, AsRef))]
-pub struct UseCases(HashMap<String, UseCase>);
-
-#[derive(Debug)]
-pub struct UseCase {
-    pub key_pair: KeyPair,
-    pub session_type_return_url: SessionTypeReturnUrl,
 }
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
