@@ -186,7 +186,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             const SliverSizedBox(height: 32),
             SliverFillRemaining(
               hasScrollBody: false,
-              fillOverscroll: false,
               child: Container(
                 alignment: Alignment.center,
                 color: context.colorScheme.primaryContainer,

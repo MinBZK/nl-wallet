@@ -7,7 +7,7 @@ import 'package:wallet/src/feature/common/widget/version_text.dart';
 import '../../../../wallet_app_test_widget.dart';
 
 void main() {
-  const kGoldenSize = Size(150, 20);
+  const kGoldenSize = Size(151, 20);
   const appVersion = '1.2.3';
   const buildNumber = '1337';
 

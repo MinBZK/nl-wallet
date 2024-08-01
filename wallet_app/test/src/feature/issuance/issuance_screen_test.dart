@@ -126,7 +126,13 @@ void main() {
             ),
             name: 'provide_pin',
           ),
-        wrapper: walletAppWrapper(),
+        wrapper: walletAppWrapper(
+          providers: [
+            RepositoryProvider<DiscloseForIssuanceUseCase>(
+              create: (c) => MockDiscloseForIssuanceUseCase(),
+            ),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'provide_pin.light');
     });
@@ -135,10 +141,15 @@ void main() {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
-            widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-              MockIssuanceBloc(),
-              IssuanceCheckDataOffering(isRefreshFlow: false, card: WalletMockData.card),
-            ),
+            widget: const IssuanceScreen()
+                .withState<IssuanceBloc, IssuanceState>(
+                  MockIssuanceBloc(),
+                  IssuanceCheckDataOffering(isRefreshFlow: false, card: WalletMockData.card),
+                )
+                .withState<PinBloc, PinState>(
+                  MockPinBloc(),
+                  const PinEntryInProgress(0),
+                ),
             name: 'check_data_offering',
           ),
         wrapper: walletAppWrapper(),

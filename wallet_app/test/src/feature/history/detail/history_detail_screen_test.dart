@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
@@ -31,7 +32,13 @@ void main() {
               HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
             ),
           ),
-        wrapper: walletAppWrapper(),
+        wrapper: walletAppWrapper(
+          providers: [
+            RepositoryProvider<ContextMapper<Policy, String>>(
+              create: (c) => PolicyBodyTextMapper(),
+            ),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'success.light');
     });
@@ -45,7 +52,14 @@ void main() {
               HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
             ),
           ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+        wrapper: walletAppWrapper(
+          brightness: Brightness.dark,
+          providers: [
+            RepositoryProvider<ContextMapper<Policy, String>>(
+              create: (c) => PolicyBodyTextMapper(),
+            ),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'success.dark');
     });

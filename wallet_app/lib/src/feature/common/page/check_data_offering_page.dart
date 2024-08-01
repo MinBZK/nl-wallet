@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../screen/placeholder_screen.dart';
 import '../widget/attribute/data_attribute_row.dart';
-import '../widget/button/link_button.dart';
+import '../widget/button/list_button.dart';
 import '../widget/card/wallet_card_item.dart';
 import '../widget/sliver_sized_box.dart';
 import '../widget/wallet_scrollbar.dart';
@@ -47,7 +46,7 @@ class CheckDataOfferingPage extends StatelessWidget {
           SliverList(delegate: _getDataAttributesDelegate()),
           const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildFooterSection(context)),
-          const SliverToBoxAdapter(child: Divider(height: 24)),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection()),
         ],
       ),
@@ -112,20 +111,9 @@ class CheckDataOfferingPage extends StatelessWidget {
   Widget _buildFooterSection(BuildContext context) {
     final footerCta = this.footerCta;
     if (footerCta == null) return const SizedBox.shrink();
-    return Column(
-      children: [
-        const Divider(height: 24),
-        Padding(
-          padding: const EdgeInsets.only(left: 8),
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: LinkButton(
-              onPressed: () => PlaceholderScreen.showGeneric(context),
-              text: Text(footerCta),
-            ),
-          ),
-        ),
-      ],
+    return ListButton(
+      text: Text(footerCta),
+      dividerSide: DividerSide.top,
     );
   }
 

@@ -58,6 +58,7 @@ class HistoryOverviewScreen extends StatelessWidget {
 
   Widget _buildLoadingSliver() {
     return const SliverFillRemaining(
+      hasScrollBody: false,
       child: CenteredLoadingIndicator(),
     );
   }

@@ -31,31 +31,21 @@ void main() {
     });
 
     testGoldens('SetupSecuritySelectPinFailed (sequentialDigits) light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            name: 'error state',
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecuritySelectPinFailed(reason: PinValidationError.sequentialDigits),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecuritySelectPinFailed(reason: PinValidationError.tooFewUniqueDigits),
+        ),
       );
       await screenMatchesGolden(tester, 'error.light');
     });
 
     testGoldens('SetupSecurityPinConfirmationFailed retry NOT allowed light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            name: 'setup failed',
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecurityPinConfirmationFailed(retryAllowed: false),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityPinConfirmationFailed(retryAllowed: false),
+        ),
       );
       await screenMatchesGolden(tester, 'pin_confirmation_failed.light');
     });
@@ -88,16 +78,13 @@ void main() {
       await screenMatchesGolden(tester, 'completed.light');
     });
 
-    testGoldens('SetupSecurityPinConfirmationFailed retry allowed dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecurityPinConfirmationFailed(retryAllowed: true),
-            ),
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+    testGoldens('SetupSecurityPinConfirmationFailed retry NOT allowed dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityPinConfirmationFailed(retryAllowed: false),
+        ),
+        brightness: Brightness.dark,
       );
       await screenMatchesGolden(tester, 'pin_confirmation_failed.dark');
     });
@@ -117,16 +104,12 @@ void main() {
     });
 
     testGoldens('SetupSecuritySelectPinFailed (tooFewUniqueDigits) dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            name: 'error state',
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecuritySelectPinFailed(reason: PinValidationError.tooFewUniqueDigits),
-            ),
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecuritySelectPinFailed(reason: PinValidationError.tooFewUniqueDigits),
+        ),
+        brightness: Brightness.dark,
       );
       await screenMatchesGolden(tester, 'error.dark');
     });

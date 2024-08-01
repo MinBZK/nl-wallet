@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/page/check_data_offering_page.dart';
+import 'package:wallet/src/feature/common/widget/button/confirm/confirm_buttons.dart';
+import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
+import 'package:wallet/src/feature/common/widget/button/secondary_button.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -19,13 +22,54 @@ void main() {
             footerCta: 'Footer CTA',
             overline: 'Overline',
             showHeaderAttributesDivider: true,
-            bottomSection: const Text('Bottom Section'),
-            attributes: [WalletMockData.textDataAttribute],
+            bottomSection: const ConfirmButtons(
+              primaryButton: PrimaryButton(
+                text: Text('Primary'),
+              ),
+              secondaryButton: SecondaryButton(
+                text: Text('Secondary'),
+              ),
+            ),
+            attributes: [
+              WalletMockData.textDataAttribute,
+              WalletMockData.textDataAttribute,
+              WalletMockData.textDataAttribute,
+            ],
           ),
         );
         await screenMatchesGolden(tester, 'check_data_offering_page/light');
       },
     );
+
+    testGoldens(
+      'light page - no footer',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          CheckDataOfferingPage(
+            title: 'Title',
+            subtitle: 'No footer sample page',
+            cardFront: WalletMockData.cardFront,
+            overline: 'Overline',
+            showHeaderAttributesDivider: true,
+            bottomSection: const ConfirmButtons(
+              primaryButton: PrimaryButton(
+                text: Text('Primary'),
+              ),
+              secondaryButton: SecondaryButton(
+                text: Text('Secondary'),
+              ),
+            ),
+            attributes: [
+              WalletMockData.textDataAttribute,
+              WalletMockData.textDataAttribute,
+              WalletMockData.textDataAttribute,
+            ],
+          ),
+        );
+        await screenMatchesGolden(tester, 'check_data_offering_page/no_footer.light');
+      },
+    );
+
     testGoldens(
       'dark page',
       (tester) async {
@@ -37,8 +81,19 @@ void main() {
             footerCta: 'Footer CTA',
             overline: 'Overline',
             showHeaderAttributesDivider: true,
-            bottomSection: const Text('Bottom Section'),
-            attributes: [WalletMockData.textDataAttribute],
+            bottomSection: const ConfirmButtons(
+              primaryButton: PrimaryButton(
+                text: Text('Primary'),
+              ),
+              secondaryButton: SecondaryButton(
+                text: Text('Secondary'),
+              ),
+            ),
+            attributes: [
+              WalletMockData.textDataAttribute,
+              WalletMockData.textDataAttribute,
+              WalletMockData.textDataAttribute,
+            ],
           ),
           brightness: Brightness.dark,
         );

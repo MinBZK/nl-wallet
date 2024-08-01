@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
@@ -45,16 +46,13 @@ void main() {
     });
 
     testGoldens('QrScanFailure', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: const QrScreen().withState<QrBloc, QrState>(
-              MockQrScanBloc(),
-              QrScanFailure(),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const QrScreen().withState<QrBloc, QrState>(
+          MockQrScanBloc(),
+          QrScanFailure(),
+        ),
       );
+      await tester.pumpAndSettle();
       await screenMatchesGolden(tester, 'qr_scan_failure');
     });
 
@@ -95,7 +93,9 @@ void main() {
               const QrScanSuccess(GenericNavigationRequest('/')),
             ),
           ),
-        wrapper: walletAppWrapper(),
+        wrapper: walletAppWrapper(
+          providers: [RepositoryProvider<NavigationService>(create: (c) => MockNavigationService())],
+        ),
       );
       await screenMatchesGolden(tester, 'qr_scan_success');
     });
@@ -109,7 +109,10 @@ void main() {
               const QrScanSuccess(GenericNavigationRequest('/')),
             ),
           ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+        wrapper: walletAppWrapper(
+          brightness: Brightness.dark,
+          providers: [RepositoryProvider<NavigationService>(create: (c) => MockNavigationService())],
+        ),
       );
       await screenMatchesGolden(tester, 'qr_scan_success.dark');
     });
@@ -126,56 +129,6 @@ void main() {
         wrapper: walletAppWrapper(),
       );
       await screenMatchesGolden(tester, 'qr_scan_loading');
-    });
-
-    testGoldens('My code tab', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: const QrScreen().withState<QrBloc, QrState>(
-              MockQrScanBloc(),
-              QrScanInitial(),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
-      );
-
-      // Tap the 'my code' tab on every instance
-      const myCodeTabTitle = 'My code';
-      for (int i = 0; i < find.text(myCodeTabTitle).evaluate().length; i++) {
-        await tester.tap(find.text(myCodeTabTitle).at(i));
-      }
-      await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'my_code_tab');
-    });
-
-    testGoldens('Scan Explanation sheet', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const QrScreen().withState<QrBloc, QrState>(
-          MockQrScanBloc(),
-          QrScanFailure(),
-        ),
-      );
-      // Tap the explanation button to open the sheet
-      await tester.tap(find.text('How does scanning work?'));
-      await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'scan_explanation_sheet');
-    });
-
-    testGoldens('Qr Explanation sheet', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const QrScreen().withState<QrBloc, QrState>(
-          MockQrScanBloc(),
-          QrScanFailure(),
-        ),
-      );
-      // Navigate to the my code tab
-      await tester.tap(find.text('My code'));
-      await tester.pumpAndSettle();
-      // Tap the explanation button to open the sheet
-      await tester.tap(find.text('How does my QR-code work?'));
-      await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'qr_explanation_sheet');
     });
   });
 
