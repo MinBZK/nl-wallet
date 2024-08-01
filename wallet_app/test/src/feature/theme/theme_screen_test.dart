@@ -9,7 +9,7 @@ import '../../../wallet_app_test_widget.dart';
 import '../../util/test_utils.dart';
 
 void main() {
-  setUp(TestUtils.mockAccelerometerPlugin);
+  setUp(TestUtils.mockSensorsPlugin);
 
   group('verify all tabs can be rendered', () {
     testWidgets('text styles tab is shown', (tester) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/sheet/confirm_action_sheet.dart';
+import 'package:wallet/src/feature/common/widget/text/body_text.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 
@@ -44,17 +45,23 @@ void main() {
       'light confirm action sheet with extra content and icons and custom color',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const ConfirmActionSheet(
+          ConfirmActionSheet(
             title: 'Title',
             description: 'Description',
             cancelButtonText: 'No',
             confirmButtonText: 'Yes',
-            extraContent: Text('Extra content'),
+            extraContent: Container(
+              color: Colors.black12,
+              padding: const EdgeInsets.all(16),
+              child: const BodyText(
+                'All content within this gray box is extra content. The `extraContent` widget is responsible for its own margins.',
+              ),
+            ),
             cancelIcon: Icons.close,
             confirmIcon: Icons.check,
             confirmButtonColor: Colors.green,
           ),
-          surfaceSize: const Size(350, 274),
+          surfaceSize: const Size(350, 342),
         );
         await screenMatchesGolden(tester, 'confirm_action_sheet/light.custom');
       },

@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
@@ -11,10 +12,13 @@ import '../../util/test_utils.dart';
 
 void main() {
   DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.deviceBuilder
+    return DeviceUtils.deviceBuilderWithPrimaryScrollController
       ..addScenario(
-        widget: PinTimeoutScreen(
-          expiryTime: DateTime.now().add(const Duration(seconds: 15)),
+        widget: Builder(
+          builder: (context) {
+            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            return PinTimeoutScreen(expiryTime: expiryTime);
+          },
         ),
         name: 'pin_timeout_screen',
       );

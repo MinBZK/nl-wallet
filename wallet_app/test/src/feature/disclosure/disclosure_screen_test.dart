@@ -168,7 +168,12 @@ void main() {
             ),
             name: 'confirm_data_attributes',
           ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+        wrapper: walletAppWrapper(
+          brightness: Brightness.dark,
+          providers: [
+            RepositoryProvider<ContextMapper<Policy, String>>(create: (c) => PolicyBodyTextMapper()),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'confirm_data_attributes.dark');
     });
@@ -232,7 +237,7 @@ void main() {
         ),
       );
       // Find and press the close button
-      final closeButtonFinder = find.byIcon(Icons.close);
+      final closeButtonFinder = find.byKey(kCloseIconButtonKey);
       await tester.tap(closeButtonFinder);
       await tester.pumpAndSettle();
 

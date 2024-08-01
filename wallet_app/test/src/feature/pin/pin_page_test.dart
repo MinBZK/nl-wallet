@@ -19,6 +19,7 @@ void main() {
           const PinEntryInProgress(0),
         ),
       );
+      await tester.pumpAndSettle();
       await screenMatchesGolden(tester, 'pin_page/pin_initial');
     });
 
@@ -29,6 +30,7 @@ void main() {
           const PinEntryInProgress(3),
         ),
       );
+      await tester.pumpAndSettle();
       await screenMatchesGolden(tester, 'pin_page/pin_entry_in_progress');
     });
 

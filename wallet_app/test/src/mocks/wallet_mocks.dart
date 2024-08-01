@@ -10,6 +10,7 @@ import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
+import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart';
@@ -198,7 +199,19 @@ class Mocks {
     sl.registerFactory<WalletRepository>(MockWalletRepository.new);
     sl.registerFactory<WalletCardRepository>(MockWalletCardRepository.new);
     sl.registerFactory<WalletEventRepository>(MockWalletEventRepository.new);
-    sl.registerFactory<ConfigurationRepository>(MockConfigurationRepository.new);
+    sl.registerFactory<ConfigurationRepository>(() {
+      final repository = MockConfigurationRepository();
+      when(repository.appConfiguration).thenAnswer(
+        (_) => Stream.value(
+          const FlutterAppConfiguration(
+            version: 1,
+            backgroundLockTimeout: Duration(minutes: 1),
+            idleLockTimeout: Duration(minutes: 2),
+          ),
+        ),
+      );
+      return repository;
+    });
 
     // Mappers
     sl.registerFactory<Mapper>(MockMapper.new);

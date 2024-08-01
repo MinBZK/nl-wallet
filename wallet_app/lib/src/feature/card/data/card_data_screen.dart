@@ -92,6 +92,7 @@ class CardDataScreen extends StatelessWidget {
 
   Widget _buildLoading() {
     return const SliverFillRemaining(
+      hasScrollBody: false,
       child: CenteredLoadingIndicator(),
     );
   }
@@ -141,7 +142,6 @@ class CardDataScreen extends StatelessWidget {
           ),
         ),
         SliverFillRemaining(
-          fillOverscroll: false,
           hasScrollBody: false,
           child: Align(
             alignment: Alignment.bottomCenter,

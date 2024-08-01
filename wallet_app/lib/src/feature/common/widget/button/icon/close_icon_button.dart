@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../../util/extension/build_context_extension.dart';
 
+const kCloseIconButtonKey = Key('close_icon_button');
+
 class CloseIconButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
@@ -15,6 +17,7 @@ class CloseIconButton extends StatelessWidget {
       onTap: onPressed ?? () => Navigator.pop(context),
       excludeSemantics: true,
       child: IconButton(
+        key: kCloseIconButtonKey,
         onPressed: onPressed ?? () => Navigator.pop(context),
         icon: const Icon(Icons.close_rounded),
         tooltip: context.l10n.generalWCAGClose,

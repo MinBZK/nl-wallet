@@ -15,7 +15,7 @@ void _voidCallback() {}
 /// This test also (indirectly) verifies:
 /// [ShowDetailsCta], [CardLogo] and [CardHolograph]
 void main() {
-  setUp(TestUtils.mockAccelerometerPlugin);
+  setUp(TestUtils.mockSensorsPlugin);
 
   group('goldens', () {
     testGoldens(
@@ -92,7 +92,7 @@ void main() {
 
         await tester.pumpWidgetBuilder(
           builder.build(),
-          surfaceSize: const Size(344, 1560),
+          surfaceSize: const Size(344, 2115),
           wrapper: walletAppWrapper(),
         );
         await screenMatchesGolden(tester, 'wallet_card_item/scaling');

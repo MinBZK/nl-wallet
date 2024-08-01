@@ -252,7 +252,7 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildError(BuildContext context) {
     return SafeArea(
-      minimum: const EdgeInsets.symmetric(horizontal: 16),
+      minimum: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,

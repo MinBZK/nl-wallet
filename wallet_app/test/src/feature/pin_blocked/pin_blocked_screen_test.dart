@@ -11,7 +11,7 @@ import '../../util/test_utils.dart';
 
 void main() {
   DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.deviceBuilder
+    return DeviceUtils.deviceBuilderWithPrimaryScrollController
       ..addScenario(
         widget: const PinBlockedScreen(),
         name: 'pin_blocked_screen',
