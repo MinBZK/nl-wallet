@@ -6,7 +6,7 @@ use uuid::Uuid;
 use nl_wallet_mdoc::{
     holder::{
         CborHttpClient, DisclosureError, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult,
-        DisclosureSession, MdocDataSource, ProposedAttributes, TrustAnchor,
+        MdocDataSource, ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -21,7 +21,7 @@ use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use nl_wallet_mdoc::holder::DisclosureUriSource;
 
-pub use self::uri::{DisclosureUriError, IsoDisclosureUriData, VpDisclosureUriData};
+pub use self::uri::{DisclosureUriError, VpDisclosureUriData};
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
@@ -174,73 +174,7 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
     }
 }
 
-impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient, Uuid>
-where
-    D: MdocDataSource<MdocIdentifier = Uuid>,
-{
-    type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
-    type Proposal = DisclosureProposal<CborHttpClient, Uuid>;
-    type DisclosureUriData = IsoDisclosureUriData;
-
-    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
-        IsoDisclosureUriData::parse_from_uri(uri, base_uri)
-    }
-
-    async fn start<'a>(
-        disclosure_uri: Self::DisclosureUriData,
-        disclosure_uri_source: DisclosureUriSource,
-        mdoc_data_source: &D,
-        trust_anchors: &[TrustAnchor<'a>],
-    ) -> Result<Self, MdocDisclosureError> {
-        let http_client = default_reqwest_client_builder()
-            .build()
-            .expect("Could not build reqwest HTTP client");
-
-        let session = Self::start(
-            CborHttpClient(http_client),
-            &disclosure_uri.reader_engagement_bytes,
-            disclosure_uri_source,
-            mdoc_data_source,
-            trust_anchors,
-        )
-        .await?;
-
-        Ok(session)
-    }
-
-    fn rp_certificate(&self) -> &Certificate {
-        self.verifier_certificate()
-    }
-
-    fn reader_registration(&self) -> &ReaderRegistration {
-        self.reader_registration()
-    }
-
-    fn session_state(
-        &self,
-    ) -> MdocDisclosureSessionState<
-        &DisclosureMissingAttributes<CborHttpClient>,
-        &DisclosureProposal<CborHttpClient, Uuid>,
-    > {
-        match self {
-            DisclosureSession::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
-            DisclosureSession::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
-        }
-    }
-
-    async fn terminate(self) -> Result<Option<Url>, MdocDisclosureError> {
-        self.terminate().await?;
-
-        // Since the ISO disclosure code will be archived soon, just return no return URL.
-        Ok(None)
-    }
-
-    fn session_type(&self) -> SessionType {
-        self.session_type()
-    }
-}
-
-impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpClient> {
+impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes {
     fn missing_attributes(&self) -> &[AttributeIdentifier] {
         self.missing_attributes()
     }

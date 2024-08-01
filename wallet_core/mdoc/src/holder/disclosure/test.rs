@@ -1,13 +1,11 @@
-use std::{collections::HashSet, fmt, iter, sync::Arc};
+use std::{collections::HashSet, fmt, iter};
 
-use futures::future;
 use indexmap::{IndexMap, IndexSet};
 use p256::SecretKey;
 use rand_core::OsRng;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::mpsc;
 use url::Url;
-use webpki::TrustAnchor;
 
 use wallet_common::trust_anchor::DerTrustAnchor;
 
@@ -17,27 +15,20 @@ use crate::{
     holder::{HttpClient, HttpClientError, HttpClientResult, Mdoc},
     identifiers::AttributeIdentifier,
     iso::{
-        device_retrieval::{
-            DeviceRequest, DocRequest, ItemsRequest, ReaderAuthenticationBytes, ReaderAuthenticationKeyed,
-        },
+        device_retrieval::{DocRequest, ItemsRequest, ReaderAuthenticationBytes, ReaderAuthenticationKeyed},
         disclosure::{SessionData, SessionStatus},
         engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     },
     server_keys::KeyPair,
     utils::{
         cose::{self, MdocCose},
-        crypto::{SessionKey, SessionKeyUser},
         reader_auth::ReaderRegistration,
         serialization::{self, CborSeq, TaggedBytes},
     },
     verifier::SessionType,
 };
 
-use super::{
-    proposed_document::ProposedDocument,
-    session::{DisclosureSession, DisclosureUriSource, VerifierUrlParameters},
-    MdocDataSource, StoredMdoc,
-};
+use super::{proposed_document::ProposedDocument, session::VerifierUrlParameters, MdocDataSource, StoredMdoc};
 
 // Constants for testing.
 pub const VERIFIER_URL: &str = "http://example.com/disclosure";
@@ -285,20 +276,17 @@ impl MdocDataSource for MockMdocDataSource {
 /// This type contains the minimum logic to respond with the correct
 /// verifier messages in a disclosure session. Currently it only responds
 /// with a [`SessionData`] containing a [`DeviceRequest`].
-pub struct MockVerifierSession<F> {
+pub struct MockVerifierSession {
     pub session_type: SessionType,
     pub return_url: Option<Url>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<DerTrustAnchor>,
-    private_key: KeyPair,
     pub reader_engagement: ReaderEngagement,
-    reader_ephemeral_key: SecretKey,
     pub reader_engagement_bytes_override: Option<Vec<u8>>,
     pub items_requests: Vec<ItemsRequest>,
-    transform_device_request: F,
 }
 
-impl<F> fmt::Debug for MockVerifierSession<F> {
+impl fmt::Debug for MockVerifierSession {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MockVerifierSession")
             .field("session_type", &self.session_type)
@@ -315,24 +303,19 @@ impl<F> fmt::Debug for MockVerifierSession<F> {
     }
 }
 
-impl<F> MockVerifierSession<F>
-where
-    F: Fn(DeviceRequest) -> DeviceRequest,
-{
+impl MockVerifierSession {
     pub fn new(
         session_type: SessionType,
         verifier_url: Url,
         return_url: Option<Url>,
         reader_registration: Option<ReaderRegistration>,
-        transform_device_request: F,
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
-        let private_key = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
         // Generate the `ReaderEngagement` that would be be sent in the UL.
-        let (reader_engagement, reader_ephemeral_key) =
+        let (reader_engagement, _reader_ephemeral_key) =
             ReaderEngagement::new_random(verifier_url, session_type).unwrap();
 
         // Set up the default item requests
@@ -343,181 +326,14 @@ where
             return_url,
             reader_registration,
             trust_anchors,
-            private_key,
             reader_engagement,
             reader_engagement_bytes_override: None,
-            reader_ephemeral_key,
             items_requests,
-            transform_device_request,
         }
     }
-
-    fn reader_engagement_bytes(&self) -> Vec<u8> {
-        self.reader_engagement_bytes_override
-            .as_ref()
-            .cloned()
-            .unwrap_or(serialization::cbor_serialize(&self.reader_engagement).unwrap())
-    }
-
-    fn trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.trust_anchors
-            .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect()
-    }
-
-    // Generate the `SessionData` response containing the `DeviceRequest`,
-    // based on the `DeviceEngagement` received from the device.
-    async fn device_request_session_data(&self, device_engagement: DeviceEngagement) -> SessionData {
-        // Create the session transcript and encryption key.
-        let session_transcript =
-            SessionTranscript::new_iso(self.session_type, &self.reader_engagement, &device_engagement).unwrap();
-
-        let device_public_key = device_engagement.0.security.as_ref().unwrap().try_into().unwrap();
-
-        let reader_key = SessionKey::new(
-            &self.reader_ephemeral_key,
-            &device_public_key,
-            &session_transcript,
-            SessionKeyUser::Reader,
-        )
-        .unwrap();
-
-        // Create a `DocRequest` for every `ItemRequest`.
-        let doc_requests = future::join_all(self.items_requests.iter().cloned().map(|items_request| async {
-            create_doc_request(items_request, &session_transcript, &self.private_key).await
-        }))
-        .await;
-
-        let device_request = (self.transform_device_request)(DeviceRequest {
-            doc_requests,
-            return_url: self.return_url.clone(),
-            ..Default::default()
-        });
-
-        SessionData::serialize_and_encrypt(&device_request, &reader_key).unwrap()
-    }
 }
 
-/// This type implements [`HttpClient`] and simply forwards the
-/// requests to an instance of [`MockVerifierSession`].
-pub struct MockVerifierSessionClient<F> {
-    session: Arc<MockVerifierSession<F>>,
-    payload_sender: mpsc::Sender<Vec<u8>>,
-}
-
-impl<F> fmt::Debug for MockVerifierSessionClient<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockVerifierSessionClient")
-            .field("session", &self.session)
-            .finish_non_exhaustive()
-    }
-}
-
-impl<F> HttpClient for MockVerifierSessionClient<F>
-where
-    F: Fn(DeviceRequest) -> DeviceRequest,
-{
-    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
-    where
-        V: Serialize,
-        R: DeserializeOwned,
-    {
-        // The URL has to match the one on the configured `ReaderEngagement`.
-        assert_eq!(url, self.session.reader_engagement.verifier_url().unwrap());
-
-        // Serialize the payload and give a copy of it to the sender.
-        let payload = serialization::cbor_serialize(val).unwrap();
-        _ = self.payload_sender.send(payload.clone()).await;
-
-        // Serialize and deserialize both the request and response
-        // in order to adhere to the trait bounds. If the request deserializes
-        // as a `DeviceEngagement` process it, otherwise terminate the session.
-        let session_data = match serialization::cbor_deserialize(payload.as_slice()) {
-            Ok(device_engagement) => self.session.device_request_session_data(device_engagement).await,
-            Err(_) => SessionData::new_termination(),
-        };
-
-        let result =
-            serialization::cbor_deserialize(serialization::cbor_serialize(&session_data).unwrap().as_slice()).unwrap();
-
-        Ok(result)
-    }
-}
 pub enum ReaderCertificateKind {
     NoReaderRegistration,
     WithReaderRegistration,
-}
-
-/// Perform a [`DisclosureSession`] start with test defaults.
-/// This function takes several closures for modifying these
-/// defaults just before they are actually used.
-pub async fn disclosure_session_start<FS, FM, FD>(
-    session_type: SessionType,
-    disclosure_uri_source: DisclosureUriSource,
-    certificate_kind: ReaderCertificateKind,
-    payloads: &mut Vec<Vec<u8>>,
-    transform_verfier_session: FS,
-    transform_mdoc: FM,
-    transform_device_request: FD,
-) -> Result<(
-    DisclosureSession<MockVerifierSessionClient<FD>, MdocIdentifier>,
-    Arc<MockVerifierSession<FD>>,
-    mpsc::Receiver<Vec<u8>>,
-)>
-where
-    FS: FnOnce(MockVerifierSession<FD>) -> MockVerifierSession<FD>,
-    FM: FnOnce(MockMdocDataSource) -> MockMdocDataSource,
-    FD: Fn(DeviceRequest) -> DeviceRequest,
-{
-    // Create a reader registration with all of the example attributes,
-    // if we should have a reader registration at all.
-    let reader_registration = match certificate_kind {
-        ReaderCertificateKind::NoReaderRegistration => None,
-        ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
-            attributes: ReaderRegistration::create_attributes(
-                EXAMPLE_DOC_TYPE.to_string(),
-                EXAMPLE_NAMESPACE.to_string(),
-                EXAMPLE_ATTRIBUTES.iter().copied(),
-            ),
-            ..ReaderRegistration::new_mock()
-        }
-        .into(),
-    };
-
-    // Create a mock session and call the transform callback.
-    let verifier_session = MockVerifierSession::<FD>::new(
-        session_type,
-        VERIFIER_URL.parse().unwrap(),
-        Url::parse(RETURN_URL).unwrap().into(),
-        reader_registration,
-        transform_device_request,
-    );
-    let verifier_session = Arc::new(transform_verfier_session(verifier_session));
-
-    // Create the payload channel and a mock HTTP client.
-    let (payload_sender, mut payload_receiver) = mpsc::channel(256);
-    let client = MockVerifierSessionClient {
-        session: Arc::clone(&verifier_session),
-        payload_sender,
-    };
-
-    // Set up the mock data source.
-    let mdoc_data_source = transform_mdoc(MockMdocDataSource::default());
-
-    // Starting disclosure and return the result.
-    let result = DisclosureSession::start(
-        client,
-        &verifier_session.reader_engagement_bytes(),
-        disclosure_uri_source,
-        &mdoc_data_source,
-        &verifier_session.trust_anchors(),
-    )
-    .await;
-
-    while let Ok(payload) = payload_receiver.try_recv() {
-        payloads.push(payload);
-    }
-
-    result.map(|disclosure_session| (disclosure_session, verifier_session, payload_receiver))
 }
