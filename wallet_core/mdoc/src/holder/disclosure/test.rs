@@ -7,8 +7,6 @@ use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::mpsc;
 use url::Url;
 
-use wallet_common::trust_anchor::DerTrustAnchor;
-
 use crate::{
     errors::Result,
     examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
@@ -22,7 +20,6 @@ use crate::{
     server_keys::KeyPair,
     utils::{
         cose::{self, MdocCose},
-        reader_auth::ReaderRegistration,
         serialization::{self, CborSeq, TaggedBytes},
     },
     verifier::SessionType,
@@ -270,66 +267,6 @@ impl MdocDataSource for MockMdocDataSource {
             .collect();
 
         Ok(vec![stored_mdocs])
-    }
-}
-
-/// This type contains the minimum logic to respond with the correct
-/// verifier messages in a disclosure session. Currently it only responds
-/// with a [`SessionData`] containing a [`DeviceRequest`].
-pub struct MockVerifierSession {
-    pub session_type: SessionType,
-    pub return_url: Option<Url>,
-    pub reader_registration: Option<ReaderRegistration>,
-    pub trust_anchors: Vec<DerTrustAnchor>,
-    pub reader_engagement: ReaderEngagement,
-    pub reader_engagement_bytes_override: Option<Vec<u8>>,
-    pub items_requests: Vec<ItemsRequest>,
-}
-
-impl fmt::Debug for MockVerifierSession {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockVerifierSession")
-            .field("session_type", &self.session_type)
-            .field("return_url", &self.return_url)
-            .field("reader_registration", &self.reader_registration)
-            .field("trust_anchors", &self.trust_anchors)
-            .field("reader_engagement", &self.reader_engagement)
-            .field(
-                "reader_engagement_bytes_override",
-                &self.reader_engagement_bytes_override,
-            )
-            .field("items_requests", &self.items_requests)
-            .finish_non_exhaustive()
-    }
-}
-
-impl MockVerifierSession {
-    pub fn new(
-        session_type: SessionType,
-        verifier_url: Url,
-        return_url: Option<Url>,
-        reader_registration: Option<ReaderRegistration>,
-    ) -> Self {
-        // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
-        let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
-
-        // Generate the `ReaderEngagement` that would be be sent in the UL.
-        let (reader_engagement, _reader_ephemeral_key) =
-            ReaderEngagement::new_random(verifier_url, session_type).unwrap();
-
-        // Set up the default item requests
-        let items_requests = vec![example_items_request()];
-
-        MockVerifierSession {
-            session_type,
-            return_url,
-            reader_registration,
-            trust_anchors,
-            reader_engagement,
-            reader_engagement_bytes_override: None,
-            items_requests,
-        }
     }
 }
 

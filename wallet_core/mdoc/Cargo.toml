@@ -7,11 +7,6 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-[[test]]
-name = "test"
-path = "tests/tests.rs"
-required-features = ["integration"]
-
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = []
