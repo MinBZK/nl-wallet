@@ -4,10 +4,7 @@ use url::Url;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::{
-    holder::{
-        CborHttpClient, DisclosureError, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult,
-        MdocDataSource, ProposedAttributes, TrustAnchor,
-    },
+    holder::{DisclosureError, DisclosureResult, MdocDataSource, ProposedAttributes, TrustAnchor},
     identifiers::AttributeIdentifier,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
@@ -171,34 +168,6 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
             .await
             .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
         Ok(redirect_uri.map(|u| u.into_inner()))
-    }
-}
-
-impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes {
-    fn missing_attributes(&self) -> &[AttributeIdentifier] {
-        self.missing_attributes()
-    }
-}
-
-impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
-    fn proposed_source_identifiers(&self) -> Vec<Uuid> {
-        self.proposed_source_identifiers().into_iter().copied().collect()
-    }
-
-    fn proposed_attributes(&self) -> ProposedAttributes {
-        self.proposed_attributes()
-    }
-
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
-    where
-        KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey,
-    {
-        self.disclose(key_factory)
-            .await
-            .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
-
-        Ok(self.return_url().cloned())
     }
 }
 
