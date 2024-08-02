@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     env,
     path::PathBuf,
     result::Result as StdResult,
@@ -18,6 +17,7 @@ use axum::{
 };
 use base64::prelude::*;
 use http::{header::CACHE_CONTROL, HeaderValue};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
@@ -63,7 +63,7 @@ struct ApplicationState {
     client: WalletServerClient,
     public_wallet_server_url: BaseUrl,
     public_url: BaseUrl,
-    usecases: HashMap<String, Usecase>,
+    usecases: IndexMap<String, Usecase>,
     wallet_web: WalletWeb,
 }
 

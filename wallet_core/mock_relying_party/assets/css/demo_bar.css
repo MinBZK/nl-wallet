@@ -8,8 +8,11 @@ aside {
   align-items: center;
   padding: 16px;
   gap: 16px;
-  background: #f2f1fe;
   color: #152a62;
+}
+
+aside:has(.text) {
+  background: #f2f1fe;
 }
 
 @media screen and (min-width: 500px) {
@@ -84,6 +87,7 @@ aside .text {
   color: #383ede;
   font-weight: 700;
   text-transform: uppercase;
+  line-height: 1.25;
 
   user-select: none;
 }

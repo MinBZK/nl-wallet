@@ -1,0 +1,44 @@
+{% extends "base.askama" %}
+{%- import "components/demo_bar.askama" as demo_bar -%}
+
+{% block styles %}
+<link rel="stylesheet" href="./css/reset.css" />
+<link rel="stylesheet" href="./css/button-reset.css" />
+<link rel="stylesheet" href="./css/fonts.css" />
+<link rel="stylesheet" href="./css/demo_bar.css" />
+<link rel="stylesheet" href="./css/nav.css" />
+{% endblock %}
+
+{% block content %}
+<aside>{% call demo_bar::lang_selector(language, t) %}</aside>
+<header><!-- just the logo --></header>
+<main>
+    <section>
+        <h1>{{ t.index_title }}</h1>
+        <p>
+            {{ t.index_intro }}
+            <a href="https://edi.pleio.nl">{{ t.index_intro_link }}</a>.
+        </p>
+    </section>
+    <nav>
+        {% for usecase in usecases %}
+        <a role="button" id="{{ usecase }}" href="./{{ usecase }}/">
+            <span>
+                {% match usecase.as_ref() %}
+                    {% when "mijn_amsterdam" %}
+                        {{ t.amsterdam_index }}
+                    {% when "monkey_bike" %}
+                        {{ t.monkeybike_index }}}
+                    {% when "online_marketplace" %}
+                        {{ t.marketplace_index }}
+                    {% when "xyz_bank" %}
+                        {{ t.xyz_index }}
+                    {% else %}
+                        {{ t.xyz_index }}
+                {% endmatch %}
+            </span>
+        </a>
+        {% endfor %}
+    </nav>
+</main>
+{% endblock %}

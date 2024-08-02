@@ -19,9 +19,10 @@ anyhow.workspace = true
 askama.workspace = true
 axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
-config = { workspace = true, features = ["toml"] }
+config = { workspace = true, features = ["preserve_order", "toml"] }
 futures = { workspace = true, features = ["std"] }
 http.workspace = true
+indexmap.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 sentry = { workspace = true, features = [
