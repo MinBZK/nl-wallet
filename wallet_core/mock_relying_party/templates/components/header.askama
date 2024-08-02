@@ -1,7 +1,7 @@
 {% macro header(title, username) %}
 <header>
     <div>
-        <h1 aria-label="{{ title }}"><span>{{ title }}</span></h1 a>
+        <h1 aria-label="{{ title }}"><span>{{ title }}</span></h1>
         {% if username.len() > 0 %}
         <span class="username">{{ username }}</span>
         {% endif %}

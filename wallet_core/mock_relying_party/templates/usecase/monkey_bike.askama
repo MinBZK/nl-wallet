@@ -1,28 +1,26 @@
-<header>
-    <h1>MonkeyBike</h1>
-</header>
-<section>
-    <section
-        <h2>Meld je aan</h2>
+{% call header::header(t.monkeybike_title, "") %}
+<main>
+    <section>
+        <h2>{{ t.monkeybike_login }}</h2>
     </section>
     {% match error %}
         {% when Some with (error) %}
-            {% call notification::notification("Inloggen mislukt. Probeer het opnieuw.", "", error) %}
+            {% call notification::notification(t.login_failed_try_again, "", error) %}
         {% when None %}
     {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
-            text="Verder met NL Wallet"
+            text="{{ t.continue_with_nl_wallet }}"
             usecase="{{ usecase }}"
             base-url="../"
              lang="{{ language }}"
         ></nl-wallet-button>
-        <button id="google" disabled>Verder met Google</button>
-        <button id="email" disabled>Verder met email</button>
+        <button id="google" disabled>{{ t.continue_with_google }}</button>
+        <button id="email" disabled>{{ t.continue_with_email }}</button>
         <p class="small">
-            Door op "Verder" te klikken, ga je akkoord met de
-            <a href="#">Algemene Voorwaarden</a> en het
-            <a href="#">Privacybeleid</a>.
+            {{ t.click_continue }}
+            <a href="#">{{ t.terms_and_conditions }}</a> {{ t.and_the }}
+            <a href="#">{{ t.privacy_policy }}</a>.
         </p>
     </section>
 </main>

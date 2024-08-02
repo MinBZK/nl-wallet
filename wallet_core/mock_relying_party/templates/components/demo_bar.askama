@@ -2,7 +2,7 @@
 <aside>
     <div class="demo-bar">
         <div class="text">
-            <b>NL Wallet Demo</b>
+            <b>{{ t.demo_bar_text }}</b>
             <p>
                 {{ text }}
                 <a href="{{ url }}">{{ url_text }}</a>
