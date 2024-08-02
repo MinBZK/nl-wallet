@@ -113,6 +113,7 @@ pub fn create_router(settings: Settings) -> Router {
     let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
     let mut app = Router::new()
+        .route("/", get(index))
         .route("/sessions", post(create_session))
         .route("/:usecase/", get(usecase))
         .route(&format!("/:usecase/{}", RETURN_URL_SEGMENT), get(disclosed_attributes))
@@ -153,13 +154,74 @@ pub enum Language {
     En,
 }
 
+async fn create_session(
+    State(state): State<Arc<ApplicationState>>,
+    Json(options): Json<SessionOptions>,
+) -> Result<Json<SessionResponse>> {
+    let usecase = state
+        .usecases
+        .get(&options.usecase)
+        .ok_or(anyhow::Error::msg("usecase not found"))?;
+
+    let return_url_template = match usecase.return_url {
+        ReturnUrlMode::None => None,
+        _ => Some(
+            format!(
+                "{}/{}?session_token={{session_token}}",
+                state.public_url.join(&options.usecase),
+                RETURN_URL_SEGMENT
+            )
+            .parse()
+            .expect("should always be a valid ReturnUrlTemplate"),
+        ),
+    };
+
+    let session_token = state
+        .client
+        .start(
+            options.usecase.clone(),
+            usecase.items_requests.clone(),
+            return_url_template,
+        )
+        .await?;
+
+    let result = SessionResponse {
+        status_url: state
+            .public_wallet_server_url
+            .join(&format!("disclosure/sessions/{session_token}")),
+        session_token,
+    };
+    Ok(result.into())
+}
+
+#[derive(Debug, Deserialize)]
+pub struct IndexParams {
+    pub lang: Option<Language>,
+}
+
 #[derive(Template, Serialize)]
-#[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
-struct DisclosureTemplate<'a> {
-    usecase: &'a str,
-    attributes: DisclosedAttributes,
+#[template(path = "index.askama", escape = "html", ext = "html")]
+struct IndexTemplate<'a> {
+    usecases: &'a [&'a str],
     language: Language,
     t: &'a Words<'a>,
+}
+
+async fn index(State(state): State<Arc<ApplicationState>>, Query(params): Query<IndexParams>) -> Result<Response> {
+    let language = params.lang.unwrap_or_default();
+    let t = TRANSLATIONS.get(&language).unwrap(); // TODO unwrap?
+    let result = IndexTemplate {
+        usecases: &state.usecases.keys().map(|s| s.as_str()).collect::<Vec<_>>(),
+        language,
+        t,
+    };
+
+    Ok(askama_axum::into_response(&result))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UsecaseParams {
+    pub lang: Option<Language>,
 }
 
 #[derive(Template, Serialize)]
@@ -172,57 +234,6 @@ struct UsecaseTemplate<'a> {
     error: Option<&'a str>,
     language: Language,
     t: &'a Words<'a>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DisclosedAttributesParams {
-    pub nonce: Option<String>,
-    pub session_token: SessionToken,
-    pub lang: Option<Language>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UsecaseParams {
-    pub lang: Option<Language>,
-}
-
-async fn create_session(
-    State(state): State<Arc<ApplicationState>>,
-    Json(options): Json<SessionOptions>,
-) -> Result<Json<SessionResponse>> {
-    let usecase = state
-        .usecases
-        .get(&options.usecase)
-        .ok_or(anyhow::Error::msg("usecase not found"))?;
-
-    let session_token = state
-        .client
-        .start(
-            options.usecase.clone(),
-            usecase.items_requests.clone(),
-            if usecase.return_url == ReturnUrlMode::None {
-                None
-            } else {
-                Some(
-                    format!(
-                        "{}/{}?session_token={{session_token}}",
-                        state.public_url.join(&options.usecase),
-                        RETURN_URL_SEGMENT
-                    )
-                    .parse()
-                    .expect("should always be a valid ReturnUrlTemplate"),
-                )
-            },
-        )
-        .await?;
-
-    let result = SessionResponse {
-        status_url: state
-            .public_wallet_server_url
-            .join(&format!("disclosure/sessions/{session_token}")),
-        session_token,
-    };
-    Ok(result.into())
 }
 
 static USECASE_JS_SHA256: LazyLock<String> =
@@ -252,6 +263,22 @@ async fn usecase(
     Ok(askama_axum::into_response(&result))
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DisclosedAttributesParams {
+    pub nonce: Option<String>,
+    pub session_token: SessionToken,
+    pub lang: Option<Language>,
+}
+
+#[derive(Template, Serialize)]
+#[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
+struct DisclosedAttributesTemplate<'a> {
+    usecase: &'a str,
+    attributes: DisclosedAttributes,
+    language: Language,
+    t: &'a Words<'a>,
+}
+
 async fn disclosed_attributes(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
@@ -270,7 +297,7 @@ async fn disclosed_attributes(
     let t = TRANSLATIONS.get(&language).unwrap(); // TODO unwrap?
     match attributes {
         Ok(attributes) => {
-            let result = DisclosureTemplate {
+            let result = DisclosedAttributesTemplate {
                 usecase: &usecase,
                 attributes,
                 language,

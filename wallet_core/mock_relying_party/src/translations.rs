@@ -10,7 +10,10 @@ pub static TRANSLATIONS: LazyLock<Translations> = LazyLock::new(|| {
     let en = Words {
         en: "English",
         nl: "Nederlands",
-        demo_bar_text: "NL Wallet Demo",
+        index_title: "NL Wallet demo",
+        index_intro: "These examples are fictional and for illustration purposes only. Follow the developments at",
+        index_intro_link: "edi.pleio.nl",
+        demo_bar_text: "NL Wallet demo",
         demo_see_other: "View other",
         demo_see_examples: "examples",
         demo_follow_development: "Follow the developments at",
@@ -55,7 +58,10 @@ pub static TRANSLATIONS: LazyLock<Translations> = LazyLock::new(|| {
     let nl = Words {
         en: "English",
         nl: "Nederlands",
-        demo_bar_text: "NL Wallet Demo",
+        index_title: "NL Wallet demo",
+        index_intro: "Deze voorbeelden zijn fictief en dienen alleen ter illustratie. Volg de ontwikkelingen op",
+        index_intro_link: "edi.pleio.nl",
+        demo_bar_text: "NL Wallet demo",
         demo_see_other: "Bekijk andere",
         demo_see_examples: "voorbeelden",
         demo_follow_development: "Volg de ontwikkelingen op",
@@ -107,6 +113,9 @@ pub static TRANSLATIONS: LazyLock<Translations> = LazyLock::new(|| {
 pub struct Words<'a> {
     en: &'a str,
     nl: &'a str,
+    pub index_title: &'a str,
+    pub index_intro: &'a str,
+    pub index_intro_link: &'a str,
     pub demo_bar_text: &'a str,
     pub demo_see_other: &'a str,
     pub demo_see_examples: &'a str,
