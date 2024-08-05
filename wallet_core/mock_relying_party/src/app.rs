@@ -154,8 +154,14 @@ pub enum Language {
     En,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct LanguageParam {
+    pub lang: Option<Language>,
+}
+
 async fn create_session(
     State(state): State<Arc<ApplicationState>>,
+    Query(params): Query<LanguageParam>,
     Json(options): Json<SessionOptions>,
 ) -> Result<Json<SessionResponse>> {
     let usecase = state
@@ -167,9 +173,10 @@ async fn create_session(
         ReturnUrlMode::None => None,
         _ => Some(
             format!(
-                "{}/{}?session_token={{session_token}}",
+                "{}/{}?session_token={{session_token}}&lang={}",
                 state.public_url.join(&options.usecase),
-                RETURN_URL_SEGMENT
+                RETURN_URL_SEGMENT,
+                params.lang.unwrap_or_default(),
             )
             .parse()
             .expect("should always be a valid ReturnUrlTemplate"),
@@ -194,11 +201,6 @@ async fn create_session(
     Ok(result.into())
 }
 
-#[derive(Debug, Deserialize)]
-pub struct IndexParams {
-    pub lang: Option<Language>,
-}
-
 #[derive(Template, Serialize)]
 #[template(path = "index.askama", escape = "html", ext = "html")]
 struct IndexTemplate<'a> {
@@ -207,7 +209,7 @@ struct IndexTemplate<'a> {
     t: &'a Words<'a>,
 }
 
-async fn index(State(state): State<Arc<ApplicationState>>, Query(params): Query<IndexParams>) -> Result<Response> {
+async fn index(State(state): State<Arc<ApplicationState>>, Query(params): Query<LanguageParam>) -> Result<Response> {
     let language = params.lang.unwrap_or_default();
     let t = TRANSLATIONS.get(&language).unwrap(); // TODO unwrap?
     let result = IndexTemplate {
@@ -217,11 +219,6 @@ async fn index(State(state): State<Arc<ApplicationState>>, Query(params): Query<
     };
 
     Ok(askama_axum::into_response(&result))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UsecaseParams {
-    pub lang: Option<Language>,
 }
 
 #[derive(Template, Serialize)]
@@ -242,7 +239,7 @@ static USECASE_JS_SHA256: LazyLock<String> =
 async fn usecase(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Query(params): Query<UsecaseParams>,
+    Query(params): Query<LanguageParam>,
 ) -> Result<Response> {
     if !state.usecases.contains_key(&usecase) {
         return Ok(StatusCode::NOT_FOUND.into_response());

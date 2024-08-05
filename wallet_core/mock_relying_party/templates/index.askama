@@ -22,7 +22,7 @@
     </section>
     <nav>
         {% for usecase in usecases %}
-        <a role="button" id="{{ usecase }}" href="./{{ usecase }}/">
+        <a role="button" id="{{ usecase }}" href="./{{ usecase }}/?lang={{ language }}">
             <span>
                 {% match usecase.as_ref() %}
                     {% when "mijn_amsterdam" %}
