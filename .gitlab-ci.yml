@@ -608,10 +608,10 @@ build-ios-app-latest-release:
     SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
     SENTRY_URL: "https://sentry.io/"
 
-build-ios-app-latest-profile:
-  extends: .build-ios-app-latest
-  variables:
-    APP_BUILD_MODE: "profile"
+# build-ios-app-latest-profile:
+#   extends: .build-ios-app-latest
+#   variables:
+#     APP_BUILD_MODE: "profile"
 
 .build-ios-app-mock:
   extends: .build-ios-app-ont
@@ -656,10 +656,10 @@ build-ios-app-demo-release:
     SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
     SENTRY_URL: "https://sentry.io/"
 
-build-ios-app-demo-profile:
-  extends: .build-ios-app-demo
-  variables:
-    APP_BUILD_MODE: "profile"
+# build-ios-app-demo-profile:
+#   extends: .build-ios-app-demo
+#   variables:
+#     APP_BUILD_MODE: "profile"
 
 ### Android deploying
 .deploy-android-app:
