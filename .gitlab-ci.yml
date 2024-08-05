@@ -798,44 +798,6 @@ deploy-ios-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
-# .upload-browserstack-ios-app:
-#   extends: .ruby-cache
-#   image:
-#     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
-#   variables:
-#     LC_ALL: "C.UTF-8"
-#     LANG: "C.UTF-8"
-#     FASTLANE_OPT_OUT_USAGE: "YES"
-#   script:
-#     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-#     - export BROWSERSTACK_USER
-#     - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
-#     - export BROWSERSTACK_KEY
-#     - bundle install
-# # TODO:
-#    - |
-#      bundle exec fastlane ios ci_browserstack \
-#        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-#        version:"${RELEASE_VERSION}"
-
-# upload-browserstack-ios-app-latest:
-#   extends: [.env-ont-k8s, .upload-browserstack-ios-app]
-#   rules: !reference [.default-branch, rules]
-#   needs:
-#     - job: build-ios-app-latest-profile
-#       artifacts: true
-#   variables:
-#     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
-
-# upload-browserstack-ios-app-demo:
-#   extends: [.env-demo-k8s, .upload-browserstack-ios-app]
-#   rules: !reference [.release-tag, rules]
-#   needs:
-#     - job: build-ios-app-demo-profile
-#       artifacts: true
-#   variables:
-#     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
-
 dependency-check-images:
   rules: !reference [.default-or-demo-release, rules]
   needs:
