@@ -613,6 +613,25 @@ build-ios-app-latest-profile:
   variables:
     APP_BUILD_MODE: "profile"
 
+.build-ios-app-mock:
+  extends: .build-ios-app-ont
+  rules: !reference [.mock-release-tag, rules]
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+    APP_NAME: "NL Wallet (mock)"
+    APP_MOCK: "true"
+
+build-ios-app-mock-release:
+  extends: .build-ios-app-mock
+  variables:
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
+    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
+    SENTRY_URL: "https://sentry.io/"
+
 .build-ios-app-demo:
   extends: .build-ios-app
   needs:
@@ -641,25 +660,6 @@ build-ios-app-demo-profile:
   extends: .build-ios-app-demo
   variables:
     APP_BUILD_MODE: "profile"
-
-.build-ios-app-mock:
-  extends: .build-ios-app-ont
-  rules: !reference [.mock-release-tag, rules]
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
-    APP_NAME: "NL Wallet (mock)"
-    APP_MOCK: "true"
-
-build-ios-app-mock-release:
-  extends: .build-ios-app-mock
-  variables:
-    APP_BUILD_MODE: "release"
-    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
-    SENTRY_ENVIRONMENT: "mock"
-    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
-    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
-    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
-    SENTRY_URL: "https://sentry.io/"
 
 ### Android deploying
 .deploy-android-app:
@@ -780,14 +780,14 @@ deploy-ios-app-latest:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
 
-# deploy-ios-app-mock:
-#   extends: .deploy-ios-app
-#   rules: !reference [.mock-release-tag, rules]
-#   needs:
-#     - job: build-ios-app-mock-release
-#       artifacts: true
-#   variables:
-#     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+deploy-ios-app-mock:
+  extends: .deploy-ios-app
+  rules: !reference [.mock-release-tag, rules]
+  needs:
+    - job: build-ios-app-mock-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
 
 deploy-ios-app-demo:
   extends: .deploy-ios-app
