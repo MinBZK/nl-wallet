@@ -1102,6 +1102,7 @@ deploy-gba-hc-converter-demo:
 
 run-preload-gba-v-job:
   extends: [.env-demo-k8s]
+  rules: !reference [.release-tag, rules]
   when: manual
   script:
     - kubectl create configmap nl-wallet-gba-hc-converter-preload-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/preload.sh -o yaml | kubectl apply -f -
