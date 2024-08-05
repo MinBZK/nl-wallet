@@ -27,7 +27,7 @@
         <nl-wallet-button
             text={{ t.continue_with_nl_wallet }}
             usecase="{{ usecase }}"
-            base-url="../"
+            start-url="{{ start_url }}"
             lang="{{ language }}">
         </nl-wallet-button>
 {% endmatch %}

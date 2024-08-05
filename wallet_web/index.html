@@ -59,7 +59,7 @@
         class="blue"
         text="18+ with NL Wallet"
         usecase="mijn_amsterdam"
-        start-url="http://localhost:3004/sessions"
+        start-url="http://localhost:3004/sessions?lang=en"
         lang="en"
       ></nl-wallet-button>
       <p>
@@ -85,9 +85,17 @@
           const session_token = e.detail[0]
           const session_type = e.detail[1]
           const usecase = button.attributes.getNamedItem("usecase").value
+          const lang = button.attributes.getNamedItem("lang")
+            ? button.attributes.getNamedItem("lang").value
+            : "nl"
 
           if (session_type === "cross_device") {
-            window.open("http://localhost:3004/mijn_amsterdam/return?session_token=" + sessionToken)
+            window.open(
+              "http://localhost:3004/mijn_amsterdam/return?session_token=" +
+                sessionToken +
+                "&lang=" +
+                lang,
+            )
           }
         }
       }

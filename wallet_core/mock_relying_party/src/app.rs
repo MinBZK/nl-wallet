@@ -145,7 +145,7 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Hash, strum::Display, strum::EnumIter)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, strum::Display, strum::EnumIter)]
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 pub enum Language {
@@ -154,7 +154,7 @@ pub enum Language {
     En,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LanguageParam {
     pub lang: Option<Language>,
 }
@@ -211,7 +211,9 @@ struct IndexTemplate<'a> {
 
 async fn index(State(state): State<Arc<ApplicationState>>, Query(params): Query<LanguageParam>) -> Result<Response> {
     let language = params.lang.unwrap_or_default();
-    let t = TRANSLATIONS.get(&language).unwrap(); // TODO unwrap?
+    let t = TRANSLATIONS
+        .get(&language)
+        .ok_or(anyhow::Error::msg("translations for language not found"))?;
     let result = IndexTemplate {
         usecases: &state.usecases.keys().map(|s| s.as_str()).collect::<Vec<_>>(),
         language,
@@ -225,6 +227,7 @@ async fn index(State(state): State<Arc<ApplicationState>>, Query(params): Query<
 #[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
+    start_url: Url,
     usecase_js_sha256: &'a str,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
@@ -246,9 +249,20 @@ async fn usecase(
     }
 
     let language = params.lang.unwrap_or_default();
-    let t = TRANSLATIONS.get(&language).unwrap(); // TODO unwrap?
+    let mut start_url = state.public_url.join("/sessions");
+    start_url.set_query(Some(
+        serde_urlencoded::to_string(LanguageParam {
+            lang: Some(language.clone()),
+        })
+        .map_err(|_| anyhow::Error::msg("failed to serialize language param"))?
+        .as_str(),
+    ));
+    let t = TRANSLATIONS
+        .get(&language)
+        .ok_or(anyhow::Error::msg("translations for language not found"))?;
     let result = UsecaseTemplate {
         usecase: &usecase,
+        start_url,
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
@@ -291,7 +305,17 @@ async fn disclosed_attributes(
         .await;
 
     let language = params.lang.unwrap_or_default();
-    let t = TRANSLATIONS.get(&language).unwrap(); // TODO unwrap?
+    let mut start_url = state.public_url.join("/sessions");
+    start_url.set_query(Some(
+        serde_urlencoded::to_string(LanguageParam {
+            lang: Some(language.clone()),
+        })
+        .map_err(|_| anyhow::Error::msg("failed to serialize language param"))?
+        .as_str(),
+    ));
+    let t = TRANSLATIONS
+        .get(&language)
+        .ok_or(anyhow::Error::msg("translations for language not found"))?;
     match attributes {
         Ok(attributes) => {
             let result = DisclosedAttributesTemplate {
@@ -306,6 +330,7 @@ async fn disclosed_attributes(
             let err = err.to_string();
             let result = UsecaseTemplate {
                 usecase: &usecase,
+                start_url,
                 usecase_js_sha256: &USECASE_JS_SHA256,
                 wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
                 wallet_web_sha256: &state.wallet_web.sha256,

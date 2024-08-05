@@ -12,8 +12,8 @@
         <nl-wallet-button
             text="{{ t.continue_with_nl_wallet }}"
             usecase="{{ usecase }}"
-            base-url="../"
-             lang="{{ language }}"
+            start-url="{{ start_url }}"
+            lang="{{ language }}"
         ></nl-wallet-button>
         <button id="google" disabled>{{ t.continue_with_google }}</button>
         <button id="email" disabled>{{ t.continue_with_email }}</button>

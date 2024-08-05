@@ -13,7 +13,7 @@
         <nl-wallet-button
             text="{{ t.use_nl_wallet }}"
             usecase="{{ usecase }}"
-            base-url="../"
+            start-url="{{ start_url }}"
             lang="{{ language }}">
         ></nl-wallet-button>
         <a href="#" disabled>{{ t.choose_another_method }}</a>
