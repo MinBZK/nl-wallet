@@ -348,7 +348,7 @@ build-wallet-web:
       - wallet_core/mock_relying_party/assets/nl-wallet-web.*
 
 dependency-check:
-  extends: [.env-ont-k8s]
+  extends: .env-ont-k8s
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:7578d0177b3ddba58d619a4a03dd0afa0427bf05e72d1a57e11db93a69211ad8"
@@ -1216,7 +1216,7 @@ deploy-gba-hc-converter-demo:
     ENV: demo
 
 run-preload-gba-v-job:
-  extends: [.env-demo-k8s]
+  extends: .env-demo-k8s
   when: manual
   script:
     - kubectl create configmap nl-wallet-gba-hc-converter-preload-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/preload.sh -o yaml | kubectl apply -f -
@@ -1256,7 +1256,7 @@ check-gitlab-ci-changed:
     - cd uiautomation
 
 .run-automation-tests:
-  extends: [.run-automation-tests-common-setup]
+  extends: .run-automation-tests-common-setup
   script:
     - gradle wrapper --gradle-version=7.5
     - ./gradlew --info --stacktrace test
@@ -1269,7 +1269,7 @@ check-gitlab-ci-changed:
       -Dfile.encoding=UTF-8
 
 run-automation-tests-14-part-1:
-  extends: [.run-automation-tests]
+  extends: .run-automation-tests
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: always
@@ -1283,7 +1283,7 @@ run-automation-tests-14-part-1:
     TESTS: "suite.AppStartToDashboardTestSuite"
 
 run-automation-tests-14-part-2:
-  extends: [.run-automation-tests]
+  extends: .run-automation-tests
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: always
@@ -1300,7 +1300,7 @@ run-automation-tests-14-part-2:
     TESTS: "suite.DashboardAndBeyondTestSuite"
 
 run-automation-smoke-test-ont:
-  extends: [.run-automation-tests-common-setup]
+  extends: .run-automation-tests-common-setup
   rules: !reference [.default-branch, rules]
   needs:
     - job: upload-browserstack-android-app-latest
