@@ -52,14 +52,14 @@
         id="mijn_amsterdam_button"
         text="18+ met NL Wallet"
         usecase="mijn_amsterdam"
-        base-url="http://localhost:3004"
+        start-url="http://localhost:3004/sessions"
       ></nl-wallet-button>
       <nl-wallet-button
         id="mijn_amsterdam_button_en"
         class="blue"
         text="18+ with NL Wallet"
         usecase="mijn_amsterdam"
-        base-url="http://localhost:3004"
+        start-url="http://localhost:3004/sessions"
         lang="en"
       ></nl-wallet-button>
       <p>
@@ -78,30 +78,22 @@
   </body>
 
   <script>
-    const wallet_buttons = document.getElementsByTagName("nl-wallet-button");
+    const wallet_buttons = document.getElementsByTagName("nl-wallet-button")
     for (const button of wallet_buttons) {
       const return_url_callback = (e) => {
         if (e.detail && e.detail.length > 1) {
-          const session_token = e.detail[0];
-          const session_type = e.detail[1];
-          const usecase = button.attributes.getNamedItem("usecase").value;
+          const session_token = e.detail[0]
+          const session_type = e.detail[1]
+          const usecase = button.attributes.getNamedItem("usecase").value
 
           if (session_type === "cross_device") {
-            window.open("http://localhost:3004/mijn_amsterdam/return?session_token=" + sessionToken);
+            window.open("http://localhost:3004/mijn_amsterdam/return?session_token=" + sessionToken)
           }
         }
       }
 
-      button.addEventListener(
-        "success",
-        return_url_callback,
-        false,
-      )
-      button.addEventListener(
-        "failed",
-        return_url_callback,
-        false,
-      )
+      button.addEventListener("success", return_url_callback, false)
+      button.addEventListener("failed", return_url_callback, false)
     }
   </script>
 </html>

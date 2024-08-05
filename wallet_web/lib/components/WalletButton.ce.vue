@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { createAbsoluteUrl } from "@/util/base_url"
 import { translations, translationsKey, type Language } from "@/util/translations"
 import { isDesktop, isMobileKey } from "@/util/useragent"
-import { computed, provide, ref } from "vue"
+import { provide, ref } from "vue"
 import WalletModal from "./WalletModal.vue"
 import { RO_SANS_BOLD, RO_SANS_REGULAR } from "../non-free/fonts"
 
 export interface Props {
   usecase: string
-  baseUrl?: string
+  startUrl?: URL
   text?: string
   lang?: Language
   // ignored, but needed for the browser not giving a warning
@@ -18,7 +17,7 @@ export interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   text: (props): string => translations(props.lang as Language)("wallet_button_text"),
-  baseUrl: (): string => "",
+  startUrl: (): URL => new URL(document.location.href),
   lang: (): Language => "nl",
 })
 
@@ -31,9 +30,6 @@ const isVisible = ref(false)
 const button = ref<HTMLDivElement | null>(null)
 
 const isMobile = !isDesktop(window.navigator.userAgent)
-const absoluteBaseUrl = computed(() =>
-  createAbsoluteUrl(props.baseUrl, window.location.href, window.location.pathname),
-)
 
 const success = (sessionToken: string, sessionType: string) => {
   close()
@@ -86,7 +82,7 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
   </button>
   <wallet-modal
     v-if="isVisible"
-    :base-url="absoluteBaseUrl"
+    :start-url="startUrl"
     :usecase
     @close="close"
     @success="success"
