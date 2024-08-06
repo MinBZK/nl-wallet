@@ -1,10 +1,8 @@
-{% let title = t.amsterdam_title %}
-
-{% call header::header(title, "") %}
+{% call header::header(t.amsterdam_title, "") %}
 <main>
-    {% match error %}
-    {% when Some with (error) %}
-        {% call notification::notification(t.amsterdam_failed, t.amsterdam_try_again, error) %}
+    {% match session_token %}
+    {% when Some with (session_token) %}
+        {% call notification::notification(t.amsterdam_failed, t.amsterdam_try_again, session_token) %}
     {% when None %}
     {% endmatch %}
     <section>
@@ -19,8 +17,8 @@
             text="{{ t.login_with_nl_wallet }}"
             usecase="{{ usecase }}"
             start-url="{{ start_url }}"
-            lang="{{ language }}"
-        ></nl-wallet-button>
+            lang="{{ language }}">
+        </nl-wallet-button>
         <button id="digid" disabled><span>{{ t.login_with_digid }}</span></button>
     </section>
 </main>

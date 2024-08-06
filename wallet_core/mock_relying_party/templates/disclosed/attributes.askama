@@ -26,5 +26,5 @@
 {% endmatch %}
 
 {# should be last for accessibility purposes #}
-{% call demo_bar::demo_bar(t.demo_see_other, "../", t.demo_see_examples, language, t) %}
+{% call demo_bar::demo_bar(t.demo_see_other, "../", t.demo_see_examples, language, t, Some(session_token), nonce) %}
 {% endblock %}

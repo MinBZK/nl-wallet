@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block content %}
-<aside>{% call demo_bar::lang_selector(language, t) %}</aside>
+<aside>{% call demo_bar::lang_selector(language, t, session_token, nonce) %}</aside>
 <header><!-- just the logo --></header>
 <main>
     <section>
@@ -28,7 +28,7 @@
                     {% when "mijn_amsterdam" %}
                         {{ t.amsterdam_index }}
                     {% when "monkey_bike" %}
-                        {{ t.monkeybike_index }}}
+                        {{ t.monkeybike_index }}
                     {% when "online_marketplace" %}
                         {{ t.marketplace_index }}
                     {% when "xyz_bank" %}

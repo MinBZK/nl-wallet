@@ -205,6 +205,8 @@ async fn create_session(
 #[template(path = "index.askama", escape = "html", ext = "html")]
 struct IndexTemplate<'a> {
     usecases: &'a [&'a str],
+    session_token: Option<SessionToken>,
+    nonce: Option<String>,
     language: Language,
     t: &'a Words<'a>,
 }
@@ -216,6 +218,8 @@ async fn index(State(state): State<Arc<ApplicationState>>, Query(params): Query<
         .ok_or(anyhow::Error::msg("translations for language not found"))?;
     let result = IndexTemplate {
         usecases: &state.usecases.keys().map(|s| s.as_str()).collect::<Vec<_>>(),
+        session_token: None,
+        nonce: None,
         language,
         t,
     };
@@ -231,7 +235,8 @@ struct UsecaseTemplate<'a> {
     usecase_js_sha256: &'a str,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
-    error: Option<&'a str>,
+    session_token: Option<SessionToken>,
+    nonce: Option<String>,
     language: Language,
     t: &'a Words<'a>,
 }
@@ -266,7 +271,8 @@ async fn usecase(
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
-        error: None,
+        session_token: None,
+        nonce: None,
         language,
         t,
     };
@@ -286,6 +292,8 @@ pub struct DisclosedAttributesParams {
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
     attributes: DisclosedAttributes,
+    session_token: SessionToken,
+    nonce: Option<String>,
     language: Language,
     t: &'a Words<'a>,
 }
@@ -301,7 +309,7 @@ async fn disclosed_attributes(
 
     let attributes = state
         .client
-        .disclosed_attributes(params.session_token, params.nonce)
+        .disclosed_attributes(params.session_token.clone(), params.nonce.clone())
         .await;
 
     let language = params.lang.unwrap_or_default();
@@ -321,20 +329,22 @@ async fn disclosed_attributes(
             let result = DisclosedAttributesTemplate {
                 usecase: &usecase,
                 attributes,
+                session_token: params.session_token,
+                nonce: params.nonce,
                 language,
                 t,
             };
             Ok(askama_axum::into_response(&result))
         }
-        Err(err) => {
-            let err = err.to_string();
+        Err(_) => {
             let result = UsecaseTemplate {
                 usecase: &usecase,
                 start_url,
                 usecase_js_sha256: &USECASE_JS_SHA256,
                 wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
                 wallet_web_sha256: &state.wallet_web.sha256,
-                error: Some(&err),
+                session_token: Some(params.session_token),
+                nonce: params.nonce,
                 language,
                 t,
             };

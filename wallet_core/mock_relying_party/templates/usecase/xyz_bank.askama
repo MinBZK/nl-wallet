@@ -4,9 +4,9 @@
         <h4>{{ t.xyz_open_account }}</h4>
         <h2>{{ t.xyz_identify_yourself }}</h2>
     </section>
-    {% match error %}
-        {% when Some with (error) %}
-            {% call notification::notification(t.xyz_failed_try_again, "", error) %}
+    {% match session_token %}
+        {% when Some with (session_token) %}
+        {% call notification::notification(t.xyz_failed_try_again, "", session_token) %}
         {% when None %}
     {% endmatch %}
     <section class="buttons">
@@ -15,7 +15,7 @@
             usecase="{{ usecase }}"
             start-url="{{ start_url }}"
             lang="{{ language }}">
-        ></nl-wallet-button>
+        </nl-wallet-button>
         <a href="#" disabled>{{ t.choose_another_method }}</a>
     </section>
 </main>

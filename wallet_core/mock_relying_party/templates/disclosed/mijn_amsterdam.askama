@@ -1,6 +1,4 @@
-{% let title = t.amsterdam_title %}
-
-{% call header::header(title, t.amsterdam_profile_name) %}
+{% call header::header(t.amsterdam_title, t.amsterdam_profile_name) %}
 <main>
     {% call notification::notification(t.amsterdam_success, t.amsterdam_logged_in, "") %}
     <section>

@@ -3,9 +3,9 @@
     <section>
         <h2>{{ t.marketplace_login }}</h2>
     </section>
-    {% match error %}
-        {% when Some with (error) %}
-            {% call notification::notification(t.login_failed_try_again, "", error) %}
+    {% match session_token %}
+        {% when Some with (session_token) %}
+        {% call notification::notification(t.login_failed_try_again, "", session_token) %}
         {% when None %}
     {% endmatch %}
     <section class="buttons">
@@ -14,7 +14,7 @@
             usecase="{{ usecase }}"
             start-url="{{ start_url }}"
             lang="{{ language }}">
-        ></nl-wallet-button>
+        </nl-wallet-button>
         <button id="google" disabled>{{ t.continue_with_google }}</button>
         <button id="email" disabled>{{ t.continue_with_email }}</button>
         <p class="small">
