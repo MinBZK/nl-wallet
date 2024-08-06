@@ -47,3 +47,14 @@ wallet-env-config-preproduction:
     STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_PREPROD
     CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_PREPROD
     CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_PREPROD   
+
+wallet-env-config-production:
+  extends: .wallet-env-config
+  rules: !reference [.release-tag, rules]
+  when: manual
+  variables:
+    WALLET_ENVIRONMENT: production
+    APP_HOSTNAME: $APP_EXTERNAL_HOSTNAME_PROD
+    STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_PROD
+    CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_PROD
+    CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_PROD   
