@@ -276,7 +276,7 @@ class DashboardScreen extends StatelessWidget {
   /// the [DashboardBloc] is initialized with these cards, so that they are instantly
   /// available, e.g. useful when triggering Hero animations.
   static void show(BuildContext context, {List<WalletCard>? cards}) {
-    if (cards != null) SecuredPageRoute.overrideDurationOfNextTransition(const Duration(milliseconds: 800));
+    if (cards != null) SecuredPageRoute.overrideDurationOfNextTransition(const Duration(milliseconds: 1200));
     Navigator.restorablePushNamedAndRemoveUntil(
       context,
       WalletRoutes.dashboardRoute,
