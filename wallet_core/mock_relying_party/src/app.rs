@@ -7,7 +7,8 @@ use std::{
 
 use askama::Template;
 use axum::{
-    extract::{Path, Query, Request, State},
+    async_trait,
+    extract::{FromRequestParts, Path, Query, Request, State},
     handler::HandlerWithoutStateExt,
     http::{Method, StatusCode},
     middleware::{self, Next},
@@ -16,7 +17,11 @@ use axum::{
     Json, Router,
 };
 use base64::prelude::*;
-use http::{header::CACHE_CONTROL, HeaderValue};
+use http::{
+    header::{ACCEPT_LANGUAGE, CACHE_CONTROL},
+    request::Parts,
+    HeaderMap, HeaderValue,
+};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -145,7 +150,7 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, strum::Display, strum::EnumIter)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, strum::Display, strum::EnumIter)]
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 pub enum Language {
@@ -154,14 +159,49 @@ pub enum Language {
     En,
 }
 
+impl Language {
+    fn match_accept_language(headers: &HeaderMap) -> Option<Self> {
+        let accept_language = headers.get(ACCEPT_LANGUAGE)?;
+        let languages = accept_language::parse(accept_language.to_str().ok()?);
+        for lang in languages {
+            match lang.as_str() {
+                "en" | "en-GB" | "en-US" | "en-AU" => return Some(Language::En),
+                "nl" | "nl-NL" | "nl-BE" => return Some(Language::Nl),
+                _ => {}
+            }
+        }
+
+        None
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LanguageParam {
-    pub lang: Option<Language>,
+    pub lang: Language,
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for Language
+where
+    S: Send + Sync,
+{
+    type Rejection = std::convert::Infallible;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> std::result::Result<Self, Self::Rejection> {
+        let query = Query::<LanguageParam>::from_request_parts(parts, state).await;
+        if let Ok(params) = query {
+            Ok(params.lang)
+        } else if let Some(lang) = Language::match_accept_language(&parts.headers) {
+            Ok(lang)
+        } else {
+            Ok(Language::default())
+        }
+    }
 }
 
 async fn create_session(
     State(state): State<Arc<ApplicationState>>,
-    Query(params): Query<LanguageParam>,
+    language: Language,
     Json(options): Json<SessionOptions>,
 ) -> Result<Json<SessionResponse>> {
     let usecase = state
@@ -176,7 +216,7 @@ async fn create_session(
                 "{}/{}?session_token={{session_token}}&lang={}",
                 state.public_url.join(&options.usecase),
                 RETURN_URL_SEGMENT,
-                params.lang.unwrap_or_default(),
+                language,
             )
             .parse()
             .expect("should always be a valid ReturnUrlTemplate"),
@@ -211,8 +251,7 @@ struct IndexTemplate<'a> {
     t: &'a Words<'a>,
 }
 
-async fn index(State(state): State<Arc<ApplicationState>>, Query(params): Query<LanguageParam>) -> Result<Response> {
-    let language = params.lang.unwrap_or_default();
+async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Result<Response> {
     let t = TRANSLATIONS
         .get(&language)
         .ok_or(anyhow::Error::msg("translations for language not found"))?;
@@ -247,20 +286,17 @@ static USECASE_JS_SHA256: LazyLock<String> =
 async fn usecase(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Query(params): Query<LanguageParam>,
+    language: Language,
 ) -> Result<Response> {
     if !state.usecases.contains_key(&usecase) {
         return Ok(StatusCode::NOT_FOUND.into_response());
     }
 
-    let language = params.lang.unwrap_or_default();
     let mut start_url = state.public_url.join("/sessions");
     start_url.set_query(Some(
-        serde_urlencoded::to_string(LanguageParam {
-            lang: Some(language.clone()),
-        })
-        .map_err(|_| anyhow::Error::msg("failed to serialize language param"))?
-        .as_str(),
+        serde_urlencoded::to_string(LanguageParam { lang: language })
+            .map_err(|_| anyhow::Error::msg("failed to serialize language param"))?
+            .as_str(),
     ));
     let t = TRANSLATIONS
         .get(&language)
@@ -284,7 +320,6 @@ async fn usecase(
 pub struct DisclosedAttributesParams {
     pub nonce: Option<String>,
     pub session_token: SessionToken,
-    pub lang: Option<Language>,
 }
 
 #[derive(Template, Serialize)]
@@ -302,6 +337,7 @@ async fn disclosed_attributes(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
     Query(params): Query<DisclosedAttributesParams>,
+    language: Language,
 ) -> Result<Response> {
     if !state.usecases.contains_key(&usecase) {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -312,14 +348,11 @@ async fn disclosed_attributes(
         .disclosed_attributes(params.session_token.clone(), params.nonce.clone())
         .await;
 
-    let language = params.lang.unwrap_or_default();
     let mut start_url = state.public_url.join("/sessions");
     start_url.set_query(Some(
-        serde_urlencoded::to_string(LanguageParam {
-            lang: Some(language.clone()),
-        })
-        .map_err(|_| anyhow::Error::msg("failed to serialize language param"))?
-        .as_str(),
+        serde_urlencoded::to_string(LanguageParam { lang: language })
+            .map_err(|_| anyhow::Error::msg("failed to serialize language param"))?
+            .as_str(),
     ));
     let t = TRANSLATIONS
         .get(&language)

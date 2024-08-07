@@ -15,6 +15,7 @@ doctest = false
 allow_http_return_url = ["wallet_server/allow_http_return_url"]
 
 [dependencies]
+accept-language.workspace = true
 anyhow.workspace = true
 askama.workspace = true
 axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
