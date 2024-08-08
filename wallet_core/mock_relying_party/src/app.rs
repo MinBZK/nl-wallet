@@ -2,6 +2,7 @@ use std::{
     env,
     path::PathBuf,
     result::Result as StdResult,
+    str::FromStr,
     sync::{Arc, LazyLock},
 };
 
@@ -150,12 +151,33 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, strum::Display, strum::EnumIter)]
-#[serde(rename_all = "kebab-case")]
-#[strum(serialize_all = "kebab-case")]
+#[derive(
+    Debug,
+    Default,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    strum::EnumIter,
+)]
 pub enum Language {
     #[default]
+    #[serde(rename = "nl")]
+    #[strum(to_string = "nl", serialize = "nl-BE", serialize = "nl-NL")]
     Nl,
+    #[serde(rename = "en")]
+    #[strum(
+        to_string = "en",
+        serialize = "en-AU",
+        serialize = "en-CA",
+        serialize = "en-GB",
+        serialize = "en-US"
+    )]
     En,
 }
 
@@ -163,15 +185,9 @@ impl Language {
     fn match_accept_language(headers: &HeaderMap) -> Option<Self> {
         let accept_language = headers.get(ACCEPT_LANGUAGE)?;
         let languages = accept_language::parse(accept_language.to_str().ok()?);
-        for lang in languages {
-            match lang.as_str() {
-                "en" | "en-GB" | "en-US" | "en-AU" => return Some(Language::En),
-                "nl" | "nl-NL" | "nl-BE" => return Some(Language::Nl),
-                _ => {}
-            }
-        }
 
-        None
+        // applies function to the elements of iterator and returns the first non-None result
+        languages.into_iter().find_map(|l| Language::from_str(&l).ok())
     }
 }
 
