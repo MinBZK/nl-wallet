@@ -78,15 +78,6 @@ pub enum SessionType {
     CrossDevice,
 }
 
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SessionTypeReturnUrl {
-    Neither,
-    #[default]
-    SameDevice,
-    Both,
-}
-
 impl ReaderEngagement {
     pub fn try_new(privkey: &SecretKey, verifier_url: Url) -> Result<Self> {
         let engagement = Engagement {

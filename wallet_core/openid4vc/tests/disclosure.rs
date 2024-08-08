@@ -29,7 +29,7 @@ use nl_wallet_mdoc::{
     },
     unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
-    verifier::{ItemsRequests, SessionType, SessionTypeReturnUrl},
+    verifier::{ItemsRequests, SessionType},
     DeviceResponse, DocType, SessionTranscript,
 };
 use openid4vc::{
@@ -38,8 +38,8 @@ use openid4vc::{
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
     return_url::ReturnUrlTemplate,
     verifier::{
-        DisclosedAttributesError, DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken,
-        WalletAuthResponse,
+        DisclosedAttributesError, DisclosureData, SessionTypeReturnUrl, StatusResponse, UseCase, Verifier,
+        VerifierUrlParameters, VpToken, WalletAuthResponse,
     },
     ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
 };

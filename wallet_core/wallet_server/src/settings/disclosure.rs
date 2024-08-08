@@ -5,8 +5,7 @@ use ring::hmac;
 use serde::Deserialize;
 use serde_with::{hex::Hex, serde_as};
 
-use nl_wallet_mdoc::verifier::SessionTypeReturnUrl;
-use openid4vc::verifier::{UseCase, UseCases};
+use openid4vc::verifier::{SessionTypeReturnUrl, UseCase, UseCases};
 use wallet_common::trust_anchor::DerTrustAnchor;
 
 use super::*;

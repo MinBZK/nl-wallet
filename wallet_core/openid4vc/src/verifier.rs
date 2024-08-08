@@ -26,7 +26,7 @@ use nl_wallet_mdoc::{
         CLEANUP_INTERVAL_SECONDS,
     },
     utils::x509::CertificateError,
-    verifier::{DisclosedAttributes, ItemsRequests, SessionType, SessionTypeReturnUrl},
+    verifier::{DisclosedAttributes, ItemsRequests, SessionType},
 };
 use wallet_common::{
     config::wallet_config::BaseUrl,
@@ -419,6 +419,15 @@ impl From<DisclosureData> for SessionStatus {
             },
         }
     }
+}
+
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SessionTypeReturnUrl {
+    Neither,
+    #[default]
+    SameDevice,
+    Both,
 }
 
 #[nutype(derive(Debug, From, AsRef))]
