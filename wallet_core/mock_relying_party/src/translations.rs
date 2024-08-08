@@ -1,7 +1,5 @@
 use std::{collections::HashMap, ops::Index, sync::LazyLock};
 
-use serde::Serialize;
-
 use crate::app::Language;
 
 pub type Translations<'a> = HashMap<Language, Words<'a>>;
@@ -117,7 +115,6 @@ pub static TRANSLATIONS: LazyLock<Translations> = LazyLock::new(|| {
     translations
 });
 
-#[derive(Serialize)]
 pub struct Words<'a> {
     en: &'a str,
     nl: &'a str,

@@ -140,7 +140,7 @@ pub fn create_router(settings: Settings) -> Router {
     app
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Serialize, Deserialize)]
 struct SessionOptions {
     usecase: String,
 }
@@ -257,7 +257,7 @@ async fn create_session(
     Ok(result.into())
 }
 
-#[derive(Template, Serialize)]
+#[derive(Template)]
 #[template(path = "index.askama", escape = "html", ext = "html")]
 struct IndexTemplate<'a> {
     usecases: &'a [&'a str],
@@ -282,7 +282,7 @@ async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -
     Ok(askama_axum::into_response(&result))
 }
 
-#[derive(Template, Serialize)]
+#[derive(Template)]
 #[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
@@ -341,7 +341,7 @@ pub struct DisclosedAttributesParams {
     pub session_token: SessionToken,
 }
 
-#[derive(Template, Serialize)]
+#[derive(Template)]
 #[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
