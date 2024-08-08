@@ -299,6 +299,12 @@ struct UsecaseTemplate<'a> {
 static USECASE_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
 
+fn format_start_url(public_url: &BaseUrl, lang: Language) -> Url {
+    let mut start_url = public_url.join("/sessions");
+    start_url.set_query(serde_urlencoded::to_string(LanguageParam { lang }).ok().as_deref());
+    start_url
+}
+
 async fn usecase(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
@@ -308,12 +314,7 @@ async fn usecase(
         return Ok(StatusCode::NOT_FOUND.into_response());
     }
 
-    let mut start_url = state.public_url.join("/sessions");
-    start_url.set_query(Some(
-        serde_urlencoded::to_string(LanguageParam { lang: language })
-            .map_err(|_| anyhow::Error::msg("failed to serialize language param"))?
-            .as_str(),
-    ));
+    let start_url = format_start_url(&state.public_url, language);
     let t = TRANSLATIONS
         .get(&language)
         .ok_or(anyhow::Error::msg("translations for language not found"))?;
@@ -364,12 +365,7 @@ async fn disclosed_attributes(
         .disclosed_attributes(params.session_token.clone(), params.nonce.clone())
         .await;
 
-    let mut start_url = state.public_url.join("/sessions");
-    start_url.set_query(Some(
-        serde_urlencoded::to_string(LanguageParam { lang: language })
-            .map_err(|_| anyhow::Error::msg("failed to serialize language param"))?
-            .as_str(),
-    ));
+    let start_url = format_start_url(&state.public_url, language);
     let t = TRANSLATIONS
         .get(&language)
         .ok_or(anyhow::Error::msg("translations for language not found"))?;
