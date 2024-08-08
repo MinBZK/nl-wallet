@@ -1,11 +1,25 @@
-use std::{collections::HashMap, ops::Index, sync::LazyLock};
+use std::ops::Index;
 
 use crate::app::Language;
 
-pub type Translations<'a> = HashMap<Language, Words<'a>>;
+pub struct Translations<'a> {
+    en: Words<'a>,
+    nl: Words<'a>,
+}
 
-pub static TRANSLATIONS: LazyLock<Translations> = LazyLock::new(|| {
-    let en = Words {
+impl<'a> Index<Language> for Translations<'a> {
+    type Output = Words<'a>;
+
+    fn index(&self, lang: Language) -> &Self::Output {
+        match lang {
+            Language::Nl => &self.nl,
+            Language::En => &self.en,
+        }
+    }
+}
+
+pub const TRANSLATIONS: Translations = Translations {
+    en: Words {
         en: "English",
         nl: "Nederlands",
         index_title: "NL Wallet demo",
@@ -55,9 +69,8 @@ pub static TRANSLATIONS: LazyLock<Translations> = LazyLock::new(|| {
         search_product: "Search product...",
         search_by_topic: "Search by topic...",
         next: "Next",
-    };
-
-    let nl = Words {
+    },
+    nl: Words {
         en: "English",
         nl: "Nederlands",
         index_title: "NL Wallet demo",
@@ -107,13 +120,8 @@ pub static TRANSLATIONS: LazyLock<Translations> = LazyLock::new(|| {
         search_product: "Zoek product...",
         search_by_topic: "Zoek op onderwerp...",
         next: "Volgende",
-    };
-
-    let mut translations = HashMap::new();
-    translations.insert(Language::Nl, nl);
-    translations.insert(Language::En, en);
-    translations
-});
+    },
+};
 
 pub struct Words<'a> {
     en: &'a str,

@@ -268,15 +268,12 @@ struct IndexTemplate<'a> {
 }
 
 async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Result<Response> {
-    let t = TRANSLATIONS
-        .get(&language)
-        .ok_or(anyhow::Error::msg("translations for language not found"))?;
     let result = IndexTemplate {
         usecases: &state.usecases.keys().map(|s| s.as_str()).collect::<Vec<_>>(),
         session_token: None,
         nonce: None,
         language,
-        t,
+        t: &TRANSLATIONS[language],
     };
 
     Ok(askama_axum::into_response(&result))
@@ -317,9 +314,6 @@ async fn usecase(
     }
 
     let start_url = format_start_url(&state.public_url, language);
-    let t = TRANSLATIONS
-        .get(&language)
-        .ok_or(anyhow::Error::msg("translations for language not found"))?;
     let result = UsecaseTemplate {
         usecase: &usecase,
         start_url,
@@ -329,7 +323,7 @@ async fn usecase(
         session_token: None,
         nonce: None,
         language,
-        t,
+        t: &TRANSLATIONS[language],
     };
 
     Ok(askama_axum::into_response(&result))
@@ -368,9 +362,6 @@ async fn disclosed_attributes(
         .await;
 
     let start_url = format_start_url(&state.public_url, language);
-    let t = TRANSLATIONS
-        .get(&language)
-        .ok_or(anyhow::Error::msg("translations for language not found"))?;
     match attributes {
         Ok(attributes) => {
             let result = DisclosedAttributesTemplate {
@@ -379,7 +370,7 @@ async fn disclosed_attributes(
                 session_token: params.session_token,
                 nonce: params.nonce,
                 language,
-                t,
+                t: &TRANSLATIONS[language],
             };
             Ok(askama_axum::into_response(&result))
         }
@@ -393,7 +384,7 @@ async fn disclosed_attributes(
                 session_token: Some(params.session_token),
                 nonce: params.nonce,
                 language,
-                t,
+                t: &TRANSLATIONS[language],
             };
             Ok(askama_axum::into_response(&result))
         }
