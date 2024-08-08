@@ -78,7 +78,14 @@ trap 'rm -f "$CONFIG_SIGNATURE_FILE"' 0 2 3 15 # remove the file whenever the sc
 openssl asn1parse -genconf "$CONFIG_SIGNATURE_ASN1_FILE" -out "$CONFIG_SIGNATURE_FILE" >/dev/null
 
 # Actually verify the header and payload against the signature.
+set +e
 echo -n "${JWT_HEADER}.${JWT_PAYLOAD}" | openssl dgst -sha256 -verify "$CONFIG_PUB_KEY_FILE" -signature "$CONFIG_SIGNATURE_FILE" >/dev/null
+
+if [ $? -ne 0 ]; then
+    >&2 echo "Configuration signature verification failed"
+    exit 1
+fi
+set -e
 
 # Output the lines of the .env file based on the contents of the configuration JSON.
 CONFIG_JSON=$(base64_url_decode $JWT_PAYLOAD)
