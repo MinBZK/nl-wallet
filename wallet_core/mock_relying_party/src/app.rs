@@ -301,7 +301,9 @@ static USECASE_JS_SHA256: LazyLock<String> =
 
 fn format_start_url(public_url: &BaseUrl, lang: Language) -> Url {
     let mut start_url = public_url.join("/sessions");
-    start_url.set_query(serde_urlencoded::to_string(LanguageParam { lang }).ok().as_deref());
+    start_url.set_query(Some(
+        serde_urlencoded::to_string(LanguageParam { lang }).unwrap().as_str(),
+    ));
     start_url
 }
 
