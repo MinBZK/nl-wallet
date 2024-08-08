@@ -1,7 +1,5 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::time::Duration;
-
 use chrono::{DateTime, Utc};
 use derive_more::AsRef;
 use indexmap::IndexMap;
@@ -82,8 +80,6 @@ pub enum SessionType {
     /// Using QR code
     CrossDevice,
 }
-
-pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
 #[nutype(
     derive(Debug, Clone, FromStr, Serialize, Deserialize),

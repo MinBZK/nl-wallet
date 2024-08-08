@@ -1,6 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::{collections::HashMap, fmt::Display, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use itertools::Itertools;
@@ -26,10 +26,7 @@ use nl_wallet_mdoc::{
         CLEANUP_INTERVAL_SECONDS,
     },
     utils::x509::CertificateError,
-    verifier::{
-        DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl,
-        EPHEMERAL_ID_VALIDITY_SECONDS,
-    },
+    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl},
 };
 use wallet_common::{
     config::wallet_config::BaseUrl,
@@ -47,6 +44,8 @@ use crate::{
     },
     AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
+
+pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
 /// Errors that can occur during processing of any of the endpoints.
 #[derive(Debug, thiserror::Error)]
