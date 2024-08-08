@@ -10,10 +10,6 @@ workspace = true
 [lib]
 doctest = false
 
-[features]
-# Allow the disclosure return URL and its prefix to use http://
-allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
-
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true

@@ -189,7 +189,6 @@ function generate_pid_issuer_root_ca {
 function generate_pid_issuer_key_pair {
     echo -e "${INFO}Generating PID Issuer key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --features "allow_http_return_url" \
         --bin wallet_ca issuer \
         --ca-key-file "${TARGET_DIR}/pid_issuer/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
@@ -218,7 +217,6 @@ function generate_mock_relying_party_root_ca {
 # $1 - READER_NAME: Name of the Relying Party
 function generate_mock_relying_party_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --features "allow_http_return_url" \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
