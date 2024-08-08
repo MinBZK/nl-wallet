@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
@@ -22,7 +23,11 @@ void main() {
     testGoldens('about light', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
-        wrapper: walletAppWrapper(),
+        wrapper: walletAppWrapper(
+          providers: [
+            RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'light');
     });
@@ -30,7 +35,12 @@ void main() {
     testGoldens('about dark', (tester) async {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+        wrapper: walletAppWrapper(
+          brightness: Brightness.dark,
+          providers: [
+            RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'dark');
     });

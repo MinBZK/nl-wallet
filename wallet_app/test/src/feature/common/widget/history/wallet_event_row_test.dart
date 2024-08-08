@@ -49,7 +49,7 @@ void main() {
             event: WalletMockData.disclosureEvent,
             onPressed: () {},
           ),
-          surfaceSize: const Size(350, 89),
+          surfaceSize: const Size(350, 115),
         );
         await screenMatchesGolden(tester, 'wallet_event_row/light.interaction.success');
       },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -9,10 +10,10 @@ import 'package:wallet/src/feature/common/widget/os_version_text.dart';
 import 'package:wallet/src/feature/common/widget/version_text.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/wallet_mocks.mocks.dart';
+import '../../../mocks/wallet_mocks.dart';
 
 void main() {
-  const kGoldenSize = Size(350, 360);
+  const kGoldenSize = Size(350, 444);
 
   setUp(() {
     PackageInfo.setMockInitialValues(
@@ -28,7 +29,13 @@ void main() {
     testGoldens(
       'light help sheet',
       (tester) async {
-        await tester.pumpWidgetWithAppWrapper(const HelpSheet(), surfaceSize: kGoldenSize);
+        await tester.pumpWidgetWithAppWrapper(
+          const HelpSheet(),
+          surfaceSize: kGoldenSize,
+          providers: [
+            RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
+          ],
+        );
         await screenMatchesGolden(tester, 'help_sheet/light');
       },
     );
@@ -42,6 +49,9 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
+          providers: [
+            RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
+          ],
         );
         await screenMatchesGolden(tester, 'help_sheet/error_and_support.dark');
       },

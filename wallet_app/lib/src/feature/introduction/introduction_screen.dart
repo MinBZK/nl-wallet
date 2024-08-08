@@ -120,7 +120,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       right: 0,
       child: Center(
         child: Semantics(
-          hidden: _currentPageInt > 0,
           label: context.l10n.introductionWCAGDutchGovernmentLogoLabel,
           child: Image.asset(
             WalletAssets.logo_rijksoverheid_label,
@@ -186,7 +185,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             const SliverSizedBox(height: 32),
             SliverFillRemaining(
               hasScrollBody: false,
-              fillOverscroll: false,
               child: Container(
                 alignment: Alignment.center,
                 color: context.colorScheme.primaryContainer,

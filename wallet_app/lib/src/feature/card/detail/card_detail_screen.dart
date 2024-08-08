@@ -102,7 +102,12 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   Widget _buildLoading(BuildContext context, {WalletCard? card}) {
-    if (card == null) return const SliverFillRemaining(child: CenteredLoadingIndicator());
+    if (card == null) {
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: CenteredLoadingIndicator(),
+      );
+    }
     return SliverMainAxisGroup(
       slivers: [
         const SliverSizedBox(height: 24 + 8),
@@ -262,6 +267,7 @@ class CardDetailScreen extends StatelessWidget {
 
   Widget _buildError(BuildContext context, CardDetailLoadFailure state) {
     return SliverFillRemaining(
+      hasScrollBody: false,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.max,
