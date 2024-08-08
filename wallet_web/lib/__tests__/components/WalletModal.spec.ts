@@ -250,12 +250,12 @@ describe("WalletModal", () => {
       expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     })
 
-    it("should show error for get status timeout", async () => {
-      vi.mocked(getStatus).mockRejectedValueOnce("timeout" as ErrorType)
+    it("should show error for get status network", async () => {
+      vi.mocked(getStatus).mockRejectedValueOnce("network" as ErrorType)
       // twice needed because of "focus-hack"
       await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
-      expect(wrapper.find("[data-testid=timeout_header]").exists()).toBe(true)
+      expect(wrapper.find("[data-testid=network_header]").exists()).toBe(true)
     })
   })
 
@@ -271,8 +271,8 @@ describe("WalletModal", () => {
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
   })
 
-  it("should show error for post engagement timeout", async () => {
-    vi.mocked(createSession).mockRejectedValueOnce("timeout" as ErrorType)
+  it("should show error for post engagement network", async () => {
+    vi.mocked(createSession).mockRejectedValueOnce("network" as ErrorType)
 
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
@@ -280,7 +280,7 @@ describe("WalletModal", () => {
     })
     await flushPromises()
 
-    expect(wrapper.find("[data-testid=timeout_header]").exists()).toBe(true)
+    expect(wrapper.find("[data-testid=network_header]").exists()).toBe(true)
   })
 
   it("should show qr code again after retrying for desktop mode", async () => {

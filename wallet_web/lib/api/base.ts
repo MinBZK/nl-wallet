@@ -6,7 +6,7 @@ export const REQUEST_TIMEOUT = 5000 // half of the currently configured expirati
 export const catch_axios_error: <T>(e: AxiosError) => T = (e) => {
   console.error(e)
   if (e.code === "ECONNABORTED" || e.code === "ERR_NETWORK") {
-    throw "timeout" as ErrorType
+    throw "network" as ErrorType
   } else {
     throw "failed" as ErrorType
   }
