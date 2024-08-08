@@ -12,11 +12,12 @@ use tracing::{info, warn};
 
 use nl_wallet_mdoc::{
     server_state::{SessionStore, SessionToken},
-    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType},
+    verifier::{DisclosedAttributes, ItemsRequests, SessionType},
 };
 use openid4vc::{
     disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
     openid4vp::{VpResponse, WalletRequest},
+    return_url::ReturnUrlTemplate,
     verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
     DisclosureErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };

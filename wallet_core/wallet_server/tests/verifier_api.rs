@@ -28,10 +28,11 @@ use nl_wallet_mdoc::{
         mock_time::MockTimeGenerator,
         serialization::{CborSeq, TaggedBytes},
     },
-    verifier::{DisclosedAttributes, ReturnUrlTemplate, SessionType},
+    verifier::{DisclosedAttributes, SessionType},
     DeviceAuthenticationBytes, DeviceResponse, ItemsRequest,
 };
 use openid4vc::{
+    return_url::ReturnUrlTemplate,
     verifier::{DisclosureData, Done, SessionResult, StatusResponse, VerifierUrlParameters},
     ErrorResponse,
 };

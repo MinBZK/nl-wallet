@@ -26,7 +26,7 @@ use nl_wallet_mdoc::{
         CLEANUP_INTERVAL_SECONDS,
     },
     utils::x509::CertificateError,
-    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl},
+    verifier::{DisclosedAttributes, ItemsRequests, SessionType, SessionTypeReturnUrl},
 };
 use wallet_common::{
     config::wallet_config::BaseUrl,
@@ -42,6 +42,7 @@ use crate::{
         AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest,
         VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
+    return_url::ReturnUrlTemplate,
     AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
 

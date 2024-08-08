@@ -29,13 +29,14 @@ use nl_wallet_mdoc::{
     },
     unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
-    verifier::{ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl},
+    verifier::{ItemsRequests, SessionType, SessionTypeReturnUrl},
     DeviceResponse, DocType, SessionTranscript,
 };
 use openid4vc::{
     disclosure_session::{DisclosureSession, VpClientError, VpMessageClient, VpMessageClientError},
     jwt,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
+    return_url::ReturnUrlTemplate,
     verifier::{
         DisclosedAttributesError, DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken,
         WalletAuthResponse,

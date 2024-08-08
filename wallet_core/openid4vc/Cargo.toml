@@ -20,6 +20,8 @@ required-features = ["integration"]
 [features]
 # Include implementations of the axum IntoResponse trait.
 axum = ["dep:axum"]
+# Allow the disclosure return URL and its prefix to use http://
+allow_http_return_url = []
 # Include mock implementations for testing
 mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/software_keys", "nl_wallet_mdoc/mock"]
 # All features needed to run the integration test
@@ -28,6 +30,7 @@ integration = ["mock", "dep:ciborium"]
 [dependencies]
 base64.workspace = true
 biscuit.workspace = true
+cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 derive_more = { workspace = true, features = ["from"] }
 futures = { workspace = true, features = ["std", "async-await"] }
@@ -47,6 +50,7 @@ serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true }
+strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true }
