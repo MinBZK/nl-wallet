@@ -16,7 +16,7 @@ use nl_wallet_mdoc::{
 use openid4vc::disclosure_session::{DisclosureError, HttpVpMessageClient, VpClientError};
 use wallet_common::reqwest::default_reqwest_client_builder;
 
-pub use nl_wallet_mdoc::holder::DisclosureUriSource;
+pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 pub use self::uri::{DisclosureUriError, VpDisclosureUriData};
 

@@ -3,8 +3,7 @@ use std::{collections::HashSet, error::Error};
 use super::Mdoc;
 
 pub use disclosure_request_match::DisclosureRequestMatch;
-pub use proposed_document::{ProposedDocument, ProposedDocumentAttributes};
-pub use session::{DisclosureUriSource, ProposedAttributes};
+pub use proposed_document::{ProposedAttributes, ProposedDocument, ProposedDocumentAttributes};
 
 mod device_signed;
 mod disclosure_request_match;

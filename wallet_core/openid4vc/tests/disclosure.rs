@@ -17,8 +17,8 @@ use rstest::rstest;
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
     holder::{
-        test::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, DisclosureUriSource, Mdoc,
-        MdocCopies, MdocDataSource, StoredMdoc, TrustAnchor,
+        test::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocCopies, MdocDataSource,
+        StoredMdoc, TrustAnchor,
     },
     server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
@@ -33,7 +33,9 @@ use nl_wallet_mdoc::{
     DeviceResponse, DocType, SessionTranscript,
 };
 use openid4vc::{
-    disclosure_session::{DisclosureSession, VpClientError, VpMessageClient, VpMessageClientError},
+    disclosure_session::{
+        DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
+    },
     jwt,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
     return_url::ReturnUrlTemplate,

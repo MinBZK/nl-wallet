@@ -17,6 +17,8 @@ use crate::{
 
 use super::StoredMdoc;
 
+pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProposedDocumentAttributes {
     pub issuer: Certificate,

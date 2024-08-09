@@ -9,7 +9,6 @@ use crate::{
         reader_auth,
         x509::{Certificate, CertificateError},
     },
-    verifier::SessionType,
 };
 
 pub mod disclosure;
@@ -27,9 +26,6 @@ pub enum HolderError {
     #[error("malformed session_type query parameter in verifier URL: {0}")]
     #[category(critical)]
     MalformedSessionType(serde_urlencoded::de::Error),
-    #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
-    #[category(critical)]
-    DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
     #[error("readerAuth not present for all documents")]
     #[category(critical)]
     ReaderAuthMissing,

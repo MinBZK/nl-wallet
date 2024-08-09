@@ -13,7 +13,7 @@ use nl_wallet_mdoc::{
             example_items_request, MdocIdentifier, MockMdocDataSource, ReaderCertificateKind, EXAMPLE_ATTRIBUTES,
             VERIFIER_URL,
         },
-        DisclosureUriSource, TrustAnchor,
+        TrustAnchor,
     },
     server_keys::KeyPair,
     utils::reader_auth::ReaderRegistration,
@@ -22,7 +22,9 @@ use nl_wallet_mdoc::{
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, trust_anchor::DerTrustAnchor, utils::random_string};
 
 use crate::{
-    disclosure_session::{DisclosureSession, VpClientError, VpMessageClient, VpMessageClientError},
+    disclosure_session::{
+        DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
+    },
     jwt,
     openid4vp::{
         IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest, VpRequestUriObject, WalletRequest,

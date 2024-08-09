@@ -12,9 +12,7 @@ use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
-    holder::{
-        DisclosureRequestMatch, DisclosureUriSource, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor,
-    },
+    holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
     identifiers::AttributeIdentifier,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
@@ -319,6 +317,31 @@ impl HttpVpMessageClient {
         }
         let response: VpResponse = serde_json::from_str(&response_body)?;
         Ok(response.redirect_uri)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "snake_case")] // Symmetrical to `SessionType`.
+pub enum DisclosureUriSource {
+    Link,
+    QrCode,
+}
+
+impl DisclosureUriSource {
+    pub fn new(is_qr_code: bool) -> Self {
+        if is_qr_code {
+            Self::QrCode
+        } else {
+            Self::Link
+        }
+    }
+
+    /// Returns the expected session type for a source of the received [`ReaderEngagement`].
+    pub fn session_type(&self) -> SessionType {
+        match self {
+            Self::Link => SessionType::SameDevice,
+            Self::QrCode => SessionType::CrossDevice,
+        }
     }
 }
 
@@ -689,7 +712,7 @@ mod tests {
                 create_example_proposed_document, emtpy_items_request, example_identifiers_from_attributes,
                 MdocDataSourceError, MdocIdentifier, ReaderCertificateKind, EXAMPLE_ATTRIBUTES, VERIFIER_URL,
             },
-            DisclosureUriSource, HolderError,
+            HolderError,
         },
         identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
         software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
@@ -719,7 +742,7 @@ mod tests {
 
     use super::{
         CommonDisclosureData, DisclosureError, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession,
-        VpClientError, VpMessageClientError,
+        DisclosureUriSource, VpClientError, VpMessageClientError,
     };
 
     // This is the full happy path test of `DisclosureSession`.
