@@ -17,12 +17,14 @@ use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::{server_state::SessionState, utils::x509};
 use openid4vc::{
+    disclosure_session::{DisclosureSession, HttpVpMessageClient},
     issuance_session::HttpIssuanceSession,
     issuer::{AttributeService, Created},
     oidc,
     token::{AttestationPreview, TokenRequest},
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
+use uuid::Uuid;
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
@@ -83,6 +85,7 @@ pub type WalletWithMocks = Wallet<
     HttpAccountProviderClient,
     MockDigidSession,
     HttpIssuanceSession,
+    DisclosureSession<HttpVpMessageClient, Uuid>,
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {

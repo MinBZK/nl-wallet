@@ -4,11 +4,9 @@ use error_category::ErrorCategory;
 pub use webpki::TrustAnchor;
 
 use crate::{
-    errors::Error,
     iso::*,
     utils::{
         reader_auth,
-        serialization::CborError,
         x509::{Certificate, CertificateError},
     },
     verifier::SessionType,
@@ -16,9 +14,6 @@ use crate::{
 
 pub mod disclosure;
 pub use disclosure::*;
-
-pub mod http_client;
-pub use http_client::*;
 
 pub mod mdocs;
 pub use mdocs::*;
@@ -43,8 +38,6 @@ pub enum HolderError {
     ReaderAuthsInconsistent,
     #[error("certificate error: {0}")]
     CertificateError(#[from] CertificateError),
-    #[error("request error: {0}")]
-    RequestError(#[from] HttpClientError),
     #[error("verifier URL not present in reader engagement")]
     #[category(critical)]
     VerifierUrlMissing,
@@ -97,19 +90,5 @@ impl<E: std::error::Error> DisclosureError<E> {
             data_shared: true,
             error,
         }
-    }
-}
-
-impl From<HttpClientError> for DisclosureError<Error> {
-    fn from(source: HttpClientError) -> Self {
-        let data_shared = match source {
-            // Cbor serialization happens before sharing
-            HttpClientError::Cbor(CborError::Serialization(_)) => false,
-            // Cbor deserialization happens after sharing
-            HttpClientError::Cbor(CborError::Deserialization(_)) => true,
-            // When connection cannot be established, no data is shared
-            HttpClientError::Request(ref reqwest_error) => !reqwest_error.is_connect(),
-        };
-        Self::new(data_shared, Error::Holder(HolderError::RequestError(source)))
     }
 }

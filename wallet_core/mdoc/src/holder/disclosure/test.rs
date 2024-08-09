@@ -1,20 +1,17 @@
-use std::{collections::HashSet, fmt, iter};
+use std::{collections::HashSet, iter};
 
 use indexmap::{IndexMap, IndexSet};
 use p256::SecretKey;
 use rand_core::OsRng;
-use serde::{de::DeserializeOwned, Serialize};
-use tokio::sync::mpsc;
 use url::Url;
 
 use crate::{
     errors::Result,
     examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-    holder::{HttpClient, HttpClientError, HttpClientResult, Mdoc},
+    holder::Mdoc,
     identifiers::AttributeIdentifier,
     iso::{
         device_retrieval::{DocRequest, ItemsRequest, ReaderAuthenticationBytes, ReaderAuthenticationKeyed},
-        disclosure::{SessionData, SessionStatus},
         engagement::{
             ConnectionMethodKeyed, ConnectionMethodType, ConnectionMethodVersion, DeviceEngagement, Engagement,
             EngagementVersion, ReaderEngagement, RestApiOptionsKeyed, SessionTranscript,
@@ -23,7 +20,7 @@ use crate::{
     server_keys::KeyPair,
     utils::{
         cose::{self, MdocCose},
-        serialization::{self, CborSeq, TaggedBytes},
+        serialization::{CborSeq, TaggedBytes},
     },
     verifier::SessionType,
 };
@@ -174,58 +171,6 @@ impl ReaderEngagement {
         verifier_url.set_query(query.as_str().into());
 
         Ok((Self::try_new(&privkey, verifier_url)?, privkey))
-    }
-}
-
-/// An implementor of `HttpClient` that either returns `SessionData`
-/// with a particular `SessionStatus` or returns an error. Messages sent
-/// through this `HttpClient` can be inspected through a `mpsc` channel.
-pub struct MockHttpClient<F> {
-    pub response_factory: F,
-    pub payload_sender: mpsc::Sender<Vec<u8>>,
-}
-
-pub enum MockHttpClientResponse {
-    Error(HttpClientError),
-    SessionStatus(SessionStatus),
-}
-
-impl<F> fmt::Debug for MockHttpClient<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockHttpClient")
-            .field("payload_sender", &self.payload_sender)
-            .finish_non_exhaustive()
-    }
-}
-
-impl<F> HttpClient for MockHttpClient<F>
-where
-    F: Fn() -> MockHttpClientResponse,
-{
-    async fn post<R, V>(&self, _url: &Url, val: &V) -> HttpClientResult<R>
-    where
-        V: Serialize,
-        R: DeserializeOwned,
-    {
-        // Serialize the payload and give it to the sender.
-        _ = self
-            .payload_sender
-            .send(serialization::cbor_serialize(val).unwrap())
-            .await;
-
-        let response = match (self.response_factory)() {
-            MockHttpClientResponse::Error(error) => return Err(error),
-            MockHttpClientResponse::SessionStatus(session_status) => {
-                let session_data = SessionData {
-                    data: None,
-                    status: session_status.into(),
-                };
-                serialization::cbor_deserialize(serialization::cbor_serialize(&session_data).unwrap().as_slice())
-                    .unwrap()
-            }
-        };
-
-        Ok(response)
     }
 }
 
