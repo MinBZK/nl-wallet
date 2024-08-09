@@ -62,33 +62,3 @@ pub enum HolderError {
     #[category(critical)]
     DisclosureResponse(SessionStatus),
 }
-
-pub type DisclosureResult<T, E> = std::result::Result<T, DisclosureError<E>>;
-
-#[derive(thiserror::Error, Debug)]
-#[error("could not perform actual disclosure, attributes were shared: {data_shared}, error: {error}")]
-pub struct DisclosureError<E: std::error::Error> {
-    pub data_shared: bool,
-    #[source]
-    pub error: E,
-}
-
-impl<E: std::error::Error> DisclosureError<E> {
-    pub fn new(data_shared: bool, error: E) -> Self {
-        Self { data_shared, error }
-    }
-
-    pub fn before_sharing(error: E) -> Self {
-        Self {
-            data_shared: false,
-            error,
-        }
-    }
-
-    pub fn after_sharing(error: E) -> Self {
-        Self {
-            data_shared: true,
-            error,
-        }
-    }
-}

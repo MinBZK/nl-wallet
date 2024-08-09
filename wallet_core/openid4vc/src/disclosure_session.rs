@@ -13,8 +13,7 @@ use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
     holder::{
-        DisclosureError, DisclosureRequestMatch, DisclosureUriSource, MdocDataSource, ProposedAttributes,
-        ProposedDocument, TrustAnchor,
+        DisclosureRequestMatch, DisclosureUriSource, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -142,6 +141,34 @@ impl VpMessageClientError {
             Self::AuthGetResponse(response) => response.redirect_uri.as_ref(),
             Self::AuthPostResponse(response) => response.redirect_uri.as_ref(),
             _ => None,
+        }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error("could not perform actual disclosure, attributes were shared: {data_shared}, error: {error}")]
+pub struct DisclosureError<E: std::error::Error> {
+    pub data_shared: bool,
+    #[source]
+    pub error: E,
+}
+
+impl<E: std::error::Error> DisclosureError<E> {
+    pub fn new(data_shared: bool, error: E) -> Self {
+        Self { data_shared, error }
+    }
+
+    pub fn before_sharing(error: E) -> Self {
+        Self {
+            data_shared: false,
+            error,
+        }
+    }
+
+    pub fn after_sharing(error: E) -> Self {
+        Self {
+            data_shared: true,
+            error,
         }
     }
 }
@@ -662,7 +689,7 @@ mod tests {
                 create_example_proposed_document, emtpy_items_request, example_identifiers_from_attributes,
                 MdocDataSourceError, MdocIdentifier, ReaderCertificateKind, EXAMPLE_ATTRIBUTES, VERIFIER_URL,
             },
-            DisclosureError, DisclosureUriSource, HolderError,
+            DisclosureUriSource, HolderError,
         },
         identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
         software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
@@ -691,8 +718,8 @@ mod tests {
     };
 
     use super::{
-        CommonDisclosureData, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, VpClientError,
-        VpMessageClientError,
+        CommonDisclosureData, DisclosureError, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession,
+        VpClientError, VpMessageClientError,
     };
 
     // This is the full happy path test of `DisclosureSession`.

@@ -4,7 +4,7 @@ use url::Url;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::{
-    holder::{DisclosureError, DisclosureResult, MdocDataSource, ProposedAttributes, TrustAnchor},
+    holder::{MdocDataSource, ProposedAttributes, TrustAnchor},
     identifiers::AttributeIdentifier,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
@@ -13,7 +13,7 @@ use nl_wallet_mdoc::{
     },
     verifier::SessionType,
 };
-use openid4vc::disclosure_session::{HttpVpMessageClient, VpClientError};
+use openid4vc::disclosure_session::{DisclosureError, HttpVpMessageClient, VpClientError};
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use nl_wallet_mdoc::holder::DisclosureUriSource;
@@ -22,6 +22,8 @@ pub use self::uri::{DisclosureUriError, VpDisclosureUriData};
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
+
+pub type DisclosureResult<T, E> = std::result::Result<T, DisclosureError<E>>;
 
 #[derive(Debug)]
 pub enum MdocDisclosureSessionState<M, P> {
@@ -178,7 +180,7 @@ mod mock {
 
     use parking_lot::Mutex;
 
-    use nl_wallet_mdoc::{holder::DisclosureError, server_keys::KeyPair, verifier::SessionType};
+    use nl_wallet_mdoc::{server_keys::KeyPair, verifier::SessionType};
 
     use super::*;
 
