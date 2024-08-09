@@ -1,24 +1,24 @@
-{% call header::header(t.amsterdam_title, "") %}
+{% call header::header(base.trans.amsterdam_title, "") %}
 <main>
-    {% match session_token %}
+    {% match base.session_token %}
     {% when Some with (session_token) %}
-        {% call notification::notification(t.amsterdam_failed, t.amsterdam_try_again, session_token) %}
+        {% call notification::notification(base.trans.amsterdam_failed, base.trans.amsterdam_try_again, session_token) %}
     {% when None %}
     {% endmatch %}
     <section>
-        <h2>{{ t.amsterdam_login }}</h2>
+        <h2>{{ base.trans.amsterdam_login }}</h2>
     </section>
     <section>
-        <h3>{{ t.amsterdam_subtitle }}</h3>
-        <p>{{ t.amsterdam_nl_wallet_digid }}</p>
+        <h3>{{ base.trans.amsterdam_subtitle }}</h3>
+        <p>{{ base.trans.amsterdam_nl_wallet_digid }}</p>
     </section>
     <section class="buttons">
         <nl-wallet-button
-            text="{{ t.login_with_nl_wallet }}"
+            text="{{ base.trans.login_with_nl_wallet }}"
             usecase="{{ usecase }}"
             start-url="{{ start_url }}"
-            lang="{{ language }}">
+            lang="{{ base.selected_lang }}">
         </nl-wallet-button>
-        <button id="digid" disabled><span>{{ t.login_with_digid }}</span></button>
+        <button id="digid" disabled><span>{{ base.trans.login_with_digid }}</span></button>
     </section>
 </main>

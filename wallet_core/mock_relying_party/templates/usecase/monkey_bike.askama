@@ -1,26 +1,26 @@
-{% call header::header(t.monkeybike_title, "") %}
+{% call header::header(base.trans.monkeybike_title, "") %}
 <main>
     <section>
-        <h2>{{ t.monkeybike_login }}</h2>
+        <h2>{{ base.trans.monkeybike_login }}</h2>
     </section>
-    {% match session_token %}
+    {% match base.session_token %}
         {% when Some with (session_token) %}
-        {% call notification::notification(t.login_failed_try_again, "", session_token) %}
+        {% call notification::notification(base.trans.login_failed_try_again, "", session_token) %}
         {% when None %}
     {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
-            text="{{ t.continue_with_nl_wallet }}"
+            text="{{ base.trans.continue_with_nl_wallet }}"
             usecase="{{ usecase }}"
             start-url="{{ start_url }}"
-            lang="{{ language }}">
+            lang="{{ base.selected_lang }}">
         </nl-wallet-button>
-        <button id="google" disabled>{{ t.continue_with_google }}</button>
-        <button id="email" disabled>{{ t.continue_with_email }}</button>
+        <button id="google" disabled>{{ base.trans.continue_with_google }}</button>
+        <button id="email" disabled>{{ base.trans.continue_with_email }}</button>
         <p class="small">
-            {{ t.click_continue }}
-            <a href="#">{{ t.terms_and_conditions }}</a> {{ t.and_the }}
-            <a href="#">{{ t.privacy_policy }}</a>.
+            {{ base.trans.click_continue }}
+            <a href="#">{{ base.trans.terms_and_conditions }}</a> {{ base.trans.and_the }}
+            <a href="#">{{ base.trans.privacy_policy }}</a>.
         </p>
     </section>
 </main>

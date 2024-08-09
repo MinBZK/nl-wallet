@@ -10,31 +10,31 @@
 {% endblock %}
 
 {% block content %}
-<aside>{% call demo_bar::lang_selector(language, t, session_token, nonce) %}</aside>
+<aside>{% call demo_bar::lang_selector(base.selected_lang, base.trans, base.available_languages, base.session_token, base.nonce) %}</aside>
 <header><!-- just the logo --></header>
 <main>
     <section>
-        <h1>{{ t.index_title }}</h1>
+        <h1>{{ base.trans.index_title }}</h1>
         <p>
-            {{ t.index_intro }}
-            <a href="https://edi.pleio.nl">{{ t.index_intro_link }}</a>.
+            {{ base.trans.index_intro }}
+            <a href="https://edi.pleio.nl">{{ base.trans.index_intro_link }}</a>.
         </p>
     </section>
     <nav>
         {% for usecase in usecases %}
-        <a role="button" id="{{ usecase }}" href="./{{ usecase }}/?lang={{ language }}">
+        <a role="button" id="{{ usecase }}" href="./{{ usecase }}/?lang={{ base.selected_lang }}">
             <span>
                 {% match usecase.as_ref() %}
                     {% when "mijn_amsterdam" %}
-                        {{ t.amsterdam_index }}
+                        {{ base.trans.amsterdam_index }}
                     {% when "monkey_bike" %}
-                        {{ t.monkeybike_index }}
+                        {{ base.trans.monkeybike_index }}
                     {% when "online_marketplace" %}
-                        {{ t.marketplace_index }}
+                        {{ base.trans.marketplace_index }}
                     {% when "xyz_bank" %}
-                        {{ t.xyz_index }}
+                        {{ base.trans.xyz_index }}
                     {% else %}
-                        {{ t.xyz_index }}
+                        {{ base.trans.xyz_index }}
                 {% endmatch %}
             </span>
         </a>

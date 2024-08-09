@@ -257,23 +257,31 @@ async fn create_session(
     Ok(result.into())
 }
 
+struct BaseTemplate<'a> {
+    session_token: Option<SessionToken>,
+    nonce: Option<String>,
+    selected_lang: Language,
+    trans: &'a Words<'a>,
+    available_languages: &'a Vec<Language>,
+}
+
 #[derive(Template)]
 #[template(path = "index.askama", escape = "html", ext = "html")]
 struct IndexTemplate<'a> {
     usecases: &'a [&'a str],
-    session_token: Option<SessionToken>,
-    nonce: Option<String>,
-    language: Language,
-    t: &'a Words<'a>,
+    base: BaseTemplate<'a>,
 }
 
 async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Result<Response> {
     let result = IndexTemplate {
         usecases: &state.usecases.keys().map(|s| s.as_str()).collect::<Vec<_>>(),
-        session_token: None,
-        nonce: None,
-        language,
-        t: &TRANSLATIONS[language],
+        base: BaseTemplate {
+            session_token: None,
+            nonce: None,
+            selected_lang: language,
+            trans: &TRANSLATIONS[language],
+            available_languages: &Language::iter().collect(),
+        },
     };
 
     Ok(askama_axum::into_response(&result))
@@ -287,10 +295,7 @@ struct UsecaseTemplate<'a> {
     usecase_js_sha256: &'a str,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
-    session_token: Option<SessionToken>,
-    nonce: Option<String>,
-    language: Language,
-    t: &'a Words<'a>,
+    base: BaseTemplate<'a>,
 }
 
 static USECASE_JS_SHA256: LazyLock<String> =
@@ -320,10 +325,13 @@ async fn usecase(
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
-        session_token: None,
-        nonce: None,
-        language,
-        t: &TRANSLATIONS[language],
+        base: BaseTemplate {
+            session_token: None,
+            nonce: None,
+            selected_lang: language,
+            trans: &TRANSLATIONS[language],
+            available_languages: &Language::iter().collect(),
+        },
     };
 
     Ok(askama_axum::into_response(&result))
@@ -340,10 +348,7 @@ pub struct DisclosedAttributesParams {
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
     attributes: DisclosedAttributes,
-    session_token: SessionToken,
-    nonce: Option<String>,
-    language: Language,
-    t: &'a Words<'a>,
+    base: BaseTemplate<'a>,
 }
 
 async fn disclosed_attributes(
@@ -362,15 +367,20 @@ async fn disclosed_attributes(
         .await;
 
     let start_url = format_start_url(&state.public_url, language);
+    let base = BaseTemplate {
+        session_token: Some(params.session_token),
+        nonce: params.nonce,
+        selected_lang: language,
+        trans: &TRANSLATIONS[language],
+        available_languages: &Language::iter().collect(),
+    };
+
     match attributes {
         Ok(attributes) => {
             let result = DisclosedAttributesTemplate {
                 usecase: &usecase,
                 attributes,
-                session_token: params.session_token,
-                nonce: params.nonce,
-                language,
-                t: &TRANSLATIONS[language],
+                base,
             };
             Ok(askama_axum::into_response(&result))
         }
@@ -381,10 +391,7 @@ async fn disclosed_attributes(
                 usecase_js_sha256: &USECASE_JS_SHA256,
                 wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
                 wallet_web_sha256: &state.wallet_web.sha256,
-                session_token: Some(params.session_token),
-                nonce: params.nonce,
-                language,
-                t: &TRANSLATIONS[language],
+                base,
             };
             Ok(askama_axum::into_response(&result))
         }

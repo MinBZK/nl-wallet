@@ -1,12 +1,12 @@
-{% call header::header(t.xyz_title, "") %}
+{% call header::header(base.trans.xyz_title, "") %}
 <main>
     <section>
-        <h4>{{ t.xyz_open_account }}</h4>
-        <h2>{{ t.xyz_identify_yourself }}</h2>
-        {% call notification::notification(t.xyz_success, "", "") %}
+        <h4>{{ base.trans.xyz_open_account }}</h4>
+        <h2>{{ base.trans.xyz_identify_yourself }}</h2>
+        {% call notification::notification(base.trans.xyz_success, "", "") %}
     </section>
     <section>
         {% call attributes::attributes(attributes) %}
     </section>
-    <button disabled><span>{{ t.next }}</span></button>
+    <button disabled><span>{{ base.trans.next }}</span></button>
 </main>

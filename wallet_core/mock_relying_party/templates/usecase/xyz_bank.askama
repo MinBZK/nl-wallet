@@ -1,21 +1,21 @@
-{% call header::header(t.xyz_title, "") %}
+{% call header::header(base.trans.xyz_title, "") %}
 <main>
     <section>
-        <h4>{{ t.xyz_open_account }}</h4>
-        <h2>{{ t.xyz_identify_yourself }}</h2>
+        <h4>{{ base.trans.xyz_open_account }}</h4>
+        <h2>{{ base.trans.xyz_identify_yourself }}</h2>
     </section>
-    {% match session_token %}
+    {% match base.session_token %}
         {% when Some with (session_token) %}
-        {% call notification::notification(t.xyz_failed_try_again, "", session_token) %}
+        {% call notification::notification(base.trans.xyz_failed_try_again, "", session_token) %}
         {% when None %}
     {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
-            text="{{ t.use_nl_wallet }}"
+            text="{{ base.trans.use_nl_wallet }}"
             usecase="{{ usecase }}"
             start-url="{{ start_url }}"
-            lang="{{ language }}">
+            lang="{{ base.selected_lang }}">
         </nl-wallet-button>
-        <a href="#" disabled>{{ t.choose_another_method }}</a>
+        <a href="#" disabled>{{ base.trans.choose_another_method }}</a>
     </section>
 </main>
