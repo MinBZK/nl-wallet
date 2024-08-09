@@ -11,14 +11,13 @@ pub mod verifier;
 pub mod server_keys;
 pub mod server_state;
 
-/// General code used throughout the crate.
+// General code used throughout the crate.
+pub mod identifiers;
 pub mod utils;
 
-/// Errors that can happen throughout the crate.
+// Errors that can happen throughout the crate.
 pub mod errors;
 pub use errors::*;
-
-pub mod identifiers;
 
 #[cfg(any(test, feature = "examples"))]
 pub mod examples;
