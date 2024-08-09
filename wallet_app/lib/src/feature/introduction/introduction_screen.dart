@@ -120,7 +120,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       right: 0,
       child: Center(
         child: Semantics(
-          hidden: _currentPageInt > 0,
           label: context.l10n.introductionWCAGDutchGovernmentLogoLabel,
           child: Image.asset(
             WalletAssets.logo_rijksoverheid_label,
