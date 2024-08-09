@@ -6,7 +6,6 @@ use indexmap::IndexMap;
 use p256::SecretKey;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
-use url::Url;
 use webpki::TrustAnchor;
 
 use wallet_common::generator::Generator;
@@ -76,24 +75,6 @@ pub enum SessionType {
     SameDevice,
     /// Using QR code
     CrossDevice,
-}
-
-impl ReaderEngagement {
-    pub fn try_new(privkey: &SecretKey, verifier_url: Url) -> Result<Self> {
-        let engagement = Engagement {
-            version: EngagementVersion::V1_0,
-            security: Some((&privkey.public_key()).try_into()?),
-            connection_methods: Some(vec![ConnectionMethodKeyed {
-                typ: ConnectionMethodType::RestApi,
-                version: ConnectionMethodVersion::RestApi,
-                connection_options: RestApiOptionsKeyed { uri: verifier_url }.into(),
-            }
-            .into()]),
-            origin_infos: vec![],
-        };
-
-        Ok(engagement.into())
-    }
 }
 
 impl ItemsRequests {

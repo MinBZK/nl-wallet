@@ -15,7 +15,10 @@ use crate::{
     iso::{
         device_retrieval::{DocRequest, ItemsRequest, ReaderAuthenticationBytes, ReaderAuthenticationKeyed},
         disclosure::{SessionData, SessionStatus},
-        engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
+        engagement::{
+            ConnectionMethodKeyed, ConnectionMethodType, ConnectionMethodVersion, DeviceEngagement, Engagement,
+            EngagementVersion, ReaderEngagement, RestApiOptionsKeyed, SessionTranscript,
+        },
     },
     server_keys::KeyPair,
     utils::{
@@ -149,6 +152,22 @@ pub fn example_identifiers_from_attributes(
 }
 
 impl ReaderEngagement {
+    pub fn try_new(privkey: &SecretKey, verifier_url: Url) -> Result<Self> {
+        let engagement = Engagement {
+            version: EngagementVersion::V1_0,
+            security: Some((&privkey.public_key()).try_into()?),
+            connection_methods: Some(vec![ConnectionMethodKeyed {
+                typ: ConnectionMethodType::RestApi,
+                version: ConnectionMethodVersion::RestApi,
+                connection_options: RestApiOptionsKeyed { uri: verifier_url }.into(),
+            }
+            .into()]),
+            origin_infos: vec![],
+        };
+
+        Ok(engagement.into())
+    }
+
     pub fn new_random(mut verifier_url: Url, session_type: SessionType) -> Result<(Self, SecretKey)> {
         let privkey = SecretKey::random(&mut OsRng);
         let query = serde_urlencoded::to_string(VerifierUrlParameters { session_type }).unwrap();
