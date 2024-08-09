@@ -38,8 +38,8 @@ export type Word =
   | "failed_body"
   | "cancelled_title"
   | "cancelled_body"
-  | "timeout_title"
-  | "timeout_body"
+  | "network_title"
+  | "network_body"
   | "help_title"
   | "help_to_website"
   | "in_progress_title"
@@ -72,8 +72,8 @@ const dictionary: Record<Language, Record<Word, string>> = {
     failed_body: "This action was unsuccessful. This may have several reasons. Please try again.",
     cancelled_title: "Stopped",
     cancelled_body: "Because you have stopped, no data has been shared.",
-    timeout_title: "Sorry, no internet connection",
-    timeout_body:
+    network_title: "Sorry, no internet connection",
+    network_body:
       "Your internet connection seems to be down or too slow. Check your connection and try again.",
     help_title: "No NL Wallet App yet? Or need help?",
     help_to_website: "To NL Wallet website",
@@ -107,8 +107,8 @@ const dictionary: Record<Language, Record<Word, string>> = {
       "Deze actie is niet gelukt. Dit kan verschillende redenen hebben. Probeer het opnieuw.",
     cancelled_title: "Gestopt",
     cancelled_body: "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
-    timeout_title: "Sorry, geen internet",
-    timeout_body:
+    network_title: "Sorry, geen internet",
+    network_body:
       "Je verbinding met het internet lijkt niet te werken of is te traag. Controleer je verbinding en probeer het opnieuw.",
     help_title: "Nog geen NL Wallet app? Of hulp nodig?",
     help_to_website: "Naar NL Wallet website",

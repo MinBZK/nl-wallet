@@ -1,14 +1,12 @@
 This directory contains the API documentation for the Wallet (as of this writing
-2024-07-28, specifically, the `disclosure` API for the `wallet_server`'s public
+2024-08-08, specifically, the `disclosure` API for the `wallet_server`'s public
 and private endpoints).
 
 There are a couple of documents here:
 
-  * `wallet-disclosure-postman_collection.json`: A Postman collection containing
-    API calling sessions for various scenarios, generated from recording a test
-    run;
   * `wallet-disclosure-components.openapi.yaml`: An OpenAPIv3 components library
-    which is included/used in the private and public API spec documents;
+    which is included/used in the private and public API spec documents below.
+    You shouldn't open this in a Swagger/OpenAPI editor/preview on its own;
   * `wallet-disclosure-private.openapi.yaml`: The private/internal API for the
     wallet_server's disclosure functionality;
   * `wallet-disclosure-public.openapi.yaml`: The public/external API for the

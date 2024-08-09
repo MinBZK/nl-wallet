@@ -489,6 +489,8 @@ build-android-app-latest-profile:
 .build-android-app-mock:
   extends: [.build-android-app-ont]
   rules: !reference [.mock-release-tag, rules]
+  before_script:
+    - !reference [.mock-release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
@@ -513,6 +515,8 @@ build-android-app-mock-release:
     - !reference [.build-android-app, needs]
     - job: wallet-env-config-demo
       artifacts: true
+  before_script:
+    - !reference [.release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
@@ -616,6 +620,9 @@ build-ios-app-latest-release:
 .build-ios-app-mock:
   extends: .build-ios-app-ont
   rules: !reference [.mock-release-tag, rules]
+  before_script:
+    - !reference [.build-ios-app, before_script]
+    - !reference [.mock-release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
@@ -639,6 +646,9 @@ build-ios-app-mock-release:
     - job: wallet-env-config-demo
       artifacts: true
   rules: !reference [.release-tag, rules]
+  before_script:
+    - !reference [.build-ios-app, before_script]
+    - !reference [.release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
@@ -698,6 +708,8 @@ deploy-android-app-mock:
       artifacts: true
   environment:
     action: start
+  before_script:
+    - !reference [.mock-release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
 
@@ -709,6 +721,8 @@ deploy-android-app-demo:
       artifacts: true
   environment:
     action: start
+  before_script:
+    - !reference [.release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
@@ -749,6 +763,8 @@ upload-browserstack-android-app-demo:
   needs:
     - job: build-android-app-demo-profile
       artifacts: true
+  before_script:
+    - !reference [.release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 

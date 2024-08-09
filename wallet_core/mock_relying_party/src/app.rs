@@ -8,15 +8,18 @@ use std::{
 
 use askama::Template;
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, Query, Request, State},
     handler::HandlerWithoutStateExt,
     http::{Method, StatusCode},
+    middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
 use base64::prelude::*;
+use http::{header::CACHE_CONTROL, HeaderValue};
 use serde::{Deserialize, Serialize};
+use tower::ServiceBuilder;
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
@@ -83,6 +86,19 @@ fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
     Some(layer)
 }
 
+async fn set_static_cache_control(request: Request, next: Next) -> Response {
+    // only cache images and fonts, not CSS and JS (except wallet_web, as that is suffixed with a hash)
+    let set_no_store = !request.uri().path().ends_with(".iife.js")
+        && [".css", ".js"].iter().any(|ext| request.uri().path().ends_with(ext));
+    let mut response = next.run(request).await;
+    if set_no_store {
+        response
+            .headers_mut()
+            .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    }
+    response
+}
+
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
         client: WalletServerClient::new(settings.internal_wallet_server_url.clone()),
@@ -99,7 +115,11 @@ pub fn create_router(settings: Settings) -> Router {
         .route("/:usecase/", get(usecase))
         .route(&format!("/:usecase/{}", RETURN_URL_SEGMENT), get(disclosed_attributes))
         .fallback_service(
-            ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(set_static_cache_control))
+                .service(
+                    ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                ),
         )
         .with_state(application_state)
         .layer(TraceLayer::new_for_http());
