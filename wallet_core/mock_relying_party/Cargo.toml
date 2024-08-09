@@ -60,3 +60,6 @@ url = { workspace = true, features = ["serde"] }
 nl_wallet_mdoc.path = "../mdoc"
 wallet_common = { path = "../wallet_common", features = ["sentry"] }
 wallet_server = { path = "../wallet_server", features = ["disclosure"] }
+
+[dev-dependencies]
+rstest.workspace = true

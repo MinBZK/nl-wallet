@@ -2,7 +2,6 @@ use std::{
     env,
     path::PathBuf,
     result::Result as StdResult,
-    str::FromStr,
     sync::{Arc, LazyLock},
 };
 
@@ -151,43 +150,32 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
-#[derive(
-    Debug,
-    Default,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize,
-    strum::Display,
-    strum::EnumString,
-    strum::EnumIter,
-)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, strum::Display, strum::EnumIter)]
 pub enum Language {
     #[default]
     #[serde(rename = "nl")]
-    #[strum(to_string = "nl", serialize = "nl-BE", serialize = "nl-NL")]
+    #[strum(to_string = "nl")]
     Nl,
     #[serde(rename = "en")]
-    #[strum(
-        to_string = "en",
-        serialize = "en-AU",
-        serialize = "en-CA",
-        serialize = "en-GB",
-        serialize = "en-US"
-    )]
+    #[strum(to_string = "en")]
     En,
 }
 
 impl Language {
+    fn parse(s: &str) -> Option<Self> {
+        match s.split('-').next() {
+            Some("en") => Some(Language::En),
+            Some("nl") => Some(Language::Nl),
+            _ => None,
+        }
+    }
+
     fn match_accept_language(headers: &HeaderMap) -> Option<Self> {
         let accept_language = headers.get(ACCEPT_LANGUAGE)?;
         let languages = accept_language::parse(accept_language.to_str().ok()?);
 
         // applies function to the elements of iterator and returns the first non-None result
-        languages.into_iter().find_map(|l| Language::from_str(&l).ok())
+        languages.into_iter().find_map(|l| Language::parse(&l))
     }
 }
 
@@ -413,5 +401,22 @@ mod filters {
         }
 
         Ok(format!("attribute '{name}' cannot be found"))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use rstest::rstest;
+
+    use super::*;
+
+    #[rstest]
+    #[case("en", Some(Language::En))]
+    #[case("nl", Some(Language::Nl))]
+    #[case("123", None)]
+    #[case("en-GB", Some(Language::En))]
+    #[case("nl-NL", Some(Language::Nl))]
+    fn test_parse_language(#[case] s: &str, #[case] expected: Option<Language>) {
+        assert_eq!(Language::parse(s), expected);
     }
 }

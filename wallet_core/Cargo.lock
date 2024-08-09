@@ -2436,6 +2436,7 @@ dependencies = [
  "nl_wallet_mdoc",
  "nutype",
  "reqwest",
+ "rstest",
  "sentry",
  "serde",
  "serde_json",
