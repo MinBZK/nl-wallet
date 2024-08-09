@@ -369,7 +369,8 @@ async fn disclosed_attributes(
             };
             Ok(askama_axum::into_response(&result))
         }
-        Err(_) => {
+        Err(err) => {
+            warn!("Error getting disclosed attributes: {err}");
             let result = UsecaseTemplate {
                 usecase: &usecase,
                 start_url,
