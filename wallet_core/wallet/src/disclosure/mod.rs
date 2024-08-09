@@ -31,8 +31,6 @@ pub enum MdocDisclosureSessionState<M, P> {
 
 #[derive(thiserror::Error, Debug)]
 pub enum MdocDisclosureError {
-    #[error("error in mdoc disclosure session: {0}")]
-    Iso(#[from] nl_wallet_mdoc::Error),
     #[error("error in OpenID4VP disclosure session: {0}")]
     Vp(#[from] VpClientError),
 }
@@ -203,7 +201,7 @@ mod mock {
         pub proposed_source_identifiers: Vec<Uuid>,
         pub proposed_attributes: ProposedAttributes,
         pub disclosure_count: Arc<AtomicUsize>,
-        pub next_error: Mutex<Option<nl_wallet_mdoc::Error>>,
+        pub next_error: Mutex<Option<MdocDisclosureError>>,
         pub attributes_shared: bool,
         pub session_type: SessionType,
     }
@@ -237,7 +235,7 @@ mod mock {
             K: MdocEcdsaKey,
         {
             if let Some(error) = self.next_error.lock().take() {
-                return Err(DisclosureError::new(self.attributes_shared, error.into()));
+                return Err(DisclosureError::new(self.attributes_shared, error));
             }
 
             self.disclosure_count
