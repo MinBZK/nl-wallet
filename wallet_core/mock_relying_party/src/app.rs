@@ -192,14 +192,11 @@ where
     type Rejection = std::convert::Infallible;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> std::result::Result<Self, Self::Rejection> {
-        let query = Query::<LanguageParam>::from_request_parts(parts, state).await;
-        if let Ok(params) = query {
-            Ok(params.lang)
-        } else if let Some(lang) = Language::match_accept_language(&parts.headers) {
-            Ok(lang)
-        } else {
-            Ok(Language::default())
-        }
+        let lang = Query::<LanguageParam>::from_request_parts(parts, state)
+            .await
+            .map(|l| l.lang)
+            .unwrap_or(Language::match_accept_language(&parts.headers).unwrap_or_default());
+        Ok(lang)
     }
 }
 
