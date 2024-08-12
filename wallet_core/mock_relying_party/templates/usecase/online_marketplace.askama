@@ -1,27 +1,26 @@
-<header>
-    <h1>Marktplek</h1>
-</header>
+{% call header::header(base.trans.marketplace_title, "") %}
 <main>
     <section>
-        <h2>Meld je aan of log in</h2>
+        <h2>{{ base.trans.marketplace_login }}</h2>
     </section>
-    {% match error %}
-        {% when Some with (error) %}
-            {% call notification::notification("Inloggen mislukt. Probeer het opnieuw.", "", error) %}
+    {% match base.session_token %}
+        {% when Some with (session_token) %}
+        {% call notification::notification(base.trans.login_failed_try_again, "", session_token) %}
         {% when None %}
     {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
-            text="Verder met NL Wallet"
+            text="{{ base.trans.continue_with_nl_wallet }}"
             usecase="{{ usecase }}"
-            base-url="../"
-        ></nl-wallet-button>
-        <button id="google" disabled>Verder met Google</button>
-        <button id="email" disabled>Verder met email</button>
+            start-url="{{ start_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
+        <button id="google" disabled>{{ base.trans.continue_with_google }}</button>
+        <button id="email" disabled>{{ base.trans.continue_with_email }}</button>
         <p class="small">
-            Door op "Verder" te klikken, ga je akkoord met de
-            <a href="#">Algemene Voorwaarden</a> en het
-            <a href="#">Privacybeleid</a>.
+            {{ base.trans.click_continue }}
+            <a href="#">{{ base.trans.terms_and_conditions }}</a> {{ base.trans.and_the }}
+            <a href="#">{{ base.trans.privacy_policy }}</a>.
         </p>
     </section>
 </main>

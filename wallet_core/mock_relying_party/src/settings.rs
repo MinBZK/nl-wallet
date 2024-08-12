@@ -1,7 +1,8 @@
-use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
+use std::{env, net::IpAddr, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
 use http::{header::InvalidHeaderValue, HeaderValue};
+use indexmap::IndexMap;
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -19,7 +20,7 @@ pub struct Settings {
     #[serde(default)]
     pub allow_origins: Vec<Origin>,
     pub wallet_web: WalletWeb,
-    pub usecases: HashMap<String, Usecase>,
+    pub usecases: IndexMap<String, Usecase>,
     pub sentry: Option<Sentry>,
 }
 
