@@ -15,19 +15,19 @@ sha256 = "${WALLET_WEB_SHA256}"
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { bsn = true } }
 
-[[usecases.xyz_bank.items_requests]]
-docType = "com.example.pid"
-nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, bsn = true } }
-
-[[usecases.xyz_bank.items_requests]]
-docType = "com.example.address"
-nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
-
 [[usecases.online_marketplace.items_requests]]
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true } }
 
 [[usecases.online_marketplace.items_requests]]
+docType = "com.example.address"
+nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
+
+[[usecases.xyz_bank.items_requests]]
+docType = "com.example.pid"
+nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, bsn = true } }
+
+[[usecases.xyz_bank.items_requests]]
 docType = "com.example.address"
 nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
 

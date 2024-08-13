@@ -1,22 +1,21 @@
-{% let title = "XYZ Bank" %}
-
-{% call header::header(title, "") %}
+{% call header::header(base.trans.xyz_title, "") %}
 <main>
     <section>
-        <h4>Bankrekening openen</h4>
-        <h2>Stap 1. Identificeer uzelf</h2>
+        <h4>{{ base.trans.xyz_open_account }}</h4>
+        <h2>{{ base.trans.xyz_identify_yourself }}</h2>
     </section>
-    {% match error %}
-        {% when Some with (error) %}
-            {% call notification::notification("Identificatie mislukt. Probeer het opnieuw.", "", error) %}
+    {% match base.session_token %}
+        {% when Some with (session_token) %}
+        {% call notification::notification(base.trans.xyz_failed_try_again, "", session_token) %}
         {% when None %}
     {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
-            text="Gebruik NL Wallet"
+            text="{{ base.trans.use_nl_wallet }}"
             usecase="{{ usecase }}"
-            base-url="../"
-        ></nl-wallet-button>
-        <a href="#" disabled>Kies een ander middel</a>
+            start-url="{{ start_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
+        <a href="#" disabled>{{ base.trans.choose_another_method }}</a>
     </section>
 </main>

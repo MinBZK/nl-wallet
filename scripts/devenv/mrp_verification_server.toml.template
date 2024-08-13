@@ -22,13 +22,13 @@ ephemeral_id_secret = "${MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
 certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 
-[verifier.usecases.xyz_bank]
-certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
-private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
-
 [verifier.usecases.online_marketplace]
 certificate = "${MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
 private_key = "${MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
+
+[verifier.usecases.xyz_bank]
+certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
 
 [verifier.usecases.monkey_bike]
 certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"

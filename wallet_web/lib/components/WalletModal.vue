@@ -14,7 +14,7 @@ import { inject, onMounted, onUnmounted, ref, watch } from "vue"
 const POLL_INTERVAL_IN_MS = 2000
 
 export interface Props {
-  baseUrl: string
+  startUrl: URL
   usecase: string
   pollIntervalInMs?: number
 }
@@ -70,7 +70,7 @@ const startSession = async () => {
   try {
     modalState.value = { kind: "creating" }
 
-    let response = await createSession(props.baseUrl, {
+    let response = await createSession(props.startUrl, {
       usecase: props.usecase,
     })
     await checkStatus({

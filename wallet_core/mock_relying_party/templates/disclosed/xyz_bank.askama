@@ -1,14 +1,12 @@
-{% let title = "XYZ Bank" %}
-
-{% call header::header(title, "") %}
+{% call header::header(base.trans.xyz_title, "") %}
 <main>
     <section>
-        <h4>Bankrekening openen</h4>
-        <h2>Stap 1. Identificeer uzelf</h2>
-        {% call notification::notification("Identificatie gelukt", "", "") %}
+        <h4>{{ base.trans.xyz_open_account }}</h4>
+        <h2>{{ base.trans.xyz_identify_yourself }}</h2>
+        {% call notification::notification(base.trans.xyz_success, "", "") %}
     </section>
     <section>
         {% call attributes::attributes(attributes) %}
     </section>
-    <button disabled><span>Volgende</span></button>
+    <button disabled><span>{{ base.trans.next }}</span></button>
 </main>
