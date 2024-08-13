@@ -42,6 +42,20 @@
   --overlay-color: rgba(0, 0, 0, 0.6);
 
   font-style: normal;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: block;
+  align-content: center;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+
+  background-color: var(--overlay-color);
+  padding: 2rem 1rem;
+
+  z-index: 1045;
+  overscroll-behavior: contain;
 }
 
 .modal h1 {
@@ -161,24 +175,6 @@
   text-decoration: none;
 }
 
-/* Modal */
-.modal-anchor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  display: block;
-  align-content: center;
-  overflow: auto;
-  width: 100%;
-  height: 100%;
-
-  background-color: var(--overlay-color);
-  padding: 2rem 1rem;
-
-  z-index: 1045;
-  overscroll-behavior: contain;
-}
-
 .modal {
   display: flex;
   flex-direction: column;
@@ -229,7 +225,7 @@
 .modal.created main,
 .modal.loading main,
 .modal.in-progress main {
-  justify-content: top;
+  justify-content: normal;
 }
 
 .modal.created .buttons {
@@ -292,7 +288,7 @@
   padding: 1.5rem;
 }
 
-/* show the buttons seperately */
+/* show the buttons separately */
 .modal.creating footer,
 .modal.loading footer,
 .modal.in-progress footer,
@@ -305,7 +301,7 @@
 
 .modal div.qr {
   display: grid;
-  grid-template-columns: 1;
+  grid-template-columns: 1fr;
   grid-template-rows: 1fr;
   justify-items: center;
   align-items: center;
@@ -319,7 +315,6 @@
   max-width: 17.5rem; /* 280px */
   width: 100%;
 
-  image-rendering: crisp-edges;
   image-rendering: pixelated;
 }
 
@@ -353,6 +348,8 @@
 /* Loading indicator */
 svg.loading-indicator {
   animation: 2s linear infinite svg-animation;
+  padding: 1rem;
+  width: 44px;
   max-width: 6.25rem; /* 100px */
 }
 
@@ -375,11 +372,6 @@ svg.loading-indicator circle {
   stroke-dashoffset: 280;
   stroke-width: 10px;
   transform-origin: 50% 50%;
-}
-
-svg.loading-indicator {
-  width: 44px;
-  padding: 1rem;
 }
 
 @keyframes circle-animation {
