@@ -248,6 +248,22 @@ pub struct RestApiOptionsKeyed {
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
 
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use super::SessionTranscript;
+
+    impl SessionTranscript {
+        pub fn new_mock() -> Self {
+            Self::new_oid4vp(
+                &"https://example.com".parse().unwrap(),
+                "client_id",
+                "nonce_1234".to_string(),
+                "mdoc_nonce_1234",
+            )
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

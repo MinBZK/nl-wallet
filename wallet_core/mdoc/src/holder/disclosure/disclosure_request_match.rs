@@ -206,7 +206,6 @@ mod tests {
             TestDocument, TestDocuments,
         },
         unsigned::Entry,
-        verifier::SessionType,
         Attributes, IssuerNameSpaces, IssuerSignedItem,
     };
 
@@ -248,7 +247,7 @@ mod tests {
 
         let device_request = DeviceRequest::from(requested_documents);
 
-        let session_transcript = create_basic_session_transcript(SessionType::SameDevice);
+        let session_transcript = SessionTranscript::new_mock();
         let match_result =
             DisclosureRequestMatch::new(device_request.items_requests(), &mdoc_data_source, &session_transcript)
                 .await

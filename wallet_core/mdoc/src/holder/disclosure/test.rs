@@ -2,7 +2,6 @@ use std::{collections::HashSet, iter};
 
 use indexmap::{IndexMap, IndexSet};
 use p256::SecretKey;
-use rand_core::OsRng;
 use url::Url;
 
 use crate::{
@@ -13,8 +12,8 @@ use crate::{
     iso::{
         device_retrieval::{DocRequest, ItemsRequest, ReaderAuthenticationBytes, ReaderAuthenticationKeyed},
         engagement::{
-            ConnectionMethodKeyed, ConnectionMethodType, ConnectionMethodVersion, DeviceEngagement, Engagement,
-            EngagementVersion, ReaderEngagement, RestApiOptionsKeyed, SessionTranscript,
+            ConnectionMethodKeyed, ConnectionMethodType, ConnectionMethodVersion, Engagement, EngagementVersion,
+            ReaderEngagement, RestApiOptionsKeyed, SessionTranscript,
         },
     },
     server_keys::KeyPair,
@@ -22,10 +21,9 @@ use crate::{
         cose::{self, MdocCose},
         serialization::{CborSeq, TaggedBytes},
     },
-    verifier::SessionType,
 };
 
-use super::{proposed_document::ProposedDocument, session::VerifierUrlParameters, MdocDataSource, StoredMdoc};
+use super::{proposed_document::ProposedDocument, MdocDataSource, StoredMdoc};
 
 // Constants for testing.
 pub const VERIFIER_URL: &str = "http://example.com/disclosure";
@@ -72,16 +70,6 @@ pub fn emtpy_items_request() -> ItemsRequest {
         EXAMPLE_NAMESPACE.to_string(),
         iter::empty::<String>(),
     )
-}
-
-/// Create a basic `SessionTranscript` we can use for testing.
-pub fn create_basic_session_transcript(session_type: SessionType) -> SessionTranscript {
-    let (reader_engagement, _reader_private_key) =
-        ReaderEngagement::new_random(VERIFIER_URL.parse().unwrap(), session_type).unwrap();
-    let (device_engagement, _device_private_key) =
-        DeviceEngagement::new_device_engagement("https://example.com".parse().unwrap()).unwrap();
-
-    SessionTranscript::new_iso(session_type, &reader_engagement, &device_engagement).unwrap()
 }
 
 /// Create a `DocRequest` including reader authentication,
@@ -163,14 +151,6 @@ impl ReaderEngagement {
         };
 
         Ok(engagement.into())
-    }
-
-    pub fn new_random(mut verifier_url: Url, session_type: SessionType) -> Result<(Self, SecretKey)> {
-        let privkey = SecretKey::random(&mut OsRng);
-        let query = serde_urlencoded::to_string(VerifierUrlParameters { session_type }).unwrap();
-        verifier_url.set_query(query.as_str().into());
-
-        Ok((Self::try_new(&privkey, verifier_url)?, privkey))
     }
 }
 
