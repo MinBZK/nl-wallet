@@ -260,7 +260,7 @@ where
 }
 
 // We can't derive `Deserialize` with the `untagged` Serde enum deserializer, because unfortunately it is not able to
-// deserialize the SchemeHandoverBytes variant.
+// distinguish between the `NfcHandover` and `Oid4vpHandover` variants.
 // For the other direction (serializing), however, the `untagged` enum serializer is used and works fine.
 // Note that this implementation is only ever used to deserialize the examples from the spec in `examples.rs`.
 // For each variant a unit test is included to check that serializing and deserializing agree with each other.
@@ -270,14 +270,6 @@ impl<'de> Deserialize<'de> for Handover {
         let val = Value::deserialize(deserializer)?;
         match val {
             Value::Null => Ok(Handover::QrHandover),
-            Value::Tag(24, b) => Ok(Handover::SchemeHandoverBytes(TaggedBytes(
-                cbor_deserialize(
-                    b.as_bytes()
-                        .ok_or(de::Error::custom("tagged value of unexpected type, expected bytes"))?
-                        .as_slice(),
-                )
-                .map_err(de::Error::custom)?,
-            ))),
             Value::Array(ref bts_vec) => match bts_vec.len() {
                 1 | 2 => Ok(Handover::NfcHandover(val.deserialized().map_err(de::Error::custom)?)),
                 3 => Ok(Handover::Oid4vpHandover(val.deserialized().map_err(de::Error::custom)?)),
@@ -464,10 +456,8 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for CborBase64<T> {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use ciborium::value::Value::{Array, Bytes, Integer, Map, Null, Tag, Text};
+    use ciborium::value::Value::{Array, Bytes, Integer, Map, Null, Text};
     use hex_literal::hex;
-    use p256::SecretKey;
-    use rand_core::OsRng;
 
     use crate::examples::Example;
 
@@ -555,34 +545,5 @@ mod tests {
         );
 
         assert_eq!(Value::serialized(&oid4vp_handover).unwrap(), oid4vp_handover_cbor);
-    }
-
-    #[test]
-    fn test_handover_serialization_scheme() {
-        // Construct the CBOR contents of `Handover::SchemeHandoverBytes`.
-        let reader_engagement_bts = cbor_serialize(
-            &ReaderEngagement::try_new(&SecretKey::random(&mut OsRng), "https://example.com".parse().unwrap()).unwrap(),
-        )
-        .unwrap();
-        let scheme_handover_cbor = Tag(24, Box::new(Bytes(reader_engagement_bts)));
-
-        // Check that it deserializes to the expected Handover variant.
-        let scheme_handover: Handover = scheme_handover_cbor.deserialized().unwrap();
-        let Handover::SchemeHandoverBytes(TaggedBytes(CborIntMap(Engagement { connection_methods, .. }))) =
-            &scheme_handover
-        else {
-            panic!("deserialized to wrong Handover variant")
-        };
-
-        // Check some of the contents.
-        let connection_method = &connection_methods.as_ref().unwrap().first().unwrap().0;
-        assert_matches!(connection_method.typ, ConnectionMethodType::RestApi);
-        assert_eq!(
-            connection_method.connection_options.0.uri,
-            "https://example.com".parse().unwrap()
-        );
-
-        // Check that it serializes back again to the CBOR manually constructed above.
-        assert_eq!(Value::serialized(&scheme_handover).unwrap(), scheme_handover_cbor);
     }
 }
