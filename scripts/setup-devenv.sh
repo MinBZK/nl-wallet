@@ -222,18 +222,18 @@ MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/mock_relying_party/mijn
 export MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM
 
 # Generate relying party key and cert
-generate_mock_relying_party_key_pair xyz_bank
-MOCK_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/mock_relying_party/xyz_bank.key.der" ${BASE64})
-export MOCK_RELYING_PARTY_KEY_XYZ_BANK
-MOCK_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/mock_relying_party/xyz_bank.crt.der" ${BASE64})
-export MOCK_RELYING_PARTY_CRT_XYZ_BANK
-
-# Generate relying party key and cert
 generate_mock_relying_party_key_pair online_marketplace
 MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/mock_relying_party/online_marketplace.key.der" ${BASE64})
 export MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE
 MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/mock_relying_party/online_marketplace.crt.der" ${BASE64})
 export MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE
+
+# Generate relying party key and cert
+generate_mock_relying_party_key_pair xyz_bank
+MOCK_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/mock_relying_party/xyz_bank.key.der" ${BASE64})
+export MOCK_RELYING_PARTY_KEY_XYZ_BANK
+MOCK_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/mock_relying_party/xyz_bank.crt.der" ${BASE64})
+export MOCK_RELYING_PARTY_CRT_XYZ_BANK
 
 # Generate relying party key and cert
 generate_mock_relying_party_key_pair monkey_bike

@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     env,
     path::PathBuf,
     result::Result as StdResult,
@@ -8,15 +7,25 @@ use std::{
 
 use askama::Template;
 use axum::{
-    extract::{Path, Query, State},
+    async_trait,
+    extract::{FromRequestParts, Path, Query, Request, State},
     handler::HandlerWithoutStateExt,
     http::{Method, StatusCode},
+    middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
 use base64::prelude::*;
+use http::{
+    header::{ACCEPT_LANGUAGE, CACHE_CONTROL},
+    request::Parts,
+    HeaderMap, HeaderValue,
+};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
+use tower::ServiceBuilder;
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
@@ -32,6 +41,7 @@ use crate::{
     askama_axum,
     client::WalletServerClient,
     settings::{Origin, ReturnUrlMode, Settings, Usecase, WalletWeb},
+    translations::{Words, TRANSLATIONS},
 };
 
 #[derive(Debug)]
@@ -58,7 +68,7 @@ struct ApplicationState {
     client: WalletServerClient,
     public_wallet_server_url: BaseUrl,
     public_url: BaseUrl,
-    usecases: HashMap<String, Usecase>,
+    usecases: IndexMap<String, Usecase>,
     wallet_web: WalletWeb,
 }
 
@@ -83,6 +93,19 @@ fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
     Some(layer)
 }
 
+async fn set_static_cache_control(request: Request, next: Next) -> Response {
+    // only cache images and fonts, not CSS and JS (except wallet_web, as that is suffixed with a hash)
+    let set_no_store = !request.uri().path().ends_with(".iife.js")
+        && [".css", ".js"].iter().any(|ext| request.uri().path().ends_with(ext));
+    let mut response = next.run(request).await;
+    if set_no_store {
+        response
+            .headers_mut()
+            .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    }
+    response
+}
+
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
         client: WalletServerClient::new(settings.internal_wallet_server_url.clone()),
@@ -95,11 +118,16 @@ pub fn create_router(settings: Settings) -> Router {
     let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
     let mut app = Router::new()
+        .route("/", get(index))
         .route("/sessions", post(create_session))
         .route("/:usecase/", get(usecase))
         .route(&format!("/:usecase/{}", RETURN_URL_SEGMENT), get(disclosed_attributes))
         .fallback_service(
-            ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(set_static_cache_control))
+                .service(
+                    ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                ),
         )
         .with_state(application_state)
         .layer(TraceLayer::new_for_http());
@@ -111,7 +139,7 @@ pub fn create_router(settings: Settings) -> Router {
     app
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Serialize, Deserialize)]
 struct SessionOptions {
     usecase: String,
 }
@@ -122,31 +150,59 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
-#[derive(Template, Serialize)]
-#[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
-struct DisclosureTemplate<'a> {
-    usecase: &'a str,
-    attributes: DisclosedAttributes,
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, strum::Display, strum::EnumIter)]
+pub enum Language {
+    #[default]
+    #[serde(rename = "nl")]
+    #[strum(to_string = "nl")]
+    Nl,
+    #[serde(rename = "en")]
+    #[strum(to_string = "en")]
+    En,
 }
 
-#[derive(Template, Serialize)]
-#[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
-struct UsecaseTemplate<'a> {
-    usecase: &'a str,
-    usecase_js_sha256: &'a str,
-    wallet_web_filename: &'a str,
-    wallet_web_sha256: &'a str,
-    error: Option<&'a str>,
+impl Language {
+    fn parse(s: &str) -> Option<Self> {
+        match s.split('-').next() {
+            Some("en") => Some(Language::En),
+            Some("nl") => Some(Language::Nl),
+            _ => None,
+        }
+    }
+
+    fn match_accept_language(headers: &HeaderMap) -> Option<Self> {
+        let accept_language = headers.get(ACCEPT_LANGUAGE)?;
+        let languages = accept_language::parse(accept_language.to_str().ok()?);
+
+        // applies function to the elements of iterator and returns the first non-None result
+        languages.into_iter().find_map(|l| Language::parse(&l))
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DisclosedAttributesParams {
-    pub nonce: Option<String>,
-    pub session_token: SessionToken,
+pub struct LanguageParam {
+    pub lang: Language,
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for Language
+where
+    S: Send + Sync,
+{
+    type Rejection = std::convert::Infallible;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> std::result::Result<Self, Self::Rejection> {
+        let lang = Query::<LanguageParam>::from_request_parts(parts, state)
+            .await
+            .map(|l| l.lang)
+            .unwrap_or(Language::match_accept_language(&parts.headers).unwrap_or_default());
+        Ok(lang)
+    }
 }
 
 async fn create_session(
     State(state): State<Arc<ApplicationState>>,
+    language: Language,
     Json(options): Json<SessionOptions>,
 ) -> Result<Json<SessionResponse>> {
     let usecase = state
@@ -154,24 +210,26 @@ async fn create_session(
         .get(&options.usecase)
         .ok_or(anyhow::Error::msg("usecase not found"))?;
 
+    let return_url_template = match usecase.return_url {
+        ReturnUrlMode::None => None,
+        _ => Some(
+            format!(
+                "{}/{}?session_token={{session_token}}&lang={}",
+                state.public_url.join(&options.usecase),
+                RETURN_URL_SEGMENT,
+                language,
+            )
+            .parse()
+            .expect("should always be a valid ReturnUrlTemplate"),
+        ),
+    };
+
     let session_token = state
         .client
         .start(
             options.usecase.clone(),
             usecase.items_requests.clone(),
-            if usecase.return_url == ReturnUrlMode::None {
-                None
-            } else {
-                Some(
-                    format!(
-                        "{}/{}?session_token={{session_token}}",
-                        state.public_url.join(&options.usecase),
-                        RETURN_URL_SEGMENT
-                    )
-                    .parse()
-                    .expect("should always be a valid ReturnUrlTemplate"),
-                )
-            },
+            return_url_template,
         )
         .await?;
 
@@ -184,29 +242,105 @@ async fn create_session(
     Ok(result.into())
 }
 
+struct BaseTemplate<'a> {
+    session_token: Option<SessionToken>,
+    nonce: Option<String>,
+    selected_lang: Language,
+    trans: &'a Words<'a>,
+    available_languages: &'a Vec<Language>,
+}
+
+#[derive(Template)]
+#[template(path = "index.askama", escape = "html", ext = "html")]
+struct IndexTemplate<'a> {
+    usecases: &'a [&'a str],
+    base: BaseTemplate<'a>,
+}
+
+async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Result<Response> {
+    let result = IndexTemplate {
+        usecases: &state.usecases.keys().map(|s| s.as_str()).collect::<Vec<_>>(),
+        base: BaseTemplate {
+            session_token: None,
+            nonce: None,
+            selected_lang: language,
+            trans: &TRANSLATIONS[language],
+            available_languages: &Language::iter().collect(),
+        },
+    };
+
+    Ok(askama_axum::into_response(&result))
+}
+
+#[derive(Template)]
+#[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
+struct UsecaseTemplate<'a> {
+    usecase: &'a str,
+    start_url: Url,
+    usecase_js_sha256: &'a str,
+    wallet_web_filename: &'a str,
+    wallet_web_sha256: &'a str,
+    base: BaseTemplate<'a>,
+}
+
 static USECASE_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
 
-async fn usecase(State(state): State<Arc<ApplicationState>>, Path(usecase): Path<String>) -> Result<Response> {
+fn format_start_url(public_url: &BaseUrl, lang: Language) -> Url {
+    let mut start_url = public_url.join("/sessions");
+    start_url.set_query(Some(
+        serde_urlencoded::to_string(LanguageParam { lang }).unwrap().as_str(),
+    ));
+    start_url
+}
+
+async fn usecase(
+    State(state): State<Arc<ApplicationState>>,
+    Path(usecase): Path<String>,
+    language: Language,
+) -> Result<Response> {
     if !state.usecases.contains_key(&usecase) {
         return Ok(StatusCode::NOT_FOUND.into_response());
     }
 
+    let start_url = format_start_url(&state.public_url, language);
     let result = UsecaseTemplate {
         usecase: &usecase,
+        start_url,
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
-        error: None,
+        base: BaseTemplate {
+            session_token: None,
+            nonce: None,
+            selected_lang: language,
+            trans: &TRANSLATIONS[language],
+            available_languages: &Language::iter().collect(),
+        },
     };
 
     Ok(askama_axum::into_response(&result))
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DisclosedAttributesParams {
+    pub nonce: Option<String>,
+    pub session_token: SessionToken,
+}
+
+#[derive(Template)]
+#[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
+struct DisclosedAttributesTemplate<'a> {
+    usecase: &'a str,
+    attributes: DisclosedAttributes,
+    base: BaseTemplate<'a>,
 }
 
 async fn disclosed_attributes(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
     Query(params): Query<DisclosedAttributesParams>,
+    language: Language,
 ) -> Result<Response> {
     if !state.usecases.contains_key(&usecase) {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -214,25 +348,36 @@ async fn disclosed_attributes(
 
     let attributes = state
         .client
-        .disclosed_attributes(params.session_token, params.nonce)
+        .disclosed_attributes(params.session_token.clone(), params.nonce.clone())
         .await;
+
+    let start_url = format_start_url(&state.public_url, language);
+    let base = BaseTemplate {
+        session_token: Some(params.session_token),
+        nonce: params.nonce,
+        selected_lang: language,
+        trans: &TRANSLATIONS[language],
+        available_languages: &Language::iter().collect(),
+    };
 
     match attributes {
         Ok(attributes) => {
-            let result = DisclosureTemplate {
+            let result = DisclosedAttributesTemplate {
                 usecase: &usecase,
                 attributes,
+                base,
             };
             Ok(askama_axum::into_response(&result))
         }
         Err(err) => {
-            let err = err.to_string();
+            warn!("Error getting disclosed attributes: {err}");
             let result = UsecaseTemplate {
                 usecase: &usecase,
+                start_url,
                 usecase_js_sha256: &USECASE_JS_SHA256,
                 wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
                 wallet_web_sha256: &state.wallet_web.sha256,
-                error: Some(&err),
+                base,
             };
             Ok(askama_axum::into_response(&result))
         }
@@ -254,5 +399,22 @@ mod filters {
         }
 
         Ok(format!("attribute '{name}' cannot be found"))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use rstest::rstest;
+
+    use super::*;
+
+    #[rstest]
+    #[case("en", Some(Language::En))]
+    #[case("nl", Some(Language::Nl))]
+    #[case("123", None)]
+    #[case("en-GB", Some(Language::En))]
+    #[case("nl-NL", Some(Language::Nl))]
+    fn test_parse_language(#[case] s: &str, #[case] expected: Option<Language>) {
+        assert_eq!(Language::parse(s), expected);
     }
 }

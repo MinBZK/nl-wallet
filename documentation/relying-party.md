@@ -20,7 +20,7 @@ as "Receiving Facility", a facility that receives attributes to verify):
 
   1. Determine which attributes you need to verify
   2. Provide required relying party data
-  3. Request a certificate
+  3. Request a certificate (per `usecase`, usually one)
   4. Configure your OV (Ontvangende Voorziening)
   5. Proof-of-function, test calls
   6. Integrate the OV with your own application
@@ -55,7 +55,8 @@ session. The main components are:
     a so-called Verstrekkende Voorziening (VV);
   * [VV][4]: Verstrekkende Voorziening, the party that issues attributes;
   * [OV][4]: Ontvangende Voorziening, an application that runs on-premises or
-    in-cloud of a relying party that can verify attributes;
+    in-cloud of a relying party that can verify attributes, which this document
+    is about;
   * [Relying Party Application][4]: An app running on-premises or in-cloud of
     the relying party that needs to do something with the result of a
     verification of attributes;
@@ -63,7 +64,7 @@ session. The main components are:
 
 Missing from the above diagram, but worth mentioning:
 
-  * [Wallet Web][14] The frontend helper Javascript/Typescript library which
+  * [Wallet Web][14] The frontend helper JavaScript/TypeScript library which
     helps relying parties integrate their application with the Wallet platform.
 
 
@@ -113,7 +114,16 @@ Attributes in the wallet are grouped in things called attestations and the
 wallet app displays these attestations as cards. The attestations are stored in
 the `mdoc` format (see [ISO/IEC 18013-5:2021][8] and [ISO/IEC 23220-4][9]).
 
-We currently (as of 2024-07-24) support two `mdoc` doctypes: `PID_DOCTYPE`
+In the `wallet_server` we have the concept of `usecases`, which encapsulate what
+you want to use a disclosure for, for example to verify a legal age or to login
+to a website. Essentially, every certificate that you create to be able to
+verify attributes for some purpose, represent a certificate/key-pair, and the
+`wallet_server` can support multiple `usecases`. In this guide we will be
+creating a single certificate (so, for a single `usecase`), but there's nothing
+stopping you from creating/requesting multiple certificates for different
+`usecases`.
+
+We currently (as of 2024-08-08) support two `mdoc` doctypes: `PID_DOCTYPE`
 and `ADDRESS_DOCTYPE`. An `mdoc` contains one or multiple attributes that you
 can verify. For your convenience, we list the attributes for both doctypes here:
 
@@ -275,8 +285,13 @@ Without further ado, let's create a private key, an `openssl` config and a
 certificate request:
 
 ```sh
-# Create a private key (note de-facto default key strength, could also be 3072).
-openssl ecparam -name prime256v1 -genkey -noout -out rp.key
+# Create a private key.
+openssl ecparam -name prime256v1 -genkey -noout -outform der -out rp-pkcs1.key
+
+# Convert key to PKCS#8 format.
+openssl pkcs8 -topk8 -inform DER -outform DER -nocrypt -in rp-pkcs1.key -out rp-pkcs8.key
+rm rp-pkcs1.key
+mv rp-pkcs8.key rp.key
 
 # Set organization name to previously specified organization_legal_name.
 export ORGANIZATION_NAME="Your legal organization name here"
@@ -300,6 +315,7 @@ CN = $COMMON_NAME
 
 [v3_req]
 extendedKeyUsage = clientAuth, serverAuth
+subjectAltName = @alt_names
 
 [alt_names]
 DNS.0 = $COMMON_NAME
@@ -311,8 +327,8 @@ openssl req -config rp.cfg -new -key rp.key -out rp.csr
 
 You should now have three files: `rp.key`, `rp.cfg` and `rp.csr`. Keep the key
 safe somewhere, don't share it, not even with us. The certificate request,
-`rp.csr`, we will send together with de decided attributes and needed data when
-we file the request in the next section.
+`rp.csr`, and the configuration, `rp.cfg`, we will send together with the
+decided attributes and needed data when we file the request in the next section.
 
 Note: When we receive the requested data and the certificate request, we will
 serialize that as a JSON string and add it to the certificate as an X.509v3
@@ -325,17 +341,22 @@ Alright, let's review what we've got so far:
   * You've determined the names of the attributes you want to verify;
   * You've written down a description of the purpose of verification;
   * You've collected all the required data attributes requested previously;
+  * You've followed the certificate request steps and have an `rp.cfg` document;
   * You've followed the certificate request steps and have an `rp.csr` document;
 
-Put all of the above in the following e-mail template, attach your certificate
-request document (`rp.csr`):
+Put all of the above in the following e-mail template, and attach your signing
+request (`rp.csr`), certificate configuration file (`rp.cfg`), and optionally
+some SVG logo data:
 
 ```
 Dear NL-Wallet,
 
 Please find herein an onboarding request for us as a relying party. Attached
-you will find our certificate request and below the answers with regards to
-requested data, attributes for verification and descripion of purpose.
+you will find our signing request, our certificate configuration file, and
+possibly, some SVG logo data.
+
+Please find below the answers with regards to requested data, attributes for
+verification and descripion of purpose.
 
 Attributes requested for verification:
 <fill in list of attributes previously documented>
@@ -367,12 +388,344 @@ Kind regards,
 
 <relying party>
 
-<don't forget to attach certificate request>
+<don't forget to attach signing request, certificate configuration file and
+optionally, som SVG data for your logo>
 ```
 
 Mail the above to our company/group email address (not published here for the
-time being) and we will pick up the request from there. Note that this process
-might/will change in the future.
+time being) and we will pick up the request from there.
+
+What you'll receive from us in reply to the above is:
+
+  1. A `DER` format certificate based on your certificate-request with an
+     X509v3 extension with OID 2.1.123.1 containing the aforementioned
+     `reader_auth.json` populated with your provided required data.
+
+  2. A so-called trust-anchor certificate, also in `DER` format which represents
+     the issuer(s) you as a relying party trust as a party that issues
+     attributes.
+
+  3. A universal link base URL for one of our environments, which you need to
+     configure when setting up de `wallet_server` in verifier mode (covered in
+     the [Universal link base URL](#universal-link-base-url) section of the
+     installation chapter).
+
+# Wallet server installation
+
+After you have obtained a certificate for your `usecase`, following the
+previously documented steps, you are ready to setup and configure your
+`wallet_server`.
+
+Currently, the `wallet_server` is configured by compile-time feature flags to
+fulfil different roles:
+
+  * `verification`: a.k.a. disclosure, i.e., for an "ontvangende voorziening",
+    an "OV", for "relying parties", which is what we're talking about in this
+    document;
+  * `issuance`: i.e., for a "verstrekkende voorziening", a "VV", for parties
+    that issue attestations that can be verified/used by the former. Note that
+    as of this writing (2024-08-08), we only have one issuer, the so-called
+    `pid_issuer`.
+
+The `wallet_server` for verification is more specifically called
+`verification_server`, which is also the name of the binary you will be running
+and the name we'll be using in this installation section.
+
+## Obtaining the software
+
+The `verification_server` binary can be obtained by compiling the Rust code from
+our [repository][6], or be provided to you. As of this writing (2024-08-08) we
+do not yet make binaries available automatically (work-in-progress). And so you
+can either compile the source code (possible, but not supported as of yet) or
+ask us for a binary. In the short-term, especially in light of the coming shared
+testing cases, we will provide binaries to relying parties manually.
+
+## Creating a database backend (optional)
+
+This section is optional; You can run the `verification_server` with a storage
+URL `memory://`, which is the default, which will make it store session state in
+memory (which will be bound to a specific instance of a `verification_server`).
+When using in-memory session state, on server shutdown or crash, any session
+state will be lost. When using a `postgres://` storage URL in the
+`verification_server.toml` configuration file, it causes the server to store its
+session state in a PostgreSQL database.
+
+In this section we'll assume you don't have a PostgreSQL database server yet,
+and set that up using docker (although you could set it up bare-metal also,
+which is left as an exercise to the reader in case such a configuration is
+preferred). We'll then create a database, configure credentials and configure
+the schema (tables, columns).
+
+### Create a database server
+
+Since we'll be using Docker, we'll run the latest version of PostgreSQL (version
+16.3 as of this writing), using a Docker volume named `postgres` for the
+database storage. We'll run in the background (the `--detach` option) and
+auto-clean up the running container after stop (`--rm`). We create two random 16
+character strings for the `postgres` and `wallet` users:
+
+```shell
+# Create a random password for the postgres user.
+export PGPASSWORD="$(openssl rand -base64 12)"
+# Run a Docker image named postgres.
+docker run --name postgres --volume postgres:/var/lib/postgresql/data \
+--rm  --detach --publish 5432:5432 --env POSTGRES_PASSWORD="$PGPASSWORD" postgres
+```
+
+### Create user and database itself:
+
+Next, we'll create a user for the database and the database itself:
+
+```shell
+# Create a random password for the wallet user.
+export WAPASSWORD="$(openssl rand -base64 12)"
+# Note that the below commands use PGPASSWORD to execute.
+psql -h localhost -U postgres -c "create user wallet with password '$WAPASSWORD';"
+psql -h localhost -U postgres -c "create database verification_server owner wallet;"
+```
+
+### Apply database schema:
+
+Finally, we'll create a `verification_server_schema.sql` file and run that:
+
+```shell
+cat <<EOF > "verification_server_schema.sql"
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+SET default_tablespace = '';
+SET default_table_access_method = heap;
+
+-- Create table.
+CREATE TABLE IF NOT EXISTS public.session_state (
+  type character varying NOT NULL,
+  token character varying NOT NULL,
+  data json NOT NULL,
+  status character varying NOT NULL,
+  last_active_date_time timestamp with time zone NOT NULL
+);
+
+-- Set owner.
+ALTER TABLE public.session_state OWNER TO wallet;
+
+-- Add constraint.
+DO \$\$
+BEGIN
+  ALTER TABLE ONLY public.session_state
+    ADD CONSTRAINT session_state_pkey PRIMARY KEY (type, token);
+EXCEPTION
+  WHEN duplicate_table THEN  -- Catch on PostgreSQL <= 9.6
+  WHEN duplicate_object THEN -- Catch on PostgreSQL >= 9.6 and <= 10.1
+  WHEN invalid_table_definition THEN -- Catch on PostgreSQL >= 11.9
+    RAISE WARNING 'Constraint already exists, skipping';
+END;
+\$\$;
+
+-- Create index.
+CREATE INDEX IF NOT EXISTS session_state_type_status_last_active_date_time_idx
+  ON public.session_state USING btree (type, status, last_active_date_time);
+EOF
+psql -h localhost -U postgres -d verification_server -f "verification_server_schema.sql"
+```
+
+You now have a database server running, with an admin user named `postgres` and
+a regular user named `wallet` for which you can see the passwords by issuing:
+`echo -e "postgres: $PGPASSWORD\n  wallet: $WAPASSWORD\n"`. Take a moment to
+store them somewhere, because you'll need them later on.
+
+The database in the server is called `verification_server`, and contains the
+above default schema (i.e., a `session_state` table with a primary key
+constraint and an index on `last_active_date_time`).
+
+## Creating a configuration
+
+In the following sections we'll create environment variables for specific
+settings, which we will finally use to construct a configuration file.
+
+### The storage settings
+
+The default storage settings URL is `memory://` which causes the server to store
+session state in-memory, which is ephemeral. I.e., on server crash or shutdown,
+any existing session state is lost. When you use the `postgres://` URL, you tell
+the server to store session state in a PostgreSQL database (see previous
+optional section on setting up the database).
+
+#### Using in-memory session state
+
+```shell
+export WASTORAGEURL="memory://"
+```
+
+#### Using database persisted session state (optional)
+
+```shell
+export WAUSERNAME="wallet"
+# Note: We assume that you still have $WAPASSWORD set in your environment.
+#       See previous section documenting how to set up a database backend.
+export WADBHOST="localhost"
+export WADBPORT=5432
+export WADATABASE="verification_server"
+export WASTORAGEURL="postgres://$WAUSERNAME:$WAPASSWORD@$WADBHOST:$WADBPORT/$WADATABASE"
+```
+
+### Determine public URL
+
+The `public_url` is the URL that is used to reach the public interface of the
+`verification_server` from the internet.
+
+For example, internally, you might host your server on a machine called
+`verification.internal.root.lan`, whilst you've set-up a load balancer or
+reverse proxy which serves `verify.example.com`, which is the name you use on
+the internet to reach this internally hosted service (i.e., via the load
+balancer or reverse proxy).
+
+In this document, we've previously used "Mijn Amsterdam" as an example, so lets
+configure a plausible example URL:
+
+```shell
+export WAPUBLICURL="https://verify.example.com/"
+```
+
+### Universal link base URL
+
+The universal link base URL is used to configure the `verification_server` to
+communicate the correct environment-specific universal link to the the mobile
+operating system which is running the NL Wallet app. It is used to trigger the
+mobile operating system to start the NL Wallet app when clicking the link or
+scanning the QR code.
+
+You will have received the universal link base URL with the e-mail response to
+your certificate request (as mentioned in the [File Request](#file-request))
+section previously.
+
+For example, if you want to configure your `verification_server` for usage with
+a Wallet App built for the acceptance environment, you'd configure it as such:
+
+```shell
+export WAULBASEURL="https://app.example.com/ul/"
+```
+
+### The ephemeral ID secret
+
+The ephemeral ID secret is used for (rotating) QR code generation, and
+configured once in the `verification_server.toml`:
+
+```shell
+export WAEPHEMERALIDSECRET="$(dd if=/dev/urandom bs=64 count=1 | xxd -p | tr -d '\n')"
+```
+
+### Configuring the trustanchor and the usecase
+
+In the [File Request](#file-request) section we've requested a certificate for
+the `usecase` and, if everything went well, you've received a signed certificate
+and a so-called `trust-anchor` certificate. Additionally, you will still have
+the key matching your `usecase` certificate.
+
+We'll assume your `usecase` certificate is in the `DER` format and named
+`rp.crt`, your key is named `rp.key`, and finally you have a trust anchor (ca)
+certificate called `ta.crt`.
+
+Finally, you'll have to come up with some name for your `usecase`; in the
+settings below, we assume the name `login-mijn-amsterdam`. Note that the name
+is only used as an identifier, it can be freely chosen.
+
+```shell
+export WAUSECASENAME="login-mijn-amsterdam"
+export WAUSECASECERT="$(cat rp.crt | openssl base64 -e -A)"
+export WAUSECASEKEY="$(cat rp.key | openssl base64 -e -A)"
+export WATRUSTANCHOR="$(cat ta.crt | openssl base64 -e -A)"
+```
+
+### Creating the configuration file
+
+In the previous sections, you've set a bunch of environment variables which we
+will use in this section to generate our `verification_server.toml`
+configuration file (i.e., you need to run the following commands in the same
+place where you previously typed the `export` commands). To generate our
+configuration file, issue the following command:
+
+```shell
+cat <<EOF > "verification_server.toml"
+public_url = '$WAPUBLICURL'
+universal_link_base_url = '$WAULBASEURL'
+
+[storage]
+url = '$WASTORAGEURL'
+
+[wallet_server]
+ip = '0.0.0.0'
+port = 3005
+
+[requester_server]
+ip = '0.0.0.0'
+port = 3006
+
+[verifier]
+trust_anchors = [
+    "$WATRUSTANCHOR",
+]
+ephemeral_id_secret = '$WAEPHEMERALIDSECRET'
+
+[verifier.usecases.$WAUSECASENAME]
+certificate = '$WAUSECASECERT'
+private_key = '$WAUSECASEKEY'
+EOF
+```
+
+You should now have a configuration file in the current directory called
+`verification_server.toml`. Feel free to check the file to see if everything
+looks like you'd expect.
+
+### Configuring an API key (optional)
+
+In our configuration, the wallet server is configured with a separate port for
+the public (wallet) and private (requester) endpoints. The private endpoint can
+additionally be configured to require an API key, which needs to be passed with
+a request as an `Authorization` header containing `Bearer your_secret_key`.
+
+To configure the usage of an API key, you need to add a section as follows to
+the configuration file (choose a better key than `your_secret_key`):
+
+```toml
+[requester_server.authentication]
+api_key = "your_secret_key"
+```
+
+## Running the server for the first time
+
+In section [Obtaining the software](#obtaining-the-software) we have described
+how you can obtain the software. In this section, we assume you have a Linux
+AMD64 static executable called `verification_server` that you can run. Make sure
+the configuration file `verification_server.toml` is in the same directory as
+the binary and run it in the foreground as follows:
+
+```shell
+./verification_server
+```
+
+You might not see output immediately, for that, we need to do some calls first.
+
+## Validating the configuration
+
+If all went well, the server is now running and ready to serve requests. To test
+the service, you can send session initiation requests and status requests to it.
+
+Check out the [Example calls](#example-calls) section for how to do that. For
+example, when you [initiate a disclosure session](#initiate-a-disclosure-session),
+you will see something like the following output from the `verification_server`:
+
+```
+2024-08-09T14:30:55.016412Z  INFO openid4vc::verifier: create verifier session: some_usecase
+2024-08-09T14:30:55.019806Z  INFO openid4vc::verifier: Session(XH32jw4jRSnQsLNiJxryDCqArmWfv5Fi): session created
+```
+
+For further information about how to construct calls to the endpoints, check out
+the [API specifications](#api-specifications) section.
 
 # Background
 
@@ -413,8 +766,8 @@ Note the "actors/components" we distinguish between:
   * `user`: *user of the wallet_app, initiating an attribute disclosure session*
   * `wallet_app`: *the wallet app, running on a users' mobile phone*
   * `wallet_server`: *the wallet_server component of the OV*
-  * `rp_frontend`: *the (javascript/html/css) frontend of the relying party app*
-    *can be-or-use previously mentioned `wallet_web` javascript helper library*
+  * `rp_frontend`: *the (JavaScript/HTML/CSS) frontend of the relying party app*
+    *can be-or-use previously mentioned `wallet_web` JavaScript helper library*
   * `rp_backend`: *the (server) backend of the relying party application*
 
 In the diagram, the `user` is the small stick-figure at the top, the actor who
@@ -529,27 +882,25 @@ OV Result":
   * Configuration of the verifier, executed manually by you, a one-time initial
     setup that stores a configuration about your app in the configuration
     component of the OV;
-  * Initiation of a disclosure session, executed by your backend application,
-    giving you a `session_url`, an `engagement_url`, and a `disclosed_attributes_url`;
-  * The status check loop, executed by your frontend application, on the
-    previously received `session_url` where we check for a status result, which
-    indicates success or failure of the session.
-  * Result retrieval, executed by your backend, on the previously received
-    `disclosed_attributes_url`, which is a final conditional step dependent on
-    a succesful completion status, which contains the disclosed_attributes.
+  * Initiation of a disclosure session, executed by your backend application;
+  * The status check loop, executed by your frontend application, where we check
+    for a status result, which indicates success or failure of the session.
+  * Result retrieval, executed by your backend, which is a final conditional
+    step dependent on a succesful completion status, which contains the
+    disclosed_attributes.
 
 The above is described in more detail in the previous section [detailing an
 example disclosure flow](#what-a-disclosure-session-looks-like).
 
-It's worth noting that the NL-Wallet team is currently (as of 2024-04-24)
-developing a JavaScript library (called `wallet_web`) that handles the status
-check loop and status return for you.
+It's worth noting that the NL-Wallet team has developed a JavaScript library
+(called `wallet_web`) that handles the status check loop and status return for
+you.
 
 ## API Specifications
 
-As of 2024-04-24, we can't specify the specific API used yet as this is
-currently subject to change. At a later stage, the detailed API specs will be
-referenced here.
+The API specifications for the [private][15] (also known as the `requester`)
+and [public][16] (also known as the `wallet`) endpoints are available in the
+`/documentation` part of of the git repository.
 
 ## Example calls
 
@@ -581,7 +932,7 @@ curl --silent --request POST --json '{
       }
     }
   ],
-  "return_url_template": "http://localhost:3004/return"
+  "return_url_template": "https://localhost:3004/return"
 }' 'http://localhost:3006/disclosure/sessions'
 ```
 
@@ -610,7 +961,8 @@ Example responses:
 
 *(note that in the above response you see a `ul` universal link value with the*
 *scheme `walletdebuginteraction://`. In acceptance and (pre)production*
-*environments, you'd see a proper universal link.)*
+*environments, you see a universal link based on the `universal_link_base_url`*
+*setting in the `wallet_server` configuration file.)*
 
 ```json
 {
@@ -709,3 +1061,5 @@ TODO: Link to VV/OV SAD, which are still in draft and not published yet.
 [12]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
 [13]: https://www.w3.org/WAI/WCAG21/Understanding/intro
 [14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
+[15]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-private.openapi.yaml
+[16]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-public.openapi.yaml

@@ -3,6 +3,12 @@
 version = 3
 
 [[package]]
+name = "accept-language"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
+
+[[package]]
 name = "addr2line"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -798,10 +804,13 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7328b20597b53c2454f0b1919720c25c7339051c02b72b7e05409e00b14132be"
 dependencies = [
+ "indexmap 2.2.6",
  "lazy_static",
  "nom",
  "pathdiff",
+ "ron",
  "serde",
+ "serde_json",
  "toml 0.8.14",
 ]
 
@@ -2415,6 +2424,7 @@ dependencies = [
 name = "mock_relying_party"
 version = "0.1.0"
 dependencies = [
+ "accept-language",
  "anyhow",
  "askama",
  "axum",
@@ -2422,15 +2432,18 @@ dependencies = [
  "config",
  "futures",
  "http",
+ "indexmap 2.2.6",
  "nl_wallet_mdoc",
  "nutype",
  "reqwest",
+ "rstest",
  "sentry",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "strum 0.26.3",
  "tokio",
+ "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
@@ -3349,6 +3362,19 @@ dependencies = [
  "spin 0.9.8",
  "untrusted 0.9.0",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "ron"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
+dependencies = [
+ "base64 0.21.7",
+ "bitflags 2.6.0",
+ "indexmap 2.2.6",
+ "serde",
+ "serde_derive",
 ]
 
 [[package]]
@@ -4798,6 +4824,7 @@ version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f49eb2ab21d2f26bd6db7bf383edc527a7ebaee412d17af4d40fdccd442f335"
 dependencies = [
+ "indexmap 2.2.6",
  "serde",
  "serde_spanned",
  "toml_datetime",

@@ -1,10 +1,8 @@
-{% let title = "Gemeente Amsterdam" %}
-
-{% call header::header(title, "Account") %}
+{% call header::header(base.trans.amsterdam_title, base.trans.amsterdam_profile_name) %}
 <main>
-    {% call notification::notification("Gelukt", "Je bent ingelogd.", "") %}
+    {% call notification::notification(base.trans.amsterdam_success, base.trans.amsterdam_logged_in, "") %}
     <section>
-        <h2 class="primary">Welkom in Mijn Amsterdam</h2>
-        <h3>Persoonlijke online dienstverlening voor de Amsterdammer</h3>
+        <h2 class="primary">{{ base.trans.amsterdam_welcome }}</h2>
+        <h3>{{ base.trans.amsterdam_subtitle }}</h3>
     </section>
 </main>

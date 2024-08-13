@@ -1,25 +1,24 @@
-{% let title = "Gemeente Amsterdam" %}
-
-{% call header::header(title, "") %}
+{% call header::header(base.trans.amsterdam_title, "") %}
 <main>
-    {% match error %}
-    {% when Some with (error) %}
-        {% call notification::notification("Het is niet gelukt", "Probeer het opnieuw.", error) %}
+    {% match base.session_token %}
+    {% when Some with (session_token) %}
+        {% call notification::notification(base.trans.amsterdam_failed, base.trans.amsterdam_try_again, session_token) %}
     {% when None %}
     {% endmatch %}
     <section>
-        <h2>Inloggen op Mijn Amsterdam</h2>
+        <h2>{{ base.trans.amsterdam_login }}</h2>
     </section>
     <section>
-        <h3>Voor particulieren en eenmanszaken</h3>
-        <p>U heeft de NL Wallet app of DigiD nodig. </p>
+        <h3>{{ base.trans.amsterdam_subtitle }}</h3>
+        <p>{{ base.trans.amsterdam_nl_wallet_digid }}</p>
     </section>
     <section class="buttons">
         <nl-wallet-button
-            text="Inloggen met NL Wallet"
+            text="{{ base.trans.login_with_nl_wallet }}"
             usecase="{{ usecase }}"
-            base-url="../"
-        ></nl-wallet-button>
-        <button id="digid" disabled><span>Inloggen met DigiD</span></button>
+            start-url="{{ start_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
+        <button id="digid" disabled><span>{{ base.trans.login_with_digid }}</span></button>
     </section>
 </main>

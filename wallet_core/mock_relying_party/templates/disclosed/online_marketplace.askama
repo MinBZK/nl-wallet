@@ -1,8 +1,8 @@
 {% let username = attributes|attribute("given_name") %}
 
-{% call header::header("Marktplek", username) %}
+{% call header::header(base.trans.marketplace_title, username) %}
 <main>
-    {% call notification::notification(format!("Welkom {username}"), "", "") %}
-    {% call search::search("Zoek product...") %}
+    {% call notification::notification(format!("{{ base.trans.welcome }} {username}"), "", "") %}
+    {% call search::search(base.trans.search_by_topic) %}
     {% call products::products(6) %}
 </main>

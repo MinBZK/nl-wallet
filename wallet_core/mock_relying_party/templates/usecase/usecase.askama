@@ -24,9 +24,14 @@
     {% when "xyz_bank" %}
         {% include "xyz_bank.askama" %}
     {% else %}
-        <nl-wallet-button text="Verder met NL Wallet" usecase="{{ usecase }}" base-url="../"></nl-wallet-button>
+        <nl-wallet-button
+            text={{ base.trans.continue_with_nl_wallet }}
+            usecase="{{ usecase }}"
+            start-url="{{ start_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
 {% endmatch %}
 
 {# should be last for accessibility purposes #}
-{% call demo_bar::demo_bar("Volg de ontwikkelingen op", "https://edi.pleio.nl", "edi.pleio.nl") %}
+{% call demo_bar::demo_bar(base.trans.demo_follow_development, "https://edi.pleio.nl", "edi.pleio.nl", base.selected_lang, base.trans, base.available_languages, base.session_token, base.nonce) %}
 {% endblock %}

@@ -1,53 +1,157 @@
 aside {
-    order: -1;
+  order: -1;
 
-    width: 100vw;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    background: #f2f1fe;
-    color: #152a62;
+  width: 100vw;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
+  color: #152a62;
+}
+
+aside:has(.text) {
+  background: #f2f1fe;
 }
 
 @media screen and (min-width: 500px) {
-    aside {
-        padding: 8px 24px;
-    }
+  aside {
+    padding: 8px 24px 8px 94px; /* 24 + 16 + 54 */
+  }
 }
 
 aside b {
-    font-weight: 700;
+  font-weight: 700;
 }
 
 aside a {
-    color: #383ede;
+  color: #383ede;
 }
 
 aside a:hover {
-    color: #3237c4;
-    text-decoration: none;
+  color: #3237c4;
+  text-decoration: none;
 }
 
-aside::before {
-    content: " ";
-    background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
-    width: 40px;
-    height: 40px;
+aside .demo-bar {
+  flex-grow: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+aside .demo-bar::before {
+  content: " ";
+  background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
+  width: 40px;
+  height: 40px;
 }
 
 aside .text {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 @media screen and (min-width: 500px) {
-    aside .text {
-        flex-direction: row;
-        align-items: center;
-        gap: 8px;
-    }
+  aside {
+    justify-content: right;
+  }
+
+  aside .demo-bar {
+    flex-grow: 1;
+  }
+
+  aside .text {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.lang-selector {
+  position: relative;
+}
+
+.lang-selector label[for="lang_toggle"] {
+  display: flex;
+  align-items: center;
+
+  padding: 4px 8px;
+  gap: 4px;
+  border-radius: 2px;
+
+  background: #fcfcfc;
+  color: #383ede;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.25;
+
+  user-select: none;
+}
+
+.lang-selector label[for="lang_toggle"]:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.lang-selector label[for="lang_toggle"]::after {
+  content: " ";
+  background: url("../non-free/images/down.svg") no-repeat center center / contain;
+
+  width: 16px;
+  height: 16px;
+}
+
+#lang_toggle {
+  display: none;
+}
+
+#lang_toggle:checked + .lang-modal {
+  display: block;
+}
+
+.lang-selector .lang-modal {
+  position: absolute;
+  right: 0;
+  z-index: 1;
+
+  margin-top: 2px;
+
+  background: #fcfcfc;
+  box-shadow: 0px 4px 40px 0px #00000029;
+  border-radius: 2px;
+
+  overflow: hidden;
+
+  display: none;
+}
+
+.lang-selector .lang-modal button {
+  display: flex;
+  padding: 12px 24px 12px 12px;
+  gap: 12px;
+  color: #152a62;
+  width: 100%;
+}
+
+.lang-selector .lang-modal button:not(:disabled):hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.lang-selector .lang-modal button::before {
+  content: " ";
+  width: 24px;
+  height: 24px;
+}
+
+.lang-selector .lang-modal button:disabled::before {
+  content: " ";
+  background-color: #152a62;
+  mask: url("../non-free/images/checkmark.svg") no-repeat center center / contain;
+  width: 24px;
+  height: 24px;
 }

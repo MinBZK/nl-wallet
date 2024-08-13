@@ -1,6 +1,6 @@
 import { type AppUL, type SessionType } from "./status"
 
-const errors = ["failed", "cancelled", "expired", "timeout"] as const
+const errors = ["failed", "cancelled", "expired", "network"] as const
 export type ErrorType = (typeof errors)[number]
 
 export const isError = (e: any): e is ErrorType => errors.includes(e)
