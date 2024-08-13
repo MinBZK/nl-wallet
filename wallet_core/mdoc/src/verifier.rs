@@ -67,16 +67,6 @@ impl From<Vec<ItemsRequest>> for ItemsRequests {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
-#[serde(rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
-pub enum SessionType {
-    // Using Universal Link
-    SameDevice,
-    /// Using QR code
-    CrossDevice,
-}
-
 impl ItemsRequests {
     /// Checks that all `requested` attributes are disclosed in this [`DeviceResponse`].
     pub fn match_against_response(&self, device_response: &DeviceResponse) -> Result<()> {

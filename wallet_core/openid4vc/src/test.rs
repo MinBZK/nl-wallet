@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     },
     server_keys::KeyPair,
     utils::reader_auth::ReaderRegistration,
-    verifier::{ItemsRequests, SessionType},
+    verifier::ItemsRequests,
 };
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, trust_anchor::DerTrustAnchor, utils::random_string};
 
@@ -29,7 +29,7 @@ use crate::{
     openid4vp::{
         IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest, VpRequestUriObject, WalletRequest,
     },
-    verifier::VerifierUrlParameters,
+    verifier::{SessionType, VerifierUrlParameters},
     AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
 

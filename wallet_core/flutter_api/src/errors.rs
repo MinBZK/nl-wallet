@@ -12,7 +12,7 @@ use wallet::{
         PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
         WalletUnlockError,
     },
-    mdoc::SessionType,
+    openid4vc::SessionType,
 };
 
 /// A type encapsulating data about a Flutter error that

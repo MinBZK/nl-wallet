@@ -25,13 +25,14 @@ pub use crate::{
 };
 
 pub mod mdoc {
-    pub use nl_wallet_mdoc::{
-        utils::{
-            auth::{Image, ImageType, LocalizedStrings, Organization},
-            reader_auth::{DeletionPolicy, ReaderRegistration, RetentionPolicy, SharingPolicy},
-        },
-        verifier::SessionType,
+    pub use nl_wallet_mdoc::utils::{
+        auth::{Image, ImageType, LocalizedStrings, Organization},
+        reader_auth::{DeletionPolicy, ReaderRegistration, RetentionPolicy, SharingPolicy},
     };
+}
+
+pub mod openid4vc {
+    pub use openid4vc::verifier::SessionType;
 }
 
 pub mod wallet_common {

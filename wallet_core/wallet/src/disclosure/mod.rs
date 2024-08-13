@@ -11,9 +11,11 @@ use nl_wallet_mdoc::{
         reader_auth::ReaderRegistration,
         x509::Certificate,
     },
+};
+use openid4vc::{
+    disclosure_session::{DisclosureError, HttpVpMessageClient, VpClientError},
     verifier::SessionType,
 };
-use openid4vc::disclosure_session::{DisclosureError, HttpVpMessageClient, VpClientError};
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
@@ -180,7 +182,7 @@ mod mock {
 
     use parking_lot::Mutex;
 
-    use nl_wallet_mdoc::{server_keys::KeyPair, verifier::SessionType};
+    use nl_wallet_mdoc::server_keys::KeyPair;
 
     use super::*;
 

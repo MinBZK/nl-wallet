@@ -19,7 +19,6 @@ use nl_wallet_mdoc::{
         reader_auth::{ReaderRegistration, ValidationError},
         x509::{Certificate, CertificateError, CertificateType},
     },
-    verifier::SessionType,
 };
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
 
@@ -28,7 +27,7 @@ use crate::{
         AuthRequestValidationError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod,
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
-    verifier::{VerifierUrlParameters, VpToken},
+    verifier::{SessionType, VerifierUrlParameters, VpToken},
     AuthorizationErrorCode, DisclosureErrorResponse, ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode,
     VpAuthorizationErrorCode,
 };
@@ -723,7 +722,6 @@ mod tests {
             serialization::{cbor_deserialize, cbor_serialize, CborBase64, CborSeq, TaggedBytes},
             x509::CertificateError,
         },
-        verifier::SessionType,
         DeviceAuth, DeviceAuthenticationKeyed, ItemsRequest, MobileSecurityObject, SessionTranscript,
     };
     use wallet_common::{keys::software::SoftwareEcdsaKey, utils::random_string};
@@ -738,6 +736,7 @@ mod tests {
             disclosure_session_start, iso_auth_request, test_disclosure_session_start_error_http_client,
             test_disclosure_session_terminate, MockErrorFactoryVpMessageClient, WalletMessage,
         },
+        verifier::SessionType,
     };
 
     use super::{

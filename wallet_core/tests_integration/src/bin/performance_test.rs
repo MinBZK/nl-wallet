@@ -6,11 +6,11 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{verifier::SessionType, ItemsRequest};
+use nl_wallet_mdoc::ItemsRequest;
 use openid4vc::{
     disclosure_session::{DisclosureSession, HttpVpMessageClient},
     issuance_session::HttpIssuanceSession,
-    verifier::StatusResponse,
+    verifier::{SessionType, StatusResponse},
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use tests_integration::{fake_digid::fake_digid_auth, logging::init_logging};

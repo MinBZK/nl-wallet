@@ -9,9 +9,8 @@ use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::{
     holder::{MdocDataSource, ProposedAttributes, StoredMdoc},
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
-    verifier::SessionType,
 };
-use openid4vc::disclosure_session::VpClientError;
+use openid4vc::{disclosure_session::VpClientError, verifier::SessionType};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
@@ -516,7 +515,6 @@ mod tests {
     use nl_wallet_mdoc::{
         holder::{Mdoc, ProposedDocumentAttributes},
         unsigned::Entry,
-        verifier::SessionType,
         DataElementValue,
     };
     use openid4vc::{
