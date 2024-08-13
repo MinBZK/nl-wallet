@@ -19,14 +19,6 @@ use crate::{
 };
 
 impl DeviceRequest {
-    /// Returns `true` if this request has any attributes at all.
-    pub fn has_attributes(&self) -> bool {
-        self.doc_requests
-            .iter()
-            .flat_map(|doc_request| doc_request.items_request.0.name_spaces.values())
-            .any(|name_space| !name_space.is_empty())
-    }
-
     /// Verify reader authentication, if present.
     /// Note that since each DocRequest carries its own reader authentication, the spec allows the
     /// the DocRequests to be signed by distinct readers. TODO maybe support this (PVW-2368).
