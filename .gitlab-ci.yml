@@ -348,7 +348,7 @@ build-wallet-web:
       - wallet_core/mock_relying_party/assets/nl-wallet-web.*
 
 dependency-check:
-  extends: [.env-ont-k8s]
+  extends: .env-ont-k8s
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:7578d0177b3ddba58d619a4a03dd0afa0427bf05e72d1a57e11db93a69211ad8"
@@ -441,7 +441,7 @@ dependency-check-rust:
     - bundle exec fastlane disable_flutter_analytics
     - |
       bundle exec fastlane android build \
-        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         app_name:"${APP_NAME}" \
         file_format:"${APP_FILE_FORMAT}" \
         build_mode:"${APP_BUILD_MODE}" \
@@ -460,7 +460,7 @@ dependency-check-rust:
       artifacts: true
 
 .build-android-app-latest:
-  extends: [.build-android-app-ont]
+  extends: .build-android-app-ont
   rules: !reference [.default-branch, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
@@ -487,7 +487,7 @@ build-android-app-latest-profile:
     APP_BUILD_MODE: "profile"
 
 .build-android-app-mock:
-  extends: [.build-android-app-ont]
+  extends: .build-android-app-ont
   rules: !reference [.mock-release-tag, rules]
   before_script:
     - !reference [.mock-release-tag, before_script]
@@ -508,19 +508,23 @@ build-android-app-mock-release:
     SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
     SENTRY_URL: "https://sentry.io/"
 
-.build-android-app-demo:
-  extends: [.env-demo-k8s, .build-android-app]
+.build-android-app-release-tag:
+  extends: [.env-ont-k8s, .build-android-app]
   rules: !reference [.release-tag, rules]
+  before_script:
+    - !reference [.release-tag, before_script]
+  variables:
+    APP_MOCK: "false"
+
+.build-android-app-demo:
+  extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
     - job: wallet-env-config-demo
       artifacts: true
-  before_script:
-    - !reference [.release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-    APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
 
 build-android-app-demo-release:
@@ -540,6 +544,63 @@ build-android-app-demo-profile:
   variables:
     APP_FILE_FORMAT: "apk"
     APP_BUILD_MODE: "profile"
+
+build-android-app-acceptance-release:
+  extends: .build-android-app-release-tag
+  needs:
+    - !reference [.build-android-app, needs]
+    - job: wallet-env-config-acceptance
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
+    APP_NAME: "NL Wallet (acceptance)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ACC}"
+    APP_FILE_FORMAT: "aab"
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_ACC}"
+    SENTRY_ENVIRONMENT: "acceptance"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
+    SENTRY_ORG: "${SENTRY_ORG_ACC}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ACC}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-android-app-preproduction-release:
+  extends: .build-android-app-release-tag
+  needs:
+    - !reference [.build-android-app, needs]
+    - job: wallet-env-config-preproduction
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
+    APP_NAME: "NL Wallet (pre-production)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PREPROD}"
+    APP_FILE_FORMAT: "aab"
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
+    SENTRY_ENVIRONMENT: "preproduction"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
+    SENTRY_ORG: "${SENTRY_ORG_PREPROD}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_PREPROD}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-android-app-production-release:
+  extends: .build-android-app-release-tag
+  needs:
+    - !reference [.build-android-app, needs]
+    - job: wallet-env-config-production
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: ""
+    APP_NAME: "NL Wallet (production)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PROD}"
+    APP_FILE_FORMAT: "aab"
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_PROD}"
+    SENTRY_ENVIRONMENT: "production"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"
+    SENTRY_ORG: "${SENTRY_ORG_PROD}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
+    SENTRY_URL: "https://sentry.io/"
 
 ### iOS Building
 .build-ios-app:
@@ -577,7 +638,7 @@ build-android-app-demo-profile:
     - bundle exec fastlane disable_flutter_analytics
     - |
       bundle exec fastlane ios ci_build \
-        bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         app_name:"${APP_NAME}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
@@ -639,20 +700,24 @@ build-ios-app-mock-release:
     SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
     SENTRY_URL: "https://sentry.io/"
 
-.build-ios-app-demo:
+.build-ios-app-release-tag:
   extends: .build-ios-app
-  needs:
-    - !reference [.build-ios-app, needs]
-    - job: wallet-env-config-demo
-      artifacts: true
   rules: !reference [.release-tag, rules]
   before_script:
     - !reference [.build-ios-app, before_script]
     - !reference [.release-tag, before_script]
   variables:
+    APP_MOCK: "false"
+
+.build-ios-app-demo:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-demo
+      artifacts: true
+  variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-    APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
 
 build-ios-app-demo-release:
@@ -671,11 +736,67 @@ build-ios-app-demo-release:
 #   variables:
 #     APP_BUILD_MODE: "profile"
 
+build-ios-app-acceptance-release:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-acceptance
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
+    APP_NAME: "NL Wallet (acceptance)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ACC}"
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_ACC}"
+    SENTRY_ENVIRONMENT: "acceptance"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
+    SENTRY_ORG: "${SENTRY_ORG_ACC}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ACC}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-ios-app-preproduction-release:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-preproduction
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
+    APP_NAME: "NL Wallet (pre-production)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PREPROD}"
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
+    SENTRY_ENVIRONMENT: "preproduction"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
+    SENTRY_ORG: "${SENTRY_ORG_PREPROD}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_PREPROD}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-ios-app-production-release:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-production
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: ""
+    APP_NAME: "NL Wallet"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PROD}"
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_PROD}"
+    SENTRY_ENVIRONMENT: "production"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"
+    SENTRY_ORG: "${SENTRY_ORG_PROD}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
+    SENTRY_URL: "https://sentry.io/"
+
 ### Android deploying
 .deploy-android-app:
-  extends: .ruby-cache
+  extends: [.env-ont-k8s, .ruby-cache]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
+  environment:
+    action: start
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -686,45 +807,66 @@ build-ios-app-demo-release:
     - bundle install
     - |
       bundle exec fastlane android ci_deploy \
-        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         version:"${RELEASE_VERSION}"
 
 deploy-android-app-latest:
-  extends: [.env-ont-k8s, .deploy-android-app]
+  extends: .deploy-android-app
   rules: !reference [.default-branch, rules]
   needs:
     - job: build-android-app-latest-release
       artifacts: true
-  environment:
-    action: start
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
 
 deploy-android-app-mock:
-  extends: [.env-ont-k8s, .deploy-android-app]
+  extends: .deploy-android-app
   rules: !reference [.mock-release-tag, rules]
   needs:
     - job: build-android-app-mock-release
       artifacts: true
-  environment:
-    action: start
   before_script:
     - !reference [.mock-release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
 
-deploy-android-app-demo:
-  extends: [.env-demo-k8s, .deploy-android-app]
+.deploy-android-app-release-tag:
+  extends: .deploy-android-app
   rules: !reference [.release-tag, rules]
+  before_script:
+    - !reference [.release-tag, before_script]
+
+deploy-android-app-demo:
+  extends: .deploy-android-app-release-tag
   needs:
     - job: build-android-app-demo-release
       artifacts: true
-  environment:
-    action: start
-  before_script:
-    - !reference [.release-tag, before_script]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+deploy-android-app-acceptance:
+  extends: .deploy-android-app-release-tag
+  needs:
+    - job: build-android-app-acceptance-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
+
+deploy-android-app-preproduction:
+  extends: .deploy-android-app-release-tag
+  needs:
+    - job: build-android-app-preproduction-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
+
+deploy-android-app-production:
+  extends: .deploy-android-app-release-tag
+  needs:
+    - job: build-android-app-production-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: ""
 
 .upload-browserstack-android-app:
   extends: .ruby-cache
@@ -745,7 +887,7 @@ deploy-android-app-demo:
     - bundle install
     - |
       bundle exec fastlane android ci_browserstack \
-        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         version:"${RELEASE_VERSION}"
 
 upload-browserstack-android-app-latest:
@@ -758,7 +900,7 @@ upload-browserstack-android-app-latest:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
 
 upload-browserstack-android-app-demo:
-  extends: [.env-demo-k8s, .upload-browserstack-android-app]
+  extends: [.env-ont-k8s, .upload-browserstack-android-app]
   rules: !reference [.release-tag, rules]
   needs:
     - job: build-android-app-demo-profile
@@ -785,7 +927,7 @@ upload-browserstack-android-app-demo:
     - bundle install
     - |
       bundle exec fastlane ios ci_deploy \
-        app_identifier:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+        app_identifier:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}"
 
 deploy-ios-app-latest:
   extends: .deploy-ios-app
@@ -805,14 +947,41 @@ deploy-ios-app-mock:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
 
-deploy-ios-app-demo:
+.deploy-ios-app-release-tag:
   extends: .deploy-ios-app
   rules: !reference [.release-tag, rules]
+
+deploy-ios-app-demo:
+  extends: .deploy-ios-app-release-tag
   needs:
     - job: build-ios-app-demo-release
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+deploy-ios-app-acceptance:
+  extends: .deploy-ios-app-release-tag
+  needs:
+    - job: build-ios-app-acceptance-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
+
+deploy-ios-app-preproduction:
+  extends: .deploy-ios-app-release-tag
+  needs:
+    - job: build-ios-app-preproduction-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
+
+deploy-ios-app-production:
+  extends: .deploy-ios-app-release-tag
+  needs:
+    - job: build-ios-app-production-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: ""
 
 dependency-check-images:
   rules: !reference [.default-or-demo-release, rules]
@@ -1100,7 +1269,7 @@ deploy-gba-hc-converter-demo:
     ENV: demo
 
 run-preload-gba-v-job:
-  extends: [.env-demo-k8s]
+  extends: .env-demo-k8s
   rules: !reference [.release-tag, rules]
   when: manual
   script:
@@ -1141,7 +1310,7 @@ check-gitlab-ci-changed:
     - cd uiautomation
 
 .run-automation-tests:
-  extends: [.run-automation-tests-common-setup]
+  extends: .run-automation-tests-common-setup
   script:
     - gradle wrapper --gradle-version=7.5
     - ./gradlew --info --stacktrace test
@@ -1154,7 +1323,7 @@ check-gitlab-ci-changed:
       -Dfile.encoding=UTF-8
 
 run-automation-tests-14-part-1:
-  extends: [.run-automation-tests]
+  extends: .run-automation-tests
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: always
@@ -1168,7 +1337,7 @@ run-automation-tests-14-part-1:
     TESTS: "suite.AppStartToDashboardTestSuite"
 
 run-automation-tests-14-part-2:
-  extends: [.run-automation-tests]
+  extends: .run-automation-tests
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: always
@@ -1185,7 +1354,7 @@ run-automation-tests-14-part-2:
     TESTS: "suite.DashboardAndBeyondTestSuite"
 
 run-automation-smoke-test-ont:
-  extends: [.run-automation-tests-common-setup]
+  extends: .run-automation-tests-common-setup
   rules: !reference [.default-branch, rules]
   needs:
     - job: upload-browserstack-android-app-latest
