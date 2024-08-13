@@ -7,7 +7,6 @@ pub use proposed_document::{ProposedAttributes, ProposedDocument, ProposedDocume
 
 mod device_signed;
 mod disclosure_request_match;
-mod engagement;
 mod issuer_signed;
 mod proposed_document;
 mod request;
