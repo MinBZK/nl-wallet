@@ -65,9 +65,6 @@ impl SecureEcdsaKey for KeyPair {}
 
 pub trait KeyRing {
     fn key_pair(&self, id: &str) -> Option<&KeyPair>;
-    fn contains_key_pair(&self, id: &str) -> bool {
-        self.key_pair(id).is_some()
-    }
 }
 
 #[cfg(feature = "test")]

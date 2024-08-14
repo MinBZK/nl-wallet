@@ -41,10 +41,6 @@ impl KeyRing for IssuerKeyRing {
     fn key_pair(&self, id: &str) -> Option<&KeyPair> {
         self.as_ref().get(id)
     }
-
-    fn contains_key_pair(&self, id: &str) -> bool {
-        self.as_ref().contains_key(id)
-    }
 }
 
 impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
