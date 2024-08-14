@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use base64::prelude::*;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use p256::{
@@ -70,8 +71,6 @@ pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
 /// - signing and generating: `rcgen`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Certificate(ByteBuf);
-
-use base64::prelude::*;
 
 // Use base64 when we (de)serialize to JSON
 impl Serialize for Certificate {
