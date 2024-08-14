@@ -16,8 +16,6 @@ examples = ["dep:anyhow", "dep:hex-literal"]
 software_keys = ["wallet_common/software_keys"]
 # Include SoftwareKeyFactory, which implements KeyFactory for testing
 software_key_factory = ["software_keys", "dep:parking_lot"]
-# Include MdocsMap, which can be used for tests that store Mdocs
-mdocs_map = []
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing

@@ -137,7 +137,11 @@ mod tests {
         // The database contains a single `Mdoc`.
         let mdoc = test::create_full_pid_mdoc().await;
         let mdoc_doc_type = mdoc.doc_type.clone();
-        wallet.storage.get_mut().mdocs.add([mdoc].into_iter()).unwrap();
+        wallet
+            .storage
+            .get_mut()
+            .mdocs
+            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].into()]);
 
         // Register mock document_callback
         let documents = test::setup_mock_documents_callback(&mut wallet)
@@ -174,7 +178,11 @@ mod tests {
 
         // The database contains a single `Mdoc`, without Issuer registration.
         let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
-        wallet.storage.get_mut().mdocs.add([mdoc].into_iter()).unwrap();
+        wallet
+            .storage
+            .get_mut()
+            .mdocs
+            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].into()]);
 
         // Register mock document_callback
         let (documents, error) = test::setup_mock_documents_callback(&mut wallet)

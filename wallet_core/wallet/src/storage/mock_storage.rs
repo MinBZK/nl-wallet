@@ -1,13 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{Duration, Utc};
+use indexmap::IndexMap;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{
-    holder::MdocCopies,
-    utils::{mdocs_map::MdocsMap, x509::Certificate},
-};
+use nl_wallet_mdoc::{holder::MdocCopies, utils::x509::Certificate, DocType};
 
 use crate::storage::event_log::WalletEventModel;
 
@@ -22,7 +20,7 @@ use super::{
 pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, String>,
-    pub mdocs: MdocsMap,
+    pub mdocs: IndexMap<DocType, Vec<MdocCopies>>,
     pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
@@ -36,12 +34,10 @@ impl MockStorage {
             data.insert(RegistrationData::KEY, serde_json::to_string(&registration).unwrap());
         }
 
-        let mdocs = MdocsMap::new();
-
         MockStorage {
             state,
             data,
-            mdocs,
+            mdocs: IndexMap::new(),
             mdoc_copies_usage_counts: HashMap::new(),
             event_log: vec![],
             has_query_error: false,
@@ -114,7 +110,14 @@ impl Storage for MockStorage {
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
         self.check_query_error()?;
 
-        self.mdocs.add(mdocs.into_iter().flatten()).unwrap();
+        for mdoc_copies in mdocs {
+            if let Some(first_mdoc) = mdoc_copies.cred_copies.first() {
+                self.mdocs
+                    .entry(first_mdoc.doc_type.clone())
+                    .or_default()
+                    .push(mdoc_copies);
+            }
+        }
 
         Ok(())
     }
@@ -136,9 +139,8 @@ impl Storage for MockStorage {
         // Get a single copy of every unique Mdoc, along with a random `Uuid`.
         let mdocs = self
             .mdocs
-            .0
             .values()
-            .flat_map(|doc_type_mdocs| doc_type_mdocs.values())
+            .flatten()
             .flat_map(|mdoc_copies| mdoc_copies.cred_copies.first())
             .map(|mdoc| StoredMdocCopy {
                 mdoc_id: Uuid::new_v4(),
