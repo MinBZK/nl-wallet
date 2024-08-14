@@ -6,7 +6,7 @@ use indexmap::IndexMap;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_keys::{KeyPair, SingleKeyRing},
+    server_keys::{test::SingleKeyRing, KeyPair},
     server_state::{MemorySessionStore, SessionState},
     software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},

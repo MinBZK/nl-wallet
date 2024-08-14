@@ -70,12 +70,17 @@ pub trait KeyRing {
     }
 }
 
-/// An implementation of [`KeyRing`] containing a single key.
-pub struct SingleKeyRing(pub KeyPair);
+#[cfg(feature = "test")]
+pub mod test {
+    use super::{KeyPair, KeyRing};
 
-impl KeyRing for SingleKeyRing {
-    fn key_pair(&self, _: &str) -> Option<&KeyPair> {
-        Some(&self.0)
+    /// An implementation of [`KeyRing`] containing a single key.
+    pub struct SingleKeyRing(pub KeyPair);
+
+    impl KeyRing for SingleKeyRing {
+        fn key_pair(&self, _: &str) -> Option<&KeyPair> {
+            Some(&self.0)
+        }
     }
 }
 
