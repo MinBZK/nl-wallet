@@ -1,0 +1,394 @@
+From e15930731d254c555f9e4f9874582f78f5778abe Mon Sep 17 00:00:00 2001
+From: confiks <confiks@scriptbase.org>
+Date: Thu, 15 Aug 2024 09:44:31 +0200
+Subject: [PATCH 1/5] Remove @minvws/nl-rdo-rijksoverheid-ui-theme and don't
+ handle NPM token in scripts/setup-npm.sh
+
+---
+ .npmrc                 |   1 -
+ package-lock.json      | 203 ++++++++++++++++++++++++++++++++++++++---
+ package.json           |   1 -
+ resources/css/app.scss |   6 +-
+ scripts/setup-npm.sh   |  42 ++++-----
+ 5 files changed, 212 insertions(+), 41 deletions(-)
+ delete mode 100644 .npmrc
+
+diff --git a/.npmrc b/.npmrc
+deleted file mode 100644
+index 4d644ad..0000000
+--- a/.npmrc
++++ /dev/null
+@@ -1 +0,0 @@
+-@minvws:registry=https://npm.pkg.github.com
+\ No newline at end of file
+diff --git a/package-lock.json b/package-lock.json
+index 015aa1a..3930588 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -6,7 +6,6 @@
+     "": {
+       "name": "nl-rdo-max-private",
+       "dependencies": {
+-        "@minvws/nl-rdo-rijksoverheid-ui-theme": "^0.0.18",
+         "redoc": "^2.1.3",
+         "swagger-ui-dist": "^5.11.9"
+       },
+@@ -421,24 +420,74 @@
+       "resolved": "https://registry.npmjs.org/@exodus/schemasafe/-/schemasafe-1.3.0.tgz",
+       "integrity": "sha512-5Aap/GaRupgNx/feGBwLLTVv8OQFfv3pq2lPRzPg9R+IOBnDgghTGW7l7EuVXOvg5cc/xSAlRW8rBrjIC3Nvqw=="
+     },
+-    "node_modules/@minvws/manon": {
+-      "version": "16.2.0",
+-      "resolved": "https://npm.pkg.github.com/download/@minvws/manon/16.2.0/eac56790021b3edb7ac3c71d8bcdf6de36890796",
+-      "integrity": "sha512-sKbwLQLCZQU8lZE2ET62kFOfev/7uC/9t93SNOt84KpZQeu12GaCbTYO9/TaHl60lxFtV+kQ8hZWi7v08/bM1w==",
+-      "license": "EUPL-1.2",
++    "node_modules/@jridgewell/gen-mapping": {
++      "version": "0.3.5",
++      "resolved": "https://registry.npmjs.org/@jridgewell/gen-mapping/-/gen-mapping-0.3.5.tgz",
++      "integrity": "sha512-IzL8ZoEDIBRWEzlCcRhOaCupYyN5gdIK+Q6fbFdPDg6HqX6jpkItn7DFIpW9LQzXG6Df9sA7+OKnq0qlz/GaQg==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "dependencies": {
++        "@jridgewell/set-array": "^1.2.1",
++        "@jridgewell/sourcemap-codec": "^1.4.10",
++        "@jridgewell/trace-mapping": "^0.3.24"
++      },
+       "engines": {
+-        "node": ">=16"
++        "node": ">=6.0.0"
+       }
+     },
+-    "node_modules/@minvws/nl-rdo-rijksoverheid-ui-theme": {
+-      "version": "0.0.18",
+-      "resolved": "https://npm.pkg.github.com/download/@minvws/nl-rdo-rijksoverheid-ui-theme/0.0.18/13885d2b61a7bc12c79c4876399d3f206105133e",
+-      "integrity": "sha512-mqbTceFHsSBfvppbzFUEz3hQPMZNOSkOS4tAji9sUkoZLXFglwjVhT4xhud/gpKFYVmiqWaRSjKrCSdT3wpPLg==",
+-      "dependencies": {
+-        "@minvws/manon": "^16.2.0"
+-      },
++    "node_modules/@jridgewell/resolve-uri": {
++      "version": "3.1.2",
++      "resolved": "https://registry.npmjs.org/@jridgewell/resolve-uri/-/resolve-uri-3.1.2.tgz",
++      "integrity": "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
+       "engines": {
+-        "node": ">=16"
++        "node": ">=6.0.0"
++      }
++    },
++    "node_modules/@jridgewell/set-array": {
++      "version": "1.2.1",
++      "resolved": "https://registry.npmjs.org/@jridgewell/set-array/-/set-array-1.2.1.tgz",
++      "integrity": "sha512-R8gLRTZeyp03ymzP/6Lil/28tGeGEzhx1q2k703KGWRAI1VdvPIXdG70VJc2pAMw3NA6JKL5hhFu1sJX0Mnn/A==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "engines": {
++        "node": ">=6.0.0"
++      }
++    },
++    "node_modules/@jridgewell/source-map": {
++      "version": "0.3.6",
++      "resolved": "https://registry.npmjs.org/@jridgewell/source-map/-/source-map-0.3.6.tgz",
++      "integrity": "sha512-1ZJTZebgqllO79ue2bm3rIGud/bOe0pP5BjSRCRxxYkEZS8STV7zN84UBbiYu7jy+eCKSnVIUgoWWE/tt+shMQ==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "dependencies": {
++        "@jridgewell/gen-mapping": "^0.3.5",
++        "@jridgewell/trace-mapping": "^0.3.25"
++      }
++    },
++    "node_modules/@jridgewell/sourcemap-codec": {
++      "version": "1.4.15",
++      "resolved": "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.4.15.tgz",
++      "integrity": "sha512-eF2rxCRulEKXHTRiDrDy6erMYWqNw4LPdQ8UQA4huuxaQsVeRPFl2oM8oDGxMFhJUWZf9McpLtJasDDZb/Bpeg==",
++      "dev": true,
++      "optional": true,
++      "peer": true
++    },
++    "node_modules/@jridgewell/trace-mapping": {
++      "version": "0.3.25",
++      "resolved": "https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.25.tgz",
++      "integrity": "sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "dependencies": {
++        "@jridgewell/resolve-uri": "^3.1.0",
++        "@jridgewell/sourcemap-codec": "^1.4.14"
+       }
+     },
+     "node_modules/@nodelib/fs.scandir": {
+@@ -697,12 +746,37 @@
+       "resolved": "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.15.tgz",
+       "integrity": "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="
+     },
++    "node_modules/@types/node": {
++      "version": "20.12.5",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-20.12.5.tgz",
++      "integrity": "sha512-BD+BjQ9LS/D8ST9p5uqBxghlN+S42iuNxjsUGjeZobe/ciXzk2qb1B6IXc6AnRLS+yFJRpN2IPEHMzwspfDJNw==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "dependencies": {
++        "undici-types": "~5.26.4"
++      }
++    },
+     "node_modules/@types/stylis": {
+       "version": "4.2.0",
+       "resolved": "https://registry.npmjs.org/@types/stylis/-/stylis-4.2.0.tgz",
+       "integrity": "sha512-n4sx2bqL0mW1tvDf/loQ+aMX7GQD3lc3fkCMC55VFNDu/vBOabO+LTIeXKM14xK0ppk5TUGcWRjiSpIlUpghKw==",
+       "peer": true
+     },
++    "node_modules/acorn": {
++      "version": "8.11.3",
++      "resolved": "https://registry.npmjs.org/acorn/-/acorn-8.11.3.tgz",
++      "integrity": "sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "bin": {
++        "acorn": "bin/acorn"
++      },
++      "engines": {
++        "node": ">=0.4.0"
++      }
++    },
+     "node_modules/ansi-regex": {
+       "version": "5.0.1",
+       "resolved": "https://registry.npmjs.org/ansi-regex/-/ansi-regex-5.0.1.tgz",
+@@ -777,6 +851,14 @@
+         "node": ">=8"
+       }
+     },
++    "node_modules/buffer-from": {
++      "version": "1.1.2",
++      "resolved": "https://registry.npmjs.org/buffer-from/-/buffer-from-1.1.2.tgz",
++      "integrity": "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==",
++      "dev": true,
++      "optional": true,
++      "peer": true
++    },
+     "node_modules/call-me-maybe": {
+       "version": "1.0.2",
+       "resolved": "https://registry.npmjs.org/call-me-maybe/-/call-me-maybe-1.0.2.tgz",
+@@ -1858,6 +1940,17 @@
+         "node": ">=8.0.0"
+       }
+     },
++    "node_modules/source-map": {
++      "version": "0.6.1",
++      "resolved": "https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz",
++      "integrity": "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
+     "node_modules/source-map-js": {
+       "version": "1.2.0",
+       "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.0.tgz",
+@@ -1866,6 +1959,18 @@
+         "node": ">=0.10.0"
+       }
+     },
++    "node_modules/source-map-support": {
++      "version": "0.5.21",
++      "resolved": "https://registry.npmjs.org/source-map-support/-/source-map-support-0.5.21.tgz",
++      "integrity": "sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "dependencies": {
++        "buffer-from": "^1.0.0",
++        "source-map": "^0.6.0"
++      }
++    },
+     "node_modules/stickyfill": {
+       "version": "1.1.1",
+       "resolved": "https://registry.npmjs.org/stickyfill/-/stickyfill-1.1.1.tgz",
+@@ -1988,6 +2093,34 @@
+         "url": "https://github.com/Mermade/oas-kit?sponsor=1"
+       }
+     },
++    "node_modules/terser": {
++      "version": "5.30.3",
++      "resolved": "https://registry.npmjs.org/terser/-/terser-5.30.3.tgz",
++      "integrity": "sha512-STdUgOUx8rLbMGO9IOwHLpCqolkDITFFQSMYYwKE1N2lY6MVSaeoi10z/EhWxRc6ybqoVmKSkhKYH/XUpl7vSA==",
++      "dev": true,
++      "optional": true,
++      "peer": true,
++      "dependencies": {
++        "@jridgewell/source-map": "^0.3.3",
++        "acorn": "^8.8.2",
++        "commander": "^2.20.0",
++        "source-map-support": "~0.5.20"
++      },
++      "bin": {
++        "terser": "bin/terser"
++      },
++      "engines": {
++        "node": ">=10"
++      }
++    },
++    "node_modules/terser/node_modules/commander": {
++      "version": "2.20.3",
++      "resolved": "https://registry.npmjs.org/commander/-/commander-2.20.3.tgz",
++      "integrity": "sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==",
++      "dev": true,
++      "optional": true,
++      "peer": true
++    },
+     "node_modules/to-regex-range": {
+       "version": "5.0.1",
+       "resolved": "https://registry.npmjs.org/to-regex-range/-/to-regex-range-5.0.1.tgz",
+@@ -2011,6 +2144,14 @@
+       "integrity": "sha512-336iVw3rtn2BUK7ORdIAHTyxHGRIHVReokCR3XjbckJMK7ms8FysBfhLR8IXnAgy7T0PTPNBWKiH514FOW/WSg==",
+       "peer": true
+     },
++    "node_modules/undici-types": {
++      "version": "5.26.5",
++      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-5.26.5.tgz",
++      "integrity": "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==",
++      "dev": true,
++      "optional": true,
++      "peer": true
++    },
+     "node_modules/universalify": {
+       "version": "2.0.1",
+       "resolved": "https://registry.npmjs.org/universalify/-/universalify-2.0.1.tgz",
+@@ -2181,6 +2322,38 @@
+       "engines": {
+         "node": ">=12"
+       }
++    },
++    "vendor/nl-rdo-rijksoverheid-ui-theme": {
++      "version": "0.0.18",
++      "extraneous": true,
++      "dependencies": {
++        "@minvws/manon": "^16.2.0"
++      },
++      "devDependencies": {
++        "conventional-changelog": "^5.1.0",
++        "copy-webpack-plugin": "^11.0.0",
++        "css-loader": "^6.8.1",
++        "husky": "^8.0.3",
++        "lint-staged": "^15.1.0",
++        "mini-css-extract-plugin": "^2.7.6",
++        "npm-run-all": "^4.1.5",
++        "path": "^0.12.7",
++        "prettier": "^3.1.0",
++        "puppeteer": "^21.5.2",
++        "resolve-url-loader": "^5.0.0",
++        "rimraf": "^5.0.5",
++        "sass": "^1.69.5",
++        "sass-loader": "^13.3.2",
++        "stylelint": "^15.11.0",
++        "stylelint-config-standard-scss": "^11.1.0",
++        "webpack": "^5.89.0",
++        "webpack-cli": "^5.1.3",
++        "webpack-remove-empty-scripts": "^1.0.4",
++        "zip-dir": "^2.0.0"
++      },
++      "engines": {
++        "node": ">=16"
++      }
+     }
+   }
+ }
+diff --git a/package.json b/package.json
+index 0bfd0e8..fa0960a 100644
+--- a/package.json
++++ b/package.json
+@@ -7,7 +7,6 @@
+     "build": "vite build"
+   },
+   "dependencies": {
+-    "@minvws/nl-rdo-rijksoverheid-ui-theme": "^0.0.18",
+     "redoc": "^2.1.3",
+     "swagger-ui-dist": "^5.11.9"
+   },
+diff --git a/resources/css/app.scss b/resources/css/app.scss
+index e0fa628..30c9766 100644
+--- a/resources/css/app.scss
++++ b/resources/css/app.scss
+@@ -1,8 +1,8 @@
+ $ro-font-path: "@minvws/nl-rdo-rijksoverheid-ui-theme/fonts";
+ $ro-img-path: "@minvws/nl-rdo-rijksoverheid-ui-theme/img";
+ 
+-@import "@minvws/nl-rdo-rijksoverheid-ui-theme/scss/main";
+-@import "@minvws/manon/header-content-wrapper";
++//@import "@minvws/nl-rdo-rijksoverheid-ui-theme/scss/main";
++//@import "@minvws/manon/header-content-wrapper";
+ 
+ :root {
+     --navigation-link-icon: var(--icon-chevron-right);
+@@ -111,4 +111,4 @@ nav.sidemenu-max {
+     img {
+         max-height: 3rem;
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/scripts/setup-npm.sh b/scripts/setup-npm.sh
+index e4a8e5d..ea1244d 100755
+--- a/scripts/setup-npm.sh
++++ b/scripts/setup-npm.sh
+@@ -25,28 +25,28 @@ check_npmrc() {
+     return 1
+ }
+ 
+-# Check in RUNNER_TEMP directory for GitHub Actions Runner
+-if [ -n "$RUNNER_TEMP" ]; then
+-    if check_npmrc "$RUNNER_TEMP/$NPMRC_FILE_NAME"; then
+-        npm ci --ignore-scripts
+-        exit 0
+-    fi
+-fi
++# # Check in RUNNER_TEMP directory for GitHub Actions Runner
++# if [ -n "$RUNNER_TEMP" ]; then
++#     if check_npmrc "$RUNNER_TEMP/$NPMRC_FILE_NAME"; then
++#         npm ci --ignore-scripts
++#         exit 0
++#     fi
++# fi
+ 
+-# Check in current working directory
+-if check_npmrc "$(pwd)/$NPMRC_FILE_NAME"; then
+-    npm ci --ignore-scripts
+-    exit 0
+-fi
++# # Check in current working directory
++# if check_npmrc "$(pwd)/$NPMRC_FILE_NAME"; then
++#     npm ci --ignore-scripts
++#     exit 0
++# fi
+ 
+-# Check in home directory
+-if check_npmrc "$HOME/$NPMRC_FILE_NAME"; then
+-    npm ci --ignore-scripts
+-    exit 0
+-fi
++# # Check in home directory
++# if check_npmrc "$HOME/$NPMRC_FILE_NAME"; then
++#     npm ci --ignore-scripts
++#     exit 0
++# fi
+ 
+-# If no .npmrc file found, create one in the home directory and ask for token
+-echo "No .npmrc file found in the home directory, current working directory or RUNNER_TEMP directory"
+-echo "Creating a new .npmrc file in the home directory and asking for a token"
+-ask_for_token "$HOME/.npmrc"
++# # If no .npmrc file found, create one in the home directory and ask for token
++# echo "No .npmrc file found in the home directory, current working directory or RUNNER_TEMP directory"
++# echo "Creating a new .npmrc file in the home directory and asking for a token"
++# ask_for_token "$HOME/.npmrc@minvws/manon"
+ npm ci --ignore-scripts
+-- 
+2.43.0
+

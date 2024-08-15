@@ -65,3 +65,6 @@ uiautomation/node_modules
 # gitlab-ci-local
 /.gitlab-ci-local-variables.yml
 /.gitlab-ci-local/
+
+# DigiD connector checkout from devenv
+/nl-rdo-max
