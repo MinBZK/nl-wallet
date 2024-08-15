@@ -2,9 +2,7 @@
 # This script allows one to manage the individual services that are needed to run a completely local NL Wallet
 # development environment.
 #
-# - nl-rdo-max-private (digid-connector)
-#   This script requires this repo to exist in the same directory that contains the NL Wallet repo. Otherwise, customize
-#   the DIGID_CONNECTOR_PATH environment variable in `scripts/.env`
+# - nl-rdo-max (digid-connector)
 # - mock_relying_party
 # - verification_server
 # - pid_issuer

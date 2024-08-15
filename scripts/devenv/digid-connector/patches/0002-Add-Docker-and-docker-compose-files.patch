@@ -1,0 +1,144 @@
+From 6d576c859c63ac9fb894f4d3b88d85a9813ef370 Mon Sep 17 00:00:00 2001
+From: confiks <confiks@scriptbase.org>
+Date: Thu, 15 Aug 2024 09:50:32 +0200
+Subject: [PATCH 2/5] Add Docker and docker-compose files
+
+---
+ .dockerignore      |  1 +
+ Dockerfile         | 30 ++++++++++++++++++++++++++++++
+ Dockerfile.local   | 26 ++++++++++++++++++++++++++
+ docker-compose.yml | 35 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 92 insertions(+)
+ create mode 100644 .dockerignore
+ create mode 100644 Dockerfile
+ create mode 100644 Dockerfile.local
+
+diff --git a/.dockerignore b/.dockerignore
+new file mode 100644
+index 0000000..1d17dae
+--- /dev/null
++++ b/.dockerignore
+@@ -0,0 +1 @@
++.venv
+diff --git a/Dockerfile b/Dockerfile
+new file mode 100644
+index 0000000..b94bc22
+--- /dev/null
++++ b/Dockerfile
+@@ -0,0 +1,30 @@
++ARG HARBOR_REGISTRY
++
++FROM ${HARBOR_REGISTRY}/docker-hub-proxy/node:lts-bullseye-slim
++RUN apt-get update && apt-get install -y build-essential
++
++WORKDIR /app
++COPY . /app
++RUN make setup-npm && npm run build
++
++FROM ${HARBOR_REGISTRY}/docker-hub-proxy/python:3.11-slim-bullseye
++RUN apt-get update \
++    && apt-get install -y \
++        build-essential \
++        python3-dev \
++        git \
++        libxmlsec1-dev \
++        pkg-config \
++        curl
++
++COPY Makefile requirements.txt setup.cfg setup.py /app/
++WORKDIR /app
++RUN make venv
++
++COPY . /app
++COPY --from=0 /app/static /app/static
++
++# remove unused tvs folder
++RUN rm -r /app/saml/tvs
++
++CMD . .venv/bin/activate && ${env} python -m app.main
+diff --git a/Dockerfile.local b/Dockerfile.local
+new file mode 100644
+index 0000000..98ebbfb
+--- /dev/null
++++ b/Dockerfile.local
+@@ -0,0 +1,26 @@
++FROM node:lts-bullseye-slim
++RUN apt-get update && apt-get install -y build-essential
++
++WORKDIR /app
++COPY . /app
++RUN make setup-npm && npm run build
++
++
++FROM python:3.11-slim-bullseye
++RUN apt-get update \
++    && apt-get install -y \
++        build-essential \
++        python3-dev \
++        git \
++        libxmlsec1-dev \
++        pkg-config \
++        curl
++
++COPY Makefile requirements.txt setup.cfg setup.py /app/
++WORKDIR /app
++RUN make venv
++
++COPY . /app
++COPY --from=0 /app/static /app/static
++
++CMD . .venv/bin/activate && ${env} python -m app.main
+diff --git a/docker-compose.yml b/docker-compose.yml
+index fd6c212..832e797 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -1,11 +1,46 @@
++# TODO: Using the default bridge network works on linux, does not on macos, figure out why.
+ services:
+   redis:
++    container_name: redis
+     image: redis:7.0.4
+     restart: 'no'
+     ports:
+       - '6379:6379'
++    volumes:
++      - redis:/data
++    #network_mode:  bridge
++    networks:
++      - private
+   redis-init:
++    container_name: redis-init
+     depends_on: [ 'redis' ]
+     image: redis:7.0.4
+     restart: 'no'
+     command: 'redis-cli -h redis set max:primary_identity_provider tvs'
++    volumes:
++      - redis:/data
++    #network_mode: bridge
++    networks:
++      - private
++  max:
++    container_name: max
++    image: rdo-max
++    build:
++      context: .
++      dockerfile: Dockerfile.local
++    ports:
++      - '8006:8006'
++    #network_mode: bridge
++    #extra_hosts:
++    #  - "redis:host-gateway"
++    networks:
++      - private
++
++networks:
++  private:
++    name: private
++    #external: true
++
++volumes:
++  redis:
++    name: redis
+-- 
+2.43.0
+

@@ -2,9 +2,7 @@
 # This script generates configuration files, keys and certificates for a local development environment for the Wallet.
 # It will configure the following applications:
 #
-# - nl-rdo-max-private (digid-connector)
-#   This script requires this repo to exist in the same directory that contains the NL Wallet repo. Otherwise, customize
-#   the DIGID_CONNECTOR_PATH environment variable in `scripts/.env`
+# - nl-rdo-max (digid-connector)
 # - wallet_provider
 # - wallet
 # - wallet_server
@@ -125,7 +123,19 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   echo
   echo -e "${SECTION}Configure and start digid-connector${NC}"
 
-  cd "${DIGID_CONNECTOR_PATH}"
+  if [ -d "${DIGID_CONNECTOR_PATH}" ]; then
+    echo "Warning: Using existing nl-rdo-max repository without cloning or patching"
+    cd "${DIGID_CONNECTOR_PATH}"
+  else
+    # Unfortunately we can't directly clone a commit hash, so clone the tag and reset to the commit
+    git clone --depth 1 -b "${DIGID_CONNECTOR_BASE_TAG}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
+    cd "${DIGID_CONNECTOR_PATH}"
+    git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
+
+    # Apply the patches
+    git am "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*
+  fi
+
   make setup-secrets setup-saml setup-config
 
   render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
