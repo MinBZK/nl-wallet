@@ -66,7 +66,7 @@ pub trait KeyRing {
     fn key_pair(&self, id: &str) -> Option<&KeyPair>;
 }
 
-#[cfg(feature = "test")]
+#[cfg(any(test, feature = "test"))]
 pub mod test {
     use super::{KeyPair, KeyRing};
 

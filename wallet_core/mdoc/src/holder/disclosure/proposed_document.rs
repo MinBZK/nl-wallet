@@ -203,6 +203,30 @@ impl<I> ProposedDocument<I> {
     }
 }
 
+#[cfg(any(test, all(feature = "examples", feature = "mock", feature = "software_keys")))]
+mod examples {
+    use crate::holder::Mdoc;
+
+    use super::ProposedDocument;
+
+    impl ProposedDocument<String> {
+        pub fn new_example() -> Self {
+            let mdoc = Mdoc::new_example_mock();
+
+            let issuer_certificate = mdoc.issuer_certificate().unwrap();
+
+            Self {
+                source_identifier: "id_1234".to_string(),
+                private_key_id: mdoc.private_key_id,
+                doc_type: mdoc.doc_type,
+                issuer_signed: mdoc.issuer_signed,
+                device_signed_challenge: b"signing_challenge".to_vec(),
+                issuer_certificate,
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
@@ -220,7 +244,7 @@ mod tests {
         },
     };
 
-    use super::{super::test::*, *};
+    use super::*;
 
     #[test]
     fn test_proposed_document_from_stored_mdoc() {
@@ -233,8 +257,11 @@ mod tests {
         let private_key_id = stored_mdoc.mdoc.private_key_id.clone();
         let issuer_auth = stored_mdoc.mdoc.issuer_signed.issuer_auth.clone();
 
-        let requested_attributes =
-            example_identifiers_from_attributes(["driving_privileges", "family_name", "document_number"]);
+        let requested_attributes = AttributeIdentifier::new_example_index_set_from_attributes([
+            "driving_privileges",
+            "family_name",
+            "document_number",
+        ]);
 
         let proposed_document =
             ProposedDocument::try_from_stored_mdoc(stored_mdoc, &requested_attributes, b"foobar".to_vec()).unwrap();
@@ -285,8 +312,11 @@ mod tests {
         let doc_type = mdoc1.doc_type.clone();
         let private_key_id = mdoc1.private_key_id.clone();
 
-        let requested_attributes =
-            example_identifiers_from_attributes(["driving_privileges", "issue_date", "expiry_date"]);
+        let requested_attributes = AttributeIdentifier::new_example_index_set_from_attributes([
+            "driving_privileges",
+            "issue_date",
+            "expiry_date",
+        ]);
 
         let stored_mdocs = vec![mdoc1, mdoc2, mdoc3]
             .into_iter()
@@ -341,7 +371,7 @@ mod tests {
     #[tokio::test]
     async fn test_proposed_document_sign_multiple() {
         // Create a `ProposedDocument` from the example `Mdoc`.
-        let proposed_document = create_example_proposed_document();
+        let proposed_document = ProposedDocument::new_example();
 
         // Collect all of the expected values.
         let expected_doc_type = proposed_document.doc_type.clone();
@@ -377,7 +407,7 @@ mod tests {
     #[tokio::test]
     async fn test_proposed_document_sign_error() {
         // Set up a `KeyFactory` that returns keys that fail at signing.
-        let proposed_document = create_example_proposed_document();
+        let proposed_document = ProposedDocument::new_example();
         let key_factory = {
             let mut key_factory = SoftwareKeyFactory::default();
             key_factory.has_multi_key_signing_error = true;

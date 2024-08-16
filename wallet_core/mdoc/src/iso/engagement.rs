@@ -184,7 +184,7 @@ pub enum CipherSuiteIdentifier {
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
 
-#[cfg(any(test, feature = "test"))]
+#[cfg(any(test, feature = "mock"))]
 mod test {
     use super::SessionTranscript;
 

@@ -705,14 +705,8 @@ mod tests {
     use serde_json::json;
 
     use nl_wallet_mdoc::{
-        examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-        holder::{
-            test::{
-                create_example_proposed_document, emtpy_items_request, example_identifiers_from_attributes,
-                MdocDataSourceError, MdocIdentifier, ReaderCertificateKind, EXAMPLE_ATTRIBUTES, VERIFIER_URL,
-            },
-            HolderError,
-        },
+        examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
+        holder::{mock::MdocDataSourceError, HolderError, ProposedDocument},
         identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
         software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
         utils::{
@@ -734,7 +728,8 @@ mod tests {
         },
         test::{
             disclosure_session_start, iso_auth_request, test_disclosure_session_start_error_http_client,
-            test_disclosure_session_terminate, MockErrorFactoryVpMessageClient, WalletMessage,
+            test_disclosure_session_terminate, MockErrorFactoryVpMessageClient, ReaderCertificateKind, WalletMessage,
+            VERIFIER_URL,
         },
         verifier::SessionType,
     };
@@ -934,7 +929,8 @@ mod tests {
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
 
-        let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
+        let expected_missing_attributes =
+            AttributeIdentifier::new_example_index_set_from_attributes(["driving_privileges"]);
 
         itertools::assert_equal(
             missing_attr_session.missing_attributes().iter(),
@@ -974,7 +970,7 @@ mod tests {
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
 
-        let expected_missing_attributes = example_identifiers_from_attributes([
+        let expected_missing_attributes = AttributeIdentifier::new_example_index_set_from_attributes([
             "family_name",
             "issue_date",
             "expiry_date",
@@ -1248,7 +1244,7 @@ mod tests {
 
     #[rstest]
     #[case(vec![])]
-    #[case(vec![emtpy_items_request()])]
+    #[case(vec![ItemsRequest::new_example_empty()])]
     #[tokio::test]
     async fn test_disclosure_session_start_error_no_attributes_requested(#[case] items_requests: Vec<ItemsRequest>) {
         // Starting a `DisclosureSession` with an Authorization Request with no
@@ -1425,7 +1421,7 @@ mod tests {
     fn create_disclosure_session_proposal<F>(
         response_factory: F,
     ) -> (
-        DisclosureSession<MockErrorFactoryVpMessageClient<F>, MdocIdentifier>,
+        DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
         Arc<Mutex<Vec<WalletMessage>>>,
     )
     where
@@ -1446,7 +1442,7 @@ mod tests {
                 session_type,
                 auth_request: iso_auth_request(),
             },
-            proposed_documents: vec![create_example_proposed_document()],
+            proposed_documents: vec![ProposedDocument::new_example()],
             mdoc_nonce,
         });
 

@@ -198,18 +198,20 @@ mod tests {
     use rstest::rstest;
 
     use crate::{
-        holder::DisclosureRequestMatch,
+        holder::mock::MockMdocDataSource,
+        iso::{
+            mdocs::{Attributes, IssuerNameSpaces, IssuerSignedItem},
+            unsigned::Entry,
+        },
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         test::{
             data::{addr_street, empty, pid_family_name, pid_full_name, pid_given_name},
             TestDocument, TestDocuments,
         },
-        unsigned::Entry,
-        Attributes, IssuerNameSpaces, IssuerSignedItem,
     };
 
-    use super::{super::test::*, *};
+    use super::*;
 
     #[rstest]
     #[case(empty(), empty(), candidates(empty()))]

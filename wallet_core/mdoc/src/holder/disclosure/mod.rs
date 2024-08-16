@@ -14,8 +14,8 @@ mod response;
 
 #[cfg(test)]
 mod iso_tests;
-#[cfg(any(test, feature = "test"))]
-pub mod test;
+#[cfg(any(test, feature = "mock"))]
+pub mod mock;
 
 #[derive(Debug, Clone)]
 pub struct StoredMdoc<I> {

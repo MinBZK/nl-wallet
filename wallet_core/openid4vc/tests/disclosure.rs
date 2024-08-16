@@ -17,7 +17,7 @@ use rstest::rstest;
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
     holder::{
-        test::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocCopies, MdocDataSource,
+        mock::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocCopies, MdocDataSource,
         StoredMdoc, TrustAnchor,
     },
     server_keys::KeyPair,

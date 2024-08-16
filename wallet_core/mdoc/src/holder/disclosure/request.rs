@@ -123,9 +123,42 @@ mod tests {
 
     use wallet_common::{generator::TimeGenerator, trust_anchor::DerTrustAnchor};
 
-    use crate::{errors::Error, server_keys::KeyPair};
+    use crate::{
+        errors::Error,
+        iso::device_retrieval::ReaderAuthenticationBytes,
+        server_keys::KeyPair,
+        utils::cose::{self, MdocCose},
+    };
 
-    use super::{super::test::*, *};
+    use super::*;
+
+    /// Create a `DocRequest` including reader authentication,
+    /// based on a `SessionTranscript` and `KeyPair`.
+    pub async fn create_doc_request(
+        items_request: ItemsRequest,
+        session_transcript: &SessionTranscript,
+        private_key: &KeyPair,
+    ) -> DocRequest {
+        // Generate the reader authentication signature, without payload.
+        let items_request = items_request.into();
+        let reader_auth_keyed = ReaderAuthenticationKeyed::new(session_transcript, &items_request);
+
+        let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
+            &TaggedBytes(CborSeq(reader_auth_keyed)),
+            cose::new_certificate_header(private_key.certificate()),
+            private_key,
+            false,
+        )
+        .await
+        .unwrap();
+        let reader_auth = Some(cose.0.into());
+
+        // Create and encrypt the `DeviceRequest`.
+        DocRequest {
+            items_request,
+            reader_auth,
+        }
+    }
 
     #[tokio::test]
     async fn test_device_request_verify() {
@@ -140,7 +173,7 @@ mod tests {
 
         // Create an empty `ItemsRequest` and generate `DeviceRequest` with two `DocRequest`s
         // from it, each signed with the same certificate.
-        let items_request = emtpy_items_request();
+        let items_request = ItemsRequest::new_example_empty();
 
         let device_request = DeviceRequest::from_doc_requests(vec![
             create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
@@ -196,7 +229,7 @@ mod tests {
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
-        let items_request = emtpy_items_request();
+        let items_request = ItemsRequest::new_example_empty();
         let doc_request = create_doc_request(items_request.clone(), &session_transcript, &private_key).await;
 
         // Verification of the `DocRequest` should succeed and return the certificate contained within it.

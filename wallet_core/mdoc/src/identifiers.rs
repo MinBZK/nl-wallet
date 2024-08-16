@@ -96,6 +96,30 @@ impl AttributeIdentifierHolder for ItemsRequest {
     }
 }
 
+#[cfg(any(test, feature = "examples"))]
+mod examples {
+    use indexmap::IndexSet;
+
+    use crate::examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE};
+
+    use super::AttributeIdentifier;
+
+    impl AttributeIdentifier {
+        pub fn new_example_index_set_from_attributes(
+            attributes: impl IntoIterator<Item = impl Into<String>>,
+        ) -> IndexSet<Self> {
+            attributes
+                .into_iter()
+                .map(|attribute| AttributeIdentifier {
+                    doc_type: EXAMPLE_DOC_TYPE.to_string(),
+                    namespace: EXAMPLE_NAMESPACE.to_string(),
+                    attribute: attribute.into(),
+                })
+                .collect()
+        }
+    }
+}
+
 #[cfg(any(test, feature = "test"))]
 mod tests {
     use super::*;
