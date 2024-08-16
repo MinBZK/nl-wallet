@@ -5374,6 +5374,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
+ "strum 0.26.3",
  "tempfile",
  "thiserror",
  "tokio",
