@@ -6,7 +6,7 @@ use error_category::ErrorCategory;
 use openid4vc::{oidc::OidcError, token::TokenRequest};
 use wallet_common::config::wallet_config::PidIssuanceConfiguration;
 
-pub use app2app::HttpDigidSession;
+pub use app2app::{App2AppErrorMessage, HttpDigidSession};
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -39,7 +39,7 @@ pub enum DigidSessionError {
     UrlSerialize(#[from] serde_urlencoded::ser::Error),
     #[error("error in app2app response: {0}")]
     #[category(pd)]
-    App2AppError(String),
+    App2AppError(App2AppErrorMessage),
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]

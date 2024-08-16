@@ -55,6 +55,20 @@ pub struct ReturnUrlParameters {
     app_app: DigidJsonResponse,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, strum::Display)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum App2AppErrorMessage {
+    #[serde(rename = "_by_user")]
+    #[strum(to_string = "_by_user")]
+    ByUser,
+    NotActivated,
+    Timeout,
+    IconMissing,
+    #[serde(untagged)]
+    Other(String),
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 #[serde_as]
@@ -62,7 +76,7 @@ pub struct DigidJsonResponse {
     #[serde(flatten)]
     saml_parameters: SamlReturnUrlParameters,
     #[serde_as(as = "NoneAsEmptyString")]
-    error_message: Option<String>,
+    error_message: Option<App2AppErrorMessage>,
 }
 
 // As these parameters are constructed by DigiD, they are opaque to us and passed as is to rdo-max
@@ -71,7 +85,8 @@ pub struct DigidJsonResponse {
 #[serde_as]
 pub struct SamlReturnUrlParameters {
     #[serde(rename = "SAMLart")]
-    saml_art: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    saml_art: Option<String>,
     #[serde_as(as = "NoneAsEmptyString")]
     relay_state: Option<String>,
 }
@@ -244,9 +259,11 @@ mod json_base64 {
 
 #[cfg(test)]
 mod test {
+    use base64::prelude::*;
     use http::StatusCode;
     use rstest::rstest;
     use serde::de::Error;
+    use serde_json::json;
     use serial_test::serial;
     use wiremock::{
         http::HeaderValue,
@@ -291,7 +308,15 @@ mod test {
         HeaderValue::from_bytes("https://preprod.example.com/saml/idp/request_authentication?SAMLRequest=rZNBj9owEIXv%2Byui3CHBBEIsiETZqkWiLAK2h15Wjj1ZLCV2ak9Yfn7tBLRUqjj1FCWeee%2Bb58ncsrpq6LLFk9rD7xYsPgXBpa6Upd3RImyNoppZaaliNViKnB6WPzaUDGPaGI2a6yr8q%2BlxD7MWDEqtfNP6eRG%2BbL9uXr6tt2%2BTEckyMZ2lMSmztGAJGYNIYz4aT%2BNxTAhLszguZqlv%2FAnGOo1F6CT9exDsjD5LAWbrHBfhASU%2FoVTvwXp1fO2srG1hrSwyha4tJskgngzi2THOKJnSJP3lq55dAlIx7LRPiI2lUdQYcJOK0VDIdymGqor8mJEUTWT60N6YSxCUM2W30XbXbL5IJRzH41CKvsjS78fjbrB0%2BZSMo5dZ3uJaaWXbGswBzFlyeN1vPgHRIQzPWpsCoBIfrKoAPWY5ZiOeiHLME5KwhLNimjE2I7NJOSUTVkbdQAOulQKO2kSM2z7NJaKRRYvQ2zq2q%2B9aCbgswlGYd3VznwTtsjX5%2F8aZR%2FfqnV9v2NDrsoLoVtdBIlwwWOm6YUZaf3mOWdZtHeY94n3dqnJLuIcyf7innHJf5z7v3ONDG%2BGv1IGBOBqmbKMNXgn%2FKd7RRg9w86fb8f3%2Fl%2F8B&RelayState=eyJzdGF0ZSI6ICI5Y2Q3ZTcwMWEyMzJmYWZjMjUzNWM4ODE2MmU4Yjg2MzA4YTRmM2U3MmRjMDc2MmNjNjk2YjQ1YmVlYTdlOTIzIiwgImNsaWVudF9pZCI6ICI1Zjg2Yzg3Yi1jMzViLTQ3M2ItYmZmOS00YTE5NzY3ZWQzZjciLCAicmVkaXJlY3RfdXJpIjogImh0dHBzOi8vYXBwLnRlc3Qudm9vcmJlZWxkd2FsbGV0Lm5sL2RlZXBsaW5rL2F1dGhlbnRpY2F0aW9uIn0%3D&Signature=P7y2OyXiYm7oMGC7d4m7K8gDZFfCWWFwNrDusQfh928T7kHGZob%2F3unQnvwu36EGxc805y8t87riyUgT9sgmWRm9D4u3Rr6eZ5tCcbvR5ERQZvS%2BlNOOMc%2FuHlSv7L3ToXy5uh0tnUFX64L8qXLnPo9MgBBz%2FhOjSY72Pw2u%2BRTU3gmmij4M5%2FqFL4f5J%2FHupeYc3lID6ABLT4QpMinngLQO8F82KqbfJXeLNqQ5pmGUB3nvDfsVmxsNGm1ZMI2ifQqtyDUvGGwXxkpHi7EL%2FdSripWBZ%2FHhJbnPzJkC5KqUxUEi1%2FZ8o4MiwLUHhS3khiMKKxjW6w2tIvpWi0yXDISQJvIfrSVAx24OXqHW3nti41gmndWbviLRH7E7GIB2b9V9qTRMKFv9RCN7oTT%2FsE1MKNNkJ2FA2ePUu4lGYvZHDDf5gpcWr1y5ZiQull1x2nWlvGYkvBCHaWukThax39RC8AOZwixg3UvznMSGisElkDB6V7fqfdMbPXhDIb6%2BdXsAVsG84iJ9qBXmdawO2OgusSMI1i7O8jZyZXM68qg%2FYP8ZJJdwQuQESlOjhZxyUNsTytif9%2FaqCjvb7FC%2B7L16kjPLACCk%2BOLft8JRAw1%2B15MqdNBdg5aSlptdfFEwhI7REyJt8pv8HtlqPi11qGw1vZ%2BIH409nUsfAiXjkgk%3D&SigAlg=http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256".as_bytes()).ok(),
         None,
         None,
-        Ok("https://app-preprod.example.com/app?app-app=eyJJY29uIjoid2FsbGV0ZGVidWdpbnRlcmFjdGlvbjovL3dhbGxldC5lZGkucmlqa3NvdmVyaGVpZC5ubC8ud2VsbC1rbm93bi9sb2dvLnBuZyIsIlJldHVyblVybCI6IndhbGxldGRlYnVnaW50ZXJhY3Rpb246Ly93YWxsZXQuZWRpLnJpamtzb3ZlcmhlaWQubmwvcmV0dXJuLWZyb20tZGlnaWQiLCJIb3N0IjoicHJlcHJvZC5leGFtcGxlLmNvbSIsIlNBTUxSZXF1ZXN0IjoiclpOQmo5b3dFSVh2K3l1aTNDSEJCRUlzaUVUWnFrV2lMQUsyaDE1V2pqMVpMQ1YyYWs5WWZuN3RCTFJVcWpqMUZDV2VlZStiNThuY3NycHE2TExGazlyRDd4WXNQZ1hCcGE2VXBkM1JJbXlOb3BwWmFhbGlOVmlLbkI2V1B6YVVER1BhR0kyYTZ5cjhxK2x4RDdNV0RFcXRmTlA2ZVJHK2JMOXVYcjZ0dDIrVEVja3lNWjJsTVNtenRHQUpHWU5JWXo0YVQrTnhUQWhMc3pndVpxbHYvQW5HT28xRjZDVDlleERzakQ1TEFXYnJIQmZoQVNVL29WVHZ3WHAxZk8yc3JHMWhyU3d5aGE0dEpza2duZ3ppMlRIT0tKblNKUDNscTU1ZEFsSXg3TFJQaUkybFVkUVljSk9LMFZESWR5bUdxb3I4bUpFVVRXVDYwTjZZU3hDVU0yVzMwWGJYYkw1SUpSekg0MUNLdnNqUzc4ZmpickIwK1pTTW81ZFozdUphYVdYYkdzd0J6Rmx5ZU4xdlBnSFJJUXpQV3BzQ29CSWZyS29BUFdZNVppT2VpSExNRTVLd2hMTmltakUySTdOSk9TVVRWa2JkUUFPdWxRS08ya1NNMno3TkphS1JSWXZRMnpxMnErOWFDYmdzd2xHWWQzVnpud1R0c2pYNS84YVpSL2ZxblY5djJORHJzb0xvVnRkQklsd3dXT202WVVaYWYzbU9XZFp0SGVZOTRuM2RxbkpMdUljeWY3aW5uSEpmNXo3djNPTkRHK0d2MUlHQk9CcW1iS01OWGduL0tkN1JSZzl3ODZmYjhmMy9sLzhCIiwiUmVsYXlTdGF0ZSI6ImV5SnpkR0YwWlNJNklDSTVZMlEzWlRjd01XRXlNekptWVdaak1qVXpOV000T0RFMk1tVTRZamcyTXpBNFlUUm1NMlUzTW1Sak1EYzJNbU5qTmprMllqUTFZbVZsWVRkbE9USXpJaXdnSW1Oc2FXVnVkRjlwWkNJNklDSTFaamcyWXpnM1lpMWpNelZpTFRRM00ySXRZbVptT1MwMFlURTVOelkzWldRelpqY2lMQ0FpY21Wa2FYSmxZM1JmZFhKcElqb2dJbWgwZEhCek9pOHZZWEJ3TG5SbGMzUXVkbTl2Y21KbFpXeGtkMkZzYkdWMExtNXNMMlJsWlhCc2FXNXJMMkYxZEdobGJuUnBZMkYwYVc5dUluMD0iLCJTaWdBbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNyc2Etc2hhMjU2IiwiU2lnbmF0dXJlIjoiUDd5Mk95WGlZbTdvTUdDN2Q0bTdLOGdEWkZmQ1dXRndOckR1c1FmaDkyOFQ3a0hHWm9iLzN1blFudnd1MzZFR3hjODA1eTh0ODdyaXlVZ1Q5c2dtV1JtOUQ0dTNScjZlWjV0Q2NidlI1RVJRWnZTK2xOT09NYy91SGxTdjdMM1RvWHk1dWgwdG5VRlg2NEw4cVhMblBvOU1nQkJ6L2hPalNZNzJQdzJ1K1JUVTNnbW1pajRNNS9xRkw0ZjVKL0h1cGVZYzNsSUQ2QUJMVDRRcE1pbm5nTFFPOEY4MktxYmZKWGVMTnFRNXBtR1VCM252RGZzVm14c05HbTFaTUkyaWZRcXR5RFV2R0d3WHhrcEhpN0VML2RTcmlwV0JaL0hoSmJuUHpKa0M1S3FVeFVFaTEvWjhvNE1pd0xVSGhTM2toaU1LS3hqVzZ3MnRJdnBXaTB5WERJU1FKdklmclNWQXgyNE9YcUhXM250aTQxZ21uZFdidmlMUkg3RTdHSUIyYjlWOXFUUk1LRnY5UkNON29UVC9zRTFNS05Oa0oyRkEyZVBVdTRsR1l2WkhERGY1Z3BjV3IxeTVaaVF1bGwxeDJuV2x2R1lrdkJDSGFXdWtUaGF4MzlSQzhBT1p3aXhnM1V2em5NU0dpc0Vsa0RCNlY3ZnFmZE1iUFhoREliNitkWHNBVnNHODRpSjlxQlhtZGF3TzJPZ3VzU01JMWk3TzhqWnlaWE02OHFnL1lQOFpKSmR3UXVRRVNsT2poWnh5VU5zVHl0aWY5L2FxQ2p2YjdGQys3TDE2a2pQTEFDQ2srT0xmdDhKUkF3MSsxNU1xZE5CZGc1YVNscHRkZkZFd2hJN1JFeUp0OHB2OEh0bHFQaTExcUd3MXZaK0lINDA5blVzZkFpWGprZ2s9In0=".parse().unwrap()),
+        Ok(("https://app-preprod.example.com/app?app-app=".to_string() + &base64(json!({
+            "Icon":"walletdebuginteraction://wallet.edi.rijksoverheid.nl/.well-known/logo.png",
+            "ReturnUrl": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid",
+            "Host": "preprod.example.com",
+            "SAMLRequest": "rZNBj9owEIXv+yui3CHBBEIsiETZqkWiLAK2h15Wjj1ZLCV2ak9Yfn7tBLRUqjj1FCWeee+b58ncsrpq6LLFk9rD7xYsPgXBpa6Upd3RImyNoppZaaliNViKnB6WPzaUDGPaGI2a6yr8q+lxD7MWDEqtfNP6eRG+bL9uXr6tt2+TEckyMZ2lMSmztGAJGYNIYz4aT+NxTAhLszguZqlv/AnGOo1F6CT9exDsjD5LAWbrHBfhASU/oVTvwXp1fO2srG1hrSwyha4tJskgngzi2THOKJnSJP3lq55dAlIx7LRPiI2lUdQYcJOK0VDIdymGqor8mJEUTWT60N6YSxCUM2W30XbXbL5IJRzH41CKvsjS78fjbrB0+ZSMo5dZ3uJaaWXbGswBzFlyeN1vPgHRIQzPWpsCoBIfrKoAPWY5ZiOeiHLME5KwhLNimjE2I7NJOSUTVkbdQAOulQKO2kSM2z7NJaKRRYvQ2zq2q+9aCbgswlGYd3VznwTtsjX5/8aZR/fqnV9v2NDrsoLoVtdBIlwwWOm6YUZaf3mOWdZtHeY94n3dqnJLuIcyf7innHJf5z7v3ONDG+Gv1IGBOBqmbKMNXgn/Kd7RRg9w86fb8f3/l/8B",
+            "RelayState": "eyJzdGF0ZSI6ICI5Y2Q3ZTcwMWEyMzJmYWZjMjUzNWM4ODE2MmU4Yjg2MzA4YTRmM2U3MmRjMDc2MmNjNjk2YjQ1YmVlYTdlOTIzIiwgImNsaWVudF9pZCI6ICI1Zjg2Yzg3Yi1jMzViLTQ3M2ItYmZmOS00YTE5NzY3ZWQzZjciLCAicmVkaXJlY3RfdXJpIjogImh0dHBzOi8vYXBwLnRlc3Qudm9vcmJlZWxkd2FsbGV0Lm5sL2RlZXBsaW5rL2F1dGhlbnRpY2F0aW9uIn0=",
+            "SigAlg": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+            "Signature": "P7y2OyXiYm7oMGC7d4m7K8gDZFfCWWFwNrDusQfh928T7kHGZob/3unQnvwu36EGxc805y8t87riyUgT9sgmWRm9D4u3Rr6eZ5tCcbvR5ERQZvS+lNOOMc/uHlSv7L3ToXy5uh0tnUFX64L8qXLnPo9MgBBz/hOjSY72Pw2u+RTU3gmmij4M5/qFL4f5J/HupeYc3lID6ABLT4QpMinngLQO8F82KqbfJXeLNqQ5pmGUB3nvDfsVmxsNGm1ZMI2ifQqtyDUvGGwXxkpHi7EL/dSripWBZ/HhJbnPzJkC5KqUxUEi1/Z8o4MiwLUHhS3khiMKKxjW6w2tIvpWi0yXDISQJvIfrSVAx24OXqHW3nti41gmndWbviLRH7E7GIB2b9V9qTRMKFv9RCN7oTT/sE1MKNNkJ2FA2ePUu4lGYvZHDDf5gpcWr1y5ZiQull1x2nWlvGYkvBCHaWukThax39RC8AOZwixg3UvznMSGisElkDB6V7fqfdMbPXhDIb6+dXsAVsG84iJ9qBXmdawO2OgusSMI1i7O8jZyZXM68qg/YP8ZJJdwQuQESlOjhZxyUNsTytif9/aqCjvb7FC+7L16kjPLACCk+OLft8JRAw1+15MqdNBdg5aSlptdfFEwhI7REyJt8pv8HtlqPi11qGw1vZ+IH409nUsfAiXjkgk="
+        }))).parse().unwrap()),
     )]
     #[case(
         StatusCode::TEMPORARY_REDIRECT,
@@ -436,6 +461,7 @@ mod test {
         assert!(token_request.is_ok());
     }
 
+    // Don't use base64(json!()) here in the cases here as these tests test the base64 itself
     #[rstest]
     #[case(
         "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcdTAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFeU16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zYVdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkWEpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyRjBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0=".parse().unwrap(),
@@ -468,9 +494,9 @@ mod test {
         Err(DigidSessionError::Oidc(OidcError::StateTokenMismatch))
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6IiIsIkVycm9yTWVzc2FnZSI6InRpbWVvdXQifQ==".parse().unwrap(),
+        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjpudWxsLCJSZWxheVN0YXRlIjpudWxsLCJFcnJvck1lc3NhZ2UiOiJ0aW1lb3V0In0=".parse().unwrap(),
         None,
-        Err(DigidSessionError::App2AppError("timeout".to_owned()))
+        Err(DigidSessionError::App2AppError(App2AppErrorMessage::Timeout))
     )]
     #[case(
         "https://app.example.com/deeplink/return-from-digid".parse().unwrap(),
@@ -543,11 +569,24 @@ mod test {
     }
 
     #[rstest]
-    #[case(Some("example.com/no_padding".to_owned()), "https://app.example.com/app?app-app=eyJJY29uIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZyIsIlJldHVyblVybCI6Imh0dHBzOi8vZXhhbXBsZS5jb20vcmV0dXJuIiwiSG9zdCI6ImV4YW1wbGUuY29tL25vX3BhZGRpbmciLCJTQU1MUmVxdWVzdCI6IiIsIlJlbGF5U3RhdGUiOm51bGwsIlNpZ0FsZyI6IiIsIlNpZ25hdHVyZSI6IiJ9")]
-    #[case(Some("example.com/padding__".to_owned()), "https://app.example.com/app?app-app=eyJJY29uIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZyIsIlJldHVyblVybCI6Imh0dHBzOi8vZXhhbXBsZS5jb20vcmV0dXJuIiwiSG9zdCI6ImV4YW1wbGUuY29tL3BhZGRpbmdfXyIsIlNBTUxSZXF1ZXN0IjoiIiwiUmVsYXlTdGF0ZSI6bnVsbCwiU2lnQWxnIjoiIiwiU2lnbmF0dXJlIjoiIn0=")]
-    #[case(Some("example.com/more___padding".to_owned()), "https://app.example.com/app?app-app=eyJJY29uIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZyIsIlJldHVyblVybCI6Imh0dHBzOi8vZXhhbXBsZS5jb20vcmV0dXJuIiwiSG9zdCI6ImV4YW1wbGUuY29tL21vcmVfX19wYWRkaW5nIiwiU0FNTFJlcXVlc3QiOiIiLCJSZWxheVN0YXRlIjpudWxsLCJTaWdBbGciOiIiLCJTaWduYXR1cmUiOiIifQ==")]
-    #[case(None, "https://app.example.com/app?app-app=eyJJY29uIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9sb2dvLnBuZyIsIlJldHVyblVybCI6Imh0dHBzOi8vZXhhbXBsZS5jb20vcmV0dXJuIiwiSG9zdCI6bnVsbCwiU0FNTFJlcXVlc3QiOiIiLCJSZWxheVN0YXRlIjpudWxsLCJTaWdBbGciOiIiLCJTaWduYXR1cmUiOiIifQ==")]
-    fn test_format_app2app_url(#[case] host: Option<String>, #[case] expected: Url) {
+    #[case(
+        Some("example.com/no_padding".to_owned()),
+        "https://app.example.com/app?app-app=".to_string() + &base64(json!({"Icon": "https://example.com/logo.png", "ReturnUrl": "https://example.com/return", "Host": "example.com/no_padding", "SAMLRequest": "", "RelayState": null, "SigAlg": "", "Signature": ""}))
+    )]
+    #[case(
+        Some("example.com/padding__".to_owned()),
+        "https://app.example.com/app?app-app=".to_string() + &base64(json!({"Icon": "https://example.com/logo.png", "ReturnUrl": "https://example.com/return", "Host": "example.com/padding__", "SAMLRequest": "", "RelayState": null, "SigAlg": "", "Signature": ""}))
+    )]
+    #[case(
+        Some("example.com/more___padding".to_owned()),
+        "https://app.example.com/app?app-app=".to_string() + &base64(json!({"Icon": "https://example.com/logo.png", "ReturnUrl": "https://example.com/return", "Host": "example.com/more___padding", "SAMLRequest": "", "RelayState": null, "SigAlg": "", "Signature": ""}))
+    )]
+    #[case(
+        None,
+        "https://app.example.com/app?app-app=".to_string() + &base64(json!({"Icon": "https://example.com/logo.png", "ReturnUrl": "https://example.com/return", "Host": null, "SAMLRequest": "", "RelayState": null, "SigAlg": "", "Signature": ""}))
+    )]
+    fn test_format_app2app_url(#[case] host: Option<String>, #[case] expected: String) {
+        let expected = expected.parse().unwrap();
         let url = HttpDigidSession::<HttpOidcClient>::format_app2app_url(
             "https://app.example.com/app".parse().unwrap(),
             DigidJsonRequest {
@@ -565,5 +604,36 @@ mod test {
         .unwrap();
 
         assert_eq!(url, expected);
+    }
+
+    #[rstest]
+    #[case(
+        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "_by_user"})),
+        Some(App2AppErrorMessage::ByUser)
+    )]
+    #[case(
+        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "timeout"})),
+        Some(App2AppErrorMessage::Timeout)
+    )]
+    #[case(
+        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "not_activated"})),
+        Some(App2AppErrorMessage::NotActivated)
+    )]
+    #[case(
+        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "icon_missing"})),
+        Some(App2AppErrorMessage::IconMissing)
+    )]
+    #[case(
+        base64(json!({"SAMLart": null, "RelayState": null, "ErrorMessage": "Hello, World!"})),
+        Some(App2AppErrorMessage::Other("Hello, World!".to_owned()))
+    )]
+    #[case(base64(json!({"SAMLart": "", "RelayState": "/", "ErrorMessage": null})), None)]
+    fn test_digid_app2app_error_message(#[case] input: String, #[case] expected: Option<App2AppErrorMessage>) {
+        let res: ReturnUrlParameters = serde_urlencoded::from_str(&format!("app-app={}", input)).unwrap();
+        assert_eq!(res.app_app.error_message, expected);
+    }
+
+    fn base64<T: Serialize>(input: T) -> String {
+        BASE64_URL_SAFE.encode(serde_json::to_string(&input).unwrap())
     }
 }
