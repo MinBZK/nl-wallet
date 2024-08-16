@@ -14,7 +14,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
 
 use error_category::ErrorCategory;
-use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
+use wallet_common::{generator::Generator, keys::EcdsaKey};
 
 use crate::{
     server_keys::KeysError,
@@ -177,7 +177,7 @@ impl<T> MdocCose<CoseSign1, T> {
     pub async fn sign(
         obj: &T,
         unprotected_header: Header,
-        private_key: &impl SecureEcdsaKey,
+        private_key: &impl EcdsaKey,
         include_payload: bool,
     ) -> Result<MdocCose<CoseSign1, T>, CoseError>
     where
@@ -294,7 +294,7 @@ fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHea
 pub async fn sign_cose(
     payload: &[u8],
     unprotected_header: Header,
-    private_key: &impl SecureEcdsaKey,
+    private_key: &impl EcdsaKey,
     include_payload: bool,
 ) -> Result<CoseSign1, CoseError> {
     let (sig_data, protected_header) = signature_data_and_header(payload);
