@@ -1,5 +1,6 @@
 use std::{collections::HashMap, iter};
 
+use cfg_if::cfg_if;
 use futures::future;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
@@ -140,16 +141,16 @@ impl KeyFactory for SoftwareKeyFactory {
 
 impl Default for SoftwareKeyFactory {
     fn default() -> Self {
-        // Pre-populate the static example key, if the feature is enabled.
-        #[cfg(any(test, feature = "examples"))]
-        let keys = {
-            use crate::examples::{Examples, EXAMPLE_KEY_IDENTIFIER};
+        cfg_if! {
+            // Pre-populate the static example key, if the feature is enabled.
+            if #[cfg(any(test, feature = "examples"))] {
+                use crate::examples::{Examples, EXAMPLE_KEY_IDENTIFIER};
 
-            HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())])
-        };
-
-        #[cfg(not(any(test, feature = "examples")))]
-        let keys = HashMap::default();
+                let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
+            } else {
+                let keys = HashMap::default();
+            }
+        }
 
         SoftwareKeyFactory {
             signing_keys: keys.into(),
