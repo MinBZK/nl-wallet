@@ -1,0 +1,47 @@
+From 5575a9f549e4a451269a70d6c159dfc5fecf812e Mon Sep 17 00:00:00 2001
+From: Arjen <edi@minbzk.nl>
+Date: Fri, 23 Feb 2024 10:10:41 +0100
+Subject: [PATCH 4/5] Show primary_idp on redirect page (instead of hardcoded
+ value)
+
+---
+ app/services/saml/saml_response_factory.py | 2 ++
+ saml/templates/html/authn_request.html     | 2 +-
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/app/services/saml/saml_response_factory.py b/app/services/saml/saml_response_factory.py
+index 8d16add..558f8c6 100644
+--- a/app/services/saml/saml_response_factory.py
++++ b/app/services/saml/saml_response_factory.py
+@@ -75,6 +75,7 @@ class SamlResponseFactory:
+                 "sso_url": authn_request.sso_url,
+                 "saml_request": authn_request.get_base64_string().decode(),
+                 "relay_state": randstate,
++                "idp_provider": saml_identity_provider.name,
+                 "vite_asset": self._vite_manifest_service.get_asset_url,
+             }
+         )
+@@ -143,6 +144,7 @@ class SamlResponseFactory:
+                 "sso_url": sso_url,
+                 "saml_request": authn_request.get_base64_string().decode(),
+                 "relay_state": randstate,
++                "idp_provider": saml_identity_provider.name,
+                 "vite_asset": self._vite_manifest_service.get_asset_url,
+             }
+         )
+diff --git a/saml/templates/html/authn_request.html b/saml/templates/html/authn_request.html
+index 859aebf..2fc4f9c 100644
+--- a/saml/templates/html/authn_request.html
++++ b/saml/templates/html/authn_request.html
+@@ -3,7 +3,7 @@
+         <form method="POST" id="submitForm" action="{{ sso_url }}">
+           <input type="hidden" name="SAMLRequest" value="{{ saml_request }}" />
+           <input type="hidden" name="RelayState" value="{{ relay_state }}" />
+-          <input type="submit" value="Redirecting to TVS...">
++          <input type="submit" value="Redirecting to {{ idp_provider }}...">
+         </form>
+     <script type="application/javascript" src="{{ vite_asset('resources/js/submit.js') }}"></script>
+     </body>
+-- 
+2.43.0
+

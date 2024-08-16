@@ -3,7 +3,7 @@ use std::fmt::{Debug, Formatter};
 use p256::ecdsa::{Signature, SigningKey};
 
 use error_category::ErrorCategory;
-use wallet_common::keys::{EcdsaKey, SecureEcdsaKey};
+use wallet_common::keys::EcdsaKey;
 
 use crate::utils::x509::Certificate;
 
@@ -61,7 +61,6 @@ impl EcdsaKey for KeyPair {
         p256::ecdsa::signature::Signer::try_sign(&self.private_key, msg)
     }
 }
-impl SecureEcdsaKey for KeyPair {}
 
 pub trait KeyRing {
     fn key_pair(&self, id: &str) -> Option<&KeyPair>;

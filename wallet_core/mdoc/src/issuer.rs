@@ -14,6 +14,8 @@ use crate::{
 };
 
 impl IssuerSigned {
+    // In the future, it should be an option to house the key used to sign IssuerSigned
+    // within secure hardware. This is especially relevant for signing the PID.
     pub async fn sign(unsigned_mdoc: UnsignedMdoc, device_public_key: CoseKey, key: &KeyPair) -> Result<Self> {
         let now = Utc::now();
         let validity = ValidityInfo {
