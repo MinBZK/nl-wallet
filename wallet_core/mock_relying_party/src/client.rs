@@ -1,9 +1,8 @@
 use futures::TryFutureExt;
-use nl_wallet_mdoc::server_state::SessionToken;
 use reqwest::{Client, Response};
 
 use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests};
-use openid4vc::return_url::ReturnUrlTemplate;
+use openid4vc::{return_url::ReturnUrlTemplate, server_state::SessionToken};
 use wallet_common::{config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody};
 use wallet_server::verifier::{DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse};
 

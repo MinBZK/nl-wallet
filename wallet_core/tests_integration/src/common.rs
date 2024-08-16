@@ -15,12 +15,13 @@ use tokio::time;
 
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
-use nl_wallet_mdoc::{server_state::SessionState, utils::x509};
+use nl_wallet_mdoc::utils::x509;
 use openid4vc::{
     disclosure_session::{DisclosureSession, HttpVpMessageClient},
     issuance_session::HttpIssuanceSession,
     issuer::{AttributeService, Created},
     oidc,
+    server_state::SessionState,
     token::{AttestationPreview, TokenRequest},
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};

@@ -21,7 +21,6 @@ use nl_wallet_mdoc::{
         StoredMdoc, TrustAnchor,
     },
     server_keys::KeyPair,
-    server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
     test::{
         data::{addr_street, pid_full_name, pid_given_name},
@@ -39,6 +38,7 @@ use openid4vc::{
     jwt,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
     return_url::ReturnUrlTemplate,
+    server_state::{MemorySessionStore, SessionToken},
     verifier::{
         DisclosedAttributesError, DisclosureData, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase, Verifier,
         VerifierUrlParameters, VpToken, WalletAuthResponse,

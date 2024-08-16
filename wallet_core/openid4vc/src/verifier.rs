@@ -21,10 +21,6 @@ use tracing::{debug, info, warn};
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::KeyPair,
-    server_state::{
-        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
-        CLEANUP_INTERVAL_SECONDS,
-    },
     utils::x509::CertificateError,
     verifier::{DisclosedAttributes, ItemsRequests},
 };
@@ -43,6 +39,10 @@ use crate::{
         VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
     return_url::ReturnUrlTemplate,
+    server_state::{
+        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
+        CLEANUP_INTERVAL_SECONDS,
+    },
     AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
 
@@ -1114,16 +1114,13 @@ mod tests {
     use ring::{hmac, rand};
     use rstest::rstest;
 
-    use nl_wallet_mdoc::{
-        server_keys::KeyPair,
-        server_state::{MemorySessionStore, SessionToken},
-        utils::reader_auth::ReaderRegistration,
-        ItemsRequest,
-    };
+    use nl_wallet_mdoc::{server_keys::KeyPair, utils::reader_auth::ReaderRegistration, ItemsRequest};
     use wallet_common::{
         generator::{Generator, TimeGenerator},
         trust_anchor::DerTrustAnchor,
     };
+
+    use crate::server_state::{MemorySessionStore, SessionToken};
 
     use super::{
         AuthorizationErrorCode, DisclosedAttributesError, DisclosureData, Done, ErrorResponse, GetAuthRequestError,

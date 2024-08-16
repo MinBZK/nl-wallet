@@ -9,7 +9,6 @@ pub mod verifier;
 
 // Data types shared between servers
 pub mod server_keys;
-pub mod server_state;
 
 // General code used throughout the crate.
 pub mod identifiers;

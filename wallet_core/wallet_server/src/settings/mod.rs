@@ -6,7 +6,8 @@ use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
-use nl_wallet_mdoc::{server_state::SessionStoreTimeouts, utils::x509::Certificate};
+use nl_wallet_mdoc::utils::x509::Certificate;
+use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
 
 cfg_if::cfg_if! {

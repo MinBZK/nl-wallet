@@ -40,7 +40,7 @@ allow_http_return_url = ["openid4vc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = ["verifier_test", "postgres", "dep:serial_test", "nl_wallet_mdoc/test"]
+db_test = ["verifier_test", "postgres", "dep:serial_test", "openid4vc/test"]
 verifier_test = [
     "disclosure",
     "dep:assert_matches",

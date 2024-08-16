@@ -25,12 +25,10 @@ mock_time = ["dep:parking_lot"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
-assert_matches = { workspace = true, optional = true }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
-dashmap.workspace = true
 derive_more = { workspace = true, features = ["as_ref"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
@@ -52,12 +50,13 @@ serde_with = { workspace = true, features = ["base64", "chrono", "hex"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 time.workspace = true
-tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
+tokio = { workspace = true, features = ["parking_lot"] }
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 anyhow = { workspace = true, optional = true }
+assert_matches = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser"] }

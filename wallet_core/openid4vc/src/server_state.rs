@@ -462,9 +462,9 @@ pub mod test {
 #[cfg(test)]
 mod tests {
     use parking_lot::RwLock;
-    use wallet_common::utils;
 
-    use crate::utils::mock_time::MockTimeGenerator;
+    use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
+    use wallet_common::utils;
 
     use self::test::RandomData;
 

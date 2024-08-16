@@ -12,9 +12,6 @@ use tokio::task::JoinHandle;
 
 use nl_wallet_mdoc::{
     server_keys::KeyRing,
-    server_state::{
-        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS,
-    },
     unsigned::UnsignedMdoc,
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
@@ -30,6 +27,9 @@ use crate::{
     jwt::{jwk_to_p256, JwkConversionError},
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
+    server_state::{
+        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS,
+    },
     token::{
         AccessToken, AttestationPreview, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse,
         TokenResponseWithPreviews, TokenType,

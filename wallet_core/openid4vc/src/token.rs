@@ -9,7 +9,6 @@ use url::Url;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    server_state::SessionToken,
     unsigned::UnsignedMdoc,
     utils::{
         issuer_auth::IssuerRegistration,
@@ -21,7 +20,7 @@ use wallet_common::{
     utils::{random_string, sha256},
 };
 
-use crate::authorization::AuthorizationDetails;
+use crate::{authorization::AuthorizationDetails, server_state::SessionToken};
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);

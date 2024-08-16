@@ -11,7 +11,7 @@ use strum::{Display, EnumString};
 use tracing::log::LevelFilter;
 use url::Url;
 
-use nl_wallet_mdoc::server_state::{
+use openid4vc::server_state::{
     Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts, SessionToken,
 };
 use wallet_common::generator::{Generator, TimeGenerator};

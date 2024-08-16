@@ -8,7 +8,7 @@ cfg_if::cfg_if! {
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
-use nl_wallet_mdoc::server_state::{
+use openid4vc::server_state::{
     Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
     SessionToken,
 };

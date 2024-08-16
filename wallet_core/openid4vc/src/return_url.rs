@@ -2,8 +2,9 @@ use cfg_if::cfg_if;
 use nutype::nutype;
 use strfmt::strfmt;
 
-use nl_wallet_mdoc::server_state::SessionToken;
 use url::Url;
+
+use crate::server_state::SessionToken;
 
 #[nutype(
     derive(Debug, Clone, FromStr, Serialize, Deserialize),

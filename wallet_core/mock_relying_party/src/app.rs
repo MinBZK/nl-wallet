@@ -34,7 +34,8 @@ use tower_http::{
 use tracing::warn;
 use url::Url;
 
-use nl_wallet_mdoc::{server_state::SessionToken, verifier::DisclosedAttributes};
+use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use openid4vc::server_state::SessionToken;
 use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
 
 use crate::{

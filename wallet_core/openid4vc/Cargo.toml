@@ -24,6 +24,8 @@ axum = ["dep:axum"]
 allow_http_return_url = []
 # Include mock implementations for testing
 mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/software_keys", "nl_wallet_mdoc/mock"]
+# Include miscellaneous test utilities
+test = ["dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "dep:ciborium"]
 
@@ -32,6 +34,7 @@ base64.workspace = true
 biscuit.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
+dashmap.workspace = true
 derive_more = { workspace = true, features = ["from"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
@@ -59,9 +62,11 @@ trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
 
+assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
 ciborium = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
+parking_lot = { workspace = true, optional = true }
 
 error_category.path = "../error_category"
 nl_wallet_mdoc.path = "../mdoc"
@@ -76,4 +81,11 @@ rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "software_key_factory", "generate", "test", "examples"] }
+nl_wallet_mdoc = { path = "../mdoc", features = [
+    "mock",
+    "software_key_factory",
+    "generate",
+    "test",
+    "examples",
+    "mock_time",
+] }

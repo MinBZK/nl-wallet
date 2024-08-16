@@ -21,9 +21,6 @@ use nl_wallet_mdoc::{
         Example, Examples, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE,
         EXAMPLE_NAMESPACE,
     },
-    server_state::{
-        MemorySessionStore, SessionState, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS,
-    },
     utils::{
         mock_time::MockTimeGenerator,
         serialization::{CborSeq, TaggedBytes},
@@ -33,6 +30,9 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{
     return_url::ReturnUrlTemplate,
+    server_state::{
+        MemorySessionStore, SessionState, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS,
+    },
     verifier::{DisclosureData, Done, SessionResult, SessionType, StatusResponse, VerifierUrlParameters},
     ErrorResponse,
 };
