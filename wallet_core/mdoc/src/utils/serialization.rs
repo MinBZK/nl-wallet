@@ -145,7 +145,7 @@ impl<T> From<T> for CborSeq<T> {
 /// Used to be able to refer by name instead of by an integer to refer to the contents of the
 /// data structure.
 #[derive(Debug, Clone)]
-pub struct CborIntMap<T, const STRING: bool = false>(pub T);
+pub struct CborIntMap<T>(pub T);
 impl<T> From<T> for CborIntMap<T> {
     fn from(val: T) -> Self {
         CborIntMap(val)
@@ -187,7 +187,7 @@ where
     }
 }
 
-impl<'de, T, const STRING: bool> Serialize for CborIntMap<T, STRING>
+impl<'de, T> Serialize for CborIntMap<T>
 where
     T: Serialize + Deserialize<'de>,
 {
@@ -195,16 +195,7 @@ where
         let field_name_indices: IndexMap<String, Value> = serde_introspect::<T>()
             .iter()
             .enumerate()
-            .map(|(index, field_name)| {
-                (
-                    field_name.to_string(),
-                    if !STRING {
-                        Value::Integer(index.into())
-                    } else {
-                        Value::Text(format!("{}", index))
-                    },
-                )
-            })
+            .map(|(index, field_name)| (field_name.to_string(), Value::Integer(index.into())))
             .collect();
 
         match Value::serialized(&self.0).map_err(ser::Error::custom)? {
@@ -224,7 +215,7 @@ where
         }
     }
 }
-impl<'de, T, const STRING: bool> Deserialize<'de> for CborIntMap<T, STRING>
+impl<'de, T> Deserialize<'de> for CborIntMap<T>
 where
     T: Deserialize<'de>,
 {
