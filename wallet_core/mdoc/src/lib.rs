@@ -1,4 +1,4 @@
-// Data structures defined in ISO 18013-5, 23220-3 and -4
+// Data structures defined in ISO 18013-5
 pub mod iso;
 pub use iso::*;
 

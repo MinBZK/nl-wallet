@@ -1,4 +1,4 @@
-//! This module contains data structures defined in the ISO 18013-5 and ISO 23220-3 and -4 standards,
+//! This module contains data structures defined in the ISO 18013-5 standards,
 //! divided into several submodules.
 
 // We keep this under its own name by not using `pub use` on this, since it's not part of the ISO standards,

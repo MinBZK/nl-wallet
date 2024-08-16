@@ -1,12 +1,12 @@
 # Introduction to ISO mdoc
 
-This document introduces the key concepts from the mdoc ISO standards (ISO 18013-5,7 and ISO 23220-3,4), as well as the major data structures.
+This document introduces the key concepts from the mdoc ISO standards (ISO 18013-5 and -7), as well as the major data structures.
 
 ## General notions
 
 ### mdoc
 
-The mdoc (mobile document) is the main citizen of the ISO 18013-5,7 and ISO 23220-3,4 standards, which define the mdoc data types as well as protocols to use and receive them.
+The mdoc (mobile document) is the main citizen of the ISO 18013-5 and -7 standards, which define the mdoc data types as well as protocols to use and receive them.
 An mdoc contains data (attributes) about the holder, the public key of the holder, and the issuer signature over those.
 It is granted by a trusted issuer to the holder, which receives and stores it.
 Later, the holder can selectively disclose attributes from the mdoc to a RP (Relying Party).
@@ -52,7 +52,7 @@ In addition, it uses the private key of the mdoc (whose corresponding public key
 
 #### CBOR
 
-All data structures in ISO 18013-5,7 and ISO 23220-3,4 are encoded using [CBOR](https://cbor.io/) ([RFC 8949](https://www.rfc-editor.org/rfc/rfc8949.html)), which is similar to JSON except that it is binary and has more features.
+All data structures in ISO 18013-5 and -7 are encoded using [CBOR](https://cbor.io/) ([RFC 8949](https://www.rfc-editor.org/rfc/rfc8949.html)), which is similar to JSON except that it is binary and has more features.
 Like JSON, data structures are generally maps with names and values (unlike ASN.1, the other major binary encoding format).
 It being binary, it can avoid base64 for binary data so that in that case it is more efficient than JSON, which helps for data like digital signatures.
 However, this also makes it not human-readable. Instead it is generally displayed to humans hex-encoded.
@@ -181,7 +181,7 @@ The ISO standard shows the following patterns.
   }
 
   IssuerSignedItemBytes = #6.24(bstr .cbor IssuerSignedItem)
-  
+
   IssuerSignedItem = {
       "digestID": uint,
       "random": bstr,
@@ -196,7 +196,6 @@ The ISO standard shows the following patterns.
 - In the ISO standards, most data structures are defined as maps having fixed keys. However, some data structures are instead defined as follows:
     - as arrays (i.e. without keys), for example `DeviceAuthentication` (see below);
     - as maps having incrementing integer keys (for example `DeviceEngagement`),
-    - as maps having keys that are strings containing incrementing integer keys (only in ISO 23220-3, for example `MobileeIDDocument` (sic)).
 
   Why the standard sometimes uses these variants is not clear.
   This implementation always uses Rust structs with field names for clarity, and then converts those to the appropriate form during encoding using helper data types with custom (de)serializers.
@@ -248,7 +247,7 @@ Below, the `24(<< ... >>)` syntax means that the data inside the `<< >>` is enco
             }>>),
         ]
     },
-    "issuerAuth": 
+    "issuerAuth":
         <<{
             1: -7
         }>>,
