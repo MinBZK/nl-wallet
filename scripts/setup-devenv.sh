@@ -120,21 +120,33 @@ mkdir -p "${TARGET_DIR}/wallet_provider"
 # Configure digid-connector
 
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
-  echo
   echo -e "${SECTION}Configure and start digid-connector${NC}"
 
+  # Check for existing nl-rdo-max, re-use if existing, clone if not
   if [ -d "${DIGID_CONNECTOR_PATH}" ]; then
-    echo "Warning: Using existing nl-rdo-max repository without cloning or patching"
-    cd "${DIGID_CONNECTOR_PATH}"
+    echo -e "${INFO}Using existing nl-rdo-max repository (not cloning)${NC}"
   else
+    echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
     # Unfortunately we can't directly clone a commit hash, so clone the tag and reset to the commit
     git clone --depth 1 -b "${DIGID_CONNECTOR_BASE_TAG}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
-    cd "${DIGID_CONNECTOR_PATH}"
-    git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
-
-    # Apply the patches
-    git am "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*
   fi
+
+  # Enter nl-rdo-max git repository
+  cd "${DIGID_CONNECTOR_PATH}"
+
+  # Checkout validated-working commit
+  echo -e "${INFO}Switching to commit: ${DIGID_CONNECTOR_BASE_COMMIT}${NC}"
+  git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
+
+  # Apply the patches, if not applied before
+  for p in "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*; do
+    if git apply --check "$p" 2> /dev/null; then
+      echo -e "${INFO}Applying patch: $p${NC}"
+      git apply "$p"
+    else
+      echo -e "${INFO}Skipping previously applied patch: $p${NC}"
+    fi
+  done
 
   make setup-secrets setup-saml setup-config
 
