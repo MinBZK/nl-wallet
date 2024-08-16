@@ -362,50 +362,6 @@ struct OriginInfoWebsiteDetails {
     referrer_url: Url,
 }
 
-impl Serialize for OriginInfoType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let result = match self {
-            OriginInfoType::Website(url) => OriginInfoTypeSerialized {
-                typ: 1,
-                details: Value::serialized(&OriginInfoWebsiteDetails {
-                    referrer_url: url.clone(),
-                })
-                .map_err(ser::Error::custom)?,
-            },
-            OriginInfoType::OnDeviceQRCode => OriginInfoTypeSerialized {
-                typ: 2,
-                details: Value::Null,
-            },
-            OriginInfoType::MessageData => OriginInfoTypeSerialized {
-                typ: 4,
-                details: Value::Null,
-            },
-        };
-        result.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for OriginInfoType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let info_type: OriginInfoTypeSerialized = OriginInfoTypeSerialized::deserialize(deserializer)?;
-        match info_type.typ {
-            1 => {
-                let details: OriginInfoWebsiteDetails = info_type.details.deserialized().map_err(de::Error::custom)?;
-                Ok(OriginInfoType::Website(details.referrer_url))
-            }
-            2 => Ok(OriginInfoType::OnDeviceQRCode),
-            4 => Ok(OriginInfoType::MessageData),
-            _ => Err(de::Error::custom("unsupported OriginInfoType")),
-        }
-    }
-}
-
 // Don't (de)serialize the CBOR tag when we serialize to JSON
 impl Serialize for Tdate {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -456,7 +412,7 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for CborBase64<T> {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use ciborium::value::Value::{Array, Bytes, Integer, Map, Null, Text};
+    use ciborium::value::Value::{Array, Bytes, Null, Text};
     use hex_literal::hex;
 
     use crate::examples::Example;
@@ -471,27 +427,6 @@ mod tests {
 
         let decoded: TaggedBytes<Vec<u8>> = cbor_deserialize(encoded.as_slice()).unwrap();
         assert_eq!(original.0, decoded.0);
-    }
-
-    #[test]
-    fn origin_info() {
-        let val = OriginInfo {
-            cat: OriginInfoDirection::Delivered,
-            typ: OriginInfoType::Website("https://example.com".parse().unwrap()),
-        };
-
-        // Explicitly assert CBOR structure of the serialized data
-        assert_eq!(
-            Value::serialized(&val).unwrap(),
-            Map(vec![
-                (Text("cat".into()), Integer(0.into())),
-                (Text("type".into()), Integer(1.into())),
-                (
-                    Text("Details".into()),
-                    Map(vec![(Text("ReferrerUrl".into()), Text("https://example.com/".into()))])
-                )
-            ])
-        );
     }
 
     // For each of the `Handover` variants, we manually construct the CBOR structure as defined by the specs

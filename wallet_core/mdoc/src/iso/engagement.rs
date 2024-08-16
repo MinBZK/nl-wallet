@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
-use url::Url;
 
 use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
 
@@ -160,38 +159,12 @@ pub type ReaderEngagement = CborIntMap<Engagement>;
 pub struct Engagement {
     pub version: EngagementVersion,
     pub security: Option<Security>,
-    pub connection_methods: Option<ConnectionMethods>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub origin_infos: Vec<OriginInfo>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EngagementVersion {
     #[serde(rename = "1.0")]
     V1_0,
-}
-
-/// Describes the kind and direction of the previously received protocol message.
-/// Part of the [`DeviceAuthenticationBytes`] which are signed with the mdoc private key during disclosure.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct OriginInfo {
-    pub cat: OriginInfoDirection,
-    #[serde(flatten)]
-    pub typ: OriginInfoType,
-}
-
-#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq, Eq)]
-#[repr(u8)]
-pub enum OriginInfoDirection {
-    Delivered = 0,
-    Received = 1,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum OriginInfoType {
-    Website(Url),
-    OnDeviceQRCode,
-    MessageData,
 }
 
 pub type Security = CborSeq<SecurityKeyed>;
@@ -207,37 +180,6 @@ pub struct SecurityKeyed {
 #[repr(u8)]
 pub enum CipherSuiteIdentifier {
     P256 = 1,
-}
-
-/// Describes the available connection methods. Called DeviceRetrievalMethods in ISO 18013-5
-pub type ConnectionMethods = Vec<ConnectionMethod>;
-
-/// Describes an available connection method. Called DeviceRetrievalMethod in ISO 18013-5
-pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
-
-/// Describes an available connection method.
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ConnectionMethodKeyed {
-    pub typ: ConnectionMethodType,
-    pub version: ConnectionMethodVersion,
-    pub connection_options: CborSeq<RestApiOptionsKeyed>,
-}
-
-#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
-#[repr(u8)]
-pub enum ConnectionMethodType {
-    RestApi = 4,
-}
-
-#[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]
-#[repr(u8)]
-pub enum ConnectionMethodVersion {
-    RestApi = 1,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RestApiOptionsKeyed {
-    pub uri: Url,
 }
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
