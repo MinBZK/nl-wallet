@@ -4,15 +4,13 @@ use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
-use nl_wallet_mdoc::{
-    server_state::{
-        test::{self, RandomData},
-        Expirable, HasProgress, Progress, SessionStoreTimeouts,
-    },
-    utils::mock_time::MockTimeGenerator,
-};
 use serial_test::{parallel, serial};
 
+use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
+use openid4vc::server_state::{
+    test::{self, RandomData},
+    Expirable, HasProgress, Progress, SessionStoreTimeouts,
+};
 use wallet_common::utils;
 use wallet_server::{
     settings::Settings,

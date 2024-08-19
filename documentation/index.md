@@ -77,17 +77,6 @@ fetch and add some attestations.
 
 See: [issuance.md](./diagrams/issuance_flow.md)
 
-### Disclosure (Verification)
-
-Details what happens when disclosing attestations.
-
-See: [disclosure.md](./diagrams/disclosure_flow.md)
-
-Also, we have a diagram showing a disclosure session from the perspective of the
-relying party.
-
-See: [session_flow.md](./diagrams/session_flow.md)
-
 ## Relying Party Step-by-Step
 
 A Relying Party (also known as a verifier, a party that needs to verify

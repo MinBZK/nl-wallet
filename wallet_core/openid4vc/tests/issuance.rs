@@ -6,8 +6,7 @@ use indexmap::IndexMap;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_keys::{KeyPair, SingleKeyRing},
-    server_state::{MemorySessionStore, SessionState},
+    server_keys::{test::SingleKeyRing, KeyPair},
     software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
     utils::{issuer_auth::IssuerRegistration, x509::Certificate},
@@ -20,6 +19,7 @@ use openid4vc::{
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     metadata::IssuerMetadata,
     oidc,
+    server_state::{MemorySessionStore, SessionState},
     token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };

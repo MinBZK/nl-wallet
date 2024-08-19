@@ -9,9 +9,8 @@ use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::{
     holder::{MdocDataSource, ProposedAttributes, StoredMdoc},
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
-    verifier::SessionType,
 };
-use openid4vc::disclosure_session::VpClientError;
+use openid4vc::{disclosure_session::VpClientError, verifier::SessionType};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
@@ -52,8 +51,6 @@ pub enum DisclosureError {
     SessionState,
     #[error("could not parse disclosure URI: {0}")]
     DisclosureUri(#[source] DisclosureUriError),
-    #[error("error in mdoc disclosure session: {0}")]
-    IsoDisclosureSession(#[from] nl_wallet_mdoc::Error),
     #[error("error in OpenID4VP disclosure session: {0}")]
     VpDisclosureSession(#[from] VpClientError),
     #[error("could not fetch if attributes were shared before: {0}")]
@@ -86,16 +83,12 @@ impl DisclosureError {
 }
 
 impl From<MdocDisclosureError> for DisclosureError {
-    // This error handling is more complicated than usual because an nl_wallet_mdoc::Error can happen
-    // in both the ISO and VP protocols, so it occurs in both variants, and in either case we need to
-    // handle WP instruction separately.
     fn from(error: MdocDisclosureError) -> Self {
         // Note that the `.unwrap()` and `panic!()` statements below are safe,
         // as checking is performed within the guard statements.
         match error {
             // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
-            MdocDisclosureError::Iso(nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)))
-            | MdocDisclosureError::Vp(VpClientError::DeviceResponse(nl_wallet_mdoc::Error::Cose(
+            MdocDisclosureError::Vp(VpClientError::DeviceResponse(nl_wallet_mdoc::Error::Cose(
                 CoseError::Signing(error),
             ))) if matches!(
                 error.downcast_ref::<RemoteEcdsaKeyError>(),
@@ -109,7 +102,6 @@ impl From<MdocDisclosureError> for DisclosureError {
                 }
             }
             // Any other error should result in its generic top-level error variant.
-            MdocDisclosureError::Iso(error) => DisclosureError::IsoDisclosureSession(error),
             MdocDisclosureError::Vp(error) => DisclosureError::VpDisclosureSession(error),
         }
     }
@@ -153,7 +145,7 @@ where
         )
         .map_err(DisclosureError::DisclosureUri)?;
 
-        // Start the disclosure session based on the `ReaderEngagement`.
+        // Start the disclosure session based on the parsed disclosure URI.
         let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors()).await?;
 
         let shared_data_with_relying_party_before = self
@@ -521,14 +513,13 @@ mod tests {
     use uuid::uuid;
 
     use nl_wallet_mdoc::{
-        holder::{HolderError, Mdoc, ProposedDocumentAttributes},
-        iso::disclosure::SessionStatus,
+        holder::{Mdoc, ProposedDocumentAttributes},
         unsigned::Entry,
-        verifier::SessionType,
         DataElementValue,
     };
     use openid4vc::{
         disclosure_session::VpMessageClientError, DisclosureErrorResponse, ErrorResponse, GetRequestErrorCode,
+        PostAuthResponseErrorCode,
     };
 
     use crate::{
@@ -685,17 +676,18 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(
-            nl_wallet_mdoc::Error::Holder(HolderError::NoAttributesRequested).into(),
-        );
+        MockMdocDisclosureSession::next_start_error(VpClientError::MissingSessionType.into());
 
-        // Starting disclosure with a malformed disclosure URI should result in an error.
+        // Starting disclosure which returns an error should forward that error.
         let error = wallet
             .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::IsoDisclosureSession(_));
+        assert_matches!(
+            error,
+            DisclosureError::VpDisclosureSession(VpClientError::MissingSessionType)
+        );
         assert!(wallet.disclosure_session.is_none());
     }
 
@@ -1247,12 +1239,20 @@ mod tests {
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
+        let response = DisclosureErrorResponse {
+            error_response: ErrorResponse {
+                error: PostAuthResponseErrorCode::InvalidRequest,
+                error_description: None,
+                error_uri: None,
+            },
+            redirect_uri: None,
+        };
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
-                next_error: Mutex::new(
-                    nl_wallet_mdoc::Error::Holder(HolderError::DisclosureResponse(SessionStatus::DecodingError)).into(),
-                ),
+                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::Request(
+                    VpMessageClientError::AuthPostResponse(response),
+                )))),
                 ..Default::default()
             }),
             ..Default::default()
@@ -1260,13 +1260,16 @@ mod tests {
         wallet.disclosure_session = disclosure_session.into();
 
         // Accepting disclosure when the verifier responds with
-        // a decoding error should result in an error.
+        // an invalid request error should result in an error.
         let error = wallet
             .accept_disclosure(PIN.to_string())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::IsoDisclosureSession(_));
+        assert_matches!(
+            error,
+            DisclosureError::VpDisclosureSession(VpClientError::Request(VpMessageClientError::AuthPostResponse(_)))
+        );
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
@@ -1308,21 +1311,28 @@ mod tests {
                 proposal
                     .next_error
                     .lock()
-                    .replace(nl_wallet_mdoc::Error::Cose(CoseError::Signing(
-                        RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
+                    .replace(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
+                        nl_wallet_mdoc::Error::Cose(CoseError::Signing(
+                            RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
+                        )),
                     )))
             }
             _ => unreachable!(),
         };
 
-        // Accepting disclosure when the verifier responds that key with
+        // Accepting disclosure when the wallet provider responds that key with
         // a particular identifier is not present should result in an error.
         let error = wallet
             .accept_disclosure(PIN.to_string())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::IsoDisclosureSession(_));
+        assert_matches!(
+            error,
+            DisclosureError::VpDisclosureSession(VpClientError::DeviceResponse(nl_wallet_mdoc::Error::Cose(
+                CoseError::Signing(_)
+            )))
+        );
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
@@ -1377,12 +1387,11 @@ mod tests {
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
-                next_error: Mutex::new(
+                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
                     nl_wallet_mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::Instruction(instruction_error).into(),
-                    ))
-                    .into(),
-                ),
+                    )),
+                )))),
                 ..Default::default()
             }),
             ..Default::default()
@@ -1483,7 +1492,7 @@ mod tests {
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
-                next_error: Mutex::new(nl_wallet_mdoc::Error::Holder(HolderError::ReaderAuthMissing).into()),
+                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::MissingReaderRegistration))),
                 attributes_shared: true,
                 ..Default::default()
             }),
@@ -1503,7 +1512,7 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::IsoDisclosureSession(nl_wallet_mdoc::Error::Holder(HolderError::ReaderAuthMissing))
+            DisclosureError::VpDisclosureSession(VpClientError::MissingReaderRegistration)
         );
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());

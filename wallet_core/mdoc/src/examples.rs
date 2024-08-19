@@ -28,6 +28,15 @@ pub const EXAMPLE_ATTR_NAME: &str = "family_name";
 // Lazy since can't have a const String
 pub static EXAMPLE_ATTR_VALUE: LazyLock<Value> = LazyLock::new(|| Value::Text("Doe".to_string()));
 
+// Describe what is in `DeviceResponse::example()`.
+pub const EXAMPLE_ATTRIBUTES: [&str; 5] = [
+    "family_name",
+    "issue_date",
+    "expiry_date",
+    "document_number",
+    "driving_privileges",
+];
+
 /// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
 /// This generator returns a time in that window.
 pub struct IsoCertTimeGenerator;

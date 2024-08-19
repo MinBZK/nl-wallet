@@ -1,6 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::{collections::HashMap, fmt::Display, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use itertools::Itertools;
@@ -21,15 +21,8 @@ use tracing::{debug, info, warn};
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::KeyPair,
-    server_state::{
-        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
-        CLEANUP_INTERVAL_SECONDS,
-    },
     utils::x509::CertificateError,
-    verifier::{
-        DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl,
-        EPHEMERAL_ID_VALIDITY_SECONDS,
-    },
+    verifier::{DisclosedAttributes, ItemsRequests},
 };
 use wallet_common::{
     config::wallet_config::BaseUrl,
@@ -45,8 +38,15 @@ use crate::{
         AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest,
         VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
+    return_url::ReturnUrlTemplate,
+    server_state::{
+        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
+        CLEANUP_INTERVAL_SECONDS,
+    },
     AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
+
+pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
 /// Errors that can occur during processing of any of the endpoints.
 #[derive(Debug, thiserror::Error)]
@@ -419,6 +419,25 @@ impl From<DisclosureData> for SessionStatus {
             },
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum SessionType {
+    // Using Universal Link
+    SameDevice,
+    /// Using QR code
+    CrossDevice,
+}
+
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SessionTypeReturnUrl {
+    Neither,
+    #[default]
+    SameDevice,
+    Both,
 }
 
 #[nutype(derive(Debug, From, AsRef))]
@@ -1095,16 +1114,13 @@ mod tests {
     use ring::{hmac, rand};
     use rstest::rstest;
 
-    use nl_wallet_mdoc::{
-        server_keys::KeyPair,
-        server_state::{MemorySessionStore, SessionToken},
-        utils::reader_auth::ReaderRegistration,
-        ItemsRequest,
-    };
+    use nl_wallet_mdoc::{server_keys::KeyPair, utils::reader_auth::ReaderRegistration, ItemsRequest};
     use wallet_common::{
         generator::{Generator, TimeGenerator},
         trust_anchor::DerTrustAnchor,
     };
+
+    use crate::server_state::{MemorySessionStore, SessionToken};
 
     use super::{
         AuthorizationErrorCode, DisclosedAttributesError, DisclosureData, Done, ErrorResponse, GetAuthRequestError,

@@ -21,18 +21,19 @@ use nl_wallet_mdoc::{
         Example, Examples, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE,
         EXAMPLE_NAMESPACE,
     },
-    server_state::{
-        MemorySessionStore, SessionState, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS,
-    },
     utils::{
         mock_time::MockTimeGenerator,
         serialization::{CborSeq, TaggedBytes},
     },
-    verifier::{DisclosedAttributes, ReturnUrlTemplate, SessionType},
+    verifier::DisclosedAttributes,
     DeviceAuthenticationBytes, DeviceResponse, ItemsRequest,
 };
 use openid4vc::{
-    verifier::{DisclosureData, Done, SessionResult, StatusResponse, VerifierUrlParameters},
+    return_url::ReturnUrlTemplate,
+    server_state::{
+        MemorySessionStore, SessionState, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS,
+    },
+    verifier::{DisclosureData, Done, SessionResult, SessionType, StatusResponse, VerifierUrlParameters},
     ErrorResponse,
 };
 use url::Url;

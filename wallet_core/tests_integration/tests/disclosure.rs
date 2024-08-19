@@ -10,10 +10,14 @@ use nl_wallet_mdoc::{
         data::{addr_street, pid_family_name, pid_full_name, pid_given_name},
         TestDocuments,
     },
-    verifier::{DisclosedAttributes, ReturnUrlTemplate, SessionType},
+    verifier::DisclosedAttributes,
     ItemsRequest,
 };
-use openid4vc::{token::TokenRequest, verifier::StatusResponse};
+use openid4vc::{
+    return_url::ReturnUrlTemplate,
+    token::TokenRequest,
+    verifier::{SessionType, StatusResponse},
+};
 use tests_integration::common::*;
 use wallet::{errors::DisclosureError, mock::MockDigidSession, DisclosureUriSource};
 use wallet_common::{http_error::HttpJsonErrorBody, utils};

@@ -1,7 +1,6 @@
 use anyhow::Result;
 
-use nl_wallet_mdoc::server_state::SessionStore;
-use openid4vc::{issuer::AttributeService, verifier::DisclosureData};
+use openid4vc::{issuer::AttributeService, server_state::SessionStore, verifier::DisclosureData};
 
 use super::*;
 use crate::{issuer::create_issuance_router, settings::Settings, verifier};

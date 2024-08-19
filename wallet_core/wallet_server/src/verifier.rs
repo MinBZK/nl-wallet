@@ -10,14 +10,13 @@ use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn};
 
-use nl_wallet_mdoc::{
-    server_state::{SessionStore, SessionToken},
-    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType},
-};
+use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests};
 use openid4vc::{
     disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
     openid4vp::{VpResponse, WalletRequest},
-    verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
+    return_url::ReturnUrlTemplate,
+    server_state::{SessionStore, SessionToken},
+    verifier::{DisclosureData, SessionType, StatusResponse, Verifier, WalletAuthResponse},
     DisclosureErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonError};

@@ -17,11 +17,10 @@ use rstest::rstest;
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
     holder::{
-        test::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, DisclosureUriSource, Mdoc,
-        MdocCopies, MdocDataSource, StoredMdoc, TrustAnchor,
+        mock::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocCopies, MdocDataSource,
+        StoredMdoc, TrustAnchor,
     },
     server_keys::KeyPair,
-    server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
     test::{
         data::{addr_street, pid_full_name, pid_given_name},
@@ -29,16 +28,20 @@ use nl_wallet_mdoc::{
     },
     unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
-    verifier::{ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl},
+    verifier::ItemsRequests,
     DeviceResponse, DocType, SessionTranscript,
 };
 use openid4vc::{
-    disclosure_session::{DisclosureSession, VpClientError, VpMessageClient, VpMessageClientError},
+    disclosure_session::{
+        DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
+    },
     jwt,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
+    return_url::ReturnUrlTemplate,
+    server_state::{MemorySessionStore, SessionToken},
     verifier::{
-        DisclosedAttributesError, DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken,
-        WalletAuthResponse,
+        DisclosedAttributesError, DisclosureData, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase, Verifier,
+        VerifierUrlParameters, VpToken, WalletAuthResponse,
     },
     ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
 };

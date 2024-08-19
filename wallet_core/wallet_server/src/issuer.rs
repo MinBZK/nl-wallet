@@ -13,15 +13,13 @@ use axum_extra::{
 use nutype::nutype;
 use serde::Serialize;
 
-use nl_wallet_mdoc::{
-    server_keys::{KeyPair, KeyRing},
-    server_state::SessionStore,
-};
+use nl_wallet_mdoc::server_keys::{KeyPair, KeyRing};
 use openid4vc::{
     credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     metadata::IssuerMetadata,
     oidc,
+    server_state::SessionStore,
     token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode, ErrorResponse, ErrorStatusCode, TokenErrorCode,
 };
@@ -40,10 +38,6 @@ pub struct IssuerKeyRing(HashMap<String, KeyPair>);
 impl KeyRing for IssuerKeyRing {
     fn key_pair(&self, id: &str) -> Option<&KeyPair> {
         self.as_ref().get(id)
-    }
-
-    fn contains_key_pair(&self, id: &str) -> bool {
-        self.as_ref().contains_key(id)
     }
 }
 

@@ -3,24 +3,19 @@ use std::{collections::HashSet, error::Error};
 use super::Mdoc;
 
 pub use disclosure_request_match::DisclosureRequestMatch;
-pub use proposed_document::{ProposedDocument, ProposedDocumentAttributes};
-pub use session::{
-    DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, DisclosureUriSource, ProposedAttributes,
-};
+pub use proposed_document::{ProposedAttributes, ProposedDocument, ProposedDocumentAttributes};
 
 mod device_signed;
 mod disclosure_request_match;
-mod engagement;
 mod issuer_signed;
 mod proposed_document;
 mod request;
 mod response;
-mod session;
 
 #[cfg(test)]
 mod iso_tests;
-#[cfg(any(test, feature = "test"))]
-pub mod test;
+#[cfg(any(test, feature = "mock"))]
+pub mod mock;
 
 #[derive(Debug, Clone)]
 pub struct StoredMdoc<I> {

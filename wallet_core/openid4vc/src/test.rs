@@ -7,29 +7,29 @@ use parking_lot::Mutex;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-    holder::{
-        test::{
-            example_items_request, MdocIdentifier, MockMdocDataSource, ReaderCertificateKind, EXAMPLE_ATTRIBUTES,
-            VERIFIER_URL,
-        },
-        DisclosureUriSource, TrustAnchor,
-    },
+    examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
+    holder::{mock::MockMdocDataSource, TrustAnchor},
+    iso::device_retrieval::ItemsRequest,
     server_keys::KeyPair,
     utils::reader_auth::ReaderRegistration,
-    verifier::{ItemsRequests, SessionType},
+    verifier::ItemsRequests,
 };
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, trust_anchor::DerTrustAnchor, utils::random_string};
 
 use crate::{
-    disclosure_session::{DisclosureSession, VpClientError, VpMessageClient, VpMessageClientError},
+    disclosure_session::{
+        DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
+    },
     jwt,
     openid4vp::{
         IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest, VpRequestUriObject, WalletRequest,
     },
-    verifier::VerifierUrlParameters,
+    verifier::{SessionType, VerifierUrlParameters},
     AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
+
+// Constants for testing.
+pub const VERIFIER_URL: &str = "http://example.com/disclosure";
 
 /// Contains the minimum logic to respond with the correct verifier messages in a disclosure session,
 /// exposing fields to its user to inspect and/or modify the behaviour.
@@ -111,7 +111,7 @@ where
             session_type,
             key_pair.certificate().san_dns_name().unwrap().unwrap(),
         );
-        let items_requests = vec![example_items_request()].into();
+        let items_requests = vec![ItemsRequest::new_example()].into();
 
         MockVerifierSession {
             session_type,
@@ -221,6 +221,11 @@ where
     }
 }
 
+pub enum ReaderCertificateKind {
+    NoReaderRegistration,
+    WithReaderRegistration,
+}
+
 /// Perform a [`DisclosureSession`] start with test defaults.
 /// This function takes several closures for modifying these
 /// defaults just before they are actually used.
@@ -233,7 +238,7 @@ pub async fn disclosure_session_start<FS, FM, FD>(
     transform_device_request: FD,
 ) -> Result<
     (
-        DisclosureSession<MockVerifierVpMessageClient<FD>, MdocIdentifier>,
+        DisclosureSession<MockVerifierVpMessageClient<FD>, String>,
         Arc<MockVerifierSession<FD>>,
     ),
     (VpClientError, Arc<MockVerifierSession<FD>>),
@@ -433,7 +438,7 @@ pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
         .unwrap();
 
     IsoVpAuthorizationRequest::new(
-        &vec![example_items_request()].into(),
+        &vec![ItemsRequest::new_example()].into(),
         key_pair.certificate(),
         random_string(32),
         EcKeyPair::generate(EcCurve::P256)
@@ -448,7 +453,7 @@ pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
 }
 
 pub async fn test_disclosure_session_terminate<H>(
-    session: DisclosureSession<H, MdocIdentifier>,
+    session: DisclosureSession<H, String>,
     wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
 ) -> Result<Option<BaseUrl>, VpClientError>
 where

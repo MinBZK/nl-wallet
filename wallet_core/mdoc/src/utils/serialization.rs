@@ -145,7 +145,7 @@ impl<T> From<T> for CborSeq<T> {
 /// Used to be able to refer by name instead of by an integer to refer to the contents of the
 /// data structure.
 #[derive(Debug, Clone)]
-pub struct CborIntMap<T, const STRING: bool = false>(pub T);
+pub struct CborIntMap<T>(pub T);
 impl<T> From<T> for CborIntMap<T> {
     fn from(val: T) -> Self {
         CborIntMap(val)
@@ -187,7 +187,7 @@ where
     }
 }
 
-impl<'de, T, const STRING: bool> Serialize for CborIntMap<T, STRING>
+impl<'de, T> Serialize for CborIntMap<T>
 where
     T: Serialize + Deserialize<'de>,
 {
@@ -195,16 +195,7 @@ where
         let field_name_indices: IndexMap<String, Value> = serde_introspect::<T>()
             .iter()
             .enumerate()
-            .map(|(index, field_name)| {
-                (
-                    field_name.to_string(),
-                    if !STRING {
-                        Value::Integer(index.into())
-                    } else {
-                        Value::Text(format!("{}", index))
-                    },
-                )
-            })
+            .map(|(index, field_name)| (field_name.to_string(), Value::Integer(index.into())))
             .collect();
 
         match Value::serialized(&self.0).map_err(ser::Error::custom)? {
@@ -224,7 +215,7 @@ where
         }
     }
 }
-impl<'de, T, const STRING: bool> Deserialize<'de> for CborIntMap<T, STRING>
+impl<'de, T> Deserialize<'de> for CborIntMap<T>
 where
     T: Deserialize<'de>,
 {
@@ -260,7 +251,7 @@ where
 }
 
 // We can't derive `Deserialize` with the `untagged` Serde enum deserializer, because unfortunately it is not able to
-// deserialize the SchemeHandoverBytes variant.
+// distinguish between the `NfcHandover` and `Oid4vpHandover` variants.
 // For the other direction (serializing), however, the `untagged` enum serializer is used and works fine.
 // Note that this implementation is only ever used to deserialize the examples from the spec in `examples.rs`.
 // For each variant a unit test is included to check that serializing and deserializing agree with each other.
@@ -270,14 +261,6 @@ impl<'de> Deserialize<'de> for Handover {
         let val = Value::deserialize(deserializer)?;
         match val {
             Value::Null => Ok(Handover::QrHandover),
-            Value::Tag(24, b) => Ok(Handover::SchemeHandoverBytes(TaggedBytes(
-                cbor_deserialize(
-                    b.as_bytes()
-                        .ok_or(de::Error::custom("tagged value of unexpected type, expected bytes"))?
-                        .as_slice(),
-                )
-                .map_err(de::Error::custom)?,
-            ))),
             Value::Array(ref bts_vec) => match bts_vec.len() {
                 1 | 2 => Ok(Handover::NfcHandover(val.deserialized().map_err(de::Error::custom)?)),
                 3 => Ok(Handover::Oid4vpHandover(val.deserialized().map_err(de::Error::custom)?)),
@@ -370,50 +353,6 @@ struct OriginInfoWebsiteDetails {
     referrer_url: Url,
 }
 
-impl Serialize for OriginInfoType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let result = match self {
-            OriginInfoType::Website(url) => OriginInfoTypeSerialized {
-                typ: 1,
-                details: Value::serialized(&OriginInfoWebsiteDetails {
-                    referrer_url: url.clone(),
-                })
-                .map_err(ser::Error::custom)?,
-            },
-            OriginInfoType::OnDeviceQRCode => OriginInfoTypeSerialized {
-                typ: 2,
-                details: Value::Null,
-            },
-            OriginInfoType::MessageData => OriginInfoTypeSerialized {
-                typ: 4,
-                details: Value::Null,
-            },
-        };
-        result.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for OriginInfoType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let info_type: OriginInfoTypeSerialized = OriginInfoTypeSerialized::deserialize(deserializer)?;
-        match info_type.typ {
-            1 => {
-                let details: OriginInfoWebsiteDetails = info_type.details.deserialized().map_err(de::Error::custom)?;
-                Ok(OriginInfoType::Website(details.referrer_url))
-            }
-            2 => Ok(OriginInfoType::OnDeviceQRCode),
-            4 => Ok(OriginInfoType::MessageData),
-            _ => Err(de::Error::custom("unsupported OriginInfoType")),
-        }
-    }
-}
-
 // Don't (de)serialize the CBOR tag when we serialize to JSON
 impl Serialize for Tdate {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -464,10 +403,8 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for CborBase64<T> {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use ciborium::value::Value::{Array, Bytes, Integer, Map, Null, Tag, Text};
+    use ciborium::value::Value::{Array, Bytes, Null, Text};
     use hex_literal::hex;
-    use p256::SecretKey;
-    use rand_core::OsRng;
 
     use crate::examples::Example;
 
@@ -483,29 +420,8 @@ mod tests {
         assert_eq!(original.0, decoded.0);
     }
 
-    #[test]
-    fn origin_info() {
-        let val = OriginInfo {
-            cat: OriginInfoDirection::Delivered,
-            typ: OriginInfoType::Website("https://example.com".parse().unwrap()),
-        };
-
-        // Explicitly assert CBOR structure of the serialized data
-        assert_eq!(
-            Value::serialized(&val).unwrap(),
-            Map(vec![
-                (Text("cat".into()), Integer(0.into())),
-                (Text("type".into()), Integer(1.into())),
-                (
-                    Text("Details".into()),
-                    Map(vec![(Text("ReferrerUrl".into()), Text("https://example.com/".into()))])
-                )
-            ])
-        );
-    }
-
     // For each of the `Handover` variants, we manually construct the CBOR structure as defined by the specs
-    // (ISO 18013-5, 23220-4, and OpenID4VP), and check that (1) this correctly deserializes to the expected
+    // (ISO 18013-5 and OpenID4VP), and check that (1) this correctly deserializes to the expected
     // variant and (2) serializing it back yields identical CBOR. This tests not only that the manual Deserialize
     // implementation agrees with the derived Serialize implementation but also that both of these align with
     // the specs.
@@ -555,34 +471,5 @@ mod tests {
         );
 
         assert_eq!(Value::serialized(&oid4vp_handover).unwrap(), oid4vp_handover_cbor);
-    }
-
-    #[test]
-    fn test_handover_serialization_scheme() {
-        // Construct the CBOR contents of `Handover::SchemeHandoverBytes`.
-        let reader_engagement_bts = cbor_serialize(
-            &ReaderEngagement::try_new(&SecretKey::random(&mut OsRng), "https://example.com".parse().unwrap()).unwrap(),
-        )
-        .unwrap();
-        let scheme_handover_cbor = Tag(24, Box::new(Bytes(reader_engagement_bts)));
-
-        // Check that it deserializes to the expected Handover variant.
-        let scheme_handover: Handover = scheme_handover_cbor.deserialized().unwrap();
-        let Handover::SchemeHandoverBytes(TaggedBytes(CborIntMap(Engagement { connection_methods, .. }))) =
-            &scheme_handover
-        else {
-            panic!("deserialized to wrong Handover variant")
-        };
-
-        // Check some of the contents.
-        let connection_method = &connection_methods.as_ref().unwrap().first().unwrap().0;
-        assert_matches!(connection_method.typ, ConnectionMethodType::RestApi);
-        assert_eq!(
-            connection_method.connection_options.0.uri,
-            "https://example.com".parse().unwrap()
-        );
-
-        // Check that it serializes back again to the CBOR manually constructed above.
-        assert_eq!(Value::serialized(&scheme_handover).unwrap(), scheme_handover_cbor);
     }
 }

@@ -198,19 +198,20 @@ mod tests {
     use rstest::rstest;
 
     use crate::{
-        holder::DisclosureRequestMatch,
+        holder::mock::MockMdocDataSource,
+        iso::{
+            mdocs::{Attributes, IssuerNameSpaces, IssuerSignedItem},
+            unsigned::Entry,
+        },
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         test::{
             data::{addr_street, empty, pid_family_name, pid_full_name, pid_given_name},
             TestDocument, TestDocuments,
         },
-        unsigned::Entry,
-        verifier::SessionType,
-        Attributes, IssuerNameSpaces, IssuerSignedItem,
     };
 
-    use super::{super::test::*, *};
+    use super::*;
 
     #[rstest]
     #[case(empty(), empty(), candidates(empty()))]
@@ -248,7 +249,7 @@ mod tests {
 
         let device_request = DeviceRequest::from(requested_documents);
 
-        let session_transcript = create_basic_session_transcript(SessionType::SameDevice);
+        let session_transcript = SessionTranscript::new_mock();
         let match_result =
             DisclosureRequestMatch::new(device_request.items_requests(), &mdoc_data_source, &session_transcript)
                 .await

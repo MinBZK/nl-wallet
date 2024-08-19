@@ -12,17 +12,13 @@ use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
-    holder::{
-        DisclosureError, DisclosureRequestMatch, DisclosureUriSource, MdocDataSource, ProposedAttributes,
-        ProposedDocument, TrustAnchor,
-    },
+    holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
     identifiers::AttributeIdentifier,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         reader_auth::{ReaderRegistration, ValidationError},
         x509::{Certificate, CertificateError, CertificateType},
     },
-    verifier::SessionType,
 };
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
 
@@ -31,7 +27,7 @@ use crate::{
         AuthRequestValidationError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod,
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
-    verifier::{VerifierUrlParameters, VpToken},
+    verifier::{SessionType, VerifierUrlParameters, VpToken},
     AuthorizationErrorCode, DisclosureErrorResponse, ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode,
     VpAuthorizationErrorCode,
 };
@@ -142,6 +138,34 @@ impl VpMessageClientError {
             Self::AuthGetResponse(response) => response.redirect_uri.as_ref(),
             Self::AuthPostResponse(response) => response.redirect_uri.as_ref(),
             _ => None,
+        }
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error("could not perform actual disclosure, attributes were shared: {data_shared}, error: {error}")]
+pub struct DisclosureError<E: std::error::Error> {
+    pub data_shared: bool,
+    #[source]
+    pub error: E,
+}
+
+impl<E: std::error::Error> DisclosureError<E> {
+    pub fn new(data_shared: bool, error: E) -> Self {
+        Self { data_shared, error }
+    }
+
+    pub fn before_sharing(error: E) -> Self {
+        Self {
+            data_shared: false,
+            error,
+        }
+    }
+
+    pub fn after_sharing(error: E) -> Self {
+        Self {
+            data_shared: true,
+            error,
         }
     }
 }
@@ -292,6 +316,31 @@ impl HttpVpMessageClient {
         }
         let response: VpResponse = serde_json::from_str(&response_body)?;
         Ok(response.redirect_uri)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "snake_case")] // Symmetrical to `SessionType`.
+pub enum DisclosureUriSource {
+    Link,
+    QrCode,
+}
+
+impl DisclosureUriSource {
+    pub fn new(is_qr_code: bool) -> Self {
+        if is_qr_code {
+            Self::QrCode
+        } else {
+            Self::Link
+        }
+    }
+
+    /// Returns the expected session type for a source of the received [`ReaderEngagement`].
+    pub fn session_type(&self) -> SessionType {
+        match self {
+            Self::Link => SessionType::SameDevice,
+            Self::QrCode => SessionType::CrossDevice,
+        }
     }
 }
 
@@ -656,14 +705,8 @@ mod tests {
     use serde_json::json;
 
     use nl_wallet_mdoc::{
-        examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-        holder::{
-            test::{
-                create_example_proposed_document, emtpy_items_request, example_identifiers_from_attributes,
-                MdocDataSourceError, MdocIdentifier, ReaderCertificateKind, EXAMPLE_ATTRIBUTES, VERIFIER_URL,
-            },
-            DisclosureError, DisclosureUriSource, HolderError,
-        },
+        examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
+        holder::{mock::MdocDataSourceError, HolderError, ProposedDocument},
         identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
         software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
         utils::{
@@ -673,7 +716,6 @@ mod tests {
             serialization::{cbor_deserialize, cbor_serialize, CborBase64, CborSeq, TaggedBytes},
             x509::CertificateError,
         },
-        verifier::SessionType,
         DeviceAuth, DeviceAuthenticationKeyed, ItemsRequest, MobileSecurityObject, SessionTranscript,
     };
     use wallet_common::{keys::software::SoftwareEcdsaKey, utils::random_string};
@@ -686,13 +728,15 @@ mod tests {
         },
         test::{
             disclosure_session_start, iso_auth_request, test_disclosure_session_start_error_http_client,
-            test_disclosure_session_terminate, MockErrorFactoryVpMessageClient, WalletMessage,
+            test_disclosure_session_terminate, MockErrorFactoryVpMessageClient, ReaderCertificateKind, WalletMessage,
+            VERIFIER_URL,
         },
+        verifier::SessionType,
     };
 
     use super::{
-        CommonDisclosureData, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, VpClientError,
-        VpMessageClientError,
+        CommonDisclosureData, DisclosureError, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession,
+        DisclosureUriSource, VpClientError, VpMessageClientError,
     };
 
     // This is the full happy path test of `DisclosureSession`.
@@ -885,7 +929,8 @@ mod tests {
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
 
-        let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
+        let expected_missing_attributes =
+            AttributeIdentifier::new_example_index_set_from_attributes(["driving_privileges"]);
 
         itertools::assert_equal(
             missing_attr_session.missing_attributes().iter(),
@@ -925,7 +970,7 @@ mod tests {
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
 
-        let expected_missing_attributes = example_identifiers_from_attributes([
+        let expected_missing_attributes = AttributeIdentifier::new_example_index_set_from_attributes([
             "family_name",
             "issue_date",
             "expiry_date",
@@ -1199,7 +1244,7 @@ mod tests {
 
     #[rstest]
     #[case(vec![])]
-    #[case(vec![emtpy_items_request()])]
+    #[case(vec![ItemsRequest::new_example_empty()])]
     #[tokio::test]
     async fn test_disclosure_session_start_error_no_attributes_requested(#[case] items_requests: Vec<ItemsRequest>) {
         // Starting a `DisclosureSession` with an Authorization Request with no
@@ -1376,7 +1421,7 @@ mod tests {
     fn create_disclosure_session_proposal<F>(
         response_factory: F,
     ) -> (
-        DisclosureSession<MockErrorFactoryVpMessageClient<F>, MdocIdentifier>,
+        DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
         Arc<Mutex<Vec<WalletMessage>>>,
     )
     where
@@ -1397,7 +1442,7 @@ mod tests {
                 session_type,
                 auth_request: iso_auth_request(),
             },
-            proposed_documents: vec![create_example_proposed_document()],
+            proposed_documents: vec![ProposedDocument::new_example()],
             mdoc_nonce,
         });
 

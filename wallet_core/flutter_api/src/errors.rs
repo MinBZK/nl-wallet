@@ -7,13 +7,12 @@ use url::Url;
 
 use wallet::{
     errors::{
-        mdoc::{self, HolderError},
         openid4vc::{IssuanceSessionError, OidcError, VpClientError, VpMessageClientErrorType},
         reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
         PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
         WalletUnlockError,
     },
-    mdoc::SessionType,
+    openid4vc::SessionType,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -219,15 +218,8 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::DisclosureUriSourceMismatch(
-                _,
-                _,
-            )))
-            | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
+            DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
-            }
-            DisclosureError::IsoDisclosureSession(error) => {
-                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
             DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
                 VpMessageClientErrorType::Expired { .. } => FlutterApiErrorType::ExpiredSession,
@@ -244,11 +236,7 @@ impl FlutterApiErrorFields for DisclosureError {
 
     fn data(&self) -> serde_json::Value {
         let session_type = match self {
-            DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::DisclosureUriSourceMismatch(
-                session_type,
-                _,
-            )))
-            | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
+            DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
                 Some(*session_type)
             }
             _ => None,

@@ -7,14 +7,7 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-[[test]]
-name = "test"
-path = "tests/tests.rs"
-required-features = ["integration"]
-
 [features]
-# Allow the disclosure return URL and its prefix to use http://
-allow_http_return_url = []
 # Include code for generating certificates and keys
 generate = ["dep:rcgen"]
 # Include examples from the ISO specification
@@ -22,26 +15,20 @@ examples = ["dep:anyhow", "dep:hex-literal"]
 # Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
 software_keys = ["wallet_common/software_keys"]
 # Include SoftwareKeyFactory, which implements KeyFactory for testing
-software_key_factory = ["software_keys", "dep:parking_lot"]
-# Include MdocsMap, which can be used for tests that store Mdocs
-mdocs_map = []
+software_key_factory = ["software_keys", "dep:cfg-if", "dep:parking_lot"]
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include MockTimeGenerator, which can be used to mock the curren time for testing purposes
 mock_time = ["dep:parking_lot"]
-# All features needed to run the integration test
-integration = ["generate", "software_key_factory", "test", "mock"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
-assert_matches = { workspace = true, optional = true }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
-dashmap.workspace = true
 derive_more = { workspace = true, features = ["as_ref"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
@@ -60,16 +47,17 @@ serde_json.workspace = true
 serde_repr.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono", "hex"] }
-strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 time.workspace = true
-tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
+tokio = { workspace = true, features = ["parking_lot"] }
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 anyhow = { workspace = true, optional = true }
+assert_matches = { workspace = true, optional = true }
+cfg-if = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser"] }
@@ -82,6 +70,7 @@ wallet_common.path = "../wallet_common"
 [dev-dependencies]
 anyhow.workspace = true
 assert_matches.workspace = true
+cfg-if.workspace = true
 hex-literal.workspace = true
 http.workspace = true
 parking_lot.workspace = true

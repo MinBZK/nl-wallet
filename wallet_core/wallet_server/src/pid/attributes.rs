@@ -1,9 +1,10 @@
 use indexmap::IndexMap;
 
-use nl_wallet_mdoc::{server_state::SessionState, unsigned::UnsignedMdoc, utils::x509::Certificate};
+use nl_wallet_mdoc::{unsigned::UnsignedMdoc, utils::x509::Certificate};
 use openid4vc::{
     issuer::{AttributeService, Created},
     oidc,
+    server_state::SessionState,
     token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
     ErrorResponse, TokenErrorCode,
 };

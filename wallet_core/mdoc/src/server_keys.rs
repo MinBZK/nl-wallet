@@ -1,14 +1,11 @@
 use std::fmt::{Debug, Formatter};
 
-use p256::{
-    ecdsa::{Signature, SigningKey},
-    pkcs8::DecodePrivateKey,
-};
+use p256::ecdsa::{Signature, SigningKey};
 
 use error_category::ErrorCategory;
 use wallet_common::keys::EcdsaKey;
 
-use crate::{utils::x509::Certificate, Result};
+use crate::utils::x509::Certificate;
 
 pub struct KeyPair {
     private_key: SigningKey,
@@ -18,8 +15,6 @@ pub struct KeyPair {
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 #[category(pd)]
 pub enum KeysError {
-    #[error("failed to parse DER-encoded private key: {0}")]
-    DerParsing(#[from] p256::pkcs8::Error),
     #[error("key generation error: {0}")]
     KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
@@ -30,14 +25,6 @@ impl KeyPair {
             private_key,
             certificate,
         }
-    }
-
-    pub fn from_der(private_key: &[u8], cert: &[u8]) -> Result<KeyPair> {
-        let key = Self::new(
-            SigningKey::from_pkcs8_der(private_key).map_err(KeysError::DerParsing)?,
-            Certificate::from(cert),
-        );
-        Ok(key)
     }
 
     pub fn private_key(&self) -> &SigningKey {
@@ -77,17 +64,19 @@ impl EcdsaKey for KeyPair {
 
 pub trait KeyRing {
     fn key_pair(&self, id: &str) -> Option<&KeyPair>;
-    fn contains_key_pair(&self, id: &str) -> bool {
-        self.key_pair(id).is_some()
-    }
 }
 
-/// An implementation of [`KeyRing`] containing a single key.
-pub struct SingleKeyRing(pub KeyPair);
+#[cfg(any(test, feature = "test"))]
+pub mod test {
+    use super::{KeyPair, KeyRing};
 
-impl KeyRing for SingleKeyRing {
-    fn key_pair(&self, _: &str) -> Option<&KeyPair> {
-        Some(&self.0)
+    /// An implementation of [`KeyRing`] containing a single key.
+    pub struct SingleKeyRing(pub KeyPair);
+
+    impl KeyRing for SingleKeyRing {
+        fn key_pair(&self, _: &str) -> Option<&KeyPair> {
+            Some(&self.0)
+        }
     }
 }
 

@@ -1,9 +1,8 @@
 use url::Url;
 
 use wallet::{
-    errors::DisclosureError,
-    mdoc::{ReaderRegistration, SessionType},
-    DisclosureDocument, DisclosureProposal, MissingDisclosureAttributes,
+    errors::DisclosureError, mdoc::ReaderRegistration, openid4vc::SessionType, DisclosureDocument, DisclosureProposal,
+    MissingDisclosureAttributes,
 };
 
 use super::{

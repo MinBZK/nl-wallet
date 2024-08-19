@@ -48,7 +48,7 @@ required-features = ["integration_test"]
 
 [features]
 # Allow the disclosure return URL and its prefix to use http://
-allow_http_return_url = ["nl_wallet_mdoc?/allow_http_return_url"]
+allow_http_return_url = ["openid4vc?/allow_http_return_url"]
 # Initialize global logging using tracing-subscriber
 logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
@@ -66,6 +66,7 @@ test_common = [
     "dep:nl_wallet_mdoc",
     "dep:openid4vc",
     "dep:platform_support",
+    "dep:uuid",
     "dep:wallet",
     "dep:wallet_common",
     "dep:wallet_provider",
@@ -194,7 +195,6 @@ dotenvy = { workspace = true, optional = true }
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
 # * db_test
-nl_wallet_mdoc = { path = "../mdoc", features = ["integration"] }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 wallet_provider_service.path = "../wallet_provider/service"
 wallet_server = { path = "../wallet_server", features = ["issuance"] }

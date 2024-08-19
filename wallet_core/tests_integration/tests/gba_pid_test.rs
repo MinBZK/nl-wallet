@@ -2,8 +2,8 @@ use indexmap::IndexMap;
 use rstest::rstest;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
 use openid4vc::{
+    disclosure_session::{DisclosureSession, HttpVpMessageClient},
     issuance_session::{HttpIssuanceSession, IssuanceSessionError},
     ErrorResponse, TokenErrorCode,
 };
@@ -122,7 +122,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,
-        DisclosureSession<CborHttpClient, Uuid>,
+        DisclosureSession<HttpVpMessageClient, Uuid>,
     > = Wallet::init_registration(
         config_repository,
         MockStorage::default(),

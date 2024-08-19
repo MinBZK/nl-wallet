@@ -16,6 +16,7 @@ pub trait MdocEcdsaKey: SecureEcdsaKey + WithIdentifier {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MdocKeyType {
+    #[cfg(any(test, feature = "software_keys"))]
     Software,
     Remote,
 }

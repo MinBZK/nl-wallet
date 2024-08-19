@@ -95,3 +95,48 @@ pub type DataElements = IndexMap<DataElementIdentifier, IndentToRetain>;
 ///  Claimed intention of the RP to (not) retain the attribute value after receiving and verifying it, as part of
 /// [`DataElements`] within a [`ItemsRequest`].
 pub type IndentToRetain = bool;
+
+#[cfg(any(test, feature = "examples"))]
+mod examples {
+    use std::iter;
+
+    use indexmap::IndexMap;
+
+    use crate::examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE};
+
+    use super::ItemsRequest;
+
+    impl ItemsRequest {
+        /// Build an [`ItemsRequest`] from a list of attributes.
+        fn from_attributes(
+            doc_type: String,
+            name_space: String,
+            attributes: impl Iterator<Item = impl Into<String>>,
+        ) -> Self {
+            Self {
+                doc_type,
+                name_spaces: IndexMap::from_iter([(
+                    name_space,
+                    attributes.map(|attribute| (attribute.into(), false)).collect(),
+                )]),
+                request_info: None,
+            }
+        }
+
+        pub fn new_example() -> Self {
+            Self::from_attributes(
+                EXAMPLE_DOC_TYPE.to_string(),
+                EXAMPLE_NAMESPACE.to_string(),
+                EXAMPLE_ATTRIBUTES.iter().copied(),
+            )
+        }
+
+        pub fn new_example_empty() -> Self {
+            Self::from_attributes(
+                EXAMPLE_DOC_TYPE.to_string(),
+                EXAMPLE_NAMESPACE.to_string(),
+                iter::empty::<String>(),
+            )
+        }
+    }
+}

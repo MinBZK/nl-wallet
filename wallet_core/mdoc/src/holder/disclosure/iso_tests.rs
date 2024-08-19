@@ -17,7 +17,7 @@ use crate::{
     SessionTranscript,
 };
 
-use super::{test::MockMdocDataSource, DisclosureRequestMatch};
+use super::{mock::MockMdocDataSource, DisclosureRequestMatch};
 
 /// This function uses the `MockMdocDataSource` to provide the mdoc from the example
 /// `DeviceResponse` in the standard. This is used to match against a `DeviceRequest`
