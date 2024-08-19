@@ -5584,7 +5584,6 @@ dependencies = [
  "openid4vc",
  "p256",
  "parking_lot",
- "rand",
  "reqwest",
  "ring 0.17.8",
  "rstest",
