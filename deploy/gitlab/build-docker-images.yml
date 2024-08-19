@@ -8,7 +8,7 @@
 
 .build-docker-image:
   extends: .kaniko
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
+  rules: !reference [.default-or-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
       artifacts: false
