@@ -15,7 +15,7 @@ examples = ["dep:anyhow", "dep:hex-literal"]
 # Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
 software_keys = ["wallet_common/software_keys"]
 # Include SoftwareKeyFactory, which implements KeyFactory for testing
-software_key_factory = ["software_keys", "dep:cfg-if", "dep:parking_lot"]
+software_key_factory = ["software_keys", "dep:parking_lot"]
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
@@ -57,7 +57,6 @@ x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 anyhow = { workspace = true, optional = true }
 assert_matches = { workspace = true, optional = true }
-cfg-if = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser"] }
@@ -70,7 +69,6 @@ wallet_common.path = "../wallet_common"
 [dev-dependencies]
 anyhow.workspace = true
 assert_matches.workspace = true
-cfg-if.workspace = true
 hex-literal.workspace = true
 http.workspace = true
 parking_lot.workspace = true
