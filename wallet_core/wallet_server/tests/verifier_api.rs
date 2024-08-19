@@ -8,32 +8,32 @@ use std::{
 };
 
 use assert_matches::assert_matches;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Days, Utc};
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use p256::pkcs8::EncodePrivateKey;
+use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
 use parking_lot::RwLock;
+use rand_core::OsRng;
 use reqwest::{Client, Response};
 use rstest::rstest;
 use tokio::time;
 
 use nl_wallet_mdoc::{
-    examples::{
-        Example, Examples, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE,
-        EXAMPLE_NAMESPACE,
-    },
+    examples::{Example, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
+    holder::{mock::MockMdocDataSource, Mdoc, TrustAnchor},
     server_keys::KeyPair,
+    software_key_factory::SoftwareKeyFactory,
+    unsigned::{Entry, UnsignedMdoc},
     utils::{
-        mock_time::MockTimeGenerator,
-        reader_auth::ReaderRegistration,
-        serialization::{CborSeq, TaggedBytes},
+        issuer_auth::IssuerRegistration, mock_time::MockTimeGenerator, reader_auth::ReaderRegistration,
+        serialization::TaggedBytes,
     },
     verifier::DisclosedAttributes,
-    DeviceAuthenticationBytes, DeviceResponse, ItemsRequest,
+    DeviceResponse, IssuerSigned, ItemsRequest,
 };
 use openid4vc::{
-    return_url::ReturnUrlTemplate,
+    disclosure_session::{DisclosureSession, DisclosureUriSource, HttpVpMessageClient},
     server_state::{
         MemorySessionStore, SessionState, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS,
     },
@@ -44,8 +44,8 @@ use openid4vc::{
 };
 use url::Url;
 use wallet_common::{
-    config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody, reqwest::default_reqwest_client_builder,
-    trust_anchor::OwnedTrustAnchor, utils,
+    config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonErrorBody,
+    keys::software::SoftwareEcdsaKey, reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, utils,
 };
 use wallet_server::{
     settings::{Authentication, RequesterAuth, Server, Settings, Storage, Urls, Verifier, VerifierUseCase},
@@ -56,7 +56,7 @@ const USECASE_NAME: &str = "usecase";
 
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
-    return_url_template: None,
+    return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
     items_requests: vec![ItemsRequest {
         doc_type: EXAMPLE_DOC_TYPE.to_string(),
         request_info: None,
@@ -98,7 +98,7 @@ fn fake_issuer_settings() -> wallet_server::settings::Issuer {
     }
 }
 
-fn wallet_server_settings() -> (Settings, OwnedTrustAnchor) {
+fn wallet_server_settings() -> (Settings, KeyPair, OwnedTrustAnchor) {
     // Set up the hostname and ports.
     let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
@@ -109,6 +109,9 @@ fn wallet_server_settings() -> (Settings, OwnedTrustAnchor) {
 
     // Create the issuer CA and derive the trust anchor from it.
     let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let issuer_key_pair = issuer_ca
+        .generate_issuer_mock(IssuerRegistration::new_mock().into())
+        .unwrap();
     let issuer_trust_anchor = issuer_ca.certificate().try_into().unwrap();
 
     // Create the RP CA, derive the trust anchor from it and generate
@@ -124,7 +127,7 @@ fn wallet_server_settings() -> (Settings, OwnedTrustAnchor) {
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         VerifierUseCase {
-            session_type_return_url: SessionTypeReturnUrl::Neither,
+            session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: wallet_server::settings::KeyPair {
                 certificate: usecase_keypair.certificate().as_bytes().to_vec(),
                 private_key: usecase_keypair
@@ -175,7 +178,7 @@ fn wallet_server_settings() -> (Settings, OwnedTrustAnchor) {
         sentry: None,
     };
 
-    (settings, rp_trust_anchor)
+    (settings, issuer_key_pair, rp_trust_anchor)
 }
 
 async fn start_wallet_server<S>(settings: Settings, disclosure_sessions: S)
@@ -240,7 +243,7 @@ fn internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
 }))]
 #[tokio::test]
 async fn test_requester_authentication(#[case] auth: RequesterAuth) {
-    let (mut settings, _) = wallet_server_settings();
+    let (mut settings, _, _) = wallet_server_settings();
     let internal_url = internal_url(&auth, &settings.urls.public_url);
     settings.requester_server = auth.clone();
 
@@ -386,7 +389,7 @@ async fn test_error_response(response: Response, status_code: StatusCode, error_
 
 #[tokio::test]
 async fn test_new_session_parameters_error() {
-    let (settings, _) = wallet_server_settings();
+    let (settings, _, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings, MemorySessionStore::default()).await;
     let client = default_reqwest_client_builder().build().unwrap();
@@ -405,11 +408,7 @@ async fn test_new_session_parameters_error() {
 
     let bad_return_url_request = {
         let mut request = EXAMPLE_START_DISCLOSURE_REQUEST.clone();
-        request.return_url_template = Some(
-            "https://example.com/{session_token}"
-                .parse::<ReturnUrlTemplate>()
-                .unwrap(),
-        );
+        request.return_url_template = None;
         request
     };
 
@@ -427,7 +426,7 @@ async fn test_new_session_parameters_error() {
 
 #[tokio::test]
 async fn test_disclosure_not_found() {
-    let (settings, _) = wallet_server_settings();
+    let (settings, _, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
@@ -494,11 +493,13 @@ async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
     response.json::<StatusResponse>().await.unwrap()
 }
 
-async fn start_disclosure<S>(disclosure_sessions: S) -> (Settings, Client, SessionToken, BaseUrl)
+async fn start_disclosure<S>(
+    disclosure_sessions: S,
+) -> (Settings, Client, SessionToken, BaseUrl, KeyPair, OwnedTrustAnchor)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let (settings, _) = wallet_server_settings();
+    let (settings, issuer_key_pair, rp_trust_anchor) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
 
     start_wallet_server(settings.clone(), disclosure_sessions).await;
@@ -512,16 +513,21 @@ where
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
-
     let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
 
-    (settings, client, disclosure_response.session_token, internal_url)
+    (
+        settings,
+        client,
+        disclosure_response.session_token,
+        internal_url,
+        issuer_key_pair,
+        rp_trust_anchor,
+    )
 }
 
 #[tokio::test]
 async fn test_disclosure_missing_session_type() {
-    let (settings, client, session_token, _) = start_disclosure(MemorySessionStore::default()).await;
+    let (settings, client, session_token, _, _, _) = start_disclosure(MemorySessionStore::default()).await;
 
     // Check if requesting the session status without a session_type returns a 200, but without the universal link.
     let status_url = format_status_url(&settings.urls.public_url, &session_token, None);
@@ -534,7 +540,7 @@ async fn test_disclosure_missing_session_type() {
 
 #[tokio::test]
 async fn test_disclosure_cancel() {
-    let (settings, client, session_token, _) = start_disclosure(MemorySessionStore::default()).await;
+    let (settings, client, session_token, _, _, _) = start_disclosure(MemorySessionStore::default()).await;
 
     // Fetching the status should return OK and be in the Created state.
     let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(SessionType::SameDevice));
@@ -577,7 +583,7 @@ async fn test_disclosure_expired<S>(
 {
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
 
-    let (settings, client, session_token, internal_url) = start_disclosure(session_store).await;
+    let (settings, client, session_token, internal_url, _, _) = start_disclosure(session_store).await;
 
     // Fetch the status, this should return OK and be in the Created state.
     let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(SessionType::SameDevice));
@@ -641,7 +647,7 @@ async fn test_disclosure_expired<S>(
 
 #[tokio::test]
 async fn test_disclosure_expired_memory() {
-    let (settings, _) = wallet_server_settings();
+    let (settings, _, _) = wallet_server_settings();
 
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
     let time_generator = MockTimeGenerator::default();
@@ -657,7 +663,7 @@ async fn test_disclosure_expired_postgres() {
     use wallet_server::store::postgres::PostgresSessionStore;
 
     // Combine the generated settings with the storage settings from the configuration file.
-    let (mut settings, _) = wallet_server_settings();
+    let (mut settings, _, _) = wallet_server_settings();
     let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
         .unwrap()
         .storage;
@@ -679,56 +685,150 @@ async fn test_disclosure_expired_postgres() {
     test_disclosure_expired(settings, session_store, mock_time.as_ref(), true).await;
 }
 
+/// This utility function is used to prepare the two mocks necessary to emulate a valid holder.
+/// It will populate a [`MockMdocDataSource`] with a single [`Mdoc`] that is based on the
+/// attributes in the example from the ISO spec, resigned with the keys generated during test
+/// setup. The private key used to sign this [`Mdoc`] is placed in a [`SoftwareKeyFactory`].
+async fn prepare_example_holder_mocks(
+    issuer_key_pair: &KeyPair,
+    issuer_trust_anchors: &[TrustAnchor<'_>],
+) -> (MockMdocDataSource, SoftwareKeyFactory) {
+    // Extract the the attributes from the example DeviceResponse in the ISO specs.
+    let example_document = DeviceResponse::example().documents.unwrap().into_iter().next().unwrap();
+    let example_attributes = example_document
+        .issuer_signed
+        .name_spaces
+        .unwrap()
+        .into_inner()
+        .into_iter()
+        .map(|(namespace, attributes)| {
+            let attributes = attributes
+                .into_inner()
+                .into_iter()
+                .map(|TaggedBytes(item)| Entry {
+                    name: item.element_identifier,
+                    value: item.element_value,
+                })
+                .collect();
+
+            (namespace, attributes)
+        })
+        .collect::<IndexMap<_, Vec<_>>>();
+
+    // Use these attributes to create an unsigned Mdoc.
+    let unsigned_mdoc = UnsignedMdoc {
+        doc_type: example_document.doc_type,
+        valid_from: Utc::now().into(),
+        valid_until: (Utc::now() + Days::new(365)).into(),
+        attributes: example_attributes.try_into().unwrap(),
+        copy_count: 1.try_into().unwrap(),
+    };
+
+    // Generate a new private key and use that and the issuer key to sign the Mdoc.
+    let mdoc_private_key_id = utils::random_string(16);
+    let mdoc_private_key = SigningKey::random(&mut OsRng);
+    let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, issuer_key_pair)
+        .await
+        .unwrap();
+    let mdoc = Mdoc::new::<SoftwareEcdsaKey>(
+        mdoc_private_key_id.clone(),
+        issuer_signed,
+        &TimeGenerator,
+        issuer_trust_anchors,
+    )
+    .unwrap();
+
+    // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.
+    let mdoc_data_source = MockMdocDataSource::new(vec![mdoc]);
+    let key_factory = SoftwareKeyFactory::new(HashMap::from([(mdoc_private_key_id, mdoc_private_key)]));
+
+    (mdoc_data_source, key_factory)
+}
+
 #[rstest]
 #[tokio::test]
-async fn test_disclosed_attributes(#[values(None, Some("nonce"))] nonce: Option<&str>) {
-    // Create a `DisclosedAttributes` object, based on the example `DeviceResponse`.
-    let device_response = DeviceResponse::example();
-    let TaggedBytes(CborSeq(device_auth_keyed)) = DeviceAuthenticationBytes::example();
-    let disclosed_attributes = device_response
-        .verify(
-            Some(&Examples::ephemeral_reader_key()),
-            &device_auth_keyed.session_transcript,
-            &IsoCertTimeGenerator,
-            Examples::iaca_trust_anchors(),
-        )
-        .unwrap();
+async fn test_full_disclosure(#[values(SessionType::SameDevice, SessionType::CrossDevice)] session_type: SessionType) {
+    // Start the wallet_server and create a disclosure request.
+    let (settings, client, session_token, internal_url, issuer_key_pair, rp_trust_anchor) =
+        start_disclosure(MemorySessionStore::default()).await;
 
-    // Populate a session store with one session that is `Done` and has these `DisclosedAttributes` available.
-    let session_token = SessionToken::new("foobar");
-    let session = SessionState::new(
-        session_token.clone(),
-        DisclosureData::Done(Done {
-            session_result: SessionResult::Done {
-                disclosed_attributes,
-                redirect_uri_nonce: nonce.map(ToOwned::to_owned),
-            },
-        }),
+    // Fetching the status should return OK, be in the Created state and include a universal link.
+    let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(session_type));
+
+    let StatusResponse::Created { ul: Some(ul) } = get_status_ok(&client, status_url.clone()).await else {
+        panic!("session should be in CREATED state and a universal link should be provided")
+    };
+
+    // Prepare a holder with a valid example Mdoc. Use the query portion of the
+    // universal link to have holder code contact the wallet_sever and start disclosure.
+    // This should result in a proposal to disclosure for the holder.
+    let (mdoc_data_source, key_factory) = prepare_example_holder_mocks(
+        &issuer_key_pair,
+        &settings
+            .verifier
+            .trust_anchors
+            .iter()
+            .map(|anchor| (&anchor.owned_trust_anchor).into())
+            .collect_vec(),
+    )
+    .await;
+
+    let request_uri_query = ul.as_ref().query().unwrap().to_string();
+    let uri_source = match session_type {
+        SessionType::SameDevice => DisclosureUriSource::Link,
+        SessionType::CrossDevice => DisclosureUriSource::QrCode,
+    };
+    let disclosure_session = DisclosureSession::start(
+        HttpVpMessageClient::from(client.clone()),
+        &request_uri_query,
+        uri_source,
+        &mdoc_data_source,
+        &[rp_trust_anchor].iter().map(Into::into).collect_vec(),
+    )
+    .await
+    .expect("disclosure session should start at client side");
+
+    let DisclosureSession::Proposal(proposal) = disclosure_session else {
+        panic!("should have received a disclosure proposal")
+    };
+
+    // The status endpoint should now respond that the session is in the WaitingForResponse state.
+    assert_matches!(
+        get_status_ok(&client, status_url.clone()).await,
+        StatusResponse::WaitingForResponse
     );
 
-    let session_store = MemorySessionStore::<DisclosureData>::default();
-    session_store.write(session, true).await.unwrap();
+    // Have the holder actually disclosure the example attributes to the wallet_server,
+    // after which the status endpoint should report that the session is Done.
+    let return_url = proposal
+        .disclose(&key_factory)
+        .await
+        .expect("should disclose attributes successfully");
 
-    // Start the wallet server with this session store.
-    let (settings, _) = wallet_server_settings();
-    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
-    start_wallet_server(settings.clone(), session_store).await;
-    let client = default_reqwest_client_builder().build().unwrap();
+    assert_matches!(get_status_ok(&client, status_url).await, StatusResponse::Done);
 
     // Check if the disclosed attributes endpoint returns a 200 for the session, with the attributes.
+    // Include the nonce, if we received a return URL when performing disclosure.
     let mut disclosed_attributes_url = internal_url.join(&format!(
         "disclosure/sessions/{}/disclosed_attributes",
         session_token.as_ref()
     ));
-    if let Some(nonce) = nonce {
-        // Set the return URL nonce as query parameter.
-        disclosed_attributes_url.query_pairs_mut().append_pair("nonce", nonce);
+
+    if let Some(return_url) = return_url {
+        let nonce = return_url
+            .into_inner()
+            .query_pairs()
+            .find_map(|(key, value)| (key == "nonce").then_some(value.into_owned()))
+            .unwrap();
+        disclosed_attributes_url.query_pairs_mut().append_pair("nonce", &nonce);
     }
 
     let response = client.get(disclosed_attributes_url).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
 
+    // Check the disclosed attributes against the example attributes.
     let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
 
     itertools::assert_equal(disclosed_attributes.keys(), [EXAMPLE_DOC_TYPE]);
@@ -757,7 +857,7 @@ async fn test_disclosed_attributes_error_nonce() {
     session_store.write(session, true).await.unwrap();
 
     // Start the wallet server with this session store.
-    let (settings, _) = wallet_server_settings();
+    let (settings, _, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), session_store).await;
     let client = default_reqwest_client_builder().build().unwrap();
@@ -805,7 +905,7 @@ async fn test_disclosed_attributes_error_session_state() {
     session_store.write(failed_session, true).await.unwrap();
 
     // Start the wallet server with this session store.
-    let (settings, _) = wallet_server_settings();
+    let (settings, _, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), session_store).await;
     let client = default_reqwest_client_builder().build().unwrap();

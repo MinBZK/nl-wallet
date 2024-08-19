@@ -126,9 +126,10 @@ assert_matches.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 parking_lot.workspace = true
+rand_core.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "examples", "mock", "mock_time"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "examples", "software_key_factory", "mock", "mock_time"] }
