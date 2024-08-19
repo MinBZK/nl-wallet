@@ -138,3 +138,4 @@ wallet_common = { path = "../wallet_common", features = ["sentry"] }
 
 [dev-dependencies]
 rstest.workspace = true
+tracing-test.workspace = true
