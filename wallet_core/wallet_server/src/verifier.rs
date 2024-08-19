@@ -147,7 +147,7 @@ where
     Ok(Json(response))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct StatusParams {
     pub session_type: SessionType,
 }
@@ -193,14 +193,14 @@ where
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartDisclosureRequest {
     pub usecase: String,
     pub items_requests: ItemsRequests,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartDisclosureResponse {
     pub session_token: SessionToken,
 }
@@ -225,7 +225,7 @@ where
     Ok(Json(StartDisclosureResponse { session_token }))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DisclosedAttributesParams {
     pub nonce: Option<String>,
 }

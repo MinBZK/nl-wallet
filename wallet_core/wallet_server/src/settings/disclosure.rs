@@ -21,7 +21,7 @@ pub struct Verifier {
     pub ephemeral_id_secret: EhpemeralIdSecret,
 }
 
-#[nutype(derive(Clone, Deserialize, Deref, AsRef))]
+#[nutype(derive(Clone, From, Deserialize, Deref, AsRef))]
 pub struct VerifierUseCases(HashMap<String, VerifierUseCase>);
 
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]

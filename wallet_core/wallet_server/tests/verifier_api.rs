@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     net::{IpAddr, TcpListener},
     process,
     str::FromStr,
@@ -11,6 +12,7 @@ use chrono::{DateTime, Utc};
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use p256::pkcs8::EncodePrivateKey;
 use parking_lot::RwLock;
 use reqwest::{Client, Response};
 use rstest::rstest;
@@ -21,8 +23,10 @@ use nl_wallet_mdoc::{
         Example, Examples, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE,
         EXAMPLE_NAMESPACE,
     },
+    server_keys::KeyPair,
     utils::{
         mock_time::MockTimeGenerator,
+        reader_auth::ReaderRegistration,
         serialization::{CborSeq, TaggedBytes},
     },
     verifier::DisclosedAttributes,
@@ -33,37 +37,40 @@ use openid4vc::{
     server_state::{
         MemorySessionStore, SessionState, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS,
     },
-    verifier::{DisclosureData, Done, SessionResult, SessionType, StatusResponse, VerifierUrlParameters},
+    verifier::{
+        DisclosureData, Done, SessionResult, SessionType, SessionTypeReturnUrl, StatusResponse, VerifierUrlParameters,
+    },
     ErrorResponse,
 };
 use url::Url;
 use wallet_common::{
     config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody, reqwest::default_reqwest_client_builder,
+    trust_anchor::OwnedTrustAnchor, utils,
 };
 use wallet_server::{
-    settings::{Authentication, RequesterAuth, Server, Settings},
+    settings::{Authentication, RequesterAuth, Server, Settings, Storage, Urls, Verifier, VerifierUseCase},
     verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams},
 };
 
-fn start_disclosure_request() -> StartDisclosureRequest {
-    StartDisclosureRequest {
-        usecase: String::from("xyz_bank_no_return_url"),
-        return_url_template: None,
-        items_requests: vec![ItemsRequest {
-            doc_type: "com.example.pid".to_owned(),
-            request_info: None,
-            name_spaces: IndexMap::from([(
-                "com.example.pid".to_owned(),
-                IndexMap::from_iter(
-                    [("given_name", true)]
-                        .into_iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
-                ),
-            )]),
-        }]
-        .into(),
-    }
-}
+const USECASE_NAME: &str = "usecase";
+
+static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
+    usecase: USECASE_NAME.to_string(),
+    return_url_template: None,
+    items_requests: vec![ItemsRequest {
+        doc_type: EXAMPLE_DOC_TYPE.to_string(),
+        request_info: None,
+        name_spaces: IndexMap::from([(
+            EXAMPLE_NAMESPACE.to_string(),
+            IndexMap::from_iter(
+                [(EXAMPLE_ATTR_NAME.to_string(), true)]
+                    .into_iter()
+                    .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
+            ),
+        )]),
+    }]
+    .into(),
+});
 
 fn find_listener_port() -> u16 {
     TcpListener::bind("localhost:0")
@@ -73,22 +80,102 @@ fn find_listener_port() -> u16 {
         .port()
 }
 
-fn wallet_server_settings() -> Settings {
-    let mut settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test").unwrap();
+#[cfg(feature = "issuance")]
+fn fake_issuer_settings() -> wallet_server::settings::Issuer {
+    use wallet_server::settings::{Digid, Issuer};
+
+    let url: BaseUrl = "http://fake.fake".parse().unwrap();
+
+    Issuer {
+        private_keys: Default::default(),
+        wallet_client_ids: Default::default(),
+        digid: Digid {
+            issuer_url: url.clone(),
+            bsn_privkey: Default::default(),
+            trust_anchors: Default::default(),
+        },
+        brp_server: url,
+    }
+}
+
+fn wallet_server_settings() -> (Settings, OwnedTrustAnchor) {
+    // Set up the hostname and ports.
+    let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
+    let rp_port = find_listener_port();
 
-    settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings.wallet_server.port = ws_port;
+    // Set up the default storage timeouts.
+    let default_store_timeouts = SessionStoreTimeouts::default();
 
-    let requester_port = find_listener_port();
-    settings.requester_server = RequesterAuth::InternalEndpoint(Server {
-        ip: IpAddr::from_str("127.0.0.1").unwrap(),
-        port: requester_port,
-    });
+    // Create the issuer CA and derive the trust anchor from it.
+    let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let issuer_trust_anchor = issuer_ca.certificate().try_into().unwrap();
 
-    settings.urls.public_url = format!("http://localhost:{ws_port}/").parse().unwrap();
+    // Create the RP CA, derive the trust anchor from it and generate
+    // a reader registration, based on the example items request.
+    let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
+    let rp_trust_anchor = OwnedTrustAnchor::from(&rp_ca.certificate().try_into().unwrap());
+    let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
+        &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
+    ));
 
-    settings
+    // Set up the use case, based on RP CA and reader registration.
+    let usecase_keypair = rp_ca.generate_reader_mock(reader_registration).unwrap();
+    let usecases = HashMap::from([(
+        USECASE_NAME.to_string(),
+        VerifierUseCase {
+            session_type_return_url: SessionTypeReturnUrl::Neither,
+            key_pair: wallet_server::settings::KeyPair {
+                certificate: usecase_keypair.certificate().as_bytes().to_vec(),
+                private_key: usecase_keypair
+                    .private_key()
+                    .to_pkcs8_der()
+                    .unwrap()
+                    .as_bytes()
+                    .to_vec(),
+            },
+        },
+    )])
+    .into();
+
+    // Generate a complete configuration for the verifier, including
+    // a section for the issuer if that feature is enabled.
+    let settings = Settings {
+        wallet_server: Server {
+            ip: localhost,
+            port: ws_port,
+        },
+        requester_server: RequesterAuth::InternalEndpoint(Server {
+            ip: localhost,
+            port: rp_port,
+        }),
+        urls: Urls {
+            public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
+            universal_link_base_url: "http://universal.link/".parse().unwrap(),
+        },
+        log_requests: true,
+        structured_logging: false,
+        storage: Storage {
+            url: "memory://".parse().unwrap(),
+            expiration_minutes: (default_store_timeouts.expiration.as_secs() / 60).try_into().unwrap(),
+            successful_deletion_minutes: (default_store_timeouts.successful_deletion.as_secs() / 60)
+                .try_into()
+                .unwrap(),
+            failed_deletion_minutes: (default_store_timeouts.failed_deletion.as_secs() / 60)
+                .try_into()
+                .unwrap(),
+        },
+        #[cfg(feature = "issuance")]
+        issuer: fake_issuer_settings(),
+        verifier: Verifier {
+            usecases,
+            ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
+            trust_anchors: vec![issuer_trust_anchor],
+        },
+        sentry: None,
+    };
+
+    (settings, rp_trust_anchor)
 }
 
 async fn start_wallet_server<S>(settings: Settings, disclosure_sessions: S)
@@ -153,7 +240,7 @@ fn internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
 }))]
 #[tokio::test]
 async fn test_requester_authentication(#[case] auth: RequesterAuth) {
-    let mut settings = wallet_server_settings();
+    let (mut settings, _) = wallet_server_settings();
     let internal_url = internal_url(&auth, &settings.urls.public_url);
     settings.requester_server = auth.clone();
 
@@ -161,12 +248,10 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     let client = default_reqwest_client_builder().build().unwrap();
 
-    let start_request = start_disclosure_request();
-
     // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
         .post(settings.urls.public_url.join("disclosure/sessions"))
-        .json(&start_request)
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -179,7 +264,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     // check if using no token returns a 401 on the (internal) start URL if an API key is used and a 200 otherwise
     let response = client
         .post(internal_url.join("disclosure/sessions"))
-        .json(&start_request)
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -193,7 +278,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let response = client
         .post(settings.urls.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
-        .json(&start_request)
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -207,7 +292,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let response = client
         .post(internal_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
-        .json(&start_request)
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -225,7 +310,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     // check if using no token returns a 401 on the (public) attributes URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
         .get(public_disclosed_attributes_url.clone())
-        .json(&start_request)
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -238,7 +323,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     // check if using no token returns a 401 on the (internal) attributes URL if an API key is used and a 400 otherwise (because the session is not yet finished)
     let response = client
         .get(internal_disclosed_attributes_url.clone())
-        .json(&start_request)
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -252,7 +337,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let response = client
         .get(public_disclosed_attributes_url)
         .header("Authorization", "Bearer secret_key")
-        .json(&start_request)
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -266,7 +351,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let response = client
         .get(internal_disclosed_attributes_url)
         .header("Authorization", "Bearer secret_key")
-        .json(&start_request)
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -301,25 +386,25 @@ async fn test_error_response(response: Response, status_code: StatusCode, error_
 
 #[tokio::test]
 async fn test_new_session_parameters_error() {
-    let settings = wallet_server_settings();
+    let (settings, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings, MemorySessionStore::default()).await;
     let client = default_reqwest_client_builder().build().unwrap();
 
     let bad_use_case_request = {
-        let mut request = start_disclosure_request();
+        let mut request = EXAMPLE_START_DISCLOSURE_REQUEST.clone();
         request.usecase = "bad".to_string();
         request
     };
 
     let no_items_request = {
-        let mut request = start_disclosure_request();
+        let mut request = EXAMPLE_START_DISCLOSURE_REQUEST.clone();
         request.items_requests = vec![].into();
         request
     };
 
     let bad_return_url_request = {
-        let mut request = start_disclosure_request();
+        let mut request = EXAMPLE_START_DISCLOSURE_REQUEST.clone();
         request.return_url_template = Some(
             "https://example.com/{session_token}"
                 .parse::<ReturnUrlTemplate>()
@@ -342,7 +427,7 @@ async fn test_new_session_parameters_error() {
 
 #[tokio::test]
 async fn test_disclosure_not_found() {
-    let settings = wallet_server_settings();
+    let (settings, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
@@ -413,7 +498,7 @@ async fn start_disclosure<S>(disclosure_sessions: S) -> (Settings, Client, Sessi
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let settings = wallet_server_settings();
+    let (settings, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
 
     start_wallet_server(settings.clone(), disclosure_sessions).await;
@@ -422,7 +507,7 @@ where
     let client = default_reqwest_client_builder().build().unwrap();
     let response = client
         .post(internal_url.join("disclosure/sessions"))
-        .json(&start_disclosure_request())
+        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
         .unwrap();
@@ -556,7 +641,7 @@ async fn test_disclosure_expired<S>(
 
 #[tokio::test]
 async fn test_disclosure_expired_memory() {
-    let settings = wallet_server_settings();
+    let (settings, _) = wallet_server_settings();
 
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
     let time_generator = MockTimeGenerator::default();
@@ -571,7 +656,13 @@ async fn test_disclosure_expired_memory() {
 async fn test_disclosure_expired_postgres() {
     use wallet_server::store::postgres::PostgresSessionStore;
 
-    let settings = wallet_server_settings();
+    // Combine the generated settings with the storage settings from the configuration file.
+    let (mut settings, _) = wallet_server_settings();
+    let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
+        .unwrap()
+        .storage;
+    settings.storage = storage_settings;
+
     assert_eq!(
         settings.storage.url.scheme(),
         "postgres",
@@ -619,7 +710,7 @@ async fn test_disclosed_attributes(#[values(None, Some("nonce"))] nonce: Option<
     session_store.write(session, true).await.unwrap();
 
     // Start the wallet server with this session store.
-    let settings = wallet_server_settings();
+    let (settings, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), session_store).await;
     let client = default_reqwest_client_builder().build().unwrap();
@@ -666,7 +757,7 @@ async fn test_disclosed_attributes_error_nonce() {
     session_store.write(session, true).await.unwrap();
 
     // Start the wallet server with this session store.
-    let settings = wallet_server_settings();
+    let (settings, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), session_store).await;
     let client = default_reqwest_client_builder().build().unwrap();
@@ -714,7 +805,7 @@ async fn test_disclosed_attributes_error_session_state() {
     session_store.write(failed_session, true).await.unwrap();
 
     // Start the wallet server with this session store.
-    let settings = wallet_server_settings();
+    let (settings, _) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), session_store).await;
     let client = default_reqwest_client_builder().build().unwrap();
