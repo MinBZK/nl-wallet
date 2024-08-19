@@ -13,11 +13,22 @@ pub struct MockMdocDataSource {
     pub has_error: bool,
 }
 impl MockMdocDataSource {
-    pub fn new() -> Self {
+    pub fn new(mdocs: Vec<Mdoc>) -> Self {
         Self {
-            mdocs: vec![],
+            mdocs,
             has_error: false,
         }
+    }
+}
+
+impl Default for MockMdocDataSource {
+    fn default() -> Self {
+        let mdocs = vec![
+            #[cfg(any(test, all(feature = "examples", feature = "software_keys")))]
+            Mdoc::new_example_mock(),
+        ];
+
+        Self::new(mdocs)
     }
 }
 
@@ -25,16 +36,6 @@ impl MockMdocDataSource {
 pub enum MdocDataSourceError {
     #[error("failed")]
     Failed,
-}
-
-#[cfg(any(test, all(feature = "examples", feature = "software_keys")))]
-impl Default for MockMdocDataSource {
-    fn default() -> Self {
-        MockMdocDataSource {
-            mdocs: vec![Mdoc::new_example_mock()],
-            has_error: false,
-        }
-    }
 }
 
 impl MdocDataSource for MockMdocDataSource {
