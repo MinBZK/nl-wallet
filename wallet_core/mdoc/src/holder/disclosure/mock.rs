@@ -27,7 +27,7 @@ pub enum MdocDataSourceError {
     Failed,
 }
 
-#[cfg(any(test, feature = "examples"))]
+#[cfg(any(test, all(feature = "examples", feature = "software_keys")))]
 impl Default for MockMdocDataSource {
     fn default() -> Self {
         MockMdocDataSource {
