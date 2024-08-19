@@ -37,12 +37,35 @@ build-wp-migrations-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider-migrations
 
-build-mock-relying-party-image:
+.build-docker-image-mrp:
   extends: .build-docker-image
+  script:
+    - TAG=${RELEASE_VERSION:-latest}
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile $DOCKER_FILE_TO_BUILD
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --build-arg CSP_SCRIPT_MRP_BASE64="${ARG_CSP_SCRIPT_MRP_BASE64}"
+      --build-arg CSP_STYLE_MRP_BASE64="${ARG_CSP_STYLE_MRP_BASE64}"
+      --build-arg WALLET_WEB_FILENAME="${ARG_WALLET_WEB_FILENAME}"
+      --build-arg WALLET_WEB_SHA256="${ARG_WALLET_WEB_SHA256}"
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
+      --cache=true
+
+build-mock-relying-party-image:
+  extends: .build-docker-image-mrp
   needs:
-    - !reference [.build-docker-image, needs]
+    - !reference [.build-docker-image-mrp, needs]
     - job: build-wallet-web
       artifacts: true
+  before_script:
+    - !reference [ .kaniko, before_script ]
+    - export ARG_CSP_SCRIPT_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt)"
+    - export ARG_CSP_STYLE_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt)"
+    - export ARG_WALLET_WEB_FILENAME="$(cat wallet_core/mock_relying_party/hashes/wallet_web_filename.txt)"
+    - export ARG_WALLET_WEB_SHA256="$(cat wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt)"
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/mock_relying_party/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-mock-relying-party
