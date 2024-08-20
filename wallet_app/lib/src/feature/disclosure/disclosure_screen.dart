@@ -71,7 +71,7 @@ class DisclosureScreen extends StatelessWidget {
         ),
         body: PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, result) {
             if (didPop) {
               return;
             }
@@ -103,6 +103,7 @@ class DisclosureScreen extends StatelessWidget {
         context.read<ScrollOffset>().offset = 0;
         if (state is DisclosureExternalScannerError) {
           Navigator.maybePop(context).then((popped) {
+            // ignore: use_build_context_synchronously
             ScanWithWalletDialog.show(context);
           });
         }

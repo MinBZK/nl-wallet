@@ -28,10 +28,11 @@ class PinOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isWalletInitializedUseCase = context.read<IsWalletInitializedUseCase>();
     return StreamBuilder<bool>(
       stream: isLockedStream.asyncMap((locked) async {
         /// Make sure we only lock when the app has an active registration
-        return locked && await context.read<IsWalletInitializedUseCase>().invoke();
+        return locked && await isWalletInitializedUseCase.invoke();
       }),
       initialData: _lockedStreamCache,
       builder: (context, snapshot) {
@@ -67,8 +68,9 @@ class PinOverlay extends StatelessWidget {
   }
 
   void _dismissOpenDialogs(BuildContext context) {
+    final navigator = Navigator.of(context);
     Future.microtask(() {
-      Navigator.of(context).popUntil((route) {
+      navigator.popUntil((route) {
         final isDialog = route is ModalBottomSheetRoute || route is DialogRoute;
         return !isDialog;
       });

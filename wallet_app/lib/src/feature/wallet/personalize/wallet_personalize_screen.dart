@@ -49,7 +49,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       restorationId: 'wallet_personalize_scaffold',
       body: PopScope(
         canPop: false,
-        onPopInvoked: (didPop) {
+        onPopInvokedWithResult: (didPop, result) {
           if (didPop) {
             return;
           }
