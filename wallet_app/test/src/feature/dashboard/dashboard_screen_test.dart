@@ -1,13 +1,16 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/dashboard/dashboard_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
+import '../../mocks/wallet_mocks.dart';
 import '../../util/device_utils.dart';
 
 class MockDashboardBloc extends MockBloc<DashboardEvent, DashboardState> implements DashboardBloc {}
@@ -23,7 +26,11 @@ void main() {
               DashboardLoadSuccess(cards: [WalletMockData.card, WalletMockData.altCard], history: const []),
             ),
           ),
-        wrapper: walletAppWrapper(),
+        wrapper: walletAppWrapper(
+          providers: [
+            RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'success.light');
     });
@@ -37,7 +44,12 @@ void main() {
               DashboardLoadSuccess(cards: [WalletMockData.card, WalletMockData.altCard], history: const []),
             ),
           ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+        wrapper: walletAppWrapper(
+          brightness: Brightness.dark,
+          providers: [
+            RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'success.dark');
     });
@@ -48,6 +60,9 @@ void main() {
           MockDashboardBloc(),
           const DashboardLoadInProgress(),
         ),
+        providers: [
+          RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+        ],
       );
       await screenMatchesGolden(tester, 'loading.light');
     });
@@ -58,6 +73,9 @@ void main() {
           MockDashboardBloc(),
           const DashboardLoadFailure(),
         ),
+        providers: [
+          RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+        ],
       );
       await screenMatchesGolden(tester, 'error.light');
     });
@@ -70,6 +88,9 @@ void main() {
           MockDashboardBloc(),
           DashboardLoadSuccess(cards: [WalletMockData.card, WalletMockData.altCard], history: const []),
         ),
+        providers: [
+          RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+        ],
       );
 
       // Validate that the widget exists

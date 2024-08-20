@@ -22,31 +22,33 @@ class CardHolograph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.centerRight,
-      children: [
-        GyroGradientOverlay(
-          gradient: _generateHoloGradient(),
-          child: SvgOrImage(
-            asset: holograph,
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.center,
+    return RepaintBoundary(
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          GyroGradientOverlay(
+            gradient: _generateHoloGradient(),
+            child: SvgOrImage(
+              asset: holograph,
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+            ),
           ),
-        ),
-        GyroGradientOverlay(
-          gradient: _generateOutlineGradient(),
-          child: Container(
-            width: 132,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white,
-                width: 1,
+          GyroGradientOverlay(
+            gradient: _generateOutlineGradient(),
+            child: Container(
+              width: 132,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
