@@ -2,7 +2,7 @@ import UIKit
 import PlatformSupport
 import Flutter
 
-@UIApplicationMain
+@main
 @objc class AppDelegate: FlutterAppDelegate {
   private var platformSupport: PlatformSupport?
 

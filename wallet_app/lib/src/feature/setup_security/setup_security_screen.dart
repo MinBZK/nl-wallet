@@ -46,7 +46,7 @@ class SetupSecurityScreen extends StatelessWidget {
         ),
         body: PopScope(
           canPop: state is SetupSecuritySelectPinInProgress,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, result) {
             if (!didPop) context.bloc.add(SetupSecurityBackPressed());
           },
           child: SafeArea(
@@ -73,16 +73,17 @@ class SetupSecurityScreen extends StatelessWidget {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
       listener: (context, state) async {
         unawaited(_runAnnouncements(context, state));
+        final bloc = context.bloc;
         switch (state) {
           case SetupSecurityGenericError():
             ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
           case SetupSecurityNetworkError():
             ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
           case SetupSecuritySelectPinFailed():
-            await _showErrorDialog(context, state.reason).then((_) => context.bloc.add(PinBackspacePressed()));
+            await _showErrorDialog(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
           case SetupSecurityPinConfirmationFailed():
             await _showConfirmationErrorDialog(context, state.retryAllowed).then((_) {
-              context.bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
+              bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
             });
           case SetupSecurityDeviceIncompatibleError():
             ErrorScreen.showDeviceIncompatible(context);
