@@ -214,7 +214,7 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
     final title = state.isLoginFlow
-        ? context.l10n.disclosureConfirmPinPageForLoginTitle(state.relyingParty.displayName.l10nValue(context))
+        ? context.l10n.disclosureConfirmPinPageForLoginTitle
         : context.l10n.disclosureConfirmPinPageTitle;
     return DisclosureConfirmPinPage(
       title: title,
