@@ -237,7 +237,7 @@ test-rust:
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:72bb35981df8d89ead973ffe0a3e27b65135002bcde802121481799eca160a01"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:87a2667a35d932da24b937e1e96770a2a12ea0f2204a8a97b1740dc120dc1394"
   script:
     - !reference [.test-rust-compilation, script]
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
@@ -423,7 +423,7 @@ dependency-check-rust:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:72bb35981df8d89ead973ffe0a3e27b65135002bcde802121481799eca160a01"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:87a2667a35d932da24b937e1e96770a2a12ea0f2204a8a97b1740dc120dc1394"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
