@@ -7,6 +7,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../bloc/qr_bloc.dart';
+import 'qr_scanner_active_announcer.dart';
 
 class QrScanner extends StatefulWidget {
   const QrScanner({super.key});
@@ -40,6 +41,7 @@ class _QrScannerState extends State<QrScanner> {
       children: [
         _buildAlignedScanQrHint(),
         _buildPositionedFlashLightButton(),
+        const QrScannerActiveAnnouncer(),
       ],
     );
   }
