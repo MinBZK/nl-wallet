@@ -85,7 +85,7 @@ fn json_serializable_value(value: &Value) -> Value {
 
 /// A serializer for [`ciborium::Value`] that, when serializing to JSON, converts CBOR-types that have no
 /// JSON equivalent (tagged values, byte sequences) to something more natural in JSON.
-fn json_serialize_cbor_value<S: serde::Serializer>(value: &Value, serializer: S) -> Result<S::Ok, S::Error> {
+pub(crate) fn json_serialize_cbor_value<S: serde::Serializer>(value: &Value, serializer: S) -> Result<S::Ok, S::Error> {
     if !serializer.is_human_readable() {
         value.serialize(serializer)
     } else {
