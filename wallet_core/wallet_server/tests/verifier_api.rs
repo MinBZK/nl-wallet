@@ -643,9 +643,9 @@ async fn test_disclosed_attributes(#[values(None, Some("nonce"))] nonce: Option<
     itertools::assert_equal(disclosed_attributes.keys(), [EXAMPLE_DOC_TYPE]);
     let attributes = &disclosed_attributes.get(EXAMPLE_DOC_TYPE).unwrap().attributes;
     itertools::assert_equal(attributes.keys(), [EXAMPLE_NAMESPACE]);
-    let first_entry = attributes.get(EXAMPLE_NAMESPACE).unwrap().first().unwrap();
-    assert_eq!(first_entry.name, EXAMPLE_ATTR_NAME);
-    assert_eq!(&first_entry.value, LazyLock::force(&EXAMPLE_ATTR_VALUE));
+    let (first_entry_name, first_entry_value) = attributes.get(EXAMPLE_NAMESPACE).unwrap().first().unwrap();
+    assert_eq!(first_entry_name, EXAMPLE_ATTR_NAME);
+    assert_eq!(first_entry_value, LazyLock::force(&EXAMPLE_ATTR_VALUE));
 }
 
 #[tokio::test]

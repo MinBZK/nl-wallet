@@ -1012,20 +1012,11 @@ Example responses:
 {
   "com.example.pid": {
     "attributes": {
-      "com.example.pid": [
-        {
-          "name": "family_name",
-          "value": "De Bruijn"
-        },
-        {
-          "name": "own_family_name",
-          "value": "Molenaar"
-        },
-        {
-          "name": "given_name",
-          "value": "Willeke Liselotte"
-        }
-      ]
+      "com.example.pid": {
+        "family_name": "De Bruijn",
+        "own_family_name": "Molenaar",
+        "given_name": "Willeke Liselotte"
+      }
     },
     "issuer": [
       "pid.example.com"

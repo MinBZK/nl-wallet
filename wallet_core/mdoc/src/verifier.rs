@@ -13,7 +13,6 @@ use wallet_common::generator::Generator;
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
-    unsigned::Entry,
     utils::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
@@ -28,7 +27,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentDisclosedAttributes {
-    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
+    pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub issuer: Vec<String>,
     pub validity_info: ValidityInfo,
 }
@@ -212,16 +211,17 @@ impl IssuerSigned {
 }
 
 impl MobileSecurityObject {
-    fn verify_attrs_in_namespace(&self, attrs: &Attributes, namespace: &NameSpace) -> Result<Vec<Entry>> {
+    fn verify_attrs_in_namespace(
+        &self,
+        attrs: &Attributes,
+        namespace: &NameSpace,
+    ) -> Result<IndexMap<DataElementIdentifier, DataElementValue>> {
         attrs
             .as_ref()
             .iter()
             .map(|item| {
                 self.verify_attr_digest(namespace, item)?;
-                Ok(Entry {
-                    name: item.0.element_identifier.clone(),
-                    value: item.0.element_value.clone(),
-                })
+                Ok((item.0.element_identifier.clone(), item.0.element_value.clone()))
             })
             .collect::<Result<_>>()
     }
