@@ -158,10 +158,9 @@ components:
 
     attributes:
       type: object
-      additionalProperties:
-        type: array
-        items:
-          $ref: '#/components/schemas/attribute'
+      additionalProperties: true
+      example:
+        attributeName: attributeValue
 
     validity_info:
       type: object
