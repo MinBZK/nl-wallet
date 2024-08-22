@@ -36,6 +36,7 @@ import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -119,6 +120,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<DiscloseForIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<DecodeQrUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckHasPermissionUseCase>()])
+@GenerateNiceMocks([MockSpec<ChangePinUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])
@@ -192,6 +194,7 @@ class Mocks {
     sl.registerFactory<DiscloseForIssuanceUseCase>(MockDiscloseForIssuanceUseCase.new);
     sl.registerFactory<DecodeQrUseCase>(MockDecodeQrUseCase.new);
     sl.registerFactory<CheckHasPermissionUseCase>(MockCheckHasPermissionUseCase.new);
+    sl.registerFactory<ChangePinUseCase>(MockChangePinUseCase.new);
 
     // Repositories
     sl.registerFactory<PidRepository>(getMockPidRepository);

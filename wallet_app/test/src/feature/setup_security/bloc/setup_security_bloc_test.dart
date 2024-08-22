@@ -183,7 +183,7 @@ void main() {
     skip: 11 /* skip pin setup */,
     expect: () => [
       SetupSecurityCreatingWallet(),
-      const SetupSecurityNetworkError(error: 'error', hasInternet: true),
+      const SetupSecurityNetworkError(error: CoreNetworkError('error'), hasInternet: true),
       isA<SetupSecuritySelectPinInProgress>(),
     ],
   );

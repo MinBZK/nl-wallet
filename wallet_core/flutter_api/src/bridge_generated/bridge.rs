@@ -187,6 +187,37 @@ fn wire_lock_wallet_impl(port_: MessagePort) {
         move || move |task_callback| Result::<_, ()>::Ok(lock_wallet()),
     )
 }
+fn wire_check_pin_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, WalletInstructionResult, _>(
+        WrapInfo {
+            debug_name: "check_pin",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.wire2api();
+            move |task_callback| check_pin(api_pin)
+        },
+    )
+}
+fn wire_change_pin_impl(
+    port_: MessagePort,
+    old_pin: impl Wire2Api<String> + UnwindSafe,
+    new_pin: impl Wire2Api<String> + UnwindSafe,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, WalletInstructionResult, _>(
+        WrapInfo {
+            debug_name: "change_pin",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_old_pin = old_pin.wire2api();
+            let api_new_pin = new_pin.wire2api();
+            move |task_callback| change_pin(api_old_pin, api_new_pin)
+        },
+    )
+}
 fn wire_has_registration_impl(port_: MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, bool, _>(
         WrapInfo {

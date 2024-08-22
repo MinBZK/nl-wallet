@@ -178,6 +178,29 @@ pub async fn lock_wallet() {
 }
 
 #[async_runtime]
+#[flutter_api_error]
+pub async fn check_pin(pin: String) -> Result<WalletInstructionResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.check_pin(pin).await.try_into()?;
+
+    Ok(result)
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn change_pin(old_pin: String, new_pin: String) -> Result<WalletInstructionResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.check_pin(old_pin).await.try_into()?;
+
+    // TODO: Actually change the PIN
+    println!("Newly selected pin {new_pin}");
+
+    Ok(result)
+}
+
+#[async_runtime]
 pub async fn has_registration() -> bool {
     wallet().read().await.has_registration()
 }

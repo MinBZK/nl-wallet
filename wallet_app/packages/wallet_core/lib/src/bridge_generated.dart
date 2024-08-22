@@ -66,6 +66,14 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kLockWalletConstMeta;
 
+  Future<WalletInstructionResult> checkPin({required String pin, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kCheckPinConstMeta;
+
+  Future<WalletInstructionResult> changePin({required String oldPin, required String newPin, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kChangePinConstMeta;
+
   Future<bool> hasRegistration({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kHasRegistrationConstMeta;
@@ -596,6 +604,41 @@ class WalletCoreImpl implements WalletCore {
   FlutterRustBridgeTaskConstMeta get kLockWalletConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "lock_wallet",
         argNames: [],
+      );
+
+  Future<WalletInstructionResult> checkPin({required String pin, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(pin);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_check_pin(port_, arg0),
+      parseSuccessData: _wire2api_wallet_instruction_result,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kCheckPinConstMeta,
+      argValues: [pin],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kCheckPinConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "check_pin",
+        argNames: ["pin"],
+      );
+
+  Future<WalletInstructionResult> changePin({required String oldPin, required String newPin, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(oldPin);
+    var arg1 = _platform.api2wire_String(newPin);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_change_pin(port_, arg0, arg1),
+      parseSuccessData: _wire2api_wallet_instruction_result,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kChangePinConstMeta,
+      argValues: [oldPin, newPin],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kChangePinConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "change_pin",
+        argNames: ["oldPin", "newPin"],
       );
 
   Future<bool> hasRegistration({dynamic hint}) {
@@ -1492,6 +1535,39 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
 
   late final _wire_lock_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_lock_wallet');
   late final _wire_lock_wallet = _wire_lock_walletPtr.asFunction<void Function(int)>();
+
+  void wire_check_pin(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> pin,
+  ) {
+    return _wire_check_pin(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire_check_pinPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_check_pin');
+  late final _wire_check_pin = _wire_check_pinPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_change_pin(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> old_pin,
+    ffi.Pointer<wire_uint_8_list> new_pin,
+  ) {
+    return _wire_change_pin(
+      port_,
+      old_pin,
+      new_pin,
+    );
+  }
+
+  late final _wire_change_pinPtr = _lookup<
+          ffi
+          .NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>, ffi.Pointer<wire_uint_8_list>)>>(
+      'wire_change_pin');
+  late final _wire_change_pin = _wire_change_pinPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>, ffi.Pointer<wire_uint_8_list>)>();
 
   void wire_has_registration(
     int port_,

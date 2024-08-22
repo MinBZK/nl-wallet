@@ -19,6 +19,8 @@ class PinBloc extends Bloc<PinEvent, PinState> {
 
   String _currentPin = '';
 
+  String get currentPin => _currentPin;
+
   PinBloc(this.checkPinUseCase) : super(const PinEntryInProgress(0)) {
     on<PinDigitPressed>(_onEnterDigitEvent);
     on<PinBackspacePressed>(_onRemoveDigitEvent);
@@ -75,5 +77,11 @@ class PinBloc extends Bloc<PinEvent, PinState> {
       );
       _currentPin = '';
     }
+  }
+
+  @override
+  Future<dynamic> close() {
+    _currentPin = '';
+    return super.close();
   }
 }

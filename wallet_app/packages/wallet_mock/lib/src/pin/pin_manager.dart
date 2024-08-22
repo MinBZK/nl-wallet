@@ -14,6 +14,11 @@ class PinManager {
     _selectedPin = pin;
   }
 
+  void updatePin(String pin) {
+    if (!isRegistered) throw StateError('No pin registered');
+    _selectedPin = pin;
+  }
+
   WalletInstructionResult checkPin(String pin) {
     if (!isRegistered) throw StateError('Cannot unlock before registration');
 
