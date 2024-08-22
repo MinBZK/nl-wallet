@@ -746,9 +746,7 @@ async fn prepare_example_holder_mocks(
     (mdoc_data_source, key_factory)
 }
 
-#[rstest]
-#[tokio::test]
-async fn test_full_disclosure(#[values(SessionType::SameDevice, SessionType::CrossDevice)] session_type: SessionType) {
+async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
     // Start the wallet_server and create a disclosure request.
     let (settings, client, session_token, internal_url, issuer_key_pair, rp_trust_anchor) =
         start_disclosure(MemorySessionStore::default()).await;
@@ -808,29 +806,10 @@ async fn test_full_disclosure(#[values(SessionType::SameDevice, SessionType::Cro
 
     assert_matches!(get_status_ok(&client, status_url).await, StatusResponse::Done);
 
-    // Check if the disclosed attributes endpoint returns a 200 for the session, with the attributes.
-    // Include the nonce, if we received a return URL when performing disclosure.
-    let mut disclosed_attributes_url = internal_url.join(&format!(
-        "disclosure/sessions/{}/disclosed_attributes",
-        session_token.as_ref()
-    ));
+    (client, session_token, internal_url, return_url)
+}
 
-    if let Some(return_url) = return_url {
-        let nonce = return_url
-            .into_inner()
-            .query_pairs()
-            .find_map(|(key, value)| (key == "nonce").then_some(value.into_owned()))
-            .unwrap();
-        disclosed_attributes_url.query_pairs_mut().append_pair("nonce", &nonce);
-    }
-
-    let response = client.get(disclosed_attributes_url).send().await.unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
-
+fn check_example_disclosed_attributes(disclosed_attributes: &DisclosedAttributes) {
     itertools::assert_equal(disclosed_attributes.keys(), [EXAMPLE_DOC_TYPE]);
     let attributes = &disclosed_attributes.get(EXAMPLE_DOC_TYPE).unwrap().attributes;
     itertools::assert_equal(attributes.keys(), [EXAMPLE_NAMESPACE]);
@@ -840,29 +819,31 @@ async fn test_full_disclosure(#[values(SessionType::SameDevice, SessionType::Cro
 }
 
 #[tokio::test]
-async fn test_disclosed_attributes_error_nonce() {
-    // Populate a session store with one session that is `Done` and has a nonce.
-    let session_token = SessionToken::new("foobar");
-    let session = SessionState::new(
-        session_token.clone(),
-        DisclosureData::Done(Done {
-            session_result: SessionResult::Done {
-                disclosed_attributes: Default::default(),
-                redirect_uri_nonce: Some("nonce".to_string()),
-            },
-        }),
-    );
+async fn test_disclosed_attributes_without_nonce() {
+    let (client, session_token, internal_url, _) = perform_full_disclosure(SessionType::CrossDevice).await;
 
-    let session_store = MemorySessionStore::<DisclosureData>::default();
-    session_store.write(session, true).await.unwrap();
+    // Check if the disclosed attributes endpoint returns a 200 for the session, with the attributes.
+    let disclosed_attributes_url = internal_url.join(&format!(
+        "disclosure/sessions/{}/disclosed_attributes",
+        session_token.as_ref()
+    ));
 
-    // Start the wallet server with this session store.
-    let (settings, _, _) = wallet_server_settings();
-    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
-    start_wallet_server(settings.clone(), session_store).await;
-    let client = default_reqwest_client_builder().build().unwrap();
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
 
-    // Check that requesting the disclosed attributes for this session returns the correct errors.
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Check the disclosed attributes against the example attributes.
+    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+
+    check_example_disclosed_attributes(&disclosed_attributes);
+}
+
+#[tokio::test]
+async fn test_disclosed_attributes_with_nonce() {
+    let (client, session_token, internal_url, return_url) = perform_full_disclosure(SessionType::SameDevice).await;
+
+    // Check if the disclosed attributes endpoint returns a 400 error when
+    // requesting the attributes without a nonce or with an incorrect nonce.
     let mut disclosed_attributes_url = internal_url.join(&format!(
         "disclosure/sessions/{}/disclosed_attributes",
         session_token.as_ref()
@@ -872,12 +853,36 @@ async fn test_disclosed_attributes_error_nonce() {
 
     test_http_json_error_body(response, StatusCode::UNAUTHORIZED, "nonce").await;
 
-    disclosed_attributes_url
+    let mut disclosed_attributes_url_incorrect_nonce = disclosed_attributes_url.clone();
+    disclosed_attributes_url_incorrect_nonce
         .query_pairs_mut()
-        .append_pair("none", "incorrect");
-    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+        .append_pair("nonce", "incorrect");
+    let response = client
+        .get(disclosed_attributes_url_incorrect_nonce)
+        .send()
+        .await
+        .unwrap();
 
     test_http_json_error_body(response, StatusCode::UNAUTHORIZED, "nonce").await;
+
+    // Check if the disclosed attributes endpoint returns a 200 for the session,
+    // with the attributes, when we include the nonce from the return URL.
+    let nonce = return_url
+        .expect("a same-device disclosure session should procude a return URL")
+        .into_inner()
+        .query_pairs()
+        .find_map(|(key, value)| (key == "nonce").then_some(value.into_owned()))
+        .unwrap();
+    disclosed_attributes_url.query_pairs_mut().append_pair("nonce", &nonce);
+
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Check the disclosed attributes against the example attributes.
+    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+
+    check_example_disclosed_attributes(&disclosed_attributes);
 }
 
 #[tokio::test]
