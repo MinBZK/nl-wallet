@@ -34,12 +34,8 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{
     disclosure_session::{DisclosureSession, DisclosureUriSource, HttpVpMessageClient},
-    server_state::{
-        MemorySessionStore, SessionState, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS,
-    },
-    verifier::{
-        DisclosureData, Done, SessionResult, SessionType, SessionTypeReturnUrl, StatusResponse, VerifierUrlParameters,
-    },
+    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS},
+    verifier::{DisclosureData, SessionType, SessionTypeReturnUrl, StatusResponse, VerifierUrlParameters},
     ErrorResponse,
 };
 use url::Url;
@@ -902,34 +898,52 @@ async fn test_disclosed_attributes_with_nonce() {
 }
 
 #[tokio::test]
-async fn test_disclosed_attributes_error_session_state() {
-    let failed_session_token = SessionToken::new("failed");
-    let failed_session = SessionState::new(
-        failed_session_token.clone(),
-        DisclosureData::Done(Done {
-            session_result: SessionResult::Failed {
-                error: "This is the error reason.".to_string(),
-            },
-        }),
+async fn test_disclosed_attributes_failed_session() {
+    // Start the wallet_server and create a disclosure request.
+    let (settings, client, session_token, internal_url, _, rp_trust_anchor) =
+        start_disclosure(MemorySessionStore::default()).await;
+
+    // Fetching the status should return OK, be in the Created state and include a universal link.
+    let status_url = format_status_url(
+        &settings.urls.public_url,
+        &session_token,
+        Some(SessionType::CrossDevice),
     );
 
-    let session_store = MemorySessionStore::<DisclosureData>::default();
-    session_store.write(failed_session, true).await.unwrap();
+    let StatusResponse::Created { ul: Some(ul) } = get_status_ok(&client, status_url.clone()).await else {
+        panic!("session should be in CREATED state and a universal link should be provided")
+    };
 
-    // Start the wallet server with this session store.
-    let (settings, _, _) = wallet_server_settings();
-    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
-    start_wallet_server(settings.clone(), session_store).await;
-    let client = default_reqwest_client_builder().build().unwrap();
+    // Start a disclosure session with the default MockMdocDataSource, which contains expired
+    // attestations from the examples in the ISO specifications, then disclose those.
+    let request_uri_query = ul.as_ref().query().unwrap().to_string();
+    let disclosure_session = DisclosureSession::start(
+        HttpVpMessageClient::from(client.clone()),
+        &request_uri_query,
+        DisclosureUriSource::QrCode,
+        &MockMdocDataSource::default(),
+        &[rp_trust_anchor].iter().map(Into::into).collect_vec(),
+    )
+    .await
+    .expect("disclosure session should start at client side");
 
-    let response = client
-        .get(internal_url.join(&format!(
-            "disclosure/sessions/{}/disclosed_attributes",
-            failed_session_token.as_ref()
-        )))
-        .send()
+    let DisclosureSession::Proposal(proposal) = disclosure_session else {
+        panic!("should have received a disclosure proposal")
+    };
+
+    proposal
+        .disclose(&SoftwareKeyFactory::default())
         .await
-        .unwrap();
+        .expect_err("disclosing attributes should result in an error");
+
+    // Check that the disclosed attributes endpoint now returns a 400 error and that the response
+    // body contains information that the session has FAILED, as well as the reason why.
+    let disclosed_attributes_url = internal_url.join(&format!(
+        "disclosure/sessions/{}/disclosed_attributes",
+        session_token.as_ref()
+    ));
+
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
 
     let error_body = test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
     itertools::assert_equal(error_body.extra.keys().sorted(), ["session_error", "session_status"]);
@@ -937,8 +951,13 @@ async fn test_disclosed_attributes_error_session_state() {
         error_body.extra.get("session_status").unwrap(),
         &serde_json::Value::from("FAILED")
     );
-    assert_eq!(
-        error_body.extra.get("session_error").unwrap(),
-        &serde_json::Value::from("This is the error reason.")
-    );
+    // Simply check for the presence of the word "expired" to avoid fully matching the error string.
+    assert!(error_body
+        .extra
+        .get("session_error")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_lowercase()
+        .contains("expired"));
 }
