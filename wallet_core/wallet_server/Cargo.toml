@@ -40,7 +40,7 @@ allow_http_return_url = ["openid4vc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "dep:parking_lot", "dep:serial_test", "nl_wallet_mdoc/mock_time", "openid4vc/test"]
+db_test = ["postgres", "dep:serial_test", "openid4vc/test"]
 # Enable issuance
 issuance = [
     "axum/form",
@@ -102,7 +102,6 @@ ciborium = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 itertools = { workspace = true, optional = true }
-parking_lot = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 ring = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true, features = [
