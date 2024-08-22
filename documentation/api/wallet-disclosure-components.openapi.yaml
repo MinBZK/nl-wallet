@@ -141,17 +141,6 @@ components:
             - validityInfo
         additionalProperties: false
 
-    attribute:
-      type: object
-      properties:
-        name:
-          type: string
-        value:
-          type: string
-      required:
-        - name
-        - value
-
     attributes:
       type: object
       additionalProperties: true
