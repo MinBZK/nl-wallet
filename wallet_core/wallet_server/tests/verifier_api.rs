@@ -18,6 +18,7 @@ use rand_core::OsRng;
 use reqwest::{Client, Response};
 use rstest::rstest;
 use tokio::time;
+use url::Url;
 
 use nl_wallet_mdoc::{
     examples::{Example, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
@@ -38,7 +39,6 @@ use openid4vc::{
     verifier::{DisclosureData, SessionType, SessionTypeReturnUrl, StatusResponse, VerifierUrlParameters},
     ErrorResponse,
 };
-use url::Url;
 use wallet_common::{
     config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonErrorBody,
     keys::software::SoftwareEcdsaKey, reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, utils,
