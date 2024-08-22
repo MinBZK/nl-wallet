@@ -43,6 +43,8 @@ use wallet_common::{
     config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonErrorBody,
     keys::software::SoftwareEcdsaKey, reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, utils,
 };
+#[cfg(feature = "issuance")]
+use wallet_server::settings::{Digid, Issuer};
 use wallet_server::{
     settings::{Authentication, RequesterAuth, Server, Settings, Storage, Urls, Verifier, VerifierUseCase},
     verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams},
@@ -77,9 +79,7 @@ fn find_listener_port() -> u16 {
 }
 
 #[cfg(feature = "issuance")]
-fn fake_issuer_settings() -> wallet_server::settings::Issuer {
-    use wallet_server::settings::{Digid, Issuer};
-
+fn fake_issuer_settings() -> Issuer {
     let url: BaseUrl = "http://fake.fake".parse().unwrap();
 
     Issuer {
