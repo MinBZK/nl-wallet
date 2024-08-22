@@ -71,6 +71,9 @@ class _$AcceptDisclosureResultCopyWithImpl<$Res, $Val extends AcceptDisclosureRe
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of AcceptDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -90,6 +93,8 @@ class __$$AcceptDisclosureResult_OkImplCopyWithImpl<$Res>
       _$AcceptDisclosureResult_OkImpl _value, $Res Function(_$AcceptDisclosureResult_OkImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of AcceptDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -128,7 +133,9 @@ class _$AcceptDisclosureResult_OkImpl implements AcceptDisclosureResult_Ok {
   @override
   int get hashCode => Object.hash(runtimeType, returnUrl);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of AcceptDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$AcceptDisclosureResult_OkImplCopyWith<_$AcceptDisclosureResult_OkImpl> get copyWith =>
@@ -201,7 +208,10 @@ abstract class AcceptDisclosureResult_Ok implements AcceptDisclosureResult {
   const factory AcceptDisclosureResult_Ok({final String? returnUrl}) = _$AcceptDisclosureResult_OkImpl;
 
   String? get returnUrl;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of AcceptDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$AcceptDisclosureResult_OkImplCopyWith<_$AcceptDisclosureResult_OkImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -225,6 +235,8 @@ class __$$AcceptDisclosureResult_InstructionErrorImplCopyWithImpl<$Res>
       $Res Function(_$AcceptDisclosureResult_InstructionErrorImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of AcceptDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -238,6 +250,8 @@ class __$$AcceptDisclosureResult_InstructionErrorImplCopyWithImpl<$Res>
     ));
   }
 
+  /// Create a copy of AcceptDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $WalletInstructionErrorCopyWith<$Res> get error {
@@ -271,7 +285,9 @@ class _$AcceptDisclosureResult_InstructionErrorImpl implements AcceptDisclosureR
   @override
   int get hashCode => Object.hash(runtimeType, error);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of AcceptDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$AcceptDisclosureResult_InstructionErrorImplCopyWith<_$AcceptDisclosureResult_InstructionErrorImpl> get copyWith =>
@@ -346,7 +362,10 @@ abstract class AcceptDisclosureResult_InstructionError implements AcceptDisclosu
       _$AcceptDisclosureResult_InstructionErrorImpl;
 
   WalletInstructionError get error;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of AcceptDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$AcceptDisclosureResult_InstructionErrorImplCopyWith<_$AcceptDisclosureResult_InstructionErrorImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -407,6 +426,9 @@ class _$CardPersistenceCopyWithImpl<$Res, $Val extends CardPersistence> implemen
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of CardPersistence
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -423,6 +445,9 @@ class __$$CardPersistence_InMemoryImplCopyWithImpl<$Res>
   __$$CardPersistence_InMemoryImplCopyWithImpl(
       _$CardPersistence_InMemoryImpl _value, $Res Function(_$CardPersistence_InMemoryImpl) _then)
       : super(_value, _then);
+
+  /// Create a copy of CardPersistence
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -527,6 +552,8 @@ class __$$CardPersistence_StoredImplCopyWithImpl<$Res>
       _$CardPersistence_StoredImpl _value, $Res Function(_$CardPersistence_StoredImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of CardPersistence
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -565,7 +592,9 @@ class _$CardPersistence_StoredImpl implements CardPersistence_Stored {
   @override
   int get hashCode => Object.hash(runtimeType, id);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CardPersistence
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CardPersistence_StoredImplCopyWith<_$CardPersistence_StoredImpl> get copyWith =>
@@ -638,7 +667,10 @@ abstract class CardPersistence_Stored implements CardPersistence {
   const factory CardPersistence_Stored({required final String id}) = _$CardPersistence_StoredImpl;
 
   String get id;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CardPersistence
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CardPersistence_StoredImplCopyWith<_$CardPersistence_StoredImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -711,6 +743,9 @@ class _$CardValueCopyWithImpl<$Res, $Val extends CardValue> implements $CardValu
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -727,6 +762,8 @@ class __$$CardValue_StringImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl
   __$$CardValue_StringImplCopyWithImpl(_$CardValue_StringImpl _value, $Res Function(_$CardValue_StringImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -765,7 +802,9 @@ class _$CardValue_StringImpl implements CardValue_String {
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CardValue_StringImplCopyWith<_$CardValue_StringImpl> get copyWith =>
@@ -851,7 +890,10 @@ abstract class CardValue_String implements CardValue {
 
   @override
   String get value;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CardValue_StringImplCopyWith<_$CardValue_StringImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -869,6 +911,8 @@ class __$$CardValue_BooleanImplCopyWithImpl<$Res> extends _$CardValueCopyWithImp
   __$$CardValue_BooleanImplCopyWithImpl(_$CardValue_BooleanImpl _value, $Res Function(_$CardValue_BooleanImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -907,7 +951,9 @@ class _$CardValue_BooleanImpl implements CardValue_Boolean {
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CardValue_BooleanImplCopyWith<_$CardValue_BooleanImpl> get copyWith =>
@@ -993,7 +1039,10 @@ abstract class CardValue_Boolean implements CardValue {
 
   @override
   bool get value;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CardValue_BooleanImplCopyWith<_$CardValue_BooleanImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -1011,6 +1060,8 @@ class __$$CardValue_DateImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$
   __$$CardValue_DateImplCopyWithImpl(_$CardValue_DateImpl _value, $Res Function(_$CardValue_DateImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1049,7 +1100,9 @@ class _$CardValue_DateImpl implements CardValue_Date {
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CardValue_DateImplCopyWith<_$CardValue_DateImpl> get copyWith =>
@@ -1135,7 +1188,10 @@ abstract class CardValue_Date implements CardValue {
 
   @override
   String get value;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CardValue_DateImplCopyWith<_$CardValue_DateImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -1153,6 +1209,8 @@ class __$$CardValue_GenderImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl
   __$$CardValue_GenderImplCopyWithImpl(_$CardValue_GenderImpl _value, $Res Function(_$CardValue_GenderImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1191,7 +1249,9 @@ class _$CardValue_GenderImpl implements CardValue_Gender {
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$CardValue_GenderImplCopyWith<_$CardValue_GenderImpl> get copyWith =>
@@ -1277,7 +1337,10 @@ abstract class CardValue_Gender implements CardValue {
 
   @override
   GenderCardValue get value;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of CardValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CardValue_GenderImplCopyWith<_$CardValue_GenderImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -1348,6 +1411,9 @@ class _$ImageCopyWithImpl<$Res, $Val extends Image> implements $ImageCopyWith<$R
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -1363,6 +1429,8 @@ class __$$Image_SvgImplCopyWithImpl<$Res> extends _$ImageCopyWithImpl<$Res, _$Im
     implements _$$Image_SvgImplCopyWith<$Res> {
   __$$Image_SvgImplCopyWithImpl(_$Image_SvgImpl _value, $Res Function(_$Image_SvgImpl) _then) : super(_value, _then);
 
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1401,7 +1469,9 @@ class _$Image_SvgImpl implements Image_Svg {
   @override
   int get hashCode => Object.hash(runtimeType, xml);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$Image_SvgImplCopyWith<_$Image_SvgImpl> get copyWith =>
@@ -1486,7 +1556,10 @@ abstract class Image_Svg implements Image {
   const factory Image_Svg({required final String xml}) = _$Image_SvgImpl;
 
   String get xml;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$Image_SvgImplCopyWith<_$Image_SvgImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -1503,6 +1576,8 @@ class __$$Image_PngImplCopyWithImpl<$Res> extends _$ImageCopyWithImpl<$Res, _$Im
     implements _$$Image_PngImplCopyWith<$Res> {
   __$$Image_PngImplCopyWithImpl(_$Image_PngImpl _value, $Res Function(_$Image_PngImpl) _then) : super(_value, _then);
 
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1541,7 +1616,9 @@ class _$Image_PngImpl implements Image_Png {
   @override
   int get hashCode => Object.hash(runtimeType, base64);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$Image_PngImplCopyWith<_$Image_PngImpl> get copyWith =>
@@ -1626,7 +1703,10 @@ abstract class Image_Png implements Image {
   const factory Image_Png({required final String base64}) = _$Image_PngImpl;
 
   String get base64;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$Image_PngImplCopyWith<_$Image_PngImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -1643,6 +1723,8 @@ class __$$Image_JpgImplCopyWithImpl<$Res> extends _$ImageCopyWithImpl<$Res, _$Im
     implements _$$Image_JpgImplCopyWith<$Res> {
   __$$Image_JpgImplCopyWithImpl(_$Image_JpgImpl _value, $Res Function(_$Image_JpgImpl) _then) : super(_value, _then);
 
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1681,7 +1763,9 @@ class _$Image_JpgImpl implements Image_Jpg {
   @override
   int get hashCode => Object.hash(runtimeType, base64);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$Image_JpgImplCopyWith<_$Image_JpgImpl> get copyWith =>
@@ -1766,7 +1850,10 @@ abstract class Image_Jpg implements Image {
   const factory Image_Jpg({required final String base64}) = _$Image_JpgImpl;
 
   String get base64;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$Image_JpgImplCopyWith<_$Image_JpgImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -1784,6 +1871,8 @@ class __$$Image_AssetImplCopyWithImpl<$Res> extends _$ImageCopyWithImpl<$Res, _$
   __$$Image_AssetImplCopyWithImpl(_$Image_AssetImpl _value, $Res Function(_$Image_AssetImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -1822,7 +1911,9 @@ class _$Image_AssetImpl implements Image_Asset {
   @override
   int get hashCode => Object.hash(runtimeType, path);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$Image_AssetImplCopyWith<_$Image_AssetImpl> get copyWith =>
@@ -1907,7 +1998,10 @@ abstract class Image_Asset implements Image {
   const factory Image_Asset({required final String path}) = _$Image_AssetImpl;
 
   String get path;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of Image
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$Image_AssetImplCopyWith<_$Image_AssetImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -2005,7 +2099,9 @@ mixin _$StartDisclosureResult {
   }) =>
       throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of StartDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $StartDisclosureResultCopyWith<StartDisclosureResult> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -2032,6 +2128,8 @@ class _$StartDisclosureResultCopyWithImpl<$Res, $Val extends StartDisclosureResu
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of StartDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2092,6 +2190,8 @@ class __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>
       _$StartDisclosureResult_RequestImpl _value, $Res Function(_$StartDisclosureResult_RequestImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of StartDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2219,7 +2319,9 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
       requestOriginBaseUrl,
       requestType);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of StartDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$StartDisclosureResult_RequestImplCopyWith<_$StartDisclosureResult_RequestImpl> get copyWith =>
@@ -2363,8 +2465,11 @@ abstract class StartDisclosureResult_Request implements StartDisclosureResult {
   @override
   String get requestOriginBaseUrl;
   DisclosureType get requestType;
+
+  /// Create a copy of StartDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$StartDisclosureResult_RequestImplCopyWith<_$StartDisclosureResult_RequestImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -2396,6 +2501,8 @@ class __$$StartDisclosureResult_RequestAttributesMissingImplCopyWithImpl<$Res>
       $Res Function(_$StartDisclosureResult_RequestAttributesMissingImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of StartDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2503,7 +2610,9 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
       const DeepCollectionEquality().hash(_requestPurpose),
       requestOriginBaseUrl);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of StartDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<_$StartDisclosureResult_RequestAttributesMissingImpl>
@@ -2644,8 +2753,11 @@ abstract class StartDisclosureResult_RequestAttributesMissing implements StartDi
   List<LocalizedString> get requestPurpose;
   @override
   String get requestOriginBaseUrl;
+
+  /// Create a copy of StartDisclosureResult
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$StartDisclosureResult_RequestAttributesMissingImplCopyWith<_$StartDisclosureResult_RequestAttributesMissingImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
@@ -2716,7 +2828,9 @@ mixin _$WalletEvent {
   }) =>
       throw _privateConstructorUsedError;
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WalletEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   $WalletEventCopyWith<WalletEvent> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -2737,6 +2851,8 @@ class _$WalletEventCopyWithImpl<$Res, $Val extends WalletEvent> implements $Wall
   // ignore: unused_field
   final $Res Function($Val) _then;
 
+  /// Create a copy of WalletEvent
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2776,6 +2892,8 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
       _$WalletEvent_DisclosureImpl _value, $Res Function(_$WalletEvent_DisclosureImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of WalletEvent
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -2886,7 +3004,9 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
       const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status, type);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WalletEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl> get copyWith =>
@@ -2997,8 +3117,11 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
   RequestPolicy get requestPolicy;
   DisclosureStatus get status;
   DisclosureType get type;
+
+  /// Create a copy of WalletEvent
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -3020,6 +3143,8 @@ class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWi
       _$WalletEvent_IssuanceImpl _value, $Res Function(_$WalletEvent_IssuanceImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of WalletEvent
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -3066,7 +3191,9 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @override
   int get hashCode => Object.hash(runtimeType, dateTime, card);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WalletEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$WalletEvent_IssuanceImplCopyWith<_$WalletEvent_IssuanceImpl> get copyWith =>
@@ -3166,8 +3293,11 @@ abstract class WalletEvent_Issuance implements WalletEvent {
   @override
   String get dateTime;
   Card get card;
+
+  /// Create a copy of WalletEvent
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(ignore: true)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$WalletEvent_IssuanceImplCopyWith<_$WalletEvent_IssuanceImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -3234,6 +3364,9 @@ class _$WalletInstructionErrorCopyWithImpl<$Res, $Val extends WalletInstructionE
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of WalletInstructionError
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -3253,6 +3386,8 @@ class __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>
       _$WalletInstructionError_IncorrectPinImpl _value, $Res Function(_$WalletInstructionError_IncorrectPinImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of WalletInstructionError
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -3300,7 +3435,9 @@ class _$WalletInstructionError_IncorrectPinImpl implements WalletInstructionErro
   @override
   int get hashCode => Object.hash(runtimeType, attemptsLeftInRound, isFinalRound);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WalletInstructionError
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$WalletInstructionError_IncorrectPinImplCopyWith<_$WalletInstructionError_IncorrectPinImpl> get copyWith =>
@@ -3383,7 +3520,10 @@ abstract class WalletInstructionError_IncorrectPin implements WalletInstructionE
 
   int get attemptsLeftInRound;
   bool get isFinalRound;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of WalletInstructionError
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$WalletInstructionError_IncorrectPinImplCopyWith<_$WalletInstructionError_IncorrectPinImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -3405,6 +3545,8 @@ class __$$WalletInstructionError_TimeoutImplCopyWithImpl<$Res>
       _$WalletInstructionError_TimeoutImpl _value, $Res Function(_$WalletInstructionError_TimeoutImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of WalletInstructionError
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -3443,7 +3585,9 @@ class _$WalletInstructionError_TimeoutImpl implements WalletInstructionError_Tim
   @override
   int get hashCode => Object.hash(runtimeType, timeoutMillis);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WalletInstructionError
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$WalletInstructionError_TimeoutImplCopyWith<_$WalletInstructionError_TimeoutImpl> get copyWith =>
@@ -3523,7 +3667,10 @@ abstract class WalletInstructionError_Timeout implements WalletInstructionError 
       _$WalletInstructionError_TimeoutImpl;
 
   int get timeoutMillis;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of WalletInstructionError
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$WalletInstructionError_TimeoutImplCopyWith<_$WalletInstructionError_TimeoutImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -3542,6 +3689,9 @@ class __$$WalletInstructionError_BlockedImplCopyWithImpl<$Res>
   __$$WalletInstructionError_BlockedImplCopyWithImpl(
       _$WalletInstructionError_BlockedImpl _value, $Res Function(_$WalletInstructionError_BlockedImpl) _then)
       : super(_value, _then);
+
+  /// Create a copy of WalletInstructionError
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -3693,6 +3843,9 @@ class _$WalletInstructionResultCopyWithImpl<$Res, $Val extends WalletInstruction
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
+
+  /// Create a copy of WalletInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -3709,6 +3862,9 @@ class __$$WalletInstructionResult_OkImplCopyWithImpl<$Res>
   __$$WalletInstructionResult_OkImplCopyWithImpl(
       _$WalletInstructionResult_OkImpl _value, $Res Function(_$WalletInstructionResult_OkImpl) _then)
       : super(_value, _then);
+
+  /// Create a copy of WalletInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
@@ -3815,6 +3971,8 @@ class __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<$Res>
       $Res Function(_$WalletInstructionResult_InstructionErrorImpl) _then)
       : super(_value, _then);
 
+  /// Create a copy of WalletInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -3828,6 +3986,8 @@ class __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<$Res>
     ));
   }
 
+  /// Create a copy of WalletInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
   $WalletInstructionErrorCopyWith<$Res> get error {
@@ -3861,7 +4021,9 @@ class _$WalletInstructionResult_InstructionErrorImpl implements WalletInstructio
   @override
   int get hashCode => Object.hash(runtimeType, error);
 
-  @JsonKey(ignore: true)
+  /// Create a copy of WalletInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
   _$$WalletInstructionResult_InstructionErrorImplCopyWith<_$WalletInstructionResult_InstructionErrorImpl>
@@ -3937,7 +4099,10 @@ abstract class WalletInstructionResult_InstructionError implements WalletInstruc
       _$WalletInstructionResult_InstructionErrorImpl;
 
   WalletInstructionError get error;
-  @JsonKey(ignore: true)
+
+  /// Create a copy of WalletInstructionResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
   _$$WalletInstructionResult_InstructionErrorImplCopyWith<_$WalletInstructionResult_InstructionErrorImpl>
       get copyWith => throw _privateConstructorUsedError;
 }

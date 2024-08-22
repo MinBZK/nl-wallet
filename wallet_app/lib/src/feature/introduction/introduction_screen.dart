@@ -102,7 +102,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           ),
           body: PopScope(
             canPop: _currentPage == 0,
-            onPopInvoked: (didPop) => didPop ? null : _onPreviousPagePressed(context),
+            onPopInvokedWithResult: (didPop, result) => didPop ? null : _onPreviousPagePressed(context),
             child: _buildContent(context),
           ),
         ),

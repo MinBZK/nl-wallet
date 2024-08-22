@@ -8,6 +8,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../data/service/navigation_service.dart';
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
@@ -57,6 +58,7 @@ class DashboardScreen extends StatelessWidget {
         key: const Key('dashboardVisibilityDetector'),
         onVisibilityChanged: (visibilityInfo) {
           if (visibilityInfo.visibleFraction >= 1) {
+            context.read<NavigationService>().processQueue();
             SemanticsService.announce(context.l10n.dashboardScreenOverviewAnnouncement, TextDirection.ltr);
           }
         },

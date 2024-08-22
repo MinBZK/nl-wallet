@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../data/service/navigation_service.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -16,7 +15,6 @@ import '../feature/card/history/bloc/card_history_bloc.dart';
 import '../feature/card/history/card_history_screen.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
-import '../feature/common/widget/utility/do_on_init.dart';
 import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
@@ -230,10 +228,7 @@ WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
           context.read(),
           argument?.cards,
         )..add(const DashboardLoadTriggered()),
-        child: DoOnInit(
-          child: const DashboardScreen(),
-          onInit: (context) => context.read<NavigationService>().processQueue(),
-        ),
+        child: const DashboardScreen(),
       );
 }
 

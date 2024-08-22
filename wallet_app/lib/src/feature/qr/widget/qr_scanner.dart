@@ -7,6 +7,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../bloc/qr_bloc.dart';
+import 'qr_scanner_active_announcer.dart';
+
+const kAndroidCameraResolution = Size(1280, 960);
 
 class QrScanner extends StatefulWidget {
   const QrScanner({super.key});
@@ -16,7 +19,10 @@ class QrScanner extends StatefulWidget {
 }
 
 class _QrScannerState extends State<QrScanner> {
-  final MobileScannerController cameraController = MobileScannerController(formats: [BarcodeFormat.qrCode]);
+  final MobileScannerController cameraController = MobileScannerController(
+    formats: [BarcodeFormat.qrCode],
+    cameraResolution: kAndroidCameraResolution /* ignored on iOS */,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +46,7 @@ class _QrScannerState extends State<QrScanner> {
       children: [
         _buildAlignedScanQrHint(),
         _buildPositionedFlashLightButton(),
+        const QrScannerActiveAnnouncer(),
       ],
     );
   }

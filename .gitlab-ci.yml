@@ -129,7 +129,7 @@ variables:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:f1db1900aa2f2f9606ada600f4529af4d331c09a44a112dbbc87bd3aef90ebe7"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:1cea6e8f389e9237f27dadf896a9ce4530dd9423ba43fbf6896dd184794ff2b3"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -146,7 +146,7 @@ test-flutter-ui:
   when: manual
   tags:
     - macos
-  image: sonoma-wallet:latest
+  image: sonoma-wallet:0.1.0
   artifacts:
     name: "ui-test-failures"
     when: on_failure
@@ -161,7 +161,7 @@ test-flutter-ui:
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:f1db1900aa2f2f9606ada600f4529af4d331c09a44a112dbbc87bd3aef90ebe7"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:1cea6e8f389e9237f27dadf896a9ce4530dd9423ba43fbf6896dd184794ff2b3"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -237,7 +237,7 @@ test-rust:
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:82a232254c252b545b7924caba9612f884ddbee2ef968ad64fc418127d13dd1a"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:87a2667a35d932da24b937e1e96770a2a12ea0f2204a8a97b1740dc120dc1394"
   script:
     - !reference [.test-rust-compilation, script]
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
@@ -246,7 +246,7 @@ test-rust-compilation-ios:
   extends: .test-rust-compilation
   tags:
     - macos
-  image: sonoma-wallet:latest
+  image: sonoma-wallet:0.1.0
   script:
     - !reference [.test-rust-compilation, script]
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
@@ -283,7 +283,7 @@ test-ios:
   rules: !reference [.default-or-release-or-merge-request, rules]
   tags:
     - macos
-  image: sonoma-wallet:latest
+  image: sonoma-wallet:0.1.0
   artifacts:
     when: always
     reports:
@@ -302,7 +302,7 @@ test-ios:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:4654115311b25f28041b8aa936b3fc8a0c26587b30471f5f7a7a7049ebc597a1"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:7cad7ea91533413935f181e050437b7ef6a7c381c201b40fb7b010fe28cc560c"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -423,7 +423,7 @@ dependency-check-rust:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:82a232254c252b545b7924caba9612f884ddbee2ef968ad64fc418127d13dd1a"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:87a2667a35d932da24b937e1e96770a2a12ea0f2204a8a97b1740dc120dc1394"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -603,7 +603,7 @@ build-android-app-production:
       artifacts: false
   tags:
     - macos
-  image: sonoma-wallet:latest
+  image: sonoma-wallet:0.1.0
   artifacts:
     name: "wallet-ios"
     paths:
@@ -884,7 +884,7 @@ upload-browserstack-android-app-demo:
   extends: [.env-macos-runner, .ruby-cache-macos]
   tags:
     - macos
-  image: sonoma-wallet:latest
+  image: sonoma-wallet:0.1.0
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   before_script:
@@ -969,7 +969,7 @@ dependency-check-images:
     - job: build-pid-issuer-image
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:1825008d760293f202396f892a285985022adc5a53905cf8175143eb78944621"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:a832ee952d8a897aeb6961407eb42cbd133dbd9be92ff5ef02523c45e56d03da"
   variables:
     GIT_STRATEGY: none
   before_script:
@@ -1341,7 +1341,7 @@ run-automation-smoke-test-ont:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:4be692a9c8b1bcbaa539157dd57a41248d26cc8caee7c3a7589ea42a449209a8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:8392c65dad8e88a9afee8901990405b22691608f5394b8603f6cddc900fe3004"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json
