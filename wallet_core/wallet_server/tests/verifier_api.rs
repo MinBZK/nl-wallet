@@ -540,7 +540,7 @@ async fn test_disclosure_missing_session_type() {
 
 #[tokio::test]
 async fn test_disclosure_cancel() {
-    let (settings, client, session_token, _, _, _) = start_disclosure(MemorySessionStore::default()).await;
+    let (settings, client, session_token, internal_url, _, _) = start_disclosure(MemorySessionStore::default()).await;
 
     // Fetching the status should return OK and be in the Created state.
     let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(SessionType::SameDevice));
@@ -571,6 +571,22 @@ async fn test_disclosure_cancel() {
     let response = client.delete(cancel_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
+
+    // The disclosed attributes endpoint should also return a 400 and the response
+    // body should include information about the session being cancelled.
+    let disclosed_attributes_url = internal_url.join(&format!(
+        "disclosure/sessions/{}/disclosed_attributes",
+        session_token.as_ref()
+    ));
+
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+
+    let error_body = test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
+    itertools::assert_equal(error_body.extra.keys(), ["session_status"]);
+    assert_eq!(
+        error_body.extra.get("session_status").unwrap(),
+        &serde_json::Value::from("CANCELLED")
+    );
 }
 
 async fn test_disclosure_expired<S>(
@@ -887,14 +903,6 @@ async fn test_disclosed_attributes_with_nonce() {
 
 #[tokio::test]
 async fn test_disclosed_attributes_error_session_state() {
-    let cancelled_session_token = SessionToken::new("cancelled");
-    let cancelled_session = SessionState::new(
-        cancelled_session_token.clone(),
-        DisclosureData::Done(Done {
-            session_result: SessionResult::Cancelled,
-        }),
-    );
-
     let failed_session_token = SessionToken::new("failed");
     let failed_session = SessionState::new(
         failed_session_token.clone(),
@@ -906,7 +914,6 @@ async fn test_disclosed_attributes_error_session_state() {
     );
 
     let session_store = MemorySessionStore::<DisclosureData>::default();
-    session_store.write(cancelled_session, true).await.unwrap();
     session_store.write(failed_session, true).await.unwrap();
 
     // Start the wallet server with this session store.
@@ -914,22 +921,6 @@ async fn test_disclosed_attributes_error_session_state() {
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), session_store).await;
     let client = default_reqwest_client_builder().build().unwrap();
-
-    let response = client
-        .get(internal_url.join(&format!(
-            "disclosure/sessions/{}/disclosed_attributes",
-            cancelled_session_token.as_ref()
-        )))
-        .send()
-        .await
-        .unwrap();
-
-    let error_body = test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
-    itertools::assert_equal(error_body.extra.keys(), ["session_status"]);
-    assert_eq!(
-        error_body.extra.get("session_status").unwrap(),
-        &serde_json::Value::from("CANCELLED")
-    );
 
     let response = client
         .get(internal_url.join(&format!(
