@@ -29,7 +29,7 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 pub struct DocumentDisclosedAttributes {
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
-    pub issuer: Vec<String>,
+    pub issuer: String,
     pub validity_info: ValidityInfo,
 }
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
@@ -44,7 +44,7 @@ impl Serialize for DocumentDisclosedAttributes {
         #[serde(rename_all = "camelCase")]
         pub struct DocumentDisclosedAttributes<'a> {
             pub attributes: IndexMap<&'a String, IndexMap<&'a String, JsonSerializableValue<'a>>>,
-            pub issuer: &'a [String],
+            pub issuer: &'a str,
             pub validity_info: &'a ValidityInfo,
         }
 
@@ -93,6 +93,8 @@ pub enum VerificationError {
     Validity(#[from] ValidityError),
     #[error("attributes mismatch: {0:?}")]
     MissingAttributes(Vec<AttributeIdentifier>),
+    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
+    UnexpectedIssuerCommonNameCount(usize),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, AsRef)]
@@ -236,10 +238,15 @@ impl IssuerSigned {
             .transpose()?
             .unwrap_or_default();
 
+        let mut issuer_cns = self.issuer_auth.signing_cert()?.common_names()?;
+        if issuer_cns.len() != 1 {
+            return Err(VerificationError::UnexpectedIssuerCommonNameCount(issuer_cns.len()).into());
+        }
+
         Ok((
             DocumentDisclosedAttributes {
                 attributes: attrs,
-                issuer: self.issuer_auth.signing_cert()?.iter_common_name()?,
+                issuer: issuer_cns.pop().unwrap(),
                 validity_info: mso.validity_info.clone(),
             },
             mso,

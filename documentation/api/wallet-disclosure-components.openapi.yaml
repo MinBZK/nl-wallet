@@ -119,9 +119,7 @@ components:
             attributes:
               $ref: '#/components/schemas/attributes'
             issuer:
-              type: array
-              items:
-                type: string
+              type: string
             validityInfo:
               $ref: '#/components/schemas/validity_info'
           required:
@@ -134,9 +132,7 @@ components:
             attributes:
               $ref: '#/components/schemas/attributes'
             issuer:
-              type: array
-              items:
-                type: string
+              type: string
             validityInfo:
               $ref: '#/components/schemas/validity_info'
           required:

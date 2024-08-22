@@ -1018,9 +1018,7 @@ Example responses:
         "given_name": "Willeke Liselotte"
       }
     },
-    "issuer": [
-      "pid.example.com"
-    ],
+    "issuer": "pid.example.com",
     "validityInfo": {
       "signed": "2024-07-20T14:00:58Z",
       "validFrom": "2024-07-20T14:00:58Z",
