@@ -71,7 +71,7 @@ fn json_serializable_value(value: Value) -> Value {
         Value::Text(text) => Value::Text(text),
         Value::Null => Value::Null,
 
-        Value::Bytes(bytes) => Value::Text(BASE64_STANDARD_NO_PAD.encode(bytes)),
+        Value::Bytes(bytes) => Value::Text(BASE64_STANDARD.encode(bytes)),
         Value::Tag(_, val) => json_serializable_value(*val),
         Value::Array(arr) => Value::Array(arr.into_iter().map(json_serializable_value).collect()),
         Value::Map(map) => Value::Map(
@@ -167,9 +167,9 @@ mod tests {
                 "bool": true,
                 "null": null,
                 "array": ["foo"],
-                "map": {"recursive": BASE64_STANDARD_NO_PAD.encode(bytes.clone())},
+                "map": {"recursive": BASE64_STANDARD.encode(bytes.clone())},
                 "tagged_date": "2020-01-01",
-                "bytes": BASE64_STANDARD_NO_PAD.encode(bytes.clone())
+                "bytes": BASE64_STANDARD.encode(bytes.clone())
             }
         });
         assert_eq!(deserialized, expected);
