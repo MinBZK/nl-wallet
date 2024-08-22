@@ -79,6 +79,7 @@ mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
+tracing-test.workspace = true
 wiremock.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = [

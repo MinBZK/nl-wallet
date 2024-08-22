@@ -9,6 +9,7 @@ use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
+use tracing::info;
 
 use nl_wallet_mdoc::{
     server_keys::KeyRing,
@@ -290,6 +291,12 @@ where
     }
 }
 
+fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Result<T, E> {
+    result
+        .inspect(|_| info!("Issuance Success"))
+        .inspect_err(|error| info!("Issuance Error: {error}"))
+}
+
 impl<A, K, S> Issuer<A, K, S>
 where
     A: AttributeService,
@@ -371,7 +378,7 @@ where
             .await
             .map_err(IssuanceError::SessionStore)?;
 
-        response
+        logged_issuance_result(response)
     }
 
     pub async fn process_batch_credential(
@@ -392,7 +399,7 @@ where
             .await
             .map_err(IssuanceError::SessionStore)?;
 
-        response
+        logged_issuance_result(response)
     }
 
     pub async fn process_reject_issuance(
@@ -838,5 +845,33 @@ impl CredentialRequestProof {
         }
 
         Ok(verifying_key)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use thiserror::Error;
+    use tracing_test::traced_test;
+
+    use super::*;
+
+    #[derive(Debug, Error)]
+    #[error("MyError")]
+    struct MyError;
+
+    #[traced_test]
+    #[test]
+    fn test_logged_issuance_result() {
+        let mut actual: Result<String, MyError>;
+
+        assert!(!logs_contain("Issuance Success"));
+        actual = Ok("Alright".into());
+        let _ = logged_issuance_result(actual);
+        assert!(logs_contain("Issuance Success"));
+
+        assert!(!logs_contain("Issuance Error: MyError"));
+        actual = Err(MyError);
+        let _ = logged_issuance_result(actual);
+        assert!(logs_contain("Issuance Error: MyError"));
     }
 }

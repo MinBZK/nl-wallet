@@ -2716,6 +2716,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "tracing-test",
  "trait-variant",
  "url",
  "wallet_common",
@@ -5623,7 +5624,6 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "tracing-test",
  "url",
  "wallet_common",
 ]

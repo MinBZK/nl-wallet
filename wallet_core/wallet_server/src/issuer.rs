@@ -12,7 +12,6 @@ use axum_extra::{
 };
 use nutype::nutype;
 use serde::Serialize;
-use tracing::info;
 
 use nl_wallet_mdoc::server_keys::{KeyPair, KeyRing};
 use openid4vc::{
@@ -28,17 +27,6 @@ use openid4vc::{
 use crate::settings::{self, Urls};
 
 use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
-
-pub trait IssuanceLogger {
-    fn log_result(self) -> Self;
-}
-
-impl<R, E: std::error::Error> IssuanceLogger for Result<R, E> {
-    fn log_result(self) -> Self {
-        self.inspect(|_| info!("Issuance Success"))
-            .inspect_err(|error| info!("Issuance Error: {error}"))
-    }
-}
 
 struct ApplicationState<A, K, S> {
     issuer: Issuer<A, K, S>,
@@ -164,8 +152,7 @@ where
     let response = state
         .issuer
         .process_credential(access_token, dpop, credential_request)
-        .await
-        .log_result()?;
+        .await?;
     Ok(Json(response))
 }
 
@@ -184,8 +171,7 @@ where
     let response = state
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
-        .await
-        .log_result()?;
+        .await?;
     Ok(Json(response))
 }
 
@@ -273,33 +259,5 @@ enum MetadataError {
 impl ErrorStatusCode for MetadataError {
     fn status_code(&self) -> StatusCode {
         StatusCode::INTERNAL_SERVER_ERROR
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use thiserror::Error;
-    use tracing_test::traced_test;
-
-    use super::*;
-
-    #[derive(Debug, Error)]
-    #[error("MyError")]
-    struct MyError;
-
-    #[traced_test]
-    #[test]
-    fn test_issuance_logger() {
-        let mut actual: Result<String, MyError>;
-
-        assert!(!logs_contain("Issuance Success"));
-        actual = Ok("Alright".into());
-        let _ = actual.log_result();
-        assert!(logs_contain("Issuance Success"));
-
-        assert!(!logs_contain("Issuance Error: MyError"));
-        actual = Err(MyError);
-        let _ = actual.log_result();
-        assert!(logs_contain("Issuance Error: MyError"));
     }
 }
