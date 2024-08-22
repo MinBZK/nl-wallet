@@ -13,12 +13,11 @@ use wallet_common::generator::Generator;
 
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    iso::unsigned::JsonCborValue,
     iso::*,
     utils::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
-        serialization::{cbor_serialize, CborSeq, TaggedBytes},
+        serialization::{cbor_serialize, CborSeq, JsonCborValue, TaggedBytes},
         x509::CertificateUsage,
     },
     Result,
