@@ -5,6 +5,7 @@ use ciborium::Value;
 use indexmap::IndexMap;
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, FromInto, IfIsHumanReadable};
 
 use crate::{
     utils::serialization::TaggedBytes, Attributes, DataElementIdentifier, DataElementValue, DocType, NameSpace, Tdate,
@@ -40,11 +41,12 @@ pub struct UnsignedMdoc {
 ///
 /// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
 /// `digestID`.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entry {
     pub name: DataElementIdentifier,
 
-    #[serde(serialize_with = "json_serialize_cbor_value")]
+    #[serde_as(as = "IfIsHumanReadable<FromInto<JsonCborValue>>")]
     pub value: DataElementValue,
 }
 
@@ -61,19 +63,19 @@ impl From<&Attributes> for Vec<Entry> {
     }
 }
 
-fn json_serializable_value(value: &Value) -> Value {
+fn json_serializable_value(value: Value) -> Value {
     match value {
-        Value::Integer(int) => Value::Integer(*int),
-        Value::Float(float) => Value::Float(*float),
-        Value::Bool(bool) => Value::Bool(*bool),
-        Value::Text(text) => Value::Text(text.clone()),
+        Value::Integer(int) => Value::Integer(int),
+        Value::Float(float) => Value::Float(float),
+        Value::Bool(bool) => Value::Bool(bool),
+        Value::Text(text) => Value::Text(text),
         Value::Null => Value::Null,
 
         Value::Bytes(bytes) => Value::Text(BASE64_STANDARD_NO_PAD.encode(bytes)),
-        Value::Tag(_, val) => json_serializable_value(val),
-        Value::Array(arr) => Value::Array(arr.iter().map(json_serializable_value).collect()),
+        Value::Tag(_, val) => json_serializable_value(*val),
+        Value::Array(arr) => Value::Array(arr.into_iter().map(json_serializable_value).collect()),
         Value::Map(map) => Value::Map(
-            map.iter()
+            map.into_iter()
                 .map(|(key, val)| (json_serializable_value(key), json_serializable_value(val)))
                 .collect(),
         ),
@@ -83,15 +85,13 @@ fn json_serializable_value(value: &Value) -> Value {
     }
 }
 
-/// A serializer for [`ciborium::Value`] that, when serializing to JSON, converts CBOR-types that have no
-/// JSON equivalent (tagged values, byte sequences) to something more natural in JSON.
-pub(crate) fn json_serialize_cbor_value<S: serde::Serializer>(value: &Value, serializer: S) -> Result<S::Ok, S::Error> {
-    if !serializer.is_human_readable() {
-        value.serialize(serializer)
-    } else {
-        json_serializable_value(value).serialize(serializer)
-    }
-}
+/// A newtype around [`ciborium::Value`] that, when used during serialization, converts CBOR-types
+/// that have no JSON equivalent (tagged values, byte sequences) to something more natural in JSON.
+#[nutype(
+    sanitize(with = json_serializable_value),
+    derive(Debug, Clone, From, Into, Serialize, Deserialize),
+)]
+pub struct JsonCborValue(Value);
 
 #[cfg(test)]
 mod tests {
@@ -100,10 +100,11 @@ mod tests {
     use regex::Regex;
     use serde::Serialize;
     use serde_json::json;
+    use serde_with::{serde_as, FromInto};
 
     use crate::test::data;
 
-    use super::{json_serialize_cbor_value, Engine, UnsignedMdoc};
+    use super::{Engine, JsonCborValue, UnsignedMdoc};
 
     #[test]
     fn test_unsigned_mdoc_disclosure_count() {
@@ -133,9 +134,10 @@ mod tests {
 
     #[test]
     fn test_json_cbor_serialization() {
+        #[serde_as]
         #[derive(Serialize)]
         pub struct Test {
-            #[serde(serialize_with = "json_serialize_cbor_value")]
+            #[serde_as(as = "FromInto<JsonCborValue>")]
             pub value: ciborium::Value,
         }
 

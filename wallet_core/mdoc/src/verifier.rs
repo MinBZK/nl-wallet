@@ -5,6 +5,7 @@ use derive_more::AsRef;
 use indexmap::IndexMap;
 use p256::SecretKey;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, FromInto, IfIsHumanReadable};
 use tracing::{debug, warn};
 use webpki::TrustAnchor;
 
@@ -12,7 +13,7 @@ use wallet_common::generator::Generator;
 
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    iso::unsigned::json_serialize_cbor_value,
+    iso::unsigned::JsonCborValue,
     iso::*,
     utils::{
         cose::ClonePayload,
@@ -25,51 +26,17 @@ use crate::{
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
-#[derive(Debug, Deserialize, Clone)]
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentDisclosedAttributes {
+    #[serde_as(as = "IfIsHumanReadable<IndexMap<_, IndexMap<_, FromInto<JsonCborValue>>>>")]
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub issuer: String,
     pub validity_info: ValidityInfo,
 }
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 pub type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
-
-impl Serialize for DocumentDisclosedAttributes {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        #[derive(Serialize)]
-        struct JsonSerializableValue<'a>(#[serde(serialize_with = "json_serialize_cbor_value")] &'a ciborium::Value);
-
-        #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        pub struct DocumentDisclosedAttributes<'a> {
-            pub attributes: IndexMap<&'a String, IndexMap<&'a String, JsonSerializableValue<'a>>>,
-            pub issuer: &'a str,
-            pub validity_info: &'a ValidityInfo,
-        }
-
-        let attributes: IndexMap<_, IndexMap<_, _>> = self
-            .attributes
-            .iter()
-            .map(|(namespace, attrs)| {
-                (
-                    namespace,
-                    attrs
-                        .iter()
-                        .map(|(name, value)| (name, JsonSerializableValue(value)))
-                        .collect(),
-                )
-            })
-            .collect();
-
-        DocumentDisclosedAttributes {
-            attributes,
-            issuer: &self.issuer,
-            validity_info: &self.validity_info,
-        }
-        .serialize(serializer)
-    }
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
