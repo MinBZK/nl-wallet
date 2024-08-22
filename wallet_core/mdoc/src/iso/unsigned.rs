@@ -3,11 +3,9 @@ use std::num::NonZeroU8;
 use indexmap::IndexMap;
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, FromInto, IfIsHumanReadable};
 
 use crate::{
-    utils::serialization::{JsonCborValue, TaggedBytes},
-    Attributes, DataElementIdentifier, DataElementValue, DocType, NameSpace, Tdate,
+    utils::serialization::TaggedBytes, Attributes, DataElementIdentifier, DataElementValue, DocType, NameSpace, Tdate,
 };
 
 #[nutype(
@@ -40,12 +38,9 @@ pub struct UnsignedMdoc {
 ///
 /// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
 /// `digestID`.
-#[serde_as]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entry {
     pub name: DataElementIdentifier,
-
-    #[serde_as(as = "IfIsHumanReadable<FromInto<JsonCborValue>>")]
     pub value: DataElementValue,
 }
 
