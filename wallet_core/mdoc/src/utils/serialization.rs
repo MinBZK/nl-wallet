@@ -533,7 +533,7 @@ mod tests {
         })
         .unwrap();
 
-        let serialized = serde_json::to_string_pretty(&Test { value: testvalue }).unwrap();
+        let serialized = serde_json::to_string(&Test { value: testvalue }).unwrap();
         let deserialized: serde_json::Value = serde_json::from_str(&serialized).unwrap();
 
         let expected = json!({
