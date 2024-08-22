@@ -1285,6 +1285,7 @@ check-gitlab-ci-changed:
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
+  allow_failure: true # Allow failure as only the test results of succeeding pipelines are read into Quality Time.
 
 run-automation-tests-14-part-1:
   extends: .run-automation-tests
