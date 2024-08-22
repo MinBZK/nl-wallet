@@ -1,15 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../domain/model/pin/pin_validation_error.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/helper/announcements_helper.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
@@ -21,6 +19,8 @@ import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
 import '../error/error_screen.dart';
+import '../pin_dialog/pin_confirmation_error_dialog.dart';
+import '../pin_dialog/pin_validation_error_dialog.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
 import 'page/setup_security_pin_page.dart';
@@ -80,9 +80,9 @@ class SetupSecurityScreen extends StatelessWidget {
           case SetupSecurityNetworkError():
             ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
           case SetupSecuritySelectPinFailed():
-            await _showErrorDialog(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
+            await PinValidationErrorDialog.show(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
           case SetupSecurityPinConfirmationFailed():
-            await _showConfirmationErrorDialog(context, state.retryAllowed).then((_) {
+            await PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
               bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
             });
           case SetupSecurityDeviceIncompatibleError():
@@ -116,18 +116,18 @@ class SetupSecurityScreen extends StatelessWidget {
 
     if (state is SetupSecuritySelectPinInProgress) {
       if (state.afterBackspacePressed) {
-        _announceEnteredDigits(l10n, state.enteredDigits);
+        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        _announceEnteredDigits(l10n, state.enteredDigits);
+        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
     if (state is SetupSecurityPinConfirmationInProgress) {
       if (state.afterBackspacePressed) {
-        _announceEnteredDigits(l10n, state.enteredDigits);
+        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits == 0) {
         await SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        _announceEnteredDigits(l10n, state.enteredDigits);
+        AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
   }
@@ -200,76 +200,6 @@ class SetupSecurityScreen extends StatelessWidget {
       context,
       style: ErrorCtaStyle.retry,
       onPrimaryActionPressed: () => context.bloc.add(SetupSecurityRetryPressed()),
-    );
-  }
-
-  void _announceEnteredDigits(AppLocalizations l10n, int enteredDigits) {
-    SemanticsService.announce(
-      l10n.pinEnteredDigitsAnnouncement(kPinDigits - enteredDigits),
-      TextDirection.ltr,
-    );
-  }
-
-  Future<void> _showErrorDialog(BuildContext context, PinValidationError reason) async {
-    final title = switch (reason) {
-      PinValidationError.tooFewUniqueDigits => context.l10n.setupSecuritySelectPinErrorPageTitle,
-      PinValidationError.sequentialDigits => context.l10n.setupSecuritySelectPinErrorPageTitle,
-      PinValidationError.other => context.l10n.setupSecuritySelectPinErrorPageTitle,
-    };
-    final body = switch (reason) {
-      PinValidationError.tooFewUniqueDigits => context.l10n.setupSecuritySelectPinErrorPageTooFewUniqueDigitsError,
-      PinValidationError.sequentialDigits =>
-        context.l10n.setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError,
-      PinValidationError.other => context.l10n.setupSecuritySelectPinErrorPageDefaultError,
-    };
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          semanticLabel: Platform.isAndroid ? title : null,
-          title: Text(title, style: context.textTheme.displayMedium),
-          content: Text(body, style: context.textTheme.bodyLarge),
-          actions: <Widget>[
-            TextButton(
-              child: Text(context.l10n.generalOkCta),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _showConfirmationErrorDialog(BuildContext context, bool retryAllowed) async {
-    final title = retryAllowed
-        ? context.l10n.setupSecurityConfirmationErrorPageTitle
-        : context.l10n.setupSecurityConfirmationErrorPageFatalTitle;
-    final content = retryAllowed
-        ? context.l10n.setupSecurityConfirmationErrorPageDescription
-        : context.l10n.setupSecurityConfirmationErrorPageFatalDescription;
-    final cta = retryAllowed ? context.l10n.generalOkCta : context.l10n.setupSecurityConfirmationErrorPageFatalCta;
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          semanticLabel: Platform.isAndroid ? title : null,
-          title: Text(title, style: context.textTheme.displayMedium),
-          content: Text(
-            content,
-            style: context.textTheme.bodyLarge,
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text(cta),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ],
-        );
-      },
     );
   }
 

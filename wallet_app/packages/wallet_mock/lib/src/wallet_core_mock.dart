@@ -245,6 +245,18 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
 
   @override
   Future<bool> hasActivePidIssuanceSession({hint}) async => false;
+
+  @override
+  Future<WalletInstructionResult> changePin({required String oldPin, required String newPin, hint}) async {
+    final result = _pinManager.checkPin(oldPin);
+    final bool pinMatches = result is WalletInstructionResult_Ok;
+    if (pinMatches) _pinManager.updatePin(newPin);
+    await Future.delayed(const Duration(seconds: 1));
+    return result;
+  }
+
+  @override
+  Future<WalletInstructionResult> checkPin({required String pin, hint}) async => _pinManager.checkPin(pin);
 }
 
 /// Helper class to make [WalletCoreMock] satisfy [WalletCore]
@@ -307,4 +319,8 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kHasActiveDisclosureSessionConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kHasActivePidIssuanceSessionConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kChangePinConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kCheckPinConstMeta => throw UnimplementedError();
 }

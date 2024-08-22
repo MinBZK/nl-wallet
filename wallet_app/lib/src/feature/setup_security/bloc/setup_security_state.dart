@@ -132,5 +132,5 @@ class SetupSecurityNetworkError extends SetupSecurityState implements NetworkErr
   const SetupSecurityNetworkError({required this.error, required this.hasInternet, this.statusCode});
 
   @override
-  List<Object?> get props => [stepperProgress, hasInternet, statusCode, ...super.props];
+  List<Object?> get props => [error, stepperProgress, hasInternet, statusCode, ...super.props];
 }

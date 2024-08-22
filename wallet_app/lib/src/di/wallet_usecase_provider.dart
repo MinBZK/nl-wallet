@@ -55,9 +55,12 @@ import '../domain/usecase/pid/impl/accept_offered_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
+import '../domain/usecase/pin/change_pin_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/disclose_for_issuance_usecase.dart';
+import '../domain/usecase/pin/impl/change_pin_usecase_impl.dart';
 import '../domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
+import '../domain/usecase/pin/impl/check_pin_usecase_impl.dart';
 import '../domain/usecase/pin/impl/disclose_for_issuance_usecase_impl.dart';
 import '../domain/usecase/pin/impl/unlock_wallet_with_pin_usecase_impl.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -233,6 +236,12 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<CheckHasPermissionUseCase>(
           create: (context) => CheckHasPermissionUseCaseImpl(),
+        ),
+        RepositoryProvider<CheckPinUseCase>(
+          create: (context) => CheckPinUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ChangePinUseCase>(
+          create: (context) => ChangePinUseCaseImpl(context.read()),
         ),
       ],
       child: child,

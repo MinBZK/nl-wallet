@@ -95,6 +95,49 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
 
         Ok(())
     }
+
+    #[instrument(skip_all)]
+    pub async fn check_pin(&mut self, pin: String) -> Result<(), WalletUnlockError>
+    where
+        CR: ConfigurationRepository,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
+    {
+        info!("Validating pin");
+
+        info!("Checking if registered");
+        let registration = self
+            .registration
+            .as_ref()
+            .ok_or_else(|| WalletUnlockError::NotRegistered)?;
+
+        let config = self.config_repository.config();
+
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+
+        let remote_instruction = InstructionClient::new(
+            pin,
+            &self.storage,
+            &registration.hw_privkey,
+            &self.account_provider_client,
+            &registration.data,
+            &config.account_server.base_url,
+            &instruction_result_public_key,
+        );
+
+        info!("Sending unlock instruction to Wallet Provider");
+        remote_instruction
+            .send(CheckPin)
+            .inspect_ok(|_| {
+                info!("Unlock instruction successful, unlocking wallet");
+
+                self.lock.unlock();
+            })
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
