@@ -17,6 +17,7 @@ use x509_parser::{
     nom::{self, AsBytes},
     pem,
     prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
+    x509::X509Name,
 };
 
 use error_category::ErrorCategory;
@@ -207,19 +208,11 @@ impl Certificate {
     }
 
     pub fn issuer_common_names(&self) -> Result<Vec<String>, CertificateError> {
-        self.to_x509()?
-            .issuer
-            .iter_common_name()
-            .map(|cn| cn.as_str().map(ToOwned::to_owned).map_err(CertificateError::X509Error))
-            .collect()
+        x509_common_names(&self.to_x509()?.issuer)
     }
 
     pub fn common_names(&self) -> Result<Vec<String>, CertificateError> {
-        self.to_x509()?
-            .subject
-            .iter_common_name()
-            .map(|cn| cn.as_str().map(ToOwned::to_owned).map_err(CertificateError::X509Error))
-            .collect()
+        x509_common_names(&self.to_x509()?.subject)
     }
 
     pub(crate) fn extract_custom_ext<'a, T: Deserialize<'a>>(
@@ -247,6 +240,13 @@ impl Certificate {
         });
         Ok(san)
     }
+}
+
+fn x509_common_names(x509name: &X509Name) -> Result<Vec<String>, CertificateError> {
+    x509name
+        .iter_common_name()
+        .map(|cn| cn.as_str().map(ToOwned::to_owned).map_err(CertificateError::X509Error))
+        .collect()
 }
 
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
