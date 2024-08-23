@@ -26,7 +26,6 @@ use nl_wallet_mdoc::{
         data::{addr_street, pid_full_name, pid_given_name},
         TestDocuments,
     },
-    unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
     verifier::ItemsRequests,
     DeviceResponse, DocType, SessionTranscript,
@@ -85,13 +84,8 @@ async fn disclosure_direct() {
         .unwrap();
 
     assert_eq!(
-        *disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]
-            .first()
-            .unwrap(),
-        Entry {
-            name: "family_name".to_string(),
-            value: "Doe".into()
-        }
+        disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]["family_name"],
+        "Doe".into()
     );
 }
 
@@ -260,13 +254,8 @@ impl VpMessageClient for DirectMockVpMessageClient {
             .unwrap();
 
         assert_eq!(
-            *disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]
-                .first()
-                .unwrap(),
-            Entry {
-                name: "family_name".to_string(),
-                value: "Doe".into()
-            }
+            disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]["family_name"],
+            "Doe".into()
         );
 
         Ok(None)

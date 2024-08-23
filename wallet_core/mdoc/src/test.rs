@@ -101,7 +101,7 @@ pub fn assert_disclosure_contains(
     name: &str,
     value: &DataElementValue,
 ) {
-    let disclosed_attr = disclosed_attrs
+    let (disclosed_attr_name, disclosed_attr_value) = disclosed_attrs
         .get(doctype)
         .unwrap()
         .attributes
@@ -110,8 +110,8 @@ pub fn assert_disclosure_contains(
         .first()
         .unwrap();
 
-    assert_eq!(disclosed_attr.name, *name);
-    assert_eq!(disclosed_attr.value, *value);
+    assert_eq!(disclosed_attr_name, name);
+    assert_eq!(disclosed_attr_value, value);
 }
 
 impl DeviceRequest {
@@ -269,11 +269,11 @@ impl TestDocuments {
                 // verify the number of the attributes in this namespace
                 assert_eq!(disclosed_attributes.len(), expected_attributes.len());
                 // verify whether all expected attributes exist in this namespace
-                // NOTE: this comparison by itself will not detect disclosed attributes that are not expected, however
-                //       due to the length comparison above, this could theoretically only happen when
-                //       [`expected_attributes`] contains duplicate entries.
                 for expected_attribute in expected_attributes {
-                    assert!(disclosed_attributes.contains(expected_attribute))
+                    assert_eq!(
+                        disclosed_attributes.get(&expected_attribute.name),
+                        Some(&expected_attribute.value)
+                    );
                 }
             }
         }

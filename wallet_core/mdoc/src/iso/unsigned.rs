@@ -38,7 +38,7 @@ pub struct UnsignedMdoc {
 ///
 /// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
 /// `digestID`.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entry {
     pub name: DataElementIdentifier,
     pub value: DataElementValue,
@@ -63,7 +63,7 @@ mod tests {
 
     use crate::test::data;
 
-    use super::*;
+    use super::UnsignedMdoc;
 
     #[test]
     fn test_unsigned_mdoc_disclosure_count() {

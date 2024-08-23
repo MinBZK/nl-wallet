@@ -206,7 +206,7 @@ impl Certificate {
             .collect::<Result<_, _>>()
     }
 
-    pub fn iter_common_name(&self) -> Result<Vec<String>, CertificateError> {
+    pub fn common_names(&self) -> Result<Vec<String>, CertificateError> {
         self.to_x509()?
             .subject
             .iter_common_name()

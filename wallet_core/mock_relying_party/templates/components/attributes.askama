@@ -2,8 +2,8 @@
 <p class="attributes">
 {% for doctype in attributes %}
     {% for namespace in doctype.1.attributes %}
-        {% for attribute in namespace.1 %}
-            {{ attribute.value.as_text().unwrap() }}<br />
+        {% for (_, value) in namespace.1 %}
+            {{ value.as_text().unwrap() }}<br />
         {% endfor %}
     {% endfor %}
 {% endfor %}

@@ -5,6 +5,7 @@ use derive_more::AsRef;
 use indexmap::IndexMap;
 use p256::SecretKey;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, FromInto, IfIsHumanReadable};
 use tracing::{debug, warn};
 use webpki::TrustAnchor;
 
@@ -13,11 +14,10 @@ use wallet_common::generator::Generator;
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
-    unsigned::Entry,
     utils::{
         cose::ClonePayload,
         crypto::{cbor_digest, dh_hmac_key},
-        serialization::{cbor_serialize, CborSeq, TaggedBytes},
+        serialization::{cbor_serialize, CborSeq, JsonCborValue, TaggedBytes},
         x509::CertificateUsage,
     },
     Result,
@@ -25,11 +25,13 @@ use crate::{
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentDisclosedAttributes {
-    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
-    pub issuer: Vec<String>,
+    #[serde_as(as = "IfIsHumanReadable<IndexMap<_, IndexMap<_, FromInto<JsonCborValue>>>>")]
+    pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
+    pub issuer: String,
     pub validity_info: ValidityInfo,
 }
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
@@ -57,6 +59,8 @@ pub enum VerificationError {
     Validity(#[from] ValidityError),
     #[error("attributes mismatch: {0:?}")]
     MissingAttributes(Vec<AttributeIdentifier>),
+    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
+    UnexpectedIssuerCommonNameCount(usize),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, AsRef)]
@@ -200,10 +204,15 @@ impl IssuerSigned {
             .transpose()?
             .unwrap_or_default();
 
+        let mut issuer_cns = self.issuer_auth.signing_cert()?.common_names()?;
+        if issuer_cns.len() != 1 {
+            return Err(VerificationError::UnexpectedIssuerCommonNameCount(issuer_cns.len()).into());
+        }
+
         Ok((
             DocumentDisclosedAttributes {
                 attributes: attrs,
-                issuer: self.issuer_auth.signing_cert()?.iter_common_name()?,
+                issuer: issuer_cns.pop().unwrap(),
                 validity_info: mso.validity_info.clone(),
             },
             mso,
@@ -212,16 +221,17 @@ impl IssuerSigned {
 }
 
 impl MobileSecurityObject {
-    fn verify_attrs_in_namespace(&self, attrs: &Attributes, namespace: &NameSpace) -> Result<Vec<Entry>> {
+    fn verify_attrs_in_namespace(
+        &self,
+        attrs: &Attributes,
+        namespace: &NameSpace,
+    ) -> Result<IndexMap<DataElementIdentifier, DataElementValue>> {
         attrs
             .as_ref()
             .iter()
             .map(|item| {
                 self.verify_attr_digest(namespace, item)?;
-                Ok(Entry {
-                    name: item.0.element_identifier.clone(),
-                    value: item.0.element_value.clone(),
-                })
+                Ok((item.0.element_identifier.clone(), item.0.element_value.clone()))
             })
             .collect::<Result<_>>()
     }
