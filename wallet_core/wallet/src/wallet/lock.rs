@@ -1,4 +1,3 @@
-use futures::future::TryFutureExt;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
 
@@ -47,6 +46,40 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         self.lock.lock()
     }
 
+    async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
+    where
+        CR: ConfigurationRepository,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
+    {
+        info!("Checking if registered");
+
+        let registration = self
+            .registration
+            .as_ref()
+            .ok_or_else(|| WalletUnlockError::NotRegistered)?;
+
+        let config = self.config_repository.config();
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+
+        let remote_instruction = InstructionClient::new(
+            pin,
+            &self.storage,
+            &registration.hw_privkey,
+            &self.account_provider_client,
+            &registration.data,
+            &config.account_server.base_url,
+            &instruction_result_public_key,
+        );
+
+        info!("Sending check pin instruction to Wallet Provider");
+
+        remote_instruction.send(CheckPin).await?;
+
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError>
@@ -56,87 +89,33 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
     {
-        info!("Validating pin");
-
-        info!("Checking if registered");
-        let registration = self
-            .registration
-            .as_ref()
-            .ok_or_else(|| WalletUnlockError::NotRegistered)?;
+        info!("Unlocking wallet with pin");
 
         info!("Checking if locked");
         if !self.lock.is_locked() {
             return Err(WalletUnlockError::NotLocked);
         }
 
-        let config = self.config_repository.config();
+        self.send_check_pin_instruction(pin).await?;
 
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        info!("Unlock instruction successful, unlocking wallet");
 
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
-
-        info!("Sending unlock instruction to Wallet Provider");
-        remote_instruction
-            .send(CheckPin)
-            .inspect_ok(|_| {
-                info!("Unlock instruction successful, unlocking wallet");
-
-                self.lock.unlock();
-            })
-            .await?;
+        self.lock.unlock();
 
         Ok(())
     }
 
     #[instrument(skip_all)]
-    pub async fn check_pin(&mut self, pin: String) -> Result<(), WalletUnlockError>
+    pub async fn check_pin(&self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: ConfigurationRepository,
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
     {
-        info!("Validating pin");
+        info!("Checking pin");
 
-        info!("Checking if registered");
-        let registration = self
-            .registration
-            .as_ref()
-            .ok_or_else(|| WalletUnlockError::NotRegistered)?;
-
-        let config = self.config_repository.config();
-
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
-
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
-
-        info!("Sending unlock instruction to Wallet Provider");
-        remote_instruction
-            .send(CheckPin)
-            .inspect_ok(|_| {
-                info!("Unlock instruction successful, unlocking wallet");
-
-                self.lock.unlock();
-            })
-            .await?;
-
-        Ok(())
+        self.send_check_pin_instruction(pin).await
     }
 }
 
