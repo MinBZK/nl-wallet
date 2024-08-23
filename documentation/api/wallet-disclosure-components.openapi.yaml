@@ -120,6 +120,8 @@ components:
               $ref: '#/components/schemas/attributes'
             issuer:
               type: string
+            ca:
+              type: string
             validityInfo:
               $ref: '#/components/schemas/validity_info'
           required:
@@ -132,6 +134,8 @@ components:
             attributes:
               $ref: '#/components/schemas/attributes'
             issuer:
+              type: string
+            ca:
               type: string
             validityInfo:
               $ref: '#/components/schemas/validity_info'
