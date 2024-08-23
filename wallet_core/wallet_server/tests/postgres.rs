@@ -13,7 +13,7 @@ use openid4vc::server_state::{
 };
 use wallet_common::utils;
 use wallet_server::{
-    settings::Settings,
+    settings::{Settings, Storage},
     store::{postgres::PostgresSessionStore, SessionDataType},
 };
 
@@ -75,10 +75,14 @@ impl SessionDataType for MockSessionData {
     const TYPE: &'static str = "mockdata";
 }
 
-async fn postgres_session_store() -> PostgresSessionStore {
-    let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
+fn storage_settings() -> Storage {
+    Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
         .unwrap()
-        .storage;
+        .storage
+}
+
+async fn postgres_session_store() -> PostgresSessionStore {
+    let storage_settings = storage_settings();
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
     PostgresSessionStore::try_new(storage_settings.url, timeouts)
@@ -91,9 +95,7 @@ async fn postgres_session_store_with_mock_time() -> (PostgresSessionStore<MockTi
     let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
 
-    let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
-        .unwrap()
-        .storage;
+    let storage_settings = storage_settings();
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
     let session_store = PostgresSessionStore::try_new_with_time(storage_settings.url, timeouts, time_generator)

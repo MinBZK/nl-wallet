@@ -195,6 +195,7 @@ impl<I> DisclosureRequestMatch<I> {
 mod tests {
     use std::num::NonZeroU8;
 
+    use futures::future;
     use rstest::rstest;
 
     use crate::{
@@ -240,12 +241,14 @@ mod tests {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let key_factory = SoftwareKeyFactory::default();
 
-        let mut mdoc_data_source = MockMdocDataSource::new();
-        for document in stored_documents.into_iter() {
-            mdoc_data_source
-                .mdocs
-                .push(document.sign(&ca, &key_factory, NonZeroU8::new(1).unwrap()).await);
-        }
+        let mdoc_data_source = MockMdocDataSource::new(
+            future::join_all(
+                stored_documents
+                    .into_iter()
+                    .map(|document| document.sign(&ca, &key_factory, NonZeroU8::new(1).unwrap())),
+            )
+            .await,
+        );
 
         let device_request = DeviceRequest::from(requested_documents);
 

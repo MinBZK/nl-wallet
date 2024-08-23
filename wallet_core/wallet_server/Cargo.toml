@@ -26,7 +26,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["verifier_test"]
+required-features = ["disclosure"]
 
 [[test]]
 name = "postgres"
@@ -39,21 +39,8 @@ default = ["disclosure", "postgres"]
 allow_http_return_url = ["openid4vc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
-# Include and run test that depend on an external PostgreSQL database
-db_test = ["verifier_test", "postgres", "dep:serial_test", "openid4vc/test"]
-verifier_test = [
-    "disclosure",
-    "dep:assert_matches",
-    "dep:indexmap",
-    "dep:itertools",
-    "dep:parking_lot",
-    "dep:reqwest",
-    "dep:serde_urlencoded",
-    "tokio/macros",
-    "tokio/test-util",
-    "nl_wallet_mdoc/examples",
-    "nl_wallet_mdoc/mock_time",
-] # Include and run test that depend on a valid configuration file
+# Include and run integration tests that depend on an external PostgreSQL database
+db_test = ["postgres", "dep:serial_test", "openid4vc/test"]
 # Enable issuance
 issuance = [
     "axum/form",
@@ -68,7 +55,7 @@ issuance = [
 # Enable disclosure
 disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:strum"]
 # Enable mock PID issuance
-mock = ["dep:rand", "issuance"]
+mock = ["issuance"]
 
 [dependencies]
 anyhow.workspace = true
@@ -110,14 +97,11 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url = { workspace = true, features = ["serde"] }
 
-assert_matches = { workspace = true, optional = true }
 axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 ciborium = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 itertools = { workspace = true, optional = true }
-parking_lot = { workspace = true, optional = true }
-rand = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 ring = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true, features = [
@@ -137,4 +121,14 @@ openid4vc = { path = "../openid4vc", features = ["axum"] }
 wallet_common = { path = "../wallet_common", features = ["sentry"] }
 
 [dev-dependencies]
+assert_matches.workspace = true
+indexmap.workspace = true
+itertools.workspace = true
+parking_lot.workspace = true
+rand_core.workspace = true
+reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
+serde_urlencoded.workspace = true
+tokio = { workspace = true, features = ["macros", "test-util"] }
+
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "examples", "software_key_factory", "mock", "mock_time"] }
