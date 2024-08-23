@@ -32,6 +32,7 @@ pub struct DocumentDisclosedAttributes {
     #[serde_as(as = "IfIsHumanReadable<IndexMap<_, IndexMap<_, FromInto<JsonCborValue>>>>")]
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub issuer: String,
+    pub ca: String,
     pub validity_info: ValidityInfo,
 }
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
@@ -59,6 +60,8 @@ pub enum VerificationError {
     Validity(#[from] ValidityError),
     #[error("attributes mismatch: {0:?}")]
     MissingAttributes(Vec<AttributeIdentifier>),
+    #[error("unexpected amount of CA Common Names in issuer certificate: expected 1, found {0}")]
+    UnexpectedCACommonNameCount(usize),
     #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
     UnexpectedIssuerCommonNameCount(usize),
 }
@@ -204,7 +207,13 @@ impl IssuerSigned {
             .transpose()?
             .unwrap_or_default();
 
-        let mut issuer_cns = self.issuer_auth.signing_cert()?.common_names()?;
+        let signing_cert = self.issuer_auth.signing_cert()?;
+        let mut ca_cns = signing_cert.issuer_common_names()?;
+        if ca_cns.len() != 1 {
+            return Err(VerificationError::UnexpectedCACommonNameCount(ca_cns.len()).into());
+        }
+
+        let mut issuer_cns = signing_cert.common_names()?;
         if issuer_cns.len() != 1 {
             return Err(VerificationError::UnexpectedIssuerCommonNameCount(issuer_cns.len()).into());
         }
@@ -213,6 +222,7 @@ impl IssuerSigned {
             DocumentDisclosedAttributes {
                 attributes: attrs,
                 issuer: issuer_cns.pop().unwrap(),
+                ca: ca_cns.pop().unwrap(),
                 validity_info: mso.validity_info.clone(),
             },
             mso,

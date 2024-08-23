@@ -206,6 +206,14 @@ impl Certificate {
             .collect::<Result<_, _>>()
     }
 
+    pub fn issuer_common_names(&self) -> Result<Vec<String>, CertificateError> {
+        self.to_x509()?
+            .issuer
+            .iter_common_name()
+            .map(|cn| cn.as_str().map(ToOwned::to_owned).map_err(CertificateError::X509Error))
+            .collect()
+    }
+
     pub fn common_names(&self) -> Result<Vec<String>, CertificateError> {
         self.to_x509()?
             .subject
