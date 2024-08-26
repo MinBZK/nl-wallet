@@ -1,16 +1,16 @@
 .products {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-    gap: 48px;
-    row-gap: 48px;
-    background: #fff;
-    width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  gap: 48px;
+  row-gap: 48px;
+  background: #fff;
+  width: 100%;
 }
 
 .products > * {
-    flex-grow: 1;
-    height: 300px;
-    min-width: 345px;
-    background-color: #faf9fb;
+  flex-grow: 1;
+  height: 300px;
+  min-width: 345px;
+  background-color: #faf9fb;
 }
