@@ -1,6 +1,5 @@
 use std::{collections::HashMap, iter};
 
-use cfg_if::cfg_if;
 use futures::future;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
@@ -21,6 +20,31 @@ pub struct SoftwareKeyFactory {
     signing_keys: Mutex<HashMap<String, SigningKey>>,
     pub has_generating_error: bool,
     pub has_multi_key_signing_error: bool,
+}
+
+impl SoftwareKeyFactory {
+    pub fn new(signing_keys: HashMap<String, SigningKey>) -> Self {
+        Self {
+            signing_keys: signing_keys.into(),
+            has_generating_error: false,
+            has_multi_key_signing_error: false,
+        }
+    }
+}
+
+impl Default for SoftwareKeyFactory {
+    fn default() -> Self {
+        let keys = HashMap::from([
+            #[cfg(any(test, feature = "examples"))]
+            {
+                use crate::examples::{Examples, EXAMPLE_KEY_IDENTIFIER};
+
+                (EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())
+            },
+        ]);
+
+        Self::new(keys)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -136,26 +160,5 @@ impl KeyFactory for SoftwareKeyFactory {
         .await?;
 
         Ok(result)
-    }
-}
-
-impl Default for SoftwareKeyFactory {
-    fn default() -> Self {
-        cfg_if! {
-            // Pre-populate the static example key, if the feature is enabled.
-            if #[cfg(any(test, feature = "examples"))] {
-                use crate::examples::{Examples, EXAMPLE_KEY_IDENTIFIER};
-
-                let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
-            } else {
-                let keys = HashMap::default();
-            }
-        }
-
-        SoftwareKeyFactory {
-            signing_keys: keys.into(),
-            has_generating_error: false,
-            has_multi_key_signing_error: false,
-        }
     }
 }

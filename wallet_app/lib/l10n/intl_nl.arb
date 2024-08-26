@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-07-22T15:31:08+02:00",
+    "@@last_modified": "2024-08-22T15:41:50+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -36,6 +36,7 @@
     "cardDetailScreenCardDataCta": "Gegevens in deze kaart",
     "cardDetailScreenCardDeleteCta": "Kaart verwijderen",
     "cardDetailScreenCardHistoryCta": "Kaartactiviteiten",
+    "cardDetailScreenCardImageWCAGLabel": "{name} kaart",
     "cardDetailScreenCardUpdateCta": "Opnieuw ophalen",
     "cardDetailScreenCardValidUntil": "Geldig tot en met {dateTime}",
     "@cardDetailScreenCardValidUntil": {
@@ -107,6 +108,15 @@
     "cardValueGenderUnknown": "Onbekend",
     "cardValueTrue": "Ja",
     "changeLanguageScreenTitle": "Kies een taal",
+    "changePinScreenConfirmNewPinTitle": "",
+    "changePinScreenEnterCurrentPinTitle": "Voor eerst je huidige pincode in",
+    "changePinScreenSelectNewPinTitle": "",
+    "changePinScreenSuccessDescription": "Je app is beveiligd met je pincode.",
+    "changePinScreenSuccessTitle": "Gelukt!",
+    "changePinScreenToOverviewCta": "Naar mijn overzicht",
+    "changePinScreenToSettingsCta": "Naar instellingen",
+    "changePinScreenUpdatingDescription": "Pincode wordt gewijzigd",
+    "changePinScreenUpdatingTitle": "Even geduld",
     "checkAgreementPageCancelCta": "Nee",
     "checkAgreementPageConfirmCta": "Ja, volgende",
     "checkAgreementPageDataIncorrectCta": "Klopt er iets niet?",
@@ -219,8 +229,8 @@
     "disclosureConfirmDataAttributesSubtitleData": "{count, plural, one {Gevraagde gegeven} other {Gevraagde gegevens}}",
     "disclosureConfirmDataAttributesSubtitlePurpose": "Reden",
     "disclosureConfirmDataAttributesSubtitleTerms": "Afspraken",
-    "disclosureConfirmPinPageForLoginTitle": "Login bij {organization} met je pincode",
-    "disclosureConfirmPinPageTitle": "Gegevens versturen met je pincode",
+    "disclosureConfirmPinPageForLoginTitle": "Geef akkoord met je pincode",
+    "disclosureConfirmPinPageTitle": "Geef akkoord met je pincode",
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
     "disclosureLoadingSubtitle": "De aanvraag wordt opgehaald",
     "disclosureLoadingTitle": "Even geduld",
@@ -234,6 +244,7 @@
             }
         }
     },
+    "disclosureMissingAttributesPageHowToProceedCta": "Wat kan ik doen?",
     "disclosureMissingAttributesPageReportIssueCta": "Wil je een probleem melden?",
     "disclosureMissingAttributesPageTitle": "Je mist gegevens",
     "disclosureReportSubmittedPageCloseCta": "Sluiten",
@@ -358,6 +369,7 @@
     "generalOkCta": "OK",
     "generalOn": "Aan",
     "generalOsVersionText": "Besturingssysteem:",
+    "generalPageChangeWCAGAnnouncement": "Pagina {current} van {total} wordt nu weergegeven.",
     "generalPolicyAllTermsCta": "Alle voorwaarden",
     "generalPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
     "generalPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
@@ -393,6 +405,7 @@
     "generalWCAGClose": "Sluiten",
     "generalWCAGHelp": "Hulp nodig?",
     "generalWCAGInfo": "Meer info",
+    "generalWCAGLanguageUpdatedAnnouncement": "De taal is gewijzigd naar {language}",
     "generalWCAGLogoutAnnouncement": "Je bent uitgelogd",
     "generalWCAGMenu": "Menu",
     "generalWCAGOpenLink": "Openen",
@@ -441,7 +454,20 @@
     },
     "historyDetailScreenErrorTitleForDisclosure": "Delen mogelijk mislukt met {organization}",
     "historyDetailScreenErrorTitleForLogin": "Inloggen bij {organization} mislukt",
+    "historyDetailScreenHelpdeskSubtitle": "Om hulp en antwoorden te krijgen",
+    "historyDetailScreenHelpdeskTitle": "Naar de helpdesk",
+    "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {1 gegeven gedeeld} other {{attributes} gegevens gedeeld}}",
+    "@historyDetailScreenInteractionAttributesTitle": {
+        "placeholders": {
+            "attributes": {
+                "example": "4",
+                "type": "int"
+            }
+        }
+    },
     "historyDetailScreenIssuanceSuccessDescription": "Kaart aangemaakt",
+    "historyDetailScreenIssueSubtitle": "Over de gegevens, het verzoek of de ontvanger",
+    "historyDetailScreenIssueTitle": "Een probleem melden?",
     "historyDetailScreenLoginCancelledDescription": "Gegevens zijn niet gedeeld met {organization} want je hebt het inloggen gestopt.",
     "@historyDetailScreenLoginCancelledDescription": {
         "placeholders": {
@@ -462,6 +488,23 @@
     },
     "historyDetailScreenOperationStatusExpiredDescription": "Je kaart is verlopen.",
     "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
+    "historyDetailScreenOrganizationNameAndStatus": "{status} {organization}",
+    "@historyDetailScreenOrganizationNameAndStatus": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            },
+            "status": {
+                "example": "Shared with",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess": "Over",
+    "historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess": "Gedeeld met",
+    "historyDetailScreenOrganizationNamePrefixOperationStatusAll": "Uitgever",
+    "historyDetailScreenOrganizationNamePrefixSigningStatusAll": "Over",
     "historyDetailScreenPurposeTitle": "Reden voor delen",
     "historyDetailScreenReportIssueCta": "Wil je een probleem melden?",
     "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven werd gedeeld. Niet meer.} other {Alleen deze volgende {count} gegevens werden gedeeld. Niet meer.}}",
@@ -475,6 +518,7 @@
     },
     "historyDetailScreenSharedAttributesTitle": "Gegevens gedeeld",
     "historyDetailScreenShowDetailsCta": "Zie details aanvraag",
+    "historyDetailScreenSigningAttributesTitle": "Ondertekend",
     "historyDetailScreenSigningStatusRejectedDescription": "Er zijn geen gegevens gedeeld met {organization}, want je hebt het ondertekenen gestopt.",
     "@historyDetailScreenSigningStatusRejectedDescription": {
         "placeholders": {
@@ -487,6 +531,15 @@
     "historyDetailScreenStoppedTitleForDisclosure": "Delen gestopt met {organization}",
     "historyDetailScreenStoppedTitleForLogin": "Inloggen bij {organization} gestopt",
     "historyDetailScreenTermsCta": "Lees de voorwaarden",
+    "historyDetailScreenTermsSubtitle": "Zo gaat {organization} met jouw gegevens om",
+    "@historyDetailScreenTermsSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
     "historyDetailScreenTermsTitle": "Afspraken",
     "historyDetailScreenTitle": "Details",
     "historyDetailScreenTitleForDisclosure": "Gedeeld met {organization}",
@@ -686,6 +739,11 @@
     "pinBlockedScreenDescription": "Je hebt je pincode te vaak verkeerd ingevuld. \n\nWil je weer gebruik maken van de Wallet? Dan moet je opnieuw beginnen. Wis de Wallet en kies een nieuwe pincode.",
     "pinBlockedScreenHeadline": "Je app is geblokkeerd",
     "pinBlockedScreenResetWalletCta": "Verwijder Wallet",
+    "pinConfirmationErrorDialogDescription": "Probeer opnieuw.",
+    "pinConfirmationErrorDialogFatalCta": "Nieuwe pincode kiezen",
+    "pinConfirmationErrorDialogFatalDescription": "Kies een nieuwe pincode.",
+    "pinConfirmationErrorDialogFatalTitle": "Deze pincode is anders",
+    "pinConfirmationErrorDialogTitle": "Deze pincode is anders",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} cijfer over} other {{count} cijfers over}}",
     "pinErrorDialogCloseCta": "SLUITEN",
     "pinErrorDialogFinalRoundFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app permanent geblokkeerd.",
@@ -730,6 +788,10 @@
             }
         }
     },
+    "pinValidationErrorDialogAscendingOrDescendingDigitsError": "Gebruik geen cijfers op volgorde. Kies een andere pincode.",
+    "pinValidationErrorDialogDefaultError": "Kies een andere pincode",
+    "pinValidationErrorDialogTitle": "Deze pincode is te simpel",
+    "pinValidationErrorDialogTooFewUniqueDigitsError": "Kies een pincode met verschillende cijfers.",
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
     "placeholderScreenGenericDescription": "Heb je vragen of hulp nodig? Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
     "placeholderScreenHeadline": "Helaas, aan deze pagina wordt nog gewerkt.",
@@ -783,13 +845,16 @@
     "qrMyCodeTabHowToSheetCloseCta": "Sluiten",
     "qrMyCodeTabHowToSheetDescription": "Laat de QR-code scannen door een controleur om te beginnen met delen. Vervolgens krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
     "qrMyCodeTabHowToSheetTitle": "Hoe werkt mijn QR-code?",
-    "qrScanTabCameraScanningQrScanningAnnouncement": "Richt je camera op een QR-code",
     "qrScanTabContinueCta": "Nog een QR-code scannen",
     "qrScanTabGrantPermissionCta": "Toegang geven tot camera",
+    "qrScreenCheckingCodeWCAGAnnouncement": "QR-code wordt gecontroleerd",
     "qrScreenDisableTorchCta": "Zet zaklamp uit",
     "qrScreenEnableTorchCta": "Zet zaklamp aan",
     "qrScreenPermissionHint": "De NL Wallet heeft toegang nodig tot je camera om een QR-code te scannen",
     "qrScreenScanHint": "Richt je camera op een QR-code",
+    "qrScreenScanScannerActiveWCAGAnnouncement": "Geen QR-code gevonden. Richt je camera op een QR-code",
+    "qrScreenScanSuccessfulWCAGAnnouncement": "Scan gelukt",
+    "qrScreenScanningWCAGAnnouncement": "Richt je camera op een QR-code",
     "reportIssueScreenHeaderTitle": "Welk probleem wil je melden? Je melding wordt anoniem verstuurd.",
     "reportIssueScreenTitle": "Wil je een probleem melden?",
     "reportOptionImpersonatingOrganization": "Deze organisatie doet zich voor als een ander",
@@ -820,24 +885,27 @@
     "settingsScreenChangeLanguageCta": "Taal veranderen",
     "settingsScreenChangePinCta": "Pincode veranderen",
     "settingsScreenClearDataCta": "Gegevens verwijderen",
-    "settingsScreenSetupBiometricsCta": "Biometrie instellen",
+    "settingsScreenSetupBiometricsCta": "Open met gezichts-scan of vingerafdruk",
+    "settingsScreenSetupBiometricsCtaiOSVariant": "Open met Face ID of Touch ID",
+    "settingsScreenSetupBiometricsNotSupportedSubtitle": "Niet beschikbaar op dit toestel",
     "settingsScreenTitle": "Instellingen",
-    "setupSecurityCompletedPageCreateWalletCta": "Maak wallet aan",
+    "setupBiometricsPageDescription": "Hierdoor open je sneller je NL Wallet. Je gebruikt je gezicht of vingerafdruk in plaats van je pincode.",
+    "setupBiometricsPageEnableCta": "Aanzetten",
+    "setupBiometricsPageFaceTitle": "Wil je de app openen met gezichts-scan?",
+    "setupBiometricsPageFingerprintTitle": "Wil je de app openen met vingerafdruk?",
+    "setupBiometricsPageGenericTitle": "Wil je de app openen met gezichts-scan of vingerafdruk?",
+    "setupBiometricsPageLocalizedReason": "Instelling bevestigen",
+    "setupBiometricsPageSkipCta": "Overslaan",
+    "setupBiometricsPageiOSFaceIdTitle": "Wil je de app openen met Face ID?",
+    "setupSecurityCompletedPageCreateWalletCta": "Volgende",
     "setupSecurityCompletedPageDescription": "Je app is beveiligd met je pincode.",
     "setupSecurityCompletedPageTitle": "Gelukt!",
-    "setupSecurityConfirmationErrorPageDescription": "Probeer opnieuw.",
-    "setupSecurityConfirmationErrorPageFatalCta": "Nieuwe pincode kiezen",
-    "setupSecurityConfirmationErrorPageFatalDescription": "Kies een nieuwe pincode.",
-    "setupSecurityConfirmationErrorPageFatalTitle": "Deze pincode is anders",
-    "setupSecurityConfirmationErrorPageTitle": "Deze pincode is anders",
+    "setupSecurityCompletedPageWithBiometricsDescription": "Je app is beveiligd met je pincode en gezichts-scan of vingerafdruk.",
+    "setupSecurityCompletedPageWithBiometricsDescriptioniOSVariant": "Je app is beveiligd met je pincode en Face ID of vingerafdruk.",
     "setupSecurityConfirmationPageTitle": "Herhaal je pincode",
     "setupSecurityLoadingPageDescription": "Momentje...",
     "setupSecurityLoadingPageTitle": "Opslaan",
     "setupSecurityScreenWCAGPinChosenAnnouncement": "Pincode gekozen. Herhaal pincode om te bevestigen.",
-    "setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError": "Gebruik geen cijfers op volgorde. Kies een andere pincode.",
-    "setupSecuritySelectPinErrorPageDefaultError": "Kies een andere pincode",
-    "setupSecuritySelectPinErrorPageTitle": "Deze pincode is te simpel",
-    "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Kies een pincode met verschillende cijfers.",
     "setupSecuritySelectPinPageTitle": "Kies een 6-cijferige pincode",
     "sharedAttributesCardCta": "Bekijk",
     "sharedAttributesCardTitle": "{count} uit {cardTitle}",
@@ -905,7 +973,7 @@
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Je gegevens zijn opgehaald via DigiD.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
-    "walletPersonalizeConfirmPinPageTitle": "Gegevens toevoegen met je pincode",
+    "walletPersonalizeConfirmPinPageTitle": "Geef akkoord met je pincode",
     "walletPersonalizeDataIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Voeg daarom gegevens niet toe.",
     "walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints": "Neem contact op met jouw gemeente om je gegevens te laten aanpassen.\nWacht op een bericht van je gemeente dat de aanpassing is gelukt.\nLog opnieuw in met DigiD om de juiste gegevens op te halen.",
     "walletPersonalizeDataIncorrectScreenHowToResolveTitle": "Hoe kan ik foute gegevens aanpassen?",
@@ -942,6 +1010,7 @@
     "walletPersonalizeScreenStopDigidDialogPositiveCta": "Inloggen stoppen",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Weet je zeker dat je wil stoppen?",
     "walletPersonalizeScreenStopDigidDialogTitle": "DigiD inloggen stoppen?",
+    "walletPersonalizeScreenTitle": "Maak wallet aan",
     "walletPersonalizeSetupFailedScreenCta": "Probeer opnieuw",
     "walletPersonalizeSetupFailedScreenDescription": "Je hebt te vaak een ongeldige pincode ingevuld. Kies een nieuwe pincode en begin opnieuw.",
     "walletPersonalizeSetupFailedScreenHeadline": "Aanmaken mislukt",

@@ -76,8 +76,13 @@ class NavigationService {
     }
   }
 
-  /// Process any outstanding [NavigationRequest] and consume it if it can be handled.
+  /// Consume and process the outstanding [NavigationRequest].
   Future<void> processQueue() async {
+    if (_queuedRequest == null) return;
+    assert(
+      await _checkNavigationPrerequisitesUseCase.invoke(NavigationPrerequisite.values),
+      'processQueue() should only be called when all prerequisites have been met.',
+    );
     final queuedRequest = _queuedRequest;
     _queuedRequest = null;
     if (queuedRequest != null) await handleNavigationRequest(queuedRequest);

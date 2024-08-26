@@ -16,7 +16,7 @@ class HistoryDetailTimestamp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding,
-      child: Text(
+      child: Text.rich(
         HistoryDetailsTimeFormatter.format(context, dateTime),
       ),
     );

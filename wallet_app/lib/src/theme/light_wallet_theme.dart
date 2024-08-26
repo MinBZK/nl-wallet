@@ -69,21 +69,52 @@ class LightWalletTheme {
 
   static final elevatedButtonTheme = ElevatedButtonThemeData(
     style: BaseWalletTheme.baseElevatedButtonTheme.style?.copyWith(
+      textStyle: WidgetStateTextStyle.resolveWith(
+        (states) {
+          return BaseWalletTheme.buttonTextStyle.copyWith(
+            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
+          );
+        },
+      ),
       foregroundColor: WidgetStatePropertyAll(colorScheme.onPrimary),
-      backgroundColor: WidgetStatePropertyAll(colorScheme.primary),
-      overlayColor: WidgetStatePropertyAll(colorScheme.secondary),
+      backgroundColor: WidgetStateProperty.resolveWith(
+        (states) {
+          if (states.isHoveredOrFocused) return _Colors.actionFocused;
+          return colorScheme.primary;
+        },
+      ),
+      overlayColor: WidgetStateProperty.resolveWith(
+        (states) {
+          if (states.isHoveredOrFocused) return _Colors.actionFocused;
+          return colorScheme.secondary;
+        },
+      ),
     ),
   );
 
   static final outlinedButtonTheme = OutlinedButtonThemeData(
     style: BaseWalletTheme.outlinedButtonTheme.style?.copyWith(
+      textStyle: WidgetStateTextStyle.resolveWith(
+        (states) {
+          return BaseWalletTheme.buttonTextStyle.copyWith(
+            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
+          );
+        },
+      ),
       side: WidgetStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
     ),
   );
 
   static final textButtonTheme = TextButtonThemeData(
     style: BaseWalletTheme.textButtonTheme.style?.copyWith(
-      textStyle: WidgetStatePropertyAll(BaseWalletTheme.buttonTextStyle.copyWith(letterSpacing: 1.15)),
+      textStyle: WidgetStateTextStyle.resolveWith(
+        (states) {
+          return BaseWalletTheme.buttonTextStyle.copyWith(
+            letterSpacing: 1.15,
+            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
+          );
+        },
+      ),
       foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );
@@ -108,6 +139,8 @@ class LightWalletTheme {
   //endregion Modified (colored) BaseThemes
 
   static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFFF2F2FA));
+
+  static const focusColor = Colors.black12;
 }
 
 // ignore: unused_element
@@ -130,6 +163,7 @@ class _Colors {
   static const Color actionActive = Color(0xFF152A62);
   static const Color actionDestructive = Color(0xFFAB0065);
   static const Color actionPrimary = Color(0xFF383EDE);
+  static const Color actionFocused = Color(0xFF3237C4);
 
   // Pages
   static const Color pageOverlay = Color(0xFFFFFFFF);

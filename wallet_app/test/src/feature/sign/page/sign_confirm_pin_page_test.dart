@@ -43,12 +43,10 @@ void main() {
   group('widgets', () {
     testWidgets('SignConfirmPinPage renders the correct title & subtitle', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: SignConfirmPinPage(
-            onPinValidated: (_) {},
-            bloc: PinBloc(Mocks.create()),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        SignConfirmPinPage(
+          onPinValidated: (_) {},
+          bloc: PinBloc(Mocks.create()),
         ),
       );
 

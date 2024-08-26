@@ -1,4 +1,3 @@
-use futures::future::TryFutureExt;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
 
@@ -47,30 +46,21 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         self.lock.lock()
     }
 
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
-    pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError>
+    async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: ConfigurationRepository,
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
     {
-        info!("Validating pin");
-
         info!("Checking if registered");
+
         let registration = self
             .registration
             .as_ref()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
-        info!("Checking if locked");
-        if !self.lock.is_locked() {
-            return Err(WalletUnlockError::NotLocked);
-        }
-
         let config = self.config_repository.config();
-
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
         let remote_instruction = InstructionClient::new(
@@ -83,17 +73,49 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
             &instruction_result_public_key,
         );
 
-        info!("Sending unlock instruction to Wallet Provider");
-        remote_instruction
-            .send(CheckPin)
-            .inspect_ok(|_| {
-                info!("Unlock instruction successful, unlocking wallet");
+        info!("Sending check pin instruction to Wallet Provider");
 
-                self.lock.unlock();
-            })
-            .await?;
+        remote_instruction.send(CheckPin).await?;
 
         Ok(())
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError>
+    where
+        CR: ConfigurationRepository,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
+    {
+        info!("Unlocking wallet with pin");
+
+        info!("Checking if locked");
+        if !self.lock.is_locked() {
+            return Err(WalletUnlockError::NotLocked);
+        }
+
+        self.send_check_pin_instruction(pin).await?;
+
+        info!("Unlock instruction successful, unlocking wallet");
+
+        self.lock.unlock();
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    pub async fn check_pin(&self, pin: String) -> Result<(), WalletUnlockError>
+    where
+        CR: ConfigurationRepository,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
+    {
+        info!("Checking pin");
+
+        self.send_check_pin_instruction(pin).await
     }
 }
 

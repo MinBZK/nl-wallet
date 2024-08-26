@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../environment.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
@@ -46,7 +47,13 @@ class SettingsScreen extends StatelessWidget {
         MenuRow(
           label: context.l10n.settingsScreenChangePinCta,
           icon: Icons.key,
-          onTap: () => PlaceholderScreen.showGeneric(context),
+          onTap: () {
+            if (Environment.mockRepositories) {
+              Navigator.pushNamed(context, WalletRoutes.changePinRoute);
+            } else {
+              PlaceholderScreen.showGeneric(context);
+            }
+          },
         ),
         const Divider(height: 1),
         MenuRow(

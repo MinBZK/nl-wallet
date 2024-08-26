@@ -18,48 +18,44 @@ void main() {
   });
 
   testWidgets('verify PinOverlay shows child when status is unlocked & registered', (tester) async {
-    await tester.pumpWidget(
-      RepositoryProvider<IsWalletInitializedUseCase>(
-        create: (context) => isWalletInitializedUseCase,
-        child: WalletAppTestWidget(
-          child: PinOverlay(
-            bloc: PinBloc(Mocks.create()),
-            isLockedStream: Stream.value(false),
-            child: const Text('child'),
-          ),
-        ),
+    await tester.pumpWidgetWithAppWrapper(
+      PinOverlay(
+        bloc: PinBloc(Mocks.create()),
+        isLockedStream: Stream.value(false),
+        child: const Text('child'),
       ),
+      providers: [
+        RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+      ],
     );
 
     // Make sure stream is processed
     await tester.pumpAndSettle();
 
     // Setup finders
-    final titleFinder = find.text('child');
+    final titleFinder = find.text('child', findRichText: true);
 
     // Verify all expected widgets show up once
     expect(titleFinder, findsOneWidget);
   });
 
   testWidgets('verify PinOverlay hides child when status is locked & registered', (tester) async {
-    await tester.pumpWidget(
-      RepositoryProvider<IsWalletInitializedUseCase>(
-        create: (context) => isWalletInitializedUseCase,
-        child: WalletAppTestWidget(
-          child: PinOverlay(
-            bloc: PinBloc(Mocks.create()),
-            isLockedStream: Stream.value(true),
-            child: const Text('child'),
-          ),
-        ),
+    await tester.pumpWidgetWithAppWrapper(
+      PinOverlay(
+        bloc: PinBloc(Mocks.create()),
+        isLockedStream: Stream.value(true),
+        child: const Text('child'),
       ),
+      providers: [
+        RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+      ],
     );
 
     // Make sure stream is processed
     await tester.pumpAndSettle();
 
     // Setup finders
-    final titleFinder = find.text('child');
+    final titleFinder = find.text('child', findRichText: true);
 
     // Verify the locked widget is NOT shown
     expect(titleFinder, findsNothing);
@@ -68,24 +64,22 @@ void main() {
   testWidgets('verify PinOverlay shows child when status is locked & NOT registered', (tester) async {
     when(isWalletInitializedUseCase.invoke()).thenAnswer((realInvocation) async => false);
 
-    await tester.pumpWidget(
-      RepositoryProvider<IsWalletInitializedUseCase>(
-        create: (context) => isWalletInitializedUseCase,
-        child: WalletAppTestWidget(
-          child: PinOverlay(
-            bloc: PinBloc(Mocks.create()),
-            isLockedStream: Stream.value(true),
-            child: const Text('child'),
-          ),
-        ),
+    await tester.pumpWidgetWithAppWrapper(
+      PinOverlay(
+        bloc: PinBloc(Mocks.create()),
+        isLockedStream: Stream.value(true),
+        child: const Text('child'),
       ),
+      providers: [
+        RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+      ],
     );
 
     // Make sure stream is processed
     await tester.pumpAndSettle();
 
     // Setup finders
-    final titleFinder = find.text('child');
+    final titleFinder = find.text('child', findRichText: true);
 
     // Verify all expected widgets show up once
     expect(titleFinder, findsOneWidget);

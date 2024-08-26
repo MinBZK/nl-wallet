@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../../../environment.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
@@ -37,6 +41,8 @@ class IntroductionScreen extends StatefulWidget {
 
 class _IntroductionScreenState extends State<IntroductionScreen> {
   final PageController _pageController = PageController();
+  final Subject<String> _announcementStream = PublishSubject();
+  StreamSubscription? _announcementStreamSubscription;
 
   final List<ScrollController> _scrollControllers = [
     ScrollController(debugLabel: 'intro_page_1'),
@@ -64,6 +70,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   @override
   void initState() {
     super.initState();
+    _announcementStreamSubscription = _announcementStream.debounceTime(const Duration(seconds: 3)).listen(_announce);
     _pageController.addListener(_onPageChanged);
     for (final scrollController in _scrollControllers) {
       scrollController.addListener(_onPageScrolled);
@@ -76,6 +83,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     for (final scrollController in _scrollControllers) {
       scrollController.dispose();
     }
+    _announcementStream.close();
+    _announcementStreamSubscription?.cancel();
     super.dispose();
   }
 
@@ -102,7 +111,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           ),
           body: PopScope(
             canPop: _currentPage == 0,
-            onPopInvoked: (didPop) => didPop ? null : _onPreviousPagePressed(context),
+            onPopInvokedWithResult: (didPop, result) => didPop ? null : _onPreviousPagePressed(context),
             child: _buildContent(context),
           ),
         ),
@@ -120,7 +129,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       right: 0,
       child: Center(
         child: Semantics(
-          label: context.l10n.introductionWCAGDutchGovernmentLogoLabel,
+          attributedLabel: context.l10n.introductionWCAGDutchGovernmentLogoLabel.toAttributedString(context),
           child: Image.asset(
             WalletAssets.logo_rijksoverheid_label,
             height: context.isLandscape ? 64 : 88,
@@ -260,13 +269,13 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         ),
         ConfirmButtons(
           primaryButton: PrimaryButton(
-            text: Text(context.l10n.introductionNextPageCta),
+            text: Text.rich(context.l10n.introductionNextPageCta.toTextSpan(context)),
             onPressed: () => _onNextPressed(context),
             icon: const Icon(Icons.arrow_forward),
             key: Key('introductionNextPageCta_$_currentPageInt'),
           ),
           secondaryButton: TertiaryButton(
-            text: Text(context.l10n.introductionSkipCta),
+            text: Text.rich(context.l10n.introductionSkipCta.toTextSpan(context)),
             onPressed: () => _onSkipPressed(context),
             icon: const Icon(Icons.arrow_forward),
             key: const Key('introductionSkipCta'),
@@ -282,6 +291,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     if (isOnLastPage) {
       Navigator.of(context).restorablePushNamed(WalletRoutes.introductionPrivacyRoute);
     } else {
+      _announcePage(_currentPage.toInt() + 2 /* +1 to account for zero based index, +1 for next page */);
       _pageController.nextPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
     }
   }
@@ -290,8 +300,16 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       Navigator.of(context).restorablePushNamed(WalletRoutes.introductionPrivacyRoute);
 
   void _onPreviousPagePressed(BuildContext context) {
+    _announcePage(_currentPage.toInt() + 0 /* +1 to account for zero based index, -1 for previous page */);
     _pageController.previousPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
   }
+
+  Future<void> _announcePage(int page) async {
+    final announcement = context.l10n.generalPageChangeWCAGAnnouncement(page, _kNrOfPages);
+    _announcementStream.add(announcement);
+  }
+
+  void _announce(String announcement) => SemanticsService.announce(announcement, TextDirection.ltr);
 
   Widget? _buildBackButton() {
     if (_currentPage < 0.5) return null;

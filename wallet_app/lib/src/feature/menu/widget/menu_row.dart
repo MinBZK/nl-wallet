@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../data/store/active_locale_provider.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 const _kMinHeight = 72.0;
@@ -30,8 +32,8 @@ class MenuRow extends StatelessWidget {
             children: [
               _buildLeading(context),
               Expanded(
-                child: Text(
-                  label,
+                child: Text.rich(
+                  TextSpan(text: label, locale: context.read<ActiveLocaleProvider>().activeLocale),
                   style: context.textTheme.titleMedium,
                 ),
               ),

@@ -153,16 +153,14 @@ void main() {
       verify(navigatorKey.currentState);
     });
 
-    test('Verify even if request is queued, it is not processed if the app is still not ready', () async {
+    test('Verify assertion error is thrown when trying to process the queue while prerequisites are still unmet',
+        () async {
       // Disallow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => false);
       await service.handleNavigationRequest(const GenericNavigationRequest('/mock'), queueIfNotReady: true);
 
       // And process any queue if it exists, while app is still NOT ready
-      await service.processQueue();
-
-      // Make sure navigation was NOT triggered
-      verifyNever(navigatorKey.currentState);
+      expect(() async => service.processQueue(), throwsAssertionError);
     });
   });
 }

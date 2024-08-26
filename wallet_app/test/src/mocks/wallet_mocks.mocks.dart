@@ -60,6 +60,7 @@ import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' a
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart' as _i56;
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart' as _i57;
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart' as _i55;
+import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart' as _i75;
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i49;
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i36;
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart' as _i71;
@@ -1468,6 +1469,63 @@ class MockWalletRepository extends _i1.Mock implements _i22.WalletRepository {
       ) as _i9.Future<_i7.WalletInstructionResult>);
 
   @override
+  _i9.Future<_i7.WalletInstructionResult> checkPin(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #checkPin,
+          [pin],
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #checkPin,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #checkPin,
+            [pin],
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
+  _i9.Future<_i7.WalletInstructionResult> changePin(
+    String? oldPin,
+    String? newPin,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #changePin,
+          [
+            oldPin,
+            newPin,
+          ],
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #changePin,
+            [
+              oldPin,
+              newPin,
+            ],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #changePin,
+            [
+              oldPin,
+              newPin,
+            ],
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
   _i9.Future<void> lockWallet() => (super.noSuchMethod(
         Invocation.method(
           #lockWallet,
@@ -1737,6 +1795,63 @@ class MockTypedWalletCore extends _i1.Mock implements _i29.TypedWalletCore {
           Invocation.method(
             #unlockWallet,
             [pin],
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
+  _i9.Future<_i7.WalletInstructionResult> checkPin(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #checkPin,
+          [pin],
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #checkPin,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #checkPin,
+            [pin],
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
+  _i9.Future<_i7.WalletInstructionResult> changePin(
+    String? oldPin,
+    dynamic newPin,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #changePin,
+          [
+            oldPin,
+            newPin,
+          ],
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #changePin,
+            [
+              oldPin,
+              newPin,
+            ],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #changePin,
+            [
+              oldPin,
+              newPin,
+            ],
           ),
         )),
       ) as _i9.Future<_i7.WalletInstructionResult>);
@@ -2801,6 +2916,28 @@ class MockCheckHasPermissionUseCase extends _i1.Mock implements _i11.CheckHasPer
       ) as _i9.Future<_i11.PermissionCheckResult>);
 }
 
+/// A class which mocks [ChangePinUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockChangePinUseCase extends _i1.Mock implements _i75.ChangePinUseCase {
+  @override
+  _i9.Future<void> invoke(
+    String? oldPin,
+    String? newPin,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [
+            oldPin,
+            newPin,
+          ],
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
+}
+
 /// A class which mocks [WalletCore].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -2971,6 +3108,32 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
         returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_14(
           this,
           Invocation.getter(#kLockWalletConstMeta),
+        ),
+      ) as _i7.FlutterRustBridgeTaskConstMeta);
+
+  @override
+  _i7.FlutterRustBridgeTaskConstMeta get kCheckPinConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kCheckPinConstMeta),
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_14(
+          this,
+          Invocation.getter(#kCheckPinConstMeta),
+        ),
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_14(
+          this,
+          Invocation.getter(#kCheckPinConstMeta),
+        ),
+      ) as _i7.FlutterRustBridgeTaskConstMeta);
+
+  @override
+  _i7.FlutterRustBridgeTaskConstMeta get kChangePinConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kChangePinConstMeta),
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_14(
+          this,
+          Invocation.getter(#kChangePinConstMeta),
+        ),
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_14(
+          this,
+          Invocation.getter(#kChangePinConstMeta),
         ),
       ) as _i7.FlutterRustBridgeTaskConstMeta);
 
@@ -3345,6 +3508,86 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
+
+  @override
+  _i9.Future<_i7.WalletInstructionResult> checkPin({
+    required String? pin,
+    dynamic hint,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #checkPin,
+          [],
+          {
+            #pin: pin,
+            #hint: hint,
+          },
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #checkPin,
+            [],
+            {
+              #pin: pin,
+              #hint: hint,
+            },
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #checkPin,
+            [],
+            {
+              #pin: pin,
+              #hint: hint,
+            },
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
+  _i9.Future<_i7.WalletInstructionResult> changePin({
+    required String? oldPin,
+    required String? newPin,
+    dynamic hint,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #changePin,
+          [],
+          {
+            #oldPin: oldPin,
+            #newPin: newPin,
+            #hint: hint,
+          },
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #changePin,
+            [],
+            {
+              #oldPin: oldPin,
+              #newPin: newPin,
+              #hint: hint,
+            },
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #changePin,
+            [],
+            {
+              #oldPin: oldPin,
+              #newPin: newPin,
+              #hint: hint,
+            },
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
 
   @override
   _i9.Future<bool> hasRegistration({dynamic hint}) => (super.noSuchMethod(

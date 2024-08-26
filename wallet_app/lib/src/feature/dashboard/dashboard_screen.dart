@@ -8,10 +8,12 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../data/service/navigation_service.dart';
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../card/detail/argument/card_detail_screen_argument.dart';
 import '../card/detail/card_detail_screen.dart';
@@ -57,6 +59,7 @@ class DashboardScreen extends StatelessWidget {
         key: const Key('dashboardVisibilityDetector'),
         onVisibilityChanged: (visibilityInfo) {
           if (visibilityInfo.visibleFraction >= 1) {
+            context.read<NavigationService>().processQueue();
             SemanticsService.announce(context.l10n.dashboardScreenOverviewAnnouncement, TextDirection.ltr);
           }
         },
@@ -87,7 +90,7 @@ class DashboardScreen extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Semantics(
-        label: context.l10n.dashboardScreenMenuWCAGLabel,
+        attributedLabel: context.l10n.dashboardScreenMenuWCAGLabel.toAttributedString(context),
         button: true,
         onTap: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
         excludeSemantics: true,
@@ -202,7 +205,7 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildQrLogo(BuildContext context) {
     onTapQr() => Navigator.pushNamed(context, WalletRoutes.qrRoute);
     return Semantics(
-      label: context.l10n.dashboardScreenQrCta,
+      attributedLabel: context.l10n.dashboardScreenQrCta.toAttributedString(context),
       button: true,
       excludeSemantics: true,
       child: SizedBox(
@@ -265,7 +268,7 @@ class DashboardScreen extends StatelessWidget {
           const Spacer(),
           ElevatedButton(
             onPressed: () => context.read<DashboardBloc>().add(const DashboardLoadTriggered()),
-            child: Text(context.l10n.generalRetry),
+            child: Text.rich(context.l10n.generalRetry.toTextSpan(context)),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
@@ -80,11 +81,11 @@ class PinTimeoutScreen extends StatelessWidget {
             ConfirmButtons(
               forceVertical: !context.isLandscape,
               primaryButton: PrimaryButton(
-                text: Text(context.l10n.pinTimeoutScreenClearWalletCta),
+                text: Text.rich(context.l10n.pinTimeoutScreenClearWalletCta.toTextSpan(context)),
                 onPressed: () => ResetWalletDialog.show(context),
               ),
               secondaryButton: SecondaryButton(
-                text: Text(context.l10n.pinTimeoutScreenForgotPinCta),
+                text: Text.rich(context.l10n.pinTimeoutScreenForgotPinCta.toTextSpan(context)),
                 onPressed: () => ForgotPinScreen.show(context),
               ),
             ),

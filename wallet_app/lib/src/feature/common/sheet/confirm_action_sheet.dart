@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../widget/button/confirm/confirm_buttons.dart';
 import '../widget/button/primary_button.dart';
 import '../widget/button/secondary_button.dart';
+import '../widget/text/body_text.dart';
+import '../widget/text/title_text.dart';
 
 class ConfirmActionSheet extends StatelessWidget {
   final VoidCallback? onCancelPressed;
@@ -47,18 +50,17 @@ class ConfirmActionSheet extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
+                  child: TitleText(
                     title,
-                    style: context.textTheme.displayMedium,
                     textAlign: TextAlign.start,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
+                  child: BodyText(
                     description,
-                    style: context.textTheme.bodyLarge,
+                    textAlign: TextAlign.start,
                   ),
                 ),
               ],
@@ -73,13 +75,13 @@ class ConfirmActionSheet extends StatelessWidget {
               primaryButton: PrimaryButton(
                 key: const Key('acceptButton'),
                 onPressed: onConfirmPressed,
-                text: Text(confirmButtonText),
+                text: Text.rich(confirmButtonText.toTextSpan(context)),
                 icon: confirmIcon == null ? null : Icon(confirmIcon),
               ),
               secondaryButton: SecondaryButton(
                 key: const Key('rejectButton'),
                 onPressed: onCancelPressed,
-                text: Text(cancelButtonText),
+                text: Text.rich(cancelButtonText.toTextSpan(context)),
                 icon: cancelIcon == null ? null : Icon(cancelIcon),
               ),
             ),

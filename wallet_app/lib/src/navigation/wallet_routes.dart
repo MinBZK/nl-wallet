@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../data/service/navigation_service.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -16,7 +15,8 @@ import '../feature/card/history/bloc/card_history_bloc.dart';
 import '../feature/card/history/card_history_screen.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
-import '../feature/common/widget/utility/do_on_init.dart';
+import '../feature/change_pin/bloc/change_pin_bloc.dart';
+import '../feature/change_pin/change_pin_screen.dart';
 import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
@@ -79,6 +79,7 @@ class WalletRoutes {
     pinBlockedRoute,
     themeRoute,
     changeLanguageRoute,
+    changePinRoute,
   ];
 
   static const splashRoute = '/';
@@ -104,6 +105,7 @@ class WalletRoutes {
   static const policyRoute = '/policy';
   static const historyDetailRoute = '/history';
   static const changeLanguageRoute = '/language';
+  static const changePinRoute = '/change_pin';
   static const organizationDetailRoute = '/organization';
   static const settingsRoute = '/settings';
   static const qrRoute = '/qr';
@@ -178,6 +180,8 @@ class WalletRoutes {
         return _createOrganizationDetailScreenBuilder(settings);
       case WalletRoutes.changeLanguageRoute:
         return _createChangeLanguageScreenBuilder;
+      case WalletRoutes.changePinRoute:
+        return _createChangePinScreenBuilder;
       case WalletRoutes.pinTimeoutRoute:
         return _createPinTimeoutScreenBuilder(settings);
       case WalletRoutes.pinBlockedRoute:
@@ -230,10 +234,7 @@ WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
           context.read(),
           argument?.cards,
         )..add(const DashboardLoadTriggered()),
-        child: DoOnInit(
-          child: const DashboardScreen(),
-          onInit: (context) => context.read<NavigationService>().processQueue(),
-        ),
+        child: const DashboardScreen(),
       );
 }
 
@@ -385,6 +386,13 @@ Widget _createChangeLanguageScreenBuilder(BuildContext context) {
     create: (BuildContext context) =>
         ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context))..add(ChangeLanguageLoadTriggered()),
     child: const ChangeLanguageScreen(),
+  );
+}
+
+Widget _createChangePinScreenBuilder(BuildContext context) {
+  return BlocProvider<ChangePinBloc>(
+    create: (BuildContext context) => ChangePinBloc(context.read(), context.read()),
+    child: const ChangePinScreen(),
   );
 }
 

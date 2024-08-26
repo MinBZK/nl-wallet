@@ -20,8 +20,8 @@ class DataAttributeRow extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            attribute.label.l10nValue(context),
+          Text.rich(
+            attribute.label.l10nSpan(context),
             style: context.textTheme.bodySmall,
           ),
           Text(

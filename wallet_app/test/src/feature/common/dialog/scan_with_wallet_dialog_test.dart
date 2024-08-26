@@ -6,18 +6,16 @@ import '../../../util/test_utils.dart';
 
 void main() {
   testWidgets('ScanWithWalletDialog shows expected copy', (tester) async {
-    await tester.pumpWidget(
-      const WalletAppTestWidget(
-        child: ScanWithWalletDialog(),
-      ),
+    await tester.pumpWidgetWithAppWrapper(
+      const ScanWithWalletDialog(),
     );
 
     final l10n = await TestUtils.englishLocalizations;
 
     // Setup finders
-    final titleFinder = find.text(l10n.scanWithWalletDialogTitle);
-    final descriptionFinder = find.text(l10n.scanWithWalletDialogBody);
-    final ctaFinder = find.text(l10n.scanWithWalletDialogScanCta.toUpperCase());
+    final titleFinder = find.text(l10n.scanWithWalletDialogTitle, findRichText: true);
+    final descriptionFinder = find.text(l10n.scanWithWalletDialogBody, findRichText: true);
+    final ctaFinder = find.text(l10n.scanWithWalletDialogScanCta.toUpperCase(), findRichText: true);
 
     // Verify all expected widgets show up once
     expect(titleFinder, findsOneWidget);

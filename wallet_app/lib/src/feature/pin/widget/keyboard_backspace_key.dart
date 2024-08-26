@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 
 class KeyboardBackspaceKey extends StatelessWidget {
   final VoidCallback? onBackspacePressed;
@@ -21,7 +22,7 @@ class KeyboardBackspaceKey extends StatelessWidget {
         button: true,
         keyboardKey: true,
         onLongPressHint: context.l10n.pinKeyboardWCAGBackspaceLongPressHint,
-        label: context.l10n.pinKeyboardWCAGBackspaceLabel,
+        attributedLabel: context.l10n.pinKeyboardWCAGBackspaceLabel.toAttributedString(context),
         child: InkWell(
           onLongPress: onBackspaceLongPressed == null ? null : () => onBackspaceLongPressed!(),
           onTap: onBackspacePressed == null ? null : () => onBackspacePressed!(),

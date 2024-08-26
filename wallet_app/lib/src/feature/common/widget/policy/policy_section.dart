@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../navigation/wallet_routes.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../policy/policy_screen_arguments.dart';
 import '../button/link_button.dart';
 import 'policy_row.dart';
@@ -54,7 +55,7 @@ class PolicySection extends StatelessWidget {
                   showSignatureRow: addSignatureRow,
                 ),
               ),
-              text: Text(context.l10n.generalPolicyAllTermsCta),
+              text: Text.rich(context.l10n.generalPolicyAllTermsCta.toTextSpan(context)),
             ),
           ),
         ),

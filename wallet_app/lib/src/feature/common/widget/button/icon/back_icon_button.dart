@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../util/extension/build_context_extension.dart';
+import '../../../../../util/extension/string_extension.dart';
 
 /// Similar to the normal [BackButton] widget, but always uses the same icon (ios/android).
 class BackIconButton extends StatelessWidget {
@@ -13,7 +14,7 @@ class BackIconButton extends StatelessWidget {
     return Semantics(
       button: true,
       onTap: onPressed ?? () => Navigator.pop(context),
-      label: context.l10n.generalWCAGBack,
+      attributedLabel: context.l10n.generalWCAGBack.toAttributedString(context),
       excludeSemantics: true,
       child: IconButton(
         onPressed: onPressed ?? () => Navigator.pop(context),

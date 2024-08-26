@@ -5,8 +5,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../bloc/qr_bloc.dart';
+import 'qr_scanner_active_announcer.dart';
+
+const kAndroidCameraResolution = Size(1280, 960);
 
 class QrScanner extends StatefulWidget {
   const QrScanner({super.key});
@@ -16,7 +20,10 @@ class QrScanner extends StatefulWidget {
 }
 
 class _QrScannerState extends State<QrScanner> {
-  final MobileScannerController cameraController = MobileScannerController(formats: [BarcodeFormat.qrCode]);
+  final MobileScannerController cameraController = MobileScannerController(
+    formats: [BarcodeFormat.qrCode],
+    cameraResolution: kAndroidCameraResolution /* ignored on iOS */,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +33,7 @@ class _QrScannerState extends State<QrScanner> {
       placeholderBuilder: (context, child) => const CenteredLoadingIndicator(),
       errorBuilder: (context, ex, child) {
         Fimber.e('Failed to start camera', ex: ex);
-        return Center(child: Text(context.l10n.errorScreenGenericHeadline));
+        return Center(child: Text.rich(context.l10n.errorScreenGenericHeadline.toTextSpan(context)));
       },
       onDetect: (capture) {
         final event = QrScanCodeDetected(capture.barcodes.first);
@@ -40,6 +47,7 @@ class _QrScannerState extends State<QrScanner> {
       children: [
         _buildAlignedScanQrHint(),
         _buildPositionedFlashLightButton(),
+        const QrScannerActiveAnnouncer(),
       ],
     );
   }
@@ -52,8 +60,8 @@ class _QrScannerState extends State<QrScanner> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         margin: EdgeInsets.only(top: context.mediaQuery.padding.top),
         color: context.theme.appBarTheme.backgroundColor?.withOpacity(0.9),
-        child: Text(
-          context.l10n.qrScreenScanHint,
+        child: Text.rich(
+          context.l10n.qrScreenScanHint.toTextSpan(context),
           textAlign: TextAlign.center,
           style: context.textTheme.bodyLarge,
         ),
@@ -83,15 +91,20 @@ class _QrScannerState extends State<QrScanner> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      isOn ? Icons.flashlight_on_outlined : Icons.flashlight_off_outlined,
-                      color: context.colorScheme.onSecondary,
-                      size: 16,
-                      semanticLabel: isOn ? context.l10n.generalOn : context.l10n.generalOff,
+                    Semantics(
+                      attributedLabel:
+                          (isOn ? context.l10n.generalOn : context.l10n.generalOff).toAttributedString(context),
+                      excludeSemantics: true,
+                      child: Icon(
+                        isOn ? Icons.flashlight_on_outlined : Icons.flashlight_off_outlined,
+                        color: context.colorScheme.onSecondary,
+                        size: 16,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta,
+                    Text.rich(
+                      (isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta)
+                          .toTextSpan(context),
                       style: context.textTheme.labelLarge?.copyWith(color: context.colorScheme.onSecondary),
                     ),
                   ],

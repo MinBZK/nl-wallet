@@ -46,8 +46,14 @@ class PolicyEntriesBuilder {
 
   PolicyEntry _buildDataPurposeEntry(String dataPurpose, String? dataPurposeDescription) {
     return PolicyEntry(
-      title: TextSpan(text: dataPurpose),
-      description: TextSpan(text: dataPurposeDescription ?? context.l10n.policyScreenDataPurposeDescription),
+      title: TextSpan(
+        text: dataPurpose,
+        locale: context.activeLocale,
+      ),
+      description: TextSpan(
+        text: dataPurposeDescription ?? context.l10n.policyScreenDataPurposeDescription,
+        locale: context.activeLocale,
+      ),
       icon: Icons.task_outlined,
     );
   }
@@ -56,8 +62,12 @@ class PolicyEntriesBuilder {
     return PolicyEntry(
       title: TextSpan(
         text: context.l10n.policyScreenDataRetentionDuration(storageDuration.inMonths),
+        locale: context.activeLocale,
       ),
-      description: TextSpan(text: context.l10n.policyScreenDataRetentionDurationDescription(storageDuration.inMonths)),
+      description: TextSpan(
+        text: context.l10n.policyScreenDataRetentionDurationDescription(storageDuration.inMonths),
+        locale: context.activeLocale,
+      ),
       icon: Icons.access_time_outlined,
     );
   }
@@ -66,8 +76,12 @@ class PolicyEntriesBuilder {
     return PolicyEntry(
       title: TextSpan(
         text: context.l10n.policyScreenDataNotBeStored,
+        locale: context.activeLocale,
       ),
-      description: TextSpan(text: context.l10n.policyScreenDataNotBeStoredDescription),
+      description: TextSpan(
+        text: context.l10n.policyScreenDataNotBeStoredDescription,
+        locale: context.activeLocale,
+      ),
       icon: Icons.access_time_outlined,
     );
   }
@@ -78,11 +92,13 @@ class PolicyEntriesBuilder {
         text: interactionPolicy.dataIsShared
             ? context.l10n.policyScreenDataWillBeShared
             : context.l10n.policyScreenDataWillNotBeShared,
+        locale: context.activeLocale,
       ),
       description: TextSpan(
         text: interactionPolicy.dataIsShared
             ? context.l10n.policyScreenDataWillBeSharedDescription
             : context.l10n.policyScreenDataWillNotBeSharedDescription,
+        locale: context.activeLocale,
       ),
       icon: Icons.share_outlined,
     );
@@ -90,7 +106,10 @@ class PolicyEntriesBuilder {
 
   PolicyEntry _buildSignaturePolicy() {
     return PolicyEntry(
-      title: TextSpan(text: context.l10n.policyScreenDataIsSignature),
+      title: TextSpan(
+        text: context.l10n.policyScreenDataIsSignature,
+        locale: context.activeLocale,
+      ),
       description: const TextSpan(text: _kLoremIpsum),
       icon: Icons.security_outlined,
     );
@@ -102,11 +121,13 @@ class PolicyEntriesBuilder {
         text: deletionCanBeRequested
             ? context.l10n.policyScreenDataCanBeDeleted
             : context.l10n.policyScreenDataCanNotBeDeleted,
+        locale: context.activeLocale,
       ),
       description: TextSpan(
         text: deletionCanBeRequested
             ? context.l10n.policyScreenDataCanBeDeletedDescription
             : context.l10n.policyScreenDataCanNotBeDeletedDescription,
+        locale: context.activeLocale,
       ),
       icon: Icons.delete_outline,
     );
@@ -120,8 +141,12 @@ class PolicyEntriesBuilder {
     final suffix = fullPolicyDescription.substring(ctaIndex + policyCta.length, fullPolicyDescription.length);
 
     final policyEntry = PolicyEntry(
-      title: TextSpan(text: context.l10n.policyScreenPolicySectionTitle),
+      title: TextSpan(
+        text: context.l10n.policyScreenPolicySectionTitle,
+        locale: context.activeLocale,
+      ),
       description: TextSpan(
+        locale: context.activeLocale,
         children: [
           TextSpan(text: prefix),
           TextSpan(

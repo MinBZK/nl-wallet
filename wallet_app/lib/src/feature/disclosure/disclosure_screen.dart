@@ -9,6 +9,7 @@ import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/object_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/dialog/scan_with_wallet_dialog.dart';
 import '../common/page/generic_loading_page.dart';
@@ -71,7 +72,7 @@ class DisclosureScreen extends StatelessWidget {
         ),
         body: PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, result) {
             if (didPop) {
               return;
             }
@@ -103,6 +104,7 @@ class DisclosureScreen extends StatelessWidget {
         context.read<ScrollOffset>().offset = 0;
         if (state is DisclosureExternalScannerError) {
           Navigator.maybePop(context).then((popped) {
+            // ignore: use_build_context_synchronously
             ScanWithWalletDialog.show(context);
           });
         }
@@ -213,7 +215,7 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
     final title = state.isLoginFlow
-        ? context.l10n.disclosureConfirmPinPageForLoginTitle(state.relyingParty.displayName.l10nValue(context))
+        ? context.l10n.disclosureConfirmPinPageForLoginTitle
         : context.l10n.disclosureConfirmPinPageTitle;
     return DisclosureConfirmPinPage(
       title: title,
@@ -348,42 +350,48 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureCheckOrganization() => FadeInAtOffset(
               appearOffset: 120,
               visibleOffset: 150,
-              child: Text(
-                context.l10n.organizationApprovePageGenericTitle(
-                  state.relyingParty.displayName.l10nValue(context),
-                ),
+              child: Text.rich(
+                context.l10n
+                    .organizationApprovePageGenericTitle(
+                      state.relyingParty.displayName.l10nValue(context),
+                    )
+                    .toTextSpan(context),
               ),
             ),
           DisclosureCheckOrganizationForLogin() => FadeInAtOffset(
               appearOffset: 120,
               visibleOffset: 150,
-              child: Text(
-                context.l10n.organizationApprovePageGenericTitle(
-                  state.relyingParty.displayName.l10nValue(context),
-                ),
+              child: Text.rich(
+                context.l10n
+                    .organizationApprovePageGenericTitle(
+                      state.relyingParty.displayName.l10nValue(context),
+                    )
+                    .toTextSpan(context),
               ),
             ),
           DisclosureMissingAttributes() => null,
           DisclosureConfirmDataAttributes() => FadeInAtOffset(
               appearOffset: 70,
               visibleOffset: 100,
-              child: Text(
-                context.l10n.disclosureConfirmDataAttributesShareWithTitle(
-                  state.relyingParty.displayName.l10nValue(context),
-                ),
+              child: Text.rich(
+                context.l10n
+                    .disclosureConfirmDataAttributesShareWithTitle(
+                      state.relyingParty.displayName.l10nValue(context),
+                    )
+                    .toTextSpan(context),
               ),
             ),
           DisclosureConfirmPin() => null,
           DisclosureStopped() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text(context.l10n.disclosureStoppedPageTitle),
+              child: Text.rich(context.l10n.disclosureStoppedPageTitle.toTextSpan(context)),
             ),
           DisclosureLeftFeedback() => null,
           DisclosureSuccess() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text(context.l10n.disclosureSuccessPageTitle),
+              child: Text.rich(context.l10n.disclosureSuccessPageTitle.toTextSpan(context)),
             ),
           DisclosureNetworkError() => FadeInAtOffset(
               appearOffset: 48,
@@ -395,22 +403,22 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureExternalScannerError() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text(context.l10n.disclosureGenericErrorPageTitle),
+              child: Text.rich(context.l10n.disclosureGenericErrorPageTitle.toTextSpan(context)),
             ),
           DisclosureGenericError() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text(context.l10n.disclosureGenericErrorPageTitle),
+              child: Text.rich(context.l10n.disclosureGenericErrorPageTitle.toTextSpan(context)),
             ),
           DisclosureSessionExpired() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text(context.l10n.errorScreenSessionExpiredHeadline),
+              child: Text.rich(context.l10n.errorScreenSessionExpiredHeadline.toTextSpan(context)),
             ),
           DisclosureCancelledSessionError() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text(context.l10n.errorScreenCancelledSessionHeadline),
+              child: Text.rich(context.l10n.errorScreenCancelledSessionHeadline.toTextSpan(context)),
             ),
         };
 

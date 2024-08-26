@@ -4,6 +4,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/date_time_extension.dart';
+import '../../../util/extension/string_extension.dart';
 
 class ActivitySummary extends StatelessWidget {
   final List<WalletEvent> events;
@@ -19,7 +20,7 @@ class ActivitySummary extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: '${_resolveTitle(context)}\n${_resolveSubtitle(context)}',
+      attributedLabel: '${_resolveTitle(context)}\n${_resolveSubtitle(context)}'.toAttributedString(context),
       onTapHint: context.l10n.generalWCAGSeeAllActivities,
       excludeSemantics: true,
       onTap: onTap,

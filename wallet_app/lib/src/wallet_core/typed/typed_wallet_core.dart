@@ -94,6 +94,11 @@ class TypedWalletCore {
 
   Future<WalletInstructionResult> unlockWallet(String pin) => call((core) => core.unlockWallet(pin: pin));
 
+  Future<WalletInstructionResult> checkPin(String pin) => call((core) => core.checkPin(pin: pin));
+
+  Future<WalletInstructionResult> changePin(String oldPin, newPin) =>
+      call((core) => core.changePin(oldPin: oldPin, newPin: newPin));
+
   Stream<bool> get isLocked => _isLocked;
 
   Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/numbered_list.dart';
@@ -89,12 +90,12 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
             SizedBox(height: verticalPadding),
             PrimaryButton(
               onPressed: onDataRejected,
-              text: Text(context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta),
+              text: Text.rich(context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta.toTextSpan(context)),
             ),
             const SizedBox(height: 12),
             TertiaryButton(
               onPressed: () => Navigator.maybePop(context),
-              text: Text(context.l10n.generalBottomBackCta),
+              text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
               icon: const Icon(Icons.arrow_back),
             ),
           ],

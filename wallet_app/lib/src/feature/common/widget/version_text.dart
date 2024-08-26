@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 
 class VersionText extends StatelessWidget {
   final TextStyle? prefixTextStyle;
@@ -22,8 +23,8 @@ class VersionText extends StatelessWidget {
           final data = snapshot.data!;
           return Row(
             children: [
-              Text(
-                context.l10n.generalVersionText,
+              Text.rich(
+                context.l10n.generalVersionText.toTextSpan(context),
                 style: prefixTextStyle ?? context.textTheme.bodyMedium,
               ),
               const SizedBox(width: 4),

@@ -22,6 +22,12 @@ abstract class WalletRepository {
   /// Unlock the wallet, also updates the [isLockedStream] when successful
   Future<WalletInstructionResult> unlockWallet(String pin);
 
+  /// Check if the provided pin matches the one that is registered
+  Future<WalletInstructionResult> checkPin(String pin);
+
+  // Changes the registered pin to the provided [newPin] it the currently registered pin matches [oldPin]
+  Future<WalletInstructionResult> changePin(String oldPin, String newPin);
+
   /// Lock the wallet, updates [isLockedStream]
   Future<void> lockWallet();
 

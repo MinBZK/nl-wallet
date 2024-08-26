@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import '../../../environment.dart';
 import '../../domain/model/bloc/error_state.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
+import '../../util/helper/announcements_helper.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/button_content.dart';
 import '../common/widget/button/list_button.dart';
@@ -86,11 +87,11 @@ class PinPage extends StatelessWidget {
         final l10n = context.l10n;
         if (state is PinEntryInProgress) {
           unawaited(
-            Future.delayed(kDefaultAnnouncementDelay).then((value) {
+            Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then((value) {
               if (state.afterBackspacePressed) {
-                _announceEnteredDigits(l10n, state.enteredDigits);
+                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
               } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-                _announceEnteredDigits(l10n, state.enteredDigits);
+                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
               }
             }),
           );
@@ -258,7 +259,7 @@ class PinPage extends StatelessWidget {
       icon: const Icon(Icons.help_outline_rounded),
       onPressed: () => ForgotPinScreen.show(context),
       iconPosition: IconPosition.start,
-      text: Text(context.l10n.pinScreenForgotPinCta),
+      text: Text.rich(context.l10n.pinScreenForgotPinCta.toTextSpan(context)),
       dividerSide: DividerSide.top,
     );
   }
@@ -325,13 +326,6 @@ class PinPage extends StatelessWidget {
     if (state is PinValidateInProgress) return PinFieldState.loading;
     if (state is PinValidateFailure) return PinFieldState.error;
     return PinFieldState.idle;
-  }
-
-  void _announceEnteredDigits(AppLocalizations l10n, int enteredDigits) {
-    SemanticsService.announce(
-      l10n.pinEnteredDigitsAnnouncement(kPinDigits - enteredDigits),
-      TextDirection.ltr,
-    );
   }
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {

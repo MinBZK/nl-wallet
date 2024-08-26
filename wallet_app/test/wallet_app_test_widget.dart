@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
+import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/theme/wallet_theme.dart';
 
 /// Widget that is to be used to wrap pumped test widgets.
@@ -41,16 +42,28 @@ class WalletAppTestWidget extends StatelessWidget {
 
 WidgetWrapper walletAppWrapper({
   Brightness brightness = Brightness.light,
-  List<SingleChildWidget>? providers,
+  List<SingleChildWidget> providers = const [],
 }) {
   return (child) {
-    final walletAppTestWidget = WalletAppTestWidget(brightness: brightness, child: child);
-    if (providers?.nonNulls.isEmpty ?? true) return walletAppTestWidget;
     return MultiRepositoryProvider(
-      providers: providers ?? [],
-      child: walletAppTestWidget,
+      providers: [
+        RepositoryProvider<ActiveLocaleProvider>(create: (context) => TestLocaleProvider()),
+        ...providers,
+      ],
+      child: WalletAppTestWidget(
+        brightness: brightness,
+        child: child,
+      ),
     );
   };
+}
+
+class TestLocaleProvider extends ActiveLocaleProvider {
+  @override
+  Locale get activeLocale => const Locale('en');
+
+  @override
+  Stream<Locale> observe() => Stream.value(activeLocale);
 }
 
 extension TestWidgetExtensions on Widget {
@@ -84,6 +97,7 @@ extension TestWidgetExtensions on Widget {
 extension WidgetTesterExtensions on WidgetTester {
   /// Convenience method to pump any widget with the wrapped by the
   /// [WalletAppTestWidget] so that it has access to the theme.
+  /// This method also provides a default [ActiveLocaleProvider].
   Future<void> pumpWidgetWithAppWrapper(
     Widget widget, {
     Size surfaceSize = const Size(375, 812), // Iphone X
@@ -97,7 +111,7 @@ extension WidgetTesterExtensions on WidgetTester {
       textScaleSize: textScaleSize,
       wrapper: walletAppWrapper(
         brightness: brightness,
-        providers: providers,
+        providers: providers ?? [],
       ),
     );
   }
