@@ -102,28 +102,26 @@ void main() {
 
   group('widgets', () {
     testWidgets('ErrorScreen renders expected widgets', (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: ErrorScreen(
-            description: 'D',
-            headline: 'H',
-            primaryButton: PrimaryButton(
-              text: const Text('P'),
-              onPressed: () {},
-            ),
-            secondaryButton: TertiaryButton(
-              text: const Text('S'),
-              onPressed: () {},
-            ),
+      await tester.pumpWidgetWithAppWrapper(
+        ErrorScreen(
+          description: 'D',
+          headline: 'H',
+          primaryButton: PrimaryButton(
+            text: const Text('P'),
+            onPressed: () {},
+          ),
+          secondaryButton: TertiaryButton(
+            text: const Text('S'),
+            onPressed: () {},
           ),
         ),
       );
 
       // Setup finders
-      final descriptionFinder = find.text('D');
-      final headlineFinder = find.text('H');
-      final primaryActionFinder = find.text('P');
-      final secondaryActionFinder = find.text('S');
+      final descriptionFinder = find.text('D', findRichText: true);
+      final headlineFinder = find.text('H', findRichText: true);
+      final primaryActionFinder = find.text('P', findRichText: true);
+      final secondaryActionFinder = find.text('S', findRichText: true);
 
       // Verify all expected widgets show up once
       expect(descriptionFinder, findsOneWidget);

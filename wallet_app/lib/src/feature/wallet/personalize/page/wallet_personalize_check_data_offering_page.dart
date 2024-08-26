@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../domain/model/attribute/ui_attribute.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../common/widget/attribute/attribute_row.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../../common/widget/button/primary_button.dart';
@@ -85,7 +86,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
         key: const Key('acceptButton'),
         onPressed: onAcceptPressed,
         icon: const Icon(Icons.check_rounded),
-        text: Text(context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta),
+        text: Text.rich(context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta.toTextSpan(context)),
       ),
       secondaryButton: SecondaryButton(
         key: const Key('rejectButton'),

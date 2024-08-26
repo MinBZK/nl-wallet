@@ -4,6 +4,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../util/launch_util.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/list_button.dart';
@@ -69,7 +70,7 @@ class OrganizationApprovePage extends StatelessWidget {
             SliverToBoxAdapter(
               child: ListButton(
                 onPressed: onShowDetailsPressed,
-                text: Text(context.l10n.organizationApprovePageMoreInfoCta),
+                text: Text.rich(context.l10n.organizationApprovePageMoreInfoCta.toTextSpan(context)),
               ),
             ),
             const SliverSizedBox(height: 32),
@@ -84,13 +85,13 @@ class OrganizationApprovePage extends StatelessWidget {
                     primaryButton: PrimaryButton(
                       key: const Key('acceptButton'),
                       onPressed: onAcceptPressed,
-                      text: Text(_approveButtonText(context)),
+                      text: Text.rich(_approveButtonText(context).toTextSpan(context)),
                       icon: Icon(_primaryIcon()),
                     ),
                     secondaryButton: SecondaryButton(
                       key: const Key('rejectButton'),
                       onPressed: onDeclinePressed,
-                      text: Text(_declineButtonText(context)),
+                      text: Text.rich(_declineButtonText(context).toTextSpan(context)),
                       icon: const Icon(Icons.block_flipped),
                     ),
                   ),
@@ -160,8 +161,8 @@ class OrganizationApprovePage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          fraudTextPart1,
+        Text.rich(
+          fraudTextPart1.toTextSpan(context),
           textAlign: TextAlign.start,
           style: context.textTheme.bodyLarge,
         ), // Migrate to [BodyText] on merge with PVW-2501

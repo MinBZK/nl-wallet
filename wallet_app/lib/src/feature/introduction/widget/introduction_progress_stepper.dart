@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 
 const double _selectedStepHeight = 6;
 const double _selectedStepWidth = 16;
@@ -38,7 +39,8 @@ class IntroductionProgressStepper extends StatelessWidget {
 
     final currentSemanticsStep = currentStep.toInt() + 1;
     return Semantics(
-      label: context.l10n.pageIndicatorSemanticsLabel(currentSemanticsStep, totalSteps),
+      attributedLabel:
+          context.l10n.pageIndicatorSemanticsLabel(currentSemanticsStep, totalSteps).toAttributedString(context),
       currentValueLength: currentSemanticsStep,
       maxValueLength: totalSteps,
       child: Wrap(

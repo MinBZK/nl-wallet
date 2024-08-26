@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-08-02T11:35:39+02:00",
+    "@@last_modified": "2024-08-22T15:41:50+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -40,6 +40,7 @@
     "cardDetailScreenCardDataCta": "Details in this card",
     "cardDetailScreenCardDeleteCta": "Delete card",
     "cardDetailScreenCardHistoryCta": "Card activities",
+    "cardDetailScreenCardImageWCAGLabel": "{name} card",
     "cardDetailScreenCardUpdateCta": "Renew data",
     "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
     "@cardDetailScreenCardValidUntil": {
@@ -247,6 +248,7 @@
             }
         }
     },
+    "disclosureMissingAttributesPageHowToProceedCta": "What can I do?",
     "disclosureMissingAttributesPageReportIssueCta": "Report an issue?",
     "disclosureMissingAttributesPageTitle": "You're missing data",
     "disclosureReportSubmittedPageCloseCta": "Close",
@@ -371,6 +373,7 @@
     "generalOkCta": "OK",
     "generalOn": "On",
     "generalOsVersionText": "OS version:",
+    "generalPageChangeWCAGAnnouncement": "Showing page {current} of {total}.",
     "generalPolicyAllTermsCta": "All terms",
     "generalPolicyDataCanBeDeleted": "You can have data deleted.",
     "generalPolicyDataCanNotBeDeleted": "You can not delete data",
@@ -406,6 +409,7 @@
     "generalWCAGClose": "Close",
     "generalWCAGHelp": "Need help?",
     "generalWCAGInfo": "More info",
+    "generalWCAGLanguageUpdatedAnnouncement": "Language has been changed to {language}",
     "generalWCAGLogoutAnnouncement": "You've been logged out",
     "generalWCAGMenu": "Menu",
     "generalWCAGOpenLink": "Open link",
@@ -454,7 +458,20 @@
     },
     "historyDetailScreenErrorTitleForDisclosure": "Sharing with {organization} has potentially failed",
     "historyDetailScreenErrorTitleForLogin": "Login at {organization} failed",
+    "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
+    "historyDetailScreenHelpdeskTitle": "Open support",
+    "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {Shared 1 data} other {Shared {attributes} data}}",
+    "@historyDetailScreenInteractionAttributesTitle": {
+        "placeholders": {
+            "attributes": {
+                "example": "4",
+                "type": "int"
+            }
+        }
+    },
     "historyDetailScreenIssuanceSuccessDescription": "Card created",
+    "historyDetailScreenIssueSubtitle": "About the data, the request or the receiver",
+    "historyDetailScreenIssueTitle": "Report a problem?",
     "historyDetailScreenLoginCancelledDescription": "No data was shared with {organization} because you stopped logging in.",
     "@historyDetailScreenLoginCancelledDescription": {
         "placeholders": {
@@ -475,6 +492,23 @@
     },
     "historyDetailScreenOperationStatusExpiredDescription": "Your card is expired.",
     "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
+    "historyDetailScreenOrganizationNameAndStatus": "{status} {organization}",
+    "@historyDetailScreenOrganizationNameAndStatus": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            },
+            "status": {
+                "example": "Shared with",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess": "About",
+    "historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess": "Shared with",
+    "historyDetailScreenOrganizationNamePrefixOperationStatusAll": "Publisher",
+    "historyDetailScreenOrganizationNamePrefixSigningStatusAll": "About",
     "historyDetailScreenPurposeTitle": "Sharing reason",
     "historyDetailScreenReportIssueCta": "Would you like to report a problem?",
     "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Only the following data was shared. Nothing more.} other {Only the following {count} pieces of data were shared. Nothing more.}}",
@@ -488,6 +522,7 @@
     },
     "historyDetailScreenSharedAttributesTitle": "Attributes shared",
     "historyDetailScreenShowDetailsCta": "Show details",
+    "historyDetailScreenSigningAttributesTitle": "Signed",
     "historyDetailScreenSigningStatusRejectedDescription": "No data has been shared with {organization}, because you stopped the signing process.",
     "@historyDetailScreenSigningStatusRejectedDescription": {
         "placeholders": {
@@ -500,6 +535,15 @@
     "historyDetailScreenStoppedTitleForDisclosure": "Sharing stopped with {organization}",
     "historyDetailScreenStoppedTitleForLogin": "Login at {organization} stopped",
     "historyDetailScreenTermsCta": "Read the terms",
+    "historyDetailScreenTermsSubtitle": "This is how {organization} processes your data",
+    "@historyDetailScreenTermsSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
     "historyDetailScreenTermsTitle": "Agreements",
     "historyDetailScreenTitle": "Details",
     "historyDetailScreenTitleForDisclosure": "Shared with {organization}",
@@ -805,14 +849,16 @@
     "qrMyCodeTabHowToSheetCloseCta": "Close",
     "qrMyCodeTabHowToSheetDescription": "Let the QR code be scanned by a controller to start sharing. Then, you will receive a data request. Only if you agree to the request will data be shared.",
     "qrMyCodeTabHowToSheetTitle": "How does my QR code work?",
-    "qrScanTabCameraScanningQrScanningAnnouncement": "Point your camera at a QR code",
     "qrScanTabContinueCta": "Scan another QR code",
     "qrScanTabGrantPermissionCta": "Grant access to camera",
+    "qrScreenCheckingCodeWCAGAnnouncement": "QR code is being checked",
     "qrScreenDisableTorchCta": "Turn flashlight off",
     "qrScreenEnableTorchCta": "Turn flashlight on",
     "qrScreenPermissionHint": "The NL Wallet needs access to your camera to scan a QR code",
     "qrScreenScanHint": "Point your camera at a QR code",
     "qrScreenScanScannerActiveWCAGAnnouncement": "No QR code found. Point your camera at a QR code",
+    "qrScreenScanSuccessfulWCAGAnnouncement": "Scan successful",
+    "qrScreenScanningWCAGAnnouncement": "Point your camera at a QR code",
     "reportIssueScreenHeaderTitle": "Which problem would you like to report? Your report will be sent anonymously.",
     "reportIssueScreenTitle": "Would you like to report a problem?",
     "reportOptionImpersonatingOrganization": "This organization pretends to be someone else.",
@@ -843,11 +889,23 @@
     "settingsScreenChangeLanguageCta": "Change language",
     "settingsScreenChangePinCta": "Change PIN code",
     "settingsScreenClearDataCta": "Remove data",
-    "settingsScreenSetupBiometricsCta": "Setup biometrics",
+    "settingsScreenSetupBiometricsCta": "Unlock with face scan or fingerprint",
+    "settingsScreenSetupBiometricsCtaiOSVariant": "Unlock with Face ID or Touch ID",
+    "settingsScreenSetupBiometricsNotSupportedSubtitle": "Not supported on this device",
     "settingsScreenTitle": "Settings",
-    "setupSecurityCompletedPageCreateWalletCta": "Create wallet",
+    "setupBiometricsPageDescription": "This will open your NL Wallet faster. You'll use your face or fingerprint instead of your PIN code.",
+    "setupBiometricsPageEnableCta": "Enable",
+    "setupBiometricsPageFaceTitle": "Do you want to unlock the app with face scan?",
+    "setupBiometricsPageFingerprintTitle": "Do you want to unlock the app with fingerprint?",
+    "setupBiometricsPageGenericTitle": "Do you want to unlock the app with face scan or fingerprint?",
+    "setupBiometricsPageLocalizedReason": "Confirm setup",
+    "setupBiometricsPageSkipCta": "Skip",
+    "setupBiometricsPageiOSFaceIdTitle": "Do you want to unlock the app with Face ID?",
+    "setupSecurityCompletedPageCreateWalletCta": "Next",
     "setupSecurityCompletedPageDescription": "Your app is secured with your PIN code.",
     "setupSecurityCompletedPageTitle": "Success!",
+    "setupSecurityCompletedPageWithBiometricsDescription": "Your app is secured with your PIN code and face scan or fingerprint.",
+    "setupSecurityCompletedPageWithBiometricsDescriptioniOSVariant": "Your app is secured with your PIN code and face-ID or fingerprint.",
     "setupSecurityConfirmationPageTitle": "Repeat your PIN code",
     "setupSecurityLoadingPageDescription": "Please wait...",
     "setupSecurityLoadingPageTitle": "Save",
@@ -956,6 +1014,7 @@
     "walletPersonalizeScreenStopDigidDialogPositiveCta": "Stop login",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Are you sure you want to stop?",
     "walletPersonalizeScreenStopDigidDialogTitle": "Stop DigiD login?",
+    "walletPersonalizeScreenTitle": "Create wallet",
     "walletPersonalizeSetupFailedScreenCta": "Try again",
     "walletPersonalizeSetupFailedScreenDescription": "You have entered the invalid PIN code too many times. Select a new PIN code and try again.",
     "walletPersonalizeSetupFailedScreenHeadline": "Setup failed",

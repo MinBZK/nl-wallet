@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../environment.dart';
 import '../../domain/model/bloc/error_state.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../util/helper/announcements_helper.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/button_content.dart';
@@ -85,7 +87,7 @@ class PinPage extends StatelessWidget {
         final l10n = context.l10n;
         if (state is PinEntryInProgress) {
           unawaited(
-            Future.delayed(kDefaultAnnouncementDelay).then((value) {
+            Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then((value) {
               if (state.afterBackspacePressed) {
                 AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
               } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
@@ -257,7 +259,7 @@ class PinPage extends StatelessWidget {
       icon: const Icon(Icons.help_outline_rounded),
       onPressed: () => ForgotPinScreen.show(context),
       iconPosition: IconPosition.start,
-      text: Text(context.l10n.pinScreenForgotPinCta),
+      text: Text.rich(context.l10n.pinScreenForgotPinCta.toTextSpan(context)),
       dividerSide: DividerSide.top,
     );
   }

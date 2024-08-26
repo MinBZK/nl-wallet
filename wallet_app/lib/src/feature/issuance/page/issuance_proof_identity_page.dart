@@ -4,6 +4,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
@@ -57,13 +58,13 @@ class IssuanceProofIdentityPage extends StatelessWidget {
                 primaryButton: PrimaryButton(
                   key: const Key('acceptButton'),
                   onPressed: onAcceptPressed,
-                  text: Text(context.l10n.issuanceProofIdentityPagePositiveCta),
+                  text: Text.rich(context.l10n.issuanceProofIdentityPagePositiveCta.toTextSpan(context)),
                 ),
                 secondaryButton: SecondaryButton(
                   key: const Key('rejectButton'),
                   icon: const Icon(Icons.block_flipped),
                   onPressed: onDeclinePressed,
-                  text: Text(context.l10n.issuanceProofIdentityPageNegativeCta),
+                  text: Text.rich(context.l10n.issuanceProofIdentityPageNegativeCta.toTextSpan(context)),
                 ),
               ),
             ),
@@ -112,7 +113,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
 
   Widget _buildDataIncorrectButton(BuildContext context) {
     return ListButton(
-      text: Text(context.l10n.issuanceProofIdentityPageIncorrectCta),
+      text: Text.rich(context.l10n.issuanceProofIdentityPageIncorrectCta.toTextSpan(context)),
       onPressed: () => PlaceholderScreen.showGeneric(context),
     );
   }

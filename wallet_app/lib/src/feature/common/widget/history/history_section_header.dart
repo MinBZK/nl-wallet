@@ -19,8 +19,11 @@ class HistorySectionHeader extends StatelessWidget {
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Text(
-              DateFormat(DateFormat.YEAR_MONTH, context.l10n.localeName).format(dateTime).capitalize,
+            child: Text.rich(
+              DateFormat(DateFormat.YEAR_MONTH, context.l10n.localeName)
+                  .format(dateTime)
+                  .capitalize
+                  .toTextSpan(context),
               maxLines: 1,
               style: context.textTheme.labelSmall,
             ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../domain/model/policy/policy.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/sliver_divider.dart';
@@ -74,7 +75,7 @@ class PolicyScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(context.l10n.policyScreenSubtitle),
+              child: Text.rich(context.l10n.policyScreenSubtitle.toTextSpan(context)),
             ),
           ),
           const SliverSizedBox(height: 24),
@@ -94,7 +95,7 @@ class PolicyScreen extends StatelessWidget {
   Widget _buildReportIssueButton(BuildContext context) {
     if (onReportIssuePressed == null) return const SizedBox.shrink();
     return ListButton(
-      text: Text(context.l10n.policyScreenReportIssueCta),
+      text: Text.rich(context.l10n.policyScreenReportIssueCta.toTextSpan(context)),
       onPressed: () {
         Navigator.pop(context);
         onReportIssuePressed?.call();

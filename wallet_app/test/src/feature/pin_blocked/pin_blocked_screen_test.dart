@@ -38,7 +38,7 @@ void main() {
 
   group('widgets', () {
     testWidgets('verify PinBlockedScreen renders expected text', (tester) async {
-      await tester.pumpWidget(const WalletAppTestWidget(child: PinBlockedScreen()));
+      await tester.pumpWidgetWithAppWrapper(const PinBlockedScreen());
 
       final AppLocalizations l10n = await TestUtils.englishLocalizations;
       final headlineFinder = find.textContaining(l10n.pinBlockedScreenHeadline, findRichText: true);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../navigation/wallet_routes.dart';
 import '../../../../../util/extension/build_context_extension.dart';
+import '../../../../../util/extension/string_extension.dart';
 
 class QrIconButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -12,7 +13,7 @@ class QrIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: context.l10n.generalWCAGQr,
+      attributedLabel: context.l10n.generalWCAGQr.toAttributedString(context),
       onTap: onPressed ?? () => Navigator.pushNamed(context, WalletRoutes.qrRoute),
       excludeSemantics: true,
       child: IconButton(

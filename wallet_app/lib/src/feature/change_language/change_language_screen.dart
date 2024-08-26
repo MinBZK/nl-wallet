@@ -2,11 +2,15 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/locale.dart' as intl;
 
+import '../../../environment.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/object_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -52,7 +56,6 @@ class ChangeLanguageScreen extends StatelessWidget {
   }
 
   Widget _buildSuccessSliver(BuildContext context, ChangeLanguageSuccess state) {
-    final systemL10n = _lookupSystemLocalizations(context);
     return SliverMainAxisGroup(
       slivers: [
         const SliverDivider(),
@@ -62,7 +65,9 @@ class ChangeLanguageScreen extends StatelessWidget {
             final language = state.availableLanguages[i];
             final isSelectedLanguage = state.availableLanguages[i].locale == state.selectedLocale;
             return Semantics(
+              inMutuallyExclusiveGroup: true,
               selected: isSelectedLanguage,
+              button: !isSelectedLanguage,
               onTap: isSelectedLanguage
                   ? null
                   : () {
@@ -70,8 +75,16 @@ class ChangeLanguageScreen extends StatelessWidget {
                       context.read<ChangeLanguageBloc>().add(changeLocaleEvent);
                     },
               excludeSemantics: true,
-              label: language.name,
-              onTapHint: systemL10n.generalWCAGChangeLanguage,
+              attributedLabel: AttributedString(
+                language.name,
+                attributes: [
+                  LocaleStringAttribute(
+                    range: language.name.fullRange,
+                    locale: language.locale,
+                  ),
+                ],
+              ),
+              onTapHint: _lookupSystemLocalizations(context).generalWCAGChangeLanguage,
               child: InkWell(
                 onTap: isSelectedLanguage
                     ? null
@@ -131,7 +144,20 @@ class ChangeLanguageScreen extends StatelessWidget {
   }
 
   Widget _buildContentSliver(BuildContext context) {
-    return BlocBuilder<ChangeLanguageBloc, ChangeLanguageState>(
+    return BlocConsumer<ChangeLanguageBloc, ChangeLanguageState>(
+      listenWhen: (previous, current) {
+        // This indicates the language was updated
+        return previous is ChangeLanguageSuccess && current is ChangeLanguageSuccess;
+      },
+      listener: (context, state) async {
+        if (state is ChangeLanguageSuccess) {
+          final language = state.availableLanguages
+              .firstWhereOrNull((language) => language.locale.languageCode == state.selectedLocale.languageCode);
+          // Avoid conflicting with the announcement of the (now) selected language
+          await Future.delayed(Environment.isTest ? Duration.zero : const Duration(milliseconds: 1500));
+          await language?.let((it) => _announceNewLanguage(context, it));
+        }
+      },
       builder: (context, state) {
         return switch (state) {
           ChangeLanguageInitial() => _buildLoadingSliver(),
@@ -146,5 +172,11 @@ class ChangeLanguageScreen extends StatelessWidget {
       hasScrollBody: false,
       child: CenteredLoadingIndicator(),
     );
+  }
+
+  Future<void> _announceNewLanguage(BuildContext context, Language language) async {
+    final systemL10n = _lookupSystemLocalizations(context);
+    final announcement = systemL10n.generalWCAGLanguageUpdatedAnnouncement(language.name);
+    await SemanticsService.announce(announcement, TextDirection.ltr);
   }
 }

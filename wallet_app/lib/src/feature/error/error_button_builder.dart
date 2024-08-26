@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../common/sheet/error_details_sheet.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/primary_button.dart';
@@ -20,12 +21,12 @@ class ErrorButtonBuilder {
   }) {
     return switch (style) {
       ErrorCtaStyle.retry => PrimaryButton(
-          text: Text(cta ?? context.l10n.generalRetry),
+          text: Text.rich((cta ?? context.l10n.generalRetry).toTextSpan(context)),
           icon: const Icon(Icons.replay_outlined),
           onPressed: onPressed ?? () => Navigator.maybePop(context),
         ),
       ErrorCtaStyle.close => PrimaryButton(
-          text: Text(cta ?? context.l10n.generalClose),
+          text: Text.rich((cta ?? context.l10n.generalClose).toTextSpan(context)),
           icon: const Icon(Icons.close_outlined),
           onPressed: onPressed ?? () => Navigator.maybePop(context),
         ),
@@ -34,7 +35,7 @@ class ErrorButtonBuilder {
 
   static FitsWidthWidget buildShowDetailsButton(BuildContext context) {
     return TertiaryButton(
-      text: Text(context.l10n.generalShowDetailsCta),
+      text: Text.rich(context.l10n.generalShowDetailsCta.toTextSpan(context)),
       icon: const Icon(Icons.info_outline_rounded),
       onPressed: () => ErrorDetailsSheet.show(context),
     );

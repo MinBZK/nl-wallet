@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
@@ -58,7 +59,7 @@ class PinBlockedScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: PrimaryButton(
-                text: Text(context.l10n.pinBlockedScreenResetWalletCta),
+                text: Text.rich(context.l10n.pinBlockedScreenResetWalletCta.toTextSpan(context)),
                 onPressed: () => ResetWalletDialog.show(context),
               ),
             ),

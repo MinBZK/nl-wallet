@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../../wallet_assets.dart';
 import '../../../common/page/page_illustration.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
@@ -71,14 +72,14 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
           primaryButton: PrimaryButton(
             key: const Key('loginWithDigidCta'),
             onPressed: onLoginWithDigidPressed,
-            text: Text(context.l10n.walletPersonalizeIntroPageLoginWithDigidCta),
-            icon: Image.asset(WalletAssets.logo_digid),
+            text: Text.rich(context.l10n.walletPersonalizeIntroPageLoginWithDigidCta.toTextSpan(context)),
+            icon: ExcludeSemantics(child: Image.asset(WalletAssets.logo_digid)),
           ),
           secondaryButton: TertiaryButton(
             key: const Key('noDigidCta'),
             onPressed: onNoDigidPressed,
             icon: const Icon(Icons.help_outline_rounded),
-            text: Text(context.l10n.walletPersonalizeIntroPageNoDigidCta),
+            text: Text.rich(context.l10n.walletPersonalizeIntroPageNoDigidCta.toTextSpan(context)),
           ),
         ),
       ],

@@ -114,9 +114,9 @@ class BaseWalletTheme {
 
   /// Also see
   static const baseScrollbarTheme = ScrollbarThemeData(
-    crossAxisMargin: 8,
-    mainAxisMargin: 8,
-    radius: Radius.circular(8),
+    crossAxisMargin: 6,
+    mainAxisMargin: 6,
+    radius: Radius.zero,
     thickness: WidgetStatePropertyAll(4),
     thumbVisibility: WidgetStatePropertyAll(true),
     trackVisibility: WidgetStatePropertyAll(false),
@@ -125,4 +125,8 @@ class BaseWalletTheme {
   static const baseIconTheme = IconThemeData(size: 16);
 
 //endregion Other Themes
+}
+
+extension WidgetStateExtensions on Set<WidgetState> {
+  bool get isHoveredOrFocused => contains(WidgetState.hovered) || contains(WidgetState.focused);
 }

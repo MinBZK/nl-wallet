@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../common/mixin/lock_state_mixin.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
@@ -91,7 +92,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
                   children: [
                     const Icon(Icons.key_outlined, size: 14),
                     const SizedBox(width: 8),
-                    Text(context.l10n.menuScreenLockCta),
+                    Text.rich(context.l10n.menuScreenLockCta.toTextSpan(context)),
                   ],
                 ),
               ),

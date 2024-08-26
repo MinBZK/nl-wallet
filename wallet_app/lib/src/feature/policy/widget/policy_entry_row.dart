@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../model/policy_entry.dart';
 
 class PolicyEntryRow extends StatelessWidget {
@@ -26,9 +27,17 @@ class PolicyEntryRow extends StatelessWidget {
         entry.title,
         semanticsLabel: entry.titleSemanticsLabel,
       ),
-      description: Text.rich(
-        entry.description,
-        semanticsLabel: entry.descriptionSemanticsLabel,
+      description: Builder(
+        builder: (context) {
+          return Semantics(
+            excludeSemantics: true,
+            attributedLabel: entry.descriptionSemanticsLabel?.toAttributedString(context),
+            child: Text.rich(
+              entry.description,
+              semanticsLabel: entry.descriptionSemanticsLabel,
+            ),
+          );
+        },
       ),
       semanticsOnTap: entry.semanticOnTap,
       semanticOnTapHint: entry.semanticOnTapHint,

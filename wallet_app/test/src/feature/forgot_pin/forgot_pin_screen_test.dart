@@ -36,9 +36,9 @@ void main() {
 
   group('widgets', () {
     testWidgets('clear wallet button can be found', (tester) async {
-      await tester.pumpWidget(const WalletAppTestWidget(child: ForgotPinScreen()));
+      await tester.pumpWidgetWithAppWrapper(const ForgotPinScreen());
       final l10n = await TestUtils.englishLocalizations;
-      final clearWalletButton = find.text(l10n.forgotPinScreenCta);
+      final clearWalletButton = find.text(l10n.forgotPinScreenCta, findRichText: true);
       expect(clearWalletButton, findsOneWidget);
     });
   });

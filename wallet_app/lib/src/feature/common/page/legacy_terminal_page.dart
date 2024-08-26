@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../widget/button/button_content.dart';
 import '../widget/button/link_button.dart';
 import '../widget/button/primary_button.dart';
@@ -75,14 +76,14 @@ class LegacyTerminalPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
+                  Text.rich(
+                    title.toTextSpan(context),
                     style: context.textTheme.displayMedium,
                     textAlign: TextAlign.start,
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    description,
+                  Text.rich(
+                    description.toTextSpan(context),
                     style: context.textTheme.bodyLarge,
                     textAlign: TextAlign.start,
                   ),
@@ -94,7 +95,7 @@ class LegacyTerminalPage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: LinkButton(
                   onPressed: onTertiaryButtonPressed,
-                  text: Text(tertiaryButtonCta!),
+                  text: Text.rich(tertiaryButtonCta!.toTextSpan(context)),
                 ),
               ),
             if (content != null) content!,

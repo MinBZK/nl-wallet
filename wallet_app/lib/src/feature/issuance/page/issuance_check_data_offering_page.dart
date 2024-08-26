@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/page/check_data_offering_page.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/primary_button.dart';
@@ -34,14 +35,14 @@ class IssuanceCheckDataOfferingPage extends StatelessWidget {
       primaryButton: PrimaryButton(
         key: const Key('acceptButton'),
         onPressed: onAcceptPressed,
-        text: Text(context.l10n.issuanceCheckDataOfferingPagePositiveCta),
+        text: Text.rich(context.l10n.issuanceCheckDataOfferingPagePositiveCta.toTextSpan(context)),
         icon: const Icon(Icons.check),
       ),
       secondaryButton: SecondaryButton(
         key: const Key('rejectButton'),
         icon: null,
         onPressed: onDeclinePressed,
-        text: Text(context.l10n.issuanceCheckDataOfferingPageNegativeCta),
+        text: Text.rich(context.l10n.issuanceCheckDataOfferingPageNegativeCta.toTextSpan(context)),
       ),
     );
   }

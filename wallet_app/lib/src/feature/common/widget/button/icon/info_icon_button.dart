@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../navigation/wallet_routes.dart';
 import '../../../../../util/extension/build_context_extension.dart';
+import '../../../../../util/extension/string_extension.dart';
 
 class InfoIconButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -12,7 +13,7 @@ class InfoIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: context.l10n.generalWCAGInfo,
+      attributedLabel: context.l10n.generalWCAGInfo.toAttributedString(context),
       onTap: onPressed ?? () => Navigator.pushNamed(context, WalletRoutes.aboutRoute),
       excludeSemantics: true,
       child: IconButton(

@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
@@ -78,7 +79,7 @@ class DigidHelpScreen extends StatelessWidget {
         ),
         LinkButton(
           onPressed: () => launchUriCatching(kRequestDigidUri, mode: LaunchMode.externalApplication),
-          text: Text(context.l10n.digidHelpScreenNoDigidCta),
+          text: Text.rich(context.l10n.digidHelpScreenNoDigidCta.toTextSpan(context)),
         ),
       ],
     );
@@ -100,7 +101,7 @@ class DigidHelpScreen extends StatelessWidget {
         ),
         LinkButton(
           onPressed: () => launchUriCatching(kDigidHelpUri, mode: LaunchMode.externalApplication),
-          text: Text(context.l10n.digidHelpScreenHelpNeededCta),
+          text: Text.rich(context.l10n.digidHelpScreenHelpNeededCta.toTextSpan(context)),
         ),
       ],
     );

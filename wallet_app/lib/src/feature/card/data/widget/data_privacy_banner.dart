@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 
 class DataPrivacyBanner extends StatelessWidget {
   const DataPrivacyBanner({super.key});
@@ -16,8 +17,8 @@ class DataPrivacyBanner extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              context.l10n.cardDataScreenDataPrivacyBanner,
+            child: Text.rich(
+              context.l10n.cardDataScreenDataPrivacyBanner.toTextSpan(context),
               style: context.textTheme.bodyLarge?.copyWith(
                 color: context.colorScheme.surface,
               ),
