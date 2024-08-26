@@ -1,18 +1,21 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../util/formatter/country_code_formatter.dart';
 import '../../../util/launch_util.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/focus_builder.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
@@ -98,7 +101,7 @@ class OrganizationDetailScreen extends StatelessWidget {
       child: Center(
         child: TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.l10n.generalBottomBackCta),
+          child: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
         ),
       ),
     );
@@ -130,7 +133,7 @@ class OrganizationDetailScreen extends StatelessWidget {
         onReportIssuePressed == null
             ? const SizedBox()
             : ListButton(
-                text: Text(context.l10n.organizationDetailScreenReportIssueCta),
+                text: Text.rich(context.l10n.organizationDetailScreenReportIssueCta.toTextSpan(context)),
                 onPressed: () {
                   Navigator.pop(context);
                   onReportIssuePressed?.call();
@@ -150,8 +153,8 @@ class OrganizationDetailScreen extends StatelessWidget {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Text(
-            organization.description?.l10nValue(context) ?? '',
+          child: Text.rich(
+            organization.description?.l10nSpan(context) ?? ''.toTextSpan(context),
             textAlign: TextAlign.start,
             style: context.textTheme.bodyLarge,
           ),
@@ -177,7 +180,7 @@ class OrganizationDetailScreen extends StatelessWidget {
     return _buildInfoRow(
       context,
       icon: Icons.balance_outlined,
-      title: Text(context.l10n.organizationDetailScreenLegalNameInfo),
+      title: Text.rich(context.l10n.organizationDetailScreenLegalNameInfo.toTextSpan(context)),
       subtitle: Text(organization.legalName.l10nValue(context)),
     );
   }
@@ -186,8 +189,8 @@ class OrganizationDetailScreen extends StatelessWidget {
     return _buildInfoRow(
       context,
       icon: Icons.apartment_outlined,
-      title: Text(context.l10n.organizationDetailScreenCategoryInfo),
-      subtitle: Text(organization.category?.l10nValue(context) ?? ''),
+      title: Text.rich(context.l10n.organizationDetailScreenCategoryInfo.toTextSpan(context)),
+      subtitle: Text.rich(organization.category?.l10nSpan(context) ?? ''.toTextSpan(context)),
     );
   }
 
@@ -195,8 +198,8 @@ class OrganizationDetailScreen extends StatelessWidget {
     return _buildInfoRow(
       context,
       icon: Icons.meeting_room_outlined,
-      title: Text(context.l10n.organizationDetailScreenDepartmentInfo),
-      subtitle: Text(organization.department!.l10nValue(context)),
+      title: Text.rich(context.l10n.organizationDetailScreenDepartmentInfo.toTextSpan(context)),
+      subtitle: Text.rich(organization.department!.l10nSpan(context)),
     );
   }
 
@@ -204,8 +207,8 @@ class OrganizationDetailScreen extends StatelessWidget {
     return _buildInfoRow(
       context,
       icon: Icons.location_on_outlined,
-      title: Text(context.l10n.organizationDetailScreenLocationInfo),
-      subtitle: Text(_generateLocationLabel(context, country, organization.city)),
+      title: Text.rich(context.l10n.organizationDetailScreenLocationInfo.toTextSpan(context)),
+      subtitle: Text.rich(_generateLocationLabel(context, country, organization.city).toTextSpan(context)),
     );
   }
 
@@ -232,11 +235,26 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildKvkRow(BuildContext context, Organization organization) {
+    final kvkRange = TextRange(start: 0, end: organization.kvk?.length ?? 0);
+    final label = AttributedString(
+      organization.kvk ?? '',
+      attributes: [
+        LocaleStringAttribute(
+          range: kvkRange,
+          locale: context.activeLocale,
+        ),
+        SpellOutStringAttribute(range: kvkRange),
+      ],
+    );
     return _buildInfoRow(
       context,
       icon: Icons.storefront_outlined,
-      title: Text(context.l10n.organizationDetailScreenKvkInfo),
-      subtitle: Text(organization.kvk ?? ''),
+      title: Text.rich(context.l10n.organizationDetailScreenKvkInfo.toTextSpan(context)),
+      subtitle: Semantics(
+        attributedLabel: label,
+        excludeSemantics: true,
+        child: Text(organization.kvk ?? ''),
+      ),
     );
   }
 
@@ -285,28 +303,34 @@ class OrganizationDetailScreen extends StatelessWidget {
     required String semanticsLabel,
     required VoidCallback onTap,
   }) {
-    return Semantics(
-      onTapHint: context.l10n.generalWCAGOpenLink,
-      excludeSemantics: true,
-      label: semanticsLabel,
-      button: false,
-      onTap: onTap,
-      child: _buildInfoRow(
-        context,
-        icon: icon,
-        title: Text(title),
-        subtitle: Text.rich(
-          TextSpan(
-            text: url,
-            style: context.textTheme.bodyLarge!.copyWith(
-              fontWeight: FontWeight.w400,
-              decoration: TextDecoration.underline,
-              color: context.colorScheme.primary,
+    return FocusBuilder(
+      onEnterPressed: onTap,
+      builder: (context, hasFocus) {
+        return Semantics(
+          onTapHint: context.l10n.generalWCAGOpenLink,
+          excludeSemantics: true,
+          attributedLabel: semanticsLabel.toAttributedString(context),
+          button: false,
+          onTap: onTap,
+          child: _buildInfoRow(
+            context,
+            icon: icon,
+            title: Text(title),
+            subtitle: Text.rich(
+              TextSpan(
+                text: url,
+                style: context.textTheme.bodyLarge!.copyWith(
+                  fontWeight: FontWeight.w400,
+                  decoration: TextDecoration.underline,
+                  backgroundColor: hasFocus ? context.theme.focusColor : null,
+                  color: context.colorScheme.primary,
+                ),
+                recognizer: TapGestureRecognizer()..onTap = onTap,
+              ),
             ),
-            recognizer: TapGestureRecognizer()..onTap = onTap,
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

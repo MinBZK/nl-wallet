@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/wallet_scrollbar.dart';
@@ -42,7 +43,7 @@ class DisclosureStopSheet extends StatelessWidget {
           : ListButton(
               dividerSide: DividerSide.none,
               onPressed: onReportIssuePressed,
-              text: Text(context.l10n.disclosureStopSheetReportIssueCta),
+              text: Text.rich(context.l10n.disclosureStopSheetReportIssueCta.toTextSpan(context)),
             ),
     );
   }

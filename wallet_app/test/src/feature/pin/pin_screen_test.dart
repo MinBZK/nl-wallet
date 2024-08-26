@@ -10,14 +10,12 @@ import 'pin_page_test.dart';
 void main() {
   group('widgets', () {
     testWidgets('PinScreen shows the correct title for PinEntryInProgress state', (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinScreen(
-            onUnlock: (returnUrl) {},
-          ).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinEntryInProgress(0),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinScreen(
+          onUnlock: (returnUrl) {},
+        ).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinEntryInProgress(0),
         ),
       );
 
@@ -26,22 +24,20 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
 
       // Verify the title is shown
-      final titleFinder = find.text(l10n.pinScreenHeader);
+      final titleFinder = find.text(l10n.pinScreenHeader, findRichText: true);
       expect(titleFinder, findsOneWidget);
     });
 
     testWidgets('PinScreen shows the no internet error for PinValidateNetworkError(hasInternet=false) state',
         (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinScreen(
-            onUnlock: (returnUrl) {},
-          ).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinValidateNetworkError(
-              error: CoreNetworkError('no internet'),
-              hasInternet: false,
-            ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinScreen(
+          onUnlock: (returnUrl) {},
+        ).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinValidateNetworkError(
+            error: CoreNetworkError('no internet'),
+            hasInternet: false,
           ),
         ),
       );
@@ -64,16 +60,14 @@ void main() {
     });
 
     testWidgets('PinScreen shows the server error for PinValidateNetworkError(hasInternet=true) state', (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinScreen(
-            onUnlock: (returnUrl) {},
-          ).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinValidateNetworkError(
-              error: CoreNetworkError('server'),
-              hasInternet: true,
-            ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinScreen(
+          onUnlock: (returnUrl) {},
+        ).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinValidateNetworkError(
+            error: CoreNetworkError('server'),
+            hasInternet: true,
           ),
         ),
       );
@@ -83,11 +77,11 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
 
       // Verify the 'server error' title is shown
-      final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline);
+      final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline, findRichText: true);
       expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
 
       // Verify the 'try again' cta is shown
-      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      final tryAgainCtaFinder = find.text(l10n.generalRetry, findRichText: true);
       expect(tryAgainCtaFinder, findsOneWidget);
 
       // Verify the 'show details' cta is shown
@@ -96,15 +90,13 @@ void main() {
     });
 
     testWidgets('PinScreen shows the generic error for PinValidateGenericError state', (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinScreen(
-            onUnlock: (returnUrl) {},
-          ).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinValidateGenericError(
-              error: CoreGenericError('generic'),
-            ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinScreen(
+          onUnlock: (returnUrl) {},
+        ).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinValidateGenericError(
+            error: CoreGenericError('generic'),
           ),
         ),
       );
@@ -114,11 +106,11 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
 
       // Verify the 'something went wrong' title is shown
-      final headlineFinder = find.text(l10n.errorScreenGenericHeadline);
+      final headlineFinder = find.text(l10n.errorScreenGenericHeadline, findRichText: true);
       expect(headlineFinder, findsAtLeastNWidgets(1));
 
       // Verify the 'try again' cta is shown
-      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      final tryAgainCtaFinder = find.text(l10n.generalRetry, findRichText: true);
       expect(tryAgainCtaFinder, findsOneWidget);
 
       // Verify the 'show details' cta is shown

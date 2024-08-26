@@ -44,11 +44,9 @@ void main() {
 
   group('widgets', () {
     testWidgets('verify PinTimeoutScreen renders expected text', (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinTimeoutScreen(
-            expiryTime: DateTime.now().add(const Duration(seconds: 5)),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinTimeoutScreen(
+          expiryTime: DateTime.now().add(const Duration(seconds: 5)),
         ),
       );
 

@@ -8,6 +8,7 @@ import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/context_mapper.dart';
 import '../../check_attributes/check_attributes_screen.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
@@ -126,13 +127,13 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           primaryButton: PrimaryButton(
             key: const Key('acceptButton'),
             onPressed: onAcceptPressed,
-            text: Text(context.l10n.disclosureConfirmDataAttributesPageApproveCta),
+            text: Text.rich(context.l10n.disclosureConfirmDataAttributesPageApproveCta.toTextSpan(context)),
           ),
           secondaryButton: SecondaryButton(
             key: const Key('rejectButton'),
             onPressed: onDeclinePressed,
             icon: const Icon(Icons.block_flipped),
-            text: Text(context.l10n.disclosureConfirmDataAttributesPageDenyCta),
+            text: Text.rich(context.l10n.disclosureConfirmDataAttributesPageDenyCta.toTextSpan(context)),
           ),
         ),
       ],
@@ -219,7 +220,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           LinkButton(
-            text: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
+            text: Text.rich(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta.toTextSpan(context)),
             onPressed: () => PolicyScreen.show(context, policy),
           ),
         ],

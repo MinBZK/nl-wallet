@@ -6,6 +6,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
@@ -123,7 +124,7 @@ class CardDataScreen extends StatelessWidget {
 
   Widget _buildIncorrectButton(BuildContext context) {
     return ListButton(
-      text: Text(context.l10n.cardDataScreenIncorrectCta),
+      text: Text.rich(context.l10n.cardDataScreenIncorrectCta.toTextSpan(context)),
       onPressed: () => CardDataIncorrectScreen.show(context),
     );
   }
@@ -149,7 +150,7 @@ class CardDataScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               child: ElevatedButton(
                 onPressed: () => _reloadCardData(context),
-                child: Text(context.l10n.generalRetry),
+                child: Text.rich(context.l10n.generalRetry.toTextSpan(context)),
               ),
             ),
           ),

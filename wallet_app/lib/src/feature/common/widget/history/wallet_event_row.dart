@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../../util/extension/wallet_event_extension.dart';
 import '../../../../util/formatter/time_ago_formatter.dart';
 import '../../../../util/formatter/wallet_event_title_formatter.dart';
@@ -56,11 +57,11 @@ class WalletEventRow extends StatelessWidget {
                         visible: titleText.isNotEmpty,
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 2),
-                          child: Text(titleText, style: context.textTheme.titleMedium),
+                          child: Text.rich(titleText.toTextSpan(context), style: context.textTheme.titleMedium),
                         ),
                       ),
                       _buildTypeRow(context, event),
-                      Text(timeAgoText, style: context.textTheme.bodySmall),
+                      Text.rich(timeAgoText.toTextSpan(context), style: context.textTheme.bodySmall),
                     ],
                   ),
                 ),
@@ -114,8 +115,8 @@ class WalletEventRow extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           Flexible(
-            child: Text(
-              typeText,
+            child: Text.rich(
+              typeText.toTextSpan(context),
               style: context.textTheme.bodyLarge?.copyWith(color: typeTextColor),
             ),
           ),

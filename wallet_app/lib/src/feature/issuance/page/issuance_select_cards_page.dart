@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
@@ -81,7 +82,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: LinkButton(
-            text: Text(context.l10n.issuanceSelectCardsPageDataIncorrectCta),
+            text: Text.rich(context.l10n.issuanceSelectCardsPageDataIncorrectCta.toTextSpan(context)),
             onPressed: () => PlaceholderScreen.showGeneric(context),
           ),
         ),
@@ -119,13 +120,13 @@ class IssuanceSelectCardsPage extends StatelessWidget {
             primaryButton: PrimaryButton(
               key: const Key('acceptButton'),
               onPressed: onAddSelectedPressed,
-              text: Text(context.l10n.issuanceSelectCardsPageAddCta),
+              text: Text.rich(context.l10n.issuanceSelectCardsPageAddCta.toTextSpan(context)),
             ),
             secondaryButton: SecondaryButton(
               key: const Key('rejectButton'),
               onPressed: onStopPressed,
               icon: const Icon(Icons.block),
-              text: Text(context.l10n.issuanceSelectCardsPageStopCta),
+              text: Text.rich(context.l10n.issuanceSelectCardsPageStopCta.toTextSpan(context)),
             ),
           ),
         ],

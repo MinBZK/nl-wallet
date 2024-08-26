@@ -6,6 +6,7 @@ import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../../util/extension/wallet_event_extension.dart';
 import '../../../../util/mapper/context_mapper.dart';
 import '../../../check_attributes/check_attributes_screen.dart';
@@ -196,7 +197,7 @@ class HistoryDetailCommonBuilders {
         ),
         SliverToBoxAdapter(
           child: ListButton(
-            text: Text(context.l10n.historyDetailScreenTermsCta),
+            text: Text.rich(context.l10n.historyDetailScreenTermsCta.toTextSpan(context)),
             dividerSide: DividerSide.none,
             onPressed: () => PolicyScreen.show(context, policy),
           ),
@@ -209,7 +210,11 @@ class HistoryDetailCommonBuilders {
   static Widget buildAboutOrganizationSliver(BuildContext context, Organization organization) {
     return SliverToBoxAdapter(
       child: ListButton(
-        text: Text(context.l10n.historyDetailScreenAboutOrganizationCta(organization.displayName.l10nValue(context))),
+        text: Text.rich(
+          context.l10n
+              .historyDetailScreenAboutOrganizationCta(organization.displayName.l10nValue(context))
+              .toTextSpan(context),
+        ),
         onPressed: () => OrganizationDetailScreen.showPreloaded(
           context,
           organization,
@@ -229,7 +234,7 @@ class HistoryDetailCommonBuilders {
   static Widget buildShowDetailsSliver(BuildContext context, DisclosureEvent event) {
     return SliverToBoxAdapter(
       child: ListButton(
-        text: Text(context.l10n.historyDetailScreenShowDetailsCta),
+        text: Text.rich(context.l10n.historyDetailScreenShowDetailsCta.toTextSpan(context)),
         onPressed: () => RequestDetailsScreen.show(context, event),
         dividerSide: DividerSide.bottom,
       ),
@@ -239,7 +244,7 @@ class HistoryDetailCommonBuilders {
   static Widget buildReportIssueSliver(BuildContext context) {
     return SliverToBoxAdapter(
       child: ListButton(
-        text: Text(context.l10n.historyDetailScreenReportIssueCta),
+        text: Text.rich(context.l10n.historyDetailScreenReportIssueCta.toTextSpan(context)),
         onPressed: () => PlaceholderScreen.showGeneric(context),
         dividerSide: DividerSide.bottom,
       ),

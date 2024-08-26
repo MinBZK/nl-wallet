@@ -6,6 +6,7 @@ import '../../domain/model/attribute/data_attribute.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/sheet/confirm_action_sheet.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -44,7 +45,7 @@ class SignScreen extends StatelessWidget {
       appBar: WalletAppBar(
         leading: _buildBackButton(context),
         automaticallyImplyLeading: false,
-        title: Text(context.l10n.signScreenTitle),
+        title: Text.rich(context.l10n.signScreenTitle.toTextSpan(context)),
         actions: [CloseIconButton(onPressed: () => _stopSigning(context))],
         progress: progress,
       ),

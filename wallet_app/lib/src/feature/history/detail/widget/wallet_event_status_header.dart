@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../../util/mapper/event/wallet_event_status_color_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_description_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_icon_mapper.dart';
@@ -45,13 +46,13 @@ class WalletEventStatusHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  titleText,
+                Text.rich(
+                  titleText.toTextSpan(context),
                   style: context.textTheme.titleMedium?.copyWith(color: statusColor),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  descriptionText,
+                Text.rich(
+                  descriptionText.toTextSpan(context),
                   style: context.textTheme.bodyLarge,
                 ),
               ],

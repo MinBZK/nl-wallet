@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/page/check_data_offering_page.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/primary_button.dart';
@@ -41,14 +42,14 @@ class IssuanceCheckCardPage extends StatelessWidget {
       primaryButton: PrimaryButton(
         key: const Key('acceptButton'),
         onPressed: onAcceptPressed,
-        text: Text(context.l10n.issuanceCheckCardPageConfirmCta),
+        text: Text.rich(context.l10n.issuanceCheckCardPageConfirmCta.toTextSpan(context)),
         icon: null,
       ),
       secondaryButton: SecondaryButton(
         key: const Key('rejectButton'),
         onPressed: onDeclinePressed,
         icon: const Icon(Icons.block_flipped),
-        text: Text(context.l10n.issuanceCheckCardPageRejectCta),
+        text: Text.rich(context.l10n.issuanceCheckCardPageRejectCta.toTextSpan(context)),
       ),
     );
   }

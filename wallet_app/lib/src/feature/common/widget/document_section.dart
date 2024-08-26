@@ -4,6 +4,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/document.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../screen/placeholder_screen.dart';
 import 'button/link_button.dart';
 
@@ -44,7 +45,7 @@ class DocumentSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           LinkButton(
-            text: Text(context.l10n.checkAgreementPageShowDocumentCta),
+            text: Text.rich(context.l10n.checkAgreementPageShowDocumentCta.toTextSpan(context)),
             onPressed: () => PlaceholderScreen.showContract(context),
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 
 class PolicyRow extends StatelessWidget {
   final IconData icon;
@@ -25,8 +26,8 @@ class PolicyRow extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              title,
+            child: Text.rich(
+              title.toTextSpan(context),
               style: context.textTheme.bodyLarge,
             ),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../../wallet_assets.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../../common/widget/button/primary_button.dart';
@@ -82,13 +83,13 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
         const Divider(height: 1),
         ConfirmButtons(
           primaryButton: PrimaryButton(
-            text: Text(context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta),
+            text: Text.rich(context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta.toTextSpan(context)),
             onPressed: onRetryPressed,
             icon: Image.asset(WalletAssets.logo_digid),
           ),
           secondaryButton: TertiaryButton(
             onPressed: onHelpPressed,
-            text: Text(context.l10n.walletPersonalizeDigidErrorPageNoDigidCta),
+            text: Text.rich(context.l10n.walletPersonalizeDigidErrorPageNoDigidCta.toTextSpan(context)),
             icon: const Icon(Icons.help_outline_rounded),
           ),
         ),

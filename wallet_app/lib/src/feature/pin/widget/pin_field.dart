@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import 'pin_dot.dart';
 
 class PinField extends StatefulWidget {
@@ -81,7 +82,8 @@ class _PinFieldState extends State<PinField> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: context.l10n.pinFieldAnnouncementLabel(widget.digits - widget.enteredDigits),
+      attributedLabel:
+          context.l10n.pinFieldAnnouncementLabel(widget.digits - widget.enteredDigits).toAttributedString(context),
       child: Transform.translate(
         offset: _calcShakeOffset(),
         child: Row(

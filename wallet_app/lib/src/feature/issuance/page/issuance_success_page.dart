@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
@@ -94,7 +95,7 @@ class IssuanceSuccessPage extends StatelessWidget {
           height: 48,
           child: ElevatedButton(
             onPressed: onClose,
-            child: Text(context.l10n.issuanceSuccessPageCloseCta),
+            child: Text.rich(context.l10n.issuanceSuccessPageCloseCta.toTextSpan(context)),
           ),
         ),
       ),

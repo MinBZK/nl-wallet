@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 
 class KeyboardDigitKey extends StatelessWidget {
   final int digit;
@@ -18,8 +19,8 @@ class KeyboardDigitKey extends StatelessWidget {
             keyboardKey: true,
             button: true,
             onTapHint: context.l10n.pinKeyboardWCAGDigitKeyTapHint,
-            child: Text(
-              digit.toString(),
+            child: Text.rich(
+              digit.toString().toTextSpan(context),
               textAlign: TextAlign.center,
             ),
           ),

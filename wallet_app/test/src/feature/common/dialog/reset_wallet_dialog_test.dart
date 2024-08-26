@@ -11,19 +11,17 @@ import '../../../util/test_utils.dart';
 
 void main() {
   testWidgets('ResetWalletDialog shows expected copy', (tester) async {
-    await tester.pumpWidget(
-      const WalletAppTestWidget(
-        child: ResetWalletDialog(),
-      ),
+    await tester.pumpWidgetWithAppWrapper(
+      const ResetWalletDialog(),
     );
 
     final l10n = await TestUtils.englishLocalizations;
 
     // Setup finders
-    final titleFinder = find.text(l10n.resetWalletDialogTitle);
-    final descriptionFinder = find.text(l10n.resetWalletDialogBody);
-    final cancelCtaFinder = find.text(l10n.resetWalletDialogCancelCta.toUpperCase());
-    final confirmCtaFinder = find.text(l10n.resetWalletDialogConfirmCta.toUpperCase());
+    final titleFinder = find.text(l10n.resetWalletDialogTitle, findRichText: true);
+    final descriptionFinder = find.text(l10n.resetWalletDialogBody, findRichText: true);
+    final cancelCtaFinder = find.text(l10n.resetWalletDialogCancelCta.toUpperCase(), findRichText: true);
+    final confirmCtaFinder = find.text(l10n.resetWalletDialogConfirmCta.toUpperCase(), findRichText: true);
 
     // Verify all expected widgets show up once
     expect(titleFinder, findsOneWidget);
@@ -34,17 +32,15 @@ void main() {
 
   testWidgets('ResetWalletDialog invokes ResetWalletUseCase when confirm is pressed', (tester) async {
     final ResetWalletUseCase usecase = MockResetWalletUseCase();
-    await tester.pumpWidget(
-      RepositoryProvider<ResetWalletUseCase>(
-        create: (BuildContext context) => usecase,
-        child: const WalletAppTestWidget(
-          child: ResetWalletDialog(),
-        ),
-      ),
+    await tester.pumpWidgetWithAppWrapper(
+      const ResetWalletDialog(),
+      providers: [
+        RepositoryProvider<ResetWalletUseCase>(create: (BuildContext context) => usecase),
+      ],
     );
 
     final l10n = await TestUtils.englishLocalizations;
-    final buttonFinder = find.text(l10n.resetWalletDialogConfirmCta.toUpperCase());
+    final buttonFinder = find.text(l10n.resetWalletDialogConfirmCta.toUpperCase(), findRichText: true);
     expect(buttonFinder, findsOneWidget);
 
     await tester.tap(buttonFinder);
@@ -54,13 +50,11 @@ void main() {
 
   testWidgets('ResetWalletDialog does not invoke ResetWalletUseCase when cancel is pressed', (tester) async {
     final ResetWalletUseCase usecase = MockResetWalletUseCase();
-    await tester.pumpWidget(
-      RepositoryProvider<ResetWalletUseCase>(
-        create: (BuildContext context) => usecase,
-        child: const WalletAppTestWidget(
-          child: ResetWalletDialog(),
-        ),
-      ),
+    await tester.pumpWidgetWithAppWrapper(
+      const ResetWalletDialog(),
+      providers: [
+        RepositoryProvider<ResetWalletUseCase>(create: (BuildContext context) => usecase),
+      ],
     );
 
     final l10n = await TestUtils.englishLocalizations;
