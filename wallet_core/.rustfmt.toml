@@ -1,3 +1,6 @@
-max_width = 120
-imports_granularity = "Crate"
 edition = "2021"
+max_width = 120
+
+# unstable options
+format_strings = true
+imports_granularity = "Crate"
