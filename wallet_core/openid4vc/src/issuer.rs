@@ -293,8 +293,8 @@ where
 
 fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Result<T, E> {
     result
-        .inspect(|_| info!("Issuance Success"))
-        .inspect_err(|error| info!("Issuance Error: {error}"))
+        .inspect(|_| info!("Issuance success"))
+        .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
 impl<A, K, S> Issuer<A, K, S>
@@ -864,16 +864,16 @@ mod tests {
     fn test_logged_issuance_result() {
         let mut input: Result<String, MyError>;
 
-        assert!(!logs_contain("Issuance Success"));
+        assert!(!logs_contain("Issuance success"));
         input = Ok("Alright".into());
         let result = logged_issuance_result(input.clone());
         assert_eq!(result, input);
-        assert!(logs_contain("Issuance Success"));
+        assert!(logs_contain("Issuance success"));
 
-        assert!(!logs_contain("Issuance Error: MyError"));
+        assert!(!logs_contain("Issuance error: MyError"));
         input = Err(MyError);
         let result = logged_issuance_result(input.clone());
         assert_eq!(result, input);
-        assert!(logs_contain("Issuance Error: MyError"));
+        assert!(logs_contain("Issuance error: MyError"));
     }
 }
