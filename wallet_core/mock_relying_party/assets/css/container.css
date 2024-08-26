@@ -1,58 +1,58 @@
 main {
-    width: 100%;
-    max-width: 1145px;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-    padding: 24px 16px;
-    background: #fff;
+  width: 100%;
+  max-width: 1145px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 24px 16px;
+  background: #fff;
 }
 
 @media only screen and (min-width: 1145px) {
-    main {
-        margin: 64px 0 0 0;
-        padding: 64px 80px;
-    }
+  main {
+    margin: 64px 0 0 0;
+    padding: 64px 80px;
+  }
 
-    /* if main has two childs */
-    main:has(> :last-child:nth-child(2)) {
-        gap: 64px;
-    }
+  /* if main has two childs */
+  main:has(> :last-child:nth-child(2)) {
+    gap: 64px;
+  }
 }
 
 main section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 main h2 {
-    font-size: 30px;
-    font-weight: 700;
-    line-height: 44px;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 44px;
 }
 
 main h3 {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 0.15px;
-    line-height: 24px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.15px;
+  line-height: 24px;
 }
 
 main h4 {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.15px;
-    line-height: 24px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.15px;
+  line-height: 24px;
 }
 
 main p {
-    font-size: 18px;
-    letter-spacing: 0.5px;
-    line-height: 24px;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  line-height: 24px;
 }
 
 main .attributes {
-    letter-spacing: 0.15px;
+  letter-spacing: 0.15px;
 }

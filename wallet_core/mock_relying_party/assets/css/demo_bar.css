@@ -151,7 +151,10 @@ aside .text {
 .lang-selector .lang-modal button:disabled::before {
   content: " ";
   background-color: #152a62;
+  -webkit-mask: url("../non-free/images/checkmark.svg") no-repeat center center / contain;
   mask: url("../non-free/images/checkmark.svg") no-repeat center center / contain;
+  -webkit-mask-size: 24px;
+  mask-size: 24px;
   width: 24px;
   height: 24px;
 }

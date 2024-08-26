@@ -1,13 +1,13 @@
 input {
-    background: none;
-    color: inherit;
-    border: none;
-    font: inherit;
-    outline: inherit;
-    display: inherit;
-    padding: 0;
+  background: none;
+  color: inherit;
+  border: none;
+  font: inherit;
+  outline: inherit;
+  display: inherit;
+  padding: 0;
 }
 
 input:disabled {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
