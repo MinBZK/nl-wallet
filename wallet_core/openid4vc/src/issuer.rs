@@ -617,13 +617,15 @@ impl Session<WaitingForResponse> {
         // - If it names a doctype and we are offering a single attestation of that doctype, return that.
         // - If it names no doctype and we are offering a single attestation, return that.
         // NB: the OpenID4VCI specification leaves open how to make this determination, this is our own behaviour.
-        let unsigned = match credential_request.doctype {
+        let preview = match credential_request.doctype {
             Some(ref requested_doctype) => {
                 let offered_mdocs: Vec<_> = session_data
                     .attestation_previews
                     .iter()
-                    .map(AsRef::as_ref)
-                    .filter(|unsigned: &&UnsignedMdoc| unsigned.doc_type == *requested_doctype)
+                    .filter(|preview: &&AttestationPreview| {
+                        let unsigned: &UnsignedMdoc = preview.as_ref();
+                        unsigned.doc_type == *requested_doctype
+                    })
                     .collect();
                 match offered_mdocs.len() {
                     1 => Ok(*offered_mdocs.first().unwrap()),
@@ -634,18 +636,14 @@ impl Session<WaitingForResponse> {
                 }
             }
             None => match session_data.attestation_previews.len() {
-                1 => Ok(session_data.attestation_previews.first().unwrap().as_ref()),
+                1 => Ok(session_data.attestation_previews.first().unwrap()),
                 _ => Err(CredentialRequestError::UseBatchIssuance),
             },
         }?;
 
-        let credential_response = verify_pop_and_sign_attestation(
-            &session_data.c_nonce,
-            &credential_request,
-            unsigned.clone(),
-            issuer_data,
-        )
-        .await?;
+        let credential_response = credential_request
+            .verify_pop_and_sign_attestation(&session_data.c_nonce, preview.clone(), issuer_data)
+            .await?;
 
         Ok(credential_response)
     }
@@ -702,11 +700,15 @@ impl Session<WaitingForResponse> {
                 .credential_requests
                 .as_ref()
                 .iter()
-                .zip(session_data.attestation_previews.iter().flat_map(|preview| {
-                    itertools::repeat_n::<&UnsignedMdoc>(preview.as_ref(), preview.copy_count().into())
-                }))
-                .map(|(cred_req, unsigned_mdoc)| async move {
-                    verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc.clone(), issuer_data)
+                .zip(
+                    session_data
+                        .attestation_previews
+                        .iter()
+                        .flat_map(|preview| itertools::repeat_n(preview, preview.copy_count().into())),
+                )
+                .map(|(cred_req, preview)| async move {
+                    cred_req
+                        .verify_pop_and_sign_attestation(&session_data.c_nonce, preview.clone(), issuer_data)
                         .await
                 }),
         )
@@ -748,52 +750,47 @@ impl<T: IssuanceState> Session<T> {
     }
 }
 
-pub(crate) async fn verify_pop_and_sign_attestation(
-    c_nonce: &str,
-    cred_req: &CredentialRequest,
-    unsigned_mdoc: UnsignedMdoc,
-    issuer_data: &IssuerData<impl KeyRing>,
-) -> Result<CredentialResponse, CredentialRequestError> {
-    if !matches!(cred_req.format, Format::MsoMdoc) {
-        return Err(CredentialRequestError::UnsupportedCredentialFormat(cred_req.format));
-    }
+impl CredentialRequest {
+    pub(crate) async fn verify_pop_and_sign_attestation(
+        &self,
+        c_nonce: &str,
+        preview: AttestationPreview,
+        issuer_data: &IssuerData<impl KeyRing>,
+    ) -> Result<CredentialResponse, CredentialRequestError> {
+        if !matches!(self.format, Format::MsoMdoc) {
+            return Err(CredentialRequestError::UnsupportedCredentialFormat(self.format));
+        }
 
-    if *cred_req
-        .doctype
-        .as_ref()
-        .ok_or(CredentialRequestError::DoctypeMismatch)?
-        != unsigned_mdoc.doc_type
-    {
-        return Err(CredentialRequestError::DoctypeMismatch);
-    }
+        let unsigned_mdoc: UnsignedMdoc = preview.into();
 
-    let pubkey = cred_req
-        .proof
-        .as_ref()
-        .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
-        .verify(
-            c_nonce,
-            &issuer_data.accepted_wallet_client_ids,
-            &issuer_data.credential_issuer_identifier,
+        if *self.doctype.as_ref().ok_or(CredentialRequestError::DoctypeMismatch)? != unsigned_mdoc.doc_type {
+            return Err(CredentialRequestError::DoctypeMismatch);
+        }
+
+        let pubkey = self
+            .proof
+            .as_ref()
+            .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
+            .verify(
+                c_nonce,
+                &issuer_data.accepted_wallet_client_ids,
+                &issuer_data.credential_issuer_identifier,
+            )?;
+        let mdoc_public_key = (&pubkey)
+            .try_into()
+            .map_err(CredentialRequestError::CoseKeyConversion)?;
+
+        let private_key = issuer_data.private_keys.key_pair(&unsigned_mdoc.doc_type).ok_or(
+            CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doc_type.clone()),
         )?;
-    let mdoc_public_key = (&pubkey)
-        .try_into()
-        .map_err(CredentialRequestError::CoseKeyConversion)?;
+        let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
+            .await
+            .map_err(CredentialRequestError::AttestationSigning)?;
 
-    let private_key =
-        issuer_data
-            .private_keys
-            .key_pair(&unsigned_mdoc.doc_type)
-            .ok_or(CredentialRequestError::MissingPrivateKey(
-                unsigned_mdoc.doc_type.clone(),
-            ))?;
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
-        .await
-        .map_err(CredentialRequestError::AttestationSigning)?;
-
-    Ok(CredentialResponse::MsoMdoc {
-        credential: issuer_signed.into(),
-    })
+        Ok(CredentialResponse::MsoMdoc {
+            credential: issuer_signed.into(),
+        })
+    }
 }
 
 impl CredentialRequestProof {
