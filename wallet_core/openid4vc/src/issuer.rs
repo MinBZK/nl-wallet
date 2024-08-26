@@ -855,23 +855,25 @@ mod tests {
 
     use super::*;
 
-    #[derive(Debug, Error)]
+    #[derive(Debug, Error, Clone, Eq, PartialEq)]
     #[error("MyError")]
     struct MyError;
 
     #[traced_test]
     #[test]
     fn test_logged_issuance_result() {
-        let mut actual: Result<String, MyError>;
+        let mut input: Result<String, MyError>;
 
         assert!(!logs_contain("Issuance Success"));
-        actual = Ok("Alright".into());
-        let _ = logged_issuance_result(actual);
+        input = Ok("Alright".into());
+        let result = logged_issuance_result(input.clone());
+        assert_eq!(result, input);
         assert!(logs_contain("Issuance Success"));
 
         assert!(!logs_contain("Issuance Error: MyError"));
-        actual = Err(MyError);
-        let _ = logged_issuance_result(actual);
+        input = Err(MyError);
+        let result = logged_issuance_result(input.clone());
+        assert_eq!(result, input);
         assert!(logs_contain("Issuance Error: MyError"));
     }
 }
