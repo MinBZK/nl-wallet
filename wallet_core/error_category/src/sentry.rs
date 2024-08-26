@@ -173,7 +173,8 @@ mod tests {
 
     #[test]
     #[should_panic(
-        expected = "encountered unexpected error, which means that it should never occur in the Wallet: Some error: My error message"
+        expected = "encountered unexpected error, which means that it should never occur in the Wallet: Some error: \
+                    My error message"
     )]
     fn test_classify_mask_and_capture_unexpected() {
         let error = ErrorEnum::Specific(SpecificError {

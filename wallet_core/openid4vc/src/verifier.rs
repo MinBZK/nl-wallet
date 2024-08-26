@@ -1005,8 +1005,8 @@ impl Session<Created> {
                 // We checked for this case when the session was created, so this should not happen
                 // except when the configuration has changed during this session.
                 warn!(
-                    "configuration inconsistency: return URL configuration mismatch \
-                        type {0:?}, session type {1:?}, redirect URI template {2:?}",
+                    "configuration inconsistency: return URL configuration mismatch type {0:?}, session type {1:?}, \
+                     redirect URI template {2:?}",
                     session_type_return_url, session_type, template
                 );
                 Err(GetAuthRequestError::ReturnUrlConfigurationMismatch)

@@ -276,7 +276,10 @@ pub enum AuthRequestValidationError {
     NoAttributesRequested,
     #[error("unsupported Presentation Definition: {0}")]
     UnsupportedPresentationDefinition(#[from] PdConversionError),
-    #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
+    #[error(
+        "client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 \
+         certificate ({dns_san})"
+    )]
     #[category(critical)]
     UnauthorizedClientId { client_id: String, dns_san: String },
     #[error("Subject Alternative Name missing from X.509 certificate")]

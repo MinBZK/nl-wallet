@@ -35,8 +35,8 @@ pub enum DocumentMdocError {
         name: DataElementIdentifier,
     },
     #[error(
-        "attribute for \"{doc_type}\" encountered at \"{name_space} / {name}\" \
-         does not match expected type {expected_type:?}: {value:?}"
+        "attribute for \"{doc_type}\" encountered at \"{name_space} / {name}\" does not match expected type \
+         {expected_type:?}: {value:?}"
     )]
     AttributeValueTypeMismatch {
         doc_type: String,
