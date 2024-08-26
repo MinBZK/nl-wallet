@@ -41,16 +41,16 @@ pub struct IssuerData {
     pub credential_issuer: BaseUrl,
 
     /// Array of strings, where each string is an identifier of the OAuth 2.0 Authorization Server (as defined in
-    /// [RFC8414]) the Credential Issuer relies on for authorization. If this parameter is omitted, the entity providing
-    /// the Credential Issuer is also acting as the Authorization Server, i.e., the Credential Issuer's identifier is
-    /// used to obtain the Authorization Server metadata. The actual OAuth 2.0 Authorization Server metadata is obtained
-    /// from the `oauth-authorization-server` well-known location as defined in Section 3 of [RFC8414]. When there are
-    /// multiple entries in the array, the Wallet may be able to determine which Authorization Server to use by querying
-    /// the metadata; for example, by examining the `grant_types_supported` values, the Wallet can filter the server to
-    /// use based on the grant type it plans to use. When the Wallet is using `authorization_server` parameter in the
-    /// Credential Offer as a hint to determine which Authorization Server to use out of multiple, the Wallet MUST NOT
-    /// proceed with the flow if the `authorization_server` Credential Offer parameter value does not match any of the
-    /// entries in the `authorization_servers` array.
+    /// [RFC8414]) the Credential Issuer relies on for authorization. If this parameter is omitted, the entity
+    /// providing the Credential Issuer is also acting as the Authorization Server, i.e., the Credential Issuer's
+    /// identifier is used to obtain the Authorization Server metadata. The actual OAuth 2.0 Authorization Server
+    /// metadata is obtained from the `oauth-authorization-server` well-known location as defined in Section 3 of
+    /// [RFC8414]. When there are multiple entries in the array, the Wallet may be able to determine which
+    /// Authorization Server to use by querying the metadata; for example, by examining the `grant_types_supported`
+    /// values, the Wallet can filter the server to use based on the grant type it plans to use. When the Wallet is
+    /// using `authorization_server` parameter in the Credential Offer as a hint to determine which Authorization
+    /// Server to use out of multiple, the Wallet MUST NOT proceed with the flow if the `authorization_server`
+    /// Credential Offer parameter value does not match any of the entries in the `authorization_servers` array.
     pub authorization_servers: Option<Vec<BaseUrl>>,
 
     /// URL of the Credential Issuer's Credential Endpoint, as defined in Section 7.2. This URL MUST use the https
@@ -184,21 +184,22 @@ pub struct CredentialMetadata {
 
     /// A JSON string identifying the scope value that this Credential Issuer supports for this particular Credential.
     /// The value can be the same across multiple `credential_configurations_supported` objects. The Authorization
-    /// Server MUST be able to uniquely identify the Credential Issuer based on the scope value. The Wallet can use this
-    /// value in the Authorization Request as defined in Section 5.1.2. Scope values in this Credential Issuer metadata
-    /// MAY duplicate those in the scopes_supported parameter of the Authorization Server.
+    /// Server MUST be able to uniquely identify the Credential Issuer based on the scope value. The Wallet can use
+    /// this value in the Authorization Request as defined in Section 5.1.2. Scope values in this Credential Issuer
+    /// metadata MAY duplicate those in the scopes_supported parameter of the Authorization Server.
     pub scope: Option<String>,
 
     /// Array of case sensitive strings that identify the representation of the cryptographic key material that the
     /// issued Credential is bound to, as defined in Section 7.1. Support for keys in JWK format [RFC7517] is indicated
     /// by the value `jwk`. Support for keys expressed as a COSE Key object [RFC8152] (for example, used in
     /// [ISO.18013-5]) is indicated by the value `cose_key`. When the Cryptographic Binding Method is a DID, valid
-    /// values are a `did:` prefix followed by a method-name using a syntax as defined in Section 3.1 of [DID-Core], but
-    /// without a `:` and method-specific-id. For example, support for the DID method with a method-name "example" would
-    /// be represented by `did:example`.
+    /// values are a `did:` prefix followed by a method-name using a syntax as defined in Section 3.1 of [DID-Core],
+    /// but without a `:` and method-specific-id. For example, support for the DID method with a method-name
+    /// "example" would be represented by `did:example`.
     pub cryptographic_binding_methods_supported: Option<Vec<CryptographicBindingMethod>>,
 
-    /// Array of case sensitive strings that identify the algorithms that the Issuer uses to sign the issued Credential.
+    /// Array of case sensitive strings that identify the algorithms that the Issuer uses to sign the issued
+    /// Credential.
     pub credential_signing_alg_values_supported: Option<Vec<CredentialSigningAlg>>,
 
     /// Object that describes specifics of the key proof(s) that the Credential Issuer supports. This object contains a
@@ -326,8 +327,8 @@ pub struct CredentialDisplay {
     /// String value of a display name for the Credential.
     pub name: String,
 
-    /// String value that identifies the language of this object represented as a language tag taken from values defined
-    /// in BCP47 [RFC5646].
+    /// String value that identifies the language of this object represented as a language tag taken from values
+    /// defined in BCP47 [RFC5646].
     pub locale: Option<String>,
 
     /// Object with information about the logo of the Credential.
@@ -343,8 +344,8 @@ pub struct CredentialDisplay {
     /// Object with information about the background image of the Credential.
     pub background_image: Option<BackgroundImage>,
 
-    /// String value of a text color of the Credential represented as numerical color values defined in CSS Color Module
-    /// Level 37.
+    /// String value of a text color of the Credential represented as numerical color values defined in CSS Color
+    /// Module Level 37.
     pub text_color: Option<String>,
 }
 

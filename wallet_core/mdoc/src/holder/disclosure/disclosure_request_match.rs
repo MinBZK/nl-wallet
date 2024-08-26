@@ -17,30 +17,26 @@ use super::{proposed_document::ProposedDocument, MdocDataSource};
 
 /// This type represents the result of matching an iterator of `ItemsRequest`
 /// instances against all locally stored document. This result is one of two options:
-/// * `DisclosureRequestMatch::Candidates` means that all of the attributes
-///   in the request can be satisfied. For each `DocType` in the request,
-///   a list of matching documents is provided in an `IndexMap`.
-/// * `DisclosureRequestMatch::MissingAttributes` when at least one of the
-///   attributes requested is not present in any of the stored documents.
+/// * `DisclosureRequestMatch::Candidates` means that all of the attributes in the request can be satisfied. For each
+///   `DocType` in the request, a list of matching documents is provided in an `IndexMap`.
+/// * `DisclosureRequestMatch::MissingAttributes` when at least one of the attributes requested is not present in any of
+///   the stored documents.
 ///
 /// Please note the following:
-/// * The input iterator of `ItemsRequest`s could contain multiple `ItemsRequest`
-///   entries with the same `DocType`. The matching result coalesces all attributes
-///   that are requested for a particular `DocType`, which will result in
-///   a `DeviceResponse` with only one `Document` per `DocType`. This
-///   assumes that the verifier can match this response against its original
-///   request.
-/// * The order of the `IndexMap` provided with `DisclosureRequestMatch::Candidates`
-///   tries to match the order of the request as best as possible. However,
-///   considering the previous point the order is not an exact match when the
+/// * The input iterator of `ItemsRequest`s could contain multiple `ItemsRequest` entries with the same `DocType`. The
+///   matching result coalesces all attributes that are requested for a particular `DocType`, which will result in a
+///   `DeviceResponse` with only one `Document` per `DocType`. This assumes that the verifier can match this response
+///   against its original request.
+/// * The order of the `IndexMap` provided with `DisclosureRequestMatch::Candidates` tries to match the order of the
+///   request as best as possible. However, considering the previous point the order is not an exact match when the
 ///   request contains the same `DocType` multiple times.
-/// * It is a known limitation that `DisclosureRequestMatch::MissingAttributes`
-///   only contains the missing attributes for one of the `Mdoc`s for a
-///   particular `DocType`. Which one it chooses is undefined.
+/// * It is a known limitation that `DisclosureRequestMatch::MissingAttributes` only contains the missing attributes for
+///   one of the `Mdoc`s for a particular `DocType`. Which one it chooses is undefined.
 #[derive(Debug)]
 pub enum DisclosureRequestMatch<I> {
     Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
-    MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
+    MissingAttributes(Vec<AttributeIdentifier>), /* TODO: Report on missing attributes per `Mdoc` candidate.
+                                                  * (PVW-1392) */
 }
 
 impl<I> DisclosureRequestMatch<I> {
@@ -88,13 +84,12 @@ impl<I> DisclosureRequestMatch<I> {
         // * Filter out any empty `Vec<Mdoc>`.
         // * Get the `doc_type` from the first `Mdoc` entry.
         // * Remove the value for this `doc_type` from `requested_attributes_by_doc_type`.
-        // * Do some sanity checks, as the request should actually contain this `doc_type`
-        //   and any subsequent `Mdoc`s should have the same `doc_type`. This is part of
-        //   the contract of `MdocDataSource` that is not enforceable.
-        // * Calculate the challenge needed to create the `DeviceSigned` for this
-        //   `doc_type` later on during actual disclosure.
-        // * Convert all `Mdoc`s that satisfy the requirement to `ProposedDocument`,
-        //   while collecting any missing attributes separately.
+        // * Do some sanity checks, as the request should actually contain this `doc_type` and any subsequent `Mdoc`s
+        //   should have the same `doc_type`. This is part of the contract of `MdocDataSource` that is not enforceable.
+        // * Calculate the challenge needed to create the `DeviceSigned` for this `doc_type` later on during actual
+        //   disclosure.
+        // * Convert all `Mdoc`s that satisfy the requirement to `ProposedDocument`, while collecting any missing
+        //   attributes separately.
         // * Collect the candidates in a `IndexMap` per `doc_type`.
         //
         // Note that we consume the requested attributes from
@@ -102,9 +97,9 @@ impl<I> DisclosureRequestMatch<I> {
         //
         // * A `doc_type` should not occur more than once in the top-level
         //  `Vec` returned by `MdocDataSource`.
-        // * After gathering all the candidates, any requested attributes that
-        //   still remain in `requested_attributes_by_doc_type` are not satisfied,
-        //   which means that all of them count as missing attributes.
+        // * After gathering all the candidates, any requested attributes that still remain in
+        //   `requested_attributes_by_doc_type` are not satisfied, which means that all of them count as missing
+        //   attributes.
         let mut all_missing_attributes = Vec::<Vec<AttributeIdentifier>>::new();
 
         let stored_mdocs = stored_mdocs

@@ -56,15 +56,15 @@ pub trait JwtSubject {
 /// There are two commonly used encodings for ECDSA public keys:
 ///
 /// * SEC1: this encodes the two public key coordinates (i.e. numbers) `x` and `y` that an ECDSA public key consists of
-///   as `04 || x || y` where `||` is bitwise concatenation. Note that this encodes just the public key, and it does
-///   not include any information on the particular curve that is used, of which the public key is an element. In case
-///   of JWTs this is okay, because in that case that information is transmitted elsewhere: in the `alg` field of the
-///   JWT header, which in our case is `ES256` - meaning the `secp256r` curve. This encoding is what
+///   as `04 || x || y` where `||` is bitwise concatenation. Note that this encodes just the public key, and it does not
+///   include any information on the particular curve that is used, of which the public key is an element. In case of
+///   JWTs this is okay, because in that case that information is transmitted elsewhere: in the `alg` field of the JWT
+///   header, which in our case is `ES256` - meaning the `secp256r` curve. This encoding is what
 ///   [`DecodingKey::from_ec_der()`] requires as input - even though it is not in fact DER.
 /// * PKIX: this uses DER to encode an identifier for the curve (`secp256r` in our case), as well as the public key
 ///   coordinates in SEC1 form. This is the encoding that is used in X509 certificates (hence the name). The function
-///   [`DecodingKey::from_ec_pem()`] accepts this encoding, in PEM form (although it also accepts SEC1-encoded keys
-///   in PEM form).
+///   [`DecodingKey::from_ec_pem()`] accepts this encoding, in PEM form (although it also accepts SEC1-encoded keys in
+///   PEM form).
 ///
 /// This type solves the unclarity by explicitly naming the SEC1 encoding in [`EcdsaDecodingKey::from_sec1()`] that it
 /// takes to construct it. From a `VerifyingKey` of the `ecdsa` crate, this encoding may be obtained by calling

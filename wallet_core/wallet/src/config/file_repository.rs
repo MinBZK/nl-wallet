@@ -27,8 +27,8 @@ impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
     ) -> Result<Self, ConfigurationError> {
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
             Some(stored_config) if initial_config.version > stored_config.version => {
-                // When the initial configuration is newer than the stored configuration (e.g. due to an app update) that
-                // version is used and the stored configuration is overwritten.
+                // When the initial configuration is newer than the stored configuration (e.g. due to an app update)
+                // that version is used and the stored configuration is overwritten.
                 config_file::update_config_file(storage_path.as_path(), &initial_config).await?;
                 initial_config
             }

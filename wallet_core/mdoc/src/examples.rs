@@ -186,11 +186,11 @@ pub mod mock {
 
     impl Mdoc {
         /// Out of the example data structures in the standard, assemble an mdoc.
-        /// The issuer-signed part of the mdoc is based on a [`DeviceResponse`] in which not all attributes of the originating
-        /// mdoc are disclosed. Consequentially, the issuer signed-part of the resulting mdoc misses some [`IssuerSignedItem`]
-        /// instances, i.e. attributes.
-        /// This is because the other attributes are actually nowhere present in the standard so it is impossible to construct
-        /// the example mdoc with all attributes present.
+        /// The issuer-signed part of the mdoc is based on a [`DeviceResponse`] in which not all attributes of the
+        /// originating mdoc are disclosed. Consequentially, the issuer signed-part of the resulting mdoc misses
+        /// some [`IssuerSignedItem`] instances, i.e. attributes.
+        /// This is because the other attributes are actually nowhere present in the standard so it is impossible to
+        /// construct the example mdoc with all attributes present.
         ///
         /// Using tests should not rely on all attributes being present.
         pub fn new_example_mock() -> Self {

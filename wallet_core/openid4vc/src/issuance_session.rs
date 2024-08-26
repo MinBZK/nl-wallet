@@ -389,7 +389,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
         // has no support (yet) for issuance of multiple copies of multiple attestations.
-        // We implement this below by simply flattening the relevant nested iterators when communicating with the issuer.
+        // We implement this below by simply flattening the relevant nested iterators when communicating with the
+        // issuer.
 
         let doctypes = self
             .session_state
@@ -704,7 +705,8 @@ mod tests {
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        attestation_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(), // return two previews
+                        attestation_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(), /* return two
+                                                                                                       * previews */
                     },
                     Some("dpop_nonce".to_string()),
                 ))

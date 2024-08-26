@@ -48,12 +48,10 @@ fn key_identifier_for_key_file(alias: &str) -> String {
 
 /// This is the implementation of [`Storage`] as used by the [`crate::Wallet`]. Its responsibilities are:
 ///
-/// * Managing the lifetime of one or more [`Database`] instances by combining its functionality with
-///   encrypted key files. This also includes deleting the database and key file when the [`clear`]
-///   method is called.
+/// * Managing the lifetime of one or more [`Database`] instances by combining its functionality with encrypted key
+///   files. This also includes deleting the database and key file when the [`clear`] method is called.
 /// * Communicating the current state of the database through the [`state`] method.
-/// * Executing queries on the database by accepting / returning data structures that are used by
-///   [`crate::Wallet`].
+/// * Executing queries on the database by accepting / returning data structures that are used by [`crate::Wallet`].
 #[derive(Debug)]
 pub struct DatabaseStorage<K> {
     storage_path: PathBuf,

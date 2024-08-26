@@ -106,8 +106,8 @@ impl DeviceResponse {
     ///
     /// # Arguments
     /// - `eph_reader_key` - the ephemeral reader public key in case the mdoc is authentication with a MAC.
-    /// - `device_authentication_bts` - the [`DeviceAuthenticationBytes`] acting as the challenge, i.e., that have
-    ///   to be signed by the holder.
+    /// - `device_authentication_bts` - the [`DeviceAuthenticationBytes`] acting as the challenge, i.e., that have to be
+    ///   signed by the holder.
     /// - `time` - a generator of the current time.
     /// - `trust_anchors` - trust anchors against which verification is done.
     pub fn verify(
@@ -412,7 +412,8 @@ mod tests {
         let disclosed_attrs = device_response
             .verify(
                 Some(&eph_reader_key),
-                &DeviceAuthenticationBytes::example().0 .0.session_transcript, // To be signed by device key found in MSO
+                &DeviceAuthenticationBytes::example().0 .0.session_transcript, /* To be signed by device key found
+                                                                                * in MSO */
                 &IsoCertTimeGenerator,
                 trust_anchors,
             )

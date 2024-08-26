@@ -310,8 +310,8 @@ where
     ) -> Result<(TokenResponseWithPreviews, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
-        // Retrieve the session from the session store, if present. It need not be, depending on the implementation of the
-        // attribute service.
+        // Retrieve the session from the session store, if present. It need not be, depending on the implementation of
+        // the attribute service.
         let session = self
             .sessions
             .get(&session_token)

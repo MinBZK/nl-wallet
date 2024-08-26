@@ -35,9 +35,10 @@ use wallet_common::{
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
 pub fn new_pin_salt() -> Vec<u8> {
     // Note: when passed to the HKDF function, the variable `salt` does not act as the salt but instead as the input key
-    // material. The HKDF salt parameter is left empty. From a cryptographic perspective, what we call "salt" here should
-    // really be called "key" or "input_key_material" or something, but we also already have a PIN private key and a
-    // corresponding PIN public keys. So in the naming of things we would end up with confusingly many "keys".
+    // material. The HKDF salt parameter is left empty. From a cryptographic perspective, what we call "salt" here
+    // should really be called "key" or "input_key_material" or something, but we also already have a PIN private
+    // key and a corresponding PIN public keys. So in the naming of things we would end up with confusingly many
+    // "keys".
     random_bytes(32)
 }
 

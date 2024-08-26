@@ -311,8 +311,8 @@ impl VpAuthorizationRequest {
 
     /// Validate that an Authorization Request satisfies the following:
     /// - the request contents are compliant with the profile from ISO 18013-7 Appendix B,
-    /// - the `client_id` equals the DNS SAN name in the X.509 certificate, as required by the
-    ///   [`x509_san_dns` value for `client_id_scheme`](https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-5.7-12.2),
+    /// - the `client_id` equals the DNS SAN name in the X.509 certificate, as required by the [`x509_san_dns` value for
+    ///   `client_id_scheme`](https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-5.7-12.2),
     ///   which is used by the mentioned profile.
     ///
     /// This method consumes `self` and turns it into an [`IsoVpAuthorizationRequest`], which
@@ -725,7 +725,8 @@ impl VpAuthorizationResponse {
         // Safe: if we have found all requested items in the documents, then the documents are not absent.
         let documents = device_response.documents.as_ref().unwrap();
 
-        // Check that the Presentation Submission is what it should be per the Presentation Exchange spec and ISO 18013-7.
+        // Check that the Presentation Submission is what it should be per the Presentation Exchange spec and ISO
+        // 18013-7.
         self.presentation_submission
             .verify(documents, &auth_request.presentation_definition)?;
 

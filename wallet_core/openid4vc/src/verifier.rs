@@ -491,11 +491,12 @@ where
 {
     /// Create a new [`Verifier`].
     ///
-    /// - `use_cases` contains configuration per use case, including a certificate
-    ///    and corresponding private key for use in RP authentication.
+    /// - `use_cases` contains configuration per use case, including a certificate and corresponding private key for use
+    ///   in RP authentication.
     /// - `sessions` will contain all sessions.
     /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
-    ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
+    ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these
+    ///   CAs.
     /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
     pub fn new(
         use_cases: UseCases,
