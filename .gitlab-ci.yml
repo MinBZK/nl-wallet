@@ -133,7 +133,7 @@ test-flutter:
   script:
     - set -euxo pipefail
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get)
+    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
     - flutter analyze $FLUTTER_APP_PROJECT_DIR
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json")
   artifacts:
@@ -165,7 +165,7 @@ verify-flutter-localizations:
   script:
     - set -euxo pipefail
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter pub get)
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter pub get --enforce-lockfile)
     - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms) # List any unused keys
     - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms --abort-on-unused) # Fail if unused keys are found
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
@@ -306,7 +306,7 @@ test-codegen:
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get)
+    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
     - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
     - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
     - dart format wallet_app --line-length 120
@@ -1354,7 +1354,7 @@ build-sbom:
     # does not support json, so converting to it (we need it to be able to merge)
     - bundle install
     - cd wallet_app
-    - flutter pub get
+    - flutter pub get --enforce-lockfile
     - flutter precache --ios
     - cd ios
     - bundle exec pod install --allow-root
