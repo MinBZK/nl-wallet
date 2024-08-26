@@ -153,6 +153,12 @@ impl AttestationPreview {
             AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
         }
     }
+
+    pub fn attestation_type(&self) -> &str {
+        match self {
+            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,
+        }
+    }
 }
 
 // Shorthands to convert the preview to the currently only supported format
@@ -163,13 +169,7 @@ impl AsRef<Certificate> for AttestationPreview {
         }
     }
 }
-impl AsRef<UnsignedMdoc> for AttestationPreview {
-    fn as_ref(&self) -> &UnsignedMdoc {
-        match self {
-            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
-        }
-    }
-}
+
 impl From<AttestationPreview> for UnsignedMdoc {
     fn from(value: AttestationPreview) -> Self {
         match value {

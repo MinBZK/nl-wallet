@@ -29,9 +29,31 @@ pub struct CredentialRequests {
 // TODO: add `wallet_attestation`, `wallet_attestation_pop`, and `proof_of_secure_combination` (PVW-2361, PVW-2362)
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CredentialRequest {
-    pub format: Format,
-    pub doctype: Option<String>,
+    #[serde(flatten)]
+    pub format: CredentialRequestFormat,
     pub proof: Option<CredentialRequestProof>,
+}
+
+impl CredentialRequest {
+    pub fn attestation_type(&self) -> Option<&String> {
+        match &self.format {
+            CredentialRequestFormat::MsoMdoc { doctype } => doctype.as_ref(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "format", rename_all = "snake_case")]
+pub enum CredentialRequestFormat {
+    MsoMdoc { doctype: Option<String> },
+}
+
+impl From<&CredentialRequestFormat> for Format {
+    fn from(value: &CredentialRequestFormat) -> Self {
+        match value {
+            CredentialRequestFormat::MsoMdoc { doctype: _ } => Format::MsoMdoc,
+        }
+    }
 }
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint

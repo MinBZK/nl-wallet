@@ -27,14 +27,15 @@ use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jw
 
 use crate::{
     credential::{
-        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
+        CredentialRequest, CredentialRequestFormat, CredentialRequestProof, CredentialRequests, CredentialResponse,
+        CredentialResponses,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::JwkConversionError,
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
+    CredentialErrorCode, ErrorResponse, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -430,8 +431,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let id = key.identifier().to_string();
                     let cred_request = CredentialRequest {
-                        format: Format::MsoMdoc,
-                        doctype: Some(doctype),
+                        format: CredentialRequestFormat::MsoMdoc { doctype: Some(doctype) },
                         proof: Some(response),
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))

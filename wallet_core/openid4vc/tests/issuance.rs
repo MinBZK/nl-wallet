@@ -72,7 +72,12 @@ async fn accept_issuance() {
             .cred_copies
             .first()
             .unwrap()
-            .compare_unsigned(preview.as_ref())
+            .compare_unsigned(match &preview {
+                AttestationPreview::MsoMdoc {
+                    unsigned_mdoc,
+                    issuer: _,
+                } => unsigned_mdoc,
+            })
             .unwrap()
     });
 }
