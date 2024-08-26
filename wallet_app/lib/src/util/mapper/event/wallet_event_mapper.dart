@@ -31,7 +31,7 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
       disclosure: (disclosure) {
         final cards = _disclosureCardMapper.mapList(disclosure.requestedCards ?? []);
         return WalletEvent.disclosure(
-          dateTime: DateTime.parse(disclosure.dateTime),
+          dateTime: DateTime.parse(disclosure.dateTime).toLocal(),
           relyingParty: _relyingPartyMapper.map(disclosure.relyingParty),
           purpose: _localizedStringMapper.map(disclosure.purpose),
           cards: cards,
@@ -43,7 +43,7 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
       issuance: (issuance) {
         final card = _cardMapper.map(issuance.card);
         return WalletEvent.issuance(
-          dateTime: DateTime.parse(issuance.dateTime),
+          dateTime: DateTime.parse(issuance.dateTime).toLocal(),
           status: EventStatus.success,
           card: card,
         );
