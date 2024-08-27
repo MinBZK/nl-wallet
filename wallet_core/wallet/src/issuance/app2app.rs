@@ -305,25 +305,82 @@ mod test {
     #[rstest]
     #[case(
         StatusCode::TEMPORARY_REDIRECT,
-        HeaderValue::from_bytes("https://preprod.example.com/saml/idp/request_authentication?SAMLRequest=rZNBj9owEIXv%2Byui3CHBBEIsiETZqkWiLAK2h15Wjj1ZLCV2ak9Yfn7tBLRUqjj1FCWeee%2Bb58ncsrpq6LLFk9rD7xYsPgXBpa6Upd3RImyNoppZaaliNViKnB6WPzaUDGPaGI2a6yr8q%2BlxD7MWDEqtfNP6eRG%2BbL9uXr6tt2%2BTEckyMZ2lMSmztGAJGYNIYz4aT%2BNxTAhLszguZqlv%2FAnGOo1F6CT9exDsjD5LAWbrHBfhASU%2FoVTvwXp1fO2srG1hrSwyha4tJskgngzi2THOKJnSJP3lq55dAlIx7LRPiI2lUdQYcJOK0VDIdymGqor8mJEUTWT60N6YSxCUM2W30XbXbL5IJRzH41CKvsjS78fjbrB0%2BZSMo5dZ3uJaaWXbGswBzFlyeN1vPgHRIQzPWpsCoBIfrKoAPWY5ZiOeiHLME5KwhLNimjE2I7NJOSUTVkbdQAOulQKO2kSM2z7NJaKRRYvQ2zq2q%2B9aCbgswlGYd3VznwTtsjX5%2F8aZR%2FfqnV9v2NDrsoLoVtdBIlwwWOm6YUZaf3mOWdZtHeY94n3dqnJLuIcyf7innHJf5z7v3ONDG%2BGv1IGBOBqmbKMNXgn%2FKd7RRg9w86fb8f3%2Fl%2F8B&RelayState=eyJzdGF0ZSI6ICI5Y2Q3ZTcwMWEyMzJmYWZjMjUzNWM4ODE2MmU4Yjg2MzA4YTRmM2U3MmRjMDc2MmNjNjk2YjQ1YmVlYTdlOTIzIiwgImNsaWVudF9pZCI6ICI1Zjg2Yzg3Yi1jMzViLTQ3M2ItYmZmOS00YTE5NzY3ZWQzZjciLCAicmVkaXJlY3RfdXJpIjogImh0dHBzOi8vYXBwLnRlc3Qudm9vcmJlZWxkd2FsbGV0Lm5sL2RlZXBsaW5rL2F1dGhlbnRpY2F0aW9uIn0%3D&Signature=P7y2OyXiYm7oMGC7d4m7K8gDZFfCWWFwNrDusQfh928T7kHGZob%2F3unQnvwu36EGxc805y8t87riyUgT9sgmWRm9D4u3Rr6eZ5tCcbvR5ERQZvS%2BlNOOMc%2FuHlSv7L3ToXy5uh0tnUFX64L8qXLnPo9MgBBz%2FhOjSY72Pw2u%2BRTU3gmmij4M5%2FqFL4f5J%2FHupeYc3lID6ABLT4QpMinngLQO8F82KqbfJXeLNqQ5pmGUB3nvDfsVmxsNGm1ZMI2ifQqtyDUvGGwXxkpHi7EL%2FdSripWBZ%2FHhJbnPzJkC5KqUxUEi1%2FZ8o4MiwLUHhS3khiMKKxjW6w2tIvpWi0yXDISQJvIfrSVAx24OXqHW3nti41gmndWbviLRH7E7GIB2b9V9qTRMKFv9RCN7oTT%2FsE1MKNNkJ2FA2ePUu4lGYvZHDDf5gpcWr1y5ZiQull1x2nWlvGYkvBCHaWukThax39RC8AOZwixg3UvznMSGisElkDB6V7fqfdMbPXhDIb6%2BdXsAVsG84iJ9qBXmdawO2OgusSMI1i7O8jZyZXM68qg%2FYP8ZJJdwQuQESlOjhZxyUNsTytif9%2FaqCjvb7FC%2B7L16kjPLACCk%2BOLft8JRAw1%2B15MqdNBdg5aSlptdfFEwhI7REyJt8pv8HtlqPi11qGw1vZ%2BIH409nUsfAiXjkgk%3D&SigAlg=http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256".as_bytes()).ok(),
+        HeaderValue::from_bytes(
+            "https://preprod.example.com/saml/idp/request_authentication?SAMLRequest=rZNBj9owEIXv%2Byui3CHBBEIsiETZqkW\
+             iLAK2h15Wjj1ZLCV2ak9Yfn7tBLRUqjj1FCWeee%2Bb58ncsrpq6LLFk9rD7xYsPgXBpa6Upd3RImyNoppZaaliNViKnB6WPzaUDGPaGI\
+             2a6yr8q%2BlxD7MWDEqtfNP6eRG%2BbL9uXr6tt2%2BTEckyMZ2lMSmztGAJGYNIYz4aT%2BNxTAhLszguZqlv%2FAnGOo1F6CT9exDsj\
+             D5LAWbrHBfhASU%2FoVTvwXp1fO2srG1hrSwyha4tJskgngzi2THOKJnSJP3lq55dAlIx7LRPiI2lUdQYcJOK0VDIdymGqor8mJEUTWT6\
+             0N6YSxCUM2W30XbXbL5IJRzH41CKvsjS78fjbrB0%2BZSMo5dZ3uJaaWXbGswBzFlyeN1vPgHRIQzPWpsCoBIfrKoAPWY5ZiOeiHLME5K\
+             whLNimjE2I7NJOSUTVkbdQAOulQKO2kSM2z7NJaKRRYvQ2zq2q%2B9aCbgswlGYd3VznwTtsjX5%2F8aZR%2FfqnV9v2NDrsoLoVtdBIl\
+             wwWOm6YUZaf3mOWdZtHeY94n3dqnJLuIcyf7innHJf5z7v3ONDG%2BGv1IGBOBqmbKMNXgn%2FKd7RRg9w86fb8f3%2Fl%2F8B&RelayS\
+             tate=eyJzdGF0ZSI6ICI5Y2Q3ZTcwMWEyMzJmYWZjMjUzNWM4ODE2MmU4Yjg2MzA4YTRmM2U3MmRjMDc2MmNjNjk2YjQ1YmVlYTdlOTIz\
+             IiwgImNsaWVudF9pZCI6ICI1Zjg2Yzg3Yi1jMzViLTQ3M2ItYmZmOS00YTE5NzY3ZWQzZjciLCAicmVkaXJlY3RfdXJpIjogImh0dHBzO\
+             i8vYXBwLnRlc3Qudm9vcmJlZWxkd2FsbGV0Lm5sL2RlZXBsaW5rL2F1dGhlbnRpY2F0aW9uIn0%3D&Signature=P7y2OyXiYm7oMGC7d\
+             4m7K8gDZFfCWWFwNrDusQfh928T7kHGZob%2F3unQnvwu36EGxc805y8t87riyUgT9sgmWRm9D4u3Rr6eZ5tCcbvR5ERQZvS%2BlNOOMc\
+             %2FuHlSv7L3ToXy5uh0tnUFX64L8qXLnPo9MgBBz%2FhOjSY72Pw2u%2BRTU3gmmij4M5%2FqFL4f5J%2FHupeYc3lID6ABLT4QpMinng\
+             LQO8F82KqbfJXeLNqQ5pmGUB3nvDfsVmxsNGm1ZMI2ifQqtyDUvGGwXxkpHi7EL%2FdSripWBZ%2FHhJbnPzJkC5KqUxUEi1%2FZ8o4Mi\
+             wLUHhS3khiMKKxjW6w2tIvpWi0yXDISQJvIfrSVAx24OXqHW3nti41gmndWbviLRH7E7GIB2b9V9qTRMKFv9RCN7oTT%2FsE1MKNNkJ2F\
+             A2ePUu4lGYvZHDDf5gpcWr1y5ZiQull1x2nWlvGYkvBCHaWukThax39RC8AOZwixg3UvznMSGisElkDB6V7fqfdMbPXhDIb6%2BdXsAVs\
+             G84iJ9qBXmdawO2OgusSMI1i7O8jZyZXM68qg%2FYP8ZJJdwQuQESlOjhZxyUNsTytif9%2FaqCjvb7FC%2B7L16kjPLACCk%2BOLft8J\
+             RAw1%2B15MqdNBdg5aSlptdfFEwhI7REyJt8pv8HtlqPi11qGw1vZ%2BIH409nUsfAiXjkgk%3D&SigAlg=http%3A%2F%2Fwww.w3.or\
+             g%2F2001%2F04%2Fxmldsig-more%23rsa-sha256".as_bytes()
+        ).ok(),
         None,
         None,
         Ok(("https://app-preprod.example.com/app?app-app=".to_string() + &base64(json!({
             "Icon":"walletdebuginteraction://wallet.edi.rijksoverheid.nl/.well-known/logo.png",
             "ReturnUrl": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid",
             "Host": "preprod.example.com",
-            "SAMLRequest": "rZNBj9owEIXv+yui3CHBBEIsiETZqkWiLAK2h15Wjj1ZLCV2ak9Yfn7tBLRUqjj1FCWeee+b58ncsrpq6LLFk9rD7xYsPgXBpa6Upd3RImyNoppZaaliNViKnB6WPzaUDGPaGI2a6yr8q+lxD7MWDEqtfNP6eRG+bL9uXr6tt2+TEckyMZ2lMSmztGAJGYNIYz4aT+NxTAhLszguZqlv/AnGOo1F6CT9exDsjD5LAWbrHBfhASU/oVTvwXp1fO2srG1hrSwyha4tJskgngzi2THOKJnSJP3lq55dAlIx7LRPiI2lUdQYcJOK0VDIdymGqor8mJEUTWT60N6YSxCUM2W30XbXbL5IJRzH41CKvsjS78fjbrB0+ZSMo5dZ3uJaaWXbGswBzFlyeN1vPgHRIQzPWpsCoBIfrKoAPWY5ZiOeiHLME5KwhLNimjE2I7NJOSUTVkbdQAOulQKO2kSM2z7NJaKRRYvQ2zq2q+9aCbgswlGYd3VznwTtsjX5/8aZR/fqnV9v2NDrsoLoVtdBIlwwWOm6YUZaf3mOWdZtHeY94n3dqnJLuIcyf7innHJf5z7v3ONDG+Gv1IGBOBqmbKMNXgn/Kd7RRg9w86fb8f3/l/8B",
-            "RelayState": "eyJzdGF0ZSI6ICI5Y2Q3ZTcwMWEyMzJmYWZjMjUzNWM4ODE2MmU4Yjg2MzA4YTRmM2U3MmRjMDc2MmNjNjk2YjQ1YmVlYTdlOTIzIiwgImNsaWVudF9pZCI6ICI1Zjg2Yzg3Yi1jMzViLTQ3M2ItYmZmOS00YTE5NzY3ZWQzZjciLCAicmVkaXJlY3RfdXJpIjogImh0dHBzOi8vYXBwLnRlc3Qudm9vcmJlZWxkd2FsbGV0Lm5sL2RlZXBsaW5rL2F1dGhlbnRpY2F0aW9uIn0=",
+            "SAMLRequest":
+                "rZNBj9owEIXv+yui3CHBBEIsiETZqkWiLAK2h15Wjj1ZLCV2ak9Yfn7tBLRUqjj1FCWeee+b58ncsrpq6LLFk9rD7xYsPgXBpa6Up\
+                 d3RImyNoppZaaliNViKnB6WPzaUDGPaGI2a6yr8q+lxD7MWDEqtfNP6eRG+bL9uXr6tt2+TEckyMZ2lMSmztGAJGYNIYz4aT+NxTA\
+                 hLszguZqlv/AnGOo1F6CT9exDsjD5LAWbrHBfhASU/oVTvwXp1fO2srG1hrSwyha4tJskgngzi2THOKJnSJP3lq55dAlIx7LRPiI2\
+                 lUdQYcJOK0VDIdymGqor8mJEUTWT60N6YSxCUM2W30XbXbL5IJRzH41CKvsjS78fjbrB0+ZSMo5dZ3uJaaWXbGswBzFlyeN1vPgHR\
+                 IQzPWpsCoBIfrKoAPWY5ZiOeiHLME5KwhLNimjE2I7NJOSUTVkbdQAOulQKO2kSM2z7NJaKRRYvQ2zq2q+9aCbgswlGYd3VznwTts\
+                 jX5/8aZR/fqnV9v2NDrsoLoVtdBIlwwWOm6YUZaf3mOWdZtHeY94n3dqnJLuIcyf7innHJf5z7v3ONDG+Gv1IGBOBqmbKMNXgn/Kd\
+                 7RRg9w86fb8f3/l/8B",
+            "RelayState":
+                "eyJzdGF0ZSI6ICI5Y2Q3ZTcwMWEyMzJmYWZjMjUzNWM4ODE2MmU4Yjg2MzA4YTRmM2U3MmRjMDc2MmNjNjk2YjQ1YmVlYTdlOTIzI\
+                iwgImNsaWVudF9pZCI6ICI1Zjg2Yzg3Yi1jMzViLTQ3M2ItYmZmOS00YTE5NzY3ZWQzZjciLCAicmVkaXJlY3RfdXJpIjogImh0dHB\
+                zOi8vYXBwLnRlc3Qudm9vcmJlZWxkd2FsbGV0Lm5sL2RlZXBsaW5rL2F1dGhlbnRpY2F0aW9uIn0=",
             "SigAlg": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
-            "Signature": "P7y2OyXiYm7oMGC7d4m7K8gDZFfCWWFwNrDusQfh928T7kHGZob/3unQnvwu36EGxc805y8t87riyUgT9sgmWRm9D4u3Rr6eZ5tCcbvR5ERQZvS+lNOOMc/uHlSv7L3ToXy5uh0tnUFX64L8qXLnPo9MgBBz/hOjSY72Pw2u+RTU3gmmij4M5/qFL4f5J/HupeYc3lID6ABLT4QpMinngLQO8F82KqbfJXeLNqQ5pmGUB3nvDfsVmxsNGm1ZMI2ifQqtyDUvGGwXxkpHi7EL/dSripWBZ/HhJbnPzJkC5KqUxUEi1/Z8o4MiwLUHhS3khiMKKxjW6w2tIvpWi0yXDISQJvIfrSVAx24OXqHW3nti41gmndWbviLRH7E7GIB2b9V9qTRMKFv9RCN7oTT/sE1MKNNkJ2FA2ePUu4lGYvZHDDf5gpcWr1y5ZiQull1x2nWlvGYkvBCHaWukThax39RC8AOZwixg3UvznMSGisElkDB6V7fqfdMbPXhDIb6+dXsAVsG84iJ9qBXmdawO2OgusSMI1i7O8jZyZXM68qg/YP8ZJJdwQuQESlOjhZxyUNsTytif9/aqCjvb7FC+7L16kjPLACCk+OLft8JRAw1+15MqdNBdg5aSlptdfFEwhI7REyJt8pv8HtlqPi11qGw1vZ+IH409nUsfAiXjkgk="
+            "Signature":
+                "P7y2OyXiYm7oMGC7d4m7K8gDZFfCWWFwNrDusQfh928T7kHGZob/3unQnvwu36EGxc805y8t87riyUgT9sgmWRm9D4u3Rr6eZ5tCc\
+                bvR5ERQZvS+lNOOMc/uHlSv7L3ToXy5uh0tnUFX64L8qXLnPo9MgBBz/hOjSY72Pw2u+RTU3gmmij4M5/qFL4f5J/HupeYc3lID6AB\
+                LT4QpMinngLQO8F82KqbfJXeLNqQ5pmGUB3nvDfsVmxsNGm1ZMI2ifQqtyDUvGGwXxkpHi7EL/dSripWBZ/HhJbnPzJkC5KqUxUEi1\
+                /Z8o4MiwLUHhS3khiMKKxjW6w2tIvpWi0yXDISQJvIfrSVAx24OXqHW3nti41gmndWbviLRH7E7GIB2b9V9qTRMKFv9RCN7oTT/sE1\
+                MKNNkJ2FA2ePUu4lGYvZHDDf5gpcWr1y5ZiQull1x2nWlvGYkvBCHaWukThax39RC8AOZwixg3UvznMSGisElkDB6V7fqfdMbPXhDI\
+                b6+dXsAVsG84iJ9qBXmdawO2OgusSMI1i7O8jZyZXM68qg/YP8ZJJdwQuQESlOjhZxyUNsTytif9/aqCjvb7FC+7L16kjPLACCk+OL\
+                ft8JRAw1+15MqdNBdg5aSlptdfFEwhI7REyJt8pv8HtlqPi11qGw1vZ+IH409nUsfAiXjkgk="
         }))).parse().unwrap()),
     )]
     #[case(
         StatusCode::TEMPORARY_REDIRECT,
-        HeaderValue::from_bytes("https://preprod.example.com/saml/idp/request_authentication?SAMLRequest=rZNBj9owEIXv%2Byui3CHBBEIsiETZqkWiLAK2h15Wjj1ZLCV2ak9Yfn7tBLRUqjj1FCWeee%2Bb58ncsrpq6LLFk9rD7xYsPgXBpa6Upd3RImyNoppZaaliNViKnB6WPzaUDGPaGI2a6yr8q%2BlxD7MWDEqtfNP6eRG%2BbL9uXr6tt2%2BTEckyMZ2lMSmztGAJGYNIYz4aT%2BNxTAhLszguZqlv%2FAnGOo1F6CT9exDsjD5LAWbrHBfhASU%2FoVTvwXp1fO2srG1hrSwyha4tJskgngzi2THOKJnSJP3lq55dAlIx7LRPiI2lUdQYcJOK0VDIdymGqor8mJEUTWT60N6YSxCUM2W30XbXbL5IJRzH41CKvsjS78fjbrB0%2BZSMo5dZ3uJaaWXbGswBzFlyeN1vPgHRIQzPWpsCoBIfrKoAPWY5ZiOeiHLME5KwhLNimjE2I7NJOSUTVkbdQAOulQKO2kSM2z7NJaKRRYvQ2zq2q%2B9aCbgswlGYd3VznwTtsjX5%2F8aZR%2FfqnV9v2NDrsoLoVtdBIlwwWOm6YUZaf3mOWdZtHeY94n3dqnJLuIcyf7innHJf5z7v3ONDG%2BGv1IGBOBqmbKMNXgn%2FKd7RRg9w86fb8f3%2Fl%2F8B&RelayState=eyJzdGF0ZSI6ICI5Y2Q3ZTcwMWEyMzJmYWZjMjUzNWM4ODE2MmU4Yjg2MzA4YTRmM2U3MmRjMDc2MmNjNjk2YjQ1YmVlYTdlOTIzIiwgImNsaWVudF9pZCI6ICI1Zjg2Yzg3Yi1jMzViLTQ3M2ItYmZmOS00YTE5NzY3ZWQzZjciLCAicmVkaXJlY3RfdXJpIjogImh0dHBzOi8vYXBwLnRlc3Qudm9vcmJlZWxkd2FsbGV0Lm5sL2RlZXBsaW5rL2F1dGhlbnRpY2F0aW9uIn0%3D&Signature=P7y2OyXiYm7oMGC7d4m7K8gDZFfCWWFwNrDusQfh928T7kHGZob%2F3unQnvwu36EGxc805y8t87riyUgT9sgmWRm9D4u3Rr6eZ5tCcbvR5ERQZvS%2BlNOOMc%2FuHlSv7L3ToXy5uh0tnUFX64L8qXLnPo9MgBBz%2FhOjSY72Pw2u%2BRTU3gmmij4M5%2FqFL4f5J%2FHupeYc3lID6ABLT4QpMinngLQO8F82KqbfJXeLNqQ5pmGUB3nvDfsVmxsNGm1ZMI2ifQqtyDUvGGwXxkpHi7EL%2FdSripWBZ%2FHhJbnPzJkC5KqUxUEi1%2FZ8o4MiwLUHhS3khiMKKxjW6w2tIvpWi0yXDISQJvIfrSVAx24OXqHW3nti41gmndWbviLRH7E7GIB2b9V9qTRMKFv9RCN7oTT%2FsE1MKNNkJ2FA2ePUu4lGYvZHDDf5gpcWr1y5ZiQull1x2nWlvGYkvBCHaWukThax39RC8AOZwixg3UvznMSGisElkDB6V7fqfdMbPXhDIb6%2BdXsAVsG84iJ9qBXmdawO2OgusSMI1i7O8jZyZXM68qg%2FYP8ZJJdwQuQESlOjhZxyUNsTytif9%2FaqCjvb7FC%2B7L16kjPLACCk%2BOLft8JRAw1%2B15MqdNBdg5aSlptdfFEwhI7REyJt8pv8HtlqPi11qGw1vZ%2BIH409nUsfAiXjkgk%3D&SigAlg=http%3A%2F%2Fwww.w3.org%2F2001%2F04%2Fxmldsig-more%23rsa-sha256".as_bytes()).ok(),
+        HeaderValue::from_bytes(
+            "https://preprod.example.com/saml/idp/request_authentication?SAMLRequest=rZNBj9owEIXv%2Byui3CHBBEIsiETZqkW\
+             iLAK2h15Wjj1ZLCV2ak9Yfn7tBLRUqjj1FCWeee%2Bb58ncsrpq6LLFk9rD7xYsPgXBpa6Upd3RImyNoppZaaliNViKnB6WPzaUDGPaGI\
+             2a6yr8q%2BlxD7MWDEqtfNP6eRG%2BbL9uXr6tt2%2BTEckyMZ2lMSmztGAJGYNIYz4aT%2BNxTAhLszguZqlv%2FAnGOo1F6CT9exDsj\
+             D5LAWbrHBfhASU%2FoVTvwXp1fO2srG1hrSwyha4tJskgngzi2THOKJnSJP3lq55dAlIx7LRPiI2lUdQYcJOK0VDIdymGqor8mJEUTWT6\
+             0N6YSxCUM2W30XbXbL5IJRzH41CKvsjS78fjbrB0%2BZSMo5dZ3uJaaWXbGswBzFlyeN1vPgHRIQzPWpsCoBIfrKoAPWY5ZiOeiHLME5K\
+             whLNimjE2I7NJOSUTVkbdQAOulQKO2kSM2z7NJaKRRYvQ2zq2q%2B9aCbgswlGYd3VznwTtsjX5%2F8aZR%2FfqnV9v2NDrsoLoVtdBIl\
+             wwWOm6YUZaf3mOWdZtHeY94n3dqnJLuIcyf7innHJf5z7v3ONDG%2BGv1IGBOBqmbKMNXgn%2FKd7RRg9w86fb8f3%2Fl%2F8B&RelayS\
+             tate=eyJzdGF0ZSI6ICI5Y2Q3ZTcwMWEyMzJmYWZjMjUzNWM4ODE2MmU4Yjg2MzA4YTRmM2U3MmRjMDc2MmNjNjk2YjQ1YmVlYTdlOTIz\
+             IiwgImNsaWVudF9pZCI6ICI1Zjg2Yzg3Yi1jMzViLTQ3M2ItYmZmOS00YTE5NzY3ZWQzZjciLCAicmVkaXJlY3RfdXJpIjogImh0dHBzO\
+             i8vYXBwLnRlc3Qudm9vcmJlZWxkd2FsbGV0Lm5sL2RlZXBsaW5rL2F1dGhlbnRpY2F0aW9uIn0%3D&Signature=P7y2OyXiYm7oMGC7d\
+             4m7K8gDZFfCWWFwNrDusQfh928T7kHGZob%2F3unQnvwu36EGxc805y8t87riyUgT9sgmWRm9D4u3Rr6eZ5tCcbvR5ERQZvS%2BlNOOMc\
+             %2FuHlSv7L3ToXy5uh0tnUFX64L8qXLnPo9MgBBz%2FhOjSY72Pw2u%2BRTU3gmmij4M5%2FqFL4f5J%2FHupeYc3lID6ABLT4QpMinng\
+             LQO8F82KqbfJXeLNqQ5pmGUB3nvDfsVmxsNGm1ZMI2ifQqtyDUvGGwXxkpHi7EL%2FdSripWBZ%2FHhJbnPzJkC5KqUxUEi1%2FZ8o4Mi\
+             wLUHhS3khiMKKxjW6w2tIvpWi0yXDISQJvIfrSVAx24OXqHW3nti41gmndWbviLRH7E7GIB2b9V9qTRMKFv9RCN7oTT%2FsE1MKNNkJ2F\
+             A2ePUu4lGYvZHDDf5gpcWr1y5ZiQull1x2nWlvGYkvBCHaWukThax39RC8AOZwixg3UvznMSGisElkDB6V7fqfdMbPXhDIb6%2BdXsAVs\
+             G84iJ9qBXmdawO2OgusSMI1i7O8jZyZXM68qg%2FYP8ZJJdwQuQESlOjhZxyUNsTytif9%2FaqCjvb7FC%2B7L16kjPLACCk%2BOLft8J\
+             RAw1%2B15MqdNBdg5aSlptdfFEwhI7REyJt8pv8HtlqPi11qGw1vZ%2BIH409nUsfAiXjkgk%3D&SigAlg=http%3A%2F%2Fwww.w3.or\
+             g%2F2001%2F04%2Fxmldsig-more%23rsa-sha256".as_bytes()
+        ).ok(),
         None,
         Some("file://etc/passwd".parse().unwrap()),
-        Err(DigidSessionError::Http(reqwest::Client::new().get("file://etc/passwd?login_hint=digid").send().await.unwrap_err()))
+        Err(DigidSessionError::Http(
+            reqwest::Client::new().get("file://etc/passwd?login_hint=digid").send().await.unwrap_err()
+        ))
     )]
     #[case(
         StatusCode::TEMPORARY_REDIRECT,
@@ -359,7 +416,9 @@ mod test {
         Some(unsafe { HeaderValue::from_maybe_shared_unchecked("🦀") }),
         None,
         None,
-        Err(DigidSessionError::HeaderNotAStr(unsafe { http::header::HeaderValue::from_maybe_shared_unchecked("🦀") }.to_str().unwrap_err()))
+        Err(DigidSessionError::HeaderNotAStr(
+            unsafe { http::header::HeaderValue::from_maybe_shared_unchecked("🦀") }.to_str().unwrap_err()
+        ))
     )]
     #[case(
         StatusCode::TEMPORARY_REDIRECT,
@@ -423,8 +482,8 @@ mod test {
 
         match (session.map(|(_, x)| x), expected) {
             (Ok(o), Ok(k)) => assert_eq!(o, k),
-            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()), /* unfortunately some of the errors don't
-            * implement PartialEq */
+            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()), /* unfortunately some of the errors don't */
+            // implement PartialEq
             (Err(e), Ok(o)) => panic!("assertion `left == right` failed\n left: {e:?}\nright: {o:?}"),
             (Ok(o), Err(e)) => panic!("assertion `left == right` failed\n left: {o:?}\nright: {e:?}"),
         };
@@ -461,37 +520,52 @@ mod test {
     // Don't use base64(json!()) here in the cases here as these tests test the base64 itself
     #[rstest]
     #[case(
-        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcdTAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFeU16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zYVdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkWEpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyRjBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0=".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcd\
+         TAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFe\
+         U16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zY\
+         VdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkW\
+         EpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyR\
+         jBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0=".parse().unwrap(),
         None,
         Ok(()) // without encoded `=`
     )]
     #[case(
-        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcdTAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFeU16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zYVdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkWEpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyRjBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0%3D".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcd\
+         TAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFe\
+         U16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zY\
+         VdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkW\
+         EpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyR\
+         jBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0%3D".parse().unwrap(),
         None,
         Ok(()) // with encoded `=`
     )]
     #[case(
-        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiLyIsIlJlbGF5U3RhdGUiOiIvIiwiRXJyb3JNZXNzYWdlIjpudWxsfQ==".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiLyIsIlJlbGF5U3RhdGUiOiIvIiwiRXJyb3JNZ\
+         XNzYWdlIjpudWxsfQ==".parse().unwrap(),
         None,
         Ok(()) // without two encoded `=`
     )]
     #[case(
-        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiLyIsIlJlbGF5U3RhdGUiOiIvIiwiRXJyb3JNZXNzYWdlIjpudWxsfQ%3D%3D".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiLyIsIlJlbGF5U3RhdGUiOiIvIiwiRXJyb3JNZ\
+         XNzYWdlIjpudWxsfQ%3D%3D".parse().unwrap(),
         None,
         Ok(()) // with two encoded `=`
     )]
     #[case(
-        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc3NhZ2UiOm51bGx9".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc\
+         3NhZ2UiOm51bGx9".parse().unwrap(),
         None,
         Ok(()) // no padding
     )]
     #[case(
-        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc3NhZ2UiOm51bGx9".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc\
+         3NhZ2UiOm51bGx9".parse().unwrap(),
         Some(OidcError::StateTokenMismatch),
         Err(DigidSessionError::Oidc(OidcError::StateTokenMismatch))
     )]
     #[case(
-        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjpudWxsLCJSZWxheVN0YXRlIjpudWxsLCJFcnJvck1lc3NhZ2UiOiJ0aW1lb3V0In0=".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjpudWxsLCJSZWxheVN0YXRlIjpudWxsLCJFcnJvc\
+         k1lc3NhZ2UiOiJ0aW1lb3V0In0=".parse().unwrap(),
         None,
         Err(DigidSessionError::App2AppError(App2AppErrorMessage::Timeout))
     )]
@@ -559,8 +633,8 @@ mod test {
         let token_request = session.into_token_request(redirect_uri).await;
 
         match (token_request, expected) {
-            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()), /* unfortunately some of the errors don't
-            * implement PartialEq */
+            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()), /* unfortunately some of the errors don't */
+            // implement PartialEq
             (Ok(o), Err(e)) => panic!("assertion `left == right` failed\n left: {o:?}\nright: {e:?}"),
             (tr, Ok(())) => {
                 tr.unwrap();
@@ -571,19 +645,50 @@ mod test {
     #[rstest]
     #[case(
         Some("example.com/no_padding".to_owned()),
-        "https://app.example.com/app?app-app=".to_string() + &base64(json!({"Icon": "https://example.com/logo.png", "ReturnUrl": "https://example.com/return", "Host": "example.com/no_padding", "SAMLRequest": "", "RelayState": null, "SigAlg": "", "Signature": ""}))
+        "https://app.example.com/app?app-app=".to_string() + &base64(json!({
+            "Icon": "https://example.com/logo.png",
+            "ReturnUrl": "https://example.com/return",
+            "Host": "example.com/no_padding",
+            "SAMLRequest": "",
+            "RelayState": null,
+            "SigAlg": "", "Signature": ""
+        }))
     )]
     #[case(
         Some("example.com/padding__".to_owned()),
-        "https://app.example.com/app?app-app=".to_string() + &base64(json!({"Icon": "https://example.com/logo.png", "ReturnUrl": "https://example.com/return", "Host": "example.com/padding__", "SAMLRequest": "", "RelayState": null, "SigAlg": "", "Signature": ""}))
+        "https://app.example.com/app?app-app=".to_string() + &base64(json!({
+            "Icon": "https://example.com/logo.png",
+            "ReturnUrl": "https://example.com/return",
+            "Host": "example.com/padding__",
+            "SAMLRequest": "",
+            "RelayState": null,
+            "SigAlg": "",
+            "Signature": ""
+        }))
     )]
     #[case(
         Some("example.com/more___padding".to_owned()),
-        "https://app.example.com/app?app-app=".to_string() + &base64(json!({"Icon": "https://example.com/logo.png", "ReturnUrl": "https://example.com/return", "Host": "example.com/more___padding", "SAMLRequest": "", "RelayState": null, "SigAlg": "", "Signature": ""}))
+        "https://app.example.com/app?app-app=".to_string() + &base64(json!({
+            "Icon": "https://example.com/logo.png",
+            "ReturnUrl": "https://example.com/return",
+            "Host": "example.com/more___padding",
+            "SAMLRequest": "",
+            "RelayState": null,
+            "SigAlg": "",
+            "Signature": ""
+        }))
     )]
     #[case(
         None,
-        "https://app.example.com/app?app-app=".to_string() + &base64(json!({"Icon": "https://example.com/logo.png", "ReturnUrl": "https://example.com/return", "Host": null, "SAMLRequest": "", "RelayState": null, "SigAlg": "", "Signature": ""}))
+        "https://app.example.com/app?app-app=".to_string() + &base64(json!({
+            "Icon": "https://example.com/logo.png",
+            "ReturnUrl": "https://example.com/return",
+            "Host": null,
+            "SAMLRequest": "",
+            "RelayState": null,
+            "SigAlg": "",
+            "Signature": ""
+        }))
     )]
     fn test_format_app2app_url(#[case] host: Option<String>, #[case] expected: String) {
         let expected = expected.parse().unwrap();

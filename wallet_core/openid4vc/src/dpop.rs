@@ -67,7 +67,11 @@ pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DpopError {
-    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
+    #[error(
+        "unsupported JWT algorithm: expected {}, found {}",
+        expected,
+        found.as_ref().unwrap_or(&"<None>".to_string())
+    )]
     #[category(critical)]
     UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("incorrect DPoP JWT HTTP method")]

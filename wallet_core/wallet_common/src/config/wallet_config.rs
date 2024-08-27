@@ -182,13 +182,14 @@ mod tests {
     #[case("https://example.com/", "path/to/", "https://example.com/path/to/")]
     #[case("https://example.com/", "/path/to/", "https://example.com/path/to/")]
     #[case("https://example.com/path/", "to", "https://example.com/path/to")]
-    #[case("https://example.com/path/", "/to", "https://example.com/path/to")] // if path is absolute, remove leading '/'
     #[case("https://example.com/path/", "to/", "https://example.com/path/to/")]
-    #[case("https://example.com/path/", "/to/", "https://example.com/path/to/")] // if path is absolute, remove leading '/'
     #[case("https://example.com/path/", "to/success", "https://example.com/path/to/success")]
-    #[case("https://example.com/path/", "/to/success", "https://example.com/path/to/success")] // if path is absolute, remove leading '/'
     #[case("https://example.com/path/", "to/success/", "https://example.com/path/to/success/")]
-    #[case("https://example.com/path/", "/to/success/", "https://example.com/path/to/success/")] // if path is absolute, remove leading '/'
+    // if path is absolute, remove leading '/'
+    #[case("https://example.com/path/", "/to", "https://example.com/path/to")]
+    #[case("https://example.com/path/", "/to/", "https://example.com/path/to/")]
+    #[case("https://example.com/path/", "/to/success", "https://example.com/path/to/success")]
+    #[case("https://example.com/path/", "/to/success/", "https://example.com/path/to/success/")]
     #[tokio::test]
     async fn base_url_join(#[case] value: BaseUrl, #[case] path: &str, #[case] expected: &str) {
         assert_eq!(value.join(path).as_str(), expected);
@@ -204,13 +205,14 @@ mod tests {
     #[case("https://example.com/", "path/to/", "https://example.com/path/to/")]
     #[case("https://example.com/", "/path/to/", "https://example.com/path/to/")]
     #[case("https://example.com/path/", "to", "https://example.com/path/to")]
-    #[case("https://example.com/path/", "/to", "https://example.com/path/to")] // if path is absolute, remove leading '/'
     #[case("https://example.com/path/", "to/", "https://example.com/path/to/")]
-    #[case("https://example.com/path/", "/to/", "https://example.com/path/to/")] // if path is absolute, remove leading '/'
     #[case("https://example.com/path/", "to/success", "https://example.com/path/to/success")]
-    #[case("https://example.com/path/", "/to/success", "https://example.com/path/to/success")] // if path is absolute, remove leading '/'
     #[case("https://example.com/path/", "to/success/", "https://example.com/path/to/success/")]
-    #[case("https://example.com/path/", "/to/success/", "https://example.com/path/to/success/")] // if path is absolute, remove leading '/'
+    // if path is absolute, remove leading '/'
+    #[case("https://example.com/path/", "/to", "https://example.com/path/to")]
+    #[case("https://example.com/path/", "/to/", "https://example.com/path/to/")]
+    #[case("https://example.com/path/", "/to/success", "https://example.com/path/to/success")]
+    #[case("https://example.com/path/", "/to/success/", "https://example.com/path/to/success/")]
     #[tokio::test]
     async fn base_url_join_base_url(#[case] value: BaseUrl, #[case] path: &str, #[case] expected: &str) {
         assert_eq!(value.join_base_url(path).as_ref().as_str(), expected);

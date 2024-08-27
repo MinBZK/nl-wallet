@@ -88,7 +88,11 @@ pub enum CredentialRequestError {
     MissingJwk,
     #[error("incorrect nonce")]
     IncorrectNonce,
-    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
+    #[error(
+        "unsupported JWT algorithm: expected {}, found {}",
+        expected,
+        found.as_ref().unwrap_or(&"<None>".to_string())
+    )]
     UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("JWT decoding failed: {0}")]
     JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),

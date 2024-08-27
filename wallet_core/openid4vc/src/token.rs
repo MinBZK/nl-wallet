@@ -103,8 +103,8 @@ pub enum TokenRequestGrantType {
     },
 }
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-successful-token-response
-/// and https://www.rfc-editor.org/rfc/rfc6749.html#section-5.1
+/// See <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-successful-token-response>
+/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.1>.
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -246,7 +246,9 @@ mod tests {
                 authorization_details: None,
             })
             .unwrap(),
-            r#"{"access_token":"access_token","token_type":"Bearer","c_nonce":"c_nonce","scope":"scope1 scope2","c_nonce_expires_in":10}"#.to_string(),
+            "{\"access_token\":\"access_token\",\"token_type\":\"Bearer\",\"c_nonce\":\"c_nonce\",\"scope\":\"scope1 \
+             scope2\",\"c_nonce_expires_in\":10}"
+                .to_string(),
         )
     }
 }

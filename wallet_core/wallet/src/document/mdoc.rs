@@ -933,7 +933,10 @@ pub mod tests {
             "com.example.address/com.example.address/resident_state",
             "com.example.pid/com.example.pid/gender",
         ],
-        vec![("com.example.pid", vec!["bsn", "gender"]), ("com.example.address", vec!["resident_country", "resident_state"])].into())
+        vec![
+            ("com.example.pid", vec!["bsn", "gender"]),
+            ("com.example.address", vec!["resident_country", "resident_state"])
+        ].into())
     ]
     #[case(vec!["com.example.foo/com.example.bar/something"], None)] // DocumentMdocError::UnknownDocType
     #[case(vec!["com.example.pid/com.example.pid/favorite_colour"], None)] // DocumentMdocError::UnknownAttribute

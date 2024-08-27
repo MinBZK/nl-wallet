@@ -110,7 +110,8 @@ async fn test_error_response() {
         response.headers().get("Content-Type").unwrap().to_str().unwrap()
     );
     assert_eq!(
-        r#"{"type":"gba","title":"GBA error","status":412,"detail":"GBA error: Element number 510 is mandatory but missing"}"#,
+        "{\"type\":\"gba\",\"title\":\"GBA error\",\"status\":412,\"detail\":\"GBA error: Element number 510 is \
+         mandatory but missing\"}",
         response.text().await.unwrap()
     );
 }
@@ -129,7 +130,8 @@ async fn test_received_error_response() {
         response.headers().get("Content-Type").unwrap().to_str().unwrap()
     );
     assert_eq!(
-        r#"{"type":"gba","title":"GBA error","status":412,"detail":"GBA error: Received error response: foutcode: X001, description: Interne fout., reference: a00d961b-dd58-4f1c-bd48-964a46d2708b"}"#,
+        "{\"type\":\"gba\",\"title\":\"GBA error\",\"status\":412,\"detail\":\"GBA error: Received error response: \
+         foutcode: X001, description: Interne fout., reference: a00d961b-dd58-4f1c-bd48-964a46d2708b\"}",
         response.text().await.unwrap()
     );
 }
