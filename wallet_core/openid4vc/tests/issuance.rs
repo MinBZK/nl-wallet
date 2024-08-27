@@ -13,7 +13,9 @@ use nl_wallet_mdoc::{
     Tdate,
 };
 use openid4vc::{
-    credential::{CredentialRequestProof, CredentialRequests, CredentialResponses},
+    credential::{
+        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
+    },
     dpop::Dpop,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, VcMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
@@ -59,16 +61,18 @@ async fn accept_issuance() {
     .await
     .unwrap();
 
-    let mdoc_copies = session
+    let issued_creds = session
         .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
         .await
         .unwrap();
 
-    assert_eq!(mdoc_copies.len(), 2);
-    assert_eq!(mdoc_copies[0].cred_copies.len(), 2);
+    assert_eq!(issued_creds.len(), 2);
+    assert_eq!(issued_creds.first().unwrap().as_mdocs().unwrap().cred_copies.len(), 2);
 
-    mdoc_copies.into_iter().zip(previews).for_each(|(copies, preview)| {
+    issued_creds.into_iter().zip(previews).for_each(|(copies, preview)| {
         copies
+            .as_mdocs()
+            .unwrap()
             .cred_copies
             .first()
             .unwrap()
@@ -231,17 +235,26 @@ impl MockOpenidMessageClient {
         }
     }
 
-    fn credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
+    fn credential_request(&self, mut credential_request: CredentialRequest) -> CredentialRequest {
         if self.invalidate_pop {
-            let invalidated_proof = match credential_requests.credential_requests.first().proof.as_ref().unwrap() {
+            let invalidated_proof = match credential_request.proof.as_ref().unwrap() {
                 CredentialRequestProof::Jwt { jwt } => CredentialRequestProof::Jwt {
                     jwt: invalidate_jwt(&jwt.0).into(),
                 },
             };
+            credential_request.proof = Some(invalidated_proof);
+            credential_request
+        } else {
+            credential_request
+        }
+    }
+
+    fn credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
+        if self.invalidate_pop {
+            let invalidated_request = self.credential_request(credential_requests.credential_requests.first().clone());
 
             let mut requests = credential_requests.credential_requests.into_inner();
-
-            requests[0].proof = Some(invalidated_proof);
+            requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
 
             credential_requests
@@ -279,6 +292,23 @@ impl VcMessageClient for MockOpenidMessageClient {
             .await
             .map_err(|err| IssuanceSessionError::TokenRequest(err.into()))?;
         Ok((token_response, Some(dpop_nonce)))
+    }
+
+    async fn request_credential(
+        &self,
+        _url: &Url,
+        credential_request: &CredentialRequest,
+        dpop_header: &str,
+        access_token_header: &str,
+    ) -> Result<CredentialResponse, IssuanceSessionError> {
+        self.issuer
+            .process_credential(
+                self.access_token(access_token_header),
+                self.dpop(dpop_header),
+                self.credential_request(credential_request.clone()),
+            )
+            .await
+            .map_err(|err| IssuanceSessionError::CredentialRequest(err.into()))
     }
 
     async fn request_credentials(

@@ -21,22 +21,24 @@ use crate::{
     verifier::ValidityRequirement,
 };
 
-/// Stores multiple copies of mdocs that have identical attributes.
+/// Stores multiple copies of attestations that have identical attributes.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
-pub struct MdocCopies {
-    pub cred_copies: Vec<Mdoc>,
+pub struct CredentialCopies<T> {
+    pub cred_copies: Vec<T>,
 }
 
-impl IntoIterator for MdocCopies {
-    type Item = Mdoc;
-    type IntoIter = std::vec::IntoIter<Mdoc>;
+pub type MdocCopies = CredentialCopies<Mdoc>;
+
+impl<T> IntoIterator for CredentialCopies<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
         self.cred_copies.into_iter()
     }
 }
-impl From<Vec<Mdoc>> for MdocCopies {
-    fn from(creds: Vec<Mdoc>) -> Self {
-        Self { cred_copies: creds }
+impl<T> From<Vec<T>> for CredentialCopies<T> {
+    fn from(cred_copies: Vec<T>) -> Self {
+        Self { cred_copies }
     }
 }
 

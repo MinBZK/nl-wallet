@@ -84,7 +84,7 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     assert_eq!(2, mdocs.len());
-    assert_eq!(2, mdocs[0].cred_copies.len())
+    assert_eq!(2, mdocs[0].as_mdocs().unwrap().cred_copies.len())
 }
 
 fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {

@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use indexmap::IndexSet;
 
 use nl_wallet_mdoc::{
-    holder::{MdocCopies, TrustAnchor},
+    holder::TrustAnchor,
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 use wallet_common::config::wallet_config::BaseUrl;
 
 use crate::{
-    issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError},
+    issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies},
     metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
     oidc::Config,
     token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
@@ -26,7 +26,7 @@ mockall::mock! {
 
         pub fn accept(
             &self,
-        ) -> Result<Vec<MdocCopies>, IssuanceSessionError>;
+        ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
     }
@@ -50,7 +50,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
         _: BaseUrl,
-    ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         self.accept()
     }
 

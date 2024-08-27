@@ -9,13 +9,15 @@ use url::Url;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
+    holder::TrustAnchor,
     unsigned::UnsignedMdoc,
     utils::{
         issuer_auth::IssuerRegistration,
-        x509::{Certificate, CertificateError, CertificateType},
+        x509::{Certificate, CertificateError, CertificateType, CertificateUsage},
     },
 };
 use wallet_common::{
+    generator::TimeGenerator,
     nonempty::NonEmpty,
     utils::{random_string, sha256},
 };
@@ -159,13 +161,20 @@ impl AttestationPreview {
             AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,
         }
     }
-}
 
-// Shorthands to convert the preview to the currently only supported format
-impl AsRef<Certificate> for AttestationPreview {
-    fn as_ref(&self) -> &Certificate {
+    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CertificateError> {
         match self {
-            AttestationPreview::MsoMdoc { issuer, .. } => issuer,
+            AttestationPreview::MsoMdoc { issuer, .. } => {
+                // Verify the issuer certificates that the issuer presents for each attestation to be issued.
+                // NB: this only proves the authenticity of the data inside the certificates (the [`IssuerRegistration`]s),
+                // but does not authenticate the issuer that presents them.
+                // Anyone that has ever seen these certificates (such as other wallets that received them during issuance)
+                // could present them here in the protocol without needing the corresponding issuer private key.
+                // This is not a problem, because at the end of the issuance protocol each mdoc is verified against the
+                // corresponding certificate in the attestation preview, which implicitly authenticates the issuer because
+                // only it could have produced an mdoc against that certificate.
+                issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+            }
         }
     }
 }
