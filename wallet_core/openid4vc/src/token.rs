@@ -103,7 +103,8 @@ pub enum TokenRequestGrantType {
     },
 }
 
-/// See <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-successful-token-response>
+/// See
+/// <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-successful-token-response>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.1>.
 #[serde_as]
 #[skip_serializing_none]
