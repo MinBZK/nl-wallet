@@ -1,20 +1,20 @@
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 :root {
-    font-family: "RO Sans", sans-serif;
-    font-feature-settings:
-        "clig" off,
-        "liga" off;
-    font-size: 16px;
-    line-height: 1.5;
+  font-family: "RO Sans", sans-serif;
+  font-feature-settings:
+    "clig" off,
+    "liga" off;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 body {
-    background: #faf9fb;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100vh;
+  background: #faf9fb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
 }

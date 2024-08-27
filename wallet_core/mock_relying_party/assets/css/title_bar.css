@@ -1,82 +1,82 @@
 header > * {
-    max-width: 1145px;
-    display: flex;
-    flex-grow: 1;
-    justify-content: space-between;
+  max-width: 1145px;
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
 }
 
 header {
-    display: flex;
-    justify-content: center;
-    padding: 24px 16px;
-    background: #fff;
-    width: 100%;
-    border-bottom: 1px solid #e8eaef;
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+  background: #fff;
+  width: 100%;
+  border-bottom: 1px solid #e8eaef;
 }
 
 @media only screen and (min-width: 1145px) {
-    header {
-        padding: 32px;
-    }
+  header {
+    padding: 32px;
+  }
 }
 
 header h1::before {
-    content: " ";
-    background: var(--logo-url) no-repeat center center / contain;
-    border-radius: 2.18px;
-    width: 23.273px;
-    height: 23.273px;
+  content: " ";
+  background: var(--logo-url) no-repeat center center / contain;
+  border-radius: 2.18px;
+  width: 23.273px;
+  height: 23.273px;
 }
 
 @media only screen and (min-width: 1145px) {
-    header h1::before {
-        border-radius: 2.18px;
-        width: 32px;
-        height: 32px;
-    }
+  header h1::before {
+    border-radius: 2.18px;
+    width: 32px;
+    height: 32px;
+  }
 }
 
 header h1 {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: #2e2e2e;
-    font-size: 21.818px;
-    font-weight: 700;
-    line-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #2e2e2e;
+  font-size: 21.818px;
+  font-weight: 700;
+  line-height: 32px;
 }
 
 @media only screen and (min-width: 1145px) {
-    header h1 {
-        gap: 20px;
-        font-size: 30px;
-        line-height: 44px;
-    }
+  header h1 {
+    gap: 20px;
+    font-size: 30px;
+    line-height: 44px;
+  }
 }
 
 .username {
-    display: none;
+  display: none;
 }
 
 @media only screen and (min-width: 1145px) {
-    .username {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--primary-color);
-        font-size: 18px;
-        font-weight: 700;
-        letter-spacing: 1px;
-    }
+  .username {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--primary-color);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
 
-    .username::before {
-        content: " ";
-        background-color: var(--primary-color);
-        mask: url("../non-free/images/account.svg") no-repeat center center / cover;
-        mask-size: 24px;
-        -webkit-mask: url("../non-free/images/account.svg") no-repeat center center / cover;
-        -webkit-mask-size: 24px;
-        width: 24px;
-        height: 24px;
-    }
+  .username::before {
+    content: " ";
+    background-color: var(--primary-color);
+    -webkit-mask: url("../non-free/images/account.svg") no-repeat center center / cover;
+    mask: url("../non-free/images/account.svg") no-repeat center center / cover;
+    -webkit-mask-size: 24px;
+    mask-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
 }

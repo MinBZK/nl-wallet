@@ -1,15 +1,15 @@
 @import url("./xyz_bank.css");
 
 button {
-    width: fit-content;
+  width: fit-content;
 }
 
 button > span {
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: 12px;
-    padding: 16px 24px;
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: 1px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 1px;
 }

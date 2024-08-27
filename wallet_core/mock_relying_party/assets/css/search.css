@@ -1,18 +1,18 @@
 @import url("./input-reset.css");
 
 input[name="search"] {
-    display: flex;
-    justify-content: center;
-    color: #706685;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 24px;
-    letter-spacing: 0.5px;
-    padding: 16px 24px;
-    border-radius: 12px;
-    border: 1px solid #473d5c;
-    width: 100%;
+  display: flex;
+  justify-content: center;
+  color: #706685;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  border: 1px solid #473d5c;
+  width: 100%;
 
-    /* icon */
-    background: url("../non-free/images/search.svg") no-repeat right center / 18px content-box;
+  /* icon */
+  background: url("../non-free/images/search.svg") no-repeat right center / 18px content-box;
 }
