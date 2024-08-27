@@ -59,9 +59,9 @@ variables:
 
 .release-tag:
   before_script:
-    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^release-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^release-v//')"
+    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^v//')"
   rules:
-    - if: $CI_COMMIT_TAG =~ /^release-v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
       variables:
         CACHE_POLICY: pull
 
