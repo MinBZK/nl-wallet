@@ -24,29 +24,31 @@ use crate::{account_server::InstructionError, hsm::HsmError};
 pub trait HandleInstruction {
     type Result: Serialize;
 
-    async fn handle<T>(
+    async fn handle<T, R>(
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
-        wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        wallet_user_repository: &R,
         wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
     ) -> Result<Self::Result, InstructionError>
     where
-        T: Committable;
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>;
 }
 
 impl HandleInstruction for CheckPin {
     type Result = ();
 
-    async fn handle<T>(
+    async fn handle<T, R>(
         self,
         _wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        _wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        _wallet_user_repository: &R,
         _wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     {
         Ok(())
     }
@@ -55,15 +57,16 @@ impl HandleInstruction for CheckPin {
 impl HandleInstruction for GenerateKey {
     type Result = GenerateKeyResult;
 
-    async fn handle<T>(
+    async fn handle<T, R>(
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
-        wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        wallet_user_repository: &R,
         wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
     ) -> Result<GenerateKeyResult, InstructionError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     {
         let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
         let keys = wallet_user_hsm.generate_wrapped_keys(&identifiers).await?;
@@ -101,15 +104,16 @@ impl HandleInstruction for GenerateKey {
 impl HandleInstruction for Sign {
     type Result = SignResult;
 
-    async fn handle<T>(
+    async fn handle<T, R>(
         self,
         wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        wallet_user_repository: &R,
         wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     {
         let (data, identifiers): (Vec<_>, Vec<_>) = self.messages_with_identifiers.into_iter().unzip();
 
