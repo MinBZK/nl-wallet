@@ -34,7 +34,7 @@ use crate::{
     jwt::JwkConversionError,
     metadata::IssuerMetadata,
     oidc,
-    token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
+    token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };
 
@@ -71,7 +71,7 @@ pub enum IssuanceSessionError {
     #[error("error requesting credentials: {0:?}")]
     #[category(pd)]
     CredentialRequest(ErrorResponse<CredentialErrorCode>),
-    #[error("generating attestation private keys failed: {0}")]
+    #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("public key contained in mdoc not equal to expected value")]
@@ -85,7 +85,7 @@ pub enum IssuanceSessionError {
     #[error("error reading HTTP error: {0}")]
     #[category(pd)]
     HeaderToStr(#[from] ToStrError),
-    #[error("error verifying certificate of attestation preview: {0}")]
+    #[error("error verifying certificate of credential preview: {0}")]
     Certificate(#[from] CertificateError),
     #[error("issuer certificate contained in mdoc not equal to expected value")]
     #[category(critical)]
@@ -163,7 +163,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         base_url: BaseUrl,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
+    ) -> Result<(Self, Vec<CredentialPreview>), IssuanceSessionError>
     where
         Self: Sized;
 
@@ -361,7 +361,7 @@ impl HttpVcMessageClient {
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
-    attestation_previews: Vec<AttestationPreview>,
+    credential_previews: Vec<CredentialPreview>,
     issuer_url: BaseUrl,
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
@@ -372,7 +372,7 @@ impl Debug for IssuanceState {
         f.debug_struct("IssuanceState")
             .field("access_token", &self.access_token)
             .field("c_nonce", &self.c_nonce)
-            .field("attestation_previews", &self.attestation_previews)
+            .field("credential_previews", &self.credential_previews)
             .field("issuer_url", &self.issuer_url)
             .field("dpop_nonce", &self.dpop_nonce)
             .finish_non_exhaustive() // don't show dpop_private_key
@@ -430,7 +430,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         base_url: BaseUrl,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError> {
+    ) -> Result<(Self, Vec<CredentialPreview>), IssuanceSessionError> {
         let token_endpoint = Self::discover_token_endpoint(&message_client, &base_url).await?;
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
@@ -441,12 +441,12 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .await?;
 
         token_response
-            .attestation_previews
+            .credential_previews
             .as_ref()
             .iter()
             .try_for_each(|preview| preview.verify(trust_anchors))?;
 
-        let attestation_previews = token_response.attestation_previews.into_inner();
+        let credential_previews = token_response.credential_previews.into_inner();
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -454,7 +454,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 .token_response
                 .c_nonce
                 .ok_or(IssuanceSessionError::MissingNonce)?,
-            attestation_previews: attestation_previews.clone(),
+            credential_previews: credential_previews.clone(),
             issuer_url: base_url,
             dpop_private_key,
             dpop_nonce,
@@ -464,7 +464,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             message_client,
             session_state,
         };
-        Ok((issuance_client, attestation_previews))
+        Ok((issuance_client, credential_previews))
     }
 
     async fn accept_issuance<K: MdocEcdsaKey>(
@@ -473,20 +473,20 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
-        // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
-        // has no support (yet) for issuance of multiple copies of multiple attestations.
+        // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple credentials, but the protocol
+        // has no support (yet) for issuance of multiple copies of multiple credentials.
         // We implement this below by simply flattening the relevant nested iterators when communicating with the issuer.
 
         let types = self
             .session_state
-            .attestation_previews
+            .credential_previews
             .iter()
             .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count().into()))
             .collect_vec();
 
         // Generate the PoPs to be sent to the issuer, and the private keys with which they were generated
         // (i.e., the private key of the future mdoc).
-        // If N is the total amount of copies of attestations to be issued, then this returns N key/proof pairs.
+        // If N is the total amount of copies of credentials to be issued, then this returns N key/proof pairs.
         let keys_and_proofs = CredentialRequestProof::new_multiple(
             self.session_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
@@ -509,7 +509,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let id = key.identifier().to_string();
                     let cred_request = CredentialRequest {
-                        attestation_type: typ,
+                        credential_type: typ,
                         proof: Some(response),
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
@@ -527,7 +527,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         let mdocs = self
             .session_state
-            .attestation_previews
+            .credential_previews
             .iter()
             .map(|preview| {
                 let copy_count: usize = preview.copy_count().into();
@@ -596,7 +596,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 &url,
                 &CredentialRequests {
                     // This `.unwrap()` is safe as long as the received
-                    // `TokenResponseWithPreviews.attestation_previews` is not empty.
+                    // `TokenResponseWithPreviews.credential_previews` is not empty.
                     credential_requests: credential_requests.try_into().unwrap(),
                 },
                 &dpop_header,
@@ -605,7 +605,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .await?;
 
         // The server must have responded with enough credential responses, N, so that the caller has exactly enough
-        // responses for all copies of all attestations constructed.
+        // responses for all copies of all credentials constructed.
         if responses.credential_responses.len() != expected_response_count {
             return Err(IssuanceSessionError::UnexpectedCredentialResponseCount {
                 found: responses.credential_responses.len(),
@@ -623,7 +623,7 @@ impl CredentialResponse {
         self,
         key_id: String,
         verifying_key: &VerifyingKey,
-        preview: &AttestationPreview,
+        preview: &CredentialPreview,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<IssuedCredential, IssuanceSessionError> {
         match self {
@@ -659,8 +659,8 @@ impl CredentialResponse {
                 }
 
                 // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
-                // in the attestation preview.
-                let AttestationPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
+                // in the credential preview.
+                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
                 if issuer_signed.issuer_auth.signing_cert()? != *issuer {
                     return Err(IssuanceSessionError::IssuerCertificateMismatch);
                 }
@@ -733,13 +733,13 @@ mod tests {
         mock_msg_client
     }
 
-    async fn create_credential_response() -> (CredentialResponse, AttestationPreview, Certificate, VerifyingKey) {
+    async fn create_credential_response() -> (CredentialResponse, CredentialPreview, Certificate, VerifyingKey) {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = SoftwareKeyFactory::default();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
-        let preview = AttestationPreview::MsoMdoc {
+        let preview = CredentialPreview::MsoMdoc {
             unsigned_mdoc: unsigned_mdoc.clone(),
             issuer: issuance_key.certificate().clone(),
         };
@@ -757,7 +757,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_start_issuance_untrusted_attestation_preview() {
+    async fn test_start_issuance_untrusted_credential_preview() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let ca_cert = ca.certificate();
         let trust_anchors = &[(ca_cert.try_into().unwrap())];
@@ -766,12 +766,12 @@ mod tests {
         mock_msg_client
             .expect_request_token()
             .return_once(|_url, _token_request, _dpop_header| {
-                // Generate the attestation previews with some other CA than what the
+                // Generate the credential previews with some other CA than what the
                 // HttpIssuanceSession::start_issuance() will accept
                 let ca = KeyPair::generate_issuer_mock_ca().unwrap();
                 let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
-                let preview = AttestationPreview::MsoMdoc {
+                let preview = CredentialPreview::MsoMdoc {
                     unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
                     issuer: issuance_key.certificate().clone(),
                 };
@@ -779,7 +779,7 @@ mod tests {
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        attestation_previews: NonEmpty::new(vec![preview]).unwrap(),
+                        credential_previews: NonEmpty::new(vec![preview]).unwrap(),
                     },
                     None,
                 ))
@@ -814,7 +814,7 @@ mod tests {
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        attestation_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(), // return two previews
+                        credential_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(), // return two previews
                     },
                     Some("dpop_nonce".to_string()),
                 ))
@@ -935,10 +935,10 @@ mod tests {
             .generate_issuer_mock(IssuerRegistration::new_mock().into())
             .unwrap();
         let preview = match preview {
-            AttestationPreview::MsoMdoc {
+            CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
                 issuer: _,
-            } => AttestationPreview::MsoMdoc {
+            } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
                 issuer: other_issuance_key.certificate().clone(),
             },
@@ -976,10 +976,10 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail.
         let preview = match preview {
-            AttestationPreview::MsoMdoc {
+            CredentialPreview::MsoMdoc {
                 unsigned_mdoc: _,
                 issuer,
-            } => AttestationPreview::MsoMdoc {
+            } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
                 issuer,
             },

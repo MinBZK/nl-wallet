@@ -69,7 +69,7 @@ pub enum RequestUriMethod {
     POST,
 }
 
-/// An OpenID4VP Authorization Request, allowing an RP to request a set of attestations/attributes from a wallet.
+/// An OpenID4VP Authorization Request, allowing an RP to request a set of credentials/attributes from a wallet.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationRequest {
@@ -78,7 +78,7 @@ pub struct VpAuthorizationRequest {
     #[serde(flatten)]
     pub oauth_request: AuthorizationRequest,
 
-    /// Contains requirements on the attestations and/or attributes to be disclosed.
+    /// Contains requirements on the credentials and/or attributes to be disclosed.
     #[serde(flatten)]
     pub presentation_definition: VpPresentationDefinition,
 
@@ -559,7 +559,7 @@ pub enum AuthResponseError {
 
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
 // of OpenID4VP that we (plan to) support do we need the `code` field from that struct, which is its primary citizen.
-/// An OpenID4VP Authorization Response, with the wallet's disclosed attestations/attributes in the `vp_token`.
+/// An OpenID4VP Authorization Response, with the wallet's disclosed credentials/attributes in the `vp_token`.
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationResponse {
@@ -575,13 +575,13 @@ pub struct VpAuthorizationResponse {
     pub state: Option<String>,
 }
 
-/// Disclosure of an attestation, generally containing the issuer-signed attestation itself, the disclosed attributes,
+/// Disclosure of an credential, generally containing the issuer-signed credential itself, the disclosed attributes,
 /// and a holder signature over some nonce provided by the verifier.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum VerifiablePresentation {
     // NB: a `DeviceResponse` can contain disclosures of multiple mdocs.
-    // In case of other (not yet supported) formats, each attestation is expected to result in a separate
+    // In case of other (not yet supported) formats, each credential is expected to result in a separate
     // Verifiable Presentation. See e.g. this example:
     // https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-6.1-13
     MsoMdoc(CborBase64<DeviceResponse>),

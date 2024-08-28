@@ -14,7 +14,7 @@ use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, nonempty::NonEmpty
 use crate::{
     issuance_session::IssuanceSessionError,
     jwt::{self, jwk_jwt_header},
-    token::AttestationPreview,
+    token::CredentialPreview,
     Format,
 };
 
@@ -31,13 +31,13 @@ pub struct CredentialRequests {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequest {
     #[serde(flatten)]
-    pub attestation_type: CredentialRequestType,
+    pub credential_type: CredentialRequestType,
     pub proof: Option<CredentialRequestProof>,
 }
 
 impl CredentialRequest {
-    pub fn attestation_type(&self) -> Option<&String> {
-        match &self.attestation_type {
+    pub fn credential_type(&self) -> Option<&String> {
+        match &self.credential_type {
             CredentialRequestType::MsoMdoc { doctype } => doctype.as_ref(),
         }
     }
@@ -49,10 +49,10 @@ pub enum CredentialRequestType {
     MsoMdoc { doctype: Option<String> },
 }
 
-impl From<&AttestationPreview> for CredentialRequestType {
-    fn from(value: &AttestationPreview) -> Self {
+impl From<&CredentialPreview> for CredentialRequestType {
+    fn from(value: &CredentialPreview) -> Self {
         match value {
-            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => Self::MsoMdoc {
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Self::MsoMdoc {
                 doctype: Some(unsigned_mdoc.doc_type.clone()),
             },
         }

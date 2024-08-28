@@ -5,7 +5,7 @@ use openid4vc::{
     issuer::{AttributeService, Created},
     oidc,
     server_state::SessionState,
-    token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
+    token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
     ErrorResponse, TokenErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
@@ -43,8 +43,8 @@ impl AttributeCertificates {
         Self { certificates }
     }
 
-    pub fn try_unsigned_mdoc_to_attestion_preview(&self, unsigned: UnsignedMdoc) -> Result<AttestationPreview, Error> {
-        let preview = AttestationPreview::MsoMdoc {
+    pub fn try_unsigned_mdoc_to_attestion_preview(&self, unsigned: UnsignedMdoc) -> Result<CredentialPreview, Error> {
+        let preview = CredentialPreview::MsoMdoc {
             issuer: self
                 .certificates
                 .get(&unsigned.doc_type)
@@ -85,7 +85,7 @@ impl AttributeService for BrpPidAttributeService {
         &self,
         _session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Error> {
+    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),
@@ -105,7 +105,7 @@ impl AttributeService for BrpPidAttributeService {
         let previews = unsigned_mdocs
             .into_iter()
             .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
-            .collect::<Result<Vec<AttestationPreview>, Error>>()?;
+            .collect::<Result<Vec<CredentialPreview>, Error>>()?;
         previews.try_into().map_err(|_| Error::NoAttributesFound)
     }
 

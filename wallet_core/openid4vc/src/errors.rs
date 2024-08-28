@@ -68,7 +68,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | CredentialRequestError::CoseKeyConversion(_)
                 | CredentialRequestError::MissingPrivateKey(_)
-                | CredentialRequestError::AttestationSigning(_)
+                | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::CborSerialization(_)
                 | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
                 CredentialRequestError::IssuanceError(_) | CredentialRequestError::UseBatchIssuance => {

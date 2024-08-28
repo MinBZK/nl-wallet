@@ -12,7 +12,7 @@ use crate::{
     issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies},
     metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
     oidc::Config,
-    token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
+    token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
 };
 
 // We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
@@ -20,7 +20,7 @@ use crate::{
 
 mockall::mock! {
     pub IssuanceSession {
-        pub fn start() -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
+        pub fn start() -> Result<(Self, Vec<CredentialPreview>), IssuanceSessionError>
         where
             Self: Sized;
 
@@ -38,7 +38,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: BaseUrl,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
-    ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
+    ) -> Result<(Self, Vec<CredentialPreview>), IssuanceSessionError>
     where
         Self: Sized,
     {

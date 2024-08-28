@@ -22,7 +22,7 @@ use openid4vc::{
     metadata::IssuerMetadata,
     oidc,
     server_state::{MemorySessionStore, SessionState},
-    token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
+    token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
@@ -77,7 +77,7 @@ async fn accept_issuance() {
             .first()
             .unwrap()
             .compare_unsigned(match &preview {
-                AttestationPreview::MsoMdoc {
+                CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: _,
                 } => unsigned_mdoc,
@@ -360,9 +360,9 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
+    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error> {
         let previews = vec![
-            AttestationPreview::MsoMdoc {
+            CredentialPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
                     doc_type: MOCK_PID_DOCTYPE.to_string(),
                     copy_count: NonZeroU8::new(2).unwrap(),
@@ -383,7 +383,7 @@ impl AttributeService for MockAttributeService {
                 },
                 issuer: self.issuer_cert.clone(),
             },
-            AttestationPreview::MsoMdoc {
+            CredentialPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
                     doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
                     copy_count: NonZeroU8::new(2).unwrap(),

@@ -7,7 +7,7 @@ use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
-    token::AttestationPreviewError,
+    token::CredentialPreviewError,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
@@ -76,7 +76,7 @@ pub enum PidIssuanceError {
     #[error("could not read documents from storage: {0}")]
     Document(#[source] DocumentsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
-    AttestationPreview(#[from] AttestationPreviewError),
+    AttestationPreview(#[from] CredentialPreviewError),
 }
 
 impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
@@ -378,7 +378,7 @@ mod tests {
         issuance_session::IssuedCredential,
         mock::MockIssuanceSession,
         oidc::OidcError,
-        token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
+        token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
     };
     use rstest::rstest;
     use serial_test::serial;
@@ -624,7 +624,7 @@ mod tests {
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
-                vec![AttestationPreview::MsoMdoc {
+                vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],
@@ -758,7 +758,7 @@ mod tests {
 
             Ok((
                 MockIssuanceSession::new(),
-                vec![AttestationPreview::MsoMdoc {
+                vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],
