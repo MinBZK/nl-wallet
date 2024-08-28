@@ -1,7 +1,6 @@
 use ctor::ctor;
 use indexmap::IndexMap;
 use reqwest::StatusCode;
-use tokio::fs;
 use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
@@ -33,10 +32,13 @@ fn init() {
 #[instrument(name = "", fields(pid = std::process::id()))]
 #[tokio::main]
 async fn main() {
-    let storage_path = SoftwareUtilities::storage_path().await.unwrap();
-    let etag_file = storage_path.join("latest-configuration-etag.txt");
-    // make sure there are no storage files from previous test runs
-    let _ = fs::remove_file(etag_file.as_path()).await;
+    // Create a unique storage path for saving etags so tests don't interfere.
+    let storage_path = SoftwareUtilities::storage_path()
+        .await
+        .unwrap()
+        .join(Uuid::new_v4().to_string());
+
+    tokio::fs::create_dir_all(&storage_path).await.unwrap();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
@@ -94,6 +96,7 @@ async fn main() {
         .continue_pid_issuance(redirect_url)
         .await
         .expect("Could not continue pid issuance");
+
     wallet
         .accept_pid_issuance(pin.clone())
         .await
