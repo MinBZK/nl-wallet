@@ -3,7 +3,10 @@ use openid4vc::{
     oidc::HttpOidcClient,
 };
 
-use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
+use nl_wallet_mdoc::{
+    holder::{MdocCopies, TrustAnchor},
+    software_key_factory::SoftwareKeyFactory,
+};
 use tests_integration::{common::*, fake_digid::fake_digid_auth};
 use wallet::{
     mock::default_configuration,
@@ -84,7 +87,7 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     assert_eq!(2, mdocs.len());
-    assert_eq!(2, mdocs[0].as_mdocs().unwrap().cred_copies.len())
+    assert_eq!(2, <&MdocCopies>::try_from(&mdocs[0]).unwrap().cred_copies.len())
 }
 
 fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {

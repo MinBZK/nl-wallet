@@ -122,15 +122,21 @@ pub enum IssuedCredentialCopies {
     MsoMdoc(MdocCopies),
 }
 
-impl IssuedCredentialCopies {
-    pub fn as_mdocs(&self) -> Result<&MdocCopies, IssuanceSessionError> {
-        match &self {
+impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
+    type Error = IssuanceSessionError;
+
+    fn try_from(value: &'a IssuedCredentialCopies) -> Result<Self, Self::Error> {
+        match &value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
         }
     }
+}
 
-    pub fn into_mdocs(self) -> Result<MdocCopies, IssuanceSessionError> {
-        match self {
+impl TryFrom<IssuedCredentialCopies> for MdocCopies {
+    type Error = IssuanceSessionError;
+
+    fn try_from(value: IssuedCredentialCopies) -> Result<Self, Self::Error> {
+        match value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
         }
     }

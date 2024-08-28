@@ -4,7 +4,10 @@ use tracing::{info, instrument};
 use url::Url;
 
 use error_category::{sentry_capture_error, ErrorCategory};
-use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
+use nl_wallet_mdoc::{
+    holder::MdocCopies,
+    utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
+};
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
     token::CredentialPreviewError,
@@ -324,7 +327,7 @@ where
         }
         let issued_mdocs = issuance_result?
             .into_iter()
-            .map(|mdocs| mdocs.into_mdocs())
+            .map(|mdocs| mdocs.try_into())
             .collect::<Result<Vec<_>, _>>()?;
 
         info!("Isuance succeeded; removing issuance session state");
@@ -335,7 +338,7 @@ where
             // Extract first copy from each issued mdoc
             let mdocs = issued_mdocs
                 .iter()
-                .flat_map(|mdoc| mdoc.cred_copies.first())
+                .flat_map(|mdoc: &MdocCopies| mdoc.cred_copies.first())
                 .cloned()
                 .collect::<Vec<_>>();
 

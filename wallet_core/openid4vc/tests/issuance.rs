@@ -6,6 +6,7 @@ use indexmap::IndexMap;
 use url::Url;
 
 use nl_wallet_mdoc::{
+    holder::MdocCopies,
     server_keys::{test::SingleKeyRing, KeyPair},
     software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
@@ -67,11 +68,16 @@ async fn accept_issuance() {
         .unwrap();
 
     assert_eq!(issued_creds.len(), 2);
-    assert_eq!(issued_creds.first().unwrap().as_mdocs().unwrap().cred_copies.len(), 2);
+    assert_eq!(
+        <&MdocCopies>::try_from(issued_creds.first().unwrap())
+            .unwrap()
+            .cred_copies
+            .len(),
+        2
+    );
 
     issued_creds.into_iter().zip(previews).for_each(|(copies, preview)| {
-        copies
-            .as_mdocs()
+        <&MdocCopies>::try_from(&copies)
             .unwrap()
             .cred_copies
             .first()
