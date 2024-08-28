@@ -451,11 +451,7 @@ mod test {
         };
 
         let token_request = session
-            .into_token_request(
-                "https://app.example.com/deeplink/return-from-digid"
-                    .parse()
-                    .unwrap(),
-            )
+            .into_token_request("https://example.com/deeplink/return-from-digid".parse().unwrap())
             .await;
 
         assert!(token_request.is_ok());
@@ -464,47 +460,47 @@ mod test {
     // Don't use base64(json!()) here in the cases here as these tests test the base64 itself
     #[rstest]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcdTAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFeU16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zYVdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkWEpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyRjBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0=".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcdTAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFeU16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zYVdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkWEpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyRjBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0=".parse().unwrap(),
         None,
         Ok(()) // without encoded `=`
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcdTAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFeU16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zYVdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkWEpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyRjBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0%3D".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiQUFRQUFNMks0c3dQOXdXWk1wU01hd3pteXBcdTAwMkI3NUtFVXZFUGNmWHFIUVZFSG9WWENXNmdsbjdrcDNaZz0iLCJSZWxheVN0YXRlIjoiZXlKemRHRjBaU0k2SUNJNVkyUTNaVGN3TVdFeU16Sm1ZV1pqTWpVek5XTTRPREUyTW1VNFlqZzJNekE0WVRSbU0yVTNNbVJqTURjMk1tTmpOamsyWWpRMVltVmxZVGRsT1RJeklpd2dJbU5zYVdWdWRGOXBaQ0k2SUNJMVpqZzJZemczWWkxak16VmlMVFEzTTJJdFltWm1PUzAwWVRFNU56WTNaV1F6WmpjaUxDQWljbVZrYVhKbFkzUmZkWEpwSWpvZ0ltaDBkSEJ6T2k4dllYQndMblJsYzNRdWRtOXZjbUpsWld4a2QyRnNiR1YwTG01c0wyUmxaWEJzYVc1ckwyRjFkR2hsYm5ScFkyRjBhVzl1SW4wPSIsIkVycm9yTWVzc2FnZSI6bnVsbH0%3D".parse().unwrap(),
         None,
         Ok(()) // with encoded `=`
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiLyIsIlJlbGF5U3RhdGUiOiIvIiwiRXJyb3JNZXNzYWdlIjpudWxsfQ==".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiLyIsIlJlbGF5U3RhdGUiOiIvIiwiRXJyb3JNZXNzYWdlIjpudWxsfQ==".parse().unwrap(),
         None,
         Ok(()) // without two encoded `=`
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiLyIsIlJlbGF5U3RhdGUiOiIvIiwiRXJyb3JNZXNzYWdlIjpudWxsfQ%3D%3D".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiLyIsIlJlbGF5U3RhdGUiOiIvIiwiRXJyb3JNZXNzYWdlIjpudWxsfQ%3D%3D".parse().unwrap(),
         None,
         Ok(()) // with two encoded `=`
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc3NhZ2UiOm51bGx9".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc3NhZ2UiOm51bGx9".parse().unwrap(),
         None,
         Ok(()) // no padding
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc3NhZ2UiOm51bGx9".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjoiIiwiUmVsYXlTdGF0ZSI6Ii8iLCJFcnJvck1lc3NhZ2UiOm51bGx9".parse().unwrap(),
         Some(OidcError::StateTokenMismatch),
         Err(DigidSessionError::Oidc(OidcError::StateTokenMismatch))
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjpudWxsLCJSZWxheVN0YXRlIjpudWxsLCJFcnJvck1lc3NhZ2UiOiJ0aW1lb3V0In0=".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?app-app=eyJTQU1MYXJ0IjpudWxsLCJSZWxheVN0YXRlIjpudWxsLCJFcnJvck1lc3NhZ2UiOiJ0aW1lb3V0In0=".parse().unwrap(),
         None,
         Err(DigidSessionError::App2AppError(App2AppErrorMessage::Timeout))
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid".parse().unwrap(),
         None,
         Err(DigidSessionError::MissingLocationQuery)
     )]
     #[case(
-        "https://app.example.com/deeplink/return-from-digid?hello".parse().unwrap(),
+        "https://example.com/deeplink/return-from-digid?hello".parse().unwrap(),
         None,
         Err(DigidSessionError::UrlDeserialize(serde_urlencoded::de::Error::missing_field("app-app")))
     )]
