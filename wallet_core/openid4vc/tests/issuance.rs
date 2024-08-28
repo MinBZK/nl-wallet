@@ -39,7 +39,7 @@ fn setup() -> (MockIssuer, Certificate, BaseUrl) {
         },
         SingleKeyRing(keypair),
         &server_url,
-        vec!["nl.rijksoverheid.edi.wallet".to_string()],
+        vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
     );
 
     (issuer, ca.into(), server_url.join_base_url("issuance/"))

@@ -35,7 +35,7 @@ pub mod mock;
 #[cfg(test)]
 mod test;
 
-pub const NL_WALLET_CLIENT_ID: &str = "nl.rijksoverheid.edi.wallet";
+pub const NL_WALLET_CLIENT_ID: &str = "https://wallet.edi.rijksoverheid.nl";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
