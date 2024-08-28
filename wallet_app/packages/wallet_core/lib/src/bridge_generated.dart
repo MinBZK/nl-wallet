@@ -122,6 +122,18 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kHasActiveDisclosureSessionConstMeta;
 
+  Future<bool> isBiometricUnlockEnabled({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kIsBiometricUnlockEnabledConstMeta;
+
+  Future<void> setBiometricUnlock({required bool enable, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kSetBiometricUnlockConstMeta;
+
+  Future<void> unlockWalletWithBiometrics({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kUnlockWalletWithBiometricsConstMeta;
+
   Future<List<WalletEvent>> getHistory({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta;
@@ -837,6 +849,55 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kHasActiveDisclosureSessionConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "has_active_disclosure_session",
+        argNames: [],
+      );
+
+  Future<bool> isBiometricUnlockEnabled({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_is_biometric_unlock_enabled(port_),
+      parseSuccessData: _wire2api_bool,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kIsBiometricUnlockEnabledConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kIsBiometricUnlockEnabledConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "is_biometric_unlock_enabled",
+        argNames: [],
+      );
+
+  Future<void> setBiometricUnlock({required bool enable, dynamic hint}) {
+    var arg0 = enable;
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_set_biometric_unlock(port_, arg0),
+      parseSuccessData: _wire2api_unit,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kSetBiometricUnlockConstMeta,
+      argValues: [enable],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kSetBiometricUnlockConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "set_biometric_unlock",
+        argNames: ["enable"],
+      );
+
+  Future<void> unlockWalletWithBiometrics({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_unlock_wallet_with_biometrics(port_),
+      parseSuccessData: _wire2api_unit,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kUnlockWalletWithBiometricsConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kUnlockWalletWithBiometricsConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "unlock_wallet_with_biometrics",
         argNames: [],
       );
 
@@ -1737,6 +1798,45 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_has_active_disclosure_session');
   late final _wire_has_active_disclosure_session =
       _wire_has_active_disclosure_sessionPtr.asFunction<void Function(int)>();
+
+  void wire_is_biometric_unlock_enabled(
+    int port_,
+  ) {
+    return _wire_is_biometric_unlock_enabled(
+      port_,
+    );
+  }
+
+  late final _wire_is_biometric_unlock_enabledPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_is_biometric_unlock_enabled');
+  late final _wire_is_biometric_unlock_enabled = _wire_is_biometric_unlock_enabledPtr.asFunction<void Function(int)>();
+
+  void wire_set_biometric_unlock(
+    int port_,
+    bool enable,
+  ) {
+    return _wire_set_biometric_unlock(
+      port_,
+      enable,
+    );
+  }
+
+  late final _wire_set_biometric_unlockPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Bool)>>('wire_set_biometric_unlock');
+  late final _wire_set_biometric_unlock = _wire_set_biometric_unlockPtr.asFunction<void Function(int, bool)>();
+
+  void wire_unlock_wallet_with_biometrics(
+    int port_,
+  ) {
+    return _wire_unlock_wallet_with_biometrics(
+      port_,
+    );
+  }
+
+  late final _wire_unlock_wallet_with_biometricsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_unlock_wallet_with_biometrics');
+  late final _wire_unlock_wallet_with_biometrics =
+      _wire_unlock_wallet_with_biometricsPtr.asFunction<void Function(int)>();
 
   void wire_get_history(
     int port_,

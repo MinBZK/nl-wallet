@@ -40,6 +40,7 @@ regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring = { workspace = true, features = ["std"] }
 sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-uuid"] }
+sea-query.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true

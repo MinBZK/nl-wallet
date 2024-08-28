@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:wallet_mock/mock.dart';
 
+import '../data/repository/biometric/biometric_repository.dart';
+import '../data/repository/biometric/core/core_biometric_repository.dart';
 import '../data/repository/card/data_attribute_repository.dart';
 import '../data/repository/card/impl/data_attribute_repository_impl.dart';
 import '../data/repository/card/impl/wallet_card_repository_impl.dart';
@@ -85,6 +87,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<WalletEventRepository>(
           create: (context) => CoreWalletEventRepository(context.read(), context.read()),
+        ),
+        RepositoryProvider<BiometricRepository>(
+          create: (context) => CoreBiometricRepository(context.read()),
         ),
         RepositoryProvider<SignRepository>(
           create: (context) => CoreSignRepository(

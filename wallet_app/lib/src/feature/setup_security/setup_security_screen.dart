@@ -1,15 +1,21 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/helper/announcements_helper.dart';
+import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
+import '../../wallet_icons.dart';
 import '../common/page/generic_loading_page.dart';
+import '../common/page/page_illustration.dart';
+import '../common/page/terminal_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/button/icon/info_icon_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
@@ -103,6 +109,7 @@ class SetupSecurityScreen extends StatelessWidget {
           SetupSecurityGenericError() => _buildSetupFailed(context),
           SetupSecurityNetworkError() => _buildSetupFailed(context),
           SetupSecurityDeviceIncompatibleError() => _buildSetupFailed(context),
+          SetupSecurityConfigureBiometrics() => _buildConfigureBiometricsPage(context, state),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -180,9 +187,42 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildConfigureBiometricsPage(BuildContext context, SetupSecurityConfigureBiometrics state) {
+    final String title = switch (state.biometrics) {
+      AvailableBiometrics.faceOnly =>
+        Platform.isIOS ? context.l10n.setupBiometricsPageiOSFaceIdTitle : context.l10n.setupBiometricsPageFaceTitle,
+      AvailableBiometrics.fingerOnly => context.l10n.setupBiometricsPageFingerprintTitle,
+      AvailableBiometrics.some => context.l10n.setupBiometricsPageGenericTitle,
+      AvailableBiometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
+    };
+    final String illustration = switch (state.biometrics) {
+      AvailableBiometrics.faceOnly => WalletAssets.svg_biometrics_face,
+      AvailableBiometrics.fingerOnly => WalletAssets.svg_biometrics_finger,
+      AvailableBiometrics.some => WalletAssets.svg_biometrics_finger,
+      AvailableBiometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
+    };
+    final primaryButtonIcon = switch (state.biometrics) {
+      AvailableBiometrics.faceOnly => Platform.isIOS ? WalletIcons.icon_face_id : Icons.face_unlock_outlined,
+      AvailableBiometrics.fingerOnly => Icons.fingerprint_outlined,
+      AvailableBiometrics.some => Icons.fingerprint_outlined,
+      AvailableBiometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
+    };
+    return TerminalPage(
+      title: title,
+      description: context.l10n.setupBiometricsPageDescription,
+      primaryButtonCta: context.l10n.setupBiometricsPageEnableCta,
+      illustration: PageIllustration(asset: illustration),
+      onPrimaryPressed: () => context.bloc.add(EnableBiometricsPressed()),
+      secondaryButtonCta: context.l10n.setupBiometricsPageSkipCta,
+      primaryButtonIcon: primaryButtonIcon,
+      onSecondaryButtonPressed: () => context.bloc.add(SkipBiometricsPressed()),
+    );
+  }
+
   Widget _buildSetupCompletedPage(BuildContext context, SetupSecurityCompleted state) {
     return SetupSecurityCompletedPage(
       key: const Key('setupSecurityCompletedPage'),
+      biometricsEnabled: state.biometricsEnabled,
       onSetupWalletPressed: () => Navigator.of(context).restorablePushNamedAndRemoveUntil(
         WalletRoutes.walletPersonalizeRoute,
         ModalRoute.withName(WalletRoutes.splashRoute),
@@ -214,6 +254,7 @@ class SetupSecurityScreen extends StatelessWidget {
       SetupSecurityGenericError() => '',
       SetupSecurityNetworkError() => '',
       SetupSecurityDeviceIncompatibleError() => '',
+      SetupSecurityConfigureBiometrics() => '',
     };
     if (title.isEmpty) return const SizedBox.shrink();
     return FadeInAtOffset(

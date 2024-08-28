@@ -137,6 +137,21 @@ pub extern "C" fn wire_has_active_disclosure_session(port_: i64) {
 }
 
 #[no_mangle]
+pub extern "C" fn wire_is_biometric_unlock_enabled(port_: i64) {
+    wire_is_biometric_unlock_enabled_impl(port_)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_set_biometric_unlock(port_: i64, enable: bool) {
+    wire_set_biometric_unlock_impl(port_, enable)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_unlock_wallet_with_biometrics(port_: i64) {
+    wire_unlock_wallet_with_biometrics_impl(port_)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_get_history(port_: i64) {
     wire_get_history_impl(port_)
 }

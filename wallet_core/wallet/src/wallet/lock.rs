@@ -4,13 +4,14 @@ use tracing::{info, instrument};
 use error_category::{sentry_capture_error, ErrorCategory};
 use wallet_common::account::messages::instructions::CheckPin;
 
-pub use crate::lock::LockCallback;
+pub use crate::{lock::LockCallback, storage::UnlockMethod};
 
 use crate::{
     account_provider::AccountProviderClient,
     config::ConfigurationRepository,
+    errors::StorageError,
     instruction::{InstructionClient, InstructionError},
-    storage::Storage,
+    storage::{Storage, UnlockData},
 };
 
 use super::Wallet;
@@ -23,9 +24,15 @@ pub enum WalletUnlockError {
     #[error("wallet is not locked")]
     #[category(expected)]
     NotLocked,
+    #[error("unlocking with biometrics is not enabled")]
+    #[category(expected)]
+    BiometricsUnlockingNotEnabled,
     #[error("error sending instruction to Wallet Provider: {0}")]
     #[category(defer)]
     Instruction(#[from] InstructionError),
+    #[error("could not write or read unlock method to or from database: {0}")]
+    #[category(defer)]
+    UnlockMethodStorage(#[source] StorageError),
 }
 
 impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
@@ -39,6 +46,48 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
 
     pub fn clear_lock_callback(&mut self) -> Option<LockCallback> {
         self.lock.clear_lock_callback()
+    }
+
+    async fn fetch_unlock_method(&self) -> Result<UnlockMethod, WalletUnlockError>
+    where
+        S: Storage,
+    {
+        let method = self
+            .storage
+            .read()
+            .await
+            .fetch_data::<UnlockData>()
+            .await
+            .map_err(WalletUnlockError::UnlockMethodStorage)?
+            .map(|data| data.method)
+            .unwrap_or_default();
+
+        Ok(method)
+    }
+
+    #[instrument(skip_all)]
+    pub async fn unlock_method(&self) -> Result<UnlockMethod, WalletUnlockError>
+    where
+        S: Storage,
+    {
+        self.fetch_unlock_method().await
+    }
+
+    #[instrument(skip_all)]
+    pub async fn set_unlock_method(&mut self, method: UnlockMethod) -> Result<(), WalletUnlockError>
+    where
+        S: Storage,
+    {
+        info!("Setting unlock method to: {}", method);
+
+        let data = UnlockData { method };
+        self.storage
+            .get_mut()
+            .upsert_data(&data)
+            .await
+            .map_err(WalletUnlockError::UnlockMethodStorage)?;
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -116,6 +165,28 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         info!("Checking pin");
 
         self.send_check_pin_instruction(pin).await
+    }
+
+    #[instrument(skip_all)]
+    pub async fn unlock_without_pin(&mut self) -> Result<(), WalletUnlockError>
+    where
+        S: Storage,
+    {
+        info!("Unlocking wallet without pin");
+
+        info!("Checking if locked");
+        if !self.lock.is_locked() {
+            return Err(WalletUnlockError::NotLocked);
+        }
+
+        info!("Checking if unlocking with biometrics is enabled");
+        if !self.fetch_unlock_method().await?.has_biometrics() {
+            return Err(WalletUnlockError::BiometricsUnlockingNotEnabled);
+        }
+
+        self.lock.unlock();
+
+        Ok(())
     }
 }
 
