@@ -222,7 +222,13 @@ Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
     );
 
 Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(
-      create: (BuildContext context) => SetupSecurityBloc(context.read(), context.read(), context.read()),
+      create: (BuildContext context) => SetupSecurityBloc(
+        context.read(),
+        context.read(),
+        context.read(),
+        context.read(),
+        context.read(),
+      ),
       child: const SetupSecurityScreen(),
     );
 

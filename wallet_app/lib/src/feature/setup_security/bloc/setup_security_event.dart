@@ -23,3 +23,7 @@ class PinBackspacePressed extends SetupSecurityEvent {}
 class PinClearPressed extends SetupSecurityEvent {}
 
 class SetupSecurityRetryPressed extends SetupSecurityEvent {}
+
+class EnableBiometricsPressed extends SetupSecurityEvent {}
+
+class SkipBiometricsPressed extends SetupSecurityEvent {}
