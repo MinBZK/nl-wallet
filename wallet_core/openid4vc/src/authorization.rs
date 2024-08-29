@@ -122,6 +122,8 @@ pub struct AuthorizationResponse {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use crate::authorization::{AuthorizationDetails, AuthorizationDetailsFormatData};
 
     #[test]
@@ -135,7 +137,7 @@ mod tests {
                 }
             })
             .unwrap(),
-            r#"{"type":"openid_credential","format":"mso_mdoc","doctype":"example_doctype"}"#.to_string(),
+            json!({"type": "openid_credential","format": "mso_mdoc","doctype": "example_doctype"}).to_string(),
         )
     }
 }

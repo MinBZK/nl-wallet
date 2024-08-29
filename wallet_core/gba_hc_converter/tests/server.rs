@@ -12,6 +12,7 @@ use gba_hc_converter::{
     haal_centraal::{Bsn, Element, PersonQuery, PersonsResponse},
     server,
 };
+use serde_json::json;
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 use crate::common::read_file;
@@ -110,8 +111,13 @@ async fn test_error_response() {
         response.headers().get("Content-Type").unwrap().to_str().unwrap()
     );
     assert_eq!(
-        "{\"type\":\"gba\",\"title\":\"GBA error\",\"status\":412,\"detail\":\"GBA error: Element number 510 is \
-         mandatory but missing\"}",
+        json!({
+            "type": "gba",
+            "title": "GBA error",
+            "status": 412,
+            "detail": "GBA error: Element number 510 is mandatory but missing"
+        })
+        .to_string(),
         response.text().await.unwrap()
     );
 }
@@ -130,8 +136,15 @@ async fn test_received_error_response() {
         response.headers().get("Content-Type").unwrap().to_str().unwrap()
     );
     assert_eq!(
-        "{\"type\":\"gba\",\"title\":\"GBA error\",\"status\":412,\"detail\":\"GBA error: Received error response: \
-         foutcode: X001, description: Interne fout., reference: a00d961b-dd58-4f1c-bd48-964a46d2708b\"}",
+        json!({
+            "type": "gba",
+            "title": "GBA error",
+            "status": 412,
+            "detail":
+                "GBA error: Received error response: foutcode: X001, description: Interne fout., reference: \
+                 a00d961b-dd58-4f1c-bd48-964a46d2708b"
+        })
+        .to_string(),
         response.text().await.unwrap()
     );
 }

@@ -213,11 +213,13 @@ mod tests {
     use std::time::Duration;
 
     use indexmap::IndexSet;
+    use serde_json::json;
 
     use crate::token::{TokenRequest, TokenRequestGrantType, TokenResponse};
 
     #[test]
     fn token_request_serialization() {
+        #[rustfmt::skip]
         assert_eq!(
             serde_urlencoded::to_string(TokenRequest {
                 grant_type: TokenRequestGrantType::PreAuthorizedCode {
@@ -228,9 +230,12 @@ mod tests {
                 redirect_uri: Some("https://example.com".parse().unwrap())
             })
             .unwrap(),
-            "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Apre-authorized_code&pre-authorized_code=123&\
-             code_verifier=myverifier&client_id=myclient&redirect_uri=https%3A%2F%2Fexample.com%2F",
-        )
+            "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Apre-authorized_code\
+                &pre-authorized_code=123\
+                &code_verifier=myverifier\
+                &client_id=myclient\
+                &redirect_uri=https%3A%2F%2Fexample.com%2F",
+        );
     }
 
     #[test]
@@ -247,9 +252,14 @@ mod tests {
                 authorization_details: None,
             })
             .unwrap(),
-            "{\"access_token\":\"access_token\",\"token_type\":\"Bearer\",\"c_nonce\":\"c_nonce\",\"scope\":\"scope1 \
-             scope2\",\"c_nonce_expires_in\":10}"
-                .to_string(),
+            json!({
+                "access_token": "access_token",
+                "token_type": "Bearer",
+                "c_nonce": "c_nonce",
+                "scope": "scope1 scope2",
+                "c_nonce_expires_in": 10
+            })
+            .to_string(),
         )
     }
 }
