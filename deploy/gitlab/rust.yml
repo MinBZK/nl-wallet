@@ -1,0 +1,116 @@
+.rust-cache:
+  cache:
+    key: rust-${CI_JOB_NAME_SLUG}-${CI_DEFAULT_BRANCH}
+    paths:
+      - ".cargo/git"
+      - ".cargo/registry/index"
+      - ".cargo/registry/cache"
+      - "wallet_core/target/"
+      - "wallet_core/flutter_rust_bridge_codegen/target"
+      - "wallet_core/uniffi-bindgen/target"
+    policy: ${CACHE_POLICY}
+
+lint-rust:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
+  cache: !reference [.rust-cache, cache]
+  script:
+    - set -euxo pipefail
+    # Check Rust formatting
+    - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo fmt --manifest-path {} -- --check
+    # Check clippy
+    - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+    - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+
+test-rust:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
+  cache: !reference [.rust-cache, cache]
+  variables:
+    SKIP_DIGID_CONNECTOR: "true"
+    SKIP_WALLET_WEB: "true"
+    SKIP_MOCK_RELYING_PARTY: "true"
+    WALLET_PROVIDER_DATABASE__HOST: "postgres"
+    WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
+  services:
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:8260dcdfd90b550c80d8a2e5527c0efb2280b371ab34c28f713f770a749c49dc"
+      alias: postgres
+      variables:
+        POSTGRES_USER: "postgres"
+        POSTGRES_PASSWORD: "postgres"
+        POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server"
+  before_script:
+    - set -euxo pipefail
+    - ./scripts/setup-devenv.sh
+    - cd wallet_core
+  script:
+    - cargo run --bin wallet_provider_migrations --locked -- up
+    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
+    - cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
+    - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
+  artifacts:
+    reports:
+      coverage_report:
+        path: wallet_core/rust-coverage.xml
+        coverage_format: cobertura
+    paths:
+      - wallet_core/lcov.info
+
+.test-rust-compilation:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  variables:
+    RUSTFLAGS: "-D warnings"
+  script:
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider --bin wallet_provider
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider_migrations --bin wallet_provider_migrations
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package configuration_server --bin configuration_server
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --no-default-features --bin pid_issuer --features issuance,postgres
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --no-default-features --bin wallet_server --features issuance,disclosure,postgres
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --no-default-features --bin verification_server --features disclosure,postgres
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package gba_hc_converter --bin gba_hc_converter
+
+test-rust-compilation-android-linux:
+  extends: .test-rust-compilation
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:87a2667a35d932da24b937e1e96770a2a12ea0f2204a8a97b1740dc120dc1394"
+  script:
+    - !reference [.test-rust-compilation, script]
+    - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
+
+test-rust-compilation-ios:
+  extends: .test-rust-compilation
+  tags:
+    - macos
+  image: sonoma-wallet:0.1.0
+  script:
+    - !reference [.test-rust-compilation, script]
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
+
+.build-binary:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
+  cache: !reference [.rust-cache, cache]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
+  before_script:
+    - set -euxo pipefail
+    - cd wallet_core
+
+build-wp-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "wallet_provider" --bin wallet_provider
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_provider" --bin wallet_provider
+  artifacts:
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/wallet_provider
+      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_provider

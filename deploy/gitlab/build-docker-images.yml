@@ -27,6 +27,9 @@
 
 build-wp-image:
   extends: .build-docker-image
+  needs:
+    - job: build-wp-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider
@@ -61,7 +64,7 @@ build-mock-relying-party-image:
     - job: build-wallet-web
       artifacts: true
   before_script:
-    - !reference [ .kaniko, before_script ]
+    - !reference [.kaniko, before_script]
     - export ARG_CSP_SCRIPT_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt)"
     - export ARG_CSP_STYLE_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt)"
     - export ARG_WALLET_WEB_FILENAME="$(cat wallet_core/mock_relying_party/hashes/wallet_web_filename.txt)"
