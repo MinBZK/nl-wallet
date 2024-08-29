@@ -75,7 +75,7 @@ void main() {
     'verify state transitions when confirming valid pin and device does not support biometrics',
     build: buildBloc,
     setUp: () async {
-      when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => AvailableBiometrics.none);
+      when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.none);
     },
     act: (bloc) {
       // Choose initial pin
@@ -182,7 +182,7 @@ void main() {
     'verify state transitions when confirming valid pin and device supports biometrics',
     build: buildBloc,
     setUp: () async {
-      when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => AvailableBiometrics.some);
+      when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.some);
     },
     act: (bloc) {
       // Choose initial pin
@@ -193,7 +193,7 @@ void main() {
     skip: 11 /* skip pin & pin confirmation state changes */,
     expect: () => [
       SetupSecurityCreatingWallet(),
-      const SetupSecurityConfigureBiometrics(biometrics: AvailableBiometrics.some),
+      const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
     ],
   );
 
@@ -201,7 +201,7 @@ void main() {
     'when enabling biometrics, the set biometrics usecase is invoked',
     build: buildBloc,
     setUp: () async {
-      when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => AvailableBiometrics.some);
+      when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.some);
       when(
         setBiometricsUseCase.invoke(
           enable: anyNamed('enable'),
@@ -221,7 +221,7 @@ void main() {
     skip: 11 /* skip pin & pin confirmation state changes */,
     expect: () => [
       SetupSecurityCreatingWallet(),
-      const SetupSecurityConfigureBiometrics(biometrics: AvailableBiometrics.some),
+      const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
       const SetupSecurityCompleted(biometricsEnabled: true),
     ],
     verify: (bloc) => verify(setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true)).called(1),
@@ -231,7 +231,7 @@ void main() {
     'when skipping biometric setup, the set biometrics usecase is not invoked',
     build: buildBloc,
     setUp: () async {
-      when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => AvailableBiometrics.some);
+      when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.some);
     },
     act: (bloc) async {
       // Choose initial pin
@@ -245,7 +245,7 @@ void main() {
     skip: 11 /* skip pin & pin confirmation state changes */,
     expect: () => [
       SetupSecurityCreatingWallet(),
-      const SetupSecurityConfigureBiometrics(biometrics: AvailableBiometrics.some),
+      const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
       const SetupSecurityCompleted(),
     ],
     verify: (bloc) => verifyZeroInteractions(setBiometricsUseCase),

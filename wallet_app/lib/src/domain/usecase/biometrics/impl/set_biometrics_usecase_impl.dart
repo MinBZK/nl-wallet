@@ -15,8 +15,8 @@ class SetBiometricsUseCaseImpl extends SetBiometricsUseCase {
 
   @override
   Future<void> invoke({required bool enable, required bool authenticateBeforeEnabling}) async {
-    final isDeviceSupported = await _localAuthentication.isDeviceSupported();
-    if (enable && !isDeviceSupported) throw UnsupportedError('Device does not support biometrics');
+    final canCheckBiometrics = await _localAuthentication.canCheckBiometrics;
+    if (enable && !canCheckBiometrics) throw UnsupportedError('Device does not support biometrics');
 
     if (enable && authenticateBeforeEnabling) {
       final l10n = lookupAppLocalizations(_localeProvider.activeLocale);

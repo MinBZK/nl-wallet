@@ -16,6 +16,7 @@ import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart';
@@ -64,6 +65,13 @@ import 'package:wallet_core/core.dart';
 import 'wallet_mocks.mocks.dart';
 
 export 'wallet_mocks.mocks.dart';
+
+/// Definition of mocks used by our tests. When specifying new mocks makes sure to run:
+///
+/// dart run build_runner build --delete-conflicting-outputs
+/// dart format . --line-length 120
+///
+/// to generate and format the new mocks.
 
 /// Mock framework
 @GenerateNiceMocks([MockSpec<NavigatorState>()])
@@ -131,6 +139,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ChangePinUseCase>()])
 @GenerateNiceMocks([MockSpec<GetAvailableBiometricsUseCase>()])
 @GenerateNiceMocks([MockSpec<SetBiometricsUseCase>()])
+@GenerateNiceMocks([MockSpec<GetSupportedBiometricsUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])
@@ -209,6 +218,7 @@ class Mocks {
     sl.registerFactory<ChangePinUseCase>(MockChangePinUseCase.new);
     sl.registerFactory<GetAvailableBiometricsUseCase>(MockGetAvailableBiometricsUseCase.new);
     sl.registerFactory<SetBiometricsUseCase>(MockSetBiometricsUseCase.new);
+    sl.registerFactory<GetSupportedBiometricsUseCase>(MockGetSupportedBiometricsUseCase.new);
 
     // Repositories
     sl.registerFactory<PidRepository>(getMockPidRepository);

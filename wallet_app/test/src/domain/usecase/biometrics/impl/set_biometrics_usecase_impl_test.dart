@@ -22,13 +22,13 @@ void main() {
   });
 
   test('Verify device is checked for compatibility when enabling', () async {
-    when(localAuthentication.isDeviceSupported()).thenAnswer((_) async => true);
+    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
     await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
-    verify(localAuthentication.isDeviceSupported()).called(1);
+    verify(localAuthentication.canCheckBiometrics).called(1);
   });
 
   test('Verify authentication is requested when authenticateBeforeEnabling is true', () async {
-    when(localAuthentication.isDeviceSupported()).thenAnswer((_) async => true);
+    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
     when(
       localAuthentication.authenticate(
         localizedReason: anyNamed('localizedReason'),
@@ -45,7 +45,7 @@ void main() {
   });
 
   test('Verify authentication is NOT requested when authenticateBeforeEnabling is false', () async {
-    when(localAuthentication.isDeviceSupported()).thenAnswer((_) async => true);
+    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
     when(
       localAuthentication.authenticate(
         localizedReason: anyNamed('localizedReason'),
@@ -62,7 +62,7 @@ void main() {
   });
 
   test('Verify setting to true fails when device is not supported', () async {
-    when(localAuthentication.isDeviceSupported()).thenAnswer((_) async => false);
+    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => false);
     await expectLater(
       () async => setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false),
       throwsA(isA<UnsupportedError>()),
@@ -71,7 +71,7 @@ void main() {
   });
 
   test('Verify setting to true fails when authentication fails', () async {
-    when(localAuthentication.isDeviceSupported()).thenAnswer((_) async => true);
+    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
     when(
       localAuthentication.authenticate(
         localizedReason: anyNamed('localizedReason'),
@@ -86,7 +86,7 @@ void main() {
   });
 
   test('Verify setting to false succeeds even when device is not supported and auth is requested and fails', () async {
-    when(localAuthentication.isDeviceSupported()).thenAnswer((_) async => false);
+    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => false);
     when(
       localAuthentication.authenticate(
         localizedReason: anyNamed('localizedReason'),
@@ -98,7 +98,7 @@ void main() {
   });
 
   test('Verify setting to true succeeds when auth is not requested', () async {
-    when(localAuthentication.isDeviceSupported()).thenAnswer((_) async => true);
+    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
     await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
     verifyNever(
       localAuthentication.authenticate(

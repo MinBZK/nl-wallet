@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../../../../util/extension/biometric_type_extension.dart';
 import '../get_available_biometrics_usecase.dart';
 
 class GetAvailableBiometricsUseCaseImpl extends GetAvailableBiometricsUseCase {
@@ -11,25 +12,15 @@ class GetAvailableBiometricsUseCaseImpl extends GetAvailableBiometricsUseCase {
   GetAvailableBiometricsUseCaseImpl(this._localAuthentication, this._platform);
 
   @override
-  Future<AvailableBiometrics> invoke() async {
+  Future<Biometrics> invoke() async {
     final List<BiometricType> availableBiometrics = await _localAuthentication.getAvailableBiometrics();
     Fimber.d('Supported biometrics: $availableBiometrics');
     // Require strong type biometrics (android only)
-    if (_platform == TargetPlatform.android && !availableBiometrics.supportsStrongType) return AvailableBiometrics.none;
-    if (availableBiometrics.supportsFingerprintAndFaceType) return AvailableBiometrics.some;
-    if (availableBiometrics.supportsFingerprintType) return AvailableBiometrics.fingerOnly;
-    if (availableBiometrics.supportsFaceType) return AvailableBiometrics.faceOnly;
-    if (availableBiometrics.supportsStrongType) return AvailableBiometrics.some;
-    return AvailableBiometrics.none;
+    if (_platform == TargetPlatform.android && !availableBiometrics.supportsStrongType) return Biometrics.none;
+    if (availableBiometrics.supportsFingerprintAndFaceType) return Biometrics.some;
+    if (availableBiometrics.supportsFingerprintType) return Biometrics.fingerprint;
+    if (availableBiometrics.supportsFaceType) return Biometrics.face;
+    if (availableBiometrics.supportsStrongType) return Biometrics.some;
+    return Biometrics.none;
   }
-}
-
-extension _BiometricExtentions on List<BiometricType> {
-  bool get supportsStrongType => contains(BiometricType.strong);
-
-  bool get supportsFingerprintAndFaceType => supportsFaceType && supportsFingerprintType;
-
-  bool get supportsFingerprintType => contains(BiometricType.fingerprint);
-
-  bool get supportsFaceType => contains(BiometricType.face);
 }

@@ -12,6 +12,7 @@ environment:
 dependencies:
   after_layout: ^1.2.0
   app_links: ^6.0.2
+  app_settings: ^5.1.1
   bloc_concurrency: ^0.2.5
   collection: ^1.18.0
   connectivity_plus: ^6.0.3
