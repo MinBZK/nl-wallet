@@ -121,23 +121,7 @@ pub mod mock {
 
     impl ReaderRegistration {
         pub fn new_mock() -> Self {
-            let organization = Organization {
-                display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
-                legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
-                description: vec![
-                    ("nl", "Beschrijving van Mijn Organisatie"),
-                    ("en", "Description of My Organization"),
-                ]
-                .into(),
-                category: vec![("nl", "Categorie"), ("en", "Category")].into(),
-                kvk: Some("some-kvk".to_owned()),
-                city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
-                department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
-                country_code: Some("nl".to_owned()),
-                web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
-                privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
-                logo: None,
-            };
+            let organization = Organization::new_mock();
 
             ReaderRegistration {
                 purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
@@ -222,6 +206,25 @@ mod tests {
 
     use super::*;
 
+    fn create_some_registration() -> ReaderRegistration {
+        create_registration(vec![
+            (
+                "some_doctype",
+                vec![
+                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
+                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
+                ],
+            ),
+            (
+                "another_doctype",
+                vec![
+                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
+                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
+                ],
+            ),
+        ])
+    }
+
     #[test]
     fn verify_requested_attributes_in_device_request() {
         let device_request = DeviceRequest::from_items_requests(vec![
@@ -238,22 +241,7 @@ mod tests {
                 vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
             )]),
         ]);
-        let registration = create_registration(vec![
-            (
-                "some_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-            (
-                "another_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-        ]);
+        let registration = create_some_registration();
         registration
             .verify_requested_attributes(&device_request.items_requests())
             .unwrap();
@@ -275,22 +263,7 @@ mod tests {
                 vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
             )]),
         ]);
-        let registration = create_registration(vec![
-            (
-                "some_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-            (
-                "another_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-        ]);
+        let registration = create_some_registration();
         let result = registration.verify_requested_attributes(&device_request.items_requests());
         assert_matches!(
             result,
@@ -310,22 +283,7 @@ mod tests {
             "some_doctype",
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )])]);
-        let registration = create_registration(vec![
-            (
-                "some_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-            (
-                "another_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-        ]);
+        let registration = create_some_registration();
         registration
             .verify_requested_attributes(&request.items_requests())
             .unwrap();
