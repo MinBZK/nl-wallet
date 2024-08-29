@@ -20,7 +20,8 @@ pub use crate::{
     },
     pin::validation::validate_pin,
     wallet::{
-        ConfigCallback, DisclosureProposal, DocumentsCallback, EventStatus, HistoryEvent, LockCallback, UriType, Wallet,
+        ConfigCallback, DisclosureProposal, DocumentsCallback, EventStatus, HistoryEvent, LockCallback, UnlockMethod,
+        UriType, Wallet,
     },
 };
 

@@ -85,9 +85,29 @@ class SetupSecurityCreatingWallet extends SetupSecurityState {
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 }
 
+class SetupSecurityConfigureBiometrics extends SetupSecurityState {
+  final Biometrics biometrics;
+
+  const SetupSecurityConfigureBiometrics({required this.biometrics})
+      : assert(biometrics != Biometrics.none, 'This state is invalid without supported biometrics');
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
+
+  @override
+  List<Object?> get props => [biometrics, ...super.props];
+}
+
 class SetupSecurityCompleted extends SetupSecurityState {
+  final bool biometricsEnabled;
+
+  const SetupSecurityCompleted({this.biometricsEnabled = false});
+
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kSetupSteps);
+
+  @override
+  List<Object?> get props => [biometricsEnabled, ...super.props];
 }
 
 class SetupSecurityGenericError extends SetupSecurityState implements ErrorState {

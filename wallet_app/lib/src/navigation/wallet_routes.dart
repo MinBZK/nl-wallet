@@ -5,6 +5,8 @@ import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../feature/about/about_screen.dart';
+import '../feature/biometric_settings/biometric_settings_screen.dart';
+import '../feature/biometric_settings/bloc/biometric_settings_bloc.dart';
 import '../feature/card/data/argument/card_data_screen_argument.dart';
 import '../feature/card/data/bloc/card_data_bloc.dart';
 import '../feature/card/data/card_data_screen.dart';
@@ -110,6 +112,7 @@ class WalletRoutes {
   static const settingsRoute = '/settings';
   static const qrRoute = '/qr';
   static const loginDetailRoute = '/login_detail';
+  static const biometricsSettingsRoute = '/settings/biometrics';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     final WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -190,6 +193,8 @@ class WalletRoutes {
         return _createLoginDetailScreenBuilder(settings);
       case WalletRoutes.settingsRoute:
         return _createSettingsScreenBuilder;
+      case WalletRoutes.biometricsSettingsRoute:
+        return _createBiometricsSettingsScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -222,7 +227,13 @@ Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
     );
 
 Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(
-      create: (BuildContext context) => SetupSecurityBloc(context.read(), context.read(), context.read()),
+      create: (BuildContext context) => SetupSecurityBloc(
+        context.read(),
+        context.read(),
+        context.read(),
+        context.read(),
+        context.read(),
+      ),
       child: const SetupSecurityScreen(),
     );
 
@@ -436,3 +447,16 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
 }
 
 Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScreen();
+
+Widget _createBiometricsSettingsScreenBuilder(BuildContext context) => BlocProvider<BiometricSettingsBloc>(
+      create: (BuildContext context) {
+        return BiometricSettingsBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+        )..add(const BiometricLoadTriggered());
+      },
+      child: const BiometricSettingScreen(),
+    );

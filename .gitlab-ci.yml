@@ -59,9 +59,9 @@ variables:
 
 .release-tag:
   before_script:
-    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^release-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^release-v//')"
+    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^v//')"
   rules:
-    - if: $CI_COMMIT_TAG =~ /^release-v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
       variables:
         CACHE_POLICY: pull
 
@@ -1344,12 +1344,19 @@ run-automation-smoke-test-ont:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:8392c65dad8e88a9afee8901990405b22691608f5394b8603f6cddc900fe3004"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:63d835cb3418b50ba66809157667789d3ee1488ae171197bace66b811a119e41"
   script:
     ## Rust
-    - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json
-    - cargo cyclonedx --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json
-    - cargo cyclonedx --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json
+    - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
+    ## NPM
+    - cd wallet_web
+    - cyclonedx-npm --output-format json --output-file bom.json --package-lock-only
+    # only keep bundled dependencies
+    - jq '.components |= map(select(.properties|any(.name == "cdx:npm:package:bundled")))' bom.json > bom-bundled.json
+    - mv bom-bundled.json bom.json
+    - cd ..
     ## Flutter
     - cd wallet_app; cdxgen --type dart --output bom.json; cd -
     ## iOS
@@ -1364,8 +1371,8 @@ build-sbom:
     - cyclonedx convert --input-file bom.xml --output-file bom.json
     - cd ../..
     ## Android
-    - cd wallet_app/android/app; cdxgen -t gradle -o bom.json; cd -
-    - cd wallet_core/platform_support/android/platform_support; cdxgen -t gradle -o bom.json; cd -
+    - cd wallet_app/android/app; cdxgen --type gradle --output bom.json; cd -
+    - cd wallet_core/platform_support/android/platform_support; cdxgen --type gradle --output bom.json; cd -
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
     - cyclonedx merge --input-files `find . -name bom.json` --output-file bom.json
     # converting it to xml does work

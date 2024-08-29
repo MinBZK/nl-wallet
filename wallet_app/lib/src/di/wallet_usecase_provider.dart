@@ -2,9 +2,20 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:local_auth/local_auth.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
+import '../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
+import '../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
+import '../domain/usecase/biometrics/impl/get_available_biometrics_usecase_impl.dart';
+import '../domain/usecase/biometrics/impl/get_supported_biometrics_usecase_impl.dart';
+import '../domain/usecase/biometrics/impl/is_biometric_login_enabled_usecase_impl.dart';
+import '../domain/usecase/biometrics/impl/request_biometrics_usecase_impl.dart';
+import '../domain/usecase/biometrics/impl/set_biometrics_usecase_impl.dart';
+import '../domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
+import '../domain/usecase/biometrics/request_biometrics_usecase.dart';
+import '../domain/usecase/biometrics/set_biometrics_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/impl/get_wallet_card_usecase_impl.dart';
@@ -89,6 +100,7 @@ import '../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import '../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import '../util/extension/bloc_extension.dart';
+import '../util/extension/build_context_extension.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
 /// Most likely to be used once at the top (app) level, but notable below the
@@ -237,11 +249,37 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<CheckHasPermissionUseCase>(
           create: (context) => CheckHasPermissionUseCaseImpl(),
         ),
+        RepositoryProvider<GetAvailableBiometricsUseCase>(
+          create: (context) => GetAvailableBiometricsUseCaseImpl(
+            LocalAuthentication(),
+            context.theme.platform,
+          ),
+        ),
+        RepositoryProvider<SetBiometricsUseCase>(
+          create: (context) => SetBiometricsUseCaseImpl(
+            LocalAuthentication(),
+            context.read(),
+            context.read(),
+          ),
+        ),
+        RepositoryProvider<GetSupportedBiometricsUseCase>(
+          create: (context) => GetSupportedBiometricsUseCaseImpl(LocalAuthentication()),
+        ),
         RepositoryProvider<CheckPinUseCase>(
           create: (context) => CheckPinUseCaseImpl(context.read()),
         ),
         RepositoryProvider<ChangePinUseCase>(
           create: (context) => ChangePinUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<IsBiometricLoginEnabledUseCase>(
+          create: (context) => IsBiometricLoginEnabledUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<RequestBiometricsUsecase>(
+          create: (context) => RequestBiometricsUsecaseImpl(
+            LocalAuthentication(),
+            context.read(),
+            context.theme.platform,
+          ),
         ),
       ],
       child: child,

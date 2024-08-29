@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../environment.dart';
+import '../../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/object_extension.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
@@ -56,10 +60,21 @@ class SettingsScreen extends StatelessWidget {
           },
         ),
         const Divider(height: 1),
-        MenuRow(
-          label: context.l10n.settingsScreenSetupBiometricsCta,
-          icon: Icons.fingerprint,
-          onTap: () => PlaceholderScreen.showGeneric(context),
+        FutureBuilder<Biometrics>(
+          future: context.read<GetSupportedBiometricsUseCase>().invoke(),
+          initialData: Biometrics.some,
+          builder: (context, snapshot) {
+            final biometricsSupported = snapshot.data != Biometrics.none;
+            final Biometrics biometrics = snapshot.data ?? Biometrics.some;
+            return MenuRow(
+              label: context.l10n.settingsScreenSetupBiometricsCta(biometrics.prettyPrint(context)),
+              subtitle:
+                  context.l10n.settingsScreenSetupBiometricsNotSupportedSubtitle.takeIf((_) => !biometricsSupported),
+              icon: Icons.fingerprint,
+              onTap:
+                  biometricsSupported ? () => Navigator.pushNamed(context, WalletRoutes.biometricsSettingsRoute) : null,
+            );
+          },
         ),
         const Divider(height: 1),
         MenuRow(

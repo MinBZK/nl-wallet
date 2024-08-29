@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
+import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/feature/setup_security/setup_security_screen.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
@@ -64,13 +65,55 @@ void main() {
       await screenMatchesGolden(tester, 'pin_confirmation_in_progress.light');
     });
 
+    testGoldens('SetupSecurityConfigureBiometrics fingerOnly light', (tester) async {
+      await tester.pumpDeviceBuilder(
+        DeviceUtils.deviceBuilder
+          ..addScenario(
+            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+              MockSetupSecurityBloc(),
+              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.fingerprint),
+            ),
+          ),
+        wrapper: walletAppWrapper(),
+      );
+      await screenMatchesGolden(tester, 'biometrics.finger.light');
+    });
+
+    testGoldens('SetupSecurityConfigureBiometrics faceOnly light', (tester) async {
+      await tester.pumpDeviceBuilder(
+        DeviceUtils.deviceBuilder
+          ..addScenario(
+            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+              MockSetupSecurityBloc(),
+              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
+            ),
+          ),
+        wrapper: walletAppWrapper(),
+      );
+      await screenMatchesGolden(tester, 'biometrics.face.light');
+    });
+
+    testGoldens('SetupSecurityConfigureBiometrics some dark', (tester) async {
+      await tester.pumpDeviceBuilder(
+        DeviceUtils.deviceBuilder
+          ..addScenario(
+            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+              MockSetupSecurityBloc(),
+              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
+            ),
+          ),
+        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      );
+      await screenMatchesGolden(tester, 'biometrics.some.dark');
+    });
+
     testGoldens('SetupSecurityCompleted light', (tester) async {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilder
           ..addScenario(
             widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
               MockSetupSecurityBloc(),
-              SetupSecurityCompleted(),
+              const SetupSecurityCompleted(),
             ),
           ),
         wrapper: walletAppWrapper(),

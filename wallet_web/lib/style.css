@@ -315,6 +315,7 @@
   max-width: 17.5rem; /* 280px */
   width: 100%;
 
+  image-rendering: crisp-edges;
   image-rendering: pixelated;
 }
 
