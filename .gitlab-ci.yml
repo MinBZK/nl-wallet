@@ -1344,12 +1344,19 @@ run-automation-smoke-test-ont:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:e2158ea5d525d57938254da5fd8208302f61b5ef354d311118d1b4ffcdee6827"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:63d835cb3418b50ba66809157667789d3ee1488ae171197bace66b811a119e41"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
     - cargo cyclonedx --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
     - cargo cyclonedx --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
+    ## NPM
+    - cd wallet_web
+    - cyclonedx-npm --output-format json --output-file bom.json --package-lock-only
+    # only keep bundled dependencies
+    - jq '.components |= map(select(.properties|any(.name == "cdx:npm:package:bundled")))' bom.json > bom-bundled.json
+    - mv bom-bundled.json bom.json
+    - cd ..
     ## Flutter
     - cd wallet_app; cdxgen --type dart --output bom.json; cd -
     ## iOS
