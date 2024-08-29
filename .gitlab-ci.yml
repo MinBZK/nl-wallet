@@ -225,7 +225,7 @@ run-wp-migrations-demo:
 
 .deploy-wallet-provider:
   needs:
-    - job: build-wp-image
+    - job: build-wallet-provider-image
       artifacts: false
   variables:
     WALLET_PROVIDER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA}

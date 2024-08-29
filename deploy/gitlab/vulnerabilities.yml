@@ -65,7 +65,7 @@ dependency-check-rust:
 dependency-check-images:
   rules: !reference [.default-or-release, rules]
   needs:
-    - job: build-wp-image
+    - job: build-wallet-provider-image
       artifacts: false
     - job: build-wp-migrations-image
       artifacts: false
