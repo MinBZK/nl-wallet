@@ -10,7 +10,10 @@
 //!
 //! HTTP endpoints that require some token (e.g. an (access) token as in OpenID/OAuth) may additionally require this
 //! token to be signed in a DPoP JWT, to prevent replay attacks. If so, then:
-//! - the token itself must be sent as a HTTP header as follows: ```text Authorization: DPoP $token ```
+//! - the token itself must be sent as a HTTP header as follows:
+//! ```text
+//! Authorization: DPoP $token
+//! ```
 //! - The DPoP JWT must include the `ath` field in its body, which must be equal to the URL-safe-no-pad base64 encoding
 //!   of the SHA256 of the token.
 //!

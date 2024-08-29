@@ -35,8 +35,8 @@ use super::{proposed_document::ProposedDocument, MdocDataSource};
 #[derive(Debug)]
 pub enum DisclosureRequestMatch<I> {
     Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
-    MissingAttributes(Vec<AttributeIdentifier>), /* TODO: Report on missing attributes per `Mdoc` candidate.
-                                                  * (PVW-1392) */
+    // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
+    MissingAttributes(Vec<AttributeIdentifier>),
 }
 
 impl<I> DisclosureRequestMatch<I> {

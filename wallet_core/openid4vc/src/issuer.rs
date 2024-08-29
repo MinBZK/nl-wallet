@@ -38,12 +38,12 @@ use crate::{
     Format,
 };
 
-/* Errors are structured as follow in this module: the handler for a token request on the one hand, and the handlers for
-the other endpoints on the other hand, have specific error types. (There is also a general error type included by both
-of them for errors that can occur in all endpoints.) The reason for this split in the errors is because per the
-OpenID4VCI and OAuth specs, these endpoints each have to return error codes that are specific to them, i.e., the token
-request endpoint can return error codes that the credential endpoint can't and vice versa, so we want to keep the errors
-separate in the type system here. */
+// Errors are structured as follow in this module: the handler for a token request on the one hand, and the handlers for
+// the other endpoints on the other hand, have specific error types. (There is also a general error type included by
+// both of them for errors that can occur in all endpoints.) The reason for this split in the errors is because per the
+// OpenID4VCI and OAuth specs, these endpoints each have to return error codes that are specific to them, i.e., the
+// token request endpoint can return error codes that the credential endpoint can't and vice versa, so we want to keep
+// the errors separate in the type system here.
 
 /// Errors that can occur during processing of any of the endpoints.
 #[derive(Debug, thiserror::Error)]

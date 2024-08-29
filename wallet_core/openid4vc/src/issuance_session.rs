@@ -705,8 +705,8 @@ mod tests {
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        attestation_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(), /* return two
-                                                                                                       * previews */
+                        // return two previews
+                        attestation_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(),
                     },
                     Some("dpop_nonce".to_string()),
                 ))

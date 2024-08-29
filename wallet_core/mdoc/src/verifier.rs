@@ -412,8 +412,8 @@ mod tests {
         let disclosed_attrs = device_response
             .verify(
                 Some(&eph_reader_key),
-                &DeviceAuthenticationBytes::example().0 .0.session_transcript, /* To be signed by device key found
-                                                                                * in MSO */
+                // To be signed by device key found in MSO
+                &DeviceAuthenticationBytes::example().0 .0.session_transcript,
                 &IsoCertTimeGenerator,
                 trust_anchors,
             )

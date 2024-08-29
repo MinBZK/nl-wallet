@@ -482,8 +482,8 @@ mod test {
 
         match (session.map(|(_, x)| x), expected) {
             (Ok(o), Ok(k)) => assert_eq!(o, k),
-            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()), /* unfortunately some of the errors don't */
-            // implement PartialEq
+            // unfortunately some of the errors don't implement PartialEq
+            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
             (Err(e), Ok(o)) => panic!("assertion `left == right` failed\n left: {e:?}\nright: {o:?}"),
             (Ok(o), Err(e)) => panic!("assertion `left == right` failed\n left: {o:?}\nright: {e:?}"),
         };
@@ -633,8 +633,8 @@ mod test {
         let token_request = session.into_token_request(redirect_uri).await;
 
         match (token_request, expected) {
-            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()), /* unfortunately some of the errors don't */
-            // implement PartialEq
+            // unfortunately some of the errors don't implement PartialEq
+            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
             (Ok(o), Err(e)) => panic!("assertion `left == right` failed\n left: {o:?}\nright: {e:?}"),
             (tr, Ok(())) => {
                 tr.unwrap();
