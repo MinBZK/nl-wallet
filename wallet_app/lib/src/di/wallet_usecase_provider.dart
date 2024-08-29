@@ -7,8 +7,14 @@ import 'package:local_auth/local_auth.dart';
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
 import '../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
+import '../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import '../domain/usecase/biometrics/impl/get_available_biometrics_usecase_impl.dart';
+import '../domain/usecase/biometrics/impl/get_supported_biometrics_usecase_impl.dart';
+import '../domain/usecase/biometrics/impl/is_biometric_login_enabled_usecase_impl.dart';
+import '../domain/usecase/biometrics/impl/request_biometrics_usecase_impl.dart';
 import '../domain/usecase/biometrics/impl/set_biometrics_usecase_impl.dart';
+import '../domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
+import '../domain/usecase/biometrics/request_biometrics_usecase.dart';
 import '../domain/usecase/biometrics/set_biometrics_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
@@ -256,11 +262,24 @@ class WalletUseCaseProvider extends StatelessWidget {
             context.read(),
           ),
         ),
+        RepositoryProvider<GetSupportedBiometricsUseCase>(
+          create: (context) => GetSupportedBiometricsUseCaseImpl(LocalAuthentication()),
+        ),
         RepositoryProvider<CheckPinUseCase>(
           create: (context) => CheckPinUseCaseImpl(context.read()),
         ),
         RepositoryProvider<ChangePinUseCase>(
           create: (context) => ChangePinUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<IsBiometricLoginEnabledUseCase>(
+          create: (context) => IsBiometricLoginEnabledUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<RequestBiometricsUsecase>(
+          create: (context) => RequestBiometricsUsecaseImpl(
+            LocalAuthentication(),
+            context.read(),
+            context.theme.platform,
+          ),
         ),
       ],
       child: child,

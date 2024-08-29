@@ -189,23 +189,23 @@ class SetupSecurityScreen extends StatelessWidget {
 
   Widget _buildConfigureBiometricsPage(BuildContext context, SetupSecurityConfigureBiometrics state) {
     final String title = switch (state.biometrics) {
-      AvailableBiometrics.faceOnly =>
+      Biometrics.face =>
         Platform.isIOS ? context.l10n.setupBiometricsPageiOSFaceIdTitle : context.l10n.setupBiometricsPageFaceTitle,
-      AvailableBiometrics.fingerOnly => context.l10n.setupBiometricsPageFingerprintTitle,
-      AvailableBiometrics.some => context.l10n.setupBiometricsPageGenericTitle,
-      AvailableBiometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
+      Biometrics.fingerprint => context.l10n.setupBiometricsPageFingerprintTitle,
+      Biometrics.some => context.l10n.setupBiometricsPageGenericTitle,
+      Biometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
     };
     final String illustration = switch (state.biometrics) {
-      AvailableBiometrics.faceOnly => WalletAssets.svg_biometrics_face,
-      AvailableBiometrics.fingerOnly => WalletAssets.svg_biometrics_finger,
-      AvailableBiometrics.some => WalletAssets.svg_biometrics_finger,
-      AvailableBiometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
+      Biometrics.face => WalletAssets.svg_biometrics_face,
+      Biometrics.fingerprint => WalletAssets.svg_biometrics_finger,
+      Biometrics.some => WalletAssets.svg_biometrics_finger,
+      Biometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
     };
     final primaryButtonIcon = switch (state.biometrics) {
-      AvailableBiometrics.faceOnly => Platform.isIOS ? WalletIcons.icon_face_id : Icons.face_unlock_outlined,
-      AvailableBiometrics.fingerOnly => Icons.fingerprint_outlined,
-      AvailableBiometrics.some => Icons.fingerprint_outlined,
-      AvailableBiometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
+      Biometrics.face => Platform.isIOS ? WalletIcons.icon_face_id : Icons.face_unlock_outlined,
+      Biometrics.fingerprint => Icons.fingerprint_outlined,
+      Biometrics.some => Icons.fingerprint_outlined,
+      Biometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
     };
     return TerminalPage(
       title: title,

@@ -86,10 +86,10 @@ class SetupSecurityCreatingWallet extends SetupSecurityState {
 }
 
 class SetupSecurityConfigureBiometrics extends SetupSecurityState {
-  final AvailableBiometrics biometrics;
+  final Biometrics biometrics;
 
   const SetupSecurityConfigureBiometrics({required this.biometrics})
-      : assert(biometrics != AvailableBiometrics.none, 'This state is invalid without supported biometrics');
+      : assert(biometrics != Biometrics.none, 'This state is invalid without supported biometrics');
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);

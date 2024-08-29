@@ -42,8 +42,10 @@ import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart
 import 'package:wallet/src/domain/model/wallet_card.dart' as _i8;
 import 'package:wallet/src/domain/model/wallet_card_detail.dart' as _i65;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i39;
+import 'package:wallet/src/domain/usecase/biometrics/biometrics.dart' as _i83;
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart' as _i82;
-import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart' as _i83;
+import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart' as _i85;
+import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart' as _i84;
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart' as _i66;
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart' as _i60;
 import 'package:wallet/src/domain/usecase/card/lock_wallet_usecase.dart' as _i76;
@@ -3111,20 +3113,20 @@ class MockChangePinUseCase extends _i1.Mock implements _i81.ChangePinUseCase {
 /// See the documentation for Mockito's code generation for more information.
 class MockGetAvailableBiometricsUseCase extends _i1.Mock implements _i82.GetAvailableBiometricsUseCase {
   @override
-  _i9.Future<_i82.AvailableBiometrics> invoke() => (super.noSuchMethod(
+  _i9.Future<_i83.Biometrics> invoke() => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [],
         ),
-        returnValue: _i9.Future<_i82.AvailableBiometrics>.value(_i82.AvailableBiometrics.faceOnly),
-        returnValueForMissingStub: _i9.Future<_i82.AvailableBiometrics>.value(_i82.AvailableBiometrics.faceOnly),
-      ) as _i9.Future<_i82.AvailableBiometrics>);
+        returnValue: _i9.Future<_i83.Biometrics>.value(_i83.Biometrics.face),
+        returnValueForMissingStub: _i9.Future<_i83.Biometrics>.value(_i83.Biometrics.face),
+      ) as _i9.Future<_i83.Biometrics>);
 }
 
 /// A class which mocks [SetBiometricsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSetBiometricsUseCase extends _i1.Mock implements _i83.SetBiometricsUseCase {
+class MockSetBiometricsUseCase extends _i1.Mock implements _i84.SetBiometricsUseCase {
   @override
   _i9.Future<void> invoke({
     required bool? enable,
@@ -3142,6 +3144,21 @@ class MockSetBiometricsUseCase extends _i1.Mock implements _i83.SetBiometricsUse
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
+}
+
+/// A class which mocks [GetSupportedBiometricsUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetSupportedBiometricsUseCase extends _i1.Mock implements _i85.GetSupportedBiometricsUseCase {
+  @override
+  _i9.Future<_i83.Biometrics> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i9.Future<_i83.Biometrics>.value(_i83.Biometrics.face),
+        returnValueForMissingStub: _i9.Future<_i83.Biometrics>.value(_i83.Biometrics.face),
+      ) as _i9.Future<_i83.Biometrics>);
 }
 
 /// A class which mocks [WalletCore].

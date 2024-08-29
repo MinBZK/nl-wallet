@@ -71,7 +71,7 @@ void main() {
           ..addScenario(
             widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
               MockSetupSecurityBloc(),
-              const SetupSecurityConfigureBiometrics(biometrics: AvailableBiometrics.fingerOnly),
+              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.fingerprint),
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -85,7 +85,7 @@ void main() {
           ..addScenario(
             widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
               MockSetupSecurityBloc(),
-              const SetupSecurityConfigureBiometrics(biometrics: AvailableBiometrics.faceOnly),
+              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -99,7 +99,7 @@ void main() {
           ..addScenario(
             widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
               MockSetupSecurityBloc(),
-              const SetupSecurityConfigureBiometrics(biometrics: AvailableBiometrics.some),
+              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
             ),
           ),
         wrapper: walletAppWrapper(brightness: Brightness.dark),

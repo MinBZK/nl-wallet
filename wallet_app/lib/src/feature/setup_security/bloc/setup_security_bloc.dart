@@ -102,7 +102,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     try {
       await createWalletUseCase.invoke(pin);
       final biometrics = await supportsBiometricsUsecase.invoke();
-      if (biometrics == AvailableBiometrics.none) {
+      if (biometrics == Biometrics.none) {
         emit(const SetupSecurityCompleted());
       } else {
         emit(SetupSecurityConfigureBiometrics(biometrics: biometrics));

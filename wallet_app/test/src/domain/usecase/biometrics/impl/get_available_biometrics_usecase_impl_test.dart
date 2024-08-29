@@ -17,7 +17,7 @@ void main() {
       TargetPlatform.android,
     );
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.faceOnly);
+    expect(result, Biometrics.face);
   });
 
   test('[android] returns finger when strong & finger type biometrics is available', () async {
@@ -29,7 +29,7 @@ void main() {
       TargetPlatform.android,
     );
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.fingerOnly);
+    expect(result, Biometrics.fingerprint);
   });
 
   test('[android] returns some when all biometric types are available', () async {
@@ -40,7 +40,7 @@ void main() {
       TargetPlatform.android,
     );
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.some);
+    expect(result, Biometrics.some);
   });
 
   test('[android] returns none when strong type biometrics are not available', () async {
@@ -59,7 +59,7 @@ void main() {
     );
 
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.none);
+    expect(result, Biometrics.none);
   });
 
   test('[android] returns none when no biometrics are available', () async {
@@ -71,7 +71,7 @@ void main() {
     );
 
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.none);
+    expect(result, Biometrics.none);
   });
 
   test('[android] returns some when only strong biometrics are available', () async {
@@ -83,7 +83,7 @@ void main() {
     );
 
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.some);
+    expect(result, Biometrics.some);
   });
 
   test('[iOS] returns face when face type biometrics is available', () async {
@@ -94,7 +94,7 @@ void main() {
       TargetPlatform.iOS,
     );
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.faceOnly);
+    expect(result, Biometrics.face);
   });
 
   test('[iOS] returns finger when fingerprint type biometrics is available', () async {
@@ -105,7 +105,7 @@ void main() {
       TargetPlatform.iOS,
     );
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.fingerOnly);
+    expect(result, Biometrics.fingerprint);
   });
 
   test('[iOS] returns some when all biometric types are available', () async {
@@ -116,7 +116,7 @@ void main() {
       TargetPlatform.iOS,
     );
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.some);
+    expect(result, Biometrics.some);
   });
 
   test('[iOS] returns some when only face and finger biometric types are available', () async {
@@ -128,7 +128,7 @@ void main() {
       TargetPlatform.iOS,
     );
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.some);
+    expect(result, Biometrics.some);
   });
 
   test('[iOS] returns none when no biometrics are available', () async {
@@ -140,6 +140,6 @@ void main() {
     );
 
     final result = await usecase.invoke();
-    expect(result, AvailableBiometrics.none);
+    expect(result, Biometrics.none);
   });
 }
