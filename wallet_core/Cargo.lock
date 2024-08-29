@@ -4631,6 +4631,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_yaml",
  "serial_test",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",

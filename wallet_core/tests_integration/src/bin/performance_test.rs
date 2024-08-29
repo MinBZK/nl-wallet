@@ -11,7 +11,6 @@ use openid4vc::{
     issuance_session::HttpIssuanceSession,
     verifier::{SessionType, StatusResponse},
 };
-use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use tests_integration::{fake_digid::fake_digid_auth, logging::init_logging};
 use wallet::{
     mock::{default_configuration, MockStorage},
@@ -32,13 +31,7 @@ fn init() {
 #[instrument(name = "", fields(pid = std::process::id()))]
 #[tokio::main]
 async fn main() {
-    // Create a unique storage path for saving etags so tests don't interfere.
-    let storage_path = SoftwareUtilities::storage_path()
-        .await
-        .unwrap()
-        .join(Uuid::new_v4().to_string());
-
-    tokio::fs::create_dir_all(&storage_path).await.unwrap();
+    let temp_path = tempfile::tempdir().unwrap();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
@@ -51,7 +44,7 @@ async fn main() {
         config_server_config.base_url,
         config_server_config.trust_anchors,
         (&config_server_config.signing_public_key).into(),
-        storage_path,
+        temp_path.into_path(),
         wallet_config,
     )
     .await
