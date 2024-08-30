@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HelpLink from "@/components/HelpLink.vue"
 import { injectStrict, translationsKey } from "@/util/translations"
 
 const t = injectStrict(translationsKey)
@@ -11,4 +12,5 @@ const t = injectStrict(translationsKey)
       {{ t("confirm_stop_body") }}
     </p>
   </section>
+  <help-link></help-link>
 </template>

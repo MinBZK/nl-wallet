@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HelpLink from "@/components/HelpLink.vue"
 import { type ErrorType } from "@/models/state"
 import { injectStrict, translationsKey } from "@/util/translations"
 
@@ -10,7 +11,7 @@ const t = injectStrict(translationsKey)
 </script>
 
 <template>
-  <svg width="24" height="24" fill="currentColor">
+  <svg class="status" width="24" height="24" fill="currentColor">
     <path
       d="m13 8.2-1-1-4 4-4-4-1 1 4 4-4 4 1 1 4-4 4 4 1-1-4-4zM19 1H9c-1.1 0-2 .9-2 2v3h2V4h10v16H9v-2H7v3c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2"
     />
@@ -35,4 +36,5 @@ const t = injectStrict(translationsKey)
       <p>{{ t("network_body") }}</p>
     </template>
   </section>
+  <help-link></help-link>
 </template>
