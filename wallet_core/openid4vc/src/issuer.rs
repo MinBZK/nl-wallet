@@ -5,7 +5,7 @@ use std::{
 
 use futures::future::try_join_all;
 use indexmap::IndexMap;
-use jsonwebtoken::{jwk::Jwk, Algorithm, Validation};
+use jsonwebtoken::{jwk::Jwk, Algorithm, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -806,7 +806,7 @@ impl CredentialResponse {
                 })
             }
 
-            CredentialPreview::Jwt { claims, .. } => {
+            CredentialPreview::Jwt { claims, jwt_typ, .. } => {
                 #[derive(Serialize)]
                 struct Cnf {
                     jwk: Jwk,
@@ -825,13 +825,10 @@ impl CredentialResponse {
                     claims: claims.as_ref(),
                 };
 
-                let jwt = Jwt::sign(
-                    &claims,
-                    &jsonwebtoken::Header::new(Algorithm::ES256),
-                    issuer_privkey.private_key(),
-                )
-                .await
-                .unwrap();
+                let mut header = Header::new(Algorithm::ES256);
+                header.typ = jwt_typ.or(header.typ);
+
+                let jwt = Jwt::sign(&claims, &header, issuer_privkey.private_key()).await.unwrap();
 
                 Ok(CredentialResponse::Jwt { credential: jwt.0 })
             }

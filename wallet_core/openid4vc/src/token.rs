@@ -149,6 +149,7 @@ pub enum CredentialPreview {
         issuer: Certificate,
     },
     Jwt {
+        jwt_typ: Option<String>,
         claims: JwtCredentialClaims,
         copy_count: NonZero<u8>,
     },
