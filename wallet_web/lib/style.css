@@ -253,7 +253,7 @@
 
 .modal.confirm-stop main,
 .modal.error main,
-.modal.success.cross_device main {
+.modal.success.same_device main {
   text-align: left;
   gap: 1.5rem;
 }
