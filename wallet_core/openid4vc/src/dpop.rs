@@ -11,9 +11,9 @@
 //! HTTP endpoints that require some token (e.g. an (access) token as in OpenID/OAuth) may additionally require this
 //! token to be signed in a DPoP JWT, to prevent replay attacks. If so, then:
 //! - the token itself must be sent as a HTTP header as follows:
-//!   ```text
-//!   Authorization: DPoP $token
-//!   ```
+//! ```text
+//! Authorization: DPoP $token
+//! ```
 //! - The DPoP JWT must include the `ath` field in its body, which must be equal to the URL-safe-no-pad base64 encoding
 //!   of the SHA256 of the token.
 //!
@@ -70,7 +70,11 @@ pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DpopError {
-    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
+    #[error(
+        "unsupported JWT algorithm: expected {}, found {}",
+        expected,
+        found.as_ref().unwrap_or(&"<None>".to_string())
+    )]
     #[category(critical)]
     UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("incorrect DPoP JWT HTTP method")]

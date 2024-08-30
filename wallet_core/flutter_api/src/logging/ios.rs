@@ -11,9 +11,8 @@ const DEFAULT_LEVEL: &tracing::Level = &tracing::Level::INFO;
 ///
 /// * For [`Level::ERROR`] messages, use the fault logging function.
 /// * For [`Level::WARN`] messages. use the error logging function.
-/// * For any message that is [`Level::INFO`] or below, use the default logging function.
-///   This is necessary, because Flutter will not show output on the console for the info
-///   and debug logging functions.
+/// * For any message that is [`Level::INFO`] or below, use the default logging function. This is necessary, because
+///   Flutter will not show output on the console for the info and debug logging functions.
 pub struct WriterMaker {
     default_writer: LogWriter,
     error_writer: LogWriter,

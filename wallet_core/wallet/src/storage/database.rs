@@ -36,10 +36,10 @@ impl From<SqliteUrl> for String {
 /// This struct wraps a SQLite database connection, it has the following responsibilities:
 ///
 /// * Setting up a connection to an encrypted database, based on a [`SqliteUrl`] and [`SqlCipherKey`]
-/// * Tearing down a connection to the database, either by falling out of scope or by having
-///   [`close_and_delete`] called on it in order to also delete the database file.
-/// * Exposing a reference to the database connection as [`ConnectionTrait`], so that a consumer
-///   of this struct can run queries on the database.
+/// * Tearing down a connection to the database, either by falling out of scope or by having [`close_and_delete`] called
+///   on it in order to also delete the database file.
+/// * Exposing a reference to the database connection as [`ConnectionTrait`], so that a consumer of this struct can run
+///   queries on the database.
 #[derive(Debug)]
 pub struct Database {
     pub url: SqliteUrl,

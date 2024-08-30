@@ -51,8 +51,7 @@ where
 
 fn predicate_successfully_generated(crt: &Path, key: &Path) -> Result<RegexPredicate> {
     let result = predicate::str::is_match(format!(
-        r#"Certificate stored in '{}'
-Key stored in '{}'"#,
+        "Certificate stored in '{}'\nKey stored in '{}'",
         crt.display(),
         key.display(),
     ))?;
@@ -66,7 +65,8 @@ fn predicate_file_already_exists(path: &Path) -> Result<RegexPredicate> {
 
 fn predicate_missing_json_file(path: &Path) -> StartsWithPredicate {
     predicate::str::starts_with(format!(
-        r#"error: Invalid value for --reader-auth-file <READER_AUTH_FILE>: Could not open "{}": No such file or directory"#,
+        "error: Invalid value for --reader-auth-file <READER_AUTH_FILE>: Could not open \"{}\": No such file or \
+         directory",
         path.display()
     ))
 }

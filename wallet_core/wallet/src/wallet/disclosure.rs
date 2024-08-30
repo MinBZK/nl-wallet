@@ -161,8 +161,8 @@ where
                 // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
                 // If this fails, return `DisclosureError::AttributeMdoc` instead.
                 info!(
-                    "At least one attribute is missing in order to satisfy the disclosure request, \
-                    attempting to translate to MissingDisclosureAttributes"
+                    "At least one attribute is missing in order to satisfy the disclosure request, attempting to \
+                     translate to MissingDisclosureAttributes"
                 );
 
                 let missing_attributes = missing_attr_session.missing_attributes().to_vec();
@@ -1477,7 +1477,10 @@ mod tests {
                 assert_eq!(events.len(), 0);
             }
             (true, false) => {
-                panic!("In practice this cannot happen, as the InstructionError cannot be both (Timeout or Blocked) and IncorrectPin");
+                panic!(
+                    "In practice this cannot happen, as the InstructionError cannot be both (Timeout or Blocked) and \
+                     IncorrectPin"
+                );
             }
         }
     }

@@ -21,22 +21,23 @@ const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1/";
 
 const CONFIG_SERVER_TRUST_ANCHORS: &str = "";
 
-const CONFIG_SERVER_SIGNING_PUBLIC_KEY: &str =
-    "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyU\
-     oWZT/C5WSeVm5Ktp6nCwnOwhhJLLGb4K3LtUJeLKjA==";
+const CONFIG_SERVER_SIGNING_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/\
+                                                0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyUoWZT/\
+                                                C5WSeVm5Ktp6nCwnOwhhJLLGb4K3LtUJeLKjA==";
 
 const CONFIG_SERVER_UPDATE_FREQUENCY_IN_SEC: &str = "3600";
 const WALLET_PROVIDER_BASE_URL: &str = "http://localhost:3000/api/v1/";
 
-const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyU\
-                                      oWZT/C5WSeVm5Ktp6nCwnOwhhJLLGb4K3LtUJeLKjA==";
+const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/\
+                                      0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyUoWZT/\
+                                      C5WSeVm5Ktp6nCwnOwhhJLLGb4K3LtUJeLKjA==";
 
 const DIGID_CLIENT_ID: &str = "";
 const DIGID_URL: &str = "https://localhost:8006/";
 const DIGID_TRUST_ANCHORS: &str = "";
 
-const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttyk\
-                                             oP/iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
+const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttykoP/\
+                                             iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
 
 const PID_ISSUER_URL: &str = "http://localhost:3001/issuance/";
 

@@ -396,16 +396,17 @@ mod tests {
         // Generate authentication URL
         let auth_request = client.url_encoded_auth_request().unwrap();
 
+        #[rustfmt::skip]
         assert_eq!(
             auth_request,
             "response_type=code\
-                    &client_id=client-1\
-                    &redirect_uri=redirect%3A%2F%2Fhere\
-                    &state=state\
-                    &code_challenge_method=S256\
-                    &code_challenge=challenge\
-                    &scope=openid\
-                    &nonce=nonce",
+                &client_id=client-1\
+                &redirect_uri=redirect%3A%2F%2Fhere\
+                &state=state\
+                &code_challenge_method=S256\
+                &code_challenge=challenge\
+                &scope=openid\
+                &nonce=nonce",
         );
     }
 
