@@ -100,30 +100,11 @@ impl Mdoc {
     /// provided unsigned value.
     pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedAttributesMismatch> {
         let our_attrs = self.attributes();
-        let our_attrs = flatten_map(&self.doc_type, &our_attrs);
-        let expected_attrs = flatten_map(&unsigned.doc_type, unsigned.attributes.as_ref());
+        let our_attrs = &flatten_attributes(&self.doc_type, &our_attrs);
+        let expected_attrs = &flatten_attributes(&unsigned.doc_type, unsigned.attributes.as_ref());
 
-        let missing = expected_attrs
-            .iter()
-            .filter_map(|(id, expected)| {
-                if !our_attrs.contains_key(id) || our_attrs[id] != *expected {
-                    Some(id.clone())
-                } else {
-                    None
-                }
-            })
-            .collect_vec();
-
-        let unexpected = our_attrs
-            .iter()
-            .filter_map(|(id, received)| {
-                if !expected_attrs.contains_key(id) || expected_attrs[id] != *received {
-                    Some(id.clone())
-                } else {
-                    None
-                }
-            })
-            .collect_vec();
+        let missing = attribute_difference(expected_attrs, our_attrs);
+        let unexpected = attribute_difference(our_attrs, expected_attrs);
 
         if !missing.is_empty() || !unexpected.is_empty() {
             return Err(IssuedAttributesMismatch { missing, unexpected });
@@ -133,15 +114,16 @@ impl Mdoc {
     }
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[error("missing attributes: {missing:?}; unexpected attributes: {unexpected:?}")]
-#[category(pd)]
-pub struct IssuedAttributesMismatch {
-    pub missing: Vec<AttributeIdentifier>,
-    pub unexpected: Vec<AttributeIdentifier>,
+pub fn attribute_difference<T: PartialEq>(
+    left: &IndexMap<AttributeIdentifier, T>,
+    right: &IndexMap<AttributeIdentifier, T>,
+) -> Vec<AttributeIdentifier> {
+    left.iter()
+        .filter_map(|(id, value)| (!right.contains_key(id) || right[id] != *value).then_some(id.clone()))
+        .collect_vec()
 }
 
-fn flatten_map<'a>(
+fn flatten_attributes<'a>(
     doctype: &'a DocType,
     attrs: &'a IndexMap<NameSpace, Vec<Entry>>,
 ) -> IndexMap<AttributeIdentifier, &'a ciborium::Value> {
@@ -151,7 +133,7 @@ fn flatten_map<'a>(
             entries.iter().map(|entry| {
                 (
                     AttributeIdentifier {
-                        doc_type: doctype.clone(),
+                        credential_type: doctype.clone(),
                         namespace: namespace.clone(),
                         attribute: entry.name.clone(),
                     },
@@ -160,6 +142,14 @@ fn flatten_map<'a>(
             })
         })
         .collect()
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[error("missing attributes: {missing:?}; unexpected attributes: {unexpected:?}")]
+#[category(pd)]
+pub struct IssuedAttributesMismatch {
+    pub missing: Vec<AttributeIdentifier>,
+    pub unexpected: Vec<AttributeIdentifier>,
 }
 
 #[cfg(any(test, feature = "test"))]

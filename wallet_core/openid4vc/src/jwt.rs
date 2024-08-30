@@ -20,6 +20,7 @@ use p256::{
     EncodedPoint,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::Value;
 use x509_parser::{
     der_parser::{asn1_rs::BitString, Oid},
     prelude::FromDer,
@@ -28,7 +29,8 @@ use x509_parser::{
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    holder::{IssuedAttributesMismatch, TrustAnchor},
+    holder::{attribute_difference, IssuedAttributesMismatch, TrustAnchor},
+    identifiers::AttributeIdentifier,
     server_keys::KeyPair,
     utils::{
         keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
@@ -44,8 +46,10 @@ use wallet_common::{
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential {
+    pub(crate) vct: Option<String>,
     pub(crate) private_key_id: String,
     pub(crate) key_type: CredentialKeyType,
+
     pub jwt: String,
 }
 
@@ -115,6 +119,7 @@ impl JwtCredential {
         jsonwebtoken::decode::<()>(&jwt, &key, &jwt::validations())?;
 
         Ok(Self {
+            vct: body.claim("vct").and_then(|vct| vct.as_str().map(str::to_string)),
             private_key_id,
             key_type: K::KEY_TYPE,
             jwt,
@@ -123,10 +128,44 @@ impl JwtCredential {
 
     pub fn compare_unsigned(
         &self,
-        _unsigned: &IndexMap<String, serde_json::Value>,
+        unsigned: &IndexMap<String, serde_json::Value>,
     ) -> Result<(), IssuedAttributesMismatch> {
-        todo!()
+        let (jwt_body, _) = josekit::jwt::decode_unsecured(&self.jwt).unwrap();
+        let our_attrs = jwt_body.claims_set();
+
+        let our_vct = self.vct.clone().unwrap_or_default();
+        let our_attrs = &flatten_attributes(&our_vct, our_attrs);
+        let expected_vct = unsigned.get("vct").map(|vct| vct.to_string()).unwrap_or_default();
+        let expected_attrs = &flatten_attributes(&expected_vct, unsigned);
+
+        let missing = attribute_difference(expected_attrs, our_attrs);
+        let unexpected = attribute_difference(our_attrs, expected_attrs);
+
+        if !missing.is_empty() || !unexpected.is_empty() {
+            return Err(IssuedAttributesMismatch { missing, unexpected });
+        }
+
+        Ok(())
     }
+}
+
+fn flatten_attributes<'a>(
+    typ: &'a str,
+    attrs: impl IntoIterator<Item = (&'a String, &'a Value)>,
+) -> IndexMap<AttributeIdentifier, &'a Value> {
+    attrs
+        .into_iter()
+        .map(|(name, value)| {
+            (
+                AttributeIdentifier {
+                    credential_type: typ.to_string(),
+                    namespace: "".to_string(),
+                    attribute: name.clone(),
+                },
+                value,
+            )
+        })
+        .collect()
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

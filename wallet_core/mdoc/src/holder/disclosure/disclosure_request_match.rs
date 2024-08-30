@@ -71,7 +71,7 @@ impl<I> DisclosureRequestMatch<I> {
             HashMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
             |mut requested_attributes, attribute_identifier| {
                 // This unwrap is safe, as `doc_types` is derived from the same `DeviceRequest`.
-                let doc_type = *doc_types.get(attribute_identifier.doc_type.as_str()).unwrap();
+                let doc_type = *doc_types.get(attribute_identifier.credential_type.as_str()).unwrap();
                 requested_attributes
                     .entry(doc_type)
                     .or_default()

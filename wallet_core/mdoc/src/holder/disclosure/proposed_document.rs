@@ -113,7 +113,7 @@ impl<I> ProposedDocument<I> {
                         .into_iter()
                         .filter(|attribute| {
                             let attribute_identifier = AttributeIdentifier {
-                                doc_type: mdoc.doc_type.clone(),
+                                credential_type: mdoc.doc_type.clone(),
                                 namespace: name_space.clone(),
                                 attribute: attribute.0.element_identifier.clone(),
                             };
