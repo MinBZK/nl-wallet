@@ -44,6 +44,8 @@ use wallet_common::{
     keys::EcdsaKey,
 };
 
+use crate::token::JwtCredentialClaims;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential {
     pub(crate) vct: Option<String>,
@@ -126,17 +128,14 @@ impl JwtCredential {
         })
     }
 
-    pub fn compare_unsigned(
-        &self,
-        unsigned: &IndexMap<String, serde_json::Value>,
-    ) -> Result<(), IssuedAttributesMismatch> {
+    pub fn compare_unsigned(&self, unsigned: &JwtCredentialClaims) -> Result<(), IssuedAttributesMismatch> {
         let (jwt_body, _) = josekit::jwt::decode_unsecured(&self.jwt).unwrap();
         let our_attrs = jwt_body.claims_set();
 
         let our_vct = self.vct.clone().unwrap_or_default();
         let our_attrs = &flatten_attributes(&our_vct, our_attrs);
-        let expected_vct = unsigned.get("vct").map(|vct| vct.to_string()).unwrap_or_default();
-        let expected_attrs = &flatten_attributes(&expected_vct, unsigned);
+        let expected_vct = unsigned.vct().map(ToString::to_string).unwrap_or_default();
+        let expected_attrs = &flatten_attributes(&expected_vct, unsigned.as_ref());
 
         let missing = attribute_difference(expected_attrs, our_attrs);
         let unexpected = attribute_difference(our_attrs, expected_attrs);

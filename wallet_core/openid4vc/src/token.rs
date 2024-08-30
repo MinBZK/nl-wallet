@@ -3,6 +3,7 @@ use std::{num::NonZero, time::Duration};
 use derive_more::From;
 use indexmap::{IndexMap, IndexSet};
 
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
 use url::Url;
@@ -148,9 +149,18 @@ pub enum CredentialPreview {
         issuer: Certificate,
     },
     Jwt {
-        claims: IndexMap<String, serde_json::Value>,
+        claims: JwtCredentialClaims,
         copy_count: NonZero<u8>,
     },
+}
+
+#[nutype(derive(Debug, Clone, AsRef, From, Serialize, Deserialize))]
+pub struct JwtCredentialClaims(IndexMap<String, serde_json::Value>);
+
+impl JwtCredentialClaims {
+    pub fn vct(&self) -> Option<&str> {
+        self.as_ref().get("vct").and_then(serde_json::Value::as_str)
+    }
 }
 
 impl From<&CredentialPreview> for Format {
@@ -173,7 +183,7 @@ impl CredentialPreview {
     pub fn credential_type(&self) -> Option<&str> {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Some(&unsigned_mdoc.doc_type),
-            CredentialPreview::Jwt { claims, .. } => claims.get("vct").and_then(|vct| vct.as_str()),
+            CredentialPreview::Jwt { claims, .. } => claims.vct(),
         }
     }
 

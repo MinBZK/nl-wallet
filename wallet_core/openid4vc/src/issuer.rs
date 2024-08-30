@@ -4,8 +4,8 @@ use std::{
 };
 
 use futures::future::try_join_all;
-use josekit::Map;
-use jsonwebtoken::{Algorithm, Validation};
+use indexmap::IndexMap;
+use jsonwebtoken::{jwk::Jwk, Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -806,13 +806,24 @@ impl CredentialResponse {
                 })
             }
 
-            CredentialPreview::Jwt { mut claims, .. } => {
+            CredentialPreview::Jwt { claims, .. } => {
+                #[derive(Serialize)]
+                struct Cnf {
+                    jwk: Jwk,
+                }
+                #[derive(Serialize)]
+                struct ToSign<'a> {
+                    cnf: Cnf,
+                    #[serde(flatten)]
+                    claims: &'a IndexMap<String, Value>,
+                }
+
                 // Add the holder public key to the claims that are going to be signed
-                let jwk = serde_json::to_value(jwk_from_p256(&holder_pubkey)?)?;
-                claims.insert(
-                    "cnf".to_string(),
-                    Value::Object(Map::from_iter([("jwk".to_string(), jwk)])),
-                );
+                let jwk = jwk_from_p256(&holder_pubkey)?;
+                let claims = ToSign {
+                    cnf: Cnf { jwk },
+                    claims: claims.as_ref(),
+                };
 
                 let jwt = Jwt::sign(
                     &claims,
