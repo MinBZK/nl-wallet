@@ -1,15 +1,5 @@
-ARG HARBOR_REGISTRY
-ARG HARBOR_NLW_PROJECT
-
-# Build Stage
-FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5 AS builder
-WORKDIR /usr/src/
-COPY . .
-RUN cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_server_migration" --bin wallet_server_migration
-
-# Bundle Stage
 FROM scratch
-COPY --from=builder /usr/src/target/x86_64-unknown-linux-musl/release/wallet_server_migration .
+COPY ./target/x86_64-unknown-linux-musl/release/wallet_server_migration .
 USER 1000
 ENTRYPOINT ["./wallet_server_migration"]
 CMD ["status"]

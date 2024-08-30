@@ -9,11 +9,6 @@
 .build-docker-image:
   extends: .kaniko
   rules: !reference [.default-or-release-or-merge-request-manual, rules]
-  needs:
-    - job: test-rust
-      artifacts: false
-    - job: test-rust-compilation-android-linux
-      artifacts: false
   script:
     - TAG=${RELEASE_VERSION:-latest}
     - /kaniko/executor
@@ -25,14 +20,20 @@
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
       --cache=true
 
-build-wp-image:
+build-wallet-provider-image:
   extends: .build-docker-image
+  needs:
+    - job: build-wallet-provider-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider
 
 build-wp-migrations-image:
   extends: .build-docker-image
+  needs:
+    - job: build-wallet-provider-migrations-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider-migrations
@@ -57,11 +58,12 @@ build-wp-migrations-image:
 build-mock-relying-party-image:
   extends: .build-docker-image-mrp
   needs:
-    - !reference [.build-docker-image-mrp, needs]
     - job: build-wallet-web
       artifacts: true
+    - job: build-demo-relying-party-binary
+      artifacts: true
   before_script:
-    - !reference [ .kaniko, before_script ]
+    - !reference [.kaniko, before_script]
     - export ARG_CSP_SCRIPT_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt)"
     - export ARG_CSP_STYLE_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt)"
     - export ARG_WALLET_WEB_FILENAME="$(cat wallet_core/mock_relying_party/hashes/wallet_web_filename.txt)"
@@ -72,30 +74,45 @@ build-mock-relying-party-image:
 
 build-wallet-server-image:
   extends: .build-docker-image
+  needs:
+    - job: build-wallet-server-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.wallet_server
     DOCKER_IMAGE_NAME: nl-wallet-server
 
 build-verification-server-image:
   extends: .build-docker-image
+  needs:
+    - job: build-verification-server-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.verification_server
     DOCKER_IMAGE_NAME: nl-verification-server
 
 build-pid-issuer-image:
   extends: .build-docker-image
+  needs:
+    - job: build-pid-issuer-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.pid_issuer
     DOCKER_IMAGE_NAME: nl-pid-issuer
 
 build-ws-migrations-image:
   extends: .build-docker-image
+  needs:
+    - job: build-wallet-server-migrations-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/migration/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-server-migrations
 
 build-gba-hc-converter-image:
   extends: .build-docker-image
+  needs:
+    - job: build-gba-hc-converter-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-gba-hc-converter
