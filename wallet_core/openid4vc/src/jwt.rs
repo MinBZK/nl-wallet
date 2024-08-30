@@ -8,6 +8,7 @@ use std::{collections::HashSet, str::FromStr, sync::LazyLock};
 
 use base64::{prelude::*, DecodeError};
 use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::JoseError;
 use jsonwebtoken::{
@@ -27,7 +28,7 @@ use x509_parser::{
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    holder::TrustAnchor,
+    holder::{IssuedAttributesMismatch, TrustAnchor},
     server_keys::KeyPair,
     utils::{
         keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
@@ -118,6 +119,13 @@ impl JwtCredential {
             key_type: K::KEY_TYPE,
             jwt,
         })
+    }
+
+    pub fn compare_unsigned(
+        &self,
+        _unsigned: &IndexMap<String, serde_json::Value>,
+    ) -> Result<(), IssuedAttributesMismatch> {
+        todo!()
     }
 }
 

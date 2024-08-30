@@ -36,9 +36,10 @@ pub struct CredentialRequest {
 }
 
 impl CredentialRequest {
-    pub fn credential_type(&self) -> Option<&String> {
+    pub fn credential_type(&self) -> Option<&str> {
         match &self.credential_type {
-            CredentialRequestType::MsoMdoc { doctype } => doctype.as_ref(),
+            CredentialRequestType::MsoMdoc { doctype } => doctype.as_ref().map(String::as_str),
+            CredentialRequestType::Jwt { vct } => vct.as_ref().map(String::as_str),
         }
     }
 }
@@ -47,6 +48,7 @@ impl CredentialRequest {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialRequestType {
     MsoMdoc { doctype: Option<String> },
+    Jwt { vct: Option<String> },
 }
 
 impl From<&CredentialPreview> for CredentialRequestType {
@@ -55,6 +57,9 @@ impl From<&CredentialPreview> for CredentialRequestType {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Self::MsoMdoc {
                 doctype: Some(unsigned_mdoc.doc_type.clone()),
             },
+            CredentialPreview::Jwt { claims, .. } => Self::Jwt {
+                vct: claims.get("vct").and_then(|vct| vct.as_str().map(str::to_string)),
+            },
         }
     }
 }
@@ -62,7 +67,8 @@ impl From<&CredentialPreview> for CredentialRequestType {
 impl From<&CredentialRequestType> for Format {
     fn from(value: &CredentialRequestType) -> Self {
         match value {
-            CredentialRequestType::MsoMdoc { doctype: _ } => Format::MsoMdoc,
+            CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialRequestType::Jwt { .. } => Format::Jwt,
         }
     }
 }

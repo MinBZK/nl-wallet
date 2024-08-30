@@ -1,7 +1,7 @@
-use std::time::Duration;
+use std::{num::NonZero, time::Duration};
 
 use derive_more::From;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
@@ -22,7 +22,7 @@ use wallet_common::{
     utils::{random_string, sha256},
 };
 
-use crate::{authorization::AuthorizationDetails, server_state::SessionToken};
+use crate::{authorization::AuthorizationDetails, server_state::SessionToken, Format};
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -147,18 +147,33 @@ pub enum CredentialPreview {
         unsigned_mdoc: UnsignedMdoc,
         issuer: Certificate,
     },
+    Jwt {
+        claims: IndexMap<String, serde_json::Value>,
+        copy_count: NonZero<u8>,
+    },
+}
+
+impl From<&CredentialPreview> for Format {
+    fn from(value: &CredentialPreview) -> Self {
+        match value {
+            CredentialPreview::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialPreview::Jwt { .. } => Format::Jwt,
+        }
+    }
 }
 
 impl CredentialPreview {
     pub fn copy_count(&self) -> u8 {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
+            CredentialPreview::Jwt { copy_count, .. } => (*copy_count).into(),
         }
     }
 
-    pub fn credential_type(&self) -> &str {
+    pub fn credential_type(&self) -> Option<&str> {
         match self {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Some(&unsigned_mdoc.doc_type),
+            CredentialPreview::Jwt { claims, .. } => claims.get("vct").and_then(|vct| vct.as_str()),
         }
     }
 
@@ -175,14 +190,7 @@ impl CredentialPreview {
                 // only it could have produced an mdoc against that certificate.
                 issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
             }
-        }
-    }
-}
-
-impl From<CredentialPreview> for UnsignedMdoc {
-    fn from(value: CredentialPreview) -> Self {
-        match value {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
+            CredentialPreview::Jwt { .. } => Ok(()),
         }
     }
 }
@@ -195,13 +203,18 @@ pub enum CredentialPreviewError {
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
+    #[error("unexpected credential format: expected MsoMdoc, found {0:?}")]
+    #[category(critical)]
+    UnexpectedFormat(Format),
 }
 
 impl TryFrom<CredentialPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
     type Error = CredentialPreviewError;
 
     fn try_from(value: CredentialPreview) -> Result<Self, Self::Error> {
-        let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = value;
+        let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = value else {
+            Err(CredentialPreviewError::UnexpectedFormat(Format::Jwt))?
+        };
         let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&issuer)? else {
             Err(CredentialPreviewError::NoIssuerRegistration)?
         };

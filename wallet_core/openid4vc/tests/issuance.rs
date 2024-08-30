@@ -87,6 +87,7 @@ async fn accept_issuance() {
                     unsigned_mdoc,
                     issuer: _,
                 } => unsigned_mdoc,
+                _ => panic!("unexpected credential format"),
             })
             .unwrap()
     });

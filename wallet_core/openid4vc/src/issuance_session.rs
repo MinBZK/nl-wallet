@@ -106,9 +106,9 @@ pub enum IssuanceSessionError {
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]
     AttributeRandomLength(usize, usize),
-    #[error("unexpected credential format: expected MsoMdoc, found {0:?}")]
+    #[error("unexpected credential format: expected {expected:?}, found {found:?}")]
     #[category(critical)]
-    UnexpectedCredentialFormat(Format),
+    UnexpectedCredentialFormat { expected: Format, found: Format },
     #[error("received zero credential copies")]
     #[category(critical)]
     NoCredentialCopies,
@@ -150,7 +150,10 @@ impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
     fn try_from(value: &'a IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match &value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
-            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat(value.into())),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                expected: Format::MsoMdoc,
+                found: value.into(),
+            }),
         }
     }
 }
@@ -161,7 +164,10 @@ impl TryFrom<IssuedCredentialCopies> for MdocCopies {
     fn try_from(value: IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
-            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat((&value).into())),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                expected: Format::MsoMdoc,
+                found: (&value).into(),
+            }),
         }
     }
 }
@@ -176,7 +182,10 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
                     .into_iter()
                     .map(|cred| match cred {
                         IssuedCredential::MsoMdoc(mdoc) => Ok(mdoc),
-                        _ => Err(IssuanceSessionError::UnexpectedCredentialFormat((&cred).into())),
+                        _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                            expected: Format::MsoMdoc,
+                            found: (&cred).into(),
+                        }),
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .into();
@@ -187,7 +196,10 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
                     .into_iter()
                     .map(|cred| match cred {
                         IssuedCredential::Jwt(jwt) => Ok(jwt),
-                        _ => Err(IssuanceSessionError::UnexpectedCredentialFormat((&cred).into())),
+                        _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                            expected: Format::Jwt,
+                            found: (&cred).into(),
+                        }),
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .into();
@@ -672,6 +684,13 @@ impl CredentialResponse {
             CredentialResponse::MsoMdoc {
                 credential: CborBase64(issuer_signed),
             } => {
+                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview else {
+                    return Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                        expected: Format::MsoMdoc,
+                        found: preview.into(),
+                    });
+                };
+
                 if issuer_signed
                     .public_key()
                     .map_err(IssuanceSessionError::PublicKeyFromMdoc)?
@@ -702,7 +721,6 @@ impl CredentialResponse {
 
                 // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
                 // in the credential preview.
-                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
                 if issuer_signed.issuer_auth.signing_cert()? != *issuer {
                     return Err(IssuanceSessionError::IssuerCertificateMismatch);
                 }
@@ -719,6 +737,17 @@ impl CredentialResponse {
             }
             CredentialResponse::Jwt { credential } => {
                 let cred = JwtCredential::new::<K>(key_id, credential, trust_anchors)?;
+
+                let CredentialPreview::Jwt { claims, .. } = preview else {
+                    return Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                        expected: Format::Jwt,
+                        found: preview.into(),
+                    });
+                };
+
+                cred.compare_unsigned(claims)
+                    .map_err(IssuanceSessionError::IssuedAttributesMismatch)?;
+
                 Ok(IssuedCredential::Jwt(cred))
             }
         }
@@ -989,6 +1018,7 @@ mod tests {
                 unsigned_mdoc,
                 issuer: other_issuance_key.certificate().clone(),
             },
+            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response
@@ -1030,6 +1060,7 @@ mod tests {
                 unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
                 issuer,
             },
+            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response
