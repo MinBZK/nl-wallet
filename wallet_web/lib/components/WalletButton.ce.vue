@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import WalletModal from "@/components/WalletModal.vue"
 import { translations, translationsKey, type Language } from "@/util/translations"
 import { isDesktop, isMobileKey } from "@/util/useragent"
 import { provide, ref } from "vue"
-import WalletModal from "./WalletModal.vue"
 import { RO_SANS_BOLD, RO_SANS_REGULAR } from "../non-free/fonts"
 
 export interface Props {

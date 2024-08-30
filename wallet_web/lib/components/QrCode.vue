@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { drawCanvas } from "@/util/draw_qr"
 import { qrcodegen } from "@/util/qrcodegen"
-import { ref, watch } from "vue"
 import { injectStrict, translationsKey } from "@/util/translations"
+import { ref, watch } from "vue"
 
 const props = defineProps<{
   text: string
