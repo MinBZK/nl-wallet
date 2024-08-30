@@ -84,12 +84,14 @@ pub struct CredentialResponses {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
     MsoMdoc { credential: CborBase64<IssuerSigned> },
+    Jwt { credential: String },
 }
 
 impl From<&CredentialResponse> for Format {
     fn from(value: &CredentialResponse) -> Self {
         match value {
             CredentialResponse::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialResponse::Jwt { .. } => Format::Jwt,
         }
     }
 }

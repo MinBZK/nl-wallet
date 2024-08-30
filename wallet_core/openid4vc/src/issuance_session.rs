@@ -15,7 +15,7 @@ use url::Url;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    holder::{IssuedAttributesMismatch, Mdoc, MdocCopies, TrustAnchor},
+    holder::{CredentialCopies, IssuedAttributesMismatch, Mdoc, MdocCopies, TrustAnchor},
     utils::{
         cose::CoseError,
         keys::{KeyFactory, MdocEcdsaKey},
@@ -31,7 +31,7 @@ use crate::{
         CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    jwt::JwkConversionError,
+    jwt::{JwkConversionError, JwtCredential, JwtCredentialError},
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
@@ -65,6 +65,8 @@ pub enum IssuanceSessionError {
     IssuedAttributesMismatch(#[source] IssuedAttributesMismatch),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
+    #[error("jwt credential verification failed: {0}")]
+    JwtCredentialVerification(#[from] JwtCredentialError),
     #[error("error requesting access token: {0:?}")]
     #[category(pd)]
     TokenRequest(ErrorResponse<TokenErrorCode>),
@@ -115,11 +117,31 @@ pub enum IssuanceSessionError {
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
     MsoMdoc(Mdoc),
+    Jwt(JwtCredential),
+}
+
+impl From<&IssuedCredential> for Format {
+    fn from(value: &IssuedCredential) -> Self {
+        match value {
+            IssuedCredential::MsoMdoc(_) => Format::MsoMdoc,
+            IssuedCredential::Jwt(_) => Format::Jwt,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredentialCopies {
     MsoMdoc(MdocCopies),
+    Jwt(CredentialCopies<JwtCredential>),
+}
+
+impl From<&IssuedCredentialCopies> for Format {
+    fn from(value: &IssuedCredentialCopies) -> Self {
+        match value {
+            IssuedCredentialCopies::MsoMdoc(_) => Format::MsoMdoc,
+            IssuedCredentialCopies::Jwt(_) => Format::Jwt,
+        }
+    }
 }
 
 impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
@@ -128,6 +150,7 @@ impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
     fn try_from(value: &'a IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match &value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat(value.into())),
         }
     }
 }
@@ -138,6 +161,7 @@ impl TryFrom<IssuedCredentialCopies> for MdocCopies {
     fn try_from(value: IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat((&value).into())),
         }
     }
 }
@@ -150,12 +174,24 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
             IssuedCredential::MsoMdoc(_) => {
                 let mdoc_copies = creds
                     .into_iter()
-                    .map(|mdoc| match mdoc {
-                        IssuedCredential::MsoMdoc(mdoc) => mdoc,
+                    .map(|cred| match cred {
+                        IssuedCredential::MsoMdoc(mdoc) => Ok(mdoc),
+                        _ => Err(IssuanceSessionError::UnexpectedCredentialFormat((&cred).into())),
                     })
-                    .collect_vec()
+                    .collect::<Result<Vec<_>, _>>()?
                     .into();
                 IssuedCredentialCopies::MsoMdoc(mdoc_copies)
+            }
+            IssuedCredential::Jwt(_) => {
+                let jwt_copies = creds
+                    .into_iter()
+                    .map(|cred| match cred {
+                        IssuedCredential::Jwt(jwt) => Ok(jwt),
+                        _ => Err(IssuanceSessionError::UnexpectedCredentialFormat((&cred).into())),
+                    })
+                    .collect::<Result<Vec<_>, _>>()?
+                    .into();
+                IssuedCredentialCopies::Jwt(jwt_copies)
             }
         };
 
@@ -681,6 +717,10 @@ impl CredentialResponse {
 
                 Ok(IssuedCredential::MsoMdoc(mdoc))
             }
+            CredentialResponse::Jwt { credential } => {
+                let cred = JwtCredential::new::<K>(key_id, credential, trust_anchors)?;
+                Ok(IssuedCredential::Jwt(cred))
+            }
         }
     }
 }
@@ -913,6 +953,7 @@ mod tests {
 
                 CredentialResponse::MsoMdoc { credential }
             }
+            CredentialResponse::Jwt { credential: _ } => panic!("unexpected credential format"),
         };
 
         let error = credential_response

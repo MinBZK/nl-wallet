@@ -42,6 +42,7 @@ pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
 pub enum Format {
     #[default]
     MsoMdoc,
+    Jwt,
 
     // Other formats we don't currently support; we include them here so we can give the appropriate error message
     // when they might be requested by the wallet (as opposed to a deserialization error).

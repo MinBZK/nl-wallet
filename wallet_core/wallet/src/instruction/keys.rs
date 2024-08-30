@@ -2,7 +2,7 @@ use std::iter;
 
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 
-use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey, MdocKeyType};
+use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey, CredentialKeyType};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign},
@@ -180,5 +180,5 @@ where
     K: PlatformEcdsaKey,
     A: AccountProviderClient,
 {
-    const KEY_TYPE: MdocKeyType = MdocKeyType::Remote;
+    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Remote;
 }

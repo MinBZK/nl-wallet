@@ -4,36 +4,122 @@
 //!   such as an ECDSA public key.
 //! - Bulk signing of JWTs.
 
-use std::collections::HashSet;
+use std::{collections::HashSet, str::FromStr, sync::LazyLock};
 
 use base64::{prelude::*, DecodeError};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
+use josekit::JoseError;
 use jsonwebtoken::{
     jwk::{self, EllipticCurve, Jwk},
-    Algorithm, Header, Validation,
+    Algorithm, DecodingKey, Header, Validation,
 };
 use p256::{
     ecdsa::{signature, VerifyingKey},
     EncodedPoint,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use x509_parser::{
+    der_parser::{asn1_rs::BitString, Oid},
+    prelude::FromDer,
+    x509::{AlgorithmIdentifier, RelativeDistinguishedName},
+};
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::KeyPair,
     utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
+        keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
         x509::{Certificate, CertificateError, CertificateUsage},
     },
 };
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
-    jwt::{Jwt, JwtError},
+    jwt::{self, Jwt, JwtError},
     keys::EcdsaKey,
 };
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct JwtCredential {
+    pub(crate) private_key_id: String,
+    pub(crate) key_type: CredentialKeyType,
+    pub jwt: String,
+}
+
+static OID_EC_PUBKEY: LazyLock<Oid<'static>> = LazyLock::new(|| Oid::from_str("1.2.840.10045.2.1").unwrap());
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
+pub enum JwtCredentialError {
+    #[error("failed to decode JWT body: {0}")]
+    Decoding(#[from] JoseError),
+    #[error("JWT has no `iss` field")]
+    #[category(critical)]
+    IssuerMissing,
+    #[error("unknown issuer: {0}")]
+    #[category(critical)]
+    UnknownIssuer(String),
+    #[error("failed to parse trust anchor name: {0}")]
+    #[category(critical)]
+    TrustAnchorNameParsing(#[source] x509_parser::nom::Err<x509_parser::error::X509Error>),
+    #[error("failed to parse trust anchor algorithm: {0}")]
+    #[category(critical)]
+    TrustAnchorAlgorithmParsing(#[source] x509_parser::nom::Err<x509_parser::error::X509Error>),
+    #[error("failed to parse trust anchor key: {0}")]
+    #[category(critical)]
+    TrustAnchorKeyParsing(#[from] x509_parser::nom::Err<x509_parser::der_parser::error::Error>),
+    #[error("trust anchor key of unexpected format: {0}")]
+    #[category(critical)]
+    TrustAnchorKeyFormat(String),
+    #[error("failed to verify JWT: {0}")]
+    JwtVerification(#[from] jsonwebtoken::errors::Error),
+}
+
+impl JwtCredential {
+    pub fn new<K: MdocEcdsaKey>(
+        private_key_id: String,
+        jwt: String,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<Self, JwtCredentialError> {
+        let (body, _) = josekit::jwt::decode_unsecured(&jwt)?;
+        let jwt_issuer = body.issuer().ok_or(JwtCredentialError::IssuerMissing)?;
+
+        // See if we have a trust anchor that has the JWT issuer as (one of) its subject
+        let trust_anchor = trust_anchors
+            .iter()
+            .find_map(|anchor| {
+                RelativeDistinguishedName::from_der(anchor.subject)
+                    .map(|(_, name)| {
+                        name.iter()
+                            .any(|name| name.as_str().is_ok_and(|name| name == jwt_issuer))
+                            .then_some(anchor)
+                    })
+                    .transpose()
+            })
+            .transpose()
+            .map_err(JwtCredentialError::TrustAnchorNameParsing)?
+            .ok_or(JwtCredentialError::UnknownIssuer(jwt_issuer.to_string()))?;
+
+        let (key_bytes, algorithm) = AlgorithmIdentifier::from_der(trust_anchor.spki)
+            .map_err(JwtCredentialError::TrustAnchorAlgorithmParsing)?;
+        if algorithm.algorithm != *OID_EC_PUBKEY {
+            return Err(JwtCredentialError::TrustAnchorKeyFormat(algorithm.oid().to_id_string()));
+        }
+
+        let (_, key_bytes) = BitString::from_der(key_bytes)?;
+        let key = DecodingKey::from_ec_der(&key_bytes.data); // not actually DER
+
+        jsonwebtoken::decode::<()>(&jwt, &key, &jwt::validations())?;
+
+        Ok(Self {
+            private_key_id,
+            key_type: K::KEY_TYPE,
+            jwt,
+        })
+    }
+}
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]

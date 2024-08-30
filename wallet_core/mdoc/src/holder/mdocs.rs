@@ -15,7 +15,7 @@ use crate::{
     unsigned::{Entry, UnsignedMdoc},
     utils::{
         cose::CoseError,
-        keys::{MdocEcdsaKey, MdocKeyType},
+        keys::{CredentialKeyType, MdocEcdsaKey},
         x509::Certificate,
     },
     verifier::ValidityRequirement,
@@ -56,7 +56,7 @@ pub struct Mdoc {
     // mdoc after deserialization.
     pub(crate) private_key_id: String,
     pub(crate) issuer_signed: IssuerSigned,
-    pub(crate) key_type: MdocKeyType,
+    pub(crate) key_type: CredentialKeyType,
 }
 
 impl Mdoc {
