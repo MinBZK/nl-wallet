@@ -736,16 +736,21 @@ impl CredentialResponse {
                 Ok(IssuedCredential::MsoMdoc(mdoc))
             }
             CredentialResponse::Jwt { credential } => {
-                let cred = JwtCredential::new::<K>(key_id, credential, trust_anchors)?;
+                let (cred, cred_claims) = JwtCredential::new::<K>(key_id, credential, trust_anchors)?;
 
-                let CredentialPreview::Jwt { claims, .. } = preview else {
+                let CredentialPreview::Jwt {
+                    claims: expected_claims,
+                    ..
+                } = preview
+                else {
                     return Err(IssuanceSessionError::UnexpectedCredentialFormat {
                         expected: Format::Jwt,
                         found: preview.into(),
                     });
                 };
 
-                cred.compare_unsigned(claims)
+                cred_claims
+                    .compare(expected_claims)
                     .map_err(IssuanceSessionError::IssuedAttributesMismatch)?;
 
                 Ok(IssuedCredential::Jwt(cred))

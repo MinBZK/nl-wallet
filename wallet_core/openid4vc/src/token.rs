@@ -1,9 +1,8 @@
 use std::{num::NonZero, time::Duration};
 
 use derive_more::From;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 
-use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
 use url::Url;
@@ -23,7 +22,7 @@ use wallet_common::{
     utils::{random_string, sha256},
 };
 
-use crate::{authorization::AuthorizationDetails, server_state::SessionToken, Format};
+use crate::{authorization::AuthorizationDetails, jwt::JwtCredentialClaims, server_state::SessionToken, Format};
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -153,15 +152,6 @@ pub enum CredentialPreview {
         claims: JwtCredentialClaims,
         copy_count: NonZero<u8>,
     },
-}
-
-#[nutype(derive(Debug, Clone, AsRef, From, Serialize, Deserialize))]
-pub struct JwtCredentialClaims(IndexMap<String, serde_json::Value>);
-
-impl JwtCredentialClaims {
-    pub fn vct(&self) -> Option<&str> {
-        self.as_ref().get("vct").and_then(serde_json::Value::as_str)
-    }
 }
 
 impl From<&CredentialPreview> for Format {

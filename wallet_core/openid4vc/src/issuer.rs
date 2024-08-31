@@ -814,6 +814,7 @@ impl CredentialResponse {
                 #[derive(Serialize)]
                 struct ToSign<'a> {
                     cnf: Cnf,
+                    iss: String,
                     #[serde(flatten)]
                     claims: &'a IndexMap<String, Value>,
                 }
@@ -822,6 +823,13 @@ impl CredentialResponse {
                 let jwk = jwk_from_p256(&holder_pubkey)?;
                 let claims = ToSign {
                     cnf: Cnf { jwk },
+                    iss: issuer_privkey
+                        .certificate()
+                        .common_names()
+                        .unwrap()
+                        .first()
+                        .unwrap()
+                        .clone(),
                     claims: claims.as_ref(),
                 };
 

@@ -15,6 +15,7 @@ use jsonwebtoken::{
     jwk::{self, EllipticCurve, Jwk},
     Algorithm, DecodingKey, Header, Validation,
 };
+use nutype::nutype;
 use p256::{
     ecdsa::{signature, VerifyingKey},
     EncodedPoint,
@@ -43,8 +44,6 @@ use wallet_common::{
     jwt::{self, Jwt, JwtError},
     keys::EcdsaKey,
 };
-
-use crate::token::JwtCredentialClaims;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential {
@@ -82,6 +81,25 @@ pub enum JwtCredentialError {
     TrustAnchorKeyFormat(String),
     #[error("failed to verify JWT: {0}")]
     JwtVerification(#[from] jsonwebtoken::errors::Error),
+    #[error("unexpected amount of parts in JWT credential: expected 3, found {0}")]
+    #[category(critical)]
+    Parts(usize),
+    #[error("failed to parse JWT credential contents: {0}")]
+    ParseJwt(#[from] serde_json::Error),
+    #[error("failed to decode Base64: {0}")]
+    Base64(#[from] DecodeError),
+}
+
+fn dangerous_parse_unverified<T: DeserializeOwned>(jwt: &str) -> Result<(Header, T), JwtCredentialError> {
+    let parts = jwt.split('.').collect_vec();
+    if parts.len() != 3 {
+        return Err(JwtCredentialError::Parts(parts.len()));
+    }
+
+    let header: Header = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[0])?)?;
+    let body: T = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[1])?)?;
+
+    Ok((header, body))
 }
 
 impl JwtCredential {
@@ -89,9 +107,14 @@ impl JwtCredential {
         private_key_id: String,
         jwt: String,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Self, JwtCredentialError> {
-        let (body, _) = josekit::jwt::decode_unsecured(&jwt)?;
-        let jwt_issuer = body.issuer().ok_or(JwtCredentialError::IssuerMissing)?;
+    ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
+        dbg!(&jwt);
+
+        let (_, claims) = dangerous_parse_unverified::<JwtCredentialClaims>(&jwt)?;
+        let jwt_issuer = claims
+            .claim("iss")
+            .and_then(Value::as_str)
+            .ok_or(JwtCredentialError::IssuerMissing)?;
 
         // See if we have a trust anchor that has the JWT issuer as (one of) its subject
         let trust_anchor = trust_anchors
@@ -118,24 +141,37 @@ impl JwtCredential {
         let (_, key_bytes) = BitString::from_der(key_bytes)?;
         let key = DecodingKey::from_ec_der(&key_bytes.data); // not actually DER
 
-        jsonwebtoken::decode::<()>(&jwt, &key, &jwt::validations())?;
+        jsonwebtoken::decode::<JwtCredentialClaims>(&jwt, &key, &jwt::validations())?;
 
-        Ok(Self {
-            vct: body.claim("vct").and_then(|vct| vct.as_str().map(str::to_string)),
+        let cred = Self {
+            vct: claims.claim("vct").and_then(|vct| vct.as_str().map(str::to_string)),
             private_key_id,
             key_type: K::KEY_TYPE,
             jwt,
-        })
+        };
+        Ok((cred, claims))
+    }
+}
+
+#[nutype(derive(Debug, Clone, AsRef, From, Serialize, Deserialize))]
+pub struct JwtCredentialClaims(IndexMap<String, serde_json::Value>);
+
+impl JwtCredentialClaims {
+    pub fn vct(&self) -> Option<&str> {
+        self.as_ref().get("vct").and_then(serde_json::Value::as_str)
     }
 
-    pub fn compare_unsigned(&self, unsigned: &JwtCredentialClaims) -> Result<(), IssuedAttributesMismatch> {
-        let (jwt_body, _) = josekit::jwt::decode_unsecured(&self.jwt).unwrap();
-        let our_attrs = jwt_body.claims_set();
+    pub fn claim(&self, name: &str) -> Option<&serde_json::Value> {
+        self.as_ref().get(name)
+    }
+}
 
-        let our_vct = self.vct.clone().unwrap_or_default();
-        let our_attrs = &flatten_attributes(&our_vct, our_attrs);
-        let expected_vct = unsigned.vct().map(ToString::to_string).unwrap_or_default();
-        let expected_attrs = &flatten_attributes(&expected_vct, unsigned.as_ref());
+impl JwtCredentialClaims {
+    pub fn compare(&self, other: &JwtCredentialClaims) -> Result<(), IssuedAttributesMismatch> {
+        let our_vct = self.vct().map(ToString::to_string).unwrap_or_default();
+        let our_attrs = &flatten_attributes(&our_vct, self.as_ref());
+        let expected_vct = other.vct().map(ToString::to_string).unwrap_or_default();
+        let expected_attrs = &flatten_attributes(&expected_vct, other.as_ref());
 
         let missing = attribute_difference(expected_attrs, our_attrs);
         let unexpected = attribute_difference(our_attrs, expected_attrs);
