@@ -5,6 +5,7 @@ import { injectStrict, translationsKey } from "@/util/translations"
 
 defineProps<{
   errorType: ErrorType
+  helpBaseUrl: URL
 }>()
 
 const t = injectStrict(translationsKey)
@@ -36,5 +37,5 @@ const t = injectStrict(translationsKey)
       <p>{{ t("network_body") }}</p>
     </template>
   </section>
-  <help-link></help-link>
+  <help-link :helpBaseUrl></help-link>
 </template>
