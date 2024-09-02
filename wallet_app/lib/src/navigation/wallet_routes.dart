@@ -223,7 +223,7 @@ Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
       create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
-      child: PinScreen(onUnlock: (_) => Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute)),
+      child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute)),
     );
 
 Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(

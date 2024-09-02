@@ -13,9 +13,11 @@ import '../domain/usecase/biometrics/impl/get_supported_biometrics_usecase_impl.
 import '../domain/usecase/biometrics/impl/is_biometric_login_enabled_usecase_impl.dart';
 import '../domain/usecase/biometrics/impl/request_biometrics_usecase_impl.dart';
 import '../domain/usecase/biometrics/impl/set_biometrics_usecase_impl.dart';
+import '../domain/usecase/biometrics/impl/unlock_wallet_with_biometrics_usecase_impl.dart';
 import '../domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import '../domain/usecase/biometrics/request_biometrics_usecase.dart';
 import '../domain/usecase/biometrics/set_biometrics_usecase.dart';
+import '../domain/usecase/biometrics/unlock_wallet_with_biometrics_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/impl/get_wallet_card_usecase_impl.dart';
@@ -279,6 +281,14 @@ class WalletUseCaseProvider extends StatelessWidget {
             LocalAuthentication(),
             context.read(),
             context.theme.platform,
+          ),
+        ),
+        RepositoryProvider<UnlockWalletWithBiometricsUseCase>(
+          create: (context) => UnlockWalletWithBiometricsUseCaseImpl(
+            context.read(),
+            context.read(),
+            LocalAuthentication(),
+            context.read(),
           ),
         ),
       ],

@@ -10,6 +10,7 @@ import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/feature/common/widget/button/icon/close_icon_button.dart';
@@ -26,6 +27,7 @@ import 'package:wallet/src/feature/organization/approve/organization_approve_pag
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/widget/pin_keyboard.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
@@ -464,6 +466,8 @@ void main() {
             RepositoryProvider<PinBloc>(create: (_) => MockPinBloc()),
             RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
             RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
+            RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+            RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
           ],
         );
 

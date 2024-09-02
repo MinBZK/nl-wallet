@@ -139,6 +139,8 @@ class TypedWalletCore {
 
   Future<void> setBiometricUnlock({required bool enabled}) => call((core) => core.setBiometricUnlock(enable: enabled));
 
+  Future<void> unlockWithBiometrics() => call((core) => core.unlockWalletWithBiometrics());
+
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.
   Future<T> call<T>(Future<T> Function(WalletCore) runnable) async {

@@ -8,15 +8,18 @@ import '../../domain/usecase/biometrics/biometrics.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
+import '../common/dialog/locked_out_dialog.dart';
 import '../common/page/page_illustration.dart';
 import '../common/screen/confirm_with_pin_screen.dart';
 import '../common/screen/terminal_screen.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
+import '../common/widget/paragraphed_sliver_list.dart';
+import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
-import '../common/widget/text/body_text.dart';
 import '../error/error_screen.dart';
 import 'bloc/biometric_settings_bloc.dart';
 
@@ -26,43 +29,47 @@ class BiometricSettingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: BlocConsumer<BiometricSettingsBloc, BiometricSettingsState>(
-        buildWhen: (prev, current) {
-          return switch (current) {
-            BiometricSettingsConfirmPin() => false,
-            BiometricSettingsSetupRequired() => false,
-            _ => true,
-          };
-        },
-        listenWhen: (prev, current) {
-          return switch (current) {
-            BiometricSettingsConfirmPin() => true,
-            BiometricSettingsSetupRequired() => true,
-            _ => false,
-          };
-        },
-        builder: (context, state) {
-          assert(state is! BiometricSettingsConfirmPin, 'This state should never be rendered');
-          assert(state is! BiometricSettingsSetupRequired, 'This state should never be rendered');
-          return switch (state) {
-            BiometricSettingsInitial() => _buildLoading(context),
-            BiometricSettingsLoading() => _buildLoading(context),
-            BiometricSettingsLoaded() => _buildLoaded(context, state),
-            BiometricSettingsError() => _buildError(context, state),
-            BiometricSettingsConfirmPin() => _buildLoading(context),
-            BiometricSettingsSetupRequired() => _buildLoading(context),
-          };
-        },
-        listener: (BuildContext context, BiometricSettingsState state) async {
-          final bloc = context.bloc;
-          if (state is BiometricSettingsConfirmPin) {
-            await _onRequestConfirmPin(context);
-            // Refresh state, relevant when confirmation failed.
-            bloc.add(const BiometricLoadTriggered());
-          } else if (state is BiometricSettingsSetupRequired) {
-            await _showSetupRequiredDialog(context);
-          }
-        },
+      body: SafeArea(
+        child: BlocConsumer<BiometricSettingsBloc, BiometricSettingsState>(
+          buildWhen: (prev, current) {
+            return switch (current) {
+              BiometricSettingsConfirmPin() => false,
+              BiometricSettingsSetupRequired() => false,
+              BiometricSettingsLockedOut() => false,
+              _ => true,
+            };
+          },
+          listenWhen: (prev, current) {
+            return switch (current) {
+              BiometricSettingsConfirmPin() => true,
+              BiometricSettingsSetupRequired() => true,
+              BiometricSettingsLockedOut() => true,
+              _ => false,
+            };
+          },
+          builder: (context, state) {
+            assert(state is! BiometricSettingsConfirmPin, 'This state should never be rendered');
+            assert(state is! BiometricSettingsSetupRequired, 'This state should never be rendered');
+            assert(state is! BiometricSettingsLockedOut, 'This state should never be rendered');
+            return switch (state) {
+              BiometricSettingsLoaded() => _buildLoaded(context, state),
+              BiometricSettingsError() => _buildError(context, state),
+              _ => _buildLoading(context),
+            };
+          },
+          listener: (BuildContext context, BiometricSettingsState state) async {
+            final bloc = context.bloc;
+            if (state is BiometricSettingsConfirmPin) {
+              await _onRequestConfirmPin(context);
+              // Refresh state, relevant when confirmation failed.
+              bloc.add(const BiometricLoadTriggered());
+            } else if (state is BiometricSettingsSetupRequired) {
+              await _showSetupRequiredDialog(context);
+            } else if (state is BiometricSettingsLockedOut) {
+              await LockedOutDialog.show(context);
+            }
+          },
+        ),
       ),
     );
   }
@@ -152,28 +159,51 @@ class BiometricSettingScreen extends StatelessWidget {
   }
 
   Widget _buildLoaded(BuildContext context, BiometricSettingsLoaded state) {
+    final inactiveThumbColor = context.colorScheme.onSurfaceVariant;
+    final WidgetStateProperty<Icon?> thumbIcon = WidgetStateProperty.resolveWith<Icon?>(
+      (Set<WidgetState> states) {
+        if (states.contains(WidgetState.selected)) return null;
+        // There is no property to change the size of the 'inactive' thumb, but it does grow
+        // when an icon is specified, as such we provide an empty icon here.
+        return const Icon(null);
+      },
+    );
     final supportedBiometricsText = context.bloc.supportedBiometrics.prettyPrint(context);
     return CustomScrollView(
       slivers: [
         SliverWalletAppBar(title: _resolveTitle(context)),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: BodyText(
-              context.l10n.biometricSettingsScreenDescription(supportedBiometricsText),
-            ),
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: ParagraphedSliverList.splitContent(
+            context.l10n.biometricSettingsScreenDescription(supportedBiometricsText),
+            splitPattern: '\n',
           ),
         ),
         SliverToBoxAdapter(
-          child: SwitchListTile(
-            value: state.biometricLoginEnabled,
-            onChanged: (enabled) => context.bloc.add(const BiometricUnlockToggled()),
-            title: Text(context.l10n.biometricSettingsScreenSwitchCta(supportedBiometricsText)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Divider(height: 16),
+              SwitchListTile(
+                value: state.biometricLoginEnabled,
+                inactiveThumbColor: inactiveThumbColor,
+                thumbIcon: thumbIcon,
+                trackOutlineColor: state.biometricLoginEnabled ? null : WidgetStatePropertyAll(inactiveThumbColor),
+                onChanged: (enabled) => context.bloc.add(const BiometricUnlockToggled()),
+                title: Text.rich(
+                  context.l10n.biometricSettingsScreenSwitchCta(supportedBiometricsText).toTextSpan(context),
+                  style: context.textTheme.labelLarge,
+                ),
+              ),
+              const Divider(height: 16),
+            ],
           ),
         ),
+        const SliverSizedBox(height: 16),
         const SliverToBoxAdapter(
           child: PageIllustration(asset: WalletAssets.svg_biometrics_face),
         ),
+        const SliverSizedBox(height: 24),
       ],
     );
   }
