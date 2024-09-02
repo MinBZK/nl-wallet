@@ -164,6 +164,7 @@
   width: 100%;
   background-color: white;
   border: 1px solid white;
+  margin: 0;
 }
 
 .modal .link:hover {
