@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/pin_overlay.dart';
+import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
@@ -26,6 +28,8 @@ void main() {
       ),
       providers: [
         RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+        RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+        RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
       ],
     );
 
@@ -48,6 +52,8 @@ void main() {
       ),
       providers: [
         RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+        RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+        RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
       ],
     );
 
@@ -72,6 +78,8 @@ void main() {
       ),
       providers: [
         RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+        RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+        RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
       ],
     );
 

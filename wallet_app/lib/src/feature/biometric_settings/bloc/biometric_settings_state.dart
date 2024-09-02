@@ -39,6 +39,13 @@ class BiometricSettingsSetupRequired extends BiometricSettingsState {
   List<Object> get props => [];
 }
 
+class BiometricSettingsLockedOut extends BiometricSettingsState {
+  const BiometricSettingsLockedOut();
+
+  @override
+  List<Object> get props => [];
+}
+
 class BiometricSettingsLoaded extends BiometricSettingsState {
   final bool biometricLoginEnabled;
 

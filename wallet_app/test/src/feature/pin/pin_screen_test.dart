@@ -1,9 +1,13 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/pin_screen.dart';
+import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
+import '../../mocks/wallet_mocks.mocks.dart';
 import '../../util/test_utils.dart';
 import 'pin_page_test.dart';
 
@@ -12,11 +16,15 @@ void main() {
     testWidgets('PinScreen shows the correct title for PinEntryInProgress state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         PinScreen(
-          onUnlock: (returnUrl) {},
+          onUnlock: () {},
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinEntryInProgress(0),
         ),
+        providers: [
+          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
+          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+        ],
       );
 
       await tester.pumpAndSettle();
@@ -32,7 +40,7 @@ void main() {
         (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         PinScreen(
-          onUnlock: (returnUrl) {},
+          onUnlock: () {},
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateNetworkError(
@@ -40,6 +48,10 @@ void main() {
             hasInternet: false,
           ),
         ),
+        providers: [
+          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
+          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+        ],
       );
 
       await tester.pumpAndSettle();
@@ -62,7 +74,7 @@ void main() {
     testWidgets('PinScreen shows the server error for PinValidateNetworkError(hasInternet=true) state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         PinScreen(
-          onUnlock: (returnUrl) {},
+          onUnlock: () {},
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateNetworkError(
@@ -70,6 +82,10 @@ void main() {
             hasInternet: true,
           ),
         ),
+        providers: [
+          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
+          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+        ],
       );
 
       await tester.pumpAndSettle();
@@ -92,13 +108,17 @@ void main() {
     testWidgets('PinScreen shows the generic error for PinValidateGenericError state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         PinScreen(
-          onUnlock: (returnUrl) {},
+          onUnlock: () {},
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateGenericError(
             error: CoreGenericError('generic'),
           ),
         ),
+        providers: [
+          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
+          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+        ],
       );
 
       await tester.pumpAndSettle();

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import 'keyboard_backspace_key.dart';
+import 'keyboard_biometric_key.dart';
 import 'keyboard_digit_key.dart';
 import 'keyboard_row.dart';
 
@@ -18,13 +19,19 @@ class PinKeyboard extends StatefulWidget {
   final VoidCallback? onBackspacePressed;
   final VoidCallback? onBackspaceLongPressed;
 
+  /// Called when the user presses the 'Biometrics' key. This key is only visible when the callback is provided.
+  final VoidCallback? onBiometricsPressed;
+
   /// The color used to draw the digits and backspace icon, defaults to [ColorScheme.onSurface]
   final Color? color;
+
+  bool get showBiometricsButton => onBiometricsPressed != null;
 
   const PinKeyboard({
     this.onKeyPressed,
     this.onBackspacePressed,
     this.onBackspaceLongPressed,
+    this.onBiometricsPressed,
     this.color,
     super.key,
   });
@@ -89,7 +96,9 @@ class _PinKeyboardState extends State<PinKeyboard> with AfterLayoutMixin<PinKeyb
               ),
               KeyboardRow(
                 children: [
-                  const Spacer(),
+                  widget.showBiometricsButton
+                      ? KeyboardBiometricKey(onPressed: widget.onBiometricsPressed, color: keyColor)
+                      : const Spacer(),
                   KeyboardDigitKey(digit: 0, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#0')),
                   KeyboardBackspaceKey(
                     color: keyColor,

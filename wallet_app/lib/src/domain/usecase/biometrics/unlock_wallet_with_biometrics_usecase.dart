@@ -1,5 +1,5 @@
 import 'biometric_authentication_result.dart';
 
-abstract class RequestBiometricsUsecase {
+abstract class UnlockWalletWithBiometricsUseCase {
   Future<BiometricAuthenticationResult> invoke();
 }

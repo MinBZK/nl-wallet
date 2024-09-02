@@ -56,7 +56,7 @@ class PinOverlay extends StatelessWidget {
     return BlocProvider<PinBloc>(
       create: (context) => bloc ?? PinBloc(context.read<UnlockWalletWithPinUseCase>()),
       child: PinScreen(
-        onUnlock: (_) {
+        onUnlock: () {
           /// Unused, locked state is observed above, causing this widget to be replaced
         },
       ),

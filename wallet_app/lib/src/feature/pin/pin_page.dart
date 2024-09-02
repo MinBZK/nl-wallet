@@ -53,6 +53,10 @@ class PinPage extends StatelessWidget {
   /// Called when pin entry was successful
   final OnPinValidatedCallback onPinValidated;
 
+  /// Called when the user presses the biometrics key, setting this callback will make
+  /// the 'biometrics' key appear on the [PinKeyboard].
+  final VoidCallback? onBiometricUnlockRequested;
+
   /// Called for every state change exposed by the [PinBloc]. When [onStateChanged] is
   /// provided and it returns true, the event is not processed by this [PinPage].
   final PinStateInterceptor? onStateChanged;
@@ -74,6 +78,7 @@ class PinPage extends StatelessWidget {
     required this.onPinValidated,
     this.onStateChanged,
     this.onPinError,
+    this.onBiometricUnlockRequested,
     this.headerBuilder,
     this.keyboardColor,
     this.showTopDivider = false,
@@ -277,6 +282,7 @@ class PinPage extends StatelessWidget {
                 _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinBackspacePressed()) : null,
             onBackspaceLongPressed:
                 _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinClearPressed()) : null,
+            onBiometricsPressed: onBiometricUnlockRequested,
           ),
         );
       },

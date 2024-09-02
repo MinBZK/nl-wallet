@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/usecase/biometrics/biometric_authentication_result.dart';
 import '../../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import '../../../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import '../../../domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
@@ -78,11 +79,14 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
       // Perform biometric authentication
       final result = await requestBiometricsUsecaseImpl.invoke();
       switch (result) {
-        case RequestBiometricsResult.success:
+        case BiometricAuthenticationResult.success:
           emit(const BiometricSettingsConfirmPin()); // Request PIN to confirm
-        case RequestBiometricsResult.failure:
+        case BiometricAuthenticationResult.failure:
           emit(currentState);
-        case RequestBiometricsResult.setupRequired:
+        case BiometricAuthenticationResult.lockedOut:
+          emit(const BiometricSettingsLockedOut());
+          emit(currentState);
+        case BiometricAuthenticationResult.setupRequired:
           emit(const BiometricSettingsSetupRequired());
           emit(currentState);
       }
