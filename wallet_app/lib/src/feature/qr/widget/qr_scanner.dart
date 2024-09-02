@@ -10,7 +10,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../bloc/qr_bloc.dart';
 import 'qr_scanner_active_announcer.dart';
 
-const kAndroidCameraResolution = Size(1280, 960);
+const kAndroidCameraResolution = Size(960, 1280);
 
 class QrScanner extends StatefulWidget {
   const QrScanner({super.key});
