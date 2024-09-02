@@ -24,7 +24,11 @@ describe("WalletModal", () => {
 
   it("should show loading screen", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
 
@@ -35,7 +39,11 @@ describe("WalletModal", () => {
 
   it("should show qr code directly for desktop mode", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: {
         provide: {
           [isMobileKey as symbol]: false,
@@ -49,7 +57,11 @@ describe("WalletModal", () => {
 
   it("should show loading screen after choosing", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: {
         provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
@@ -82,7 +94,11 @@ describe("WalletModal", () => {
 
   it("should show qr code for mobile after choosing", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: {
         provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
@@ -96,7 +112,11 @@ describe("WalletModal", () => {
 
   it("should show loading when closing model", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: {
         provide: {
           [translationsKey as symbol]: translations("nl"),
@@ -115,7 +135,11 @@ describe("WalletModal", () => {
 
     const status = vi.mocked(getStatus)
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
@@ -131,7 +155,11 @@ describe("WalletModal", () => {
 
   it("should show in progress when qr code is scanned", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
@@ -153,7 +181,11 @@ describe("WalletModal", () => {
 
   it("should show confirm stop when clicking stop on in-progress screen", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
@@ -182,7 +214,11 @@ describe("WalletModal", () => {
 
   it("should ask where the wallet is for mobile mode", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: {
         provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
@@ -195,7 +231,11 @@ describe("WalletModal", () => {
 
   it("should have anchor for same device flow", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: {
         provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
@@ -211,7 +251,11 @@ describe("WalletModal", () => {
 
     beforeEach(async () => {
       wrapper = mount(WalletModal, {
-        props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+        props: {
+          startUrl: new URL("http://localhost/sessions"),
+          usecase: "test123",
+          helpBaseUrl: new URL("https://example.com"),
+        },
         global: { provide: { [translationsKey as symbol]: translations("nl") } },
       })
       await flushPromises()
@@ -263,7 +307,11 @@ describe("WalletModal", () => {
     vi.mocked(createSession).mockRejectedValueOnce("failed" as ErrorType)
 
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
@@ -275,7 +323,11 @@ describe("WalletModal", () => {
     vi.mocked(createSession).mockRejectedValueOnce("network" as ErrorType)
 
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
@@ -285,7 +337,11 @@ describe("WalletModal", () => {
 
   it("should show qr code again after retrying for desktop mode", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
@@ -309,7 +365,11 @@ describe("WalletModal", () => {
 
   it("should show device choice again after retrying for mobile mode", async () => {
     const wrapper = mount(WalletModal, {
-      props: { startUrl: new URL("http://localhost/sessions"), usecase: "test123" },
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
       global: {
         provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },

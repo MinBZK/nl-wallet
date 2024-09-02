@@ -16,6 +16,7 @@ const POLL_INTERVAL_IN_MS = 2000
 export interface Props {
   startUrl: URL
   usecase: string
+  helpBaseUrl: URL
   pollIntervalInMs?: number
 }
 
@@ -282,9 +283,9 @@ onUnmounted(cancelPolling)
       data-testid="wallet_modal"
     >
       <modal-header></modal-header>
-      <modal-main :modalState="modalState" @choice="handleChoice"></modal-main>
+      <modal-main :modalState :helpBaseUrl @choice="handleChoice"></modal-main>
       <modal-footer
-        :modalState="modalState"
+        :modalState
         @close="close"
         @stop="stop"
         @confirm="confirm"
