@@ -169,7 +169,7 @@ easiest way to do so is:
    e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
 5. Run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code for Android
 6. Optional: let Android Studio use Flutter SDK installed via FVM by following
-   [these steps](https://fvm.app/docs/getting_started/configuration#android-studio)
+   [these steps](https://fvm.app/documentation/getting-started/configuration)
 7. Run `${HOME}/Library/Android/sdk/emulator/emulator -list-avds` to list the installed devices
 8. Start the emulator using `${HOME}/Library/Android/sdk/emulator/emulator [[AVDs] FROM PREVIOUS OUTPUT]``
 
