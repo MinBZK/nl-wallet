@@ -12,7 +12,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{disclosure_session::VpClientError, verifier::SessionType};
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::urls;
 
 use crate::{
     account_provider::AccountProviderClient,
@@ -139,11 +139,8 @@ where
 
         let config = &self.config_repository.config().disclosure;
 
-        let disclosure_uri = MDS::parse_url(
-            uri,
-            WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref(),
-        )
-        .map_err(DisclosureError::DisclosureUri)?;
+        let disclosure_uri = MDS::parse_url(uri, urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref())
+            .map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the parsed disclosure URI.
         let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors()).await?;
@@ -534,7 +531,7 @@ mod tests {
     };
 
     static DISCLOSURE_URI: LazyLock<Url> =
-        LazyLock::<Url>::new(|| WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
+        LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
     #[tokio::test]

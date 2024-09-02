@@ -35,10 +35,8 @@ use wallet::{
     Wallet,
 };
 use wallet_common::{
-    config::wallet_config::{BaseUrl, WalletConfiguration},
-    keys::software::SoftwareEcdsaKey,
-    nonempty::NonEmpty,
-    reqwest::trusted_reqwest_client_builder,
+    config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey, nonempty::NonEmpty,
+    reqwest::trusted_reqwest_client_builder, urls::BaseUrl,
 };
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;

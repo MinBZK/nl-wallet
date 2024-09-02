@@ -40,8 +40,8 @@ use openid4vc::{
     ErrorResponse,
 };
 use wallet_common::{
-    config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonErrorBody,
-    keys::software::SoftwareEcdsaKey, reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, utils,
+    generator::TimeGenerator, http_error::HttpJsonErrorBody, keys::software::SoftwareEcdsaKey,
+    reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, urls::BaseUrl, utils,
 };
 #[cfg(feature = "issuance")]
 use wallet_server::settings::{Digid, Issuer};

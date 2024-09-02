@@ -6,8 +6,8 @@ use wallet_common::{
     account::messages::instructions::{
         Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
     },
-    config::wallet_config::BaseUrl,
     jwt::EcdsaDecodingKey,
+    urls::BaseUrl,
 };
 
 use crate::{

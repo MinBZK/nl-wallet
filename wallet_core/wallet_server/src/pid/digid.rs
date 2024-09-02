@@ -10,7 +10,7 @@ use openid4vc::{
     },
     token::TokenRequest,
 };
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder};
+use wallet_common::{reqwest::trusted_reqwest_client_builder, urls::BaseUrl};
 
 #[derive(Serialize, Deserialize)]
 struct UserInfo {

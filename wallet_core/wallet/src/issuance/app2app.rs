@@ -13,8 +13,9 @@ use openid4vc::{
     token::TokenRequest,
 };
 use wallet_common::{
-    config::wallet_config::{BaseUrl, PidIssuanceConfiguration, WalletConfiguration},
+    config::wallet_config::PidIssuanceConfiguration,
     reqwest::trusted_reqwest_client_builder,
+    urls::{self, BaseUrl},
 };
 
 use super::{DigidSession, DigidSessionError};
@@ -143,7 +144,7 @@ where
                 info!("Constructing DigiD universal link from redirect parameters");
                 let json_request = DigidJsonRequest {
                     icon: ICON_URL.to_owned(),
-                    return_url: WalletConfiguration::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
+                    return_url: urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
                     host: digid_app2app.host().map(|h| h.to_string()),
                     saml_parameters,
                 };

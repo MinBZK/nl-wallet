@@ -36,7 +36,7 @@ use url::Url;
 
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
-use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
+use wallet_common::{urls::BaseUrl, utils::sha256};
 
 use crate::{
     askama_axum,

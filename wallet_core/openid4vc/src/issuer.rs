@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };
-use wallet_common::{config::wallet_config::BaseUrl, jwt::EcdsaDecodingKey, nonempty::NonEmpty, utils::random_string};
+use wallet_common::{jwt::EcdsaDecodingKey, nonempty::NonEmpty, urls::BaseUrl, utils::random_string};
 
 use crate::{
     credential::{

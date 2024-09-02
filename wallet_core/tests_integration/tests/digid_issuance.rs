@@ -7,7 +7,7 @@ use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFacto
 use tests_integration::{common::*, fake_digid::fake_digid_auth};
 use wallet::{
     mock::default_configuration,
-    wallet_common::WalletConfiguration,
+    wallet_common::{urls, WalletConfiguration},
     wallet_deps::{DigidSession, HttpDigidSession},
 };
 use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -47,7 +47,7 @@ async fn test_pid_issuance_digid_bridge() {
     // Prepare DigiD flow
     let (digid_session, authorization_url) = HttpDigidSession::<HttpOidcClient>::start(
         wallet_config.pid_issuance.clone(),
-        WalletConfiguration::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
+        urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
     )
     .await
     .unwrap();

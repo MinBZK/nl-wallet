@@ -8,7 +8,7 @@ use openid4vc::{
     token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
     ErrorResponse, TokenErrorCode,
 };
-use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
+use wallet_common::{nonempty::NonEmpty, urls::BaseUrl};
 
 use crate::pid::brp::client::{BrpClient, BrpError, HttpBrpClient};
 

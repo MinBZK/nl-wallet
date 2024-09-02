@@ -23,7 +23,7 @@ use openid4vc::{
     token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
-use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
+use wallet_common::{nonempty::NonEmpty, urls::BaseUrl};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 

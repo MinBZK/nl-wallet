@@ -1,7 +1,7 @@
 use reqwest::{header::LOCATION, redirect::Policy, Certificate, Response};
 use url::Url;
 
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder};
+use wallet_common::{reqwest::trusted_reqwest_client_builder, urls::BaseUrl};
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
 // invoking the same URLs at the DigiD bridge that would normally be invoked by the app and browser in the mock

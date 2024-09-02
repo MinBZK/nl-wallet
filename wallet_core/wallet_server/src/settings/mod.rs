@@ -8,13 +8,13 @@ use url::Url;
 
 use nl_wallet_mdoc::utils::x509::Certificate;
 use openid4vc::server_state::SessionStoreTimeouts;
-use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
+use wallet_common::{sentry::Sentry, urls::BaseUrl};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
         mod disclosure;
         pub use disclosure::*;
-        use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
+        use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
     }
 }
 

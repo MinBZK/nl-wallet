@@ -4,8 +4,8 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use wallet_common::{
-    config::wallet_config::BaseUrl,
     http_error::{HttpJsonError, HttpJsonErrorType},
+    urls::BaseUrl,
 };
 
 use crate::{

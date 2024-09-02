@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use nl_wallet_mdoc::verifier::ItemsRequests;
-use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
+use wallet_common::{sentry::Sentry, urls::BaseUrl};
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {

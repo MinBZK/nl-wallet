@@ -23,9 +23,9 @@ use nl_wallet_mdoc::{
     DeviceResponse, SessionTranscript,
 };
 use wallet_common::{
-    config::wallet_config::BaseUrl,
     generator::{Generator, TimeGenerator},
     jwt::Jwt,
+    urls::BaseUrl,
     utils::random_string,
 };
 

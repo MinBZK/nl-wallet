@@ -6,10 +6,11 @@ use reqwest::Certificate;
 
 use wallet_common::{
     config::wallet_config::{
-        AccountServerConfiguration, BaseUrl, DisclosureConfiguration, LockTimeoutConfiguration,
-        PidIssuanceConfiguration, WalletConfiguration, DEFAULT_UNIVERSAL_LINK_BASE,
+        AccountServerConfiguration, DisclosureConfiguration, LockTimeoutConfiguration, PidIssuanceConfiguration,
+        WalletConfiguration,
     },
     trust_anchor::DerTrustAnchor,
+    urls::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
 };
 
 // Each of these values can be overridden from environment variables at compile time

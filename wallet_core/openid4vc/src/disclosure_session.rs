@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
         x509::{Certificate, CertificateError, CertificateType},
     },
 };
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
+use wallet_common::{jwt::Jwt, urls::BaseUrl, utils::random_string};
 
 use crate::{
     openid4vp::{
