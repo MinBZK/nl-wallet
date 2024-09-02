@@ -1,8 +1,9 @@
 use std::{num::NonZero, time::Duration};
 
 use derive_more::From;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 
+use jsonwebtoken::jwk::Jwk;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
 use url::Url;
@@ -22,7 +23,7 @@ use wallet_common::{
     utils::{random_string, sha256},
 };
 
-use crate::{authorization::AuthorizationDetails, jwt::JwtCredentialClaims, server_state::SessionToken, Format};
+use crate::{authorization::AuthorizationDetails, server_state::SessionToken, Format};
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -69,7 +70,7 @@ impl AccessToken {
 /// Sent URL-encoded in request body to POST /token.
 /// A DPoP HTTP header may be included.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenRequest {
     #[serde(flatten)]
     pub grant_type: TokenRequestGrantType,
@@ -92,7 +93,7 @@ impl TokenRequest {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename = "snake_case")]
 #[serde(tag = "grant_type")]
 pub enum TokenRequestGrantType {
@@ -109,7 +110,7 @@ pub enum TokenRequestGrantType {
 /// and https://www.rfc-editor.org/rfc/rfc6749.html#section-5.1
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenResponse {
     pub access_token: AccessToken,
     pub token_type: TokenType,
@@ -133,14 +134,14 @@ pub struct TokenResponse {
 /// A [`TokenResponse`] with an extra field for the credential previews.
 /// This is an custom field so other implementations might not send it. For now however we assume that it is always
 /// present so it is not an [`Option`].
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
     pub credential_previews: NonEmpty<Vec<CredentialPreview>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialPreview {
     MsoMdoc {
@@ -149,9 +150,23 @@ pub enum CredentialPreview {
     },
     Jwt {
         jwt_typ: Option<String>,
-        claims: JwtCredentialClaims,
+        claims: JwtCredentialContents,
         copy_count: NonZero<u8>,
     },
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Cnf {
+    pub jwk: Jwk,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct JwtCredentialContents {
+    pub iss: Option<String>,
+    pub vct: Option<String>,
+
+    #[serde(flatten)]
+    pub attributes: IndexMap<String, serde_json::Value>,
 }
 
 impl From<&CredentialPreview> for Format {
@@ -174,7 +189,7 @@ impl CredentialPreview {
     pub fn credential_type(&self) -> Option<&str> {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Some(&unsigned_mdoc.doc_type),
-            CredentialPreview::Jwt { claims, .. } => claims.vct(),
+            CredentialPreview::Jwt { claims, .. } => claims.vct.as_deref(),
         }
     }
 

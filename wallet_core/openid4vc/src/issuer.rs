@@ -4,12 +4,10 @@ use std::{
 };
 
 use futures::future::try_join_all;
-use indexmap::IndexMap;
-use jsonwebtoken::{jwk::Jwk, Algorithm, Header, Validation};
+use jsonwebtoken::{Algorithm, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tokio::task::JoinHandle;
 
 use nl_wallet_mdoc::{
@@ -30,15 +28,15 @@ use crate::{
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
-    jwt::{jwk_from_p256, jwk_to_p256, JwkConversionError},
+    jwt::{jwk_from_p256, jwk_to_p256, JwkConversionError, JwtCredentialClaims},
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     server_state::{
         Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS,
     },
     token::{
-        AccessToken, AuthorizationCode, CredentialPreview, TokenRequest, TokenRequestGrantType, TokenResponse,
-        TokenResponseWithPreviews, TokenType,
+        AccessToken, AuthorizationCode, Cnf, CredentialPreview, JwtCredentialContents, TokenRequest,
+        TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType,
     },
     Format,
 };
@@ -807,30 +805,15 @@ impl CredentialResponse {
             }
 
             CredentialPreview::Jwt { claims, jwt_typ, .. } => {
-                #[derive(Serialize)]
-                struct Cnf {
-                    jwk: Jwk,
-                }
-                #[derive(Serialize)]
-                struct ToSign<'a> {
-                    cnf: Cnf,
-                    iss: String,
-                    #[serde(flatten)]
-                    claims: &'a IndexMap<String, Value>,
-                }
-
                 // Add the holder public key to the claims that are going to be signed
                 let jwk = jwk_from_p256(&holder_pubkey)?;
-                let claims = ToSign {
+                let claims = JwtCredentialClaims {
                     cnf: Cnf { jwk },
-                    iss: issuer_privkey
-                        .certificate()
-                        .common_names()
-                        .unwrap()
-                        .first()
-                        .unwrap()
-                        .clone(),
-                    claims: claims.as_ref(),
+                    contents: JwtCredentialContents {
+                        iss: issuer_privkey.certificate().common_names().unwrap().first().cloned(),
+                        vct: claims.vct,
+                        attributes: claims.attributes,
+                    },
                 };
 
                 let mut header = Header::new(Algorithm::ES256);

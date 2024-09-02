@@ -750,6 +750,7 @@ impl CredentialResponse {
                 };
 
                 cred_claims
+                    .contents
                     .compare(expected_claims)
                     .map_err(IssuanceSessionError::IssuedAttributesMismatch)?;
 

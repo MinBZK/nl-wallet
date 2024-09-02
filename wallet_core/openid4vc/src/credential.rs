@@ -58,7 +58,7 @@ impl From<&CredentialPreview> for CredentialRequestType {
                 doctype: Some(unsigned_mdoc.doc_type.clone()),
             },
             CredentialPreview::Jwt { claims, .. } => Self::Jwt {
-                vct: claims.vct().map(ToString::to_string),
+                vct: claims.vct.clone(),
             },
         }
     }

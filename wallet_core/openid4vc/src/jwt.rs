@@ -15,7 +15,6 @@ use jsonwebtoken::{
     jwk::{self, EllipticCurve, Jwk},
     Algorithm, DecodingKey, Header, Validation,
 };
-use nutype::nutype;
 use p256::{
     ecdsa::{signature, VerifyingKey},
     EncodedPoint,
@@ -44,6 +43,8 @@ use wallet_common::{
     jwt::{self, Jwt, JwtError},
     keys::EcdsaKey,
 };
+
+use crate::token::{Cnf, JwtCredentialContents};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential {
@@ -112,9 +113,11 @@ impl JwtCredential {
 
         let (_, claims) = dangerous_parse_unverified::<JwtCredentialClaims>(&jwt)?;
         let jwt_issuer = claims
-            .claim("iss")
-            .and_then(Value::as_str)
-            .ok_or(JwtCredentialError::IssuerMissing)?;
+            .contents
+            .iss
+            .as_ref()
+            .ok_or(JwtCredentialError::IssuerMissing)?
+            .to_string();
 
         // See if we have a trust anchor that has the JWT issuer as (one of) its subject
         let trust_anchor = trust_anchors
@@ -144,34 +147,36 @@ impl JwtCredential {
         jsonwebtoken::decode::<JwtCredentialClaims>(&jwt, &key, &jwt::validations())?;
 
         let cred = Self {
-            vct: claims.claim("vct").and_then(|vct| vct.as_str().map(str::to_string)),
+            vct: claims.contents.vct.clone(),
             private_key_id,
             key_type: K::KEY_TYPE,
             jwt,
         };
         Ok((cred, claims))
     }
-}
 
-#[nutype(derive(Debug, Clone, AsRef, From, Serialize, Deserialize))]
-pub struct JwtCredentialClaims(IndexMap<String, serde_json::Value>);
-
-impl JwtCredentialClaims {
-    pub fn vct(&self) -> Option<&str> {
-        self.as_ref().get("vct").and_then(serde_json::Value::as_str)
-    }
-
-    pub fn claim(&self, name: &str) -> Option<&serde_json::Value> {
-        self.as_ref().get(name)
+    pub fn contents(&self) -> JwtCredentialClaims {
+        // Unwrapping is safe here because this was checked in new()
+        let (_, contents) = dangerous_parse_unverified::<JwtCredentialClaims>(&self.jwt).unwrap();
+        contents
     }
 }
 
-impl JwtCredentialClaims {
-    pub fn compare(&self, other: &JwtCredentialClaims) -> Result<(), IssuedAttributesMismatch> {
-        let our_vct = self.vct().map(ToString::to_string).unwrap_or_default();
-        let our_attrs = &flatten_attributes(&our_vct, self.as_ref());
-        let expected_vct = other.vct().map(ToString::to_string).unwrap_or_default();
-        let expected_attrs = &flatten_attributes(&expected_vct, other.as_ref());
+/// Claims of a [`JwtCredential`]: the body of the JWT.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JwtCredentialClaims {
+    pub cnf: Cnf,
+
+    #[serde(flatten)]
+    pub contents: JwtCredentialContents,
+}
+
+impl JwtCredentialContents {
+    pub fn compare(&self, other: &JwtCredentialContents) -> Result<(), IssuedAttributesMismatch> {
+        let our_vct = self.vct.clone().unwrap_or_default();
+        let our_attrs = &flatten_attributes(&our_vct, &self.attributes);
+        let expected_vct = other.vct.clone().unwrap_or_default();
+        let expected_attrs = &flatten_attributes(&expected_vct, &other.attributes);
 
         let missing = attribute_difference(expected_attrs, our_attrs);
         let unexpected = attribute_difference(our_attrs, expected_attrs);
