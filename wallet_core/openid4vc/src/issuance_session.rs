@@ -23,7 +23,7 @@ use nl_wallet_mdoc::{
     },
     ATTR_RANDOM_LENGTH,
 };
-use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError};
+use wallet_common::{generator::TimeGenerator, jwt::JwtError, urls::BaseUrl};
 
 use crate::{
     credential::{

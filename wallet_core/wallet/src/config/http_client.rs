@@ -6,9 +6,10 @@ use reqwest::Certificate;
 use tokio::fs;
 
 use wallet_common::{
-    config::wallet_config::{BaseUrl, WalletConfiguration},
+    config::wallet_config::WalletConfiguration,
     jwt::{validations, EcdsaDecodingKey, Jwt},
     reqwest::tls_pinned_client_builder,
+    urls::BaseUrl,
 };
 
 use crate::config::ConfigurationError;

@@ -6,7 +6,7 @@ use pem::Pem;
 use reqwest::{tls, Certificate, Identity};
 use tracing::info;
 
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::tls_pinned_client_builder};
+use wallet_common::{reqwest::tls_pinned_client_builder, urls::BaseUrl};
 
 use crate::{
     gba::{data::GbaResponse, error::Error},

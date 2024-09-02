@@ -2,10 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use reqwest::Certificate;
 
-use wallet_common::{
-    config::wallet_config::{BaseUrl, WalletConfiguration},
-    jwt::EcdsaDecodingKey,
-};
+use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey, urls::BaseUrl};
 
 use super::{
     config_file, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState, HttpConfigurationRepository,

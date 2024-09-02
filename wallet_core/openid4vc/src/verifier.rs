@@ -25,10 +25,10 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ItemsRequests},
 };
 use wallet_common::{
-    config::wallet_config::BaseUrl,
     generator::Generator,
     jwt::{Jwt, JwtError},
     trust_anchor::OwnedTrustAnchor,
+    urls::BaseUrl,
     utils::random_string,
 };
 

@@ -44,9 +44,7 @@ use openid4vc::{
     },
     ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
 };
-use wallet_common::{
-    config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor,
-};
+use wallet_common::{generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor, urls::BaseUrl};
 
 #[tokio::test]
 async fn disclosure_direct() {

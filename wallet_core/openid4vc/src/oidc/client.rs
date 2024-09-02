@@ -12,7 +12,7 @@ use reqwest::header;
 use url::Url;
 
 use error_category::ErrorCategory;
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder, utils};
+use wallet_common::{reqwest::trusted_reqwest_client_builder, urls::BaseUrl, utils};
 
 use crate::{
     authorization::{AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge, ResponseType},
@@ -301,7 +301,7 @@ mod tests {
     use biscuit::jwk::JWKSet;
     use rstest::rstest;
     use url::Url;
-    use wallet_common::config::wallet_config::BaseUrl;
+    use wallet_common::urls::BaseUrl;
 
     use crate::{
         oidc::tests::start_discovery_server,

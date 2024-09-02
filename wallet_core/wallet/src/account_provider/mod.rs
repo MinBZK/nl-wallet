@@ -13,7 +13,7 @@ use wallet_common::{
         },
         signed::SignedDouble,
     },
-    config::wallet_config::BaseUrl,
+    urls::BaseUrl,
 };
 
 pub use self::client::HttpAccountProviderClient;

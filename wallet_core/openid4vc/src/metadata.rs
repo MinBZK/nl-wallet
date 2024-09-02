@@ -4,7 +4,7 @@ use chrono::{serde::ts_seconds, DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use serde_with::skip_serializing_none;
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt};
+use wallet_common::{jwt::Jwt, urls::BaseUrl};
 
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.

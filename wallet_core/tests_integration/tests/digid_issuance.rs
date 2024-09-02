@@ -10,7 +10,7 @@ use wallet::{
     wallet_common::WalletConfiguration,
     wallet_deps::{DigidSession, HttpDigidSession},
 };
-use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
+use wallet_common::urls::{self, DEFAULT_UNIVERSAL_LINK_BASE};
 use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
@@ -47,7 +47,7 @@ async fn test_pid_issuance_digid_bridge() {
     // Prepare DigiD flow
     let (digid_session, authorization_url) = HttpDigidSession::<HttpOidcClient>::start(
         wallet_config.pid_issuance.clone(),
-        WalletConfiguration::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
+        urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
     )
     .await
     .unwrap();

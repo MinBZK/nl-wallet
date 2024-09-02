@@ -6,7 +6,7 @@ use nl_wallet_mdoc::{
     holder::{MdocCopies, TrustAnchor},
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
-use wallet_common::config::wallet_config::BaseUrl;
+use wallet_common::urls::BaseUrl;
 
 use crate::{
     issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError},
