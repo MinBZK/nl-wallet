@@ -222,7 +222,7 @@ void main() {
     expect: () => [
       SetupSecurityCreatingWallet(),
       const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
-      const SetupSecurityCompleted(biometricsEnabled: true),
+      const SetupSecurityCompleted(enabledBiometrics: Biometrics.some),
     ],
     verify: (bloc) => verify(setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true)).called(1),
   );

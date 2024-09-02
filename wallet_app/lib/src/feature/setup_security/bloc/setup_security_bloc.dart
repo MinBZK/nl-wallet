@@ -157,7 +157,8 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     assert(state is SetupSecurityConfigureBiometrics, 'Can only enable biometrics from the configuration state');
     try {
       await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
-      emit(const SetupSecurityCompleted(biometricsEnabled: true));
+      final biometrics = tryCast<SetupSecurityConfigureBiometrics>(state)?.biometrics ?? Biometrics.some;
+      emit(SetupSecurityCompleted(enabledBiometrics: biometrics));
     } catch (ex) {
       Fimber.e('Failed to enable biometrics', ex: ex);
     }

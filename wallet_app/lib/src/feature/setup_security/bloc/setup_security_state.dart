@@ -99,15 +99,15 @@ class SetupSecurityConfigureBiometrics extends SetupSecurityState {
 }
 
 class SetupSecurityCompleted extends SetupSecurityState {
-  final bool biometricsEnabled;
+  final Biometrics enabledBiometrics;
 
-  const SetupSecurityCompleted({this.biometricsEnabled = false});
+  const SetupSecurityCompleted({this.enabledBiometrics = Biometrics.none});
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kSetupSteps);
 
   @override
-  List<Object?> get props => [biometricsEnabled, ...super.props];
+  List<Object?> get props => [enabledBiometrics, ...super.props];
 }
 
 class SetupSecurityGenericError extends SetupSecurityState implements ErrorState {

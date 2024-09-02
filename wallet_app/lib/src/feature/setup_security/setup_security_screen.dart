@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
+import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/helper/announcements_helper.dart';
 import '../../wallet_assets.dart';
@@ -188,13 +189,7 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildConfigureBiometricsPage(BuildContext context, SetupSecurityConfigureBiometrics state) {
-    final String title = switch (state.biometrics) {
-      Biometrics.face =>
-        Platform.isIOS ? context.l10n.setupBiometricsPageiOSFaceIdTitle : context.l10n.setupBiometricsPageFaceTitle,
-      Biometrics.fingerprint => context.l10n.setupBiometricsPageFingerprintTitle,
-      Biometrics.some => context.l10n.setupBiometricsPageGenericTitle,
-      Biometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
-    };
+    final String title = context.l10n.setupBiometricsPageTitle(state.biometrics.prettyPrint(context));
     final String illustration = switch (state.biometrics) {
       Biometrics.face => WalletAssets.svg_biometrics_face,
       Biometrics.fingerprint => WalletAssets.svg_biometrics_finger,
@@ -222,7 +217,7 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildSetupCompletedPage(BuildContext context, SetupSecurityCompleted state) {
     return SetupSecurityCompletedPage(
       key: const Key('setupSecurityCompletedPage'),
-      biometricsEnabled: state.biometricsEnabled,
+      enabledBiometrics: state.enabledBiometrics,
       onSetupWalletPressed: () => Navigator.of(context).restorablePushNamedAndRemoveUntil(
         WalletRoutes.walletPersonalizeRoute,
         ModalRoute.withName(WalletRoutes.splashRoute),
