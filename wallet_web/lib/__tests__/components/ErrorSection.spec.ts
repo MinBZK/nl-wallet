@@ -8,7 +8,7 @@ await import("../setup")
 describe("ErrorSection", () => {
   it("should render error for failed status", async () => {
     const wrapper = mount(ErrorSection, {
-      props: { errorType: "failed" },
+      props: { errorType: "failed", helpBaseUrl: new URL("https://example.com") },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(false)
@@ -18,7 +18,7 @@ describe("ErrorSection", () => {
 
   it("should render error for cancelled status", async () => {
     const wrapper = mount(ErrorSection, {
-      props: { errorType: "cancelled" },
+      props: { errorType: "cancelled", helpBaseUrl: new URL("https://example.com") },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(false)
@@ -28,7 +28,7 @@ describe("ErrorSection", () => {
 
   it("should render error for expired status", async () => {
     const wrapper = mount(ErrorSection, {
-      props: { errorType: "expired" },
+      props: { errorType: "expired", helpBaseUrl: new URL("https://example.com") },
       global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(true)
