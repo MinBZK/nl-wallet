@@ -29,7 +29,7 @@ exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1-dev"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.80"
 
