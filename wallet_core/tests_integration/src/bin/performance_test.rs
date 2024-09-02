@@ -1,7 +1,6 @@
 use ctor::ctor;
 use indexmap::IndexMap;
 use reqwest::StatusCode;
-use tokio::fs;
 use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
@@ -12,7 +11,6 @@ use openid4vc::{
     issuance_session::HttpIssuanceSession,
     verifier::{SessionType, StatusResponse},
 };
-use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use tests_integration::{fake_digid::fake_digid_auth, logging::init_logging};
 use wallet::{
     mock::{default_configuration, MockStorage},
@@ -33,10 +31,7 @@ fn init() {
 #[instrument(name = "", fields(pid = std::process::id()))]
 #[tokio::main]
 async fn main() {
-    let storage_path = SoftwareUtilities::storage_path().await.unwrap();
-    let etag_file = storage_path.join("latest-configuration-etag.txt");
-    // make sure there are no storage files from previous test runs
-    let _ = fs::remove_file(etag_file.as_path()).await;
+    let temp_path = tempfile::tempdir().unwrap();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
@@ -49,7 +44,7 @@ async fn main() {
         config_server_config.base_url,
         config_server_config.trust_anchors,
         (&config_server_config.signing_public_key).into(),
-        storage_path,
+        temp_path.into_path(),
         wallet_config,
     )
     .await
@@ -94,6 +89,7 @@ async fn main() {
         .continue_pid_issuance(redirect_url)
         .await
         .expect("Could not continue pid issuance");
+
     wallet
         .accept_pid_issuance(pin.clone())
         .await
