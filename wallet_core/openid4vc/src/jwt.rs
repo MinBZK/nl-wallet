@@ -47,7 +47,6 @@ use wallet_common::{
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential {
-    pub(crate) vct: Option<String>,
     pub(crate) private_key_id: String,
     pub(crate) key_type: CredentialKeyType,
 
@@ -132,7 +131,6 @@ impl JwtCredential {
         jsonwebtoken::decode::<JwtCredentialClaims>(&jwt, &key, &jwt::validations())?;
 
         let cred = Self {
-            vct: claims.contents.vct.clone(),
             private_key_id,
             key_type: K::KEY_TYPE,
             jwt,
@@ -162,7 +160,6 @@ pub struct JwtCredentialClaims {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JwtCredentialContents {
     pub iss: Option<String>,
-    pub vct: Option<String>,
 
     #[serde(flatten)]
     pub attributes: IndexMap<String, serde_json::Value>,
@@ -177,10 +174,8 @@ pub struct JwtCredentialCnf {
 
 impl JwtCredentialContents {
     pub fn compare(&self, other: &JwtCredentialContents) -> Result<(), IssuedAttributesMismatch> {
-        let our_vct = self.vct.clone().unwrap_or_default();
-        let our_attrs = &flatten_attributes(&our_vct, &self.attributes);
-        let expected_vct = other.vct.clone().unwrap_or_default();
-        let expected_attrs = &flatten_attributes(&expected_vct, &other.attributes);
+        let our_attrs = &flatten_attributes(&self.attributes);
+        let expected_attrs = &flatten_attributes(&other.attributes);
 
         let missing = attribute_difference(expected_attrs, our_attrs);
         let unexpected = attribute_difference(our_attrs, expected_attrs);
@@ -194,7 +189,6 @@ impl JwtCredentialContents {
 }
 
 fn flatten_attributes<'a>(
-    typ: &'a str,
     attrs: impl IntoIterator<Item = (&'a String, &'a Value)>,
 ) -> IndexMap<AttributeIdentifier, &'a Value> {
     attrs
@@ -202,7 +196,7 @@ fn flatten_attributes<'a>(
         .map(|(name, value)| {
             (
                 AttributeIdentifier {
-                    credential_type: typ.to_string(),
+                    credential_type: "".to_string(),
                     namespace: "".to_string(),
                     attribute: name.clone(),
                 },

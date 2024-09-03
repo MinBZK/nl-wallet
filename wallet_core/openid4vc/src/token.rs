@@ -174,7 +174,7 @@ impl CredentialPreview {
     pub fn credential_type(&self) -> Option<&str> {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Some(&unsigned_mdoc.doc_type),
-            CredentialPreview::Jwt { claims, .. } => claims.vct.as_deref(),
+            CredentialPreview::Jwt { .. } => None,
         }
     }
 

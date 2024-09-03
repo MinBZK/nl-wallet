@@ -813,7 +813,6 @@ impl CredentialResponse {
                     cnf: JwtCredentialCnf { jwk },
                     contents: JwtCredentialContents {
                         iss: issuer_privkey.certificate().common_names().unwrap().first().cloned(),
-                        vct: claims.vct,
                         attributes: claims.attributes,
                     },
                 };
