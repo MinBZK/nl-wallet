@@ -28,7 +28,9 @@ use crate::{
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
-    jwt::{jwk_from_p256, jwk_to_p256, Cnf, JwkConversionError, JwtCredentialClaims, JwtCredentialContents},
+    jwt::{
+        jwk_from_p256, jwk_to_p256, JwkConversionError, JwtCredentialClaims, JwtCredentialCnf, JwtCredentialContents,
+    },
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     server_state::{
@@ -808,7 +810,7 @@ impl CredentialResponse {
                 // Add the holder public key to the claims that are going to be signed
                 let jwk = jwk_from_p256(&holder_pubkey)?;
                 let claims = JwtCredentialClaims {
-                    cnf: Cnf { jwk },
+                    cnf: JwtCredentialCnf { jwk },
                     contents: JwtCredentialContents {
                         iss: issuer_privkey.certificate().common_names().unwrap().first().cloned(),
                         vct: claims.vct,

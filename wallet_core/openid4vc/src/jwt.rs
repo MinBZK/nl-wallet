@@ -21,6 +21,7 @@ use p256::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
+use serde_with::skip_serializing_none;
 use x509_parser::{
     der_parser::{asn1_rs::BitString, Oid},
     prelude::FromDer,
@@ -95,8 +96,6 @@ impl JwtCredential {
         jwt: String,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
-        dbg!(&jwt);
-
         let (_, claims) = dangerous_parse_unverified::<JwtCredentialClaims>(&jwt)?;
         let jwt_issuer = claims
             .contents
@@ -141,7 +140,7 @@ impl JwtCredential {
         Ok((cred, claims))
     }
 
-    pub fn contents(&self) -> JwtCredentialClaims {
+    pub fn jwt_claims(&self) -> JwtCredentialClaims {
         // Unwrapping is safe here because this was checked in new()
         let (_, contents) = dangerous_parse_unverified::<JwtCredentialClaims>(&self.jwt).unwrap();
         contents
@@ -151,12 +150,15 @@ impl JwtCredential {
 /// Claims of a [`JwtCredential`]: the body of the JWT.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtCredentialClaims {
-    pub cnf: Cnf,
+    pub cnf: JwtCredentialCnf,
 
     #[serde(flatten)]
     pub contents: JwtCredentialContents,
 }
 
+/// Contents of a [`JwtCredential`], containing everything of the [`JwtCredentialClaims`] except the holder public
+/// key ([`Cnf`]): the attributes and metadata of the credential.
+#[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JwtCredentialContents {
     pub iss: Option<String>,
@@ -166,8 +168,10 @@ pub struct JwtCredentialContents {
     pub attributes: IndexMap<String, serde_json::Value>,
 }
 
+/// Contains the holder public key of a [`JwtCredential`].
+/// ("Cnf" stands for "confirmation", see https://datatracker.ietf.org/doc/html/rfc7800.)
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Cnf {
+pub struct JwtCredentialCnf {
     pub jwk: Jwk,
 }
 
