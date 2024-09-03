@@ -103,8 +103,8 @@ impl Mdoc {
         let our_attrs = &flatten_attributes(&self.doc_type, &our_attrs);
         let expected_attrs = &flatten_attributes(&unsigned.doc_type, unsigned.attributes.as_ref());
 
-        let missing = attribute_difference(expected_attrs, our_attrs);
-        let unexpected = attribute_difference(our_attrs, expected_attrs);
+        let missing = map_difference(expected_attrs, our_attrs);
+        let unexpected = map_difference(our_attrs, expected_attrs);
 
         if !missing.is_empty() || !unexpected.is_empty() {
             return Err(IssuedAttributesMismatch { missing, unexpected });
@@ -114,10 +114,11 @@ impl Mdoc {
     }
 }
 
-pub fn attribute_difference<T: PartialEq>(
-    left: &IndexMap<AttributeIdentifier, T>,
-    right: &IndexMap<AttributeIdentifier, T>,
-) -> Vec<AttributeIdentifier> {
+pub fn map_difference<K, T>(left: &IndexMap<K, T>, right: &IndexMap<K, T>) -> Vec<K>
+where
+    K: Clone + std::hash::Hash + Eq,
+    T: PartialEq,
+{
     left.iter()
         .filter_map(|(id, value)| (!right.contains_key(id) || right[id] != *value).then_some(id.clone()))
         .collect_vec()

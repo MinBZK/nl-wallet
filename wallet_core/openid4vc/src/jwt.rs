@@ -20,7 +20,6 @@ use p256::{
     EncodedPoint,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::Value;
 use serde_with::skip_serializing_none;
 use x509_parser::{
     der_parser::{asn1_rs::BitString, Oid},
@@ -30,7 +29,7 @@ use x509_parser::{
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    holder::{attribute_difference, IssuedAttributesMismatch, TrustAnchor},
+    holder::{map_difference, IssuedAttributesMismatch, TrustAnchor},
     identifiers::AttributeIdentifier,
     server_keys::KeyPair,
     utils::{
@@ -174,36 +173,32 @@ pub struct JwtCredentialCnf {
 
 impl JwtCredentialContents {
     pub fn compare(&self, other: &JwtCredentialContents) -> Result<(), IssuedAttributesMismatch> {
-        let our_attrs = &flatten_attributes(&self.attributes);
-        let expected_attrs = &flatten_attributes(&other.attributes);
-
-        let missing = attribute_difference(expected_attrs, our_attrs);
-        let unexpected = attribute_difference(our_attrs, expected_attrs);
+        let missing = map_difference(&other.attributes, &self.attributes);
+        let unexpected = map_difference(&self.attributes, &other.attributes);
 
         if !missing.is_empty() || !unexpected.is_empty() {
-            return Err(IssuedAttributesMismatch { missing, unexpected });
+            return Err(IssuedAttributesMismatch {
+                missing: missing
+                    .into_iter()
+                    .map(|attr| AttributeIdentifier {
+                        credential_type: "".to_string(),
+                        namespace: "".to_string(),
+                        attribute: attr,
+                    })
+                    .collect(),
+                unexpected: unexpected
+                    .into_iter()
+                    .map(|attr| AttributeIdentifier {
+                        credential_type: "".to_string(),
+                        namespace: "".to_string(),
+                        attribute: attr,
+                    })
+                    .collect(),
+            });
         }
 
         Ok(())
     }
-}
-
-fn flatten_attributes<'a>(
-    attrs: impl IntoIterator<Item = (&'a String, &'a Value)>,
-) -> IndexMap<AttributeIdentifier, &'a Value> {
-    attrs
-        .into_iter()
-        .map(|(name, value)| {
-            (
-                AttributeIdentifier {
-                    credential_type: "".to_string(),
-                    namespace: "".to_string(),
-                    attribute: name.clone(),
-                },
-                value,
-            )
-        })
-        .collect()
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
