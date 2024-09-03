@@ -28,15 +28,15 @@ use crate::{
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
-    jwt::{jwk_from_p256, jwk_to_p256, JwkConversionError, JwtCredentialClaims},
+    jwt::{jwk_from_p256, jwk_to_p256, Cnf, JwkConversionError, JwtCredentialClaims, JwtCredentialContents},
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     server_state::{
         Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS,
     },
     token::{
-        AccessToken, AuthorizationCode, Cnf, CredentialPreview, JwtCredentialContents, TokenRequest,
-        TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType,
+        AccessToken, AuthorizationCode, CredentialPreview, TokenRequest, TokenRequestGrantType, TokenResponse,
+        TokenResponseWithPreviews, TokenType,
     },
     Format,
 };

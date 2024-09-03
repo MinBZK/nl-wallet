@@ -44,8 +44,6 @@ use wallet_common::{
     keys::EcdsaKey,
 };
 
-use crate::token::{Cnf, JwtCredentialContents};
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential {
     pub(crate) vct: Option<String>,
@@ -89,18 +87,6 @@ pub enum JwtCredentialError {
     ParseJwt(#[from] serde_json::Error),
     #[error("failed to decode Base64: {0}")]
     Base64(#[from] DecodeError),
-}
-
-fn dangerous_parse_unverified<T: DeserializeOwned>(jwt: &str) -> Result<(Header, T), JwtCredentialError> {
-    let parts = jwt.split('.').collect_vec();
-    if parts.len() != 3 {
-        return Err(JwtCredentialError::Parts(parts.len()));
-    }
-
-    let header: Header = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[0])?)?;
-    let body: T = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[1])?)?;
-
-    Ok((header, body))
 }
 
 impl JwtCredential {
@@ -169,6 +155,20 @@ pub struct JwtCredentialClaims {
 
     #[serde(flatten)]
     pub contents: JwtCredentialContents,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct JwtCredentialContents {
+    pub iss: Option<String>,
+    pub vct: Option<String>,
+
+    #[serde(flatten)]
+    pub attributes: IndexMap<String, serde_json::Value>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Cnf {
+    pub jwk: Jwk,
 }
 
 impl JwtCredentialContents {
@@ -406,6 +406,18 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
     .await?;
 
     Ok(jwt)
+}
+
+fn dangerous_parse_unverified<T: DeserializeOwned>(jwt: &str) -> Result<(Header, T), JwtCredentialError> {
+    let parts = jwt.split('.').collect_vec();
+    if parts.len() != 3 {
+        return Err(JwtCredentialError::Parts(parts.len()));
+    }
+
+    let header: Header = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[0])?)?;
+    let body: T = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[1])?)?;
+
+    Ok((header, body))
 }
 
 #[cfg(test)]
