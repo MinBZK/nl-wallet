@@ -9,6 +9,9 @@
 .build-docker-image:
   extends: .kaniko
   rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  before_script:
+    - !reference [.kaniko, before_script]
+    - !reference [.release-tag, before_script]
   script:
     - TAG=${RELEASE_VERSION:-latest}
     - /kaniko/executor
