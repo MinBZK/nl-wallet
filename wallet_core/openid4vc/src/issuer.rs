@@ -756,7 +756,7 @@ impl CredentialRequest {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let requested_type = self.credential_type();
         let to_issue_type = preview.credential_type();
-        if requested_type.ok_or(CredentialRequestError::DoctypeMismatch)? != to_issue_type {
+        if !requested_type.is_some_and(|t| t == to_issue_type) {
             return Err(CredentialRequestError::DoctypeMismatch);
         }
 
@@ -786,10 +786,7 @@ impl CredentialResponse {
         issuer_privkey: &KeyPair,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         match preview {
-            CredentialPreview::MsoMdoc {
-                unsigned_mdoc,
-                issuer: _,
-            } => {
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
                 let cose_pubkey = (&holder_pubkey)
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;

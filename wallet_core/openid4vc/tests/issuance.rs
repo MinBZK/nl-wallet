@@ -83,10 +83,7 @@ async fn accept_issuance() {
             .first()
             .unwrap()
             .compare_unsigned(match &preview {
-                CredentialPreview::MsoMdoc {
-                    unsigned_mdoc,
-                    issuer: _,
-                } => unsigned_mdoc,
+                CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
             })
             .unwrap()
     });
@@ -249,10 +246,8 @@ impl MockOpenidMessageClient {
                 },
             };
             credential_request.proof = Some(invalidated_proof);
-            credential_request
-        } else {
-            credential_request
         }
+        credential_request
     }
 
     fn credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
@@ -262,11 +257,8 @@ impl MockOpenidMessageClient {
             let mut requests = credential_requests.credential_requests.into_inner();
             requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
-
-            credential_requests
-        } else {
-            credential_requests
         }
+        credential_requests
     }
 }
 

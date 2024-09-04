@@ -508,14 +508,14 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             keys_and_proofs
                 .into_iter()
                 .zip(types)
-                .map(|((key, response), typ)| async move {
+                .map(|((key, response), credential_type)| async move {
                     let pubkey = key
                         .verifying_key()
                         .await
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let id = key.identifier().to_string();
                     let cred_request = CredentialRequest {
-                        credential_type: typ,
+                        credential_type,
                         proof: Some(response),
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))

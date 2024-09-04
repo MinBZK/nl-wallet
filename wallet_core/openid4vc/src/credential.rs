@@ -62,7 +62,7 @@ impl From<&CredentialPreview> for CredentialRequestType {
 impl From<&CredentialRequestType> for Format {
     fn from(value: &CredentialRequestType) -> Self {
         match value {
-            CredentialRequestType::MsoMdoc { doctype: _ } => Format::MsoMdoc,
+            CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
         }
     }
 }
