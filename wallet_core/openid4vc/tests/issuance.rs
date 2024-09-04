@@ -68,20 +68,12 @@ async fn accept_issuance() {
         .unwrap();
 
     assert_eq!(issued_creds.len(), 2);
-    assert_eq!(
-        <&MdocCopies>::try_from(issued_creds.first().unwrap())
-            .unwrap()
-            .cred_copies
-            .len(),
-        2
-    );
+    assert_eq!(<&MdocCopies>::try_from(issued_creds.first().unwrap()).unwrap().len(), 2);
 
     issued_creds.into_iter().zip(previews).for_each(|(copies, preview)| {
         <&MdocCopies>::try_from(&copies)
             .unwrap()
-            .cred_copies
             .first()
-            .unwrap()
             .compare_unsigned(match &preview {
                 CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
             })

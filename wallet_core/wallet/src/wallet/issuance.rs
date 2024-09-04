@@ -338,8 +338,7 @@ where
             // Extract first copy from each issued mdoc
             let mdocs = issued_mdocs
                 .iter()
-                .flat_map(|mdoc: &MdocCopies| mdoc.cred_copies.first())
-                .cloned()
+                .map(|mdoc: &MdocCopies| mdoc.first().clone())
                 .collect::<Vec<_>>();
 
             // Validate all issuer_certificates

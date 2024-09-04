@@ -111,12 +111,10 @@ impl Storage for MockStorage {
         self.check_query_error()?;
 
         for mdoc_copies in mdocs {
-            if let Some(first_mdoc) = mdoc_copies.cred_copies.first() {
-                self.mdocs
-                    .entry(first_mdoc.doc_type.clone())
-                    .or_default()
-                    .push(mdoc_copies);
-            }
+            self.mdocs
+                .entry(mdoc_copies.first().doc_type.clone())
+                .or_default()
+                .push(mdoc_copies);
         }
 
         Ok(())
@@ -141,11 +139,10 @@ impl Storage for MockStorage {
             .mdocs
             .values()
             .flatten()
-            .flat_map(|mdoc_copies| mdoc_copies.cred_copies.first())
-            .map(|mdoc| StoredMdocCopy {
+            .map(|mdoc_copies| StoredMdocCopy {
                 mdoc_id: Uuid::new_v4(),
                 mdoc_copy_id: Uuid::new_v4(),
-                mdoc: mdoc.clone(),
+                mdoc: mdoc_copies.first().clone(),
             })
             .collect();
 

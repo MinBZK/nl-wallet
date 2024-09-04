@@ -1578,8 +1578,8 @@ mod tests {
             .write()
             .await
             .insert_mdocs(vec![
-                vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].into(),
-                vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].into(),
+                vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
+                vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
             ])
             .await
             .unwrap();

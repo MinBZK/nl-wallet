@@ -151,7 +151,8 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
                         IssuedCredential::MsoMdoc(mdoc) => mdoc,
                     })
                     .collect_vec()
-                    .into();
+                    .try_into()
+                    .unwrap(); // we checked above that we always have at least one credential
                 IssuedCredentialCopies::MsoMdoc(mdoc_copies)
             }
         };
