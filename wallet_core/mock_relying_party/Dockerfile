@@ -12,4 +12,5 @@ LABEL wallet_web_sha256="$WALLET_WEB_SHA256"
 COPY ./target/x86_64-unknown-linux-musl/release/mock_relying_party .
 COPY mock_relying_party/assets/ ./assets/
 
+USER 1000
 ENTRYPOINT ["./mock_relying_party"]
