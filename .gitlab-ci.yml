@@ -57,7 +57,7 @@ variables:
 
 .release-tag:
   before_script:
-    - RELEASE_VERSION="$((echo $CI_COMMIT_TAG | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^v//') || true)"
+    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^v//' || true)"
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
       variables:
