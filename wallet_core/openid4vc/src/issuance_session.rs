@@ -35,7 +35,7 @@ use crate::{
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
+    CredentialErrorCode, ErrorResponse, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -104,9 +104,6 @@ pub enum IssuanceSessionError {
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]
     AttributeRandomLength(usize, usize),
-    #[error("unexpected credential format: expected MsoMdoc, found {0:?}")]
-    #[category(critical)]
-    UnexpectedCredentialFormat(Format),
     #[error("received zero credential copies")]
     #[category(critical)]
     NoCredentialCopies,
