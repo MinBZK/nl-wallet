@@ -135,6 +135,21 @@ pub enum IssuedCredentialCopies {
     Jwt(CredentialCopies<JwtCredential>),
 }
 
+impl IssuedCredentialCopies {
+    pub fn len(&self) -> usize {
+        match self {
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.cred_copies.len(),
+            IssuedCredentialCopies::Jwt(jwts) => jwts.cred_copies.len(),
+        }
+    }
+
+    // Required by clippy
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
 impl From<&IssuedCredentialCopies> for Format {
     fn from(value: &IssuedCredentialCopies) -> Self {
         match value {
