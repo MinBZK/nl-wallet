@@ -52,8 +52,6 @@ pub struct JwtCredential {
     pub jwt: String,
 }
 
-static OID_EC_PUBKEY: LazyLock<Oid<'static>> = LazyLock::new(|| Oid::from_str("1.2.840.10045.2.1").unwrap());
-
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
 pub enum JwtCredentialError {
@@ -94,6 +92,7 @@ impl JwtCredential {
         jwt: String,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
+        // Get the `iss` field from the claims so we can find the trust anchor with which to verify the JWT
         let (_, claims) = dangerous_parse_unverified::<JwtCredentialClaims>(&jwt)?;
         let jwt_issuer = claims
             .contents
@@ -102,32 +101,19 @@ impl JwtCredential {
             .ok_or(JwtCredentialError::IssuerMissing)?
             .to_string();
 
-        // See if we have a trust anchor that has the JWT issuer as (one of) its subject
+        // See if we have a trust anchor that has the JWT issuer as (one of) its subject(s)
         let trust_anchor = trust_anchors
             .iter()
             .find_map(|anchor| {
-                RelativeDistinguishedName::from_der(anchor.subject)
-                    .map(|(_, name)| {
-                        name.iter()
-                            .any(|name| name.as_str().is_ok_and(|name| name == jwt_issuer))
-                            .then_some(anchor)
-                    })
+                trust_anchor_names(anchor)
+                    .map(|names| names.iter().any(|name| *name == jwt_issuer).then_some(anchor))
                     .transpose()
             })
-            .transpose()
-            .map_err(JwtCredentialError::TrustAnchorNameParsing)?
+            .transpose()?
             .ok_or(JwtCredentialError::UnknownIssuer(jwt_issuer.to_string()))?;
 
-        let (key_bytes, algorithm) = AlgorithmIdentifier::from_der(trust_anchor.spki)
-            .map_err(JwtCredentialError::TrustAnchorAlgorithmParsing)?;
-        if algorithm.algorithm != *OID_EC_PUBKEY {
-            return Err(JwtCredentialError::TrustAnchorKeyFormat(algorithm.oid().to_id_string()));
-        }
-
-        let (_, key_bytes) = BitString::from_der(key_bytes)?;
-        let key = DecodingKey::from_ec_der(&key_bytes.data); // not actually DER
-
-        jsonwebtoken::decode::<JwtCredentialClaims>(&jwt, &key, &jwt::validations())?;
+        // Now verify the JWT
+        verify_against_spki::<JwtCredentialClaims>(&jwt, trust_anchor.spki)?;
 
         let cred = Self {
             private_key_id,
@@ -142,6 +128,37 @@ impl JwtCredential {
         let (_, contents) = dangerous_parse_unverified::<JwtCredentialClaims>(&self.jwt).unwrap();
         contents
     }
+}
+
+fn trust_anchor_names(trust_anchor: &TrustAnchor) -> Result<Vec<String>, JwtCredentialError> {
+    let (_, names) = RelativeDistinguishedName::from_der(trust_anchor.subject)
+        .map_err(JwtCredentialError::TrustAnchorNameParsing)?;
+
+    let names = names
+        .iter()
+        .filter_map(|name| name.as_str().ok().map(str::to_string))
+        .collect();
+
+    Ok(names)
+}
+
+/// The OID of Elliptic Curve public keys.
+static OID_EC_PUBKEY: LazyLock<Oid<'static>> = LazyLock::new(|| Oid::from_str("1.2.840.10045.2.1").unwrap());
+
+/// Verify a JWT against the `subjectPublicKeyInfo` of a trust anchor.
+fn verify_against_spki<T: DeserializeOwned>(jwt: &str, spki: &[u8]) -> Result<T, JwtCredentialError> {
+    let (key_bytes, algorithm) =
+        AlgorithmIdentifier::from_der(spki).map_err(JwtCredentialError::TrustAnchorAlgorithmParsing)?;
+    if algorithm.algorithm != *OID_EC_PUBKEY {
+        return Err(JwtCredentialError::TrustAnchorKeyFormat(algorithm.oid().to_id_string()));
+    }
+
+    let (_, key_bytes) = BitString::from_der(key_bytes)?;
+    let key = DecodingKey::from_ec_der(&key_bytes.data); // this is actually SEC1, not DER
+
+    let claims = jsonwebtoken::decode(jwt, &key, &jwt::validations())?.claims;
+
+    Ok(claims)
 }
 
 /// Claims of a [`JwtCredential`]: the body of the JWT.
