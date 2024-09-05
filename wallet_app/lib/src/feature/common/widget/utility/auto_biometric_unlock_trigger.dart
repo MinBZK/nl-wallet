@@ -6,6 +6,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../util/manager/biometric_unlock_manager.dart';
 
+/// Briefly delay the biometrics trigger, allowing the UI to settle
+/// and the [BiometricUnlockManager] to finish processing potential events.
+const kTriggerDelay = Duration(milliseconds: 50);
+
 /// Fires the [onTriggerBiometricUnlock] to notify the parent widget that a
 /// biometric unlock request is desired. The decision to fire the callback
 /// is made in cooperation with the [BiometricUnlockManager].
@@ -35,10 +39,12 @@ class _AutoBiometricUnlockTriggerState extends State<AutoBiometricUnlockTrigger>
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.resumed) {
+      await Future.delayed(kTriggerDelay);
       if (_biometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: false)) {
-        widget.onTriggerBiometricUnlock(context);
+        final context = this.context;
+        if (context.mounted) widget.onTriggerBiometricUnlock(context);
       }
     }
   }
@@ -54,8 +60,8 @@ class _AutoBiometricUnlockTriggerState extends State<AutoBiometricUnlockTrigger>
 
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) async {
-    if (context.mounted && _biometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: false)) {
-      widget.onTriggerBiometricUnlock(context);
+    if (_biometricUnlockManager.getAndSetShouldTriggerUnlock(updatedValue: false)) {
+      if (context.mounted) widget.onTriggerBiometricUnlock(context);
     }
   }
 }
