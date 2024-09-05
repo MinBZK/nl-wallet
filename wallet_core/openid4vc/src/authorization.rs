@@ -3,8 +3,9 @@ use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, StringWithSeparator};
 use url::Url;
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-authorization-request
-/// and https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1.
+/// See
+/// <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-authorization-request>
+/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1>.
 /// When sent using [PAR (Pushed Authorization Requests)](https://datatracker.ietf.org/doc/html/rfc9126),
 /// it is usually sent URL-encoded in the request body to POST /op/par.
 #[serde_as]
@@ -107,8 +108,9 @@ pub enum AuthorizationDetailsType {
     OpenidCredential,
 }
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-successful-authorization-re
-/// and https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.
+/// See
+/// <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-successful-authorization-re>
+/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2>.
 /// Contains the token that may be exchanged for an access token.
 /// URL-encoded and provided as query parameters added to the `redirect_uri` that was passed in the
 /// [`AuthorizationRequest`].
@@ -120,6 +122,8 @@ pub struct AuthorizationResponse {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use crate::authorization::{AuthorizationDetails, AuthorizationDetailsFormatData};
 
     #[test]
@@ -133,7 +137,7 @@ mod tests {
                 }
             })
             .unwrap(),
-            r#"{"type":"openid_credential","format":"mso_mdoc","doctype":"example_doctype"}"#.to_string(),
+            json!({"type": "openid_credential","format": "mso_mdoc","doctype": "example_doctype"}).to_string(),
         )
     }
 }

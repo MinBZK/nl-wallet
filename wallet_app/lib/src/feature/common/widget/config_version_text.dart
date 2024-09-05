@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import 'flutter_app_configuration_provider.dart';
 
 class ConfigVersionText extends StatelessWidget {
@@ -18,8 +19,8 @@ class ConfigVersionText extends StatelessWidget {
     return FlutterAppConfigurationProvider(
       builder: (config) => Row(
         children: [
-          Text(
-            context.l10n.generalConfigVersionText,
+          Text.rich(
+            context.l10n.generalConfigVersionText.toTextSpan(context),
             style: prefixTextStyle ?? context.textTheme.bodyMedium,
           ),
           const SizedBox(width: 4),

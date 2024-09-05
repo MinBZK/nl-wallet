@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../util/extension/wallet_event_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -99,8 +100,8 @@ class HistoryOverviewScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Spacer(),
-            Text(
-              context.l10n.errorScreenGenericDescription,
+            Text.rich(
+              context.l10n.errorScreenGenericDescription.toTextSpan(context),
               textAlign: TextAlign.center,
             ),
             const Spacer(),
@@ -108,7 +109,7 @@ class HistoryOverviewScreen extends StatelessWidget {
               onPressed: () {
                 context.read<HistoryOverviewBloc>().add(const HistoryOverviewLoadTriggered());
               },
-              child: Text(context.l10n.generalRetry),
+              child: Text.rich(context.l10n.generalRetry.toTextSpan(context)),
             ),
           ],
         ),

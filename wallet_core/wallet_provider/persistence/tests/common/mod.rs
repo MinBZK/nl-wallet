@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use chrono::{DateTime, Local};
 use ctor::ctor;
 use p256::ecdsa::{SigningKey, VerifyingKey};
@@ -40,9 +42,6 @@ pub async fn db_from_env() -> Result<Db, PersistenceError> {
     Db::new(settings.database.connection_string(), Default::default()).await
 }
 
-#[derive(Debug, thiserror::Error)]
-enum EncrypterError {}
-
 pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, id: Uuid, wallet_id: String)
 where
     S: ConnectionTrait,
@@ -55,7 +54,7 @@ where
             wallet_id,
             hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
             encrypted_pin_pubkey: Encrypter::<VerifyingKey>::encrypt(
-                &MockPkcs11Client::<EncrypterError>::default(),
+                &MockPkcs11Client::<Infallible>::default(),
                 "key1",
                 *SigningKey::random(&mut OsRng).verifying_key(),
             )

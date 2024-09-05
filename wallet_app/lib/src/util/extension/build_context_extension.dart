@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+
+import '../../data/store/active_locale_provider.dart';
 
 extension BuildContextExtension on BuildContext {
   MediaQueryData get mediaQuery => MediaQuery.of(this);
@@ -22,7 +25,9 @@ extension BuildContextExtension on BuildContext {
 
   AppLocalizations get l10n => AppLocalizations.of(this);
 
-  String get locale => l10n.localeName;
+  String get localeName => l10n.localeName;
+
+  Locale get activeLocale => read<ActiveLocaleProvider>().activeLocale;
 
   double get orientationBasedVerticalPadding => isLandscape ? 12 : 24;
 }

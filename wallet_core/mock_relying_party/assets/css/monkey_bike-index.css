@@ -4,9 +4,9 @@
 @import url("./buttons-before.css");
 
 @media only screen and (min-width: 500px) {
-    header h1::before {
-        border-radius: 12px;
-        width: 64px;
-        height: 64px;
-    }
+  header h1::before {
+    border-radius: 12px;
+    width: 64px;
+    height: 64px;
+  }
 }

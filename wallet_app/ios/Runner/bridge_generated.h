@@ -82,6 +82,12 @@ void wire_accept_disclosure(int64_t port_, struct wire_uint_8_list *pin);
 
 void wire_has_active_disclosure_session(int64_t port_);
 
+void wire_is_biometric_unlock_enabled(int64_t port_);
+
+void wire_set_biometric_unlock(int64_t port_, bool enable);
+
+void wire_unlock_wallet_with_biometrics(int64_t port_);
+
 void wire_get_history(int64_t port_);
 
 void wire_get_history_for_card(int64_t port_, struct wire_uint_8_list *doc_type);
@@ -121,6 +127,9 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_cancel_disclosure);
     dummy_var ^= ((int64_t) (void*) wire_accept_disclosure);
     dummy_var ^= ((int64_t) (void*) wire_has_active_disclosure_session);
+    dummy_var ^= ((int64_t) (void*) wire_is_biometric_unlock_enabled);
+    dummy_var ^= ((int64_t) (void*) wire_set_biometric_unlock);
+    dummy_var ^= ((int64_t) (void*) wire_unlock_wallet_with_biometrics);
     dummy_var ^= ((int64_t) (void*) wire_get_history);
     dummy_var ^= ((int64_t) (void*) wire_get_history_for_card);
     dummy_var ^= ((int64_t) (void*) wire_reset_wallet);

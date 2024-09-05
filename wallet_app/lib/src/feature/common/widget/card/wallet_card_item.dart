@@ -6,6 +6,7 @@ import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/object_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../animated_fade_in.dart';
 import '../animated_fade_out.dart';
 import '../svg_or_image.dart';
@@ -164,15 +165,23 @@ class WalletCardItem extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title.takeIf((_) => showText) ?? '',
-                  style: context.textTheme.displaySmall,
-                  semanticsLabel: context.l10n.cardTitleSemanticsLabel(title),
+                Semantics(
+                  attributedLabel: context.l10n.cardTitleSemanticsLabel(title).toAttributedString(context),
+                  child: Text.rich(
+                    (title.takeIf((_) => showText) ?? '').toTextSpan(context),
+                    style: context.textTheme.displaySmall,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(subtitle1.takeIf((_) => showText) ?? '', style: context.textTheme.bodyLarge),
+                Text.rich(
+                  (subtitle1.takeIf((_) => showText) ?? '').toTextSpan(context),
+                  style: context.textTheme.bodyLarge,
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle2.takeIf((_) => showText) ?? '', style: context.textTheme.bodyLarge),
+                Text.rich(
+                  (subtitle2.takeIf((_) => showText) ?? '').toTextSpan(context),
+                  style: context.textTheme.bodyLarge,
+                ),
                 const SizedBox(height: 16),
                 const Opacity(
                   /* guarantees correct spacing to 'show details' cta rendered at the bottom of the card */

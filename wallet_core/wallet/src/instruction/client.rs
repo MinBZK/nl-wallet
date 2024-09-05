@@ -6,8 +6,8 @@ use wallet_common::{
     account::messages::instructions::{
         Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
     },
-    config::wallet_config::BaseUrl,
     jwt::EcdsaDecodingKey,
+    urls::BaseUrl,
 };
 
 use crate::{
@@ -66,13 +66,7 @@ where
         let mut instruction_data = storage.fetch_data::<InstructionData>().await?.unwrap_or_default();
         instruction_data.instruction_sequence_number += 1;
 
-        // A value of 1 means the default is used (0 for the default incremented by 1) and no instruction_data exists
-        // in the database. Therefore, it should be inserted instead of updated.
-        if instruction_data.instruction_sequence_number == 1 {
-            storage.insert_data(&instruction_data).await?;
-        } else {
-            storage.update_data(&instruction_data).await?;
-        }
+        storage.upsert_data(&instruction_data).await?;
 
         (f)(instruction_data.instruction_sequence_number)
             .await

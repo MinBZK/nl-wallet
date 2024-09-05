@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../util/extension/build_context_extension.dart';
+import '../../../../../util/extension/string_extension.dart';
 import '../../../screen/placeholder_screen.dart';
 
 class HelpIconButton extends StatelessWidget {
@@ -12,7 +13,7 @@ class HelpIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: context.l10n.generalWCAGHelp,
+      attributedLabel: context.l10n.generalWCAGHelp.toAttributedString(context),
       onTap: onPressed ?? () => PlaceholderScreen.showHelp(context, secured: false),
       excludeSemantics: true,
       child: IconButton(

@@ -9,13 +9,14 @@ use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
+use tracing::info;
 
 use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };
-use wallet_common::{config::wallet_config::BaseUrl, jwt::EcdsaDecodingKey, nonempty::NonEmpty, utils::random_string};
+use wallet_common::{jwt::EcdsaDecodingKey, nonempty::NonEmpty, urls::BaseUrl, utils::random_string};
 
 use crate::{
     credential::{
@@ -36,12 +37,12 @@ use crate::{
     Format,
 };
 
-/* Errors are structured as follow in this module: the handler for a token request on the one hand, and the handlers for
-the other endpoints on the other hand, have specific error types. (There is also a general error type included by both
-of them for errors that can occur in all endpoints.) The reason for this split in the errors is because per the
-OpenID4VCI and OAuth specs, these endpoints each have to return error codes that are specific to them, i.e., the token
-request endpoint can return error codes that the credential endpoint can't and vice versa, so we want to keep the errors
-separate in the type system here. */
+// Errors are structured as follow in this module: the handler for a token request on the one hand, and the handlers for
+// the other endpoints on the other hand, have specific error types. (There is also a general error type included by
+// both of them for errors that can occur in all endpoints.) The reason for this split in the errors is because per the
+// OpenID4VCI and OAuth specs, these endpoints each have to return error codes that are specific to them, i.e., the
+// token request endpoint can return error codes that the credential endpoint can't and vice versa, so we want to keep
+// the errors separate in the type system here.
 
 /// Errors that can occur during processing of any of the endpoints.
 #[derive(Debug, thiserror::Error)]
@@ -86,7 +87,11 @@ pub enum CredentialRequestError {
     MissingJwk,
     #[error("incorrect nonce")]
     IncorrectNonce,
-    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
+    #[error(
+        "unsupported JWT algorithm: expected {}, found {}",
+        expected,
+        found.as_ref().unwrap_or(&"<None>".to_string())
+    )]
     UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("JWT decoding failed: {0}")]
     JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
@@ -289,6 +294,12 @@ where
     }
 }
 
+fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Result<T, E> {
+    result
+        .inspect(|_| info!("Issuance success"))
+        .inspect_err(|error| info!("Issuance error: {error}"))
+}
+
 impl<A, K, S> Issuer<A, K, S>
 where
     A: AttributeService,
@@ -302,8 +313,8 @@ where
     ) -> Result<(TokenResponseWithPreviews, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
-        // Retrieve the session from the session store, if present. It need not be, depending on the implementation of the
-        // attribute service.
+        // Retrieve the session from the session store, if present. It need not be, depending on the implementation of
+        // the attribute service.
         let session = self
             .sessions
             .get(&session_token)
@@ -370,7 +381,7 @@ where
             .await
             .map_err(IssuanceError::SessionStore)?;
 
-        response
+        logged_issuance_result(response)
     }
 
     pub async fn process_batch_credential(
@@ -391,7 +402,7 @@ where
             .await
             .map_err(IssuanceError::SessionStore)?;
 
-        response
+        logged_issuance_result(response)
     }
 
     pub async fn process_reject_issuance(
@@ -845,5 +856,35 @@ impl CredentialRequestProof {
         }
 
         Ok(verifying_key)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use thiserror::Error;
+    use tracing_test::traced_test;
+
+    use super::*;
+
+    #[derive(Debug, Error, Clone, Eq, PartialEq)]
+    #[error("MyError")]
+    struct MyError;
+
+    #[traced_test]
+    #[test]
+    fn test_logged_issuance_result() {
+        let mut input: Result<String, MyError>;
+
+        assert!(!logs_contain("Issuance success"));
+        input = Ok("Alright".into());
+        let result = logged_issuance_result(input.clone());
+        assert_eq!(result, input);
+        assert!(logs_contain("Issuance success"));
+
+        assert!(!logs_contain("Issuance error: MyError"));
+        input = Err(MyError);
+        let result = logged_issuance_result(input.clone());
+        assert_eq!(result, input);
+        assert!(logs_contain("Issuance error: MyError"));
     }
 }

@@ -24,7 +24,7 @@ use nl_wallet_mdoc::{
     },
     ATTR_RANDOM_LENGTH,
 };
-use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError};
+use wallet_common::{generator::TimeGenerator, jwt::JwtError, urls::BaseUrl};
 
 use crate::{
     credential::{
@@ -477,9 +477,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
-        // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple credentials, but the protocol
-        // has no support (yet) for issuance of multiple copies of multiple credentials.
-        // We implement this below by simply flattening the relevant nested iterators when communicating with the issuer.
+        // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
+        // has no support (yet) for issuance of multiple copies of multiple attestations.
+        // We implement this below by simply flattening the relevant nested iterators when communicating with the
+        // issuer.
 
         let types = self
             .session_state
@@ -818,7 +819,8 @@ mod tests {
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        credential_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(), // return two previews
+                        // return two previews
+                        credential_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(),
                     },
                     Some("dpop_nonce".to_string()),
                 ))

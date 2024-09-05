@@ -234,8 +234,8 @@ mod tests {
         assert_eq!(
             counted,
             counter.load(Ordering::SeqCst),
-            "after config is dropped, the update loop should have been aborted \
-             and the count should not have been updated"
+            "after config is dropped, the update loop should have been aborted and the count should not have been \
+             updated"
         );
     }
 }

@@ -1,59 +1,59 @@
 .buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
 }
 
 /* fix width */
 .buttons nl-wallet-button {
-    display: flex;
+  display: flex;
 }
 
 /* fix icon height */
 .buttons button {
-    height: 100%;
+  height: 100%;
 }
 
 .buttons button,
 .buttons nl-wallet-button::part(button) {
-    display: flex;
-    width: 100%;
-    background: white;
-    color: #30293d;
-    border: 1px solid #473d5c;
-    border-radius: 12px;
-    padding: 16px 24px;
-    text-align: center;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-    gap: 12px;
-    letter-spacing: 1px;
-    line-height: 20px;
+  display: flex;
+  width: 100%;
+  background: white;
+  color: #30293d;
+  border: 1px solid #473d5c;
+  border-radius: 12px;
+  padding: 16px 24px;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  gap: 12px;
+  letter-spacing: 1px;
+  line-height: 20px;
 }
 
 .buttons button::before,
 .buttons nl-wallet-button::part(button)::before {
-    content: " ";
-    width: 20px;
-    height: 20px;
+  content: " ";
+  width: 20px;
+  height: 20px;
 }
 
 .buttons button:hover:not(:disabled),
 .buttons nl-wallet-button::part(button):hover:not(:disabled) {
-    background: #f1f1f1;
+  background: #f1f1f1;
 }
 
 nl-wallet-button::part(button)::before {
-    background: url("../non-free/images/nl-wallet-trans.svg") no-repeat center center / cover;
+  background: url("../non-free/images/nl-wallet-trans.svg") no-repeat center center / cover;
 }
 
 .buttons #google::before {
-    background: url("../non-free/images/google.svg") no-repeat center center / 70%;
+  background: url("../non-free/images/google.svg") no-repeat center center / 70%;
 }
 
 .buttons #email::before {
-    background: url("../non-free/images/email.svg") no-repeat center center / 70%;
+  background: url("../non-free/images/email.svg") no-repeat center center / 70%;
 }

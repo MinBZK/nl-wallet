@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
@@ -83,8 +84,8 @@ class SelectNewPinPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 38),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  title,
+                child: Text.rich(
+                  title.toTextSpan(context),
                   style: context.textTheme.displayMedium,
                   textAlign: TextAlign.start,
                 ),

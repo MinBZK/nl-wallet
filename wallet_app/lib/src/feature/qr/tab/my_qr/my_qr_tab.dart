@@ -3,6 +3,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../../../environment.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import '../../../common/sheet/explanation_sheet.dart';
 import '../../../common/widget/button/button_content.dart';
 import '../../../common/widget/button/tertiary_button.dart';
@@ -36,7 +37,7 @@ class MyQrTab extends StatelessWidget {
             ),
           ),
           TertiaryButton(
-            text: Text(context.l10n.qrMyCodeTabHowToCta),
+            text: Text.rich(context.l10n.qrMyCodeTabHowToCta.toTextSpan(context)),
             iconPosition: IconPosition.end,
             onPressed: () => _showHowToSheet(context),
           ),

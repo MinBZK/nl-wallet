@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 
 use nl_wallet_mdoc::utils::x509::Certificate;
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::deserialize_certificates};
+use wallet_common::{reqwest::deserialize_certificates, urls::BaseUrl};
 
 use super::*;
 use crate::pid::{
@@ -20,7 +20,8 @@ pub struct Issuer {
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
     /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
     /// implementation).
-    /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession JWTs.
+    /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
+    /// JWTs.
     pub wallet_client_ids: Vec<String>,
 
     pub digid: Digid,

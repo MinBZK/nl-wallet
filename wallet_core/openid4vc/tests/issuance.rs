@@ -26,7 +26,7 @@ use openid4vc::{
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
-use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
+use wallet_common::{nonempty::NonEmpty, urls::BaseUrl};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -42,7 +42,7 @@ fn setup() -> (MockIssuer, Certificate, BaseUrl) {
         },
         SingleKeyRing(keypair),
         &server_url,
-        vec!["https://example.com".to_string()],
+        vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
     );
 
     (issuer, ca.into(), server_url.join_base_url("issuance/"))

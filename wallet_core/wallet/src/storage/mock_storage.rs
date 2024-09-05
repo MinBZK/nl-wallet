@@ -95,12 +95,8 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         self.check_query_error()?;
-
-        if !self.data.contains_key(D::KEY) {
-            panic!("Registration not present");
-        }
 
         self.data.insert(D::KEY, serde_json::to_string(&data).unwrap());
 
@@ -268,7 +264,7 @@ mod tests {
             b: "bar".to_string(),
         };
 
-        storage.update_data(&updated).await.unwrap();
+        storage.upsert_data(&updated).await.unwrap();
 
         let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
         assert_eq!(updated, fetched);

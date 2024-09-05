@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
         x509::{Certificate, CertificateError, CertificateType},
     },
 };
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
+use wallet_common::{jwt::Jwt, urls::BaseUrl, utils::random_string};
 
 use crate::{
     openid4vp::{
@@ -302,8 +302,9 @@ impl HttpVpMessageClient {
         Ok(body)
     }
 
-    /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not say
-    /// whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
+    /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not
+    /// say whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts
+    /// both.
     async fn handle_vp_response<T>(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError>
     where
         T: DeserializeOwned,

@@ -55,11 +55,17 @@ or shorter:
 
     ./scripts/start-devenv.sh postgres wp cs vs pi digid brp
 
-The performance test should be built using the `allow_http_return_url` feature.
+To build from `wallet_core`:
 
-Then run the actual test with:
+    cargo build --release --bin performance_test --features performance_test,allow_http_return_url
 
-    RUST_LOG=debug cargo test --features integration_test
+And run with:
+
+    ./target/release/performance_test
+
+To run the test using Cargo from `wallet_core`:
+
+    RUST_LOG=debug cargo run --bin performance_test --features performance_test,allow_http_return_url
 
 ### Running externally
 

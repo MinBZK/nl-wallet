@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/model/flow_progress.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/page/page_illustration.dart';
@@ -73,10 +74,10 @@ class IntroductionConditionsScreen extends StatelessWidget {
       key: const Key('introductionConditionsScreenNextCta'),
       onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.setupSecurityRoute),
       icon: const Icon(Icons.arrow_forward_rounded),
-      text: Text(context.l10n.introductionConditionsScreenNextCta),
+      text: Text.rich(context.l10n.introductionConditionsScreenNextCta.toTextSpan(context)),
     );
     final FitsWidthWidget conditionsButton = TertiaryButton(
-      text: Text(context.l10n.introductionConditionsScreenConditionsCta),
+      text: Text.rich(context.l10n.introductionConditionsScreenConditionsCta.toTextSpan(context)),
       icon: const Icon(Icons.arrow_forward_rounded),
       onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
       key: const Key('introductionConditionsScreenConditionsCta'),

@@ -1,13 +1,13 @@
 @import url("./mijn_amsterdam.css");
 
 .username {
-    color: #30293d;
+  color: #30293d;
 }
 
 .username::before {
-    background-color: #30293d;
+  background-color: #30293d;
 }
 
 .primary {
-    color: var(--primary-color);
+  color: var(--primary-color);
 }

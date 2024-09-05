@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/primary_button.dart';
@@ -59,12 +60,12 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
           primaryButton: PrimaryButton(
             key: const Key('applyForDigidCta'),
             onPressed: _openRequestDigidUrl,
-            text: Text(context.l10n.walletPersonalizeNoDigidPageRequestDigidCta),
+            text: Text.rich(context.l10n.walletPersonalizeNoDigidPageRequestDigidCta.toTextSpan(context)),
             icon: const Icon(Icons.arrow_forward_rounded),
           ),
           secondaryButton: TertiaryButton(
             onPressed: () => Navigator.maybePop(context),
-            text: Text(context.l10n.generalBottomBackCta),
+            text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
             icon: const Icon(Icons.arrow_back_rounded),
           ),
         ),

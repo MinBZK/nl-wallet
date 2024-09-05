@@ -6,6 +6,7 @@ import '../data/service/app_lifecycle_service.dart';
 import '../data/service/country_code_service.dart';
 import '../data/service/deeplink_service.dart';
 import '../data/service/navigation_service.dart';
+import '../util/manager/biometric_unlock_manager.dart';
 
 class WalletServiceProvider extends StatelessWidget {
   final Widget child;
@@ -38,6 +39,14 @@ class WalletServiceProvider extends StatelessWidget {
         RepositoryProvider<DeeplinkService>(
           create: (context) => DeeplinkService(
             AppLinks(),
+            context.read(),
+            context.read(),
+            context.read(),
+          ),
+          lazy: false,
+        ),
+        RepositoryProvider<BiometricUnlockManager>(
+          create: (context) => BiometricUnlockManager(
             context.read(),
             context.read(),
             context.read(),

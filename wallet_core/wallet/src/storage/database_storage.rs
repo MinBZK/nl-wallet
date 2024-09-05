@@ -1,13 +1,13 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use futures::try_join;
-use migration::SimpleExpr;
 use sea_orm::{
     sea_query::{Alias, BinOper, Expr, IntoColumnRef, Query},
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoSimpleExpr, JoinType, ModelTrait,
     QueryFilter, QueryOrder, QueryResult, QuerySelect, RelationDef, RelationTrait, Select, Set, StatementBuilder,
     TransactionTrait,
 };
+use sea_query::{OnConflict, SimpleExpr};
 use tokio::fs;
 use tracing::warn;
 use uuid::Uuid;
@@ -48,12 +48,10 @@ fn key_identifier_for_key_file(alias: &str) -> String {
 
 /// This is the implementation of [`Storage`] as used by the [`crate::Wallet`]. Its responsibilities are:
 ///
-/// * Managing the lifetime of one or more [`Database`] instances by combining its functionality with
-///   encrypted key files. This also includes deleting the database and key file when the [`clear`]
-///   method is called.
+/// * Managing the lifetime of one or more [`Database`] instances by combining its functionality with encrypted key
+///   files. This also includes deleting the database and key file when the [`clear`] method is called.
 /// * Communicating the current state of the database through the [`state`] method.
-/// * Executing queries on the database by accepting / returning data structures that are used by
-///   [`crate::Wallet`].
+/// * Executing queries on the database by accepting / returning data structures that are used by [`crate::Wallet`].
 #[derive(Debug)]
 pub struct DatabaseStorage<K> {
     storage_path: PathBuf,
@@ -354,13 +352,21 @@ where
         Ok(())
     }
 
-    /// Update data entry in the key-value table using the provided key.
-    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    /// Update data entry in the key-value table using the provided key,
+    /// inserting the data if it is not already present.
+    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
-        keyed_data::Entity::update_many()
-            .col_expr(keyed_data::Column::Data, Expr::value(serde_json::to_value(data)?))
-            .filter(keyed_data::Column::Key.eq(D::KEY.to_string()))
+        let model = keyed_data::ActiveModel {
+            key: Set(D::KEY.to_string()),
+            data: Set(serde_json::to_value(data)?),
+        };
+        keyed_data::Entity::insert(model)
+            .on_conflict(
+                OnConflict::column(keyed_data::Column::Key)
+                    .update_column(keyed_data::Column::Data)
+                    .to_owned(),
+            )
             .exec(database.connection())
             .await?;
 
@@ -718,7 +724,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_database_storage() {
+    async fn test_database_keyed_storage() {
         let registration = RegistrationData {
             pin_salt: vec![1, 2, 3, 4],
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
@@ -761,14 +767,14 @@ pub(crate) mod tests {
         let save_result = storage.insert_data(&registration).await;
         assert!(save_result.is_err());
 
-        // Update registration
+        // Upsert registration
         let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
             pin_salt: new_salt,
             wallet_certificate: registration.wallet_certificate.clone(),
         };
         storage
-            .update_data(&updated_registration)
+            .upsert_data(&updated_registration)
             .await
             .expect("Could not update registration");
 
@@ -792,6 +798,22 @@ pub(crate) mod tests {
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Uninitialized));
+
+        // Open the database again and test if upsert stores new data.
+        let mut storage = open_test_database_storage().await;
+        storage
+            .upsert_data(&registration)
+            .await
+            .expect("Could not upsert registration");
+
+        let fetched_registration = storage
+            .fetch_data::<RegistrationData>()
+            .await
+            .expect("Could not get registration");
+
+        assert!(fetched_registration.is_some());
+        let fetched_registration = fetched_registration.unwrap();
+        assert_eq!(fetched_registration.pin_salt, registration.pin_salt);
     }
 
     #[tokio::test]

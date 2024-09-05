@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../screen/placeholder_screen.dart';
 import '../widget/button/bottom_close_button.dart';
 import '../widget/button/list_button.dart';
@@ -50,7 +51,7 @@ class HelpSheet extends StatelessWidget {
           ),
           ListButton(
             dividerSide: DividerSide.top,
-            text: Text(context.l10n.helpSheetHelpdeskCta),
+            text: Text.rich(context.l10n.helpSheetHelpdeskCta.toTextSpan(context)),
             onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
           ),
           const BottomCloseButton(),

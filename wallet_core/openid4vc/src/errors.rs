@@ -4,8 +4,8 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use wallet_common::{
-    config::wallet_config::BaseUrl,
     http_error::{HttpJsonError, HttpJsonErrorType},
+    urls::BaseUrl,
 };
 
 use crate::{
@@ -39,7 +39,8 @@ pub trait ErrorStatusCode {
     fn status_code(&self) -> StatusCode;
 }
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-error-response
+/// See
+/// <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-error-response>
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialErrorCode {

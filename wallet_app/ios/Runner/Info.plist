@@ -64,5 +64,7 @@
 		<false/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSFaceIDUsageDescription</key>
+        <string>Securely unlock the app</string>
 	</dict>
 </plist>

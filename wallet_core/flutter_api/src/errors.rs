@@ -143,8 +143,11 @@ impl FlutterApiErrorFields for WalletRegistrationError {
 impl FlutterApiErrorFields for WalletUnlockError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            WalletUnlockError::NotRegistered | WalletUnlockError::NotLocked => FlutterApiErrorType::WalletState,
+            WalletUnlockError::NotRegistered
+            | WalletUnlockError::NotLocked
+            | WalletUnlockError::BiometricsUnlockingNotEnabled => FlutterApiErrorType::WalletState,
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
+            WalletUnlockError::UnlockMethodStorage(_) => FlutterApiErrorType::Generic,
         }
     }
 }

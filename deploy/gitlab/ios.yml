@@ -1,0 +1,268 @@
+test-ios:
+  extends: .ruby-cache
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  tags:
+    - macos
+  image: sonoma-wallet:0.1.0
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        path: wallet_core/platform_support/ios/cobertura.xml
+        coverage_format: cobertura
+    paths:
+      - "fastlane/test_output/*"
+  variables:
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - bundle install
+    - bundle exec fastlane ios test
+    - cp fastlane/test_output/cobertura.xml wallet_core/platform_support/ios/
+
+### iOS Building
+.build-ios-app:
+  extends: [.env-macos-runner, .ruby-cache-macos]
+  needs:
+    - job: test-flutter
+      artifacts: false
+    - job: test-codegen
+      artifacts: false
+    - job: test-rust
+      artifacts: false
+    - job: test-ios
+      artifacts: false
+    - job: test-rust-compilation-ios
+      artifacts: false
+  tags:
+    - macos
+  image: sonoma-wallet:0.1.0
+  artifacts:
+    name: "wallet-ios"
+    paths:
+      - "*.ipa"
+  variables:
+    FASTLANE_OPT_OUT_USAGE: "YES"
+    UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
+  before_script:
+    - !reference [.env-macos-runner, before_script]
+    - !reference [.ruby-cache-macos, before_script]
+  script:
+    - set -euo pipefail
+    - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
+    - export MATCH_PASSWORD
+    - (git config --global url.https://gitlab-ci-token:$CI_JOB_TOKEN@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST)
+    - HTTP_PROXY="" HTTPS_PROXY="" bundle install --retry=10
+    - bundle exec fastlane disable_flutter_analytics
+    - |
+      bundle exec fastlane ios ci_build \
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        app_name:"${APP_NAME}" \
+        build_mode:"${APP_BUILD_MODE}" \
+        mock:"${APP_MOCK}" \
+        universal_link_base:"${UL_HOSTNAME:-}" \
+        build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
+        version:"${RELEASE_VERSION:-}"
+
+.build-ios-app-ont:
+  extends: [.env-ont-k8s, .build-ios-app]
+  rules: !reference [.default-branch, rules]
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-ont
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+    APP_NAME: "NL Wallet (latest)"
+    APP_MOCK: "false"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
+
+build-ios-app-ont:
+  extends: .build-ios-app-ont
+  variables:
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_ONT}"
+    SENTRY_ENVIRONMENT: "ont"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ONT}"
+    SENTRY_ORG: "${SENTRY_ORG_ONT}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
+    SENTRY_URL: "https://sentry.io/"
+
+# build-ios-app-ont-profile:
+#   extends: .build-ios-app-ont
+#   variables:
+#     APP_BUILD_MODE: "profile"
+
+.build-ios-app-release-tag:
+  extends: .build-ios-app
+  rules: !reference [.release-tag, rules]
+  before_script:
+    - !reference [.build-ios-app, before_script]
+    - !reference [.release-tag, before_script]
+  variables:
+    APP_MOCK: "false"
+    APP_BUILD_MODE: "release"
+
+build-ios-app-mock:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+  variables:
+    APP_MOCK: "true" # override .build-ios-app-release-tag
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+    APP_NAME: "NL Wallet (mock)"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
+    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
+    SENTRY_URL: "https://sentry.io/"
+
+.build-ios-app-demo:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-demo
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+    APP_NAME: "NL Wallet (demo)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
+
+build-ios-app-demo:
+  extends: .build-ios-app-demo
+  variables:
+    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
+    SENTRY_ENVIRONMENT: "demo"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
+    SENTRY_ORG: "${SENTRY_ORG_DEMO}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
+    SENTRY_URL: "https://sentry.io/"
+
+# build-ios-app-demo-profile:
+#   extends: .build-ios-app-demo
+#   variables:
+#     APP_BUILD_MODE: "profile" # override .build-ios-app-release-tag
+
+build-ios-app-acceptance:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-acceptance
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
+    APP_NAME: "NL Wallet (acceptance)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ACC}"
+    SENTRY_DSN: "${SENTRY_DSN_ACC}"
+    SENTRY_ENVIRONMENT: "acceptance"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
+    SENTRY_ORG: "${SENTRY_ORG_ACC}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ACC}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-ios-app-preproduction:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-preproduction
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
+    APP_NAME: "NL Wallet (pre-production)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PREPROD}"
+    SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
+    SENTRY_ENVIRONMENT: "preproduction"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
+    SENTRY_ORG: "${SENTRY_ORG_PREPROD}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_PREPROD}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-ios-app-production:
+  extends: .build-ios-app-release-tag
+  needs:
+    - !reference [.build-ios-app, needs]
+    - job: wallet-env-config-production
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: ""
+    APP_NAME: "NL Wallet"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PROD}"
+    SENTRY_DSN: "${SENTRY_DSN_PROD}"
+    SENTRY_ENVIRONMENT: "production"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"
+    SENTRY_ORG: "${SENTRY_ORG_PROD}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
+    SENTRY_URL: "https://sentry.io/"
+
+
+## iOS Deploying
+.deploy-ios-app:
+  extends: [.env-macos-runner, .ruby-cache-macos]
+  tags:
+    - macos
+  image: sonoma-wallet:0.1.0
+  variables:
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  before_script:
+    - !reference [.env-macos-runner, before_script]
+    - !reference [.ruby-cache-macos, before_script]
+  script:
+    - APP_STORE_CONNECT_SECRETS_BASE64_JSON="$(kubectl get secret nl-wallet-app-store-api-key -o jsonpath='{.data}')"
+    - export APP_STORE_CONNECT_SECRETS_BASE64_JSON
+    - bundle install
+    - |
+      bundle exec fastlane ios ci_deploy \
+        app_identifier:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}"
+
+deploy-ios-app-ont:
+  extends: .deploy-ios-app
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: build-ios-app-ont
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+
+.deploy-ios-app-release-tag:
+  extends: .deploy-ios-app
+  rules: !reference [.release-tag, rules]
+
+deploy-ios-app-mock:
+  extends: .deploy-ios-app-release-tag
+  needs:
+    - job: build-ios-app-mock
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+
+deploy-ios-app-demo:
+  extends: .deploy-ios-app-release-tag
+  needs:
+    - job: build-ios-app-demo
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+deploy-ios-app-acceptance:
+  extends: .deploy-ios-app-release-tag
+  needs:
+    - job: build-ios-app-acceptance
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
+
+deploy-ios-app-preproduction:
+  extends: .deploy-ios-app-release-tag
+  needs:
+    - job: build-ios-app-preproduction
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
+
+deploy-ios-app-production:
+  extends: .deploy-ios-app-release-tag
+  needs:
+    - job: build-ios-app-production
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: ""

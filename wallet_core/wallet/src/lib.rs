@@ -20,7 +20,8 @@ pub use crate::{
     },
     pin::validation::validate_pin,
     wallet::{
-        ConfigCallback, DisclosureProposal, DocumentsCallback, EventStatus, HistoryEvent, LockCallback, UriType, Wallet,
+        ConfigCallback, DisclosureProposal, DocumentsCallback, EventStatus, HistoryEvent, LockCallback, UnlockMethod,
+        UriType, Wallet,
     },
 };
 
@@ -36,9 +37,12 @@ pub mod openid4vc {
 }
 
 pub mod wallet_common {
-    pub use wallet_common::config::wallet_config::{
-        AccountServerConfiguration, BaseUrl, DisclosureConfiguration, LockTimeoutConfiguration,
-        PidIssuanceConfiguration, WalletConfiguration,
+    pub use wallet_common::{
+        config::wallet_config::{
+            AccountServerConfiguration, DisclosureConfiguration, LockTimeoutConfiguration, PidIssuanceConfiguration,
+            WalletConfiguration,
+        },
+        urls::BaseUrl,
     };
 }
 

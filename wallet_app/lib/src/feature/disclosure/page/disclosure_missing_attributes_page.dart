@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/sliver_divider.dart';
@@ -84,7 +85,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
   Widget _buildHowToProceedButton(BuildContext context) {
     return ListButton(
       onPressed: onReportIssuePressed,
-      text: Text(context.l10n.disclosureMissingAttributesPageReportIssueCta),
+      text: Text.rich(context.l10n.disclosureMissingAttributesPageReportIssueCta.toTextSpan(context)),
     );
   }
 
@@ -95,7 +96,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
         alignment: Alignment.bottomCenter,
         child: ElevatedButton(
           onPressed: onDecline,
-          child: Text(context.l10n.disclosureMissingAttributesPageCloseCta),
+          child: Text.rich(context.l10n.disclosureMissingAttributesPageCloseCta.toTextSpan(context)),
         ),
       ),
     );

@@ -40,8 +40,8 @@ use openid4vc::{
     ErrorResponse,
 };
 use wallet_common::{
-    config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonErrorBody,
-    keys::software::SoftwareEcdsaKey, reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, utils,
+    generator::TimeGenerator, http_error::HttpJsonErrorBody, keys::software::SoftwareEcdsaKey,
+    reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, urls::BaseUrl, utils,
 };
 #[cfg(feature = "issuance")]
 use wallet_server::settings::{Digid, Issuer};
@@ -247,7 +247,8 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     let client = default_reqwest_client_builder().build().unwrap();
 
-    // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
+    // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise
+    // (because it is served on the internal URL)
     let response = client
         .post(settings.urls.public_url.join("disclosure/sessions"))
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
@@ -273,7 +274,8 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
         _ => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
     };
 
-    // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
+    // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because
+    // it is served on the internal URL)
     let response = client
         .post(settings.urls.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
@@ -306,7 +308,8 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let internal_disclosed_attributes_url =
         internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
-    // check if using no token returns a 401 on the (public) attributes URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
+    // check if using no token returns a 401 on the (public) attributes URL if an API key is used and a 404 otherwise
+    // (because it is served on the internal URL)
     let response = client
         .get(public_disclosed_attributes_url.clone())
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
@@ -319,7 +322,8 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
         _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
     };
 
-    // check if using no token returns a 401 on the (internal) attributes URL if an API key is used and a 400 otherwise (because the session is not yet finished)
+    // check if using no token returns a 401 on the (internal) attributes URL if an API key is used and a 400 otherwise
+    // (because the session is not yet finished)
     let response = client
         .get(internal_disclosed_attributes_url.clone())
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
@@ -332,7 +336,8 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
         _ => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
     };
 
-    // check if using a token returns a 400 on the (public) attributes URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
+    // check if using a token returns a 400 on the (public) attributes URL if an API key is used and a 404 otherwise
+    // (because it is served on the internal URL)
     let response = client
         .get(public_disclosed_attributes_url)
         .header("Authorization", "Bearer secret_key")

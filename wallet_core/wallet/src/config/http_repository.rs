@@ -4,10 +4,7 @@ use parking_lot::RwLock;
 use reqwest::Certificate;
 use tracing::info;
 
-use wallet_common::{
-    config::wallet_config::{BaseUrl, WalletConfiguration},
-    jwt::EcdsaDecodingKey,
-};
+use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey, urls::BaseUrl};
 
 use crate::config::{
     http_client::HttpConfigurationClient, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,

@@ -90,12 +90,10 @@ void main() {
   group('widgets', () {
     testWidgets('PinPage renders the correct header', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinEntryInProgress(3),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinEntryInProgress(3),
         ),
       );
 
@@ -103,7 +101,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Setup finders
-      final headerFinder = find.text(l10n.pinScreenHeader);
+      final headerFinder = find.text(l10n.pinScreenHeader, findRichText: true);
 
       // Verify all expected widgets show up once
       expect(headerFinder, findsOneWidget);
@@ -114,12 +112,10 @@ void main() {
       addTearDown(() => tester.view.resetPhysicalSize());
 
       final l10n = await TestUtils.englishLocalizations;
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinEntryInProgress(3),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinEntryInProgress(3),
         ),
       );
 
@@ -127,7 +123,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Setup finders
-      final headerFinder = find.text(l10n.pinScreenHeader);
+      final headerFinder = find.text(l10n.pinScreenHeader, findRichText: true);
 
       // Verify all expected widgets show up once
       expect(headerFinder, findsOneWidget);
@@ -135,12 +131,10 @@ void main() {
 
     testWidgets('PinPage renders the default error with the correct amount of leftover attempts', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinValidateFailure(attemptsLeftInRound: 2, isFinalRound: false),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinValidateFailure(attemptsLeftInRound: 2, isFinalRound: false),
         ),
       );
 
@@ -157,12 +151,10 @@ void main() {
     });
 
     testWidgets('PinPage executes navigation when blocked', (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinValidateBlocked(),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinValidateBlocked(),
         ),
       );
       await tester.pumpAndSettle();
@@ -171,12 +163,10 @@ void main() {
     });
 
     testWidgets('PinPage executes navigation when timeout is triggered', (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            PinValidateTimeout(DateTime.now().add(const Duration(hours: 3))),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          PinValidateTimeout(DateTime.now().add(const Duration(hours: 3))),
         ),
       );
       await tester.pumpAndSettle();

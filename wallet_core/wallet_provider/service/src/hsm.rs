@@ -139,7 +139,8 @@ impl Pkcs11Hsm {
         let pool = Pool::builder()
             .max_size(max_sessions.into())
             .max_lifetime(Some(max_session_lifetime))
-            // This makes a pkcs11 call every time a connection is check out of the pool and should be evaluated in a future performance test.
+            // This makes a pkcs11 call every time a connection is check out of the pool and should be evaluated in a
+            // future performance test.
             .test_on_check_out(true)
             .build(manager)
             .unwrap();

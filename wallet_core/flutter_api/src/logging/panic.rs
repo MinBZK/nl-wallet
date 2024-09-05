@@ -23,7 +23,8 @@ pub fn init_panic_logger() {
 
         // Log the panic message and backtrace, each on separate lines
         // because OSLog on iOS has a 1024 character limit.
-        // See: https://stackoverflow.com/questions/39584707/nslog-on-devices-in-ios-10-xcode-8-seems-to-truncate-why/40283623#40283623
+        // See
+        // https://stackoverflow.com/questions/39584707/nslog-on-devices-in-ios-10-xcode-8-seems-to-truncate-why/40283623#40283623
         //
         // Note that we need to use string formatting to prevent
         // the [`error!`] macro from printing the variable name.

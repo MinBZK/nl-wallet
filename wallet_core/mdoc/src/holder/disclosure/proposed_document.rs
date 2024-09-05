@@ -38,10 +38,10 @@ pub struct ProposedDocument<I> {
 
 impl<I> ProposedDocument<I> {
     /// For a given set of `Mdoc`s with the same `doc_type`, return two `Vec`s:
-    /// * A `Vec<ProposedDocument>` that contains all of the proposed
-    ///   disclosure documents that provide all of the required attributes.
-    /// * A `Vec<Vec<AttributeIdentifier>>` that contain the missing
-    ///   attributes for every `Mdoc` that has at least one attribute missing.
+    /// * A `Vec<ProposedDocument>` that contains all of the proposed disclosure documents that provide all of the
+    ///   required attributes.
+    /// * A `Vec<Vec<AttributeIdentifier>>` that contain the missing attributes for every `Mdoc` that has at least one
+    ///   attribute missing.
     ///
     /// This means that the sum of the length of these `Vec`s is equal to the
     /// length of the input `Vec<Mdoc>`.

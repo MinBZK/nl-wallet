@@ -12,7 +12,7 @@ class AttributeValueFormatter {
     return switch (attributeValue) {
       StringValue() => attributeValue.value,
       BooleanValue() => attributeValue.value ? context.l10n.cardValueTrue : context.l10n.cardValueFalse,
-      DateValue() => _prettyPrintDateTime(context.locale, attributeValue.value),
+      DateValue() => _prettyPrintDateTime(context.localeName, attributeValue.value),
       GenderValue() => _prettyPrintGender(context.l10n, attributeValue.value),
     };
   }

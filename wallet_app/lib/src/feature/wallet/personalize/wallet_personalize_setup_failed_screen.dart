@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
@@ -71,7 +72,7 @@ class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
             ModalRoute.withName(WalletRoutes.splashRoute),
           );
         },
-        child: Text(context.l10n.walletPersonalizeSetupFailedScreenCta),
+        child: Text.rich(context.l10n.walletPersonalizeSetupFailedScreenCta.toTextSpan(context)),
       ),
     );
   }

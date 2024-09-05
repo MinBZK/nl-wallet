@@ -7,7 +7,7 @@ use crate::models::{
 
 pub enum WalletEvent {
     Disclosure {
-        //ISO8601
+        // ISO8601
         date_time: String,
         relying_party: Organization,
         purpose: Vec<LocalizedString>,
@@ -17,7 +17,7 @@ pub enum WalletEvent {
         r#type: DisclosureType,
     },
     Issuance {
-        //ISO8601
+        // ISO8601
         date_time: String,
         card: Card,
     },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
@@ -68,12 +69,12 @@ class ForgotPinScreen extends StatelessWidget {
             children: [
               PrimaryButton(
                 onPressed: () => ResetWalletDialog.show(context),
-                text: Text(context.l10n.forgotPinScreenCta),
+                text: Text.rich(context.l10n.forgotPinScreenCta.toTextSpan(context)),
               ),
               const SizedBox(height: 12),
               TertiaryButton(
                 onPressed: () => Navigator.maybePop(context),
-                text: Text(context.l10n.generalBottomBackCta),
+                text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
                 icon: const Icon(Icons.arrow_back),
               ),
             ],

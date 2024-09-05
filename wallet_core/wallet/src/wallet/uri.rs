@@ -2,7 +2,7 @@ use tracing::{info, instrument};
 use url::Url;
 
 use error_category::{sentry_capture_error, ErrorCategory};
-use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::urls;
 
 use crate::{
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
@@ -41,20 +41,17 @@ where
         let uri = Url::parse(uri_str)?;
 
         if matches!(self.issuance_session, Some(PidIssuanceSession::Digid(_)))
-            && uri.as_str().starts_with(
-                WalletConfiguration::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
-                    .as_ref()
-                    .as_str(),
-            )
+            && uri
+                .as_str()
+                .starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
         {
             return Ok(UriType::PidIssuance(uri));
         }
 
-        if uri.as_str().starts_with(
-            WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL)
-                .as_ref()
-                .as_str(),
-        ) {
+        if uri
+            .as_str()
+            .starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
+        {
             return Ok(UriType::Disclosure(uri));
         }
 
@@ -78,9 +75,9 @@ mod tests {
         // Set up some URLs to work with.
         let example_uri = "https://example.com";
 
-        let disclosure_uri_base = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL);
+        let disclosure_uri_base = urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL);
 
-        let digid_uri = WalletConfiguration::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
+        let digid_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
         let digid_uri = digid_uri.as_ref().as_str();
 
         let disclosure_uri = disclosure_uri_base.join("abcd");

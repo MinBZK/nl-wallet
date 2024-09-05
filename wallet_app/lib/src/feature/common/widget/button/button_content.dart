@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/object_extension.dart';
 
 const _kIconSize = 16.0;
 const _kSpacing = 8.0;
@@ -50,7 +51,9 @@ class ButtonContent extends StatelessWidget {
 
   double contentWidth(BuildContext context, TextStyle style) {
     final iconWidth = icon == null ? 0 : _kIconSize + _kSpacing;
-    final TextSpan textSpan = TextSpan(text: text.data, style: style);
+    // When a [Text.rich(..)] widget is provided the text.data does not return the content, in that case we extract it manually.
+    final textContent = text.textSpan?.let((it) => it.toPlainText()) ?? text.data;
+    final TextSpan textSpan = TextSpan(text: textContent, style: style);
     final TextPainter painter = TextPainter(
       maxLines: 1 /* single line */,
       text: textSpan,

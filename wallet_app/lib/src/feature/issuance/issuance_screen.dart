@@ -80,9 +80,9 @@ class IssuanceScreen extends StatelessWidget {
       buildWhen: (previous, current) => current is IssuanceInitial && current is IssuanceLoadInProgress,
       builder: (context, state) {
         if (state.isRefreshFlow) {
-          return Text(context.l10n.issuanceScreenRefreshTitle);
+          return Text.rich(context.l10n.issuanceScreenRefreshTitle.toTextSpan(context));
         } else {
-          return Text(context.l10n.issuanceScreenTitle);
+          return Text.rich(context.l10n.issuanceScreenTitle.toTextSpan(context));
         }
       },
     );

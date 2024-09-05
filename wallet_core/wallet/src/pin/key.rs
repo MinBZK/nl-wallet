@@ -35,9 +35,10 @@ use wallet_common::{
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
 pub fn new_pin_salt() -> Vec<u8> {
     // Note: when passed to the HKDF function, the variable `salt` does not act as the salt but instead as the input key
-    // material. The HKDF salt parameter is left empty. From a cryptographic perspective, what we call "salt" here should
-    // really be called "key" or "input_key_material" or something, but we also already have a PIN private key and a
-    // corresponding PIN public keys. So in the naming of things we would end up with confusingly many "keys".
+    // material. The HKDF salt parameter is left empty. From a cryptographic perspective, what we call "salt" here
+    // should really be called "key" or "input_key_material" or something, but we also already have a PIN private
+    // key and a corresponding PIN public keys. So in the naming of things we would end up with confusingly many
+    // "keys".
     random_bytes(32)
 }
 
@@ -97,7 +98,8 @@ fn pin_private_key(salt: &[u8], pin: &str) -> Result<SigningKey, UnspecifiedRing
     // where q is the (prime) order of the ECDSA elliptic curve (its amount of elements). But hkdf() takes bytes not
     // bits as the output length parameter, so we can't specify the upper bound sufficiently granularly; the output may
     // be too large. Just reducing mod q would result in the so-called modulo bias
-    // (see e.g. https://research.kudelskisecurity.com/2020/07/28/the-definitive-guide-to-modulo-bias-and-how-to-avoid-it/):
+    // (see e.g.
+    // https://research.kudelskisecurity.com/2020/07/28/the-definitive-guide-to-modulo-bias-and-how-to-avoid-it/):
     // the numbers above the upper bound are mapped onto the lower numbers, which therefore are slightly more likely to
     // be chosen.
     // This is often solved by repeatedly rejecting too large values until one obtains a number below the upper bound,

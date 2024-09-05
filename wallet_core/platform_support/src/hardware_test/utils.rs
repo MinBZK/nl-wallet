@@ -13,6 +13,7 @@ fn utils_test_get_storage_path() -> bool {
     rt.block_on(test::get_and_verify_storage_path::<HardwareUtilities>())
 }
 
+#[rustfmt::skip]
 #[no_mangle]
 extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_utilities_UtilitiesBridgeInstrumentedTest_utilities_1test_1storage_1path(
     _env: JNIEnv,

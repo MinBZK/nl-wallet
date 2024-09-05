@@ -19,7 +19,11 @@ use openid4vc::{
     verifier::{DisclosureData, SessionType, StatusResponse, Verifier, WalletAuthResponse},
     DisclosureErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };
-use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonError};
+use wallet_common::{
+    generator::TimeGenerator,
+    http_error::HttpJsonError,
+    urls::{self, BaseUrl},
+};
 
 use crate::settings::{self, Urls};
 
@@ -165,7 +169,7 @@ where
         .status_response(
             &session_token,
             query.map(|Query(params)| params.session_type),
-            &state.universal_link_base_url.join_base_url("disclosure/sessions"),
+            &urls::disclosure_base_uri(&state.universal_link_base_url),
             state
                 .public_url
                 .join_base_url(&format!("disclosure/sessions/{session_token}/request_uri")),

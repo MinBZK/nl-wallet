@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
 };
 
 pub use self::{
-    data::{InstructionData, KeyedData, RegistrationData},
+    data::{InstructionData, KeyedData, RegistrationData, UnlockData, UnlockMethod},
     database_storage::DatabaseStorage,
     event_log::{EventDocuments, EventStatus, WalletEvent},
     key_file::KeyFileError,
@@ -85,7 +85,7 @@ pub trait Storage {
 
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
-    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
+    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;

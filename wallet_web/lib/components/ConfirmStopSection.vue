@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import HelpLink from "@/components/HelpLink.vue"
 import { injectStrict, translationsKey } from "@/util/translations"
+
+defineProps<{
+  helpBaseUrl: URL
+}>()
 
 const t = injectStrict(translationsKey)
 </script>
@@ -11,4 +16,5 @@ const t = injectStrict(translationsKey)
       {{ t("confirm_stop_body") }}
     </p>
   </section>
+  <help-link :helpBaseUrl></help-link>
 </template>

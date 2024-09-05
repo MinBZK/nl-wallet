@@ -9,25 +9,25 @@ class PinScreen : MobileActions() {
     private val confirmPinScreen = find.byValueKey("confirmPinScreen")
     private val personalizeConfirmPinScreen = find.byValueKey("personalizeConfirmPinPage")
 
-    private val pinKeyboard = find.byValueKey("pinKeyboard")
+    private val pinKeyboardFirstKey = find.byValueKey("keyboardDigitKey#1")
 
     private val backButton = find.byToolTip(l10n.getString("generalWCAGBack"))
     private val appInfoButton = find.byToolTip(l10n.getString("generalWCAGInfo"))
     private val forgotPinButton = find.byText(l10n.getString("pinScreenForgotPinCta"))
-    private val confirmPinErrorFatalCta = find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalCta"))
+    private val confirmPinErrorFatalCta = find.byText(l10n.getString("pinConfirmationErrorDialogFatalCta"))
     private val closeAlertDialogButton = find.byText(l10n.getString("generalOkCta"))
 
-    private val selectPinErrorTooFewUniqueDigits =
-        find.byText(l10n.getString("setupSecuritySelectPinErrorPageTooFewUniqueDigitsError"))
-    private val selectPinErrorSequentialDigits =
-        find.byText(l10n.getString("setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError"))
-    private val confirmPinErrorMismatchTitle = find.byText(l10n.getString("setupSecurityConfirmationErrorPageTitle"))
+    private val pinValidationErrorTooFewUniqueDigits =
+        find.byText(l10n.getString("pinValidationErrorDialogTooFewUniqueDigitsError"))
+    private val pinValidationErrorSequentialDigits =
+        find.byText(l10n.getString("pinValidationErrorDialogAscendingOrDescendingDigitsError"))
+    private val confirmPinErrorMismatchTitle = find.byText(l10n.getString("pinConfirmationErrorDialogTitle"))
     private val confirmPinErrorMismatchDescription =
-        find.byText(l10n.getString("setupSecurityConfirmationErrorPageDescription"))
+        find.byText(l10n.getString("pinConfirmationErrorDialogDescription"))
     private val confirmPinErrorMismatchFatalTitle =
-        find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalTitle"))
+        find.byText(l10n.getString("pinConfirmationErrorDialogFatalTitle"))
     private val confirmPinErrorMismatchFatalDescription =
-        find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalDescription"))
+        find.byText(l10n.getString("pinConfirmationErrorDialogFatalDescription"))
 
     private val pinErrorDialogNonFinalRoundInitialAttempt =
         find.byText(l10n.getString("pinErrorDialogNonFinalRoundInitialAttempt"))
@@ -40,13 +40,13 @@ class PinScreen : MobileActions() {
 
     fun personalizeConfirmPinScreenVisible() = isElementVisible(personalizeConfirmPinScreen)
 
-    fun pinKeyboardVisible() = isElementVisible(pinKeyboard)
+    fun pinKeyboardVisible() = isElementVisible(pinKeyboardFirstKey)
 
     fun enteredPinAbsent(pin: String) = isElementAbsent(find.byText(pin))
 
-    fun choosePinErrorTooFewUniqueDigitsVisible() = isElementVisible(selectPinErrorTooFewUniqueDigits)
+    fun choosePinErrorTooFewUniqueDigitsVisible() = isElementVisible(pinValidationErrorTooFewUniqueDigits)
 
-    fun choosePinErrorSequentialDigitsVisible() = isElementVisible(selectPinErrorSequentialDigits)
+    fun choosePinErrorSequentialDigitsVisible() = isElementVisible(pinValidationErrorSequentialDigits)
 
     fun confirmPinErrorMismatchVisible() =
         isElementVisible(confirmPinErrorMismatchTitle) && isElementVisible(confirmPinErrorMismatchDescription)

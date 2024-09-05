@@ -63,10 +63,11 @@ void main() {
           ChangeLanguageSuccess(availableLanguages: mockLanguages, selectedLocale: mockLanguages.first.locale),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Validate that the widget exists
       for (final language in mockLanguages) {
-        expect(find.text(language.name), findsOneWidget);
+        expect(find.text(language.name, findRichText: true), findsOneWidget);
       }
     });
   });

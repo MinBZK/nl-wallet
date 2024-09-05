@@ -327,8 +327,9 @@ impl RequiredValueTrait for NullCborValue {
 pub struct DeviceAuthenticationString;
 impl RequiredValueTrait for DeviceAuthenticationString {
     // We can't use &'static str directly here, because then the deserialization implementation of
-    // RequiredValue<DeviceAuthenticationString> would have to be able to deserialize into &'static str which is impossible.
-    // Also can't use String because those can't be constructed compiletime. So we use Cow which sits in between.
+    // RequiredValue<DeviceAuthenticationString> would have to be able to deserialize into &'static str which is
+    // impossible. Also can't use String because those can't be constructed compiletime. So we use Cow which sits in
+    // between.
     type Type = Cow<'static, str>;
     const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("DeviceAuthentication");
 }

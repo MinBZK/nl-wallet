@@ -4,7 +4,7 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
 
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::deserialize_certificate, sentry::Sentry};
+use wallet_common::{reqwest::deserialize_certificate, sentry::Sentry, urls::BaseUrl};
 
 use crate::gba::{
     self,

@@ -13,6 +13,7 @@ import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../../../util/mapper/mapper.dart';
 import '../../../util/mapper/pid/pid_attribute_mapper.dart';
@@ -164,12 +165,12 @@ class WalletPersonalizeScreen extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(context.l10n.walletPersonalizeScreenStopDigidDialogTitle),
-          content: Text(context.l10n.walletPersonalizeScreenStopDigidDialogSubtitle),
+          title: Text.rich(context.l10n.walletPersonalizeScreenStopDigidDialogTitle.toTextSpan(context)),
+          content: Text.rich(context.l10n.walletPersonalizeScreenStopDigidDialogSubtitle.toTextSpan(context)),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text(context.l10n.walletPersonalizeScreenStopDigidDialogNegativeCta),
+              child: Text.rich(context.l10n.walletPersonalizeScreenStopDigidDialogNegativeCta.toTextSpan(context)),
             ),
             TextButton(
               style: Theme.of(context)
@@ -177,7 +178,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
                   .style
                   ?.copyWith(foregroundColor: WidgetStatePropertyAll(context.colorScheme.error)),
               onPressed: () => Navigator.pop(context, true),
-              child: Text(context.l10n.walletPersonalizeScreenStopDigidDialogPositiveCta),
+              child: Text.rich(context.l10n.walletPersonalizeScreenStopDigidDialogPositiveCta.toTextSpan(context)),
             ),
           ],
         );

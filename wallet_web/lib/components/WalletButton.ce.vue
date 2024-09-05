@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import WalletModal from "@/components/WalletModal.vue"
 import { translations, translationsKey, type Language } from "@/util/translations"
 import { isDesktop, isMobileKey } from "@/util/useragent"
 import { provide, ref } from "vue"
-import WalletModal from "./WalletModal.vue"
 import { RO_SANS_BOLD, RO_SANS_REGULAR } from "../non-free/fonts"
 
 export interface Props {
@@ -10,6 +10,7 @@ export interface Props {
   startUrl?: URL
   text?: string
   lang?: Language
+  helpBaseUrl?: URL
   // ignored, but needed for the browser not giving a warning
   id?: string
   class?: string
@@ -18,6 +19,7 @@ export interface Props {
 const props = withDefaults(defineProps<Props>(), {
   text: (props): string => translations(props.lang as Language)("wallet_button_text"),
   startUrl: (): URL => new URL(document.location.href),
+  helpBaseUrl: (): URL => new URL(import.meta.env.VITE_HELP_BASE_URL),
   lang: (): Language => "nl",
 })
 
@@ -82,8 +84,9 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
   </button>
   <wallet-modal
     v-if="isVisible"
-    :start-url="startUrl"
+    :startUrl
     :usecase
+    :helpBaseUrl
     @close="close"
     @success="success"
     @failed="failed"

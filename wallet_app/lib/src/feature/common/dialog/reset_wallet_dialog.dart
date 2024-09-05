@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 
 class ResetWalletDialog extends StatelessWidget {
   const ResetWalletDialog({super.key});
@@ -11,19 +12,19 @@ class ResetWalletDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(
-        context.l10n.resetWalletDialogTitle,
+      title: Text.rich(
+        context.l10n.resetWalletDialogTitle.toTextSpan(context),
         style: context.textTheme.displayMedium,
       ),
-      content: Text(context.l10n.resetWalletDialogBody),
+      content: Text.rich(context.l10n.resetWalletDialogBody.toTextSpan(context)),
       actions: <Widget>[
         TextButton(
-          child: Text(context.l10n.resetWalletDialogCancelCta),
+          child: Text.rich(context.l10n.resetWalletDialogCancelCta.toTextSpan(context)),
           onPressed: () => Navigator.pop(context),
         ),
         TextButton(
           style: TextButton.styleFrom(foregroundColor: context.colorScheme.error),
-          child: Text(context.l10n.resetWalletDialogConfirmCta),
+          child: Text.rich(context.l10n.resetWalletDialogConfirmCta.toTextSpan(context)),
           onPressed: () async {
             final navigator = Navigator.of(context);
             await context.read<ResetWalletUseCase>().invoke();

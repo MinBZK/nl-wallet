@@ -15,7 +15,7 @@ driver’s license, or to prove that you are 18+ to buy a beer.
 The NL Wallet is being developed in an open and transparent way. We offer the following channels to
 allow you to contribute:
 
-- The user interface of the app is available on [Figma](https://www.figma.com/file/nvJ4bHRh1yCsHucD93R3DZ/Release_Oktober_24_2023_Digitale-Identiteit-Wallet_Realisatie?type=design&node-id=1%3A3716&mode=design).
+- The user interface of the app is available on [Figma](https://www.figma.com/design/aHOQVjnWMnSYxhnICRTMbw/20240902_Release_UI_NLWallet?node-id=1-3716&t=XOaFfX99s0Y5qIBa-1).
 - The source code is published in this [GitHub repository](https://github.com/MinBZK/nl-wallet).
 - More information, events and discussions can be found on [Pleio](https://edi.pleio.nl).
 
@@ -76,7 +76,7 @@ public service providers.
 - We want to share the lessons we learn with the public and share them with the EU.
 
 If you want to learn more about the NL Wallet development, please read the background information on
-the Pleio hub. The development of the user flows and screens can be followed through [Figma](https://www.figma.com/file/nvJ4bHRh1yCsHucD93R3DZ/Release_Oktober_24_2023_Digitale-Identiteit-Wallet_Realisatie?type=design&node-id=1%3A3716&mode=design).
+the Pleio hub. The development of the user flows and screens can be followed through [Figma](https://www.figma.com/design/aHOQVjnWMnSYxhnICRTMbw/20240902_Release_UI_NLWallet?node-id=1-3716&t=XOaFfX99s0Y5qIBa-1).
 
 # Licensing
 
@@ -169,7 +169,7 @@ easiest way to do so is:
    e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
 5. Run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code for Android
 6. Optional: let Android Studio use Flutter SDK installed via FVM by following
-   [these steps](https://fvm.app/docs/getting_started/configuration#android-studio)
+   [these steps](https://fvm.app/documentation/getting-started/configuration)
 7. Run `${HOME}/Library/Android/sdk/emulator/emulator -list-avds` to list the installed devices
 8. Start the emulator using `${HOME}/Library/Android/sdk/emulator/emulator [[AVDs] FROM PREVIOUS OUTPUT]``
 

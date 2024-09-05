@@ -4,6 +4,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/document.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/app_image.dart';
@@ -60,14 +61,14 @@ class CheckAgreementPage extends StatelessWidget {
                 primaryButton: PrimaryButton(
                   key: const Key('acceptButton'),
                   onPressed: onAccept,
-                  text: Text(context.l10n.checkAgreementPageConfirmCta),
+                  text: Text.rich(context.l10n.checkAgreementPageConfirmCta.toTextSpan(context)),
                   icon: null,
                 ),
                 secondaryButton: SecondaryButton(
                   key: const Key('rejectButton'),
                   onPressed: onDecline,
                   icon: const Icon(Icons.block_flipped),
-                  text: Text(context.l10n.checkAgreementPageCancelCta),
+                  text: Text.rich(context.l10n.checkAgreementPageCancelCta.toTextSpan(context)),
                 ),
               ),
             ),
@@ -108,7 +109,7 @@ class CheckAgreementPage extends StatelessWidget {
   Widget _buildDataIncorrectButton(BuildContext context) {
     return ListButton(
       onPressed: () => PlaceholderScreen.showGeneric(context),
-      text: Text(context.l10n.checkAgreementPageDataIncorrectCta),
+      text: Text.rich(context.l10n.checkAgreementPageDataIncorrectCta.toTextSpan(context)),
     );
   }
 
