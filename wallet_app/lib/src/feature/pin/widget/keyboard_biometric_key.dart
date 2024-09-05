@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import '../../../util/extension/biometrics_extension.dart';
 import '../../../util/extension/string_extension.dart';
-import '../../../wallet_icons.dart';
 
 class KeyboardBiometricKey extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -23,16 +22,15 @@ class KeyboardBiometricKey extends StatelessWidget {
         future: context.read<GetSupportedBiometricsUseCase>().invoke(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const SizedBox.shrink();
-          final useFaceIcon = snapshot.data == Biometrics.face;
-          final label = (snapshot.data ?? Biometrics.none).prettyPrint(context);
+          final biometrics = snapshot.data ?? Biometrics.none;
           return Semantics(
             button: true,
             keyboardKey: true,
-            attributedLabel: label.toAttributedString(context),
+            attributedLabel: biometrics.prettyPrint(context).toAttributedString(context),
             child: InkWell(
               onTap: onPressed,
               child: Icon(
-                useFaceIcon ? WalletIcons.icon_face_id : Icons.fingerprint_outlined,
+                biometrics.icon,
                 color: color,
                 size: 24,
               ),
