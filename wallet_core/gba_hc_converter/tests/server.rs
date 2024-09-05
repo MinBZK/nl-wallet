@@ -54,7 +54,7 @@ where
 async fn query_personen(port: u16) -> Response {
     let query = PersonQuery {
         r#type: String::from("RaadpleegMetBurgerservicenummer"),
-        bsn: vec![Bsn::new("12345678").unwrap()],
+        bsn: vec![Bsn::try_new("12345678").unwrap()],
         registration_municipality: None,
         fields: vec![],
     };
