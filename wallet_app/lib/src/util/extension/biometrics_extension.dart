@@ -1,8 +1,9 @@
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import '../../domain/usecase/biometrics/biometrics.dart';
+import '../../wallet_icons.dart';
 import 'build_context_extension.dart';
 
 extension BiometricsExtension on Biometrics {
@@ -13,6 +14,15 @@ extension BiometricsExtension on Biometrics {
       Biometrics.some =>
         Platform.isIOS ? context.l10n.biometricsFaceIdOrTouchId : context.l10n.biometricsFaceOrFingerprint,
       Biometrics.none => '',
+    };
+  }
+
+  IconData get icon {
+    return switch (this) {
+      Biometrics.face => Platform.isIOS ? WalletIcons.icon_face_id : Icons.face_unlock_outlined,
+      Biometrics.fingerprint => Icons.fingerprint_outlined,
+      Biometrics.some => Platform.isIOS ? WalletIcons.icon_face_id : Icons.fingerprint_outlined,
+      Biometrics.none => Platform.isIOS ? WalletIcons.icon_face_id : Icons.fingerprint_outlined,
     };
   }
 }
