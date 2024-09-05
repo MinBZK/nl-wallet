@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-08-30T16:01:13+02:00",
+    "@@last_modified": "2024-09-03T14:34:09+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -24,14 +24,62 @@
     "activitySummaryToday": "Activities today",
     "appTitle": "NL Wallet",
     "biometricSettingsScreenDescription": "This will open your NL Wallet faster. You'll use your {supportedBiometrics} instead of your PIN code.\nEnable {supportedBiometrics} and confirm with your PIN code.",
+    "@biometricSettingsScreenDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSetupDialogDescription": "For {supportedBiometrics}, you first need to turn on \"{supportedBiometrics}\" on your device. Go to Settings > {supportedBiometrics}.",
+    "@biometricSettingsScreenSetupDialogDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSetupDialogOpenSettingsCta": "Open settings",
     "biometricSettingsScreenSetupDialogTitle": "Turn on {supportedBiometrics} first",
+    "@biometricSettingsScreenSetupDialogTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSuccessDescription": "Your app is secured with your PIN code and {supportedBiometrics}.",
+    "@biometricSettingsScreenSuccessDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSuccessTitle": "Success!",
     "biometricSettingsScreenSuccessToSettingsCta": "To settings",
     "biometricSettingsScreenSwitchCta": "Unlock with {supportedBiometrics}",
+    "@biometricSettingsScreenSwitchCta": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenTitle": "Unlock with {supportedBiometrics}",
+    "@biometricSettingsScreenTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricsFace": "face scan",
     "biometricsFaceId": "Face ID",
     "biometricsFaceIdOrTouchId": "Face ID or Touch ID",
@@ -111,15 +159,7 @@
     "cardHistorySigningSuccess": "Signed",
     "cardHistoryTimelineOperationExpired": "Card is expired",
     "cardHistoryTimelineOperationRenewed": "Card updated",
-    "cardTitleSemanticsLabel": "Card: {cardTitle}",
-    "@cardTitleSemanticsLabel": {
-        "placeholders": {
-            "cardTitle": {
-                "example": "Personal data",
-                "type": "String"
-            }
-        }
-    },
+    "cardTitleSemanticsLabel": "Card",
     "cardValueFalse": "No",
     "cardValueGenderFemale": "Female",
     "cardValueGenderMale": "Male",
@@ -869,6 +909,14 @@
     "settingsScreenChangePinCta": "Change PIN code",
     "settingsScreenClearDataCta": "Remove data",
     "settingsScreenSetupBiometricsCta": "Unlock with {supportedBiometrics}",
+    "@settingsScreenSetupBiometricsCta": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Not supported on this device",
     "settingsScreenTitle": "Settings",
     "setupBiometricsPageDescription": "This will open your NL Wallet faster. You'll use your face or fingerprint instead of your PIN code.",
@@ -876,10 +924,26 @@
     "setupBiometricsPageLocalizedReason": "Confirm setup",
     "setupBiometricsPageSkipCta": "Skip",
     "setupBiometricsPageTitle": "Do you want to unlock the app with {supportedBiometrics}?",
+    "@setupBiometricsPageTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "setupSecurityCompletedPageCreateWalletCta": "Next",
     "setupSecurityCompletedPageDescription": "Your app is secured with your PIN code.",
     "setupSecurityCompletedPageTitle": "Success!",
     "setupSecurityCompletedPageWithBiometricsDescription": "Your app is secured with your PIN code and {supportedBiometrics}.",
+    "@setupSecurityCompletedPageWithBiometricsDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "setupSecurityConfirmationPageTitle": "Repeat your PIN code",
     "setupSecurityLoadingPageDescription": "Please wait...",
     "setupSecurityLoadingPageTitle": "Save",
