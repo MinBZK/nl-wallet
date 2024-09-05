@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/page/page_illustration.dart';
 import '../common/sheet/error_details_sheet.dart';
@@ -47,7 +48,7 @@ class ErrorPage extends StatelessWidget {
         onPressed: onPrimaryActionPressed,
       ),
       secondaryButton: TertiaryButton(
-        text: Text(context.l10n.generalShowDetailsCta),
+        text: Text.rich(context.l10n.generalShowDetailsCta.toTextSpan(context)),
         icon: const Icon(Icons.help_outline_rounded),
         onPressed: () => ErrorDetailsSheet.show(context),
       ),
@@ -69,7 +70,7 @@ class ErrorPage extends StatelessWidget {
         onPressed: onPrimaryActionPressed,
       ),
       secondaryButton: TertiaryButton(
-        text: Text(context.l10n.generalShowDetailsCta),
+        text: Text.rich(context.l10n.generalShowDetailsCta.toTextSpan(context)),
         icon: const Icon(Icons.help_outline_rounded),
         onPressed: () => ErrorDetailsSheet.show(context),
       ),

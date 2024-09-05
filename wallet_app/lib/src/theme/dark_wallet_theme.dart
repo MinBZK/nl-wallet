@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../util/extension/color_extension.dart';
 import 'base_wallet_theme.dart';
 
 class DarkWalletTheme {
@@ -69,21 +70,52 @@ class DarkWalletTheme {
 
   static final elevatedButtonTheme = ElevatedButtonThemeData(
     style: BaseWalletTheme.baseElevatedButtonTheme.style?.copyWith(
+      textStyle: WidgetStateTextStyle.resolveWith(
+        (states) {
+          return BaseWalletTheme.buttonTextStyle.copyWith(
+            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
+          );
+        },
+      ),
+      backgroundColor: WidgetStateProperty.resolveWith(
+        (states) {
+          if (states.isHoveredOrFocused) return colorScheme.primary.darken();
+          return colorScheme.primary;
+        },
+      ),
       foregroundColor: WidgetStatePropertyAll(colorScheme.onPrimary),
-      backgroundColor: WidgetStatePropertyAll(colorScheme.primary),
-      overlayColor: WidgetStatePropertyAll(colorScheme.secondary),
+      overlayColor: WidgetStateProperty.resolveWith(
+        (states) {
+          if (states.isHoveredOrFocused) return colorScheme.secondary.darken();
+          return colorScheme.secondary;
+        },
+      ),
     ),
   );
 
   static final outlinedButtonTheme = OutlinedButtonThemeData(
     style: BaseWalletTheme.outlinedButtonTheme.style?.copyWith(
+      textStyle: WidgetStateTextStyle.resolveWith(
+        (states) {
+          return BaseWalletTheme.buttonTextStyle.copyWith(
+            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
+          );
+        },
+      ),
       side: WidgetStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
     ),
   );
 
   static final textButtonTheme = TextButtonThemeData(
     style: BaseWalletTheme.textButtonTheme.style?.copyWith(
-      textStyle: WidgetStatePropertyAll(BaseWalletTheme.buttonTextStyle.copyWith(letterSpacing: 1.15)),
+      textStyle: WidgetStateTextStyle.resolveWith(
+        (states) {
+          return BaseWalletTheme.buttonTextStyle.copyWith(
+            letterSpacing: 1.15,
+            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
+          );
+        },
+      ),
       foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );
@@ -108,6 +140,8 @@ class DarkWalletTheme {
   //endregion Modified (colored) BaseThemes
 
   static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFF292D3A));
+
+  static const focusColor = Colors.white12;
 }
 
 // ignore: unused_element

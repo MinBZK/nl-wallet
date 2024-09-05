@@ -120,7 +120,8 @@ fn sentry_capture_error_impl_fn(
 /// - `critical`: This is a critical error that must be reported.
 /// - `pd`: This is a critical error that must be reported, but the contents may contain privacy sensitive data.
 /// - `defer`: Analysis of categorization is deferred to one of the fields of this variant.
-/// - `unexpected`: This is an unexpected error and should never be found by `categorize_and_report` and will cause a panic.
+/// - `unexpected`: This is an unexpected error and should never be found by `categorize_and_report` and will cause a
+///   panic.
 ///
 /// The `category` attribute for enums can be set on the `enum` variants, or on the `enum` to set a default for variants
 /// that are not annotated.
@@ -134,19 +135,26 @@ fn sentry_capture_error_impl_fn(
 /// #[derive(ErrorCategory)]
 /// #[category(expected)] // default category
 /// enum AttributeError {
-///   #[category(pd)]
-///   UnexpectedAttributes(Vec<Attribute>),
-///   #[category(critical)]
-///   IoError(io::Error),
-///   NotFound, // default applies here
+///     #[category(pd)]
+///     UnexpectedAttributes(Vec<Attribute>),
+///     #[category(critical)]
+///     IoError(io::Error),
+///     NotFound, // default applies here
 /// }
 ///
-/// assert_eq!(AttributeError::UnexpectedAttributes(vec![]).category(), Category::PersonalData);
-/// assert_eq!(AttributeError::IoError(io::Error::new(ErrorKind::PermissionDenied, "")).category(), Category::Critical);
+/// assert_eq!(
+///     AttributeError::UnexpectedAttributes(vec![]).category(),
+///     Category::PersonalData
+/// );
+/// assert_eq!(
+///     AttributeError::IoError(io::Error::new(ErrorKind::PermissionDenied, "")).category(),
+///     Category::Critical
+/// );
 /// assert_eq!(AttributeError::NotFound.category(), Category::Expected);
 /// ```
 ///
-/// For nested Error hierarchies, the `defer` category can be used to defer the decision lower in the hierarchy, for example:
+/// For nested Error hierarchies, the `defer` category can be used to defer the decision lower in the hierarchy, for
+/// example:
 ///
 /// ```
 /// # use std::io;
@@ -163,8 +171,8 @@ fn sentry_capture_error_impl_fn(
 /// # }
 /// #[derive(ErrorCategory)]
 /// enum Error {
-///   #[category(defer)]
-///   Attribute(AttributeError),
+///     #[category(defer)]
+///     Attribute(AttributeError),
 /// }
 /// ```
 ///
@@ -186,12 +194,12 @@ fn sentry_capture_error_impl_fn(
 /// # }
 /// #[derive(ErrorCategory)]
 /// enum Error {
-///   #[category(defer)]
-///   Attribute {
-///     msg: String,
-///     #[defer]
-///     cause: AttributeError,
-///    },
+///     #[category(defer)]
+///     Attribute {
+///         msg: String,
+///         #[defer]
+///         cause: AttributeError,
+///     },
 /// }
 /// ```
 ///
@@ -213,9 +221,9 @@ fn sentry_capture_error_impl_fn(
 /// #[derive(ErrorCategory)]
 /// #[category(defer)]
 /// struct Error {
-///   msg: String,
-///   #[defer]
-///   cause: AttributeError,
+///     msg: String,
+///     #[defer]
+///     cause: AttributeError,
 /// }
 /// ```
 #[proc_macro_derive(ErrorCategory, attributes(category, defer))]
@@ -344,8 +352,8 @@ fn enum_variant_category_pattern(variant: &Variant, category: &MetaList) -> Resu
     Ok(quote! { Self::#name #pattern })
 }
 
-/// Generate a [`TokenStream`] that represents a pattern match for a struct with the given `fields`, that ignores the fields.
-/// This function supports unit, named and tuple structs with 0, 1, or multiple fields.
+/// Generate a [`TokenStream`] that represents a pattern match for a struct with the given `fields`, that ignores the
+/// fields. This function supports unit, named and tuple structs with 0, 1, or multiple fields.
 /// It returns the pattern without the struct or enum variant name, e.g.: `(_, _)`, `{ .. }`, `()`, `{}`,
 fn variant_pattern(fields: &Fields) -> TokenStream {
     match fields {
@@ -366,8 +374,8 @@ fn variant_pattern(fields: &Fields) -> TokenStream {
     }
 }
 
-/// Generate a [`TokenStream`] that represents a pattern match for a struct with the given `fields`, extracting the defer field.
-/// This function supports named and tuple structs with one or more fields.
+/// Generate a [`TokenStream`] that represents a pattern match for a struct with the given `fields`, extracting the
+/// defer field. This function supports named and tuple structs with one or more fields.
 /// It returns the pattern without the struct or enum variant name, e.g. `(defer, _)`, `{ field_1: defer, .. }`
 fn category_defer_pattern(span: Span, fields: &Fields) -> Result<TokenStream> {
     let result = match fields {

@@ -10,6 +10,7 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
@@ -149,7 +150,10 @@ class CardDetailScreen extends StatelessWidget {
       slivers: [
         const SliverSizedBox(height: 24 + 8),
         SliverToBoxAdapter(
-          child: ExcludeSemantics(
+          child: Semantics(
+            image: true,
+            attributedLabel: context.l10n.cardDetailScreenCardImageWCAGLabel(cardTitle).toAttributedString(context),
+            excludeSemantics: true,
             child: FractionallySizedBox(
               widthFactor: 0.6,
               child: Hero(
@@ -185,19 +189,19 @@ class CardDetailScreen extends StatelessWidget {
     final rows = [
       InfoRow(
         icon: Icons.description_outlined,
-        title: Text(context.l10n.cardDetailScreenCardDataCta),
+        title: Text.rich(context.l10n.cardDetailScreenCardDataCta.toTextSpan(context)),
         onTap: () => _onCardDataPressed(context, card),
       ),
       InfoRow(
         icon: Icons.history_outlined,
-        title: Text(context.l10n.cardDetailScreenCardHistoryCta),
-        subtitle: Text(_createInteractionText(context, detail.mostRecentSuccessfulDisclosure)),
+        title: Text.rich(context.l10n.cardDetailScreenCardHistoryCta.toTextSpan(context)),
+        subtitle: Text.rich(_createInteractionText(context, detail.mostRecentSuccessfulDisclosure).toTextSpan(context)),
         onTap: () => _onCardHistoryPressed(context, card.docType),
       ),
       InfoRow(
         leading: OrganizationLogo(image: card.issuer.logo, size: 24),
-        title: Text(context.l10n.cardDetailScreenIssuerCta),
-        subtitle: Text(card.issuer.displayName.l10nValue(context)),
+        title: Text.rich(context.l10n.cardDetailScreenIssuerCta.toTextSpan(context)),
+        subtitle: Text.rich(card.issuer.displayName.l10nSpan(context)),
         onTap: () => OrganizationDetailScreen.showPreloaded(
           context,
           card.issuer,
@@ -208,14 +212,14 @@ class CardDetailScreen extends StatelessWidget {
       if (card.config.updatable)
         InfoRow(
           icon: Icons.replay_outlined,
-          title: Text(context.l10n.cardDetailScreenCardUpdateCta),
-          subtitle: Text(_createOperationText(context, detail.mostRecentIssuance)),
+          title: Text.rich(context.l10n.cardDetailScreenCardUpdateCta.toTextSpan(context)),
+          subtitle: Text.rich(_createOperationText(context, detail.mostRecentIssuance).toTextSpan(context)),
           onTap: () => _onCardUpdatePressed(context, card),
         ),
       if (card.config.removable)
         InfoRow(
           icon: Icons.delete_outline_rounded,
-          title: Text(context.l10n.cardDetailScreenCardDeleteCta),
+          title: Text.rich(context.l10n.cardDetailScreenCardDeleteCta.toTextSpan(context)),
           onTap: () => _onCardDeletePressed(context),
         ),
     ];
@@ -275,7 +279,7 @@ class CardDetailScreen extends StatelessWidget {
           const Icon(Icons.error_outline),
           const SizedBox(height: 16),
           TextButton(
-            child: Text(context.l10n.generalRetry),
+            child: Text.rich(context.l10n.generalRetry.toTextSpan(context)),
             onPressed: () => context.read<CardDetailBloc>().add(CardDetailLoadTriggered(state.cardId)),
           ),
         ],

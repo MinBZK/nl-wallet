@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
 
@@ -22,7 +23,7 @@ class OrganizationRow extends StatelessWidget {
     return InfoRow(
       icon: image != null ? null : Icons.apartment_outlined,
       leading: image != null ? OrganizationLogo(image: image!, size: 24) : null,
-      title: Text(context.l10n.organizationButtonLabel),
+      title: Text.rich(context.l10n.organizationButtonLabel.toTextSpan(context)),
       subtitle: Text(subtitle),
       onTap: onTap,
     );

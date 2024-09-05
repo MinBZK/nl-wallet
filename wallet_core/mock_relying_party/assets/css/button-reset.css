@@ -1,23 +1,23 @@
 button,
 nl-wallet-button::part(button) {
-    background: none;
-    color: inherit;
-    border: none;
-    font: inherit;
-    outline: inherit;
-    display: inherit;
-    padding: 0;
+  background: none;
+  color: inherit;
+  border: none;
+  font: inherit;
+  outline: inherit;
+  display: inherit;
+  padding: 0;
 }
 
 button:disabled,
 nl-wallet-button::part(button):disabled {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
 
 a {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 a:hover {
-    text-decoration: none;
+  text-decoration: none;
 }

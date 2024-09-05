@@ -43,18 +43,16 @@ void main() {
   group('widgets', () {
     testWidgets('WalletPersonalizeConfirmPinPage renders the correct title', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: WalletPersonalizeConfirmPinPage(
-            onPidAccepted: (_) {},
-            onAcceptPidFailed: (context, state) {},
-            bloc: PinBloc(Mocks.create()),
-          ),
+      await tester.pumpWidgetWithAppWrapper(
+        WalletPersonalizeConfirmPinPage(
+          onPidAccepted: (_) {},
+          onAcceptPidFailed: (context, state) {},
+          bloc: PinBloc(Mocks.create()),
         ),
       );
 
       // Setup finders
-      final titleFinder = find.text(l10n.walletPersonalizeConfirmPinPageTitle);
+      final titleFinder = find.text(l10n.walletPersonalizeConfirmPinPageTitle, findRichText: true);
 
       // Verify all expected widgets show up once
       expect(titleFinder, findsOneWidget);

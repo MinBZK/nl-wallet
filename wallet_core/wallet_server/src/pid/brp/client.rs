@@ -4,9 +4,9 @@ use serde::Serialize;
 use url::ParseError;
 
 use wallet_common::{
-    config::wallet_config::BaseUrl,
     http_error::HttpJsonErrorBody,
     reqwest::{default_reqwest_client_builder, is_problem_json_response},
+    urls::BaseUrl,
 };
 
 use crate::pid::brp::data::*;

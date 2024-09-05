@@ -13,21 +13,7 @@ pub static APPLICATION_PROBLEM_JSON: LazyLock<Mime> =
 /// If the `axum` feature is enabled, `IntoResponse` will be implemented for this
 /// type, using `application/problem+json` as `Content-Type`.
 ///
-/// * `r#type` - A short string category for the error. This is the only mandatory
-///              field. Its type is generic and encoding to and from a string is
-///              enforced by the [`Display`] and [`FromStr`] trait bounds.
-/// * `title` - An optional a short summary of the error type.
-/// * `status` - An optional HTTP status code for the error response. In the
-///              `IntoResponse` implementation this will be used as the actual status
-///              code. If this field is `None`, as 500 status code will be used.
-/// * `detail` - Optional detailed and specific information about the error.
-/// * `instance` - An optional unique URI referencing the error.
-/// * `extra` - This may contain extra key-value pairs of the JSON object, as allowed
-///             by the RFC. As this uses both the [`Map`] and [`Value`] types from
-///             the `serde_json` crate, (de)serialization of [`HttpJsonErrorBody`]
-///             instances is restricted to JSON.
-///
-/// See: https://datatracker.ietf.org/doc/html/rfc7807
+/// See <https://datatracker.ietf.org/doc/html/rfc7807>
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,13 +22,28 @@ where
     T: Display + FromStr,
     T::Err: Display,
 {
+    /// A short string category for the error. This is the only mandatory field. Its type is generic and encoding to
+    /// and from a string is enforced by the [`Display`] and [`FromStr`] trait bounds.
     #[serde_as(as = "DisplayFromStr")]
     pub r#type: T,
+
+    /// A short summary of the error type.
     pub title: Option<String>,
+
+    /// An HTTP status code for the error response. In the `IntoResponse` implementation this will be used as
+    /// the actual status code. If this field is `None`, as 500 status code will be used.
     #[serde_as(as = "Option<TryFromInto<u16>>")]
     pub status: Option<StatusCode>,
+
+    /// Detailed and specific information about the error.
     pub detail: Option<String>,
+
+    /// A unique URI referencing the error.
     pub instance: Option<String>,
+
+    /// This may contain extra key-value pairs of the JSON object, as allowed by the RFC. As this uses both the [`Map`]
+    /// and [`Value`] types from the `serde_json` crate, (de)serialization of [`HttpJsonErrorBody`] instances is
+    /// restricted to JSON.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }

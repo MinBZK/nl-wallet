@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/biometric/biometric_repository.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
@@ -10,8 +12,13 @@ import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
+import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/lock_wallet_usecase.dart';
@@ -51,6 +58,7 @@ import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.d
 import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
+import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
@@ -59,6 +67,13 @@ import 'package:wallet_core/core.dart';
 import 'wallet_mocks.mocks.dart';
 
 export 'wallet_mocks.mocks.dart';
+
+/// Definition of mocks used by our tests. When specifying new mocks makes sure to run:
+///
+/// dart run build_runner build --delete-conflicting-outputs
+/// dart format . --line-length 120
+///
+/// to generate and format the new mocks.
 
 /// Mock framework
 @GenerateNiceMocks([MockSpec<NavigatorState>()])
@@ -75,10 +90,14 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<WalletEventRepository>()])
 @GenerateNiceMocks([MockSpec<ConfigurationRepository>()])
 @GenerateNiceMocks([MockSpec<LanguageRepository>()])
+@GenerateNiceMocks([MockSpec<BiometricRepository>()])
 
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
 @GenerateNiceMocks([MockSpec<NavigationService>()])
+@GenerateNiceMocks([MockSpec<LocalAuthentication>()])
+@GenerateNiceMocks([MockSpec<ActiveLocaleProvider>()])
+@GenerateNiceMocks([MockSpec<BiometricUnlockManager>()])
 
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
@@ -121,6 +140,10 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<DecodeQrUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckHasPermissionUseCase>()])
 @GenerateNiceMocks([MockSpec<ChangePinUseCase>()])
+@GenerateNiceMocks([MockSpec<GetAvailableBiometricsUseCase>()])
+@GenerateNiceMocks([MockSpec<SetBiometricsUseCase>()])
+@GenerateNiceMocks([MockSpec<GetSupportedBiometricsUseCase>()])
+@GenerateNiceMocks([MockSpec<IsBiometricLoginEnabledUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])
@@ -148,6 +171,9 @@ class Mocks {
     // Services
     sl.registerFactory<AppLifecycleService>(AppLifecycleService.new);
     sl.registerFactory<TypedWalletCore>(getTypedWalletCoreMock);
+    sl.registerFactory<LocalAuthentication>(MockLocalAuthentication.new);
+    sl.registerFactory<ActiveLocaleProvider>(MockActiveLocaleProvider.new);
+    sl.registerFactory<BiometricUnlockManager>(MockBiometricUnlockManager.new);
 
     // Use cases
     sl.registerFactory<DecodeUriUseCase>(MockDecodeUriUseCase.new);
@@ -195,6 +221,10 @@ class Mocks {
     sl.registerFactory<DecodeQrUseCase>(MockDecodeQrUseCase.new);
     sl.registerFactory<CheckHasPermissionUseCase>(MockCheckHasPermissionUseCase.new);
     sl.registerFactory<ChangePinUseCase>(MockChangePinUseCase.new);
+    sl.registerFactory<GetAvailableBiometricsUseCase>(MockGetAvailableBiometricsUseCase.new);
+    sl.registerFactory<SetBiometricsUseCase>(MockSetBiometricsUseCase.new);
+    sl.registerFactory<GetSupportedBiometricsUseCase>(MockGetSupportedBiometricsUseCase.new);
+    sl.registerFactory<IsBiometricLoginEnabledUseCase>(MockIsBiometricLoginEnabledUseCase.new);
 
     // Repositories
     sl.registerFactory<PidRepository>(getMockPidRepository);
@@ -202,6 +232,7 @@ class Mocks {
     sl.registerFactory<WalletRepository>(MockWalletRepository.new);
     sl.registerFactory<WalletCardRepository>(MockWalletCardRepository.new);
     sl.registerFactory<WalletEventRepository>(MockWalletEventRepository.new);
+    sl.registerFactory<BiometricRepository>(MockBiometricRepository.new);
     sl.registerFactory<ConfigurationRepository>(() {
       final repository = MockConfigurationRepository();
       when(repository.appConfiguration).thenAnswer(

@@ -15,9 +15,31 @@ pub struct RegistrationData {
     pub wallet_certificate: WalletCertificate,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct InstructionData {
     pub instruction_sequence_number: u64,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, strum::Display)]
+#[serde(rename_all_fields = "snake_case")]
+pub enum UnlockMethod {
+    #[default]
+    PinCode,
+    PinCodeAndBiometrics,
+}
+
+impl UnlockMethod {
+    pub fn has_biometrics(&self) -> bool {
+        match self {
+            Self::PinCode => false,
+            Self::PinCodeAndBiometrics => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct UnlockData {
+    pub method: UnlockMethod,
 }
 
 impl KeyedData for RegistrationData {
@@ -26,4 +48,8 @@ impl KeyedData for RegistrationData {
 
 impl KeyedData for InstructionData {
     const KEY: &'static str = "instructions";
+}
+
+impl KeyedData for UnlockData {
+    const KEY: &'static str = "unlock";
 }

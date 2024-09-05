@@ -9,6 +9,7 @@ import '../../domain/model/policy/policy.dart';
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../util/mapper/context_mapper.dart';
 import '../check_attributes/check_attributes_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
@@ -109,13 +110,13 @@ class LoginDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      organization.displayName.l10nValue(context),
+                    Text.rich(
+                      organization.displayName.l10nSpan(context),
                       textAlign: TextAlign.start,
                       style: context.textTheme.labelLarge,
                     ),
-                    Text(
-                      organization.category?.l10nValue(context) ?? '',
+                    Text.rich(
+                      organization.category?.l10nSpan(context) ?? ''.toTextSpan(context),
                       textAlign: TextAlign.start,
                       style: context.textTheme.bodySmall,
                     ),
@@ -155,12 +156,12 @@ class LoginDetailScreen extends StatelessWidget {
           child: Icon(Icons.credit_card_outlined),
         ),
         const SizedBox(height: 16),
-        Text(
-          context.l10n.loginDetailScreenCredentialsTitle,
+        Text.rich(
+          context.l10n.loginDetailScreenCredentialsTitle.toTextSpan(context),
           style: context.textTheme.headlineMedium,
         ),
-        Text(
-          context.l10n.loginDetailScreenCredentialsBody,
+        Text.rich(
+          context.l10n.loginDetailScreenCredentialsBody.toTextSpan(context),
           style: context.textTheme.bodyLarge,
         ),
         const SizedBox(height: 24),
@@ -192,13 +193,13 @@ class LoginDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  context.l10n.loginDetailScreenAgreementTitle,
+                Text.rich(
+                  context.l10n.loginDetailScreenAgreementTitle.toTextSpan(context),
                   style: context.textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  context.read<ContextMapper<Policy, String>>().map(context, policy),
+                Text.rich(
+                  context.read<ContextMapper<Policy, String>>().map(context, policy).toTextSpan(context),
                   style: context.textTheme.bodyLarge,
                 ),
               ],
@@ -208,7 +209,7 @@ class LoginDetailScreen extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: LinkButton(
-              text: Text(context.l10n.loginDetailScreenAgreementCta),
+              text: Text.rich(context.l10n.loginDetailScreenAgreementCta.toTextSpan(context)),
               onPressed: () => PolicyScreen.show(context, policy),
             ),
           ),

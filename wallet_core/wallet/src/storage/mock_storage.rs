@@ -95,12 +95,8 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         self.check_query_error()?;
-
-        if !self.data.contains_key(D::KEY) {
-            panic!("Registration not present");
-        }
 
         self.data.insert(D::KEY, serde_json::to_string(&data).unwrap());
 
@@ -111,12 +107,10 @@ impl Storage for MockStorage {
         self.check_query_error()?;
 
         for mdoc_copies in mdocs {
-            if let Some(first_mdoc) = mdoc_copies.cred_copies.first() {
-                self.mdocs
-                    .entry(first_mdoc.doc_type.clone())
-                    .or_default()
-                    .push(mdoc_copies);
-            }
+            self.mdocs
+                .entry(mdoc_copies.first().doc_type.clone())
+                .or_default()
+                .push(mdoc_copies);
         }
 
         Ok(())
@@ -141,11 +135,10 @@ impl Storage for MockStorage {
             .mdocs
             .values()
             .flatten()
-            .flat_map(|mdoc_copies| mdoc_copies.cred_copies.first())
-            .map(|mdoc| StoredMdocCopy {
+            .map(|mdoc_copies| StoredMdocCopy {
                 mdoc_id: Uuid::new_v4(),
                 mdoc_copy_id: Uuid::new_v4(),
-                mdoc: mdoc.clone(),
+                mdoc: mdoc_copies.first().clone(),
             })
             .collect();
 
@@ -271,7 +264,7 @@ mod tests {
             b: "bar".to_string(),
         };
 
-        storage.update_data(&updated).await.unwrap();
+        storage.upsert_data(&updated).await.unwrap();
 
         let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
         assert_eq!(updated, fetched);

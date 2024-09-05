@@ -1,4 +1,5 @@
 pub mod database;
+#[rustfmt::skip]
 pub mod entity;
 pub mod repositories;
 pub mod transaction;

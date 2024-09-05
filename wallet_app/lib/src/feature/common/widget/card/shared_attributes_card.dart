@@ -5,6 +5,8 @@ import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
+import '../button/button_content.dart';
 import '../svg_or_image.dart';
 import 'card_holograph.dart';
 
@@ -31,23 +33,27 @@ class SharedAttributesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      child: InkWell(
-        borderRadius: _kBorderRadius,
-        onTap: onTap,
-        child: DecoratedBox(
-          decoration: _createBorderDecoration(context),
-          child: Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: _kHeaderStripHeight,
-                child: _buildHeaderStrip(),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                child: _buildCardContent(context),
-              ),
-            ],
+      child: DecoratedBox(
+        decoration: _createBorderDecoration(context),
+        child: Material(
+          color: context.colorScheme.surface,
+          borderRadius: _kBorderRadius,
+          child: InkWell(
+            borderRadius: _kBorderRadius,
+            onTap: onTap,
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: _kHeaderStripHeight,
+                  child: _buildHeaderStrip(),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  child: _buildCardContent(context),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -58,11 +64,13 @@ class SharedAttributesCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          context.l10n.sharedAttributesCardTitle(
-            card.front.title.l10nValue(context),
-            attributes.length,
-          ),
+        Text.rich(
+          context.l10n
+              .sharedAttributesCardTitle(
+                card.front.title.l10nValue(context),
+                attributes.length,
+              )
+              .toTextSpan(context),
           style: context.textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
@@ -75,23 +83,20 @@ class SharedAttributesCard extends StatelessWidget {
   }
 
   /// Not using linkButton because that has a minHeight which conflicts with the design
-  /// FIXME: Can likely be refactored to use [ButtonContent] after merging PVW-2595.
   Widget _buildCtaText(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          context.l10n.sharedAttributesCardCta,
-          style:
-              context.theme.textButtonTheme.style?.textStyle?.resolve({})?.copyWith(color: context.colorScheme.primary),
-        ),
-        const SizedBox(width: 8),
-        Icon(
-          Icons.arrow_forward_outlined,
-          color: context.colorScheme.primary,
-          size: 16,
-        ),
-      ],
+    return ButtonContent(
+      text: Text.rich(
+        context.l10n.sharedAttributesCardCta.toTextSpan(context),
+        style:
+            context.theme.textButtonTheme.style?.textStyle?.resolve({})?.copyWith(color: context.colorScheme.primary),
+      ),
+      icon: Icon(
+        Icons.arrow_forward_outlined,
+        color: context.colorScheme.primary,
+        size: 16,
+      ),
+      iconPosition: IconPosition.end,
+      mainAxisAlignment: MainAxisAlignment.start,
     );
   }
 
@@ -133,8 +138,8 @@ class SharedAttributesCard extends StatelessWidget {
   List<Widget> _buildAttributeList(BuildContext context) {
     return attributes
         .map(
-          (attribute) => Text(
-            attribute.label.l10nValue(context),
+          (attribute) => Text.rich(
+            attribute.label.l10nSpan(context),
             style: context.textTheme.bodyLarge,
           ),
         )
@@ -144,7 +149,6 @@ class SharedAttributesCard extends StatelessWidget {
   BoxDecoration _createBorderDecoration(BuildContext context) {
     return BoxDecoration(
       borderRadius: _kBorderRadius,
-      color: context.colorScheme.surface,
       border: Border.all(
         color: context.colorScheme.outlineVariant,
         width: 1,

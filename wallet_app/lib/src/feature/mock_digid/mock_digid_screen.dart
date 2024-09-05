@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/color_extension.dart';
 import '../../wallet_constants.dart';
 import 'bloc/mock_digid_bloc.dart';
 import 'page/digid_confirm_app_page.dart';
@@ -83,6 +84,7 @@ class MockDigidScreen extends StatelessWidget {
     return ElevatedButtonThemeData(
       style: context.theme.elevatedButtonTheme.style?.copyWith(
         backgroundColor: const WidgetStatePropertyAll(_kDigidOrange),
+        overlayColor: WidgetStatePropertyAll(_kDigidOrange.darken()),
       ),
     );
   }

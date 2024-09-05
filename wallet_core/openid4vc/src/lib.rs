@@ -18,6 +18,7 @@ pub mod issuer;
 pub mod disclosure_session;
 pub mod openid4vp;
 pub mod presentation_exchange;
+pub mod return_url;
 pub mod verifier;
 
 // Errors used throughout the crate.
@@ -26,7 +27,6 @@ pub use errors::*;
 
 pub mod metadata;
 pub mod oidc;
-pub mod return_url;
 pub mod server_state;
 
 #[cfg(any(test, feature = "mock"))]
@@ -35,7 +35,7 @@ pub mod mock;
 #[cfg(test)]
 mod test;
 
-pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
+pub const NL_WALLET_CLIENT_ID: &str = "https://wallet.edi.rijksoverheid.nl";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

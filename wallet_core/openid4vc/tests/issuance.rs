@@ -29,7 +29,7 @@ use openid4vc::{
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
-use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
+use wallet_common::{nonempty::NonEmpty, urls::BaseUrl};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -73,7 +73,7 @@ fn setup(
         attr_service,
         SingleKeyRing(issuance_keypair),
         &server_url,
-        vec!["https://example.com".to_string()],
+        vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
     );
 
     (issuer, ca.into(), server_url.join_base_url("issuance/"))
@@ -116,9 +116,7 @@ async fn accept_issuance(
         .zip(previews)
         .for_each(|(copies, preview)| match copies {
             IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs
-                .cred_copies
                 .first()
-                .unwrap()
                 .compare_unsigned(match &preview {
                     CredentialPreview::MsoMdoc {
                         unsigned_mdoc,
@@ -128,9 +126,7 @@ async fn accept_issuance(
                 })
                 .unwrap(),
             IssuedCredentialCopies::Jwt(jwts) => jwts
-                .cred_copies
                 .first()
-                .unwrap()
                 .jwt_claims()
                 .contents
                 .compare(match &preview {
@@ -298,10 +294,8 @@ impl MockOpenidMessageClient {
                 },
             };
             credential_request.proof = Some(invalidated_proof);
-            credential_request
-        } else {
-            credential_request
         }
+        credential_request
     }
 
     fn credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
@@ -311,11 +305,8 @@ impl MockOpenidMessageClient {
             let mut requests = credential_requests.credential_requests.into_inner();
             requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
-
-            credential_requests
-        } else {
-            credential_requests
         }
+        credential_requests
     }
 }
 

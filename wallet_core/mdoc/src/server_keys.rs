@@ -174,9 +174,9 @@ mod generate {
 
     impl CertificateUsage {
         fn to_custom_ext(&self) -> CustomExtension {
-            // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but [`CertificateParams`]
-            // only supports a whitelist of key usages that it is aware of. So we DER-serialize it manually and add it to
-            // the custom extensions.
+            // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but
+            // [`CertificateParams`] only supports a whitelist of key usages that it is aware of. So we
+            // DER-serialize it manually and add it to the custom extensions.
             // We unwrap in these functions because they have fixed input for which they always succeed.
             let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
             seq.add(ObjectIdentifier::from_bytes(self.to_eku()).unwrap()).unwrap();

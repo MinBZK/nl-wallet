@@ -185,6 +185,8 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
         rm ../wallet_core/mock_relying_party/assets/*.iife.js || true
     fi
 
+    VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
+    export VITE_HELP_BASE_URL
     npm ci && npm run build
     WALLET_WEB_SHA256=$(cat dist/nl-wallet-web.iife.js | openssl sha256 -binary | ${BASE64})
     export WALLET_WEB_SHA256

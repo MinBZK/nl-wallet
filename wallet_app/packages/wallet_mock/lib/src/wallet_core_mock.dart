@@ -17,6 +17,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   final PinManager _pinManager;
   final Wallet _wallet;
   final WalletEventLog _eventLog;
+  bool _isBiometricsEnabled = false;
 
   WalletCoreMock(this._pinManager, this._wallet, this._eventLog);
 
@@ -247,6 +248,15 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   Future<bool> hasActivePidIssuanceSession({hint}) async => false;
 
   @override
+  Future<bool> isBiometricUnlockEnabled({hint}) async => _isBiometricsEnabled;
+
+  @override
+  Future<void> unlockWalletWithBiometrics({hint}) async => _wallet.unlock();
+
+  @override
+  Future<void> setBiometricUnlock({required bool enable, hint}) async => _isBiometricsEnabled = enable;
+
+  @override
   Future<WalletInstructionResult> changePin({required String oldPin, required String newPin, hint}) async {
     final result = _pinManager.checkPin(oldPin);
     final bool pinMatches = result is WalletInstructionResult_Ok;
@@ -319,6 +329,12 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kHasActiveDisclosureSessionConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kHasActivePidIssuanceSessionConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kIsBiometricUnlockEnabledConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kUnlockWalletWithBiometricsConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kSetBiometricUnlockConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kChangePinConstMeta => throw UnimplementedError();
 

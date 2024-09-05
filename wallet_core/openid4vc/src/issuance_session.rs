@@ -24,7 +24,7 @@ use nl_wallet_mdoc::{
     },
     ATTR_RANDOM_LENGTH,
 };
-use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError};
+use wallet_common::{generator::TimeGenerator, jwt::JwtError, urls::BaseUrl};
 
 use crate::{
     credential::{
@@ -138,8 +138,8 @@ pub enum IssuedCredentialCopies {
 impl IssuedCredentialCopies {
     pub fn len(&self) -> usize {
         match self {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.cred_copies.len(),
-            IssuedCredentialCopies::Jwt(jwts) => jwts.cred_copies.len(),
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.as_ref().len(),
+            IssuedCredentialCopies::Jwt(jwts) => jwts.as_ref().len(),
         }
     }
 
@@ -203,7 +203,8 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
                         }),
                     })
                     .collect::<Result<Vec<_>, _>>()?
-                    .into();
+                    .try_into()
+                    .unwrap(); // we checked above that we always have at least one credential
                 IssuedCredentialCopies::MsoMdoc(mdoc_copies)
             }
             IssuedCredential::Jwt(_) => {
@@ -217,7 +218,8 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
                         }),
                     })
                     .collect::<Result<Vec<_>, _>>()?
-                    .into();
+                    .try_into()
+                    .unwrap(); // we checked above that we always have at least one credential
                 IssuedCredentialCopies::Jwt(jwt_copies)
             }
         };
@@ -542,9 +544,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
-        // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple credentials, but the protocol
-        // has no support (yet) for issuance of multiple copies of multiple credentials.
-        // We implement this below by simply flattening the relevant nested iterators when communicating with the issuer.
+        // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
+        // has no support (yet) for issuance of multiple copies of multiple attestations.
+        // We implement this below by simply flattening the relevant nested iterators when communicating with the
+        // issuer.
 
         let types = self
             .session_state
@@ -571,14 +574,14 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             keys_and_proofs
                 .into_iter()
                 .zip(types)
-                .map(|((key, response), typ)| async move {
+                .map(|((key, response), credential_type)| async move {
                     let pubkey = key
                         .verifying_key()
                         .await
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let id = key.identifier().to_string();
                     let cred_request = CredentialRequest {
-                        credential_type: typ,
+                        credential_type,
                         proof: Some(response),
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
@@ -910,7 +913,8 @@ mod tests {
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        credential_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(), // return two previews
+                        // return two previews
+                        credential_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(),
                     },
                     Some("dpop_nonce".to_string()),
                 ))

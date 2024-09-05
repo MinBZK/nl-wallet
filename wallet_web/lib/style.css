@@ -150,17 +150,21 @@
 /* Links */
 .modal .link {
   display: flex;
-  align-items: center;
+  width: fit-content;
   gap: 0.75rem;
 
+  margin: 0.25rem 0;
   color: var(--primary-color);
+  letter-spacing: 0.0625rem;
 
   cursor: pointer;
 }
 
 .modal .button.link {
+  width: 100%;
   background-color: white;
   border: 1px solid white;
+  margin: 0;
 }
 
 .modal .link:hover {
@@ -253,21 +257,21 @@
 
 .modal.confirm-stop main,
 .modal.error main,
-.modal.success.cross_device main {
+.modal.success.same_device main {
   text-align: left;
   gap: 1.5rem;
 }
 
-.modal.in-progress main svg,
-.modal.success.same_device main svg {
+.modal.in-progress svg.status,
+.modal.success.same_device svg.status {
   color: var(--primary-color);
 }
 
-.modal.error main svg {
+.modal.error svg.status {
   color: var(--error-color);
 }
 
-.modal.success main svg {
+.modal.success svg.status {
   color: var(--success-color);
 }
 
@@ -315,6 +319,7 @@
   max-width: 17.5rem; /* 280px */
   width: 100%;
 
+  image-rendering: crisp-edges;
   image-rendering: pixelated;
 }
 

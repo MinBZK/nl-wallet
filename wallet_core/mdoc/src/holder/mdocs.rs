@@ -3,6 +3,7 @@ use std::result::Result;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use itertools::Itertools;
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
@@ -22,10 +23,11 @@ use crate::{
 };
 
 /// Stores multiple copies of attestations that have identical attributes.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
-pub struct CredentialCopies<T> {
-    pub cred_copies: Vec<T>,
-}
+#[nutype(
+    validate(predicate = |copies| !copies.is_empty()),
+    derive(Debug, Clone, AsRef, TryFrom, Serialize, Deserialize, PartialEq)
+)]
+pub struct CredentialCopies<T>(Vec<T>);
 
 pub type MdocCopies = CredentialCopies<Mdoc>;
 
@@ -33,12 +35,21 @@ impl<T> IntoIterator for CredentialCopies<T> {
     type Item = T;
     type IntoIter = std::vec::IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
-        self.cred_copies.into_iter()
+        self.into_inner().into_iter()
     }
 }
-impl<T> From<Vec<T>> for CredentialCopies<T> {
-    fn from(cred_copies: Vec<T>) -> Self {
-        Self { cred_copies }
+
+impl<T> CredentialCopies<T> {
+    pub fn first(&self) -> &T {
+        self.as_ref().first().unwrap()
+    }
+
+    pub fn len(&self) -> usize {
+        self.as_ref().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.as_ref().is_empty()
     }
 }
 

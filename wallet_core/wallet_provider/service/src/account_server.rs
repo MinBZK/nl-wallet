@@ -242,10 +242,6 @@ impl AccountServer {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
-        debug!("Starting database transaction");
-
-        let tx = repositories.begin_transaction().await?;
-
         debug!("Verifying certificate and retrieving wallet user");
 
         let user = self
@@ -264,7 +260,6 @@ impl AccountServer {
         );
 
         if parsed.sequence_number <= user.instruction_sequence_number {
-            tx.commit().await?;
             return Err(ChallengeError::SequenceNumberValidation);
         }
 
@@ -275,6 +270,9 @@ impl AccountServer {
             expiration_date_time: time_generator.generate() + self.instruction_challenge_timeout,
         };
 
+        debug!("Starting database transaction");
+
+        let tx = repositories.begin_transaction().await?;
         repositories
             .update_instruction_challenge_and_sequence_number(
                 &tx,
@@ -433,11 +431,10 @@ impl AccountServer {
 
         let encrypted_pin_pubkey = Encrypter::encrypt(hsm, &self.encryption_key_identifier, pin_pubkey).await?;
 
-        let tx = repositories.begin_transaction().await?;
-
         debug!("Creating new wallet user");
 
         let uuid = uuid_generator.generate();
+        let tx = repositories.begin_transaction().await?;
         repositories
             .create_wallet_user(
                 &tx,
@@ -449,14 +446,13 @@ impl AccountServer {
                 },
             )
             .await?;
+        tx.commit().await?;
 
         debug!("Generating new wallet certificate for user {}", uuid);
 
         let cert_result = self
             .new_wallet_certificate(certificate_signing_key, wallet_id, hw_pubkey, pin_pubkey, hsm)
             .await?;
-
-        tx.commit().await?;
 
         Ok(cert_result)
     }

@@ -9,7 +9,7 @@ use nl_wallet_mdoc::{
     },
     IssuerSigned,
 };
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, nonempty::NonEmpty};
+use wallet_common::{jwt::Jwt, nonempty::NonEmpty, urls::BaseUrl};
 
 use crate::{
     issuance_session::IssuanceSessionError,

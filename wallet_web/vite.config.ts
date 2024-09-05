@@ -16,6 +16,12 @@ const parseBool = (str: String): boolean => {
 const customElement: boolean = parseBool(process.env.CUSTOM_ELEMENT || "true")
 const emptyOutDir: boolean = parseBool(process.env.EMPTY_OUTPUT_DIR || "true")
 
+if (!process.env.VITE_HELP_BASE_URL) {
+  throw new Error("VITE_HELP_BASE_URL is required")
+} else {
+  new URL(process.env.VITE_HELP_BASE_URL) // throws if it's not a valid URL
+}
+
 export default defineConfig({
   server: {
     port: 5175,

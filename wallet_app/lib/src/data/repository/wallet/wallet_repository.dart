@@ -22,6 +22,14 @@ abstract class WalletRepository {
   /// Unlock the wallet, also updates the [isLockedStream] when successful
   Future<WalletInstructionResult> unlockWallet(String pin);
 
+  /// Unlock the wallet **without** pin, requires biometric unlock to be enabled.
+  /// Also updates the [isLockedStream] when successful.
+  ///
+  /// WARNING: Currently `wallet_app` is responsible for verifying biometrics, meaning this method should
+  /// WARNING: only be called after verifying the user's biometrics. Instead of calling this method directly
+  /// WARNING: it is highly recommended to use [UnlockWalletWithBiometricsUseCase] to reach this method.
+  Future<void> unlockWalletWithBiometrics();
+
   /// Check if the provided pin matches the one that is registered
   Future<WalletInstructionResult> checkPin(String pin);
 

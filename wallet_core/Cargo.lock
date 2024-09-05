@@ -816,7 +816,7 @@ dependencies = [
 
 [[package]]
 name = "configuration_server"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "axum",
  "axum-server",
@@ -1295,7 +1295,7 @@ checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "entity"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "chrono",
  "sea-orm",
@@ -1329,7 +1329,7 @@ dependencies = [
 
 [[package]]
 name = "error_category"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "error_category_derive",
  "sentry",
@@ -1339,7 +1339,7 @@ dependencies = [
 
 [[package]]
 name = "error_category_derive"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "error_category",
  "proc-macro2",
@@ -1430,7 +1430,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "android_logger",
  "anyhow",
@@ -1455,7 +1455,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api_macros"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "quote",
  "syn 2.0.68",
@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "gba_hc_converter"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "assert-json-diff",
  "axum",
@@ -2372,7 +2372,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "migration"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -2422,7 +2422,7 @@ dependencies = [
 
 [[package]]
 name = "mock_relying_party"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "accept-language",
  "anyhow",
@@ -2482,7 +2482,7 @@ dependencies = [
 
 [[package]]
 name = "nl_wallet_mdoc"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -2621,18 +2621,18 @@ dependencies = [
 
 [[package]]
 name = "nutype"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "801187d4ee2f03db47daf0f5fc335a7b1b94f60f47942293060b762641b83f2e"
+checksum = "d8789358e2d6cdffb0cb170c7802ee7548beb8067ed643f3122fa36c335f3c64"
 dependencies = [
  "nutype_macros",
 ]
 
 [[package]]
 name = "nutype_macros"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e96467936d36285839340d692fcd974106d9bc203e36f55a477e0243737a8af7"
+checksum = "93a3e222ba1f06a03552910fe89a232a1661dcf8ad4c837531fb199828d0916b"
 dependencies = [
  "cfg-if",
  "kinded",
@@ -2675,7 +2675,7 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "openid4vc"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "assert_matches",
  "axum",
@@ -2715,6 +2715,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "tracing-test",
  "trait-variant",
  "url",
  "wallet_common",
@@ -2969,7 +2970,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "platform_support"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "error_category",
  "jni",
@@ -4607,7 +4608,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "tests_integration"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "assert_matches",
  "configuration_server",
@@ -4630,6 +4631,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_yaml",
  "serial_test",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -4997,6 +4999,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-test"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "557b891436fe0d5e0e363427fc7f217abf9ccd510d5136549847bdcbcd011d68"
+dependencies = [
+ "tracing-core",
+ "tracing-subscriber",
+ "tracing-test-macro",
+]
+
+[[package]]
+name = "tracing-test-macro"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04659ddb06c87d233c566112c1c9c5b9e98256d9af50ec3bc9c8327f873a7568"
+dependencies = [
+ "quote",
+ "syn 2.0.68",
+]
+
+[[package]]
 name = "trait-variant"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5341,7 +5364,7 @@ dependencies = [
 
 [[package]]
 name = "wallet"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
@@ -5371,6 +5394,7 @@ dependencies = [
  "ring 0.17.8",
  "rstest",
  "sea-orm",
+ "sea-query",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -5390,7 +5414,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_ca"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -5411,7 +5435,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_common"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
@@ -5447,7 +5471,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "axum",
  "chrono",
@@ -5476,7 +5500,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_database_settings"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "config",
  "serde",
@@ -5485,7 +5509,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_domain"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "chrono",
  "dashmap",
@@ -5502,7 +5526,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_migrations"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -5512,7 +5536,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_persistence"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "chrono",
  "ctor",
@@ -5532,7 +5556,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_service"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "assert_matches",
  "chrono",
@@ -5563,7 +5587,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5607,7 +5631,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server_migration"
-version = "0.1.0"
+version = "0.2.1-dev"
 dependencies = [
  "sea-orm-migration",
  "tokio",

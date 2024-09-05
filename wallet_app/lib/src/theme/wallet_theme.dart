@@ -31,6 +31,7 @@ class WalletTheme {
     textButtonTheme: LightWalletTheme.textButtonTheme,
     textTheme: LightWalletTheme.textTheme,
     dialogTheme: LightWalletTheme.dialogTheme,
+    focusColor: LightWalletTheme.focusColor,
   );
 
   static ThemeData dark = _baseTheme.copyWith(
@@ -51,5 +52,6 @@ class WalletTheme {
     textButtonTheme: DarkWalletTheme.textButtonTheme,
     textTheme: DarkWalletTheme.textTheme,
     dialogTheme: DarkWalletTheme.dialogTheme,
+    focusColor: DarkWalletTheme.focusColor,
   );
 }

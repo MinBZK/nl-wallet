@@ -7,7 +7,7 @@ class SettingsScreen : MobileActions() {
     private val screen = find.byValueKey("settingsScreen")
 
     private val changePinButton = find.byText(l10n.getString("settingsScreenChangePinCta"))
-    private val setupBiometricsButton = find.byText(l10n.getString("settingsScreenSetupBiometricsCta"))
+    private val setupBiometricsButton = find.byText("Open met gezichts-scan of vingerafdruk")
     private val changeLanguageButton = find.byText(l10n.getString("settingsScreenChangeLanguageCta"))
     private val clearDataButton = find.byText(l10n.getString("settingsScreenClearDataCta"))
 

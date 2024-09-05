@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/button_content.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/utility/check_permission_on_resume.dart';
@@ -49,7 +50,7 @@ class QrNoPermission extends StatelessWidget {
                   }
                 },
                 iconPosition: IconPosition.end,
-                text: Text(context.l10n.qrScanTabGrantPermissionCta),
+                text: Text.rich(context.l10n.qrScanTabGrantPermissionCta.toTextSpan(context)),
               ),
             ),
           ),

@@ -3,7 +3,7 @@ use reqwest::{Client, Response};
 
 use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests};
 use openid4vc::{return_url::ReturnUrlTemplate, server_state::SessionToken};
-use wallet_common::{config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody};
+use wallet_common::{http_error::HttpJsonErrorBody, urls::BaseUrl};
 use wallet_server::verifier::{DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse};
 
 pub struct WalletServerClient {

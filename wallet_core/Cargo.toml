@@ -29,7 +29,7 @@ exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.1-dev"
 edition = "2021"
 rust-version = "1.80"
 
@@ -84,7 +84,7 @@ jsonwebtoken = { version = "9.3.0", default-features = false }
 libsqlite3-sys = { version = "0.27.0", default-features = false }
 mime = "0.3.17"
 mockall = "0.12.1"
-nutype = "0.4.0"
+nutype = "0.5.0"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 parking_lot = "0.12.1"
@@ -104,6 +104,7 @@ rstest = "0.21.0"
 rustls-webpki = "0.101.2"
 sea-orm = { version = "0.12.3", default-features = false }
 sea-orm-migration = { version = "0.12.3", default-features = false }
+sea-query = { version = "0.30.7", default-features = false }
 sec1 = "0.7.3"
 sentry = { version = "0.34", default-features = false }
 sentry-panic = "0.34"
@@ -128,6 +129,7 @@ tower = { version = "0.4.0", default-features = false }
 tower-http = { version = "0.5.2", default-features = false }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false }
+tracing-test = "0.2.5"
 trait-variant = "0.1.1"
 trybuild = "1.0.96"
 uniffi = { version = "0.28.0", default-features = false }

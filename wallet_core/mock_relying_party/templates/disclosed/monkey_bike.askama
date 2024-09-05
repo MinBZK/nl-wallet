@@ -2,7 +2,8 @@
 
 {% call header::header(base.trans.monkeybike_title, username) %}
 <main>
-    {% call notification::notification(format!("{{ base.trans.welcome }} {username}"), "", "") %}
+    {% let welcome = base.trans.welcome %}
+    {% call notification::notification(format!("{welcome} {username}"), "", "") %}
     {% call search::search(base.trans.search_product) %}
     {% call products::products(6) %}
 </main>

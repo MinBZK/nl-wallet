@@ -1,12 +1,21 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:fimber/fimber.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../domain/usecase/biometrics/biometric_authentication_result.dart';
+import '../../domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
+import '../../domain/usecase/biometrics/unlock_wallet_with_biometrics_usecase.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../common/dialog/locked_out_dialog.dart';
 import '../common/widget/button/icon/info_icon_button.dart';
+import '../common/widget/utility/auto_biometric_unlock_trigger.dart';
 import '../common/widget/wallet_app_bar.dart';
 import 'pin_page.dart';
 
 class PinScreen extends StatelessWidget {
-  final OnPinValidatedCallback onUnlock;
+  final VoidCallback onUnlock;
 
   const PinScreen({required this.onUnlock, super.key});
 
@@ -18,11 +27,41 @@ class PinScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         actions: [InfoIconButton()],
       ),
-      body: PinPage(
-        onPinValidated: onUnlock,
-        keyboardColor: context.colorScheme.primary,
-        showTopDivider: true,
+      body: FutureBuilder<bool>(
+        future: context.read<IsBiometricLoginEnabledUseCase>().invoke(),
+        initialData: false,
+        builder: (context, snapshot) {
+          final showBiometricUnlock = snapshot.data ?? false;
+          return AutoBiometricUnlockTrigger(
+            onTriggerBiometricUnlock: _performBiometricUnlock,
+            child: PinPage(
+              onPinValidated: (_) => onUnlock,
+              keyboardColor: context.colorScheme.primary,
+              showTopDivider: true,
+              onBiometricUnlockRequested: showBiometricUnlock ? () => _performBiometricUnlock(context) : null,
+            ),
+          );
+        },
       ),
     );
+  }
+
+  Future<void> _performBiometricUnlock(BuildContext context) async {
+    try {
+      final useCase = context.read<UnlockWalletWithBiometricsUseCase>();
+      final biometricAuthenticationResult = await useCase.invoke();
+      switch (biometricAuthenticationResult) {
+        case BiometricAuthenticationResult.success:
+          onUnlock();
+        case BiometricAuthenticationResult.lockedOut:
+          // ignore: use_build_context_synchronously
+          unawaited(LockedOutDialog.show(context));
+        case BiometricAuthenticationResult.failure:
+        case BiometricAuthenticationResult.setupRequired:
+          Fimber.d('Authentication failed $biometricAuthenticationResult');
+      }
+    } catch (ex) {
+      Fimber.e('Failed to unlock wallet with biometrics', ex: ex);
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../widget/button/primary_button.dart';
 import '../widget/button/tertiary_button.dart';
 import '../widget/text/body_text.dart';
@@ -89,34 +90,34 @@ class TerminalPage extends StatelessWidget {
       children: [
         const Divider(height: 1),
         const SizedBox(height: 24),
-        _buildPrimaryButton(),
+        _buildPrimaryButton(context),
         SizedBox(height: hasSecondaryButton ? 16 : 0),
-        if (hasSecondaryButton) _buildSecondaryButton(),
+        if (hasSecondaryButton) _buildSecondaryButton(context),
         SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom)),
       ],
     );
   }
 
-  Widget _buildPrimaryButton() {
+  Widget _buildPrimaryButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: PrimaryButton(
         key: const Key('primaryButtonCta'),
         onPressed: onPrimaryPressed,
-        text: Text(primaryButtonCta),
+        text: Text.rich(primaryButtonCta.toTextSpan(context)),
         icon: Icon(primaryButtonIcon),
       ),
     );
   }
 
-  Widget _buildSecondaryButton() {
+  Widget _buildSecondaryButton(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       width: double.infinity,
       child: TertiaryButton(
         key: const Key('secondaryButtonCta'),
         onPressed: onSecondaryButtonPressed,
-        text: Text(secondaryButtonCta!),
+        text: Text.rich(secondaryButtonCta!.toTextSpan(context)),
       ),
     );
   }

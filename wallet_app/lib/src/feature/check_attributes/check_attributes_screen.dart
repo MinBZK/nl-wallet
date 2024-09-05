@@ -6,6 +6,7 @@ import '../../domain/model/attribute/data_attribute.dart';
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../util/formatter/attribute_value_formatter.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
@@ -141,7 +142,7 @@ class CheckAttributesScreen extends StatelessWidget {
     if (onDataIncorrectPressed == null) return const SizedBox.shrink();
     return ListButton(
       onPressed: onDataIncorrectPressed,
-      text: Text(context.l10n.checkAttributesScreenDataIncorrectCta),
+      text: Text.rich(context.l10n.checkAttributesScreenDataIncorrectCta.toTextSpan(context)),
     );
   }
 

@@ -1,4 +1,8 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/rendering.dart';
+
 import '../../domain/model/localized_text.dart';
+import 'build_context_extension.dart';
 
 extension StringExtension on String {
   /// Capitalizes first letter in string (if present)
@@ -11,4 +15,18 @@ extension StringExtension on String {
   String get addSpaceSuffix => isNotEmpty ? '$this ' : '';
 
   LocalizedText get untranslated => {'': this};
+
+  AttributedString toAttributedString(BuildContext context) => AttributedString(
+        this,
+        attributes: [
+          LocaleStringAttribute(
+            range: fullRange,
+            locale: context.activeLocale,
+          ),
+        ],
+      );
+
+  TextSpan toTextSpan(BuildContext context) => TextSpan(text: this, locale: context.activeLocale);
+
+  TextRange get fullRange => TextRange(start: 0, end: length);
 }

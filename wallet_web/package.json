@@ -1,6 +1,6 @@
 {
   "name": "nl-wallet-web",
-  "version": "0.0.1",
+  "version": "0.2.1-dev",
   "type": "module",
   "files": [
     "dist"
@@ -22,6 +22,10 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write lib/"
   },
+  "bundledDependencies": [
+    "axios",
+    "vue"
+  ],
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.8.0",
     "@tsconfig/node20": "^20.1.4",
@@ -33,7 +37,7 @@
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.5.1",
     "autoprefixer": "^10.4.19",
-    "axios": "1.6.8",
+    "axios": "^1.7.5",
     "eslint": "^8.57.0",
     "eslint-plugin-playwright": "^1.5.4",
     "eslint-plugin-vue": "^9.23.0",
@@ -46,6 +50,7 @@
     "vite": "^5.3.4",
     "vite-plugin-dts": "^4.0.2",
     "vitest": "^2.0.3",
+    "vue": "^3.2.25",
     "vue-tsc": "^2.0.16"
   }
 }

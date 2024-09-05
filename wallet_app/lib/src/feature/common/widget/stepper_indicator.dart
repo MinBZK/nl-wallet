@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import 'animated_linear_progress_indicator.dart';
 
 class StepperIndicator extends StatelessWidget {
@@ -17,7 +18,7 @@ class StepperIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: context.l10n.generalWCAGStepper(currentStep, totalSteps),
+      attributedLabel: context.l10n.generalWCAGStepper(currentStep, totalSteps).toAttributedString(context),
       excludeSemantics: true,
       child: Hero(
         tag: 'stepper_indicator',

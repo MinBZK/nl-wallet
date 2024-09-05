@@ -10,4 +10,5 @@ pub mod reqwest;
 pub mod sentry;
 pub mod spawn;
 pub mod trust_anchor;
+pub mod urls;
 pub mod utils;

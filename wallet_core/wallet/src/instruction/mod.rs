@@ -18,7 +18,8 @@ pub use self::{
 #[category(defer)]
 pub enum InstructionError {
     #[error(
-        "PIN provided is incorrect: (attempts_left_in_round: {attempts_left_in_round}, is_final_round: {is_final_round})"
+        "PIN provided is incorrect: (attempts_left_in_round: {attempts_left_in_round}, is_final_round: \
+         {is_final_round})"
     )]
     #[category(expected)]
     IncorrectPin {

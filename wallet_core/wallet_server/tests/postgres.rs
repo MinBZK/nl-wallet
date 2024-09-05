@@ -90,8 +90,9 @@ async fn postgres_session_store() -> PostgresSessionStore {
         .unwrap()
 }
 
-async fn postgres_session_store_with_mock_time() -> (PostgresSessionStore<MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>)
-{
+type SessionStoreWithMockTime = (PostgresSessionStore<MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>);
+
+async fn postgres_session_store_with_mock_time() -> SessionStoreWithMockTime {
     let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
 

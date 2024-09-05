@@ -42,8 +42,8 @@ const kPharmacyId = 'pharmacy';
 const _kRvigOrganizationName = 'Rijksdienst voor Identiteits­gegevens';
 final _kRvigOrganization = Organization(
   //id: kRvigId,
-  legalName: _kRvigOrganizationName.untranslated,
-  displayName: _kRvigOrganizationName.untranslated,
+  legalName: _kRvigOrganizationName.dutch,
+  displayName: _kRvigOrganizationName.dutch,
   category: [
     LocalizedString(language: 'en', value: 'Government'),
     LocalizedString(language: 'nl', value: 'Overheid'),

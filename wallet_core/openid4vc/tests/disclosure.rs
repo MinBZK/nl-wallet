@@ -44,9 +44,7 @@ use openid4vc::{
     },
     ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
 };
-use wallet_common::{
-    config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor,
-};
+use wallet_common::{generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor, urls::BaseUrl};
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -281,7 +279,7 @@ impl From<Vec<Mdoc>> for MockMdocDataSource {
         MockMdocDataSource(
             value
                 .into_iter()
-                .map(|mdoc| (mdoc.doc_type.clone(), vec![mdoc].into()))
+                .map(|mdoc| (mdoc.doc_type.clone(), vec![mdoc].try_into().unwrap()))
                 .collect(),
         )
     }
@@ -302,7 +300,7 @@ impl MdocDataSource for MockMdocDataSource {
                 if doc_types.contains(doc_type.as_str()) {
                     return vec![StoredMdoc {
                         id: format!("{}_id", doc_type.clone()),
-                        mdoc: mdoc_copies.cred_copies.first().unwrap().clone(),
+                        mdoc: mdoc_copies.first().clone(),
                     }]
                     .into();
                 }

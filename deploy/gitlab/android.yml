@@ -1,0 +1,280 @@
+#test-android:
+#  extends: .ruby-cache
+#  rules: !reference [.default-or-release-or-merge-request, rules]
+#  image:
+#    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-emulator-rust@sha256:d6585b8aa3ffbb4f8180985404ba579e450ce85ca6ec571c99e160269f14946f"
+#  artifacts:
+#    when: always
+#    reports:
+#      coverage_report:
+#        path: wallet_core/platform_support/android/platform_support/src/main/java/cobertura.xml
+#        coverage_format: cobertura
+#    paths:
+#      - wallet_core/platform_support/android/platform_support/build/reports/**
+#      - wallet_core/platform_support/android/platform_support/build/outputs/androidTest-results
+#  before_script:
+#    - echo "no" | avdmanager -s create avd --name $CI_JOB_NAME_SLUG --package "system-images;android-24;default;arm64-v8a"
+#  script:
+#    - emulator-check cpu-info || true
+#    - emulator-check accel || true
+#    - emulator @${CI_JOB_NAME_SLUG} -show-kernel -log-detailed -no-window -no-snapshot -no-boot-anim -cores 2 -memory 2048 -audio none -accel off -gpu swiftshader_indirect -camera-back none -qemu -machine virt
+#    - EMULATOR_PID=$!
+#    - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
+#    - wallet_core/platform_support/android/gradlew -p wallet_core/platform_support/android connectedAndroidTest
+#    - wallet_core/platform_support/android/gradlew -p wallet_core/platform_support/android jacocoToCobertura
+#    - kill $EMULATOR_PID && while $(kill -0 $EMULATOR_PID 2>/dev/null); do sleep 1; done
+#    - avdmanager delete avd --name $CI_JOB_NAME_SLUG
+
+
+### Android building
+.build-android-app:
+  extends: .ruby-cache
+  needs:
+    - job: test-flutter
+      artifacts: false
+    - job: test-codegen
+      artifacts: false
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:87a2667a35d932da24b937e1e96770a2a12ea0f2204a8a97b1740dc120dc1394"
+  cache: !reference [.rust-cache, cache]
+  artifacts:
+    name: "wallet-android"
+    paths:
+      - "*.aab"
+      - "*.apk"
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+    UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
+  script:
+    - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.keystore}' | base64 --decode > wallet_app/android/upload-keystore.jks
+    - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.key-properties}' | base64 --decode > wallet_app/android/key.properties
+    - bundle install
+    - bundle exec fastlane disable_flutter_analytics
+    - |
+      bundle exec fastlane android build \
+        package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        app_name:"${APP_NAME}" \
+        file_format:"${APP_FILE_FORMAT}" \
+        build_mode:"${APP_BUILD_MODE}" \
+        mock:"${APP_MOCK}" \
+        universal_link_base:"${UL_HOSTNAME:-}" \
+        build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
+        version:"${RELEASE_VERSION:-}"
+  after_script:
+    - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
+
+.build-android-app-ont:
+  extends: [.env-ont-k8s, .build-android-app]
+  rules: !reference [.default-branch, rules]
+  needs:
+    - !reference [.build-android-app, needs]
+    - job: wallet-env-config-ont
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+    APP_NAME: "NL Wallet (latest)"
+    APP_MOCK: "false"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
+
+build-android-app-ont:
+  extends: .build-android-app-ont
+  variables:
+    APP_FILE_FORMAT: "aab"
+    APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_ONT}"
+    SENTRY_ENVIRONMENT: "ont"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ONT}"
+    SENTRY_ORG: "${SENTRY_ORG_ONT}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-android-app-ont-profile:
+  extends: .build-android-app-ont
+  variables:
+    APP_FILE_FORMAT: "apk"
+    APP_BUILD_MODE: "profile"
+
+.build-android-app-release-tag:
+  extends: [.env-ont-k8s, .build-android-app]
+  rules: !reference [.release-tag, rules]
+  before_script:
+    - !reference [.release-tag, before_script]
+  variables:
+    APP_MOCK: "false"
+    APP_FILE_FORMAT: "aab"
+    APP_BUILD_MODE: "release"
+
+build-android-app-mock:
+  extends: .build-android-app-release-tag
+  needs:
+    - !reference [.build-android-app, needs]
+  variables:
+    APP_MOCK: "true" # override .build-android-app-release-tag
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+    APP_NAME: "NL Wallet (mock)"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
+    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
+    SENTRY_URL: "https://sentry.io/"
+
+.build-android-app-demo:
+  extends: .build-android-app-release-tag
+  needs:
+    - !reference [.build-android-app, needs]
+    - job: wallet-env-config-demo
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+    APP_NAME: "NL Wallet (demo)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
+
+build-android-app-demo:
+  extends: .build-android-app-demo
+  variables:
+    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
+    SENTRY_ENVIRONMENT: "demo"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
+    SENTRY_ORG: "${SENTRY_ORG_DEMO}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-android-app-demo-profile:
+  extends: .build-android-app-demo
+  variables:
+    APP_FILE_FORMAT: "apk" # override .build-android-app-release-tag
+    APP_BUILD_MODE: "profile" # override .build-android-app-release-tag
+
+build-android-app-acceptance:
+  extends: .build-android-app-release-tag
+  needs:
+    - !reference [.build-android-app, needs]
+    - job: wallet-env-config-acceptance
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
+    APP_NAME: "NL Wallet (acceptance)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ACC}"
+    SENTRY_DSN: "${SENTRY_DSN_ACC}"
+    SENTRY_ENVIRONMENT: "acceptance"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
+    SENTRY_ORG: "${SENTRY_ORG_ACC}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ACC}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-android-app-preproduction:
+  extends: .build-android-app-release-tag
+  needs:
+    - !reference [.build-android-app, needs]
+    - job: wallet-env-config-preproduction
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
+    APP_NAME: "NL Wallet (pre-production)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PREPROD}"
+    SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
+    SENTRY_ENVIRONMENT: "preproduction"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
+    SENTRY_ORG: "${SENTRY_ORG_PREPROD}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_PREPROD}"
+    SENTRY_URL: "https://sentry.io/"
+
+build-android-app-production:
+  extends: .build-android-app-release-tag
+  needs:
+    - !reference [.build-android-app, needs]
+    - job: wallet-env-config-production
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: ""
+    APP_NAME: "NL Wallet (production)"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PROD}"
+    SENTRY_DSN: "${SENTRY_DSN_PROD}"
+    SENTRY_ENVIRONMENT: "production"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"
+    SENTRY_ORG: "${SENTRY_ORG_PROD}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
+    SENTRY_URL: "https://sentry.io/"
+
+
+### Android deploying
+.deploy-android-app:
+  extends: [.env-ont-k8s, .ruby-cache]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
+  environment:
+    action: start
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
+    - export JSON_KEY_DATA
+    - bundle install
+    - |
+      bundle exec fastlane android ci_deploy \
+        package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        version:"${RELEASE_VERSION}"
+
+deploy-android-app-ont:
+  extends: .deploy-android-app
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: build-android-app-ont
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+
+.deploy-android-app-release-tag:
+  extends: .deploy-android-app
+  rules: !reference [.release-tag, rules]
+  before_script:
+    - !reference [.release-tag, before_script]
+
+deploy-android-app-mock:
+  extends: .deploy-android-app-release-tag
+  needs:
+    - job: build-android-app-mock
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+
+deploy-android-app-demo:
+  extends: .deploy-android-app-release-tag
+  needs:
+    - job: build-android-app-demo
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+deploy-android-app-acceptance:
+  extends: .deploy-android-app-release-tag
+  needs:
+    - job: build-android-app-acceptance
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
+
+deploy-android-app-preproduction:
+  extends: .deploy-android-app-release-tag
+  needs:
+    - job: build-android-app-preproduction
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
+
+deploy-android-app-production:
+  extends: .deploy-android-app-release-tag
+  needs:
+    - job: build-android-app-production
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: ""

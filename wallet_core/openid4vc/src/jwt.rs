@@ -1,7 +1,7 @@
 //! JWT functionality augmenting that of the `wallet_common` crate:
 //!
-//! - Conversion functions for JWK (JSON Web Key), a key format to transport (a)symmetric public/private keys
-//!   such as an ECDSA public key.
+//! - Conversion functions for JWK (JSON Web Key), a key format to transport (a)symmetric public/private keys such as an
+//!   ECDSA public key.
 //! - Bulk signing of JWTs.
 
 use std::{collections::HashSet, str::FromStr, sync::LazyLock};

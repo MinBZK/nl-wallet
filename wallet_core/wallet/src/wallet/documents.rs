@@ -141,7 +141,7 @@ mod tests {
             .storage
             .get_mut()
             .mdocs
-            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].into()]);
+            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].try_into().unwrap()]);
 
         // Register mock document_callback
         let documents = test::setup_mock_documents_callback(&mut wallet)
@@ -182,7 +182,7 @@ mod tests {
             .storage
             .get_mut()
             .mdocs
-            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].into()]);
+            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].try_into().unwrap()]);
 
         // Register mock document_callback
         let (documents, error) = test::setup_mock_documents_callback(&mut wallet)

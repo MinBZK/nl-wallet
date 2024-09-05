@@ -361,6 +361,39 @@ fn wire_has_active_disclosure_session_impl(port_: MessagePort) {
         move || move |task_callback| has_active_disclosure_session(),
     )
 }
+fn wire_is_biometric_unlock_enabled_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, bool, _>(
+        WrapInfo {
+            debug_name: "is_biometric_unlock_enabled",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| is_biometric_unlock_enabled(),
+    )
+}
+fn wire_set_biometric_unlock_impl(port_: MessagePort, enable: impl Wire2Api<bool> + UnwindSafe) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+        WrapInfo {
+            debug_name: "set_biometric_unlock",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || {
+            let api_enable = enable.wire2api();
+            move |task_callback| set_biometric_unlock(api_enable)
+        },
+    )
+}
+fn wire_unlock_wallet_with_biometrics_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+        WrapInfo {
+            debug_name: "unlock_wallet_with_biometrics",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| unlock_wallet_with_biometrics(),
+    )
+}
 fn wire_get_history_impl(port_: MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, Vec<WalletEvent>, _>(
         WrapInfo {

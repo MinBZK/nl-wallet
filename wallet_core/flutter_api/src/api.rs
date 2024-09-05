@@ -4,7 +4,7 @@ use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use flutter_rust_bridge::StreamSink;
-use wallet::{self, errors::WalletInitError, DisclosureUriSource, Wallet};
+use wallet::{self, errors::WalletInitError, DisclosureUriSource, UnlockMethod, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -180,7 +180,7 @@ pub async fn lock_wallet() {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn check_pin(pin: String) -> Result<WalletInstructionResult> {
-    let mut wallet = wallet().write().await;
+    let wallet = wallet().read().await;
 
     let result = wallet.check_pin(pin).await.try_into()?;
 
@@ -190,7 +190,7 @@ pub async fn check_pin(pin: String) -> Result<WalletInstructionResult> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn change_pin(old_pin: String, new_pin: String) -> Result<WalletInstructionResult> {
-    let mut wallet = wallet().write().await;
+    let wallet = wallet().read().await;
 
     let result = wallet.check_pin(old_pin).await.try_into()?;
 
@@ -323,6 +323,41 @@ pub async fn has_active_disclosure_session() -> Result<bool> {
     let has_active_session = wallet.has_active_disclosure_session()?;
 
     Ok(has_active_session)
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn is_biometric_unlock_enabled() -> Result<bool> {
+    let wallet = wallet().read().await;
+
+    let is_biometrics_enabled = wallet.unlock_method().await?.has_biometrics();
+
+    Ok(is_biometrics_enabled)
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn set_biometric_unlock(enable: bool) -> Result<()> {
+    let mut wallet = wallet().write().await;
+
+    let unlock_method = if enable {
+        UnlockMethod::PinCodeAndBiometrics
+    } else {
+        UnlockMethod::PinCode
+    };
+    wallet.set_unlock_method(unlock_method).await?;
+
+    Ok(())
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn unlock_wallet_with_biometrics() -> Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.unlock_without_pin().await?;
+
+    Ok(())
 }
 
 #[async_runtime]

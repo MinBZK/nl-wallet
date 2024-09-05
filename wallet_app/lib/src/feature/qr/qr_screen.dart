@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../environment.dart';
 import '../../data/service/navigation_service.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/loading_indicator.dart';
@@ -65,8 +66,9 @@ class QrScreen extends StatelessWidget {
   /// Announces the current scanner state when accessibility settings are enabled.
   void _announceState(BuildContext context, QrState state) {
     final String? announcement = switch (state) {
-      QrScanScanning() => context.l10n.qrScanTabCameraScanningQrScanningAnnouncement,
-      QrScanSuccess() => context.l10n.qrScanTabCameraScanningQrScanningAnnouncement,
+      QrScanScanning() => context.l10n.qrScreenScanningWCAGAnnouncement,
+      QrScanLoading() => context.l10n.qrScreenCheckingCodeWCAGAnnouncement,
+      QrScanSuccess() => context.l10n.qrScreenScanSuccessfulWCAGAnnouncement,
       _ => null,
     };
     if (announcement != null) {
@@ -96,7 +98,7 @@ class QrScreen extends StatelessWidget {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrBloc>().add(const QrScanReset()),
-              child: Text(context.l10n.qrScanTabContinueCta),
+              child: Text.rich(context.l10n.qrScanTabContinueCta.toTextSpan(context)),
             ),
           ],
         ),
@@ -126,12 +128,12 @@ class QrScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(context.l10n.invalidQrDialogTitle),
-          content: Text(context.l10n.invalidQrDialogDescription),
+          title: Text.rich(context.l10n.invalidQrDialogTitle.toTextSpan(context)),
+          content: Text.rich(context.l10n.invalidQrDialogDescription.toTextSpan(context)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(context.l10n.invalidQrDialogCta),
+              child: Text.rich(context.l10n.invalidQrDialogCta.toTextSpan(context)),
             ),
           ],
         );

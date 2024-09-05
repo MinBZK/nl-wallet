@@ -12,7 +12,7 @@ use serde_bytes::ByteBuf;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
 
-use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
+use wallet_common::{urls::BaseUrl, utils::sha256};
 
 use crate::{
     iso::disclosure::*,

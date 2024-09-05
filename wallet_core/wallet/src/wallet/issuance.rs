@@ -13,9 +13,7 @@ use openid4vc::{
     token::CredentialPreviewError,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    config::wallet_config::WalletConfiguration, jwt::JwtError, reqwest::trusted_reqwest_client_builder,
-};
+use wallet_common::{jwt::JwtError, reqwest::trusted_reqwest_client_builder, urls};
 
 use crate::{
     account_provider::AccountProviderClient,
@@ -123,9 +121,7 @@ where
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
         let (session, auth_url) = DS::start(
             pid_issuance_config.clone(),
-            WalletConfiguration::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
-                .as_ref()
-                .to_owned(),
+            urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
         .map_err(PidIssuanceError::DigidSessionStart)?;
@@ -338,8 +334,7 @@ where
             // Extract first copy from each issued mdoc
             let mdocs = issued_mdocs
                 .iter()
-                .flat_map(|mdoc: &MdocCopies| mdoc.cred_copies.first())
-                .cloned()
+                .map(|mdoc: &MdocCopies| mdoc.first().clone())
                 .collect::<Vec<_>>();
 
             // Validate all issuer_certificates

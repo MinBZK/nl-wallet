@@ -15,9 +15,9 @@ use wallet_common::{
         },
         signed::SignedDouble,
     },
-    config::wallet_config::BaseUrl,
     http_error::HttpJsonErrorBody,
     reqwest::{default_reqwest_client_builder, parse_content_type},
+    urls::BaseUrl,
 };
 
 use super::{AccountProviderClient, AccountProviderError, AccountProviderResponseError};
@@ -179,7 +179,7 @@ mod tests {
         Mock, MockServer, ResponseTemplate,
     };
 
-    use wallet_common::config::wallet_config::BaseUrl;
+    use wallet_common::urls::BaseUrl;
 
     use super::*;
 

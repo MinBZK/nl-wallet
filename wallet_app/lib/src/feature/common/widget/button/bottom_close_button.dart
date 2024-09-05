@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
 import 'button_content.dart';
 import 'list_button.dart';
 
@@ -21,7 +22,7 @@ class BottomCloseButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         iconPosition: IconPosition.start,
         dividerSide: DividerSide.top,
-        text: Text(context.l10n.generalSheetCloseCta),
+        text: Text.rich(context.l10n.generalSheetCloseCta.toTextSpan(context)),
       ),
     );
   }

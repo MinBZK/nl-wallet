@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
+import 'focus_builder.dart';
 
 class TextWithLink extends StatelessWidget {
   final String fullText;
@@ -32,30 +34,38 @@ class TextWithLink extends StatelessWidget {
     final parts = fullText.split(ctaText);
 
     /// Fallback for production, so we don't crash for an ill formatted text.
-    if (parts.length != 2) return Text(fullText, style: textStyle);
-    return Semantics(
-      onTap: onCtaPressed,
-      onTapHint: onTapHint,
-      child: Text.rich(
-        TextSpan(
-          style: textStyle,
-          children: [
-            TextSpan(text: parts.first),
+    if (parts.length != 2) return Text.rich(fullText.toTextSpan(context), style: textStyle);
+    return FocusBuilder(
+      onEnterPressed: onCtaPressed,
+      builder: (context, hasFocus) {
+        return Semantics(
+          onTap: onCtaPressed,
+          onTapHint: onTapHint,
+          attributedLabel: fullText.toAttributedString(context),
+          excludeSemantics: true,
+          child: Text.rich(
+            locale: context.activeLocale,
             TextSpan(
-              text: ctaText,
-              style: TextStyle(
-                color: context.colorScheme.primary,
-                decoration: TextDecoration.underline,
-              ),
-              recognizer: TapGestureRecognizer()..onTap = onCtaPressed,
+              style: textStyle,
+              children: [
+                TextSpan(text: parts.first),
+                TextSpan(
+                  text: ctaText,
+                  style: TextStyle(
+                    color: context.colorScheme.primary,
+                    decoration: TextDecoration.underline,
+                    backgroundColor: hasFocus ? context.theme.focusColor : null,
+                  ),
+                  recognizer: TapGestureRecognizer()..onTap = onCtaPressed,
+                ),
+                TextSpan(text: parts.last),
+              ],
             ),
-            TextSpan(text: parts.last),
-          ],
-        ),
-        textAlign: textAlign,
-        textScaler: MediaQuery.textScalerOf(context),
-        semanticsLabel: fullText,
-      ),
+            textAlign: textAlign,
+            textScaler: MediaQuery.textScalerOf(context),
+          ),
+        );
+      },
     );
   }
 }

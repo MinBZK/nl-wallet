@@ -1,13 +1,13 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use futures::try_join;
-use migration::SimpleExpr;
 use sea_orm::{
     sea_query::{Alias, BinOper, Expr, IntoColumnRef, Query},
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoSimpleExpr, JoinType, ModelTrait,
     QueryFilter, QueryOrder, QueryResult, QuerySelect, RelationDef, RelationTrait, Select, Set, StatementBuilder,
     TransactionTrait,
 };
+use sea_query::{OnConflict, SimpleExpr};
 use tokio::fs;
 use tracing::warn;
 use uuid::Uuid;
@@ -48,12 +48,10 @@ fn key_identifier_for_key_file(alias: &str) -> String {
 
 /// This is the implementation of [`Storage`] as used by the [`crate::Wallet`]. Its responsibilities are:
 ///
-/// * Managing the lifetime of one or more [`Database`] instances by combining its functionality with
-///   encrypted key files. This also includes deleting the database and key file when the [`clear`]
-///   method is called.
+/// * Managing the lifetime of one or more [`Database`] instances by combining its functionality with encrypted key
+///   files. This also includes deleting the database and key file when the [`clear`] method is called.
 /// * Communicating the current state of the database through the [`state`] method.
-/// * Executing queries on the database by accepting / returning data structures that are used by
-///   [`crate::Wallet`].
+/// * Executing queries on the database by accepting / returning data structures that are used by [`crate::Wallet`].
 #[derive(Debug)]
 pub struct DatabaseStorage<K> {
     storage_path: PathBuf,
@@ -354,13 +352,21 @@ where
         Ok(())
     }
 
-    /// Update data entry in the key-value table using the provided key.
-    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    /// Update data entry in the key-value table using the provided key,
+    /// inserting the data if it is not already present.
+    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
-        keyed_data::Entity::update_many()
-            .col_expr(keyed_data::Column::Data, Expr::value(serde_json::to_value(data)?))
-            .filter(keyed_data::Column::Key.eq(D::KEY.to_string()))
+        let model = keyed_data::ActiveModel {
+            key: Set(D::KEY.to_string()),
+            data: Set(serde_json::to_value(data)?),
+        };
+        keyed_data::Entity::insert(model)
+            .on_conflict(
+                OnConflict::column(keyed_data::Column::Key)
+                    .update_column(keyed_data::Column::Data)
+                    .to_owned(),
+            )
             .exec(database.connection())
             .await?;
 
@@ -372,12 +378,11 @@ where
         // based on the unique `MdocCopies`, to be inserted into the database.
         let mdoc_models = mdocs
             .into_iter()
-            .filter(|mdoc_copies| !mdoc_copies.cred_copies.is_empty())
             .map(|mdoc_copies| {
                 let mdoc_id = Uuid::new_v4();
 
                 let copy_models = mdoc_copies
-                    .cred_copies
+                    .as_ref()
                     .iter()
                     .map(|mdoc| {
                         let model = mdoc_copy::ActiveModel {
@@ -392,7 +397,7 @@ where
                     .collect::<Result<Vec<_>, CborError>>()?;
 
                 // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the filter() above.
-                let doc_type = mdoc_copies.cred_copies.into_iter().next().unwrap().doc_type;
+                let doc_type = mdoc_copies.into_iter().next().unwrap().doc_type;
                 let mdoc_model = mdoc::ActiveModel {
                     id: Set(mdoc_id),
                     doc_type: Set(doc_type),
@@ -719,7 +724,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_database_storage() {
+    async fn test_database_keyed_storage() {
         let registration = RegistrationData {
             pin_salt: vec![1, 2, 3, 4],
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
@@ -762,14 +767,14 @@ pub(crate) mod tests {
         let save_result = storage.insert_data(&registration).await;
         assert!(save_result.is_err());
 
-        // Update registration
+        // Upsert registration
         let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
             pin_salt: new_salt,
             wallet_certificate: registration.wallet_certificate.clone(),
         };
         storage
-            .update_data(&updated_registration)
+            .upsert_data(&updated_registration)
             .await
             .expect("Could not update registration");
 
@@ -793,6 +798,22 @@ pub(crate) mod tests {
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Uninitialized));
+
+        // Open the database again and test if upsert stores new data.
+        let mut storage = open_test_database_storage().await;
+        storage
+            .upsert_data(&registration)
+            .await
+            .expect("Could not upsert registration");
+
+        let fetched_registration = storage
+            .fetch_data::<RegistrationData>()
+            .await
+            .expect("Could not get registration");
+
+        assert!(fetched_registration.is_some());
+        let fetched_registration = fetched_registration.unwrap();
+        assert_eq!(fetched_registration.pin_salt, registration.pin_salt);
     }
 
     #[tokio::test]
@@ -805,7 +826,7 @@ pub(crate) mod tests {
 
         // Create MdocsMap from example Mdoc
         let mdoc = Mdoc::new_example_mock();
-        let mdoc_copies = MdocCopies::from([mdoc.clone(), mdoc.clone(), mdoc].to_vec());
+        let mdoc_copies = MdocCopies::try_from([mdoc.clone(), mdoc.clone(), mdoc].to_vec()).unwrap();
 
         // Insert mdocs
         storage
@@ -822,7 +843,7 @@ pub(crate) mod tests {
         // Only one unique `Mdoc` should be returned and it should match all copies.
         assert_eq!(fetched_unique.len(), 1);
         let mdoc_copy1 = fetched_unique.first().unwrap();
-        assert_eq!(&mdoc_copy1.mdoc, mdoc_copies.cred_copies.first().unwrap());
+        assert_eq!(&mdoc_copy1.mdoc, mdoc_copies.first());
 
         // Increment the usage count for this mdoc.
         storage
@@ -839,7 +860,7 @@ pub(crate) mod tests {
         // One matching `Mdoc` should be returned and it should be a different copy than the fist one.
         assert_eq!(fetched_unique_doctype.len(), 1);
         let mdoc_copy2 = fetched_unique_doctype.first().unwrap();
-        assert_eq!(&mdoc_copy2.mdoc, mdoc_copies.cred_copies.first().unwrap());
+        assert_eq!(&mdoc_copy2.mdoc, mdoc_copies.first());
         assert_ne!(mdoc_copy1.mdoc_copy_id, mdoc_copy2.mdoc_copy_id);
 
         // Increment the usage count for this mdoc.
