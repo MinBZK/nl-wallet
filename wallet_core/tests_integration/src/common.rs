@@ -1,4 +1,5 @@
 use std::{
+    any::Any,
     io,
     net::{IpAddr, TcpListener},
     process,
@@ -12,6 +13,8 @@ use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use reqwest::Certificate;
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use tokio::time;
+use url::Url;
+use uuid::Uuid;
 
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -25,7 +28,6 @@ use openid4vc::{
     token::{CredentialPreview, TokenRequest},
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
-use uuid::Uuid;
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
@@ -36,7 +38,7 @@ use wallet::{
 };
 use wallet_common::{
     config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey, nonempty::NonEmpty,
-    reqwest::trusted_reqwest_client_builder, urls::BaseUrl,
+    reqwest::trusted_reqwest_client_builder, urls::BaseUrl, utils,
 };
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
@@ -375,4 +377,26 @@ impl AttributeService for MockAttributeService {
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
         Ok(oidc::Config::new_mock(issuer_url))
     }
+}
+
+// The type of MockDigidSession::Context is too complex, but keeping ownership is important.
+pub fn setup_digid_context() -> Box<dyn Any> {
+    let digid_context = MockDigidSession::start_context();
+    digid_context.expect().return_once(|_, _| {
+        let mut session = MockDigidSession::default();
+
+        session.expect_into_token_request().return_once(|_url| {
+            Ok(TokenRequest {
+                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: utils::random_string(32).into(),
+                },
+                code_verifier: Some("my_code_verifier".to_string()),
+                client_id: Some("my_client_id".to_string()),
+                redirect_uri: Some("redirect://here".parse().unwrap()),
+            })
+        });
+
+        Ok((session, Url::parse("http://localhost/").unwrap()))
+    });
+    Box::new(digid_context)
 }
