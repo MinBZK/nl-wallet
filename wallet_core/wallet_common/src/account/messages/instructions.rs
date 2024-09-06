@@ -4,7 +4,7 @@ use crate::{
     account::{
         errors::Result,
         serialization::{DerSignature, DerVerifyingKey},
-        signed::SignedDouble,
+        signed::SignedChallengeResponse,
     },
     jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
@@ -14,7 +14,7 @@ use super::auth::WalletCertificate;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Instruction<T> {
-    pub instruction: SignedDouble<T>,
+    pub instruction: SignedChallengeResponse<T>,
     pub certificate: WalletCertificate,
 }
 
@@ -126,13 +126,13 @@ where
 {
     pub async fn new_signed(
         instruction: T,
+        challenge: Vec<u8>,
         instruction_sequence_number: u64,
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
-        challenge: &[u8],
         certificate: WalletCertificate,
     ) -> Result<Self> {
-        let signed = SignedDouble::sign(
+        let signed = SignedChallengeResponse::sign(
             instruction,
             challenge,
             instruction_sequence_number,

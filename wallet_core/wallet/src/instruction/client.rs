@@ -107,10 +107,10 @@ where
             .with_sequence_number(&mut storage, |seq_num| {
                 Instruction::new_signed(
                     instruction,
+                    challenge,
                     seq_num,
                     self.hw_privkey,
                     &pin_key,
-                    &challenge,
                     self.registration.wallet_certificate.clone(),
                 )
             })

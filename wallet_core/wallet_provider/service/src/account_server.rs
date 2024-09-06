@@ -17,7 +17,7 @@ use wallet_common::{
                 Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
             },
         },
-        signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
+        signed::{ChallengeResponse, SequenceNumberComparison, SignedChallengeResponse},
     },
     generator::Generator,
     jwt::{EcdsaDecodingKey, Jwt, JwtError, JwtSubject},
@@ -396,7 +396,7 @@ impl AccountServer {
         uuid_generator: &impl Generator<Uuid>,
         repositories: &R,
         hsm: &H,
-        registration_message: SignedDouble<Registration>,
+        registration_message: SignedChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
         T: Committable,
@@ -574,7 +574,7 @@ impl AccountServer {
         wallet_user: &WalletUser,
         time_generator: &impl Generator<DateTime<Local>>,
         verifying_key_decrypter: &D,
-    ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
+    ) -> Result<ChallengeResponse<I>, InstructionValidationError>
     where
         I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
         D: Decrypter<VerifyingKey, Error = HsmError>,
@@ -734,7 +734,7 @@ mod tests {
             .await
             .expect("Could not get registration challenge");
 
-        let registration_message = Registration::new_signed(hw_privkey, pin_privkey, &challenge)
+        let registration_message = Registration::new_signed(hw_privkey, pin_privkey, challenge)
             .await
             .expect("Could not sign new registration");
 
@@ -962,16 +962,9 @@ mod tests {
         assert_matches!(
             account_server
                 .handle_instruction(
-                    Instruction::new_signed(
-                        CheckPin,
-                        43,
-                        &hw_privkey,
-                        &pin_privkey,
-                        &challenge.clone(),
-                        cert.clone(),
-                    )
-                    .await
-                    .unwrap(),
+                    Instruction::new_signed(CheckPin, challenge.clone(), 43, &hw_privkey, &pin_privkey, cert.clone())
+                        .await
+                        .unwrap(),
                     &instruction_result_signing_key,
                     &MockGenerators,
                     &WalletUserTestRepo {
@@ -993,7 +986,7 @@ mod tests {
 
         account_server
             .handle_instruction(
-                Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                Instruction::new_signed(CheckPin, challenge.clone(), 44, &hw_privkey, &pin_privkey, cert.clone())
                     .await
                     .unwrap(),
                 &instruction_result_signing_key,
@@ -1188,7 +1181,7 @@ mod tests {
             wallet_user,
             WalletUserQueryResult::Found(user) if account_server
                 .verify_instruction(
-                    Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                    Instruction::new_signed(CheckPin, challenge, 44, &hw_privkey, &pin_privkey, cert.clone())
                         .await
                         .unwrap(),
                     &user,
@@ -1250,7 +1243,7 @@ mod tests {
             wallet_user,
             WalletUserQueryResult::Found(user) if matches!(
                 account_server.verify_instruction(
-                    Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                    Instruction::new_signed(CheckPin, challenge, 44, &hw_privkey, &pin_privkey, cert.clone())
                         .await
                         .unwrap(),
                     &user,
@@ -1325,7 +1318,7 @@ mod tests {
             assert_matches!(
                 account_server
                     .verify_instruction(
-                        Instruction::new_signed(CheckPin, 44, &hw_privkey, &pin_privkey, &challenge, cert.clone())
+                        Instruction::new_signed(CheckPin, challenge, 44, &hw_privkey, &pin_privkey, cert.clone())
                             .await
                             .unwrap(),
                         &user,

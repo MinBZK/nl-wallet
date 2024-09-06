@@ -55,7 +55,7 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
-    let registration_message = Registration::new_signed(hw_privkey, pin_privkey, &challenge)
+    let registration_message = Registration::new_signed(hw_privkey, pin_privkey, challenge)
         .await
         .expect("Could not sign new registration");
 

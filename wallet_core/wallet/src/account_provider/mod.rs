@@ -11,7 +11,7 @@ use wallet_common::{
             errors::{AccountError, AccountErrorType},
             instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
         },
-        signed::SignedDouble,
+        signed::SignedChallengeResponse,
     },
     urls::BaseUrl,
 };
@@ -51,7 +51,7 @@ pub trait AccountProviderClient {
     async fn register(
         &self,
         base_url: &BaseUrl,
-        registration_message: SignedDouble<Registration>,
+        registration_message: SignedChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError>;
 
     async fn instruction_challenge(

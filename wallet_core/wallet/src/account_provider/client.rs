@@ -13,7 +13,7 @@ use wallet_common::{
                 InstructionResultMessage,
             },
         },
-        signed::SignedDouble,
+        signed::SignedChallengeResponse,
     },
     http_error::HttpJsonErrorBody,
     reqwest::{default_reqwest_client_builder, parse_content_type},
@@ -128,7 +128,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
     async fn register(
         &self,
         base_url: &BaseUrl,
-        registration_message: SignedDouble<Registration>,
+        registration_message: SignedChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError> {
         let url = base_url.join("createwallet");
         let cert: Certificate = self.send_json_post_request(url, &registration_message).await?;
