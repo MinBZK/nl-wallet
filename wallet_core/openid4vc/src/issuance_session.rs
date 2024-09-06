@@ -24,7 +24,7 @@ use nl_wallet_mdoc::{
     },
     ATTR_RANDOM_LENGTH,
 };
-use wallet_common::{generator::TimeGenerator, jwt::JwtError, urls::BaseUrl};
+use wallet_common::{generator::TimeGenerator, jwt::JwtError, nonempty::NonEmpty, urls::BaseUrl};
 
 use crate::{
     credential::{
@@ -365,7 +365,7 @@ impl HttpVcMessageClient {
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
-    credential_previews: Vec<CredentialPreview>,
+    credential_previews: NonEmpty<Vec<CredentialPreview>>,
     issuer_url: BaseUrl,
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
@@ -450,7 +450,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .iter()
             .try_for_each(|preview| preview.verify(trust_anchors))?;
 
-        let credential_previews = token_response.credential_previews.into_inner();
+        let credential_previews = token_response.credential_previews.clone().into_inner();
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -458,7 +458,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 .token_response
                 .c_nonce
                 .ok_or(IssuanceSessionError::MissingNonce)?,
-            credential_previews: credential_previews.clone(),
+            credential_previews: token_response.credential_previews,
             issuer_url: base_url,
             dpop_private_key,
             dpop_nonce,
@@ -485,6 +485,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let types = self
             .session_state
             .credential_previews
+            .as_ref()
             .iter()
             .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count().into()))
             .collect_vec();
@@ -492,6 +493,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // Generate the PoPs to be sent to the issuer, and the private keys with which they were generated
         // (i.e., the private key of the future mdoc).
         // If N is the total amount of copies of credentials to be issued, then this returns N key/proof pairs.
+        // Note that N > 0 because self.session_state.credential_previews which we mapped above is NonEmpty<_>.
         let keys_and_proofs = CredentialRequestProof::new_multiple(
             self.session_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
@@ -524,8 +526,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
-        let responses = match credential_requests.len() {
-            1 => vec![self.request_credential(credential_requests.first().unwrap()).await?],
+        // Unwrapping is safe because N > 0, see above.
+        let credential_requests = NonEmpty::new(credential_requests).unwrap();
+        let responses = match credential_requests.as_ref().len() {
+            1 => vec![self.request_credential(credential_requests.first()).await?],
             _ => self.request_batch_credentials(credential_requests).await?,
         };
         let mut responses_and_pubkeys: VecDeque<_> = responses.into_iter().zip(pubkeys).collect();
@@ -533,6 +537,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let mdocs = self
             .session_state
             .credential_previews
+            .as_ref()
             .iter()
             .map(|preview| {
                 let copy_count: usize = preview.copy_count().into();
@@ -587,23 +592,19 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     async fn request_batch_credentials(
         &self,
-        credential_requests: Vec<CredentialRequest>,
+        credential_requests: NonEmpty<Vec<CredentialRequest>>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
         let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
             .await?
             .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
-        let expected_response_count = credential_requests.len();
+        let expected_response_count = credential_requests.as_ref().len();
         let responses = self
             .message_client
             .request_credentials(
                 &url,
-                &CredentialRequests {
-                    // This `.unwrap()` is safe as long as the received
-                    // `TokenResponseWithPreviews.credential_previews` is not empty.
-                    credential_requests: credential_requests.try_into().unwrap(),
-                },
+                &CredentialRequests { credential_requests },
                 &dpop_header,
                 &access_token_header,
             )
