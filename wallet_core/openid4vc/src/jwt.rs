@@ -30,7 +30,6 @@ use x509_parser::{
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::{map_difference, IssuedAttributesMismatch, TrustAnchor},
-    identifiers::AttributeIdentifier,
     server_keys::KeyPair,
     utils::{
         keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
@@ -189,29 +188,12 @@ pub struct JwtCredentialCnf {
 }
 
 impl JwtCredentialContents {
-    pub fn compare(&self, other: &JwtCredentialContents) -> Result<(), IssuedAttributesMismatch> {
+    pub fn compare_attributes(&self, other: &JwtCredentialContents) -> Result<(), IssuedAttributesMismatch<String>> {
         let missing = map_difference(&other.attributes, &self.attributes);
         let unexpected = map_difference(&self.attributes, &other.attributes);
 
         if !missing.is_empty() || !unexpected.is_empty() {
-            return Err(IssuedAttributesMismatch {
-                missing: missing
-                    .into_iter()
-                    .map(|attr| AttributeIdentifier {
-                        credential_type: "".to_string(),
-                        namespace: "".to_string(),
-                        attribute: attr,
-                    })
-                    .collect(),
-                unexpected: unexpected
-                    .into_iter()
-                    .map(|attr| AttributeIdentifier {
-                        credential_type: "".to_string(),
-                        namespace: "".to_string(),
-                        attribute: attr,
-                    })
-                    .collect(),
-            });
+            return Err(IssuedAttributesMismatch { missing, unexpected });
         }
 
         Ok(())

@@ -61,8 +61,10 @@ pub enum IssuanceSessionError {
     #[error("base64 decoding failed: {0}")]
     #[category(pd)]
     Base64Error(#[from] base64::DecodeError),
-    #[error("mismatch between issued and expected attributes: {0}")]
-    IssuedAttributesMismatch(#[source] IssuedAttributesMismatch),
+    #[error("mismatch between issued and expected attributes in mdoc: {0}")]
+    IssuedMdocAttributesMismatch(#[source] IssuedAttributesMismatch),
+    #[error("mismatch between issued and expected attributes in JWT: {0}")]
+    IssuedJwtAttributesMismatch(#[source] IssuedAttributesMismatch<String>),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("jwt credential verification failed: {0}")]
@@ -89,9 +91,9 @@ pub enum IssuanceSessionError {
     HeaderToStr(#[from] ToStrError),
     #[error("error verifying certificate of credential preview: {0}")]
     Certificate(#[from] CertificateError),
-    #[error("issuer certificate contained in mdoc not equal to expected value")]
+    #[error("issuer contained in credential not equal to expected value")]
     #[category(critical)]
-    IssuerCertificateMismatch,
+    IssuerMismatch,
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
     #[error("error discovering Oauth metadata: {0}")]
@@ -740,7 +742,7 @@ impl CredentialResponse {
                 // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
                 // in the credential preview.
                 if issuer_signed.issuer_auth.signing_cert()? != *issuer {
-                    return Err(IssuanceSessionError::IssuerCertificateMismatch);
+                    return Err(IssuanceSessionError::IssuerMismatch);
                 }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
@@ -749,7 +751,7 @@ impl CredentialResponse {
 
                 // Check that our mdoc contains exactly the attributes the issuer said it would have
                 mdoc.compare_unsigned(unsigned_mdoc)
-                    .map_err(IssuanceSessionError::IssuedAttributesMismatch)?;
+                    .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
                 Ok(IssuedCredential::MsoMdoc(mdoc))
             }
@@ -767,10 +769,14 @@ impl CredentialResponse {
                     });
                 };
 
+                if cred_claims.contents.iss != expected_claims.iss {
+                    return Err(IssuanceSessionError::IssuerMismatch);
+                }
+
                 cred_claims
                     .contents
-                    .compare(expected_claims)
-                    .map_err(IssuanceSessionError::IssuedAttributesMismatch)?;
+                    .compare_attributes(expected_claims)
+                    .map_err(IssuanceSessionError::IssuedJwtAttributesMismatch)?;
 
                 Ok(IssuedCredential::Jwt(cred))
             }
@@ -1055,7 +1061,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuerCertificateMismatch)
+        assert_matches!(error, IssuanceSessionError::IssuerMismatch)
     }
 
     #[tokio::test]
@@ -1099,7 +1105,7 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceSessionError::IssuedAttributesMismatch(IssuedAttributesMismatch { missing, unexpected })
+            IssuanceSessionError::IssuedMdocAttributesMismatch(IssuedAttributesMismatch { missing, unexpected })
                 if missing.len() == 1 && unexpected.is_empty()
         )
     }

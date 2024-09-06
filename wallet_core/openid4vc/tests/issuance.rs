@@ -118,10 +118,7 @@ async fn accept_issuance(
             IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs
                 .first()
                 .compare_unsigned(match &preview {
-                    CredentialPreview::MsoMdoc {
-                        unsigned_mdoc,
-                        issuer: _,
-                    } => unsigned_mdoc,
+                    CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
                     _ => panic!("unexpected credential format"),
                 })
                 .unwrap(),
@@ -129,7 +126,7 @@ async fn accept_issuance(
                 .first()
                 .jwt_claims()
                 .contents
-                .compare(match &preview {
+                .compare_attributes(match &preview {
                     CredentialPreview::Jwt { claims, .. } => claims,
                     _ => panic!("unexpected credential format"),
                 })
