@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-09-03T14:34:09+02:00",
+    "@@last_modified": "2024-09-04T14:09:48+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -582,6 +582,8 @@
     "introductionPrivacyScreenPrivacyCta": "Read the privacy policy",
     "introductionSkipCta": "Skip",
     "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
+    "introductionWCAGPauseButtonLabel": "Moving image is playing, Pause",
+    "introductionWCAGPlayButtonLabel": "Moving image is stopped, Play",
     "invalidQrDialogCta": "OK",
     "invalidQrDialogDescription": "The scanned QR code is invalid. Ensure you are scanning a QR code for the NL Wallet and try again.",
     "invalidQrDialogTitle": "Invalid QR code",
@@ -898,7 +900,7 @@
         }
     },
     "requestDetailsScreenAttributesTitle": "Requested attributes",
-    "resetWalletDialogBody": "This will delete all your data in the app. You will return to the app introduction, and then you could create your wallet again.",
+    "resetWalletDialogBody": "This will delete all your data. You can then recreate the NL Wallet.",
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",
     "resetWalletDialogTitle": "Do you want to delete all data?",

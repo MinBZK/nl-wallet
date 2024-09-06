@@ -50,6 +50,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     ScrollController(debugLabel: 'intro_page_3'),
   ];
 
+  /// Whether (Lottie) animations should be playing
+  bool _playAnimations = true;
+
   /// The currently visible page
   double get _currentPage => _pageController.hasClients ? _pageController.page ?? 0 : 0;
 
@@ -194,18 +197,46 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             const SliverSizedBox(height: 32),
             SliverFillRemaining(
               hasScrollBody: false,
-              child: Container(
-                alignment: Alignment.center,
-                color: context.colorScheme.primaryContainer,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                child: Lottie.asset(
-                  lottieAsset,
-                  fit: BoxFit.contain,
-                  animate: !Environment.isTest,
-                ),
+              child: Stack(
+                children: [
+                  Container(
+                    alignment: Alignment.center,
+                    color: context.colorScheme.primaryContainer,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                    child: Lottie.asset(
+                      lottieAsset,
+                      fit: BoxFit.contain,
+                      animate: _playAnimations && !Environment.isTest,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildPlayPauseButton(context),
+                  ),
+                ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayPauseButton(BuildContext context) {
+    return Semantics(
+      button: true,
+      excludeSemantics: true,
+      attributedLabel: _playAnimations
+          ? context.l10n.introductionWCAGPauseButtonLabel.toAttributedString(context)
+          : context.l10n.introductionWCAGPlayButtonLabel.toAttributedString(context),
+      child: FloatingActionButton.small(
+        elevation: 0,
+        backgroundColor: context.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        onPressed: () => setState(() => _playAnimations = !_playAnimations),
+        child: Icon(
+          _playAnimations ? Icons.pause_outlined : Icons.play_arrow_rounded,
+          color: context.colorScheme.primary,
         ),
       ),
     );
