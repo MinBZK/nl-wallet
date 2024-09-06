@@ -32,7 +32,7 @@ impl From<Signature> for DerSignature {
 
 impl Serialize for DerSignature {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        Base64::<Standard, Padded>::serialize_as(&self.0.to_der().as_bytes().to_vec(), serializer)
+        Base64::<Standard, Padded>::serialize_as(&self.0.to_der().as_bytes(), serializer)
     }
 }
 
