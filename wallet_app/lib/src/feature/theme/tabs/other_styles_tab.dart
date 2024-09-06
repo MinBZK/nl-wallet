@@ -19,7 +19,6 @@ import '../../common/sheet/error_details_sheet.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/sheet/help_sheet.dart';
 import '../../common/widget/activity_summary.dart';
-import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
@@ -43,6 +42,7 @@ import '../../common/widget/select_card_row.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
+import '../../common/widget/stepper_indicator.dart';
 import '../../common/widget/version_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_logo.dart';
@@ -476,8 +476,8 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'Miscellaneous'),
         const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'AnimatedLinearProgressIndicator'),
-        const AnimatedLinearProgressIndicator(progress: 0.3),
+        const ThemeSectionSubHeader(title: 'StepperIndicator'),
+        const StepperIndicator(padding: EdgeInsets.zero),
         const ThemeSectionSubHeader(title: 'AnimatedVisibilityBackButton'),
         const AnimatedVisibilityBackButton(visible: true),
         const ThemeSectionSubHeader(title: 'CenteredLoadingIndicator'),

@@ -19,7 +19,11 @@ void main() {
           ..addScenario(
             widget: const SettingsScreen(),
           ),
-        wrapper: walletAppWrapper(),
+        wrapper: walletAppWrapper(
+          providers: [
+            RepositoryProvider<GetSupportedBiometricsUseCase>(create: (c) => MockGetSupportedBiometricsUseCase()),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'light');
     });
@@ -30,7 +34,12 @@ void main() {
           ..addScenario(
             widget: const SettingsScreen(),
           ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+        wrapper: walletAppWrapper(
+          brightness: Brightness.dark,
+          providers: [
+            RepositoryProvider<GetSupportedBiometricsUseCase>(create: (c) => MockGetSupportedBiometricsUseCase()),
+          ],
+        ),
       );
       await screenMatchesGolden(tester, 'dark');
     });
