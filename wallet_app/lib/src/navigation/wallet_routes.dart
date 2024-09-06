@@ -363,6 +363,7 @@ WidgetBuilder _createWalletPersonalizeScreenBuilder(RouteSettings settings) {
           context.read(),
           context.read(),
           context.read(),
+          continueFromDigiD: argument.peek() != null,
         );
         if (argument.peek() != null) bloc.add(WalletPersonalizeContinuePidIssuance(argument.value!));
         return bloc;

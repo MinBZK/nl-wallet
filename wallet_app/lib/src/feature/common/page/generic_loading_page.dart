@@ -22,12 +22,15 @@ class GenericLoadingPage extends StatelessWidget {
   /// useful when the loading page should also render the stepperProgress.
   final PreferredSizeWidget? appBar;
 
+  final Widget loadingIndicator;
+
   const GenericLoadingPage({
     required this.title,
     required this.description,
     this.onCancel,
     this.cancelCta,
     this.appBar,
+    this.loadingIndicator = const LoadingIndicator(),
     super.key,
   });
 
@@ -65,7 +68,7 @@ class GenericLoadingPage extends StatelessWidget {
                 ),
               ),
             ),
-            const LoadingIndicator(),
+            loadingIndicator,
             Expanded(
               child: _buildOptionalCancelButton(context),
             ),

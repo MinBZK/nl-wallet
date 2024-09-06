@@ -27,6 +27,7 @@ import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fade_in_at_offset.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
+import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
@@ -88,10 +89,21 @@ class WalletPersonalizeScreen extends StatelessWidget {
       builder: (context, state) {
         final Widget result = switch (state) {
           WalletPersonalizeInitial() => _buildWalletIntroPage(context, state),
-          WalletPersonalizeLoadingIssuanceUrl() =>
-            _buildAuthenticatingWithDigid(context, progress: state.stepperProgress),
-          WalletPersonalizeConnectDigid() => _buildAuthenticatingWithDigid(context, progress: state.stepperProgress),
-          WalletPersonalizeAuthenticating() => _buildAuthenticatingWithDigid(context, progress: state.stepperProgress),
+          WalletPersonalizeLoadingIssuanceUrl() => _buildAuthenticatingWithDigid(
+              context,
+              progress: state.stepperProgress,
+              stage: DigiDAuthStage.fetchingAuthUrl,
+            ),
+          WalletPersonalizeConnectDigid() => _buildAuthenticatingWithDigid(
+              context,
+              progress: state.stepperProgress,
+              stage: DigiDAuthStage.awaitingUserAction,
+            ),
+          WalletPersonalizeAuthenticating() => _buildAuthenticatingWithDigid(
+              context,
+              progress: state.stepperProgress,
+              stage: DigiDAuthStage.processingResult,
+            ),
           WalletPersonalizeLoadInProgress() => _buildLoading(context, progress: state.stepperProgress),
           WalletPersonalizeCheckData() => _buildCheckDataOfferingPage(context, state),
           WalletPersonalizeConfirmPin() => _buildConfirmPinPage(context, state),
@@ -138,11 +150,25 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAuthenticatingWithDigid(BuildContext context, {FlowProgress? progress}) {
+  Widget _buildAuthenticatingWithDigid(
+    BuildContext context, {
+    FlowProgress? progress,
+    required DigiDAuthStage stage,
+  }) {
+    final title = switch (stage) {
+      DigiDAuthStage.fetchingAuthUrl => context.l10n.walletPersonalizeScreenLoadingDigiDUrlTitle,
+      DigiDAuthStage.awaitingUserAction => context.l10n.walletPersonalizeScreenAwaitingUserAuthTitle,
+      DigiDAuthStage.processingResult => context.l10n.walletPersonalizeScreenProcessingDigiDResultTitle,
+    };
+    final description = switch (stage) {
+      DigiDAuthStage.fetchingAuthUrl => context.l10n.walletPersonalizeScreenLoadingDigiDUrlDescription,
+      DigiDAuthStage.awaitingUserAction => context.l10n.walletPersonalizeScreenAwaitingUserAuthDescription,
+      DigiDAuthStage.processingResult => context.l10n.walletPersonalizeScreenProcessingDigiDResultDescription,
+    };
     return GenericLoadingPage(
       key: const Key('personalizeAuthenticatingWithDigidPage'),
-      title: context.l10n.walletPersonalizeScreenDigidLoadingTitle,
-      description: context.l10n.walletPersonalizeScreenDigidLoadingSubtitle,
+      title: title,
+      description: description,
       cancelCta: context.l10n.walletPersonalizeScreenDigidLoadingStopCta,
       appBar: WalletAppBar(progress: progress),
       onCancel: () async {
@@ -150,6 +176,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         final cancelled = await _showStopDigidLoginDialog(context);
         if (cancelled) bloc.add(const WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true));
       },
+      loadingIndicator: stage == DigiDAuthStage.awaitingUserAction ? const SizedBox.shrink() : const LoadingIndicator(),
     );
   }
 
@@ -394,3 +421,5 @@ class WalletPersonalizeScreen extends StatelessWidget {
 extension _WalletPersonalizeScreenExtension on BuildContext {
   WalletPersonalizeBloc get bloc => read<WalletPersonalizeBloc>();
 }
+
+enum DigiDAuthStage { fetchingAuthUrl, awaitingUserAction, processingResult }
