@@ -758,6 +758,17 @@ impl<T: IssuanceState> Session<T> {
     }
 }
 
+impl CredentialPreview {
+    /// Returns an identifier for the issuer private key with which this credential is to be issued.
+    /// The issuer will need to have a private key under this identifier in its [`KeyRing`].
+    fn issuer_key_identifier(&self) -> &str {
+        match self {
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,
+            CredentialPreview::Jwt { claims, .. } => &claims.iss,
+        }
+    }
+}
+
 impl CredentialRequest {
     pub(crate) async fn verify_and_sign_credential(
         &self,
@@ -780,11 +791,11 @@ impl CredentialRequest {
                 &issuer_data.credential_issuer_identifier,
             )?;
 
-        let to_issue_type = to_issue_type.map(str::to_string).unwrap_or_default();
+        let key_id = preview.issuer_key_identifier();
         let issuer_privkey = issuer_data
             .private_keys
-            .key_pair(&to_issue_type)
-            .ok_or(CredentialRequestError::MissingPrivateKey(to_issue_type))?;
+            .key_pair(key_id)
+            .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 
         CredentialResponse::new(preview, holder_pubkey, issuer_privkey).await
     }
@@ -817,7 +828,13 @@ impl CredentialResponse {
                 let claims = JwtCredentialClaims {
                     cnf: JwtCredentialCnf { jwk },
                     contents: JwtCredentialContents {
-                        iss: issuer_privkey.certificate().common_names().unwrap().first().cloned(),
+                        iss: issuer_privkey
+                            .certificate()
+                            .common_names()
+                            .unwrap()
+                            .first()
+                            .unwrap()
+                            .to_string(),
                         attributes: claims.attributes,
                     },
                 };
