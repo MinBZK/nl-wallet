@@ -21,8 +21,6 @@ use super::{
 // JSON-deserialize the data. We use `PhantomData<T>` to prevent the compiler from complaining about `T` being unused.
 #[derive(Debug)]
 pub struct SignedDouble<T>(pub String, PhantomData<T>);
-#[derive(Debug)]
-pub(crate) struct SignedInner<T>(pub String, PhantomData<T>);
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SignedMessage<T> {
@@ -39,12 +37,6 @@ pub struct ChallengeResponsePayload<T> {
     #[serde_as(as = "Base64")]
     pub challenge: Vec<u8>,
     pub sequence_number: u64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SignedPayload<T> {
-    pub payload: T,
-    pub issuer: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -166,11 +158,6 @@ where
 impl<T, S: Into<String>> From<S> for SignedDouble<T> {
     fn from(val: S) -> Self {
         SignedDouble(val.into(), PhantomData)
-    }
-}
-impl<T, S: Into<String>> From<S> for SignedInner<T> {
-    fn from(val: S) -> Self {
-        SignedInner(val.into(), PhantomData)
     }
 }
 

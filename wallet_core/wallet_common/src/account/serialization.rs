@@ -18,7 +18,7 @@ use serde_with::{
     DeserializeAs, SerializeAs,
 };
 
-use super::signed::{SignedDouble, SignedInner};
+use super::signed::SignedDouble;
 
 /// ECDSA signature that (de)serializes from/to base64-encoded DER.
 #[derive(Debug, Clone)]
@@ -165,18 +165,6 @@ impl<T> Serialize for SignedDouble<T> {
 }
 
 impl<'de, T> Deserialize<'de> for SignedDouble<T> {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
-        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
-    }
-}
-
-impl<T> Serialize for SignedInner<T> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
-    }
-}
-
-impl<'de, T> Deserialize<'de> for SignedInner<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
     }
