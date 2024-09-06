@@ -54,10 +54,10 @@ pub enum CredentialRequestType {
 impl From<&CredentialPreview> for CredentialRequestType {
     fn from(value: &CredentialPreview) -> Self {
         match value {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Self::MsoMdoc {
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => CredentialRequestType::MsoMdoc {
                 doctype: Some(unsigned_mdoc.doc_type.clone()),
             },
-            CredentialPreview::Jwt { .. } => Self::Jwt,
+            CredentialPreview::Jwt { .. } => CredentialRequestType::Jwt,
         }
     }
 }

@@ -84,8 +84,8 @@ pub enum CredentialRequestError {
     Unauthorized,
     #[error("malformed access token")]
     MalformedToken,
-    #[error("doctype not offered")]
-    DoctypeNotOffered(Option<String>),
+    #[error("credential type not offered")]
+    CredentialTypeNotOffered(Option<String>),
     #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
     #[error("unsupported credential format: {0:?}")]
@@ -115,7 +115,7 @@ pub enum CredentialRequestError {
     #[error("JSON serialization failed: {0}")]
     JsonSerialization(#[from] serde_json::Error),
     #[error("mismatch between rquested and offered doctypes")]
-    DoctypeMismatch,
+    CredentialTypeMismatch,
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 }
@@ -630,11 +630,9 @@ impl Session<WaitingForResponse> {
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-        // Try to determine which credential the wallet is requesting:
-        // - If it names a credential type and we are offering a single credential of that credential type,
-        //   return that.
-        // - If it names no credential type and we are offering a single credential, return that.
-        // NB: the OpenID4VCI specification leaves open how to make this determination, this is our own behaviour.
+        // If we have exactly one credential on offer that matches the credential type that the client is
+        // requesting, then we issue that credential.
+        // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
         let requested_type = credential_request.credential_type();
         let offered_creds: Vec<_> = session_data
             .credential_previews
@@ -643,10 +641,10 @@ impl Session<WaitingForResponse> {
             .collect();
         let preview = match offered_creds.len() {
             1 => Ok(*offered_creds.first().unwrap()),
-            0 => Err(CredentialRequestError::DoctypeNotOffered(
+            0 => Err(CredentialRequestError::CredentialTypeNotOffered(
                 requested_type.map(str::to_string),
             )),
-            // If we have more than one mdoc on offer of the specified doctype then it is not clear which one
+            // If we have more than one credential on offer of the specified doctype then it is not clear which one
             // we should issue; abort
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
@@ -768,9 +766,8 @@ impl CredentialRequest {
         issuer_data: &IssuerData<impl KeyRing>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let requested_type = self.credential_type();
-        let to_issue_type = preview.credential_type();
-        if requested_type != to_issue_type {
-            return Err(CredentialRequestError::DoctypeMismatch);
+        if requested_type != preview.credential_type() {
+            return Err(CredentialRequestError::CredentialTypeMismatch);
         }
 
         let holder_pubkey = self

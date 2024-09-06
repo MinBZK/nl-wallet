@@ -125,6 +125,14 @@ impl Mdoc {
     }
 }
 
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[error("missing attributes: {missing:?}; unexpected attributes: {unexpected:?}")]
+#[category(pd)]
+pub struct IssuedAttributesMismatch<T = AttributeIdentifier> {
+    pub missing: Vec<T>,
+    pub unexpected: Vec<T>,
+}
+
 pub fn map_difference<K, T>(left: &IndexMap<K, T>, right: &IndexMap<K, T>) -> Vec<K>
 where
     K: Clone + std::hash::Hash + Eq,
@@ -154,14 +162,6 @@ fn flatten_attributes<'a>(
             })
         })
         .collect()
-}
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[error("missing attributes: {missing:?}; unexpected attributes: {unexpected:?}")]
-#[category(pd)]
-pub struct IssuedAttributesMismatch {
-    pub missing: Vec<AttributeIdentifier>,
-    pub unexpected: Vec<AttributeIdentifier>,
 }
 
 #[cfg(any(test, feature = "test"))]
