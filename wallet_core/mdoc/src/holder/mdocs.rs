@@ -22,7 +22,7 @@ use crate::{
     verifier::ValidityRequirement,
 };
 
-/// Stores multiple copies of attestations that have identical attributes.
+/// Stores multiple copies of credentials that have identical attributes.
 #[nutype(
     validate(predicate = |copies| !copies.is_empty()),
     derive(Debug, Clone, AsRef, TryFrom, Serialize, Deserialize, PartialEq)
