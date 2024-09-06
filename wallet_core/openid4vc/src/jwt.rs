@@ -56,9 +56,6 @@ pub struct JwtCredential {
 pub enum JwtCredentialError {
     #[error("failed to decode JWT body: {0}")]
     Decoding(#[from] JoseError),
-    #[error("JWT has no `iss` field")]
-    #[category(critical)]
-    IssuerMissing,
     #[error("unknown issuer: {0}")]
     #[category(critical)]
     UnknownIssuer(String),
@@ -93,19 +90,14 @@ impl JwtCredential {
     ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
         // Get the `iss` field from the claims so we can find the trust anchor with which to verify the JWT
         let (_, claims) = dangerous_parse_unverified::<JwtCredentialClaims>(&jwt)?;
-        let jwt_issuer = claims
-            .contents
-            .iss
-            .as_ref()
-            .ok_or(JwtCredentialError::IssuerMissing)?
-            .to_string();
+        let jwt_issuer = &claims.contents.iss;
 
         // See if we have a trust anchor that has the JWT issuer as (one of) its subject(s)
         let trust_anchor = trust_anchors
             .iter()
             .find_map(|anchor| {
                 trust_anchor_names(anchor)
-                    .map(|names| names.iter().any(|name| *name == jwt_issuer).then_some(anchor))
+                    .map(|names| names.iter().any(|name| name == jwt_issuer).then_some(anchor))
                     .transpose()
             })
             .transpose()?
@@ -174,7 +166,7 @@ pub struct JwtCredentialClaims {
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JwtCredentialContents {
-    pub iss: Option<String>,
+    pub iss: String,
 
     #[serde(flatten)]
     pub attributes: IndexMap<String, serde_json::Value>,

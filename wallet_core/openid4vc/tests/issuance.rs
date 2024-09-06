@@ -424,7 +424,7 @@ fn mock_jwt_attributes(issuer: &Certificate, attestation_count: usize, copy_coun
         .map(|_| CredentialPreview::Jwt {
             jwt_typ: None,
             claims: JwtCredentialContents {
-                iss: Some(issuer.clone()),
+                iss: issuer.clone(),
                 attributes: IndexMap::from([("foo".to_string(), "bar".to_string().into())]),
             },
             copy_count: NonZeroU8::new(copy_count).unwrap(),
