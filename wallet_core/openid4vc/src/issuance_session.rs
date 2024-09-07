@@ -15,7 +15,7 @@ use url::Url;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    holder::{IssuedAttributesMismatch, Mdoc, MdocCopies, TrustAnchor},
+    holder::{IssuedAttributesMismatch, Mdoc, TrustAnchor},
     utils::{
         cose::CoseError,
         keys::{KeyFactory, MdocEcdsaKey},
@@ -29,6 +29,7 @@ use wallet_common::{generator::TimeGenerator, jwt::JwtError, nonempty::NonEmpty,
 use crate::{
     credential::{
         CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
+        MdocCopies,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::JwkConversionError,

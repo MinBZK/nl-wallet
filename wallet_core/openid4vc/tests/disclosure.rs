@@ -17,8 +17,8 @@ use rstest::rstest;
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
     holder::{
-        mock::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocCopies, MdocDataSource,
-        StoredMdoc, TrustAnchor,
+        mock::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocDataSource, StoredMdoc,
+        TrustAnchor,
     },
     server_keys::KeyPair,
     software_key_factory::SoftwareKeyFactory,
@@ -31,6 +31,7 @@ use nl_wallet_mdoc::{
     DeviceResponse, DocType, SessionTranscript,
 };
 use openid4vc::{
+    credential::MdocCopies,
     disclosure_session::{
         DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
     },

@@ -17,10 +17,8 @@ use entity::{
     disclosure_history_event_doc_type, history_doc_type, issuance_history_event, issuance_history_event_doc_type,
     keyed_data, mdoc, mdoc_copy,
 };
-use nl_wallet_mdoc::{
-    holder::MdocCopies,
-    utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
-};
+use nl_wallet_mdoc::utils::serialization::{cbor_deserialize, cbor_serialize, CborError};
+use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
 use super::{

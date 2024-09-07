@@ -4,11 +4,9 @@ use tracing::{info, instrument};
 use url::Url;
 
 use error_category::{sentry_capture_error, ErrorCategory};
-use nl_wallet_mdoc::{
-    holder::MdocCopies,
-    utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
-};
+use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 use openid4vc::{
+    credential::MdocCopies,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
     token::CredentialPreviewError,
 };

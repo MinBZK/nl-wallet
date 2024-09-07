@@ -6,7 +6,6 @@ use indexmap::IndexMap;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    holder::MdocCopies,
     server_keys::{test::SingleKeyRing, KeyPair},
     software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
@@ -16,6 +15,7 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{
         CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
+        MdocCopies,
     },
     dpop::Dpop,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, VcMessageClient},
