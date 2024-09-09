@@ -15,9 +15,10 @@ use uuid::Uuid;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    holder::{Mdoc, MdocCopies},
+    holder::Mdoc,
     utils::{serialization::CborError, x509::Certificate},
 };
+use openid4vc::credential::MdocCopies;
 
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData, UnlockData, UnlockMethod},

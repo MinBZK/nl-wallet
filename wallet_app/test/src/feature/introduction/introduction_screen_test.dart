@@ -81,6 +81,21 @@ void main() {
       expect(find.text(l10n.introductionPage1Description), findsOneWidget);
     });
 
+    testWidgets('play/pause button initially shows pause icon', (WidgetTester tester) async {
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
+
+      expect(find.byIcon(Icons.pause_outlined), findsOneWidget);
+    });
+
+    testWidgets('play/pause button shows play icon after tapping it', (WidgetTester tester) async {
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
+
+      await tester.tap(find.byIcon(Icons.pause_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    });
+
     testWidgets('page 2 title and description are shown', (WidgetTester tester) async {
       const Key key = Key('introduction');
       await tester.pumpWidgetWithAppWrapper(const IntroductionScreen(key: key));

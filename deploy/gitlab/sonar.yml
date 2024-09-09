@@ -17,6 +17,7 @@ sonar-rust:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
+      -Dsonar.coverage.exclusions=flutter_api/src/bridge_generated/**,mock_relying_party/src/askama_axum.rs,wallet/migration/**,wallet_provider/migrations/**,wallet_server/migration/**
       -Dcommunity.rust.lcov.reportPaths="lcov.info"
 
 sonar-flutter:

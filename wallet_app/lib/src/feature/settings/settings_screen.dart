@@ -70,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
               label: context.l10n.settingsScreenSetupBiometricsCta(biometrics.prettyPrint(context)),
               subtitle:
                   context.l10n.settingsScreenSetupBiometricsNotSupportedSubtitle.takeIf((_) => !biometricsSupported),
-              icon: Icons.fingerprint,
+              icon: biometrics.icon,
               onTap:
                   biometricsSupported ? () => Navigator.pushNamed(context, WalletRoutes.biometricsSettingsRoute) : null,
             );

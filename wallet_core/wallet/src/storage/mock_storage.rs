@@ -5,7 +5,8 @@ use indexmap::IndexMap;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{holder::MdocCopies, utils::x509::Certificate, DocType};
+use nl_wallet_mdoc::{utils::x509::Certificate, DocType};
+use openid4vc::credential::MdocCopies;
 
 use crate::storage::event_log::WalletEventModel;
 

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-08-30T16:01:13+02:00",
+    "@@last_modified": "2024-09-04T16:07:54+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -20,14 +20,62 @@
     "activitySummaryToday": "Activiteiten vandaag",
     "appTitle": "NL Wallet",
     "biometricSettingsScreenDescription": "Hiermee open je de NL Wallet sneller. Je gebruikt jouw {supportedBiometrics} in plaats van jouw pincode.\nZet {supportedBiometrics} aan en bevestig met jouw pincode.",
+    "@biometricSettingsScreenDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSetupDialogDescription": "Om {supportedBiometrics} te gebruiken, dien je eerst \"{supportedBiometrics}\" aan te zetten op jouw toestel. Ga naar Instelingen > {supportedBiometrics}.",
+    "@biometricSettingsScreenSetupDialogDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSetupDialogOpenSettingsCta": "Open instellingen",
     "biometricSettingsScreenSetupDialogTitle": "Zet {supportedBiometrics} eerst aan",
+    "@biometricSettingsScreenSetupDialogTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSuccessDescription": "Je app is beveiligd met jouw pincode en {supportedBiometrics}.",
-    "biometricSettingsScreenSuccessTitle": "Succes!",
+    "@biometricSettingsScreenSuccessDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
+    "biometricSettingsScreenSuccessTitle": "Gelukt!",
     "biometricSettingsScreenSuccessToSettingsCta": "Naar instellingen",
     "biometricSettingsScreenSwitchCta": "Open met {supportedBiometrics}",
+    "@biometricSettingsScreenSwitchCta": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenTitle": "Open met {supportedBiometrics}",
+    "@biometricSettingsScreenTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricsFace": "gezichts-scan",
     "biometricsFaceId": "Face ID",
     "biometricsFaceIdOrTouchId": "Face ID of Touch ID",
@@ -107,15 +155,7 @@
     "cardHistorySigningSuccess": "Ondertekend",
     "cardHistoryTimelineOperationExpired": "Kaart verlopen",
     "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
-    "cardTitleSemanticsLabel": "Kaart: {cardTitle}",
-    "@cardTitleSemanticsLabel": {
-        "placeholders": {
-            "cardTitle": {
-                "example": "Personal data",
-                "type": "String"
-            }
-        }
-    },
+    "cardTitleSemanticsLabel": "Kaart",
     "cardValueFalse": "Nee",
     "cardValueGenderFemale": "Vrouw",
     "cardValueGenderMale": "Man",
@@ -538,6 +578,8 @@
     "introductionPrivacyScreenPrivacyCta": "Lees het privacybeleid",
     "introductionSkipCta": "Overslaan",
     "introductionWCAGDutchGovernmentLogoLabel": "Rijksoverheid logo",
+    "introductionWCAGPauseButtonLabel": "Bewegende afbeelding speelt af, Pauze",
+    "introductionWCAGPlayButtonLabel": "Bewegende afbeelding is gestopt, Speel af",
     "invalidQrDialogCta": "OK",
     "invalidQrDialogDescription": "De QR-code die je hebt gescand werd niet herkent. Controleer of je een Wallet QR-code gebruikt en probeer opnieuw.",
     "invalidQrDialogTitle": "Ongeldige QR-code",
@@ -854,7 +896,7 @@
         }
     },
     "requestDetailsScreenAttributesTitle": "Gevraagde gegevens",
-    "resetWalletDialogBody": "Hiermee verwijder je alle gegevens in de app. Vervolgens begin je opnieuw met de app-inleiding en kun je opnieuw je wallet aanmaken.",
+    "resetWalletDialogBody": "Hiermee worden al je gegevens verwijderd. Je kunt de NL Wallet daarna opnieuw aanmaken.",
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
     "resetWalletDialogTitle": "Wil je alle gegevens verwijderen?",
@@ -865,6 +907,14 @@
     "settingsScreenChangePinCta": "Pincode veranderen",
     "settingsScreenClearDataCta": "Gegevens verwijderen",
     "settingsScreenSetupBiometricsCta": "Open met {supportedBiometrics}",
+    "@settingsScreenSetupBiometricsCta": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Niet beschikbaar op dit toestel",
     "settingsScreenTitle": "Instellingen",
     "setupBiometricsPageDescription": "Hierdoor open je sneller je NL Wallet. Je gebruikt je gezicht of vingerafdruk in plaats van je pincode.",
@@ -872,10 +922,26 @@
     "setupBiometricsPageLocalizedReason": "Instelling bevestigen",
     "setupBiometricsPageSkipCta": "Overslaan",
     "setupBiometricsPageTitle": "Wil je de app openen met {supportedBiometrics}?",
+    "@setupBiometricsPageTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "setupSecurityCompletedPageCreateWalletCta": "Volgende",
     "setupSecurityCompletedPageDescription": "Je app is beveiligd met je pincode.",
     "setupSecurityCompletedPageTitle": "Gelukt!",
     "setupSecurityCompletedPageWithBiometricsDescription": "Je app is beveiligd met je pincode en {supportedBiometrics}.",
+    "@setupSecurityCompletedPageWithBiometricsDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "setupSecurityConfirmationPageTitle": "Herhaal je pincode",
     "setupSecurityLoadingPageDescription": "Momentje...",
     "setupSecurityLoadingPageTitle": "Opslaan",
@@ -969,9 +1035,9 @@
     "walletPersonalizeNoDigidPageDescription": "Op dit moment kun je alleen een Wallet aanmaken met de DigiD app.\n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
     "walletPersonalizeNoDigidPageHeadline": "Geen DigiD?",
     "walletPersonalizeNoDigidPageRequestDigidCta": "DigiD aanvragen",
+    "walletPersonalizeScreenAwaitingUserAuthDescription": "Zo haal je je gegevens op",
+    "walletPersonalizeScreenAwaitingUserAuthTitle": "Ga verder in je DigiD app",
     "walletPersonalizeScreenDigidLoadingStopCta": "Stoppen",
-    "walletPersonalizeScreenDigidLoadingSubtitle": "Je wordt automatisch doorgestuurd",
-    "walletPersonalizeScreenDigidLoadingTitle": "Login bij DigiD",
     "walletPersonalizeScreenErrorDescription": "Er is iets mis gegaan, probeer opnieuw.",
     "walletPersonalizeScreenErrorRetryCta": "Probeer opnieuw",
     "walletPersonalizeScreenErrorTitle": "Personaliseren mislukt",
@@ -979,8 +1045,12 @@
     "walletPersonalizeScreenExitSheetConfirmCta": "Ja, stoppen",
     "walletPersonalizeScreenExitSheetDescription": "Weet je zeker dat je wilt stoppen met het aanmaken van een Wallet?",
     "walletPersonalizeScreenExitSheetTitle": "Stop",
+    "walletPersonalizeScreenLoadingDigiDUrlDescription": "DigiD app wordt geopend",
+    "walletPersonalizeScreenLoadingDigiDUrlTitle": "Even geduld",
     "walletPersonalizeScreenLoadingSubtitle": "Momentje...",
     "walletPersonalizeScreenLoadingTitle": "Aan het laden",
+    "walletPersonalizeScreenProcessingDigiDResultDescription": "Gegevens worden opgehaald",
+    "walletPersonalizeScreenProcessingDigiDResultTitle": "Even geduld",
     "walletPersonalizeScreenStopDigidDialogNegativeCta": "Terug",
     "walletPersonalizeScreenStopDigidDialogPositiveCta": "Inloggen stoppen",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Weet je zeker dat je wil stoppen?",

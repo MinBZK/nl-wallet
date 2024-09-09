@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -13,7 +12,6 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/helper/announcements_helper.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
-import '../../wallet_icons.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/page_illustration.dart';
 import '../common/page/terminal_page.dart';
@@ -196,12 +194,6 @@ class SetupSecurityScreen extends StatelessWidget {
       Biometrics.some => WalletAssets.svg_biometrics_finger,
       Biometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
     };
-    final primaryButtonIcon = switch (state.biometrics) {
-      Biometrics.face => Platform.isIOS ? WalletIcons.icon_face_id : Icons.face_unlock_outlined,
-      Biometrics.fingerprint => Icons.fingerprint_outlined,
-      Biometrics.some => Icons.fingerprint_outlined,
-      Biometrics.none => throw UnsupportedError('Biometrics cant be configured when none are available'),
-    };
     return TerminalPage(
       title: title,
       description: context.l10n.setupBiometricsPageDescription,
@@ -209,7 +201,7 @@ class SetupSecurityScreen extends StatelessWidget {
       illustration: PageIllustration(asset: illustration),
       onPrimaryPressed: () => context.bloc.add(EnableBiometricsPressed()),
       secondaryButtonCta: context.l10n.setupBiometricsPageSkipCta,
-      primaryButtonIcon: primaryButtonIcon,
+      primaryButtonIcon: state.biometrics.icon,
       onSecondaryButtonPressed: () => context.bloc.add(SkipBiometricsPressed()),
     );
   }

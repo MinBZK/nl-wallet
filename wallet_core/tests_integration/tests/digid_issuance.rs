@@ -1,12 +1,10 @@
 use openid4vc::{
+    credential::MdocCopies,
     issuance_session::{HttpIssuanceSession, HttpVcMessageClient, IssuanceSession},
     oidc::HttpOidcClient,
 };
 
-use nl_wallet_mdoc::{
-    holder::{MdocCopies, TrustAnchor},
-    software_key_factory::SoftwareKeyFactory,
-};
+use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
 use tests_integration::{common::*, fake_digid::fake_digid_auth};
 use wallet::{
     mock::default_configuration,

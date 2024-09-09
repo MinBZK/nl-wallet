@@ -1,8 +1,10 @@
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use futures::future::try_join_all;
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::{
+    holder::Mdoc,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::CborBase64,
@@ -145,5 +147,36 @@ impl CredentialRequestProof {
             .collect();
 
         Ok(keys_and_proofs)
+    }
+}
+
+/// Stores multiple copies of credentials that have identical attributes.
+#[nutype(
+    validate(predicate = |copies| !copies.is_empty()),
+    derive(Debug, Clone, AsRef, TryFrom, Serialize, Deserialize, PartialEq)
+)]
+pub struct CredentialCopies<T>(Vec<T>);
+
+pub type MdocCopies = CredentialCopies<Mdoc>;
+
+impl<T> IntoIterator for CredentialCopies<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_inner().into_iter()
+    }
+}
+
+impl<T> CredentialCopies<T> {
+    pub fn first(&self) -> &T {
+        self.as_ref().first().unwrap()
+    }
+
+    pub fn len(&self) -> usize {
+        self.as_ref().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.as_ref().is_empty()
     }
 }

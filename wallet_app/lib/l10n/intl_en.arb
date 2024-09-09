@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-08-30T16:01:13+02:00",
+    "@@last_modified": "2024-09-04T16:07:54+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -24,14 +24,62 @@
     "activitySummaryToday": "Activities today",
     "appTitle": "NL Wallet",
     "biometricSettingsScreenDescription": "This will open your NL Wallet faster. You'll use your {supportedBiometrics} instead of your PIN code.\nEnable {supportedBiometrics} and confirm with your PIN code.",
+    "@biometricSettingsScreenDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSetupDialogDescription": "For {supportedBiometrics}, you first need to turn on \"{supportedBiometrics}\" on your device. Go to Settings > {supportedBiometrics}.",
+    "@biometricSettingsScreenSetupDialogDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSetupDialogOpenSettingsCta": "Open settings",
     "biometricSettingsScreenSetupDialogTitle": "Turn on {supportedBiometrics} first",
+    "@biometricSettingsScreenSetupDialogTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSuccessDescription": "Your app is secured with your PIN code and {supportedBiometrics}.",
+    "@biometricSettingsScreenSuccessDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenSuccessTitle": "Success!",
     "biometricSettingsScreenSuccessToSettingsCta": "To settings",
     "biometricSettingsScreenSwitchCta": "Unlock with {supportedBiometrics}",
+    "@biometricSettingsScreenSwitchCta": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricSettingsScreenTitle": "Unlock with {supportedBiometrics}",
+    "@biometricSettingsScreenTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "biometricsFace": "face scan",
     "biometricsFaceId": "Face ID",
     "biometricsFaceIdOrTouchId": "Face ID or Touch ID",
@@ -111,15 +159,7 @@
     "cardHistorySigningSuccess": "Signed",
     "cardHistoryTimelineOperationExpired": "Card is expired",
     "cardHistoryTimelineOperationRenewed": "Card updated",
-    "cardTitleSemanticsLabel": "Card: {cardTitle}",
-    "@cardTitleSemanticsLabel": {
-        "placeholders": {
-            "cardTitle": {
-                "example": "Personal data",
-                "type": "String"
-            }
-        }
-    },
+    "cardTitleSemanticsLabel": "Card",
     "cardValueFalse": "No",
     "cardValueGenderFemale": "Female",
     "cardValueGenderMale": "Male",
@@ -542,6 +582,8 @@
     "introductionPrivacyScreenPrivacyCta": "Read the privacy policy",
     "introductionSkipCta": "Skip",
     "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
+    "introductionWCAGPauseButtonLabel": "Moving image is playing, Pause",
+    "introductionWCAGPlayButtonLabel": "Moving image is stopped, Play",
     "invalidQrDialogCta": "OK",
     "invalidQrDialogDescription": "The scanned QR code is invalid. Ensure you are scanning a QR code for the NL Wallet and try again.",
     "invalidQrDialogTitle": "Invalid QR code",
@@ -858,7 +900,7 @@
         }
     },
     "requestDetailsScreenAttributesTitle": "Requested attributes",
-    "resetWalletDialogBody": "This will delete all your data in the app. You will return to the app introduction, and then you could create your wallet again.",
+    "resetWalletDialogBody": "This will delete all your data. You can then recreate the NL Wallet.",
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",
     "resetWalletDialogTitle": "Do you want to delete all data?",
@@ -869,6 +911,14 @@
     "settingsScreenChangePinCta": "Change PIN code",
     "settingsScreenClearDataCta": "Remove data",
     "settingsScreenSetupBiometricsCta": "Unlock with {supportedBiometrics}",
+    "@settingsScreenSetupBiometricsCta": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Not supported on this device",
     "settingsScreenTitle": "Settings",
     "setupBiometricsPageDescription": "This will open your NL Wallet faster. You'll use your face or fingerprint instead of your PIN code.",
@@ -876,10 +926,26 @@
     "setupBiometricsPageLocalizedReason": "Confirm setup",
     "setupBiometricsPageSkipCta": "Skip",
     "setupBiometricsPageTitle": "Do you want to unlock the app with {supportedBiometrics}?",
+    "@setupBiometricsPageTitle": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "setupSecurityCompletedPageCreateWalletCta": "Next",
     "setupSecurityCompletedPageDescription": "Your app is secured with your PIN code.",
     "setupSecurityCompletedPageTitle": "Success!",
     "setupSecurityCompletedPageWithBiometricsDescription": "Your app is secured with your PIN code and {supportedBiometrics}.",
+    "@setupSecurityCompletedPageWithBiometricsDescription": {
+        "placeholders": {
+            "supportedBiometrics": {
+                "example": "Face ID",
+                "type": "String"
+            }
+        }
+    },
     "setupSecurityConfirmationPageTitle": "Repeat your PIN code",
     "setupSecurityLoadingPageDescription": "Please wait...",
     "setupSecurityLoadingPageTitle": "Save",
@@ -973,9 +1039,9 @@
     "walletPersonalizeNoDigidPageDescription": "At the moment you can only create a Wallet with the DigiD app.\n\nDo you live in the Netherlands and do you have a Dutch identity document? Then you can apply for a DigiD.",
     "walletPersonalizeNoDigidPageHeadline": "No DigiD?",
     "walletPersonalizeNoDigidPageRequestDigidCta": "Request DigiD",
+    "walletPersonalizeScreenAwaitingUserAuthDescription": "That's how to retrieve your data",
+    "walletPersonalizeScreenAwaitingUserAuthTitle": "Continue in your DigiD app",
     "walletPersonalizeScreenDigidLoadingStopCta": "Stop",
-    "walletPersonalizeScreenDigidLoadingSubtitle": "You will be redirected automatically",
-    "walletPersonalizeScreenDigidLoadingTitle": "Login with DigiD",
     "walletPersonalizeScreenErrorDescription": "Something went wrong, please try again.",
     "walletPersonalizeScreenErrorRetryCta": "Try again",
     "walletPersonalizeScreenErrorTitle": "Personalization failed",
@@ -983,8 +1049,12 @@
     "walletPersonalizeScreenExitSheetConfirmCta": "Yes, stop",
     "walletPersonalizeScreenExitSheetDescription": "Are you sure you want to quit setting up your Wallet?",
     "walletPersonalizeScreenExitSheetTitle": "Exit",
+    "walletPersonalizeScreenLoadingDigiDUrlDescription": "The app is being opened",
+    "walletPersonalizeScreenLoadingDigiDUrlTitle": "Please wait",
     "walletPersonalizeScreenLoadingSubtitle": "Please wait...",
     "walletPersonalizeScreenLoadingTitle": "Loading",
+    "walletPersonalizeScreenProcessingDigiDResultDescription": "Data is being retrieved",
+    "walletPersonalizeScreenProcessingDigiDResultTitle": "Please wait",
     "walletPersonalizeScreenStopDigidDialogNegativeCta": "Back",
     "walletPersonalizeScreenStopDigidDialogPositiveCta": "Stop login",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Are you sure you want to stop?",

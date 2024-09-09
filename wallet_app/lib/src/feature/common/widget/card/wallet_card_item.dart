@@ -166,7 +166,7 @@ class WalletCardItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Semantics(
-                  attributedLabel: context.l10n.cardTitleSemanticsLabel(title).toAttributedString(context),
+                  attributedLabel: context.l10n.cardTitleSemanticsLabel.toAttributedString(context),
                   child: Text.rich(
                     (title.takeIf((_) => showText) ?? '').toTextSpan(context),
                     style: context.textTheme.displaySmall,
