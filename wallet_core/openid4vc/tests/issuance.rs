@@ -71,7 +71,7 @@ fn setup(
     let issuer = MockIssuer::new(
         MemorySessionStore::default(),
         attr_service,
-        SingleKeyRing(issuance_keypair),
+        SingleKeyRing(issuance_keypair.into()),
         &server_url,
         vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
     );

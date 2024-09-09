@@ -23,7 +23,7 @@ use url::Url;
 use nl_wallet_mdoc::{
     examples::{Example, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
     holder::{mock::MockMdocDataSource, Mdoc, TrustAnchor},
-    server_keys::KeyPair,
+    server_keys::{AttestationSigner, KeyPair},
     software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
     utils::{
@@ -94,7 +94,7 @@ fn fake_issuer_settings() -> Issuer {
     }
 }
 
-fn wallet_server_settings() -> (Settings, KeyPair, OwnedTrustAnchor) {
+fn wallet_server_settings() -> (Settings, AttestationSigner<SigningKey>, OwnedTrustAnchor) {
     // Set up the hostname and ports.
     let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
@@ -107,7 +107,8 @@ fn wallet_server_settings() -> (Settings, KeyPair, OwnedTrustAnchor) {
     let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuer_key_pair = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
-        .unwrap();
+        .unwrap()
+        .into();
     let issuer_trust_anchor = issuer_ca.certificate().try_into().unwrap();
 
     // Create the RP CA, derive the trust anchor from it and generate
@@ -496,7 +497,14 @@ async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
 
 async fn start_disclosure<S>(
     disclosure_sessions: S,
-) -> (Settings, Client, SessionToken, BaseUrl, KeyPair, OwnedTrustAnchor)
+) -> (
+    Settings,
+    Client,
+    SessionToken,
+    BaseUrl,
+    AttestationSigner<SigningKey>,
+    OwnedTrustAnchor,
+)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -707,7 +715,7 @@ async fn test_disclosure_expired_postgres() {
 /// attributes in the example from the ISO spec, resigned with the keys generated during test
 /// setup. The private key used to sign this [`Mdoc`] is placed in a [`SoftwareKeyFactory`].
 async fn prepare_example_holder_mocks(
-    issuer_key_pair: &KeyPair,
+    issuer_key_pair: &AttestationSigner<SigningKey>,
     issuer_trust_anchors: &[TrustAnchor<'_>],
 ) -> (MockMdocDataSource, SoftwareKeyFactory) {
     // Extract the the attributes from the example DeviceResponse in the ISO specs.

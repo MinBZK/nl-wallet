@@ -622,7 +622,7 @@ mod tests {
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
-                    issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                    issuer: ISSUER_KEY.issuance_key.certificate.clone(),
                 }],
             ))
         });
@@ -756,7 +756,7 @@ mod tests {
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
-                    issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                    issuer: ISSUER_KEY.issuance_key.certificate.clone(),
                 }],
             ))
         });

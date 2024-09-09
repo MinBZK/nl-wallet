@@ -62,19 +62,48 @@ impl EcdsaKey for KeyPair {
     }
 }
 
+pub struct AttestationSigner<S> {
+    pub private_key: S,
+    pub certificate: Certificate,
+}
+
+impl<S> AttestationSigner<S> {
+    pub fn new(private_key: S, certificate: Certificate) -> Self {
+        Self {
+            private_key,
+            certificate,
+        }
+    }
+}
+
+impl From<KeyPair> for AttestationSigner<SigningKey> {
+    fn from(keypair: KeyPair) -> Self {
+        Self {
+            private_key: keypair.private_key,
+            certificate: keypair.certificate,
+        }
+    }
+}
+
 pub trait KeyRing {
-    fn key_pair(&self, id: &str) -> Option<&KeyPair>;
+    type Key: EcdsaKey;
+
+    fn key_pair(&self, id: &str) -> Option<&AttestationSigner<Self::Key>>;
 }
 
 #[cfg(any(test, feature = "test"))]
 pub mod test {
-    use super::{KeyPair, KeyRing};
+    use p256::ecdsa::SigningKey;
+
+    use super::{AttestationSigner, KeyRing};
 
     /// An implementation of [`KeyRing`] containing a single key.
-    pub struct SingleKeyRing(pub KeyPair);
+    pub struct SingleKeyRing(pub AttestationSigner<SigningKey>);
 
     impl KeyRing for SingleKeyRing {
-        fn key_pair(&self, _: &str) -> Option<&KeyPair> {
+        type Key = SigningKey;
+
+        fn key_pair(&self, _: &str) -> Option<&AttestationSigner<SigningKey>> {
             Some(&self.0)
         }
     }

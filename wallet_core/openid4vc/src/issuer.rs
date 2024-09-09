@@ -12,12 +12,13 @@ use tokio::task::JoinHandle;
 use tracing::info;
 
 use nl_wallet_mdoc::{
-    server_keys::{KeyPair, KeyRing},
+    server_keys::{AttestationSigner, KeyRing},
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };
 use wallet_common::{
     jwt::{EcdsaDecodingKey, Jwt},
+    keys::EcdsaKey,
     nonempty::NonEmpty,
     urls::BaseUrl,
     utils::random_string,
@@ -805,7 +806,7 @@ impl CredentialResponse {
     async fn new(
         preview: CredentialPreview,
         holder_pubkey: VerifyingKey,
-        issuer_privkey: &KeyPair,
+        issuer_privkey: &AttestationSigner<impl EcdsaKey>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         match preview {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
@@ -829,7 +830,7 @@ impl CredentialResponse {
                     cnf: JwtCredentialCnf { jwk },
                     contents: JwtCredentialContents {
                         iss: issuer_privkey
-                            .certificate()
+                            .certificate
                             .common_names()
                             .unwrap()
                             .first()
@@ -842,7 +843,7 @@ impl CredentialResponse {
                 let mut header = Header::new(Algorithm::ES256);
                 header.typ = jwt_typ.or(header.typ);
 
-                let credential = Jwt::sign(&claims, &header, issuer_privkey.private_key()).await.unwrap();
+                let credential = Jwt::sign(&claims, &header, &issuer_privkey.private_key).await.unwrap();
 
                 Ok(CredentialResponse::Jwt { credential })
             }

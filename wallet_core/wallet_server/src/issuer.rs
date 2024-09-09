@@ -11,9 +11,10 @@ use axum_extra::{
     TypedHeader,
 };
 use nutype::nutype;
+use p256::ecdsa::SigningKey;
 use serde::Serialize;
 
-use nl_wallet_mdoc::server_keys::{KeyPair, KeyRing};
+use nl_wallet_mdoc::server_keys::{AttestationSigner, KeyRing};
 use openid4vc::{
     credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
@@ -23,6 +24,7 @@ use openid4vc::{
     token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode, ErrorResponse, ErrorStatusCode, TokenErrorCode,
 };
+use wallet_common::keys::EcdsaKey;
 
 use crate::settings::{self, Urls};
 
@@ -33,15 +35,17 @@ struct ApplicationState<A, K, S> {
 }
 
 #[nutype(derive(From, AsRef))]
-pub struct IssuerKeyRing(HashMap<String, KeyPair>);
+pub struct IssuerKeyRing<K>(HashMap<String, AttestationSigner<K>>);
 
-impl KeyRing for IssuerKeyRing {
-    fn key_pair(&self, id: &str) -> Option<&KeyPair> {
+impl<K: EcdsaKey> KeyRing for IssuerKeyRing<K> {
+    type Key = K;
+
+    fn key_pair(&self, id: &str) -> Option<&AttestationSigner<K>> {
         self.as_ref().get(id)
     }
 }
 
-impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
+impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing<SigningKey> {
     type Error = p256::pkcs8::Error;
 
     fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {

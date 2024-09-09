@@ -551,7 +551,7 @@ mod tests {
                         value: DataElementValue::Bool(true),
                     }],
                 )]),
-                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                issuer: ISSUER_KEY.issuance_key.certificate.clone(),
             },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
@@ -810,7 +810,7 @@ mod tests {
                         value: DataElementValue::Text("bar".to_string()),
                     }],
                 )]),
-                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                issuer: ISSUER_KEY.issuance_key.certificate.clone(),
             },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
@@ -862,7 +862,7 @@ mod tests {
                         value: DataElementValue::Bool(true),
                     }],
                 )]),
-                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                issuer: ISSUER_KEY.issuance_key.certificate.clone(),
             },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
@@ -1056,7 +1056,7 @@ mod tests {
                         value: DataElementValue::Bool(true),
                     }],
                 )]),
-                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                issuer: ISSUER_KEY.issuance_key.certificate.clone(),
             },
         )]);
         let disclosure_session = MockMdocDisclosureProposal {
