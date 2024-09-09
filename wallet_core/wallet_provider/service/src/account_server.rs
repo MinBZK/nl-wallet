@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
@@ -230,7 +230,7 @@ impl AccountServer {
         &self,
         challenge_request: InstructionChallengeRequest,
         repositories: &R,
-        time_generator: &impl Generator<DateTime<Local>>,
+        time_generator: &impl Generator<DateTime<Utc>>,
         hsm: &H,
     ) -> Result<Vec<u8>, ChallengeError>
     where
@@ -290,7 +290,7 @@ impl AccountServer {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         I: HandleInstruction<Result = IR> + Serialize + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
-        G: Generator<Uuid> + Generator<DateTime<Local>>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
     {
         debug!("Verifying certificate and retrieving wallet user");
@@ -560,7 +560,7 @@ impl AccountServer {
         &self,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
-        time_generator: &impl Generator<DateTime<Local>>,
+        time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
     ) -> Result<ChallengeResponse<I>, InstructionValidationError>
     where
@@ -808,7 +808,7 @@ mod tests {
                 last_unsuccessful_pin_entry: None,
                 instruction_challenge: self.challenge.clone().map(|c| InstructionChallenge {
                     bytes: c,
-                    expiration_date_time: Local::now() + Duration::from_millis(15000),
+                    expiration_date_time: Utc::now() + Duration::from_millis(15000),
                 }),
                 instruction_sequence_number: self.instruction_sequence_number,
             })))
@@ -818,7 +818,7 @@ mod tests {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _is_blocked: bool,
-            _datetime: DateTime<Local>,
+            _datetime: DateTime<Utc>,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
@@ -1238,9 +1238,9 @@ mod tests {
 
     struct ExpiredAtEpochGeneretor;
 
-    impl Generator<DateTime<Local>> for ExpiredAtEpochGeneretor {
-        fn generate(&self) -> DateTime<Local> {
-            Local.timestamp_nanos(-1)
+    impl Generator<DateTime<Utc>> for ExpiredAtEpochGeneretor {
+        fn generate(&self) -> DateTime<Utc> {
+            Utc.timestamp_nanos(-1)
         }
     }
 

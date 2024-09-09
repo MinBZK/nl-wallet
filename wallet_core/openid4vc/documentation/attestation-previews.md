@@ -17,7 +17,7 @@ In this extension, the attestation previews are sent by the issuer to the wallet
 
 ## Data structure
 
-The extra field in the Token Response is an array called `attestation_previews`, which contains objects representing previews of the attestations being issued. Each preview object contains a `format` field containing a string identifying the format of the attestation. The remaining fields of the object may differ per format.
+The extra field in the Token Response is an array called `credential_previews`, which contains objects representing previews of the attestations being issued. Each preview object contains a `format` field containing a string identifying the format of the attestation. The remaining fields of the object may differ per format.
 
 In the case of the `mso_mdoc` format value, which is the only currently supported format implemented by the NL Wallet, the remaining fields in the attestation preview object are as follows.
 
@@ -40,7 +40,7 @@ An example of a Token Response containing an attestation preview is shown below.
   "access_token": "lKb0I2Fr1ID747bDatmzHdqUKsC1BS8MY",
   "bearer_type": "DPoP",
   "c_nonce": "xDp1LxNtx8KCqXdxSzQpAHqElFZVTXMX",
-  "attestation_previews": [
+  "credential_previews": [
     {
       "format": "mso_mdoc",
       "issuer": "MIJumzCCbkKgAwIBAgIVAPrmBbCgP...",

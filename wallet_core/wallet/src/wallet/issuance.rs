@@ -6,8 +6,9 @@ use url::Url;
 use error_category::{sentry_capture_error, ErrorCategory};
 use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 use openid4vc::{
+    credential::MdocCopies,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
-    token::AttestationPreviewError,
+    token::CredentialPreviewError,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{jwt::JwtError, reqwest::trusted_reqwest_client_builder, urls};
@@ -74,7 +75,7 @@ pub enum PidIssuanceError {
     #[error("could not read documents from storage: {0}")]
     Document(#[source] DocumentsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
-    AttestationPreview(#[from] AttestationPreviewError),
+    AttestationPreview(#[from] CredentialPreviewError),
 }
 
 impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
@@ -284,7 +285,7 @@ where
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
-        let mdocs_result = pid_issuer
+        let issuance_result = pid_issuer
             .accept_issuance(
                 &config.mdoc_trust_anchors(),
                 &remote_key_factory,
@@ -311,25 +312,27 @@ where
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
         // wipe the contents of the wallet and return it to its initial state.
         if matches!(
-            mdocs_result,
+            issuance_result,
             Err(PidIssuanceError::Instruction(
                 InstructionError::Timeout { .. } | InstructionError::Blocked
             ))
         ) {
             self.reset_to_initial_state().await;
         }
-        let mdocs = mdocs_result?;
+        let issued_mdocs = issuance_result?
+            .into_iter()
+            .map(|mdocs| mdocs.try_into())
+            .collect::<Result<Vec<_>, _>>()?;
 
         info!("Isuance succeeded; removing issuance session state");
         self.issuance_session.take();
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
-            // Extract first copy from cred_copies
-            let mdocs = mdocs
+            // Extract first copy from each issued mdoc
+            let mdocs = issued_mdocs
                 .iter()
-                .flat_map(|mdoc| mdoc.cred_copies.first())
-                .cloned()
+                .map(|mdoc: &MdocCopies| mdoc.first().clone())
                 .collect::<Vec<_>>();
 
             // Validate all issuer_certificates
@@ -349,7 +352,7 @@ where
         info!("PID accepted, storing mdoc in database");
         self.storage
             .get_mut()
-            .insert_mdocs(mdocs)
+            .insert_mdocs(issued_mdocs)
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
 
@@ -368,9 +371,10 @@ mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
     use openid4vc::{
+        issuance_session::IssuedCredential,
         mock::MockIssuanceSession,
         oidc::OidcError,
-        token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
+        token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
     };
     use rstest::rstest;
     use serial_test::serial;
@@ -616,7 +620,7 @@ mod tests {
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
-                vec![AttestationPreview::MsoMdoc {
+                vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],
@@ -750,7 +754,7 @@ mod tests {
 
             Ok((
                 MockIssuanceSession::new(),
-                vec![AttestationPreview::MsoMdoc {
+                vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],
@@ -808,7 +812,9 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
+            client
+                .expect_accept()
+                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -870,7 +876,9 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
+            client
+                .expect_accept()
+                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -1058,7 +1066,9 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
+            client
+                .expect_accept()
+                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));

@@ -34,8 +34,9 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     this.getPidIssuanceUrlUseCase,
     this.cancelPidIssuanceUseCase,
     this.continuePidIssuanceUseCase,
-    this.isWalletInitializedWithPidUseCase,
-  ) : super(const WalletPersonalizeInitial()) {
+    this.isWalletInitializedWithPidUseCase, {
+    bool continueFromDigiD = false,
+  }) : super(continueFromDigiD ? const WalletPersonalizeAuthenticating() : const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
     on<WalletPersonalizeLoginWithDigidFailed>(_onLoginWithDigidFailed);

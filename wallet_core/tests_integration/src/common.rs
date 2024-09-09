@@ -22,7 +22,7 @@ use openid4vc::{
     issuer::{AttributeService, Created},
     oidc,
     server_state::SessionState,
-    token::{AttestationPreview, TokenRequest},
+    token::{CredentialPreview, TokenRequest},
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use uuid::Uuid;
@@ -359,12 +359,12 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
+    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error> {
         let attributes = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()
             .into_iter()
-            .map(|unsigned_mdoc| AttestationPreview::MsoMdoc {
+            .map(|unsigned_mdoc| CredentialPreview::MsoMdoc {
                 issuer: self.0[&unsigned_mdoc.doc_type].clone(),
                 unsigned_mdoc,
             })
