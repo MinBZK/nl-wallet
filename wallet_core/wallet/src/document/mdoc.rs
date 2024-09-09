@@ -302,7 +302,8 @@ impl MissingDisclosureAttributes {
                 .into_iter()
                 .try_fold(IndexMap::<_, IndexMap<_, _>>::new(), {
                     |mut attributes_by_doc_type, missing_attribute| {
-                        let (doc_type, attribute_mapping) = mapping_for_doc_type(missing_attribute.credential_type.as_str())?;
+                        let (doc_type, attribute_mapping) =
+                            mapping_for_doc_type(missing_attribute.credential_type.as_str())?;
                         let value_mapping = attribute_mapping
                             .get(&(
                                 missing_attribute.namespace.as_str(),
