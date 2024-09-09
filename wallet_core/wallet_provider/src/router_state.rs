@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Duration, Utc};
 use serde::{de::DeserializeOwned, Serialize};
 use tracing::info;
 use uuid::Uuid;
@@ -123,8 +123,8 @@ impl Generator<uuid::Uuid> for RouterState {
     }
 }
 
-impl Generator<DateTime<Local>> for RouterState {
-    fn generate(&self) -> DateTime<Local> {
-        Local::now()
+impl Generator<DateTime<Utc>> for RouterState {
+    fn generate(&self) -> DateTime<Utc> {
+        Utc::now()
     }
 }

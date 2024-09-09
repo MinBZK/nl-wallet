@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Formatter};
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use uuid::Uuid;
@@ -17,7 +17,7 @@ pub struct WalletUser {
     pub hw_pubkey: DerVerifyingKey,
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     pub unsuccessful_pin_entries: u8,
-    pub last_unsuccessful_pin_entry: Option<DateTime<Local>>,
+    pub last_unsuccessful_pin_entry: Option<DateTime<Utc>>,
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
 }
@@ -31,7 +31,7 @@ impl Debug for WalletUser {
 #[derive(Clone, Serialize, Debug)]
 pub struct InstructionChallenge {
     pub bytes: Vec<u8>,
-    pub expiration_date_time: DateTime<Local>,
+    pub expiration_date_time: DateTime<Utc>,
 }
 
 #[derive(Debug)]
