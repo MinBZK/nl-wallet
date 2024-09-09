@@ -14,20 +14,20 @@ pub mod pkce;
 pub mod issuance_session;
 pub mod issuer;
 
+// Verification code for the server and client.
+pub mod disclosure_session;
+pub mod openid4vp;
+pub mod presentation_exchange;
+pub mod return_url;
+pub mod verifier;
+
 // Errors used throughout the crate.
 pub mod errors;
 pub use errors::*;
 
 pub mod metadata;
-
 pub mod oidc;
-
-pub mod disclosure_session;
-pub mod openid4vp;
-pub mod presentation_exchange;
-pub mod return_url;
 pub mod server_state;
-pub mod verifier;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;

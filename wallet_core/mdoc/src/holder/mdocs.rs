@@ -21,25 +21,6 @@ use crate::{
     verifier::ValidityRequirement,
 };
 
-/// Stores multiple copies of mdocs that have identical attributes.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
-pub struct MdocCopies {
-    pub cred_copies: Vec<Mdoc>,
-}
-
-impl IntoIterator for MdocCopies {
-    type Item = Mdoc;
-    type IntoIter = std::vec::IntoIter<Mdoc>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.cred_copies.into_iter()
-    }
-}
-impl From<Vec<Mdoc>> for MdocCopies {
-    fn from(creds: Vec<Mdoc>) -> Self {
-        Self { cred_copies: creds }
-    }
-}
-
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Mdoc {

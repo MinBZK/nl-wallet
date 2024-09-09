@@ -47,7 +47,7 @@ pub enum LimitDisclosure {
     Required,
 
     /// The wallet may disclose more attributes to the RP than the ones it requested, for example if the
-    /// attestation containing them does not support selective disclosure of attributes.
+    /// credential containing them does not support selective disclosure of attributes.
     Preferred,
 }
 

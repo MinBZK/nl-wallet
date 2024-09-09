@@ -1,4 +1,5 @@
 use openid4vc::{
+    credential::MdocCopies,
     issuance_session::{HttpIssuanceSession, HttpVcMessageClient, IssuanceSession},
     oidc::HttpOidcClient,
 };
@@ -84,7 +85,7 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     assert_eq!(2, mdocs.len());
-    assert_eq!(2, mdocs[0].cred_copies.len())
+    assert_eq!(2, <&MdocCopies>::try_from(&mdocs[0]).unwrap().len())
 }
 
 fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {
