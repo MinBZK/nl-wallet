@@ -54,6 +54,7 @@ pub enum SignedType {
     HW,
 }
 
+#[derive(Debug, Copy, Clone)]
 pub enum SequenceNumberComparison {
     EqualTo(u64),
     LargerThan(u64),

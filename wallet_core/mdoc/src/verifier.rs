@@ -156,6 +156,7 @@ pub enum ValidityError {
 }
 
 /// Indicate how a [`ValidityInfo`] should be verified against the current date.
+#[derive(Debug, Copy, Clone)]
 pub enum ValidityRequirement {
     /// The [`ValidityInfo`] must not be expired, but it is allowed to be not yet valid.
     AllowNotYetValid,

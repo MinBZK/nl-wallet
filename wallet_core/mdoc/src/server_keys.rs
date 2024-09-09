@@ -122,7 +122,7 @@ mod generate {
         pub fn generate(
             &self,
             common_name: &str,
-            certificate_type: CertificateType,
+            certificate_type: &CertificateType,
             configuration: CertificateConfiguration,
         ) -> Result<Self, CertificateError> {
             let mut cert_params = CertificateParams::from(configuration);
@@ -173,7 +173,7 @@ mod generate {
     }
 
     impl CertificateUsage {
-        fn to_custom_ext(&self) -> CustomExtension {
+        fn to_custom_ext(self) -> CustomExtension {
             // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but
             // [`CertificateParams`] only supports a whitelist of key usages that it is aware of. So we
             // DER-serialize it manually and add it to the custom extensions.
@@ -236,7 +236,7 @@ mod generate {
             ) -> Result<Self, CertificateError> {
                 self.generate(
                     ISSUANCE_CERT_CN,
-                    CertificateType::Mdl(issuer_registration.map(Box::new)),
+                    &CertificateType::Mdl(issuer_registration.map(Box::new)),
                     Default::default(),
                 )
             }
@@ -247,7 +247,7 @@ mod generate {
             ) -> Result<Self, CertificateError> {
                 self.generate(
                     RP_CERT_CN,
-                    CertificateType::ReaderAuth(reader_registration.map(Box::new)),
+                    &CertificateType::ReaderAuth(reader_registration.map(Box::new)),
                     Default::default(),
                 )
             }

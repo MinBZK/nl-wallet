@@ -564,7 +564,7 @@ mod tests {
         let issuer_key_pair = ca
             .generate(
                 "cert.example.com",
-                IssuerRegistration::new_mock().into(),
+                &IssuerRegistration::new_mock().into(),
                 Default::default(),
             )
             .unwrap();

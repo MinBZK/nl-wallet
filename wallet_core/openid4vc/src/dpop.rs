@@ -217,13 +217,13 @@ impl Dpop {
     /// Verify the DPoP JWT against the public key inside its header, returning that public key.
     /// This should only be called in the first HTTP request of a protocol. In later requests,
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
-    pub fn verify(&self, url: Url, method: Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
+    pub fn verify(&self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
         // Grab the public key from the JWT header
         let header = jsonwebtoken::decode_header(&self.0 .0)?;
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(DpopError::MissingJwk)?)?;
 
         let token_data = self.verify_signature(&verifying_key)?;
-        Self::verify_data(&token_data, &url, &method, access_token, None)?;
+        Self::verify_data(&token_data, url, method, access_token, None)?;
 
         Ok(verifying_key)
     }
@@ -292,19 +292,17 @@ mod tests {
         assert_eq!(claims.http_method, method.to_string());
 
         // Verifying it against incorrect parameters doesn't work
-        dpop.verify(url.clone(), method.clone(), wrong_access_token.as_ref())
-            .unwrap_err();
-        dpop.verify(url.clone(), Method::PATCH, access_token.as_ref())
-            .unwrap_err();
+        dpop.verify(&url, &method, wrong_access_token.as_ref()).unwrap_err();
+        dpop.verify(&url, &Method::PATCH, access_token.as_ref()).unwrap_err();
         dpop.verify(
-            "https://incorrect_url/".parse().unwrap(),
-            method.clone(),
+            &"https://incorrect_url/".parse().unwrap(),
+            &method,
             access_token.as_ref(),
         )
         .unwrap_err();
 
         // We can verify the DPoP
-        let pubkey = dpop.verify(url.clone(), method.clone(), access_token.as_ref()).unwrap();
+        let pubkey = dpop.verify(&url, &method, access_token.as_ref()).unwrap();
         assert_eq!(pubkey, *private_key.verifying_key());
         dpop.verify_expecting_key(&pubkey, &url, &method, access_token.as_ref(), None)
             .unwrap();

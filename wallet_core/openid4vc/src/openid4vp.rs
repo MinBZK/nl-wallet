@@ -320,7 +320,7 @@ impl VpAuthorizationRequest {
     pub fn validate(
         self,
         rp_cert: &Certificate,
-        wallet_nonce: Option<String>,
+        wallet_nonce: Option<&String>,
     ) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
         if dns_san != self.oauth_request.client_id {
@@ -330,7 +330,7 @@ impl VpAuthorizationRequest {
             });
         }
 
-        if wallet_nonce != self.wallet_nonce {
+        if wallet_nonce != self.wallet_nonce.as_ref() {
             return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
 

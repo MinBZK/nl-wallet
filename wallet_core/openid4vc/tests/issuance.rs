@@ -318,7 +318,7 @@ fn invalidate_jwt(jwt: &str) -> String {
 
 impl VcMessageClient for MockOpenidMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
-        Ok(IssuerMetadata::new_mock(url.clone()))
+        Ok(IssuerMetadata::new_mock(url))
     }
 
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {

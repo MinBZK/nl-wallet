@@ -217,10 +217,10 @@ impl Certificate {
 
     pub(crate) fn extract_custom_ext<'a, T: Deserialize<'a>>(
         &'a self,
-        oid: Oid,
+        oid: &Oid,
     ) -> Result<Option<T>, CertificateError> {
         let x509_cert = self.to_x509()?;
-        let ext = x509_cert.iter_extensions().find(|ext| ext.oid == oid);
+        let ext = x509_cert.iter_extensions().find(|ext| ext.oid == *oid);
         ext.map(|ext| {
             let mut reader = SliceReader::new(ext.value)?;
             let json = Utf8StringRef::decode(&mut reader)?;
@@ -252,7 +252,7 @@ fn x509_common_names(x509name: &X509Name) -> Result<Vec<String>, CertificateErro
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
 /// being verified.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum CertificateUsage {
     Mdl,
     ReaderAuth,
@@ -299,7 +299,7 @@ impl CertificateUsage {
         Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
     }
 
-    pub(crate) fn to_eku(&self) -> &'static [u8] {
+    pub(crate) fn to_eku(self) -> &'static [u8] {
         match self {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
@@ -351,7 +351,7 @@ where
     fn from_certificate(source: &Certificate) -> Result<Option<Self>, CertificateError> {
         // unwrap() is safe here, because we process a fixed value
         let oid = Oid::from(Self::OID).unwrap();
-        source.extract_custom_ext(oid)
+        source.extract_custom_ext(&oid)
     }
 
     #[cfg(any(test, feature = "generate"))]
@@ -408,7 +408,7 @@ mod test {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
 
         let x509_cert = ca.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, vec!["myca"]);
+        assert_certificate_common_name(&x509_cert, &["myca"]);
         assert_certificate_default_validity(&x509_cert);
     }
 
@@ -424,7 +424,7 @@ mod test {
         let ca = KeyPair::generate_ca("myca", config).unwrap();
 
         let x509_cert = ca.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, vec!["myca"]);
+        assert_certificate_common_name(&x509_cert, &["myca"]);
         assert_certificate_validity(&x509_cert, now, later);
     }
 
@@ -443,7 +443,7 @@ mod test {
 
         let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", mdl, config).unwrap();
+        let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
 
         let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         let error = issuer_key_pair
@@ -468,7 +468,7 @@ mod test {
 
         let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", mdl, config).unwrap();
+        let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
 
         let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         let error = issuer_key_pair
@@ -481,9 +481,9 @@ mod test {
     #[test]
     fn generate_and_verify_issuer_cert() {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-        let mdl: CertificateType = IssuerRegistration::new_mock().into();
+        let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", mdl.clone(), Default::default()).unwrap();
+        let issuer_key_pair = ca.generate("mycert", &mdl, Default::default()).unwrap();
 
         let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         issuer_key_pair
@@ -496,7 +496,7 @@ mod test {
         assert_eq!(cert_usage, mdl);
 
         let x509_cert = issuer_key_pair.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, vec!["mycert"]);
+        assert_certificate_common_name(&x509_cert, &["mycert"]);
         assert_certificate_default_validity(&x509_cert);
     }
 
@@ -511,9 +511,9 @@ mod test {
         };
 
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-        let mdl: CertificateType = IssuerRegistration::new_mock().into();
+        let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", mdl.clone(), config).unwrap();
+        let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
 
         let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         issuer_key_pair
@@ -526,7 +526,7 @@ mod test {
         assert_eq!(cert_usage, mdl);
 
         let x509_cert = issuer_key_pair.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, vec!["mycert"]);
+        assert_certificate_common_name(&x509_cert, &["mycert"]);
         assert_certificate_validity(&x509_cert, now, later);
     }
 
@@ -535,7 +535,7 @@ mod test {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
         let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
-        let reader_key_pair = ca.generate("mycert", reader_auth.clone(), Default::default()).unwrap();
+        let reader_key_pair = ca.generate("mycert", &reader_auth, Default::default()).unwrap();
 
         let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         reader_key_pair
@@ -548,7 +548,7 @@ mod test {
         assert_eq!(cert_usage, reader_auth);
 
         let x509_cert = reader_key_pair.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, vec!["mycert"]);
+        assert_certificate_common_name(&x509_cert, &["mycert"]);
         assert_certificate_default_validity(&x509_cert);
     }
 
@@ -565,7 +565,7 @@ mod test {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
         let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
-        let reader_key_pair = ca.generate("mycert", reader_auth.clone(), config).unwrap();
+        let reader_key_pair = ca.generate("mycert", &reader_auth, config).unwrap();
 
         let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         reader_key_pair
@@ -578,7 +578,7 @@ mod test {
         assert_eq!(cert_usage, reader_auth);
 
         let x509_cert = reader_key_pair.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, vec!["mycert"]);
+        assert_certificate_common_name(&x509_cert, &["mycert"]);
         assert_certificate_validity(&x509_cert, now, later);
     }
 
@@ -605,7 +605,7 @@ mod test {
         assert_eq!(not_after, expected_not_after);
     }
 
-    fn assert_certificate_common_name(certificate: &X509Certificate, expected_common_name: Vec<&str>) {
+    fn assert_certificate_common_name(certificate: &X509Certificate, expected_common_name: &[&str]) {
         let actual_common_name = certificate
             .subject
             .iter_common_name()
