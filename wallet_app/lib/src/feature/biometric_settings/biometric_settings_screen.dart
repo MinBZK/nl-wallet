@@ -14,6 +14,7 @@ import '../common/dialog/locked_out_dialog.dart';
 import '../common/page/page_illustration.dart';
 import '../common/screen/confirm_with_pin_screen.dart';
 import '../common/screen/terminal_screen.dart';
+import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -30,45 +31,52 @@ class BiometricSettingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: BlocConsumer<BiometricSettingsBloc, BiometricSettingsState>(
-          buildWhen: (prev, current) {
-            return switch (current) {
-              BiometricSettingsConfirmPin() => false,
-              BiometricSettingsSetupRequired() => false,
-              BiometricSettingsLockedOut() => false,
-              _ => true,
-            };
-          },
-          listenWhen: (prev, current) {
-            return switch (current) {
-              BiometricSettingsConfirmPin() => true,
-              BiometricSettingsSetupRequired() => true,
-              BiometricSettingsLockedOut() => true,
-              _ => false,
-            };
-          },
-          builder: (context, state) {
-            assert(state is! BiometricSettingsConfirmPin, 'This state should never be rendered');
-            assert(state is! BiometricSettingsSetupRequired, 'This state should never be rendered');
-            assert(state is! BiometricSettingsLockedOut, 'This state should never be rendered');
-            return switch (state) {
-              BiometricSettingsLoaded() => _buildLoaded(context, state),
-              BiometricSettingsError() => _buildError(context, state),
-              _ => _buildLoading(context),
-            };
-          },
-          listener: (BuildContext context, BiometricSettingsState state) async {
-            final bloc = context.bloc;
-            if (state is BiometricSettingsConfirmPin) {
-              await _onRequestConfirmPin(context);
-              // Refresh state, relevant when confirmation failed.
-              bloc.add(const BiometricLoadTriggered());
-            } else if (state is BiometricSettingsSetupRequired) {
-              await _showSetupRequiredDialog(context);
-            } else if (state is BiometricSettingsLockedOut) {
-              await LockedOutDialog.show(context);
-            }
-          },
+        child: Column(
+          children: [
+            Expanded(
+              child: BlocConsumer<BiometricSettingsBloc, BiometricSettingsState>(
+                buildWhen: (prev, current) {
+                  return switch (current) {
+                    BiometricSettingsConfirmPin() => false,
+                    BiometricSettingsSetupRequired() => false,
+                    BiometricSettingsLockedOut() => false,
+                    _ => true,
+                  };
+                },
+                listenWhen: (prev, current) {
+                  return switch (current) {
+                    BiometricSettingsConfirmPin() => true,
+                    BiometricSettingsSetupRequired() => true,
+                    BiometricSettingsLockedOut() => true,
+                    _ => false,
+                  };
+                },
+                builder: (context, state) {
+                  assert(state is! BiometricSettingsConfirmPin, 'This state should never be rendered');
+                  assert(state is! BiometricSettingsSetupRequired, 'This state should never be rendered');
+                  assert(state is! BiometricSettingsLockedOut, 'This state should never be rendered');
+                  return switch (state) {
+                    BiometricSettingsLoaded() => _buildLoaded(context, state),
+                    BiometricSettingsError() => _buildError(context, state),
+                    _ => _buildLoading(context),
+                  };
+                },
+                listener: (BuildContext context, BiometricSettingsState state) async {
+                  final bloc = context.bloc;
+                  if (state is BiometricSettingsConfirmPin) {
+                    await _onRequestConfirmPin(context);
+                    // Refresh state, relevant when confirmation failed.
+                    bloc.add(const BiometricLoadTriggered());
+                  } else if (state is BiometricSettingsSetupRequired) {
+                    await _showSetupRequiredDialog(context);
+                  } else if (state is BiometricSettingsLockedOut) {
+                    await LockedOutDialog.show(context);
+                  }
+                },
+              ),
+            ),
+            const BottomBackButton(),
+          ],
         ),
       ),
     );
