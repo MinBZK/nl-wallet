@@ -3,8 +3,9 @@ use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::messages::instructions::{
-        Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
+    account::{
+        messages::instructions::{Instruction, InstructionChallengeRequest, InstructionEndpoint},
+        signed::SignedChallengeRequest,
     },
     jwt::EcdsaDecodingKey,
     urls::BaseUrl,
@@ -74,20 +75,20 @@ where
     }
 
     async fn instruction_challenge(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError> {
-        let message = self
+        let request = self
             .with_sequence_number(storage, |seq_num| {
-                InstructionChallengeRequest::new_signed(seq_num, "wallet", self.hw_privkey)
+                SignedChallengeRequest::sign(seq_num, self.hw_privkey)
             })
             .await?;
 
-        let challenge_request = InstructionChallengeRequestMessage {
-            message,
+        let instruction_request = InstructionChallengeRequest {
+            request,
             certificate: self.registration.wallet_certificate.clone(),
         };
 
         let result = self
             .account_provider_client
-            .instruction_challenge(self.account_provider_base_url, challenge_request)
+            .instruction_challenge(self.account_provider_base_url, instruction_request)
             .await?;
 
         Ok(result)

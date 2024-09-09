@@ -3,9 +3,12 @@ use rand::rngs::OsRng;
 use uuid::Uuid;
 
 use wallet_common::{
-    account::messages::{
-        auth::{Registration, WalletCertificate, WalletCertificateClaims},
-        instructions::{InstructionChallengeRequest, InstructionChallengeRequestMessage},
+    account::{
+        messages::{
+            auth::{Registration, WalletCertificate, WalletCertificateClaims},
+            instructions::InstructionChallengeRequest,
+        },
+        signed::SignedChallengeRequest,
     },
     generator::Generator,
     keys::{software::SoftwareEcdsaKey, EcdsaKey},
@@ -120,11 +123,9 @@ async fn test_instruction_challenge() {
 
     let challenge1 = account_server
         .instruction_challenge(
-            InstructionChallengeRequestMessage {
+            InstructionChallengeRequest {
+                request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
                 certificate: certificate.clone(),
-                message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
-                    .await
-                    .unwrap(),
             },
             &repos,
             &EpochGenerator,
@@ -137,11 +138,9 @@ async fn test_instruction_challenge() {
 
     let challenge2 = account_server
         .instruction_challenge(
-            InstructionChallengeRequestMessage {
+            InstructionChallengeRequest {
+                request: SignedChallengeRequest::sign(2, &hw_privkey).await.unwrap(),
                 certificate,
-                message: InstructionChallengeRequest::new_signed(2, "wallet", &hw_privkey)
-                    .await
-                    .unwrap(),
             },
             &repos,
             &EpochGenerator,

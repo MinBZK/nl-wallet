@@ -4,7 +4,7 @@ use crate::{
     account::{
         errors::Result,
         serialization::{DerSignature, DerVerifyingKey},
-        signed::SignedChallengeResponse,
+        signed::{SignedChallengeRequest, SignedChallengeResponse},
     },
     jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
@@ -56,19 +56,9 @@ pub struct InstructionResultMessage<R> {
     pub result: InstructionResult<R>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InstructionChallengeRequestClaims {
-    pub sequence_number: u64,
-
-    pub iss: String,
-    pub iat: u64,
-}
-
-pub type InstructionChallengeRequest = Jwt<InstructionChallengeRequestClaims>;
-
 #[derive(Debug, Serialize, Deserialize)]
-pub struct InstructionChallengeRequestMessage {
-    pub message: InstructionChallengeRequest,
+pub struct InstructionChallengeRequest {
+    pub request: SignedChallengeRequest,
     pub certificate: WalletCertificate,
 }
 
@@ -80,26 +70,6 @@ pub trait InstructionEndpoint: Serialize + DeserializeOwned {
 
 impl<R> JwtSubject for InstructionResultClaims<R> {
     const SUB: &'static str = "instruction_result";
-}
-
-impl JwtSubject for InstructionChallengeRequestClaims {
-    const SUB: &'static str = "instruction_challenge_request";
-}
-
-impl InstructionChallengeRequest {
-    pub async fn new_signed(
-        instruction_sequence_number: u64,
-        issuer: &str,
-        hw_privkey: &impl SecureEcdsaKey,
-    ) -> Result<Self> {
-        let cert = InstructionChallengeRequestClaims {
-            sequence_number: instruction_sequence_number,
-            iss: issuer.to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
-        };
-
-        Ok(Jwt::sign_with_sub(&cert, hw_privkey).await?)
-    }
 }
 
 impl InstructionEndpoint for CheckPin {

@@ -9,7 +9,7 @@ use wallet_common::{
         messages::{
             auth::{Registration, WalletCertificate},
             errors::{AccountError, AccountErrorType},
-            instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
+            instructions::{Instruction, InstructionChallengeRequest, InstructionEndpoint, InstructionResult},
         },
         signed::SignedChallengeResponse,
     },
@@ -57,7 +57,7 @@ pub trait AccountProviderClient {
     async fn instruction_challenge(
         &self,
         base_url: &BaseUrl,
-        challenge_request: InstructionChallengeRequestMessage,
+        challenge_request: InstructionChallengeRequest,
     ) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn instruction<I>(

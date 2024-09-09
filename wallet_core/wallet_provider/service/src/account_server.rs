@@ -13,9 +13,7 @@ use wallet_common::{
         messages::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             errors::{IncorrectPinData, PinTimeoutData},
-            instructions::{
-                Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
-            },
+            instructions::{Instruction, InstructionChallengeRequest, InstructionResult, InstructionResultClaims},
         },
         signed::{ChallengeResponse, SequenceNumberComparison, SignedChallengeResponse},
     },
@@ -58,8 +56,6 @@ pub enum ChallengeError {
     Validation(#[from] wallet_common::account::errors::Error),
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
-    #[error("instruction sequence number validation failed")]
-    SequenceNumberValidation,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -232,7 +228,7 @@ impl AccountServer {
 
     pub async fn instruction_challenge<T, R, H>(
         &self,
-        challenge_request: InstructionChallengeRequestMessage,
+        challenge_request: InstructionChallengeRequest,
         repositories: &R,
         time_generator: &impl Generator<DateTime<Local>>,
         hsm: &H,
@@ -250,20 +246,12 @@ impl AccountServer {
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
 
-        let parsed = challenge_request
-            .message
-            .parse_and_verify_with_sub(&user.hw_pubkey.into())?;
+        let request = challenge_request.request.parse_and_verify(
+            SequenceNumberComparison::LargerThan(user.instruction_sequence_number),
+            &user.hw_pubkey.0,
+        )?;
 
-        debug!(
-            "Verifying sequence number - provided: {}, known: {}",
-            parsed.sequence_number, user.instruction_sequence_number
-        );
-
-        if parsed.sequence_number <= user.instruction_sequence_number {
-            return Err(ChallengeError::SequenceNumberValidation);
-        }
-
-        debug!("Sequence number valid, persisting generated challenge and incremented sequence number");
+        debug!("Challenge request valid, persisting generated challenge and incremented sequence number");
 
         let challenge = InstructionChallenge {
             bytes: random_bytes(32),
@@ -278,7 +266,7 @@ impl AccountServer {
                 &tx,
                 &user.wallet_id,
                 challenge.clone(),
-                parsed.sequence_number,
+                request.sequence_number,
             )
             .await?;
         tx.commit().await?;
@@ -706,6 +694,7 @@ mod tests {
         account::{
             messages::instructions::{CheckPin, InstructionChallengeRequest},
             serialization::DerVerifyingKey,
+            signed::SignedChallengeRequest,
         },
         keys::{software::SoftwareEcdsaKey, EcdsaKey},
     };
@@ -929,10 +918,8 @@ mod tests {
         assert_matches!(
             account_server
                 .instruction_challenge(
-                    InstructionChallengeRequestMessage {
-                        message: InstructionChallengeRequest::new_signed(9, "wallet", &hw_privkey)
-                            .await
-                            .unwrap(),
+                    InstructionChallengeRequest {
+                        request: SignedChallengeRequest::sign(9, &hw_privkey).await.unwrap(),
                         certificate: cert.clone(),
                     },
                     &deps,
@@ -941,15 +928,13 @@ mod tests {
                 )
                 .await
                 .expect_err("should return instruction sequence number mismatch error"),
-            ChallengeError::SequenceNumberValidation
+            ChallengeError::Validation(wallet_common::account::errors::Error::SequenceNumberMismatch)
         );
 
         let challenge = account_server
             .instruction_challenge(
-                InstructionChallengeRequestMessage {
-                    message: InstructionChallengeRequest::new_signed(43, "wallet", &hw_privkey)
-                        .await
-                        .unwrap(),
+                InstructionChallengeRequest {
+                    request: SignedChallengeRequest::sign(43, &hw_privkey).await.unwrap(),
                     certificate: cert.clone(),
                 },
                 &deps,
@@ -1025,10 +1010,8 @@ mod tests {
         )
         .await;
 
-        let challenge_request = InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
-                .await
-                .unwrap(),
+        let challenge_request = InstructionChallengeRequest {
+            request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
             certificate: cert.clone(),
         };
 
@@ -1159,10 +1142,8 @@ mod tests {
             instruction_sequence_number: 0,
         };
 
-        let challenge_request = InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
-                .await
-                .unwrap(),
+        let challenge_request = InstructionChallengeRequest {
+            request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
             certificate: cert.clone(),
         };
 
@@ -1221,10 +1202,8 @@ mod tests {
             instruction_sequence_number: 0,
         };
 
-        let challenge_request = InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
-                .await
-                .unwrap(),
+        let challenge_request = InstructionChallengeRequest {
+            request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
             certificate: cert.clone(),
         };
 
@@ -1293,10 +1272,8 @@ mod tests {
             instruction_sequence_number: 0,
         };
 
-        let challenge_request = InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
-                .await
-                .unwrap(),
+        let challenge_request = InstructionChallengeRequest {
+            request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
             certificate: cert.clone(),
         };
 

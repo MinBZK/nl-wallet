@@ -16,7 +16,7 @@ use wallet_common::{
         messages::{
             auth::{Certificate, Challenge, Registration},
             instructions::{
-                CheckPin, GenerateKey, GenerateKeyResult, Instruction, InstructionChallengeRequestMessage,
+                CheckPin, GenerateKey, GenerateKeyResult, Instruction, InstructionChallengeRequest,
                 InstructionEndpoint, InstructionResultMessage, Sign, SignResult,
             },
         },
@@ -111,7 +111,7 @@ async fn create_wallet(
 
 async fn instruction_challenge(
     State(state): State<Arc<RouterState>>,
-    Json(payload): Json<InstructionChallengeRequestMessage>,
+    Json(payload): Json<InstructionChallengeRequest>,
 ) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received challenge request, creating challenge");
 

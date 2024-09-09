@@ -146,6 +146,51 @@ impl SequenceNumberComparison {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ChallengeRequest {
+    pub sequence_number: u64,
+}
+
+impl ChallengeRequest {
+    pub fn new(sequence_number: u64) -> Self {
+        Self { sequence_number }
+    }
+
+    pub fn verify(&self, sequence_number_comparison: SequenceNumberComparison) -> Result<()> {
+        if !sequence_number_comparison.verify(self.sequence_number) {
+            return Err(Error::SequenceNumberMismatch);
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignedChallengeRequest(RawValueSignedMessage<ChallengeRequest>);
+
+impl SignedChallengeRequest {
+    pub async fn sign<K>(sequence_number: u64, hardware_signing_key: &K) -> Result<Self>
+    where
+        K: SecureEcdsaKey,
+    {
+        let challenge_request = ChallengeRequest::new(sequence_number);
+        let signed = RawValueSignedMessage::sign_raw(&challenge_request, SignedType::HW, hardware_signing_key).await?;
+
+        Ok(Self(signed))
+    }
+
+    pub fn parse_and_verify(
+        &self,
+        sequence_number_comparison: SequenceNumberComparison,
+        hardware_verifying_key: &VerifyingKey,
+    ) -> Result<ChallengeRequest> {
+        let request = self.0.parse_and_verify(SignedType::HW, hardware_verifying_key)?;
+        request.verify(sequence_number_comparison)?;
+
+        Ok(request)
+    }
+}
+
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChallengeResponse<T> {
@@ -245,6 +290,21 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_signed_challenge_request() {
+        let hw_privkey = SigningKey::random(&mut OsRng);
+
+        let signed = SignedChallengeRequest::sign(42, &hw_privkey).await.unwrap();
+
+        println!("{}", serde_json::to_string(&signed).unwrap());
+
+        let request = signed
+            .parse_and_verify(SequenceNumberComparison::EqualTo(42), hw_privkey.verifying_key())
+            .expect("SignedChallengeRequest should be valid");
+
+        assert_eq!(request.sequence_number, 42);
+    }
+
+    #[tokio::test]
     async fn test_signed_challenge_response() {
         let challenge = b"challenge";
         let hw_privkey = SigningKey::random(&mut OsRng);
@@ -269,7 +329,7 @@ mod tests {
                 hw_privkey.verifying_key(),
                 pin_privkey.verifying_key(),
             )
-            .unwrap();
+            .expect("SignedChallengeResponse should be valid");
 
         assert_eq!(ToyMessage::default(), verified.payload);
     }
