@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Utc};
 use p256::{
     ecdsa::VerifyingKey,
     pkcs8::{DecodePublicKey, EncodePublicKey},
@@ -75,10 +75,10 @@ where
                     ),
                     hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&wallet_user.hw_pubkey_der).unwrap()),
                     unsuccessful_pin_entries: wallet_user.pin_entries.try_into().ok().unwrap_or(u8::MAX),
-                    last_unsuccessful_pin_entry: wallet_user.last_unsuccessful_pin.map(DateTime::<Local>::from),
+                    last_unsuccessful_pin_entry: wallet_user.last_unsuccessful_pin.map(DateTime::<Utc>::from),
                     instruction_challenge: challenge.map(|c| InstructionChallenge {
                         bytes: c.instruction_challenge,
-                        expiration_date_time: DateTime::<Local>::from(c.expiration_date_time),
+                        expiration_date_time: DateTime::<Utc>::from(c.expiration_date_time),
                     }),
                     instruction_sequence_number: u64::try_from(wallet_user.instruction_sequence_number).unwrap(),
                 }))
@@ -188,7 +188,7 @@ pub async fn register_unsuccessful_pin_entry<S, T>(
     db: &T,
     wallet_id: &str,
     is_blocked: bool,
-    datetime: DateTime<Local>,
+    datetime: DateTime<Utc>,
 ) -> Result<()>
 where
     S: ConnectionTrait,
@@ -202,7 +202,7 @@ where
             "least($1, $2)",
             vec![Expr::col(wallet_user::Column::PinEntries).add(1), Expr::value(u8::MAX)],
         ),
-        Some(datetime.into()),
+        Some(datetime),
         is_blocked,
     )
     .await

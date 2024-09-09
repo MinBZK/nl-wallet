@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 use crate::model::{
@@ -43,7 +43,7 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_id: &str,
         is_blocked: bool,
-        datetime: DateTime<Local>,
+        datetime: DateTime<Utc>,
     ) -> Result<()>;
 
     async fn reset_unsuccessful_pin_entries(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
@@ -121,7 +121,7 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
             _is_blocked: bool,
-            _datetime: DateTime<Local>,
+            _datetime: DateTime<Utc>,
         ) -> Result<()> {
             Ok(())
         }
