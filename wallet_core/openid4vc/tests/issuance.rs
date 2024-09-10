@@ -77,7 +77,7 @@ async fn accept_issuance() {
             .compare_unsigned(match &preview {
                 CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
             })
-            .unwrap()
+            .unwrap();
     });
 }
 

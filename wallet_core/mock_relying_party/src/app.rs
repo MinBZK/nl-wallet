@@ -134,7 +134,7 @@ pub fn create_router(settings: Settings) -> Router {
         .layer(TraceLayer::new_for_http());
 
     if let Some(cors) = cors_layer(settings.allow_origins) {
-        app = app.layer(cors)
+        app = app.layer(cors);
     }
 
     app

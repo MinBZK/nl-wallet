@@ -105,6 +105,6 @@ mod tests {
                 attempts_left_in_round,
                 is_final_round
             }) if attempts_left_in_round == 2 && !is_final_round
-        )
+        );
     }
 }

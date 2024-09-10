@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if settings.structured_logging {
         builder.json().init();
     } else {
-        builder.init()
+        builder.init();
     }
 
     haal_centraal::initialize_eager();

@@ -54,7 +54,7 @@ impl Drop for Transaction {
         transaction.map(|t| {
             task::spawn(async move {
                 if let Err(e) = t.rollback().await {
-                    error!("error while rolling back database transaction: {}", e)
+                    error!("error while rolling back database transaction: {}", e);
                 }
             })
         });

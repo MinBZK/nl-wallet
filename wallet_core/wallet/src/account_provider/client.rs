@@ -247,7 +247,7 @@ mod tests {
         assert_matches!(
             error,
             AccountProviderError::Response(AccountProviderResponseError::Status(StatusCode::NOT_FOUND))
-        )
+        );
     }
 
     #[tokio::test]
@@ -271,7 +271,7 @@ mod tests {
             AccountProviderError::Response(
                 AccountProviderResponseError::Text(StatusCode::BAD_GATEWAY, body)
             ) if body == "Your gateway is bad and you should feel bad!"
-        )
+        );
     }
 
     #[tokio::test]
