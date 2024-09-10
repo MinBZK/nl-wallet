@@ -119,6 +119,7 @@ function generate_ssl_key_pair_with_san {
             -days 500 \
             -CA "$3" \
             -CAkey "$4" \
+            -CAcreateserial \
             -out "$1/$2.crt" \
             -extensions req_ext \
             -extfile "${DEVENV}/openssl-san.cfg" > /dev/null
