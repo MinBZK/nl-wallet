@@ -136,7 +136,7 @@ Flutter versions and pin them to your Flutter project. When using FVM; all Flutt
 command need to be prefixed with `fvm`, e.g. `fvm flutter run`.
 
 _Optional step:_
-To install FVM follow this [installation guide](https://fvm.app/docs/getting_started/installation).
+To install FVM follow this [installation guide](https://fvm.app/documentation/getting-started/installation).
 You can validate your initial setup by running `fvm flutter doctor` after the installations. Hit [Y]es when asked to install the pinned Flutter version defined in [fvm_config.json](wallet_app/.fvm/fvm_config.json).
 
 Note that FVM only pins the Flutter version for local development, not the CI pipelines.
