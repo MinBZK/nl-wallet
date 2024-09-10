@@ -17,66 +17,38 @@ pub enum SignedType {
     HW,
 }
 
-/// Wraps an arbitrary payload that can be represented as a byte slice and includes a signature and signature type. If
-/// the payload uses [`TypedRawValue`], its data can be serialized and deserialized, while maintaining a stable string
-/// representation. This is necessary, as JSON representation is not deterministic.
+/// Wraps an arbitrary payload that can be represented as a byte slice and includes a signature and signature type. Its
+/// data can be serialized and deserialized, while maintaining a stable string representation. This is necessary, as
+/// JSON representation is not deterministic.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SignedMessage<T> {
-    signed: T,
+    signed: TypedRawValue<T>,
     r#type: SignedType,
     signature: DerSignature,
 }
 
-type RawValueSignedMessage<T> = SignedMessage<TypedRawValue<T>>;
-
 impl<T> SignedMessage<T>
 where
-    T: AsRef<[u8]>,
+    T: Serialize + DeserializeOwned,
 {
-    async fn sign<K>(payload: T, r#type: SignedType, signing_key: &K) -> Result<Self>
+    async fn sign<K>(payload: &T, r#type: SignedType, signing_key: &K) -> Result<Self>
     where
         K: EcdsaKey,
     {
+        let signed = TypedRawValue::try_new(payload)?;
         let signature = signing_key
-            .try_sign(payload.as_ref())
+            .try_sign(signed.as_ref())
             .await
             .map_err(|err| Error::Signing(Box::new(err)))?
             .into();
 
         let signed_message = SignedMessage {
-            signed: payload,
+            signed,
             r#type,
             signature,
         };
 
         Ok(signed_message)
-    }
-
-    fn verify(&self, r#type: SignedType, verifying_key: &VerifyingKey) -> Result<()> {
-        verifying_key.verify(self.signed.as_ref(), &self.signature.0)?;
-
-        if self.r#type != r#type {
-            return Err(Error::TypeMismatch {
-                expected: r#type,
-                received: self.r#type,
-            });
-        }
-
-        Ok(())
-    }
-}
-
-impl<T> RawValueSignedMessage<T>
-where
-    T: Serialize + DeserializeOwned,
-{
-    async fn sign_raw<K>(payload: &T, r#type: SignedType, signing_key: &K) -> Result<Self>
-    where
-        K: EcdsaKey,
-    {
-        let raw_payload = TypedRawValue::try_new(payload)?;
-
-        Self::sign(raw_payload, r#type, signing_key).await
     }
 
     fn dangerous_parse_unverified(&self) -> Result<T> {
@@ -86,7 +58,14 @@ where
     }
 
     fn parse_and_verify(&self, r#type: SignedType, verifying_key: &VerifyingKey) -> Result<T> {
-        self.verify(r#type, verifying_key)?;
+        verifying_key.verify(self.signed.as_ref(), &self.signature.0)?;
+
+        if self.r#type != r#type {
+            return Err(Error::TypeMismatch {
+                expected: r#type,
+                received: self.r#type,
+            });
+        }
 
         self.dangerous_parse_unverified()
     }
@@ -126,7 +105,7 @@ impl ChallengeRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SignedChallengeRequest(RawValueSignedMessage<ChallengeRequest>);
+pub struct SignedChallengeRequest(SignedMessage<ChallengeRequest>);
 
 impl SignedChallengeRequest {
     pub async fn sign<K>(sequence_number: u64, hardware_signing_key: &K) -> Result<Self>
@@ -134,7 +113,7 @@ impl SignedChallengeRequest {
         K: SecureEcdsaKey,
     {
         let challenge_request = ChallengeRequest::new(sequence_number);
-        let signed = RawValueSignedMessage::sign_raw(&challenge_request, SignedType::HW, hardware_signing_key).await?;
+        let signed = SignedMessage::sign(&challenge_request, SignedType::HW, hardware_signing_key).await?;
 
         Ok(Self(signed))
     }
@@ -177,7 +156,7 @@ impl<T> ChallengeResponse<T> {
 /// Wraps a [`ChallengeResponse`], which contains an arbitrary payload, and signs it with two keys. For the inner
 /// signing the PIN key is used, while the outer signing is done with the device's hardware key.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SignedChallengeResponse<T>(RawValueSignedMessage<RawValueSignedMessage<ChallengeResponse<T>>>);
+pub struct SignedChallengeResponse<T>(SignedMessage<SignedMessage<ChallengeResponse<T>>>);
 
 impl<T> SignedChallengeResponse<T>
 where
@@ -199,9 +178,8 @@ where
             challenge,
             sequence_number,
         };
-        let inner_signed =
-            RawValueSignedMessage::sign_raw(&challenge_response, SignedType::Pin, pin_signing_key).await?;
-        let outer_signed = RawValueSignedMessage::sign_raw(&inner_signed, SignedType::HW, hardware_signing_key).await?;
+        let inner_signed = SignedMessage::sign(&challenge_response, SignedType::Pin, pin_signing_key).await?;
+        let outer_signed = SignedMessage::sign(&inner_signed, SignedType::HW, hardware_signing_key).await?;
 
         Ok(Self(outer_signed))
     }
