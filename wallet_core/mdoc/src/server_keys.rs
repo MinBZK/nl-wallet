@@ -3,7 +3,7 @@ use std::fmt::{Debug, Formatter};
 use p256::ecdsa::{Signature, SigningKey};
 
 use error_category::ErrorCategory;
-use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::{EcdsaKey, EcdsaKeySend};
 
 use crate::utils::x509::Certificate;
 
@@ -86,7 +86,7 @@ impl From<KeyPair> for AttestationSigner<SigningKey> {
 }
 
 pub trait KeyRing {
-    type Key: EcdsaKey;
+    type Key: EcdsaKeySend;
 
     fn key_pair(&self, id: &str) -> Option<&AttestationSigner<Self::Key>>;
 }

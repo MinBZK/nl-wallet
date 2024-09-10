@@ -78,17 +78,15 @@ pub struct StoredMdocCopy {
 }
 
 /// This trait abstracts the persistent storage for the wallet.
-#[trait_variant::make(Storage: Send)]
-#[allow(unused)] // Clippy seems unable to tell that we do in fact implement and use the methods of this trait
-pub trait LocalStorage {
+pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 
     async fn open(&mut self) -> StorageResult<()>;
     async fn clear(&mut self);
 
-    async fn fetch_data<D: KeyedData + Sync>(&self) -> StorageResult<Option<D>>;
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
-    async fn upsert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
+    async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
+    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;

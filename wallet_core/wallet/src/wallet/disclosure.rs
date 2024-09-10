@@ -111,9 +111,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
 where
     CR: ConfigurationRepository,
     MDS: MdocDisclosureSession<Self>,
-    S: Storage + Sync,
-    PEK: Sync,
-    APC: Sync,
+    S: Storage,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]

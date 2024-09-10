@@ -24,7 +24,7 @@ use openid4vc::{
     token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode, ErrorResponse, ErrorStatusCode, TokenErrorCode,
 };
-use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::EcdsaKeySend;
 
 use crate::settings::{self, Urls};
 
@@ -37,7 +37,7 @@ struct ApplicationState<A, K, S> {
 #[nutype(derive(From, AsRef))]
 pub struct IssuerKeyRing<K>(HashMap<String, AttestationSigner<K>>);
 
-impl<K: EcdsaKey> KeyRing for IssuerKeyRing<K> {
+impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
     type Key = K;
 
     fn key_pair(&self, id: &str) -> Option<&AttestationSigner<K>> {
