@@ -245,9 +245,9 @@ where
     #[sentry_capture_error]
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
-        S: Storage,
-        PEK: PlatformEcdsaKey,
-        APC: AccountProviderClient,
+        S: Storage + Sync,
+        PEK: PlatformEcdsaKey + Sync,
+        APC: AccountProviderClient + Sync,
     {
         info!("Accepting PID issuance");
 

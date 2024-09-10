@@ -10,7 +10,8 @@ pub mod software;
 #[cfg(any(all(feature = "software_keys", test), feature = "integration_test"))]
 pub mod test;
 
-pub trait EcdsaKey {
+#[trait_variant::make(EcdsaKey: Send)]
+pub trait LocalEcdsaKey {
     type Error: Error + Send + Sync + 'static;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error>;
@@ -43,7 +44,8 @@ impl EcdsaKey for p256::ecdsa::SigningKey {
     }
 }
 
-pub trait EncryptionKey {
+#[trait_variant::make(EncryptionKey: Send)]
+pub trait LocalEncryptionKey {
     type Error: Error + Send + Sync + 'static;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
@@ -102,7 +104,8 @@ pub trait WithIdentifier {
 ///
 /// NB: Any type that implements `StoredByIdentifier` should probably not implement
 ///     `Clone`, as this would circumvent the uniqueness of the instance.
-pub trait StoredByIdentifier: WithIdentifier {
+#[trait_variant::make(StoredByIdentifier: Send)]
+pub trait LocalStoredByIdentifier: WithIdentifier {
     type Error: Error + Send + Sync + 'static;
 
     /// Creates a unique instance with the specified identifier. If an instance

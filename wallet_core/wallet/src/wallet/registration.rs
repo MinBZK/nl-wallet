@@ -220,7 +220,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_registration_challenge()
-            .return_once(|_| Ok(challenge_response));
+            .return_once(|_| Box::pin(async { Ok(challenge_response) }));
 
         // Have the account server respond with a valid
         // certificate when the wallet sends a request for it.
@@ -232,22 +232,24 @@ mod tests {
             .account_provider_client
             .expect_register()
             .return_once(move |_, registration_signed| {
-                let registration = registration_signed
-                    .dangerous_parse_unverified()
-                    .expect("Could not parse registration message");
+                Box::pin(async move {
+                    let registration = registration_signed
+                        .dangerous_parse_unverified()
+                        .expect("Could not parse registration message");
 
-                assert_eq!(registration.challenge, challenge_expected);
+                    assert_eq!(registration.challenge, challenge_expected);
 
-                registration_signed
-                    .parse_and_verify(
-                        &registration.challenge,
-                        SequenceNumberComparison::EqualTo(0),
-                        &registration.payload.hw_pubkey.0,
-                        &registration.payload.pin_pubkey.0,
-                    )
-                    .expect("Could not verify registration message");
+                    registration_signed
+                        .parse_and_verify(
+                            &registration.challenge,
+                            SequenceNumberComparison::EqualTo(0),
+                            &registration.payload.hw_pubkey.0,
+                            &registration.payload.pin_pubkey.0,
+                        )
+                        .expect("Could not verify registration message");
 
-                Ok(cert_response)
+                    Ok(cert_response)
+                })
             });
 
         // Register the wallet with a valid PIN.
@@ -307,7 +309,9 @@ mod tests {
         wallet
             .account_provider_client
             .expect_registration_challenge()
-            .return_once(|_| Err(AccountProviderResponseError::Status(StatusCode::INTERNAL_SERVER_ERROR).into()));
+            .return_once(|_| {
+                Box::pin(async { Err(AccountProviderResponseError::Status(StatusCode::INTERNAL_SERVER_ERROR).into()) })
+            });
 
         let error = wallet
             .register(PIN.to_string())
@@ -326,7 +330,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
+            .return_once(|_| Box::pin(async { Ok(utils::random_bytes(32)) }));
 
         // Have the hardware public key fetching fail.
         FallibleSoftwareEcdsaKey::next_public_key_error_for_identifier(
@@ -351,7 +355,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
+            .return_once(|_| Box::pin(async { Ok(utils::random_bytes(32)) }));
 
         // Have the hardware key signing fail.
         FallibleSoftwareEcdsaKey::next_private_key_error_for_identifier(
@@ -376,13 +380,12 @@ mod tests {
         wallet
             .account_provider_client
             .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
+            .return_once(|_| Box::pin(async { Ok(utils::random_bytes(32)) }));
 
         // Have the account server respond to the registration request with a 401 error.
-        wallet
-            .account_provider_client
-            .expect_register()
-            .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()));
+        wallet.account_provider_client.expect_register().return_once(|_, _| {
+            Box::pin(async { Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()) })
+        });
 
         let error = wallet
             .register(PIN.to_string())
@@ -401,7 +404,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
+            .return_once(|_| Box::pin(async { Ok(utils::random_bytes(32)) }));
 
         // Have the account server sign the wallet certificate with
         // a key to which the certificate public key does not belong.
@@ -413,7 +416,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_register()
-            .return_once(|_, _| Ok(cert));
+            .return_once(|_, _| Box::pin(async { Ok(cert) }));
 
         let error = wallet
             .register(PIN.to_string())
@@ -432,7 +435,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
+            .return_once(|_| Box::pin(async { Ok(utils::random_bytes(32)) }));
 
         // Have the account server include a hardware public key
         // in the wallet certificate that the wallet did not send.
@@ -446,7 +449,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_register()
-            .return_once(|_, _| Ok(cert));
+            .return_once(|_, _| Box::pin(async { Ok(cert) }));
 
         let error = wallet
             .register(PIN.to_string())
@@ -465,14 +468,14 @@ mod tests {
         wallet
             .account_provider_client
             .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
+            .return_once(|_| Box::pin(async { Ok(utils::random_bytes(32)) }));
 
         let cert = WalletWithMocks::valid_certificate().await;
 
         wallet
             .account_provider_client
             .expect_register()
-            .return_once(|_, _| Ok(cert));
+            .return_once(|_, _| Box::pin(async { Ok(cert) }));
 
         // Have the database return an error
         // when inserting the wallet certificate.

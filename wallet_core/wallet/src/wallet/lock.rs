@@ -259,17 +259,19 @@ mod tests {
                 always(),
             )
             .return_once(move |_, challenge_request| {
-                assert_eq!(challenge_request.certificate.0, wallet_cert.0);
+                Box::pin(async move {
+                    assert_eq!(challenge_request.certificate.0, wallet_cert.0);
 
-                let claims = challenge_request
-                    .message
-                    .parse_and_verify_with_sub(&(&hw_pubkey).into())
-                    .expect("Could not verify check pin challenge request");
+                    let claims = challenge_request
+                        .message
+                        .parse_and_verify_with_sub(&(&hw_pubkey).into())
+                        .expect("Could not verify check pin challenge request");
 
-                assert_eq!(claims.sequence_number, 1);
-                assert_eq!(claims.iss, "wallet");
+                    assert_eq!(claims.sequence_number, 1);
+                    assert_eq!(claims.iss, "wallet");
 
-                Ok(challenge_response)
+                    Ok(challenge_response)
+                })
             });
 
         // Set up the instruction.
@@ -296,19 +298,21 @@ mod tests {
                 always(),
             )
             .return_once(move |_, instruction: Instruction<CheckPin>| {
-                assert_eq!(instruction.certificate.0, wallet_cert.0);
+                Box::pin(async move {
+                    assert_eq!(instruction.certificate.0, wallet_cert.0);
 
-                instruction
-                    .instruction
-                    .parse_and_verify(
-                        &challenge,
-                        SequenceNumberComparison::LargerThan(1),
-                        &hw_pubkey,
-                        &pin_pubkey,
-                    )
-                    .expect("Could not verify check pin instruction");
+                    instruction
+                        .instruction
+                        .parse_and_verify(
+                            &challenge,
+                            SequenceNumberComparison::LargerThan(1),
+                            &hw_pubkey,
+                            &pin_pubkey,
+                        )
+                        .expect("Could not verify check pin instruction");
 
-                Ok(result)
+                    Ok(result)
+                })
             });
 
         // Unlock the `Wallet` with the PIN.
@@ -375,7 +379,9 @@ mod tests {
         wallet
             .account_provider_client
             .expect_instruction_challenge()
-            .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::NOT_FOUND).into()));
+            .return_once(|_, _| {
+                Box::pin(async { Err(AccountProviderResponseError::Status(StatusCode::NOT_FOUND).into()) })
+            });
 
         let error = wallet
             .unlock(PIN.to_string())
@@ -397,12 +403,12 @@ mod tests {
         wallet
             .account_provider_client
             .expect_instruction_challenge()
-            .return_once(|_, _| Ok(utils::random_bytes(32)));
+            .return_once(|_, _| Box::pin(async { Ok(utils::random_bytes(32)) }));
 
         wallet
             .account_provider_client
             .expect_instruction()
-            .return_once(move |_, _: Instruction<CheckPin>| Err(response_error.into()));
+            .return_once(move |_, _: Instruction<CheckPin>| Box::pin(async { Err(response_error.into()) }));
 
         wallet
             .unlock(PIN.to_string())
@@ -513,7 +519,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_instruction_challenge()
-            .return_once(|_, _| Ok(utils::random_bytes(32)));
+            .return_once(|_, _| Box::pin(async { Ok(utils::random_bytes(32)) }));
 
         // Have the account server sign the instruction result with a key
         // to which the instruction result public key does not belong.
@@ -528,7 +534,7 @@ mod tests {
         wallet
             .account_provider_client
             .expect_instruction()
-            .return_once(move |_, _: Instruction<CheckPin>| Ok(result));
+            .return_once(move |_, _: Instruction<CheckPin>| Box::pin(async { Ok(result) }));
 
         // Unlocking the wallet should now result in a
         // `InstructionError::InstructionResultValidation` error.

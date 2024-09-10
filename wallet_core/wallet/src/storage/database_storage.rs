@@ -238,7 +238,7 @@ impl<K> DatabaseStorage<K> {
 
 impl<K> DatabaseStorage<K>
 where
-    K: PlatformEncryptionKey,
+    K: PlatformEncryptionKey + Sync,
 {
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
@@ -274,7 +274,7 @@ where
 
 impl<K> Storage for DatabaseStorage<K>
 where
-    K: PlatformEncryptionKey,
+    K: PlatformEncryptionKey + Sync,
 {
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
@@ -324,7 +324,7 @@ where
     }
 
     /// Get data entry from the key-value table, if present.
-    async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>> {
+    async fn fetch_data<D: KeyedData + Sync>(&self) -> StorageResult<Option<D>> {
         let database = self.database()?;
 
         let data = keyed_data::Entity::find_by_id(D::KEY)
@@ -337,7 +337,7 @@ where
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -352,7 +352,7 @@ where
 
     /// Update data entry in the key-value table using the provided key,
     /// inserting the data if it is not already present.
-    async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
+    async fn upsert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let model = keyed_data::ActiveModel {

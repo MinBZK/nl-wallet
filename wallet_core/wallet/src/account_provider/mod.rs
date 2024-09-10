@@ -44,8 +44,10 @@ pub enum AccountProviderResponseError {
     Account(#[defer] AccountError, Option<String>),
 }
 
+#[trait_variant::make(AccountProviderClient: Send)]
+#[allow(dead_code)] // Clippy seems unable to tell that we do in fact implement and use the methods of this trait
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-pub trait AccountProviderClient {
+pub trait LocalAccountProviderClient {
     async fn registration_challenge(&self, base_url: &BaseUrl) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn register(
@@ -66,5 +68,5 @@ pub trait AccountProviderClient {
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
-        I: InstructionEndpoint + 'static;
+        I: InstructionEndpoint + Send + Sync + 'static;
 }

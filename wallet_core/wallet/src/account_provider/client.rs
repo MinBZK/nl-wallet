@@ -153,7 +153,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
-        I: InstructionEndpoint,
+        I: InstructionEndpoint + Send + Sync,
     {
         let url = base_url.join(&format!("instructions/{}", I::ENDPOINT));
         let message: InstructionResultMessage<I::Result> = self.send_json_post_request(url, &instruction).await?;
