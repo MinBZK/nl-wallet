@@ -24,7 +24,7 @@ use serde_with::skip_serializing_none;
 use x509_parser::{
     der_parser::{asn1_rs::BitString, Oid},
     prelude::FromDer,
-    x509::{AlgorithmIdentifier, RelativeDistinguishedName},
+    x509::AlgorithmIdentifier,
 };
 
 use error_category::ErrorCategory;
@@ -41,6 +41,7 @@ use wallet_common::{
     generator::Generator,
     jwt::{self, Jwt, JwtError},
     keys::EcdsaKey,
+    trust_anchor::trust_anchor_names,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -101,6 +102,7 @@ impl JwtCredential {
             .iter()
             .find_map(|anchor| {
                 trust_anchor_names(anchor)
+                    .map_err(JwtCredentialError::TrustAnchorNameParsing)
                     .map(|names| names.iter().any(|name| name == jwt_issuer).then_some(anchor))
                     .transpose()
             })
@@ -123,18 +125,6 @@ impl JwtCredential {
         let (_, contents) = dangerous_parse_unverified::<JwtCredentialClaims>(&self.jwt).unwrap();
         contents
     }
-}
-
-fn trust_anchor_names(trust_anchor: &TrustAnchor) -> Result<Vec<String>, JwtCredentialError> {
-    let (_, names) = RelativeDistinguishedName::from_der(trust_anchor.subject)
-        .map_err(JwtCredentialError::TrustAnchorNameParsing)?;
-
-    let names = names
-        .iter()
-        .filter_map(|name| name.as_str().ok().map(str::to_string))
-        .collect();
-
-    Ok(names)
 }
 
 /// The OID of Elliptic Curve public keys.

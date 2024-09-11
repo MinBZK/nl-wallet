@@ -5467,6 +5467,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
+ "x509-parser",
 ]
 
 [[package]]

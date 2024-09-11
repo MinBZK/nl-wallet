@@ -47,6 +47,7 @@ strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
+x509-parser.workspace = true
 
 axum = { workspace = true, optional = true, features = ["json"] }
 parking_lot = { workspace = true, optional = true }
