@@ -88,7 +88,11 @@ impl JwtCredential {
         jwt: String,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
-        // Get the `iss` field from the claims so we can find the trust anchor with which to verify the JWT
+        // Get the `iss` field from the claims so we can find the trust anchor with which to verify the JWT.
+        // We have to read this from the JWT before we have verified it, but doing that for the purposes of
+        // deciding with which key to verify the JWT is common practice and not a security issue
+        // (someone messing with this field could at most change it to an issuer whose key they don't control,
+        // in which case they won't be able to produce a signature on the JWT that the code below will accept).
         let (_, claims) = dangerous_parse_unverified::<JwtCredentialClaims>(&jwt)?;
         let jwt_issuer = &claims.contents.iss;
 
