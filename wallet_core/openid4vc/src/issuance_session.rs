@@ -123,6 +123,34 @@ pub enum IssuedCredential {
     Jwt(JwtCredential),
 }
 
+impl TryFrom<IssuedCredential> for Mdoc {
+    type Error = IssuanceSessionError;
+
+    fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
+        match value {
+            IssuedCredential::MsoMdoc(mdoc) => Ok(mdoc),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                expected: Format::MsoMdoc,
+                found: (&value).into(),
+            }),
+        }
+    }
+}
+
+impl TryFrom<IssuedCredential> for JwtCredential {
+    type Error = IssuanceSessionError;
+
+    fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
+        match value {
+            IssuedCredential::Jwt(jwt) => Ok(jwt),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                expected: Format::Jwt,
+                found: (&value).into(),
+            }),
+        }
+    }
+}
+
 impl From<&IssuedCredential> for Format {
     fn from(value: &IssuedCredential) -> Self {
         match value {
@@ -190,41 +218,33 @@ impl TryFrom<IssuedCredentialCopies> for MdocCopies {
     }
 }
 
+impl<T> TryFrom<NonEmpty<Vec<IssuedCredential>>> for CredentialCopies<T>
+where
+    T: TryFrom<IssuedCredential>,
+{
+    type Error = <T as TryFrom<IssuedCredential>>::Error;
+
+    fn try_from(creds: NonEmpty<Vec<IssuedCredential>>) -> Result<Self, Self::Error> {
+        let copies = creds
+            .into_inner()
+            .into_iter()
+            .map(TryInto::try_into)
+            .collect::<Result<Vec<T>, _>>()?
+            .try_into()
+            .unwrap(); // We always have at least one credential because our input was nonempty
+
+        Ok(copies)
+    }
+}
+
 impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
     type Error = IssuanceSessionError;
 
     fn try_from(creds: Vec<IssuedCredential>) -> Result<Self, Self::Error> {
         let copies = match creds.first().ok_or(IssuanceSessionError::NoCredentialCopies)? {
-            IssuedCredential::MsoMdoc(_) => {
-                let mdoc_copies = creds
-                    .into_iter()
-                    .map(|cred| match cred {
-                        IssuedCredential::MsoMdoc(mdoc) => Ok(mdoc),
-                        _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
-                            expected: Format::MsoMdoc,
-                            found: (&cred).into(),
-                        }),
-                    })
-                    .collect::<Result<Vec<_>, _>>()?
-                    .try_into()
-                    .unwrap(); // we checked above that we always have at least one credential
-                IssuedCredentialCopies::MsoMdoc(mdoc_copies)
-            }
-            IssuedCredential::Jwt(_) => {
-                let jwt_copies = creds
-                    .into_iter()
-                    .map(|cred| match cred {
-                        IssuedCredential::Jwt(jwt) => Ok(jwt),
-                        _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
-                            expected: Format::Jwt,
-                            found: (&cred).into(),
-                        }),
-                    })
-                    .collect::<Result<Vec<_>, _>>()?
-                    .try_into()
-                    .unwrap(); // we checked above that we always have at least one credential
-                IssuedCredentialCopies::Jwt(jwt_copies)
-            }
+            // We can unwrap in these arms because we just checked that we have at least one credential
+            IssuedCredential::MsoMdoc(_) => IssuedCredentialCopies::MsoMdoc(NonEmpty::new(creds).unwrap().try_into()?),
+            IssuedCredential::Jwt(_) => IssuedCredentialCopies::Jwt(NonEmpty::new(creds).unwrap().try_into()?),
         };
 
         Ok(copies)
