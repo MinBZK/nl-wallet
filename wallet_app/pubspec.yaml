@@ -43,6 +43,7 @@ dependencies:
   permission_handler: ^11.3.1
   provider: ^6.1.2
   qr_flutter: ^4.1.0
+  root_jailbreak_sniffer: ^1.0.6
   rxdart: ^0.27.7
   screen_brightness: ^1.0.1
   sensors_plus: ^5.0.1

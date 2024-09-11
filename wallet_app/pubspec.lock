@@ -1044,6 +1044,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.2"
+  root_jailbreak_sniffer:
+    dependency: "direct main"
+    description:
+      name: root_jailbreak_sniffer
+      sha256: "2bde9e9b383b3f1ec2ee875121bff61c90623c26bd76e9245cfa8aba1c561f98"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.6"
   rxdart:
     dependency: "direct main"
     description:
@@ -1541,7 +1549,7 @@ packages:
     dependency: transitive
     description:
       name: vm_service
-      sha256: "f652077d0bdf60abe4c1f6377448e8655008eef28f128bc023f7b5e8dfeb48fc"
+      sha256: f652077d0bdf60abe4c1f6377448e8655008eef28f128bc023f7b5e8dfeb48fc
       url: "https://pub.dev"
     source: hosted
     version: "14.2.4"

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-09-04T16:07:54+02:00",
+    "@@last_modified": "2024-09-09T14:40:24+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -904,6 +904,8 @@
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",
     "resetWalletDialogTitle": "Do you want to delete all data?",
+    "rootDetectedScreenDescription": "To protect your data, you can no longer use NL Wallet on this device. \n\nThis device is not in its original settings, which makes it not secure.",
+    "rootDetectedScreenTitle": "Your device is not secure",
     "scanWithWalletDialogBody": "It looks like you have scanned a QR code with a different app. To be sure, scan the QR code with the NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR-code",
     "scanWithWalletDialogTitle": "Scan the QR code with NL Wallet",
@@ -1049,7 +1051,7 @@
     "walletPersonalizeScreenExitSheetConfirmCta": "Yes, stop",
     "walletPersonalizeScreenExitSheetDescription": "Are you sure you want to quit setting up your Wallet?",
     "walletPersonalizeScreenExitSheetTitle": "Exit",
-    "walletPersonalizeScreenLoadingDigiDUrlDescription": "The app is being opened",
+    "walletPersonalizeScreenLoadingDigiDUrlDescription": "DigiD app is being opened",
     "walletPersonalizeScreenLoadingDigiDUrlTitle": "Please wait",
     "walletPersonalizeScreenLoadingSubtitle": "Please wait...",
     "walletPersonalizeScreenLoadingTitle": "Loading",
