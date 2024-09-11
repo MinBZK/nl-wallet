@@ -1015,7 +1015,7 @@ mod tests {
 
                 CredentialResponse::MsoMdoc { credential }
             }
-            CredentialResponse::Jwt { credential: _ } => panic!("unexpected credential format"),
+            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response
