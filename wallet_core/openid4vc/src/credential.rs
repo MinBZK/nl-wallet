@@ -15,7 +15,7 @@ use wallet_common::{jwt::Jwt, nonempty::NonEmpty, urls::BaseUrl};
 
 use crate::{
     issuance_session::IssuanceSessionError,
-    jwt::{self, jwk_jwt_header},
+    jwt::{self, jwk_jwt_header, JwtCredentialClaims},
     token::CredentialPreview,
     Format,
 };
@@ -90,7 +90,7 @@ pub struct CredentialResponses {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
     MsoMdoc { credential: CborBase64<IssuerSigned> },
-    Jwt { credential: String },
+    Jwt { credential: Jwt<JwtCredentialClaims> },
 }
 
 impl From<&CredentialResponse> for Format {

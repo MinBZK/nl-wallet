@@ -842,9 +842,9 @@ impl CredentialResponse {
                 let mut header = Header::new(Algorithm::ES256);
                 header.typ = jwt_typ.or(header.typ);
 
-                let jwt = Jwt::sign(&claims, &header, issuer_privkey.private_key()).await.unwrap();
+                let credential = Jwt::sign(&claims, &header, issuer_privkey.private_key()).await.unwrap();
 
-                Ok(CredentialResponse::Jwt { credential: jwt.0 })
+                Ok(CredentialResponse::Jwt { credential })
             }
         }
     }

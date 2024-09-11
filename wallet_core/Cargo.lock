@@ -5447,6 +5447,7 @@ dependencies = [
  "etag",
  "futures",
  "http",
+ "itertools",
  "jsonwebtoken",
  "mime",
  "nutype",
