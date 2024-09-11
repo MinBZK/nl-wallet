@@ -59,10 +59,10 @@ pub enum JwtError {
     TrustAnchorKeyParsing(#[from] x509_parser::nom::Err<x509_parser::der_parser::error::Error>),
     #[error("unexpected amount of parts in JWT credential: expected 3, found {0}")]
     #[category(critical)]
-    Parts(usize),
+    UnexpectedNumberOfParts(usize),
     #[error("failed to decode Base64: {0}")]
     #[category(pd)]
-    Base64(#[from] base64::DecodeError),
+    Base64Error(#[from] base64::DecodeError),
 }
 
 pub trait JwtSubject {
@@ -154,7 +154,7 @@ where
     pub fn dangerous_parse_unverified(&self) -> Result<(Header, T)> {
         let parts = self.0.split('.').collect_vec();
         if parts.len() != 3 {
-            return Err(JwtError::Parts(parts.len()));
+            return Err(JwtError::UnexpectedNumberOfParts(parts.len()));
         }
 
         let header: Header = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[0])?)?;

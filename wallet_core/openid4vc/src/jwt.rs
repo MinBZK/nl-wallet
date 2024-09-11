@@ -51,7 +51,7 @@ pub struct JwtCredential {
 #[category(pd)]
 pub enum JwtCredentialError {
     #[error("failed to decode JWT body: {0}")]
-    Decoding(#[from] JoseError),
+    JoseDecoding(#[from] JoseError),
     #[error("unknown issuer: {0}")]
     #[category(critical)]
     UnknownIssuer(String),
