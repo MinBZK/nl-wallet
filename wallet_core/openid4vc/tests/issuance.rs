@@ -85,6 +85,9 @@ fn setup(
 #[case(setup_mdoc, 2, 1)]
 #[case(setup_mdoc, 2, 2)]
 #[case(setup_jwt, 1, 1)]
+#[case(setup_jwt, 1, 2)]
+#[case(setup_jwt, 2, 1)]
+#[case(setup_jwt, 2, 2)]
 #[tokio::test]
 async fn accept_issuance(
     #[case] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
