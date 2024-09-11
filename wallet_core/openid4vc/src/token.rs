@@ -1,4 +1,4 @@
-use std::{num::NonZero, time::Duration};
+use std::{num::NonZeroU8, time::Duration};
 
 use derive_more::From;
 use indexmap::IndexSet;
@@ -151,7 +151,7 @@ pub enum CredentialPreview {
     Jwt {
         jwt_typ: Option<String>,
         claims: JwtCredentialContents,
-        copy_count: NonZero<u8>,
+        copy_count: NonZeroU8,
     },
 }
 
