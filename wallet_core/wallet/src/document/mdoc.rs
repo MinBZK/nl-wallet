@@ -989,6 +989,6 @@ pub mod tests {
             },
         )]);
 
-        assert_eq!(DisclosureType::from_proposed_attributes(&pa), expected)
+        assert_eq!(DisclosureType::from_proposed_attributes(&pa), expected);
     }
 }

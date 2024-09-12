@@ -10,7 +10,7 @@ pub fn init_async_runtime() {
             .enable_all()
             .build()
             .expect("Could not initialize tokio runtime")
-    })
+    });
 }
 
 pub fn get_async_runtime() -> &'static Runtime {

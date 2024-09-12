@@ -302,7 +302,7 @@ impl Expirable for DisclosureData {
     fn expire(&mut self) {
         *self = Self::Done(Done {
             session_result: SessionResult::Expired,
-        })
+        });
     }
 }
 
@@ -1226,7 +1226,7 @@ mod tests {
             let _ = result.expect("creating a new session should succeed");
         } else {
             let error = result.expect_err("creating a new session should not succeed");
-            assert_matches!(error, NewSessionError::ReturnUrlConfigurationMismatch)
+            assert_matches!(error, NewSessionError::ReturnUrlConfigurationMismatch);
         }
     }
 

@@ -34,7 +34,7 @@ impl Debug for DerTrustAnchor {
 
 impl Hash for DerTrustAnchor {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.der_bytes.hash(state)
+        self.der_bytes.hash(state);
     }
 }
 

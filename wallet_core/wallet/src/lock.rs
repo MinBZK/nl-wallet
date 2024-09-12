@@ -21,7 +21,7 @@ impl WalletLock {
 
     fn call_update_callback(&mut self) {
         if let Some(ref mut update_callback) = self.update_callback {
-            update_callback(self.is_locked)
+            update_callback(self.is_locked);
         }
     }
 
@@ -91,7 +91,7 @@ mod tests {
 
         let callback_is_locked_clone = Arc::clone(&callback_is_locked);
         lock.set_lock_callback(Box::new(move |is_locked| {
-            *callback_is_locked_clone.lock() = Some(is_locked)
+            *callback_is_locked_clone.lock() = Some(is_locked);
         }));
 
         assert!(lock.is_locked());

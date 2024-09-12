@@ -455,7 +455,7 @@ pub mod test {
         .await
         .expect("should succeed");
 
-        assert!(session.is_none())
+        assert!(session.is_none());
     }
 }
 
