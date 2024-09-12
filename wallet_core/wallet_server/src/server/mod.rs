@@ -161,7 +161,7 @@ pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
     if settings.structured_logging {
         builder.json().init();
     } else {
-        builder.init()
+        builder.init();
     }
 
     // Retain [`ClientInitGuard`]

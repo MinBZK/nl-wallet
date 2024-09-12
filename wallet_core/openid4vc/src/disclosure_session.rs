@@ -1332,7 +1332,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         let unregistered_attribute = AttributeIdentifier {
-            doc_type: "org.iso.18013.5.1.mDL".to_string(),
+            credential_type: "org.iso.18013.5.1.mDL".to_string(),
             namespace: "org.iso.18013.5.1".to_string(),
             attribute: "foobar".to_string(),
         };

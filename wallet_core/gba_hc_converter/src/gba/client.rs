@@ -85,9 +85,9 @@ impl GbavClient for HttpGbavClient {
                         "Basic {}",
                         BASE64_STANDARD.encode(format!("{}:{}", self.username.clone(), self.password.clone()))
                     ),
-                )
+                );
         } else {
-            request_builder = request_builder.basic_auth(self.username.clone(), Some(self.password.clone()))
+            request_builder = request_builder.basic_auth(self.username.clone(), Some(self.password.clone()));
         }
 
         let response = request_builder

@@ -84,9 +84,8 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::JwtDecodingFailed(_)
                 | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
-                CredentialRequestError::DoctypeMismatch | CredentialRequestError::DoctypeNotOffered(_) => {
-                    CredentialErrorCode::InvalidCredentialRequest
-                }
+                CredentialRequestError::CredentialTypeMismatch
+                | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
                 CredentialRequestError::UnsupportedCredentialFormat(_) => {
                     CredentialErrorCode::UnsupportedCredentialFormat
                 }

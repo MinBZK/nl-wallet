@@ -78,7 +78,7 @@ where
                             let config = wrapped.config();
 
                             if let Some(callback) = callback.lock().as_deref_mut() {
-                                callback(config)
+                                callback(config);
                             }
                         }
                     }

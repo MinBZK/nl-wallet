@@ -1152,7 +1152,7 @@ mod tests {
         assert!(wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
             }
             _ => unreachable!(),
         };
@@ -1271,7 +1271,7 @@ mod tests {
         assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
             }
             _ => unreachable!(),
         };
@@ -1334,7 +1334,7 @@ mod tests {
         assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
             }
             _ => unreachable!(),
         };
@@ -1518,7 +1518,7 @@ mod tests {
         assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
             }
             _ => unreachable!(),
         };

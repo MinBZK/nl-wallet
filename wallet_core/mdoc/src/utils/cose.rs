@@ -561,7 +561,7 @@ mod tests {
         assert!(matches!(
             cose.unprotected_header_item(&Label::Text("not_present".to_string())),
             Err(CoseError::MissingLabel(_))
-        ))
+        ));
     }
 
     #[tokio::test]

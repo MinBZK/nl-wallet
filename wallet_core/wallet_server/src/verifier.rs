@@ -118,7 +118,7 @@ where
         )
         .await
         .inspect_err(|error| {
-            warn!("processing request for Authorization Request JWT failed, returning error: {error}")
+            warn!("processing request for Authorization Request JWT failed, returning error: {error}");
         })?;
 
     info!("processing request for Authorization Request JWT successful, returning response");
