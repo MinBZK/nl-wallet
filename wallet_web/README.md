@@ -37,7 +37,7 @@ As the custom element is self-contained, the styles are included in the JavaScri
 CUSTOM_ELEMENT=false npm run build)
 EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build)
 ```
-They have to be run twice, as the first command will generate the JavaScript files without the styles embedded, while the second overwrites these but not the `style.css` in order to have both.
+They have to be run twice, as the first command will generate the JavaScript files without the styles embedded, while the second overwrites these but not the `style.css` in order to have both. See section [CSP](#csp) as to why this is desirable.
 
 ### Testing
 
@@ -69,7 +69,7 @@ Clicking the button will open a dialog and start a session. `usecase` is what is
 
 Other options that can be passed to the custom element are:
 - `start-url`: The URL to start a session. If not provided, it will default to `document.location.href`
-- `text`: The text that is displayed on the button. If not provided, it will default to `Login with NL Wallet`/`Inloggen met NL Wallet`
+- `text`: The text that is displayed on the button. Note that this *MUST* contain the words "NL Wallet". If not provided, it will default to `Login with NL Wallet`/`Inloggen met NL Wallet`
 - `lang`: The language that is used for the text inside the dialog. Currently, only `en` (English) and `nl` (Dutch) are supported. If not provided, it will default to `nl`
 
 
