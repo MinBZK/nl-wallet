@@ -8,7 +8,9 @@ use std::collections::HashSet;
 
 use base64::{prelude::*, DecodeError};
 use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use itertools::Itertools;
+use josekit::JoseError;
 use jsonwebtoken::{
     jwk::{self, EllipticCurve, Jwk},
     Algorithm, Header, Validation,
@@ -17,14 +19,15 @@ use p256::{
     ecdsa::{signature, VerifyingKey},
     EncodedPoint,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    holder::TrustAnchor,
+    holder::{map_difference, IssuedAttributesMismatch, TrustAnchor},
     server_keys::KeyPair,
     utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
+        keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
         x509::{Certificate, CertificateError, CertificateUsage},
     },
 };
@@ -33,7 +36,118 @@ use wallet_common::{
     generator::Generator,
     jwt::{Jwt, JwtError},
     keys::EcdsaKey,
+    trust_anchor::trust_anchor_names,
 };
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct JwtCredential {
+    pub(crate) private_key_id: String,
+    pub(crate) key_type: CredentialKeyType,
+
+    pub jwt: Jwt<JwtCredentialClaims>,
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
+pub enum JwtCredentialError {
+    #[error("failed to decode JWT body: {0}")]
+    JoseDecoding(#[from] JoseError),
+    #[error("unknown issuer: {0}")]
+    #[category(critical)]
+    UnknownIssuer(String),
+    #[error("failed to parse trust anchor name: {0}")]
+    #[category(critical)]
+    TrustAnchorNameParsing(#[source] x509_parser::nom::Err<x509_parser::error::X509Error>),
+    #[error("failed to verify JWT: {0}")]
+    JwtVerification(#[from] jsonwebtoken::errors::Error),
+    #[error("JWT error: {0}")]
+    #[category(defer)]
+    Jwt(#[from] JwtError),
+}
+
+impl JwtCredential {
+    pub fn new<K: MdocEcdsaKey>(
+        private_key_id: String,
+        jwt: Jwt<JwtCredentialClaims>,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
+        // Get the `iss` field from the claims so we can find the trust anchor with which to verify the JWT.
+        // We have to read this from the JWT before we have verified it, but doing that for the purposes of
+        // deciding with which key to verify the JWT is common practice and not a security issue
+        // (someone messing with this field could at most change it to an issuer whose key they don't control,
+        // in which case they won't be able to produce a signature on the JWT that the code below will accept).
+        let (_, claims) = jwt.dangerous_parse_unverified()?;
+        let jwt_issuer = &claims.contents.iss;
+
+        // See if we have a trust anchor that has the JWT issuer as (one of) its subject(s)
+        let trust_anchor = trust_anchors
+            .iter()
+            .find_map(|anchor| {
+                trust_anchor_names(anchor)
+                    .map_err(JwtCredentialError::TrustAnchorNameParsing)
+                    .map(|names| names.iter().any(|name| name == jwt_issuer).then_some(anchor))
+                    .transpose()
+            })
+            .transpose()?
+            .ok_or(JwtCredentialError::UnknownIssuer(jwt_issuer.to_string()))?;
+
+        // Now verify the JWT
+        jwt.verify_against_spki(trust_anchor.spki)?;
+
+        let cred = Self {
+            private_key_id,
+            key_type: K::KEY_TYPE,
+            jwt,
+        };
+        Ok((cred, claims))
+    }
+
+    pub fn jwt_claims(&self) -> JwtCredentialClaims {
+        // Unwrapping is safe here because this was checked in new()
+        let (_, contents) = self.jwt.dangerous_parse_unverified().unwrap();
+        contents
+    }
+}
+
+/// Claims of a [`JwtCredential`]: the body of the JWT.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct JwtCredentialClaims {
+    pub cnf: JwtCredentialCnf,
+
+    #[serde(flatten)]
+    pub contents: JwtCredentialContents,
+}
+
+/// Contents of a [`JwtCredential`], containing everything of the [`JwtCredentialClaims`] except the holder public
+/// key ([`Cnf`]): the attributes and metadata of the credential.
+#[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct JwtCredentialContents {
+    pub iss: String,
+
+    #[serde(flatten)]
+    pub attributes: IndexMap<String, serde_json::Value>,
+}
+
+/// Contains the holder public key of a [`JwtCredential`].
+/// ("Cnf" stands for "confirmation", see https://datatracker.ietf.org/doc/html/rfc7800.)
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct JwtCredentialCnf {
+    pub jwk: Jwk,
+}
+
+impl JwtCredentialContents {
+    pub fn compare_attributes(&self, other: &JwtCredentialContents) -> Result<(), IssuedAttributesMismatch<String>> {
+        let missing = map_difference(&other.attributes, &self.attributes);
+        let unexpected = map_difference(&self.attributes, &other.attributes);
+
+        if !missing.is_empty() || !unexpected.is_empty() {
+            return Err(IssuedAttributesMismatch { missing, unexpected });
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -239,6 +353,8 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
 mod tests {
     use assert_matches::assert_matches;
     use futures::StreamExt;
+    use indexmap::IndexMap;
+    use jsonwebtoken::{Algorithm, Header};
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use serde::{Deserialize, Serialize};
     use serde_json::json;
@@ -253,10 +369,13 @@ mod tests {
     };
     use wallet_common::{
         generator::TimeGenerator,
-        jwt::{validations, EcdsaDecodingKey},
+        jwt::{validations, EcdsaDecodingKey, Jwt},
+        keys::{software::SoftwareEcdsaKey, EcdsaKey, StoredByIdentifier},
     };
 
-    use crate::jwt::{sign_with_certificate, JwtX5cError};
+    use crate::jwt::{
+        sign_with_certificate, JwtCredential, JwtCredentialClaims, JwtCredentialCnf, JwtCredentialContents, JwtX5cError,
+    };
 
     use super::{jwk_from_p256, jwk_to_p256, verify_against_trust_anchors};
 
@@ -349,5 +468,41 @@ mod tests {
                 .unwrap();
             })
             .await;
+    }
+
+    #[tokio::test]
+    async fn test_jwt_credential() {
+        let holder_key_id = "key";
+        let holder_keypair = SoftwareEcdsaKey::new_unique(holder_key_id).unwrap();
+        let issuer_keypair = KeyPair::generate_issuer_mock_ca().unwrap();
+
+        // Produce a JWT with `JwtCredentialClaims` in it
+        let claims = JwtCredentialClaims {
+            cnf: JwtCredentialCnf {
+                jwk: jwk_from_p256(&holder_keypair.verifying_key().await.unwrap()).unwrap(),
+            },
+            contents: JwtCredentialContents {
+                iss: issuer_keypair
+                    .certificate()
+                    .common_names()
+                    .unwrap()
+                    .first()
+                    .unwrap()
+                    .to_string(),
+                attributes: IndexMap::default(),
+            },
+        };
+        let jwt = Jwt::sign(&claims, &Header::new(Algorithm::ES256), issuer_keypair.private_key())
+            .await
+            .unwrap();
+
+        let (cred, claims) = JwtCredential::new::<SoftwareEcdsaKey>(
+            holder_key_id.to_string(),
+            jwt,
+            &[issuer_keypair.certificate().try_into().unwrap()],
+        )
+        .unwrap();
+
+        assert_eq!(cred.jwt_claims(), claims);
     }
 }

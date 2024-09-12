@@ -57,7 +57,7 @@ impl AttributeIdentifierHolder for ReaderRegistration {
                     .into_iter()
                     .flat_map(|(namespace, AuthorizedNamespace(attributes))| {
                         attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
-                            doc_type: doc_type.to_owned(),
+                            credential_type: doc_type.to_owned(),
                             namespace: namespace.to_owned(),
                             attribute: attribute.to_owned(),
                         })

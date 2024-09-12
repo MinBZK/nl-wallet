@@ -4,7 +4,7 @@ use std::{
 };
 
 use futures::future::try_join_all;
-use jsonwebtoken::{Algorithm, Validation};
+use jsonwebtoken::{Algorithm, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,12 @@ use nl_wallet_mdoc::{
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };
-use wallet_common::{jwt::EcdsaDecodingKey, nonempty::NonEmpty, urls::BaseUrl, utils::random_string};
+use wallet_common::{
+    jwt::{EcdsaDecodingKey, Jwt},
+    nonempty::NonEmpty,
+    urls::BaseUrl,
+    utils::random_string,
+};
 
 use crate::{
     credential::{
@@ -24,7 +29,9 @@ use crate::{
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
-    jwt::{jwk_to_p256, JwkConversionError},
+    jwt::{
+        jwk_from_p256, jwk_to_p256, JwkConversionError, JwtCredentialClaims, JwtCredentialCnf, JwtCredentialContents,
+    },
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     server_state::{
@@ -77,8 +84,8 @@ pub enum CredentialRequestError {
     Unauthorized,
     #[error("malformed access token")]
     MalformedToken,
-    #[error("doctype not offered")]
-    DoctypeNotOffered(String),
+    #[error("credential type not offered")]
+    CredentialTypeNotOffered(Option<String>),
     #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
     #[error("unsupported credential format: {0:?}")]
@@ -108,7 +115,7 @@ pub enum CredentialRequestError {
     #[error("JSON serialization failed: {0}")]
     JsonSerialization(#[from] serde_json::Error),
     #[error("mismatch between rquested and offered doctypes")]
-    DoctypeMismatch,
+    CredentialTypeMismatch,
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 }
@@ -623,30 +630,23 @@ impl Session<WaitingForResponse> {
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-        // Try to determine which credential the wallet is requesting:
-        // - If it names a credential type and we are offering a single credential of that credential type,
-        //   return that.
-        // - If it names no credential type and we are offering a single credential, return that.
-        // NB: the OpenID4VCI specification leaves open how to make this determination, this is our own behaviour.
-        let preview = match credential_request.credential_type() {
-            Some(requested_type) => {
-                let offered_creds: Vec<_> = session_data
-                    .credential_previews
-                    .iter()
-                    .filter(|preview| preview.credential_type() == requested_type)
-                    .collect();
-                match offered_creds.len() {
-                    1 => Ok(*offered_creds.first().unwrap()),
-                    0 => Err(CredentialRequestError::DoctypeNotOffered(requested_type.clone())),
-                    // If we have more than one mdoc on offer of the specified doctype then it is not clear which one
-                    // we should issue; abort
-                    _ => Err(CredentialRequestError::UseBatchIssuance),
-                }
-            }
-            None => match session_data.credential_previews.len() {
-                1 => Ok(session_data.credential_previews.first().unwrap()),
-                _ => Err(CredentialRequestError::UseBatchIssuance),
-            },
+        // If we have exactly one credential on offer that matches the credential type that the client is
+        // requesting, then we issue that credential.
+        // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
+        let requested_type = credential_request.credential_type();
+        let offered_creds: Vec<_> = session_data
+            .credential_previews
+            .iter()
+            .filter(|preview| preview.credential_type() == requested_type)
+            .collect();
+        let preview = match offered_creds.len() {
+            1 => Ok(*offered_creds.first().unwrap()),
+            0 => Err(CredentialRequestError::CredentialTypeNotOffered(
+                requested_type.map(str::to_string),
+            )),
+            // If we have more than one credential on offer of the specified doctype then it is not clear which one
+            // we should issue; abort
+            _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
         let credential_response = credential_request
@@ -758,6 +758,17 @@ impl<T: IssuanceState> Session<T> {
     }
 }
 
+impl CredentialPreview {
+    /// Returns an identifier for the issuer private key with which this credential is to be issued.
+    /// The issuer will need to have a private key under this identifier in its [`KeyRing`].
+    fn issuer_key_identifier(&self) -> &str {
+        match self {
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,
+            CredentialPreview::Jwt { claims, .. } => &claims.iss,
+        }
+    }
+}
+
 impl CredentialRequest {
     pub(crate) async fn verify_and_sign_credential(
         &self,
@@ -766,9 +777,8 @@ impl CredentialRequest {
         issuer_data: &IssuerData<impl KeyRing>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let requested_type = self.credential_type();
-        let to_issue_type = preview.credential_type();
-        if !requested_type.is_some_and(|t| t == to_issue_type) {
-            return Err(CredentialRequestError::DoctypeMismatch);
+        if requested_type != preview.credential_type() {
+            return Err(CredentialRequestError::CredentialTypeMismatch);
         }
 
         let holder_pubkey = self
@@ -781,10 +791,11 @@ impl CredentialRequest {
                 &issuer_data.credential_issuer_identifier,
             )?;
 
+        let key_id = preview.issuer_key_identifier();
         let issuer_privkey = issuer_data
             .private_keys
-            .key_pair(to_issue_type)
-            .ok_or(CredentialRequestError::MissingPrivateKey(to_issue_type.to_string()))?;
+            .key_pair(key_id)
+            .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 
         CredentialResponse::new(preview, holder_pubkey, issuer_privkey).await
     }
@@ -809,6 +820,31 @@ impl CredentialResponse {
                 Ok(CredentialResponse::MsoMdoc {
                     credential: issuer_signed.into(),
                 })
+            }
+
+            CredentialPreview::Jwt { claims, jwt_typ, .. } => {
+                // Add the holder public key to the claims that are going to be signed
+                let jwk = jwk_from_p256(&holder_pubkey)?;
+                let claims = JwtCredentialClaims {
+                    cnf: JwtCredentialCnf { jwk },
+                    contents: JwtCredentialContents {
+                        iss: issuer_privkey
+                            .certificate()
+                            .common_names()
+                            .unwrap()
+                            .first()
+                            .unwrap()
+                            .to_string(),
+                        attributes: claims.attributes,
+                    },
+                };
+
+                let mut header = Header::new(Algorithm::ES256);
+                header.typ = jwt_typ.or(header.typ);
+
+                let credential = Jwt::sign(&claims, &header, issuer_privkey.private_key()).await.unwrap();
+
+                Ok(CredentialResponse::Jwt { credential })
             }
         }
     }

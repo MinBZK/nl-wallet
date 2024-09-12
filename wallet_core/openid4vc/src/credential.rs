@@ -15,7 +15,7 @@ use wallet_common::{jwt::Jwt, nonempty::NonEmpty, urls::BaseUrl};
 
 use crate::{
     issuance_session::IssuanceSessionError,
-    jwt::{self, jwk_jwt_header},
+    jwt::{self, jwk_jwt_header, JwtCredentialClaims},
     token::CredentialPreview,
     Format,
 };
@@ -38,9 +38,10 @@ pub struct CredentialRequest {
 }
 
 impl CredentialRequest {
-    pub fn credential_type(&self) -> Option<&String> {
+    pub fn credential_type(&self) -> Option<&str> {
         match &self.credential_type {
-            CredentialRequestType::MsoMdoc { doctype } => doctype.as_ref(),
+            CredentialRequestType::MsoMdoc { doctype } => doctype.as_ref().map(String::as_str),
+            CredentialRequestType::Jwt => None,
         }
     }
 }
@@ -49,14 +50,16 @@ impl CredentialRequest {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialRequestType {
     MsoMdoc { doctype: Option<String> },
+    Jwt,
 }
 
 impl From<&CredentialPreview> for CredentialRequestType {
     fn from(value: &CredentialPreview) -> Self {
         match value {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Self::MsoMdoc {
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => CredentialRequestType::MsoMdoc {
                 doctype: Some(unsigned_mdoc.doc_type.clone()),
             },
+            CredentialPreview::Jwt { .. } => CredentialRequestType::Jwt,
         }
     }
 }
@@ -65,6 +68,7 @@ impl From<&CredentialRequestType> for Format {
     fn from(value: &CredentialRequestType) -> Self {
         match value {
             CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialRequestType::Jwt { .. } => Format::Jwt,
         }
     }
 }
@@ -86,12 +90,14 @@ pub struct CredentialResponses {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
     MsoMdoc { credential: CborBase64<IssuerSigned> },
+    Jwt { credential: Jwt<JwtCredentialClaims> },
 }
 
 impl From<&CredentialResponse> for Format {
     fn from(value: &CredentialResponse) -> Self {
         match value {
             CredentialResponse::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialResponse::Jwt { .. } => Format::Jwt,
         }
     }
 }
