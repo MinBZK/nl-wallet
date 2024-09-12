@@ -157,7 +157,7 @@ impl PersonsResponse {
             }
 
             person.nationalities = keep;
-        })
+        });
     }
 }
 

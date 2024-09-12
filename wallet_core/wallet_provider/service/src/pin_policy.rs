@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Duration, Utc};
 
 use wallet_provider_domain::model::pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator};
 
@@ -72,8 +72,8 @@ impl PinPolicyEvaluator for PinPolicy {
     fn evaluate(
         &self,
         attempts: u8,
-        last_failed_pin: Option<DateTime<Local>>,
-        current_datetime: DateTime<Local>,
+        last_failed_pin: Option<DateTime<Utc>>,
+        current_datetime: DateTime<Utc>,
     ) -> PinPolicyEvaluation {
         let is_first_attempt = last_failed_pin.is_none() && attempts == 1;
         let has_failed_earlier = last_failed_pin.is_some() && attempts > 1;
@@ -113,7 +113,7 @@ impl PinPolicyEvaluator for PinPolicy {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use chrono::{Duration, Local};
+    use chrono::{Duration, Utc};
     use rstest::rstest;
 
     use wallet_provider_domain::model::pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator};
@@ -124,21 +124,21 @@ mod tests {
     #[should_panic]
     fn evaluate_should_panic_attempt_is_zero() {
         let policy = PinPolicy::new(3, 4, (1..3).map(Duration::seconds).collect());
-        policy.evaluate(0, None, Local::now());
+        policy.evaluate(0, None, Utc::now());
     }
 
     #[test]
     #[should_panic]
     fn evaluate_should_panic_when_first_attempt_and_last_failed_time() {
         let policy = PinPolicy::new(3, 4, (1..3).map(Duration::seconds).collect());
-        policy.evaluate(1, Some(Local::now()), Local::now());
+        policy.evaluate(1, Some(Utc::now()), Utc::now());
     }
 
     #[test]
     #[should_panic]
     fn evaluate_should_panic_when_second_attempt_but_no_last_failed_time() {
         let policy = PinPolicy::new(3, 4, (1..3).map(Duration::seconds).collect());
-        policy.evaluate(2, None, Local::now());
+        policy.evaluate(2, None, Utc::now());
     }
 
     #[test]
@@ -147,12 +147,12 @@ mod tests {
 
         assert_eq!(
             PinPolicyEvaluation::BlockedPermanently,
-            policy.evaluate(16, Some(Local::now()), Local::now()),
+            policy.evaluate(16, Some(Utc::now()), Utc::now()),
         );
 
         assert_eq!(
             PinPolicyEvaluation::BlockedPermanently,
-            policy.evaluate(100, Some(Local::now()), Local::now())
+            policy.evaluate(100, Some(Utc::now()), Utc::now())
         );
 
         assert_eq!(
@@ -160,7 +160,7 @@ mod tests {
                 attempts_left_in_round: 3,
                 is_final_round: false
             },
-            policy.evaluate(1, None, Local::now())
+            policy.evaluate(1, None, Utc::now())
         );
 
         assert_eq!(
@@ -168,7 +168,7 @@ mod tests {
                 attempts_left_in_round: 2,
                 is_final_round: false
             },
-            policy.evaluate(2, Some(Local::now() - Duration::hours(1)), Local::now())
+            policy.evaluate(2, Some(Utc::now() - Duration::hours(1)), Utc::now())
         );
 
         assert_eq!(
@@ -176,18 +176,18 @@ mod tests {
                 attempts_left_in_round: 1,
                 is_final_round: false
             },
-            policy.evaluate(3, Some(Local::now() - Duration::hours(1)), Local::now())
+            policy.evaluate(3, Some(Utc::now() - Duration::hours(1)), Utc::now())
         );
 
         assert_eq!(
             PinPolicyEvaluation::Timeout {
                 timeout: Duration::hours(1),
             },
-            policy.evaluate(4, Some(Local::now() - Duration::hours(1)), Local::now())
+            policy.evaluate(4, Some(Utc::now() - Duration::hours(1)), Utc::now())
         );
 
         assert_matches!(
-            policy.evaluate(5, Some(Local::now() - Duration::minutes(30)), Local::now()),
+            policy.evaluate(5, Some(Utc::now() - Duration::minutes(30)), Utc::now()),
             PinPolicyEvaluation::InTimeout { timeout: t } if t < Duration::hours(1)
         );
 
@@ -195,7 +195,7 @@ mod tests {
             PinPolicyEvaluation::Timeout {
                 timeout: Duration::hours(3),
             },
-            policy.evaluate(12, Some(Local::now() - Duration::hours(3)), Local::now())
+            policy.evaluate(12, Some(Utc::now() - Duration::hours(3)), Utc::now())
         );
 
         assert_eq!(
@@ -203,32 +203,32 @@ mod tests {
                 attempts_left_in_round: 1,
                 is_final_round: true
             },
-            policy.evaluate(15, Some(Local::now() - Duration::hours(3)), Local::now())
+            policy.evaluate(15, Some(Utc::now() - Duration::hours(3)), Utc::now())
         );
 
         assert_matches!(
-            policy.evaluate(4, Some(Local::now() - Duration::minutes(30)), Local::now()),
+            policy.evaluate(4, Some(Utc::now() - Duration::minutes(30)), Utc::now()),
             PinPolicyEvaluation::Timeout {
                 timeout: t,
             } if t == Duration::hours(1)
         );
 
         assert_matches!(
-            policy.evaluate(8, Some(Local::now() - Duration::minutes(30)), Local::now()),
+            policy.evaluate(8, Some(Utc::now() - Duration::minutes(30)), Utc::now()),
             PinPolicyEvaluation::Timeout {
                 timeout: t,
             } if t == Duration::hours(2)
         );
 
         assert_matches!(
-            policy.evaluate(12, Some(Local::now() - Duration::hours(1)), Local::now()),
+            policy.evaluate(12, Some(Utc::now() - Duration::hours(1)), Utc::now()),
             PinPolicyEvaluation::Timeout {
                 timeout: t,
             } if t == Duration::hours(3)
         );
 
         assert_matches!(
-            policy.evaluate(13, Some(Local::now() - Duration::hours(1)), Local::now()),
+            policy.evaluate(13, Some(Utc::now() - Duration::hours(1)), Utc::now()),
             PinPolicyEvaluation::InTimeout {
                 timeout: t,
             } if t < Duration::hours(3)

@@ -66,5 +66,13 @@
 		<false/>
 		<key>NSFaceIDUsageDescription</key>
         <string>Securely unlock the app</string>
+        <key>LSApplicationQueriesSchemes</key>
+            <array>
+                <string>undecimus</string>
+                <string>sileo</string>
+                <string>zbra</string>
+                <string>filza</string>
+                <string>activator</string>
+            </array>
 	</dict>
 </plist>

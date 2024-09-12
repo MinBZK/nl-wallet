@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use ctor::ctor;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use rand_core::OsRng;
@@ -87,7 +87,7 @@ where
         db,
         &wallet_id,
         InstructionChallenge {
-            expiration_date_time: Local::now(), // irrelevant for these tests
+            expiration_date_time: Utc::now(), // irrelevant for these tests
             bytes: random_bytes(32),
         },
         0, // irrelevant for these tests
@@ -101,7 +101,7 @@ pub struct InstructionChallengeResult {
     pub id: Uuid,
     pub wallet_user_id: Uuid,
     pub instruction_challenge: Vec<u8>,
-    pub expiration_date_time: DateTime<Local>,
+    pub expiration_date_time: DateTime<Utc>,
 }
 
 pub async fn find_instruction_challenges_by_wallet_id<S, T>(

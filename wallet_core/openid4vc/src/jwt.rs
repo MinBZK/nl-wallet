@@ -437,7 +437,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sign_jwts() {
-        bulk_jwt_sign(&SoftwareKeyFactory::default()).await
+        bulk_jwt_sign(&SoftwareKeyFactory::default()).await;
     }
 
     fn json_header() -> jsonwebtoken::Header {

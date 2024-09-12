@@ -170,7 +170,7 @@ impl Expirable for IssuanceData {
     fn expire(&mut self) {
         *self = Self::Done(Done {
             session_result: SessionResult::Expired,
-        })
+        });
     }
 }
 

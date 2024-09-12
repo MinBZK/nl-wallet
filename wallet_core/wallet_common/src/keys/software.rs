@@ -214,7 +214,7 @@ mod tests {
         let payload = b"This is a message that will be signed.";
         let identifier = "test_software_signature";
 
-        test::sign_and_verify_signature::<SoftwareEcdsaKey>(payload, identifier).await
+        test::sign_and_verify_signature::<SoftwareEcdsaKey>(payload, identifier).await;
     }
 
     #[tokio::test]
@@ -222,6 +222,6 @@ mod tests {
         let payload = b"This message will be encrypted.";
         let identifier = "test_software_encryption";
 
-        test::encrypt_and_decrypt_message::<SoftwareEncryptionKey>(payload, identifier).await
+        test::encrypt_and_decrypt_message::<SoftwareEncryptionKey>(payload, identifier).await;
     }
 }

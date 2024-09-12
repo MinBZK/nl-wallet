@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use uuid::{self, Uuid};
 
 use wallet_provider_domain::{
@@ -86,7 +86,7 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_id: &str,
         is_blocked: bool,
-        datetime: DateTime<Local>,
+        datetime: DateTime<Utc>,
     ) -> Result<(), PersistenceError> {
         wallet_user::register_unsuccessful_pin_entry(transaction, wallet_id, is_blocked, datetime).await
     }
@@ -119,7 +119,7 @@ impl WalletUserRepository for Repositories {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use chrono::{DateTime, Local};
+    use chrono::{DateTime, Utc};
     use mockall;
     use std::collections::HashMap;
     use uuid::Uuid;
@@ -155,7 +155,7 @@ pub mod mock {
                 _transaction: &MockTransaction,
                 _wallet_id: &str,
                 _is_blocked: bool,
-                _datetime: DateTime<Local>,
+                _datetime: DateTime<Utc>,
             ) -> Result<(), PersistenceError>;
 
             async fn reset_unsuccessful_pin_entries(
