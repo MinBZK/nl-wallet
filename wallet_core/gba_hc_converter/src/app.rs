@@ -11,12 +11,12 @@ pub async fn serve_from_settings(settings: Settings) -> Result<(), Box<dyn std::
             server::serve(settings.ip, settings.port, http_client).await
         }
         RunMode::Preloaded(preloaded) => {
-            let file_client = FileGbavClient::from_settings(preloaded, NoopGbavClient {});
+            let file_client = FileGbavClient::from_settings(&preloaded, NoopGbavClient {});
             server::serve(settings.ip, settings.port, file_client).await
         }
         RunMode::All { gbav, preloaded } => {
             let http_client = HttpGbavClient::from_settings(gbav).await?;
-            let file_client = FileGbavClient::from_settings(preloaded, http_client);
+            let file_client = FileGbavClient::from_settings(&preloaded, http_client);
             server::serve(settings.ip, settings.port, file_client).await
         }
     }

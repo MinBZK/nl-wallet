@@ -1,4 +1,7 @@
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use base64::prelude::*;
 use http::header;
@@ -111,9 +114,9 @@ pub struct FileGbavClient<T> {
 }
 
 impl<T> FileGbavClient<T> {
-    pub fn new(path: PathBuf, client: T) -> Self {
+    pub fn new(path: &Path, client: T) -> Self {
         let mut base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-        base_path.push(path.as_path());
+        base_path.push(path);
         Self { base_path, client }
     }
 }

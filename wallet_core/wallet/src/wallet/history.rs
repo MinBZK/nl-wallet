@@ -324,11 +324,8 @@ mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
         let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
 
-        let pid_doc_type_event = WalletEvent::issuance_from_str(
-            vec![PID_DOCTYPE],
-            timestamp_older,
-            ISSUER_KEY.issuance_key.certificate().clone(),
-        );
+        let pid_doc_type_event =
+            WalletEvent::issuance_from_str(&[PID_DOCTYPE], timestamp_older, ISSUER_KEY.issuance_key.certificate());
         wallet.store_history_event(pid_doc_type_event.clone()).await.unwrap();
 
         let disclosure_cancelled_event =
@@ -346,7 +343,7 @@ mod tests {
             .unwrap();
 
         let address_doc_type_event = WalletEvent::disclosure_from_str(
-            vec![ADDRESS_DOCTYPE],
+            &[ADDRESS_DOCTYPE],
             timestamp_newer,
             reader_key.certificate().clone(),
             ISSUER_KEY.issuance_key.certificate(),

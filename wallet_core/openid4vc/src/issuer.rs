@@ -518,7 +518,7 @@ impl Session<Created> {
         }
 
         let dpop_public_key = dpop
-            .verify(server_url.join("token"), Method::POST, None)
+            .verify(&server_url.join("token"), &Method::POST, None)
             .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let code = token_request.code().clone();

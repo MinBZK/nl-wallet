@@ -39,10 +39,10 @@ pub struct OpenIdClient {
 }
 
 impl OpenIdClient {
-    pub fn new(issuer_url: BaseUrl, bsn_privkey: String, trust_anchors: Vec<Certificate>) -> Result<Self> {
+    pub fn new(issuer_url: BaseUrl, bsn_privkey: &str, trust_anchors: Vec<Certificate>) -> Result<Self> {
         let userinfo_client = OpenIdClient {
             issuer_url,
-            decrypter_private_key: OpenIdClient::decrypter(&bsn_privkey)?,
+            decrypter_private_key: OpenIdClient::decrypter(bsn_privkey)?,
             trust_anchors,
         };
         Ok(userinfo_client)

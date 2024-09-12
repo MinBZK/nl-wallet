@@ -106,7 +106,7 @@ impl Config {
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(url: BaseUrl) -> IssuerMetadata {
+    pub fn new_mock(url: &BaseUrl) -> IssuerMetadata {
         IssuerMetadata {
             issuer_config: IssuerData {
                 credential_issuer: url.clone(),

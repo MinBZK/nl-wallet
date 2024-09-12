@@ -29,7 +29,7 @@ pub fn read_key_pair(ca_key_file: CachedInput, ca_crt_file: CachedInput) -> Resu
     Ok(key_pair)
 }
 
-pub fn write_key_pair(key_pair: KeyPair, file_prefix: &str, force: bool) -> Result<()> {
+pub fn write_key_pair(key_pair: &KeyPair, file_prefix: &str, force: bool) -> Result<()> {
     // Verify certificate and key files do not exist before writing to either
     let crt_file = format!("{}.crt.pem", file_prefix);
     let crt_path = Path::new(&crt_file);

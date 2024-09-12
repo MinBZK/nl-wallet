@@ -163,7 +163,7 @@ impl Pkcs11Hsm {
             ])?;
             let object_handle = object_handles
                 .first()
-                .cloned()
+                .copied()
                 .ok_or(HsmError::KeyNotFound(identifier))?;
             Ok(object_handle)
         })

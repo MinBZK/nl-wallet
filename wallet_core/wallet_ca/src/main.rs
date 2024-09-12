@@ -114,7 +114,7 @@ impl Command {
             } => {
                 let configuration = Self::get_certificate_configuration(days)?;
                 let ca = KeyPair::generate_ca(&common_name, configuration)?;
-                write_key_pair(ca, &file_prefix, force)?;
+                write_key_pair(&ca, &file_prefix, force)?;
                 Ok(())
             }
             Issuer {
@@ -130,10 +130,10 @@ impl Command {
                 let issuer_registration: IssuerRegistration = serde_json::from_reader(issuer_auth_file)?;
                 let key_pair = ca.generate(
                     &common_name,
-                    issuer_registration.into(),
+                    &issuer_registration.into(),
                     Self::get_certificate_configuration(days)?,
                 )?;
-                write_key_pair(key_pair, &file_prefix, force)?;
+                write_key_pair(&key_pair, &file_prefix, force)?;
                 Ok(())
             }
             Reader {
@@ -149,10 +149,10 @@ impl Command {
                 let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
                 let key_pair = ca.generate(
                     &common_name,
-                    reader_registration.into(),
+                    &reader_registration.into(),
                     Self::get_certificate_configuration(days)?,
                 )?;
-                write_key_pair(key_pair, &file_prefix, force)?;
+                write_key_pair(&key_pair, &file_prefix, force)?;
                 Ok(())
             }
         }

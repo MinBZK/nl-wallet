@@ -996,7 +996,7 @@ pub(crate) mod tests {
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let disclosure_error = WalletEvent::disclosure_error_from_str(
-            vec![PID_DOCTYPE],
+            &[PID_DOCTYPE],
             timestamp,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),
@@ -1028,18 +1028,15 @@ pub(crate) mod tests {
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
         let disclosure_at_timestamp = WalletEvent::disclosure_from_str(
-            vec![PID_DOCTYPE],
+            &[PID_DOCTYPE],
             timestamp,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),
         );
         let issuance_at_older_timestamp =
-            WalletEvent::issuance_from_str(vec![ADDRESS_DOCTYPE], timestamp_older, ISSUER_KEY.certificate().clone());
-        let issuance_at_even_older_timestamp = WalletEvent::issuance_from_str(
-            vec![PID_DOCTYPE],
-            timestamp_even_older,
-            ISSUER_KEY.certificate().clone(),
-        );
+            WalletEvent::issuance_from_str(&[ADDRESS_DOCTYPE], timestamp_older, ISSUER_KEY.certificate());
+        let issuance_at_even_older_timestamp =
+            WalletEvent::issuance_from_str(&[PID_DOCTYPE], timestamp_even_older, ISSUER_KEY.certificate());
 
         // No data shared with RP
         assert!(!storage
@@ -1102,16 +1099,13 @@ pub(crate) mod tests {
         let timestamp_newest = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
 
         // Log Issuance of pid and address cards
-        let issuance = WalletEvent::issuance_from_str(
-            vec![PID_DOCTYPE, ADDRESS_DOCTYPE],
-            timestamp,
-            ISSUER_KEY.certificate().clone(),
-        );
+        let issuance =
+            WalletEvent::issuance_from_str(&[PID_DOCTYPE, ADDRESS_DOCTYPE], timestamp, ISSUER_KEY.certificate());
         storage.log_wallet_event(issuance.clone()).await.unwrap();
 
         // Log Disclosure of pid and address cards
         let disclosure_pid_and_address = WalletEvent::disclosure_from_str(
-            vec![PID_DOCTYPE, ADDRESS_DOCTYPE],
+            &[PID_DOCTYPE, ADDRESS_DOCTYPE],
             timestamp_newer,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),
@@ -1123,7 +1117,7 @@ pub(crate) mod tests {
 
         // Log Disclosure of pid card only
         let disclosure_pid_only = WalletEvent::disclosure_from_str(
-            vec![PID_DOCTYPE],
+            &[PID_DOCTYPE],
             timestamp_newest,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),

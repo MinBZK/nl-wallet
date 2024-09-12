@@ -133,6 +133,7 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum SequenceNumberComparison {
     EqualTo(u64),
     LargerThan(u64),
