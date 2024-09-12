@@ -115,7 +115,7 @@ variables:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:1cea6e8f389e9237f27dadf896a9ce4530dd9423ba43fbf6896dd184794ff2b3"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:dcdcd8d8a94b782df098145fce3aeaed342a2272cf6eca2038c7f693a438d158"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -132,7 +132,7 @@ test-flutter-ui:
   when: manual
   tags:
     - macos
-  image: sonoma-wallet:0.1.0
+  image: sonoma-wallet:0.1.1
   artifacts:
     name: "ui-test-failures"
     when: on_failure
@@ -147,7 +147,7 @@ test-flutter-ui:
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:1cea6e8f389e9237f27dadf896a9ce4530dd9423ba43fbf6896dd184794ff2b3"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:dcdcd8d8a94b782df098145fce3aeaed342a2272cf6eca2038c7f693a438d158"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -159,7 +159,7 @@ verify-flutter-localizations:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:7cad7ea91533413935f181e050437b7ef6a7c381c201b40fb7b010fe28cc560c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:47633a21221bb295d5dda6772f813dbcd73f07f50f001ed2cd5636da0d18328d"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -547,7 +547,7 @@ run-automation-smoke-test-ont:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:63d835cb3418b50ba66809157667789d3ee1488ae171197bace66b811a119e41"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:db128edcaef0b8f7945b6e563da3b101a5b4c3692b1bf38f2645bcaa7e715fa0"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
