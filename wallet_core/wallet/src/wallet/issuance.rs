@@ -336,7 +336,7 @@ where
                 .collect::<Vec<_>>();
 
             // Validate all issuer_certificates
-            for mdoc in mdocs.iter() {
+            for mdoc in &mdocs {
                 let certificate = mdoc
                     .issuer_certificate()
                     .map_err(PidIssuanceError::InvalidIssuerCertificate)?;
