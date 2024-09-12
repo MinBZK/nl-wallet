@@ -81,7 +81,7 @@ struct PayloadWithSubject<T> {
 }
 
 trait SubjectPayload {
-    const SUBJECT: &str;
+    const SUBJECT: &'static str;
 }
 
 impl<T> PayloadWithSubject<T>
@@ -154,7 +154,7 @@ pub struct ChallengeRequestPayload {
 }
 
 impl SubjectPayload for ChallengeRequestPayload {
-    const SUBJECT: &str = "instruction_challenge_request";
+    const SUBJECT: &'static str = "instruction_challenge_request";
 }
 
 impl ChallengeRequestPayload {
@@ -207,7 +207,7 @@ pub struct ChallengeResponsePayload<T> {
 }
 
 impl<T> SubjectPayload for ChallengeResponsePayload<T> {
-    const SUBJECT: &str = "instruction_challenge_response";
+    const SUBJECT: &'static str = "instruction_challenge_response";
 }
 
 impl<T> ChallengeResponsePayload<T> {
@@ -297,7 +297,7 @@ mod tests {
         }
     }
     impl SubjectPayload for ToyPayload {
-        const SUBJECT: &str = "toy_subject";
+        const SUBJECT: &'static str = "toy_subject";
     }
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -342,7 +342,7 @@ mod tests {
             string: String,
         }
         impl SubjectPayload for WrongToyPayload {
-            const SUBJECT: &str = "wrong_subject";
+            const SUBJECT: &'static str = "wrong_subject";
         }
 
         let key = SigningKey::random(&mut OsRng);
