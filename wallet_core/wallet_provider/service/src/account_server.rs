@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::{signature::Verifier, VerifyingKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
 use tracing::debug;
@@ -414,8 +414,6 @@ impl AccountServer {
             )
             .await?;
 
-        instruction_payload.validate_instruction(&wallet_user)?;
-
         let instruction_result = instruction_payload
             .handle(&wallet_user, generators, repositories, wallet_user_hsm)
             .await?;
@@ -459,12 +457,22 @@ impl AccountServer {
             )
             .await?;
 
-        let tx = repositories.begin_transaction().await?;
-
         let pin_pubkey = instruction_payload.pin_pubkey.0;
+
+        if let Some(challenge) = wallet_user.instruction_challenge {
+            pin_pubkey
+                .verify(challenge.bytes.as_slice(), &instruction_payload.pop_pin_pubkey.0)
+                .map_err(|_| InstructionError::Validation(InstructionValidationError::ChallengeMismatch))?;
+        } else {
+            return Err(InstructionError::Validation(
+                InstructionValidationError::ChallengeMismatch,
+            ));
+        }
 
         let encrypted_pin_pubkey =
             Encrypter::encrypt(wallet_user_hsm, &self.encryption_key_identifier, pin_pubkey).await?;
+
+        let tx = repositories.begin_transaction().await?;
 
         repositories
             .change_pin(&tx, wallet_user.wallet_id.as_str(), encrypted_pin_pubkey)
@@ -481,9 +489,11 @@ impl AccountServer {
         )
         .await?;
 
+        let result = self.sign_instruction_result(signing_keys.0, wallet_certificate).await;
+
         tx.commit().await?;
 
-        self.sign_instruction_result(signing_keys.0, wallet_certificate).await
+        result
     }
 
     // Implements the logic behind the ChangePinRollback instruction.
@@ -550,7 +560,7 @@ impl AccountServer {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        I: InstructionAndResult,
+        I: InstructionAndResult + ValidateInstruction,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
         H: Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
         F: Fn(&WalletUser) -> Encrypted<VerifyingKey>,
@@ -609,7 +619,11 @@ impl AccountServer {
 
         match verification_result {
             Ok(challenge_response_payload) => {
-                debug!("Instruction successfully verified, resetting pin retries");
+                debug!("Instruction successfully verified, validating instruction");
+
+                challenge_response_payload.payload.validate_instruction(&wallet_user)?;
+
+                debug!("Instruction successfully validated, resetting pin retries");
 
                 repositories
                     .reset_unsuccessful_pin_entries(&tx, &wallet_user.wallet_id)
@@ -980,11 +994,14 @@ mod tests {
         .await
         .unwrap();
 
+        let pop_pin_pubkey = new_pin_privkey.try_sign(challenge.as_slice()).await.unwrap();
+
         let new_certificate_result = account_server
             .handle_change_pin_start_instruction(
                 Instruction::new_signed(
                     ChangePinStart {
                         pin_pubkey: new_pin_pubkey.into(),
+                        pop_pin_pubkey: pop_pin_pubkey.into(),
                     },
                     44,
                     &wallet_certificate_setup.hw_privkey,
@@ -1216,7 +1233,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_change_pin_commit() {
+    async fn test_change_pin_start_commit() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
         repo.instruction_sequence_number = 42;
 
@@ -1310,7 +1327,7 @@ mod tests {
                 &WalletUserTestRepo {
                     encrypted_pin_pubkey: encrypted_new_pin_pubkey.clone(),
                     previous_encrypted_pin_pubkey: Some(setup.encrypted_pin_pubkey.clone()),
-                    challenge: Some(challenge),
+                    challenge: Some(challenge.clone()),
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
@@ -1322,6 +1339,37 @@ mod tests {
         instruction_result
             .parse_and_verify_with_sub(&(&instruction_result_signing_key.verifying_key().await.unwrap()).into())
             .expect("Could not parse and verify instruction result");
+
+        let validation_error = account_server
+            .handle_instruction(
+                Instruction::new_signed(
+                    ChangePinCommit {},
+                    46,
+                    &setup.hw_privkey,
+                    &new_pin_privkey,
+                    &challenge,
+                    new_cert.clone(),
+                )
+                .await
+                .unwrap(),
+                &instruction_result_signing_key,
+                &MockGenerators,
+                &WalletUserTestRepo {
+                    encrypted_pin_pubkey: encrypted_new_pin_pubkey.clone(),
+                    previous_encrypted_pin_pubkey: None,
+                    challenge: Some(challenge),
+                    ..repo.clone()
+                },
+                &TimeoutPinPolicy,
+                HSM.get().await,
+            )
+            .await
+            .expect_err("committing double should fail");
+
+        assert_matches!(
+            validation_error,
+            InstructionError::Validation(InstructionValidationError::PinChangeNotInProgress)
+        );
 
         do_check_pin(
             &account_server,
@@ -1340,7 +1388,66 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_change_pin_rollback() {
+    async fn test_change_pin_start_invalid_pop() {
+        let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
+        repo.instruction_sequence_number = 42;
+
+        let instruction_result_signing_key = SoftwareEcdsaKey::new_random("instruction_result_signing_key".to_string());
+
+        let new_pin_privkey = SigningKey::random(&mut OsRng);
+        let new_pin_pubkey = *new_pin_privkey.verifying_key();
+
+        let challenge = do_instruction_challenge::<ChangePinStart>(
+            &account_server,
+            &repo,
+            &setup.hw_privkey,
+            cert.clone(),
+            43,
+            HSM.get().await,
+        )
+        .await
+        .unwrap();
+
+        let pop_pin_pubkey = new_pin_privkey.try_sign(random_bytes(32).as_slice()).await.unwrap();
+
+        let error = account_server
+            .handle_change_pin_start_instruction(
+                Instruction::new_signed(
+                    ChangePinStart {
+                        pin_pubkey: new_pin_pubkey.into(),
+                        pop_pin_pubkey: pop_pin_pubkey.into(),
+                    },
+                    44,
+                    &setup.hw_privkey,
+                    &setup.pin_privkey,
+                    &challenge,
+                    cert.clone(),
+                )
+                .await
+                .unwrap(),
+                (&instruction_result_signing_key, &setup.signing_key),
+                &MockGenerators,
+                &WalletUserTestRepo {
+                    hw_pubkey: setup.hw_pubkey,
+                    encrypted_pin_pubkey: setup.encrypted_pin_pubkey.clone(),
+                    previous_encrypted_pin_pubkey: None,
+                    challenge: Some(challenge),
+                    instruction_sequence_number: 2,
+                },
+                &TimeoutPinPolicy,
+                HSM.get().await,
+            )
+            .await
+            .expect_err("should return instruction error for invalid PoP");
+
+        assert_matches!(
+            error,
+            InstructionError::Validation(InstructionValidationError::ChallengeMismatch)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_change_pin_start_rollback() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
         repo.instruction_sequence_number = 42;
 
@@ -1382,6 +1489,7 @@ mod tests {
                 &MockGenerators,
                 &WalletUserTestRepo {
                     challenge: Some(challenge.clone()),
+                    previous_encrypted_pin_pubkey: Some(setup.encrypted_pin_pubkey.clone()),
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
@@ -1406,6 +1514,7 @@ mod tests {
                 &MockGenerators,
                 &WalletUserTestRepo {
                     challenge: Some(challenge),
+                    previous_encrypted_pin_pubkey: Some(setup.encrypted_pin_pubkey.clone()),
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,

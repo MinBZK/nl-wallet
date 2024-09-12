@@ -24,6 +24,7 @@ pub struct CheckPin;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChangePinStart {
     pub pin_pubkey: DerVerifyingKey,
+    pub pop_pin_pubkey: DerSignature,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
