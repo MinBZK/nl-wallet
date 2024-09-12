@@ -8,7 +8,7 @@ use wallet_common::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             instructions::InstructionChallengeRequest,
         },
-        signed::SignedChallengeRequest,
+        signed::ChallengeRequest,
     },
     generator::Generator,
     keys::{software::SoftwareEcdsaKey, EcdsaKey},
@@ -124,7 +124,7 @@ async fn test_instruction_challenge() {
     let challenge1 = account_server
         .instruction_challenge(
             InstructionChallengeRequest {
-                request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
+                request: ChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
                 certificate: certificate.clone(),
             },
             &repos,
@@ -139,7 +139,7 @@ async fn test_instruction_challenge() {
     let challenge2 = account_server
         .instruction_challenge(
             InstructionChallengeRequest {
-                request: SignedChallengeRequest::sign(2, &hw_privkey).await.unwrap(),
+                request: ChallengeRequest::sign(2, &hw_privkey).await.unwrap(),
                 certificate,
             },
             &repos,

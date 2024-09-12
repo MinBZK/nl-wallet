@@ -6,7 +6,7 @@ use crate::{
     account::{
         errors::{Error, Result},
         serialization::DerVerifyingKey,
-        signed::SignedChallengeResponse,
+        signed::ChallengeResponse,
     },
     jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
@@ -33,13 +33,13 @@ impl Registration {
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
         challenge: Vec<u8>,
-    ) -> Result<SignedChallengeResponse<Registration>> {
+    ) -> Result<ChallengeResponse<Registration>> {
         let (pin_pubkey, hw_pubkey) = try_join!(
             pin_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
             hw_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
         )?;
 
-        SignedChallengeResponse::sign(
+        ChallengeResponse::sign(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
                 hw_pubkey: hw_pubkey.into(),

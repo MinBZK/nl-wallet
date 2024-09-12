@@ -15,7 +15,7 @@ use wallet_common::{
             errors::{IncorrectPinData, PinTimeoutData},
             instructions::{Instruction, InstructionChallengeRequest, InstructionResult, InstructionResultClaims},
         },
-        signed::{ChallengeResponse, SequenceNumberComparison, SignedChallengeResponse},
+        signed::{ChallengeResponse, ChallengeResponsePayload, SequenceNumberComparison},
     },
     generator::Generator,
     jwt::{EcdsaDecodingKey, Jwt, JwtError, JwtSubject},
@@ -384,7 +384,7 @@ impl AccountServer {
         uuid_generator: &impl Generator<Uuid>,
         repositories: &R,
         hsm: &H,
-        registration_message: SignedChallengeResponse<Registration>,
+        registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
         T: Committable,
@@ -562,7 +562,7 @@ impl AccountServer {
         wallet_user: &WalletUser,
         time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
-    ) -> Result<ChallengeResponse<I>, InstructionValidationError>
+    ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
         I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
         D: Decrypter<VerifyingKey, Error = HsmError>,
@@ -694,7 +694,7 @@ mod tests {
         account::{
             messages::instructions::{CheckPin, InstructionChallengeRequest},
             serialization::DerVerifyingKey,
-            signed::SignedChallengeRequest,
+            signed::ChallengeRequest,
         },
         keys::{software::SoftwareEcdsaKey, EcdsaKey},
     };
@@ -919,7 +919,7 @@ mod tests {
             account_server
                 .instruction_challenge(
                     InstructionChallengeRequest {
-                        request: SignedChallengeRequest::sign(9, &hw_privkey).await.unwrap(),
+                        request: ChallengeRequest::sign(9, &hw_privkey).await.unwrap(),
                         certificate: cert.clone(),
                     },
                     &deps,
@@ -934,7 +934,7 @@ mod tests {
         let challenge = account_server
             .instruction_challenge(
                 InstructionChallengeRequest {
-                    request: SignedChallengeRequest::sign(43, &hw_privkey).await.unwrap(),
+                    request: ChallengeRequest::sign(43, &hw_privkey).await.unwrap(),
                     certificate: cert.clone(),
                 },
                 &deps,
@@ -1011,7 +1011,7 @@ mod tests {
         .await;
 
         let challenge_request = InstructionChallengeRequest {
-            request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
+            request: ChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
             certificate: cert.clone(),
         };
 
@@ -1143,7 +1143,7 @@ mod tests {
         };
 
         let challenge_request = InstructionChallengeRequest {
-            request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
+            request: ChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
             certificate: cert.clone(),
         };
 
@@ -1203,7 +1203,7 @@ mod tests {
         };
 
         let challenge_request = InstructionChallengeRequest {
-            request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
+            request: ChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
             certificate: cert.clone(),
         };
 
@@ -1273,7 +1273,7 @@ mod tests {
         };
 
         let challenge_request = InstructionChallengeRequest {
-            request: SignedChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
+            request: ChallengeRequest::sign(1, &hw_privkey).await.unwrap(),
             certificate: cert.clone(),
         };
 

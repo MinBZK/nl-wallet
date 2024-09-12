@@ -5,7 +5,7 @@ use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::{
         messages::instructions::{Instruction, InstructionChallengeRequest, InstructionEndpoint},
-        signed::SignedChallengeRequest,
+        signed::ChallengeRequest,
     },
     jwt::EcdsaDecodingKey,
     urls::BaseUrl,
@@ -76,9 +76,7 @@ where
 
     async fn instruction_challenge(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError> {
         let request = self
-            .with_sequence_number(storage, |seq_num| {
-                SignedChallengeRequest::sign(seq_num, self.hw_privkey)
-            })
+            .with_sequence_number(storage, |seq_num| ChallengeRequest::sign(seq_num, self.hw_privkey))
             .await?;
 
         let instruction_request = InstructionChallengeRequest {

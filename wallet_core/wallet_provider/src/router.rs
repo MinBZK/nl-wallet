@@ -21,7 +21,7 @@ use wallet_common::{
             },
         },
         serialization::DerVerifyingKey,
-        signed::SignedChallengeResponse,
+        signed::ChallengeResponse,
     },
     keys::EcdsaKey,
 };
@@ -87,7 +87,7 @@ async fn enroll(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Js
 
 async fn create_wallet(
     State(state): State<Arc<RouterState>>,
-    Json(payload): Json<SignedChallengeResponse<Registration>>,
+    Json(payload): Json<ChallengeResponse<Registration>>,
 ) -> Result<(StatusCode, Json<Certificate>)> {
     info!("Received create wallet request, registering with account server");
 

@@ -86,11 +86,11 @@ impl SequenceNumberComparison {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct ChallengeRequest {
+pub struct ChallengeRequestPayload {
     pub sequence_number: u64,
 }
 
-impl ChallengeRequest {
+impl ChallengeRequestPayload {
     pub fn new(sequence_number: u64) -> Self {
         Self { sequence_number }
     }
@@ -105,14 +105,14 @@ impl ChallengeRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SignedChallengeRequest(SignedMessage<ChallengeRequest>);
+pub struct ChallengeRequest(SignedMessage<ChallengeRequestPayload>);
 
-impl SignedChallengeRequest {
+impl ChallengeRequest {
     pub async fn sign<K>(sequence_number: u64, hardware_signing_key: &K) -> Result<Self>
     where
         K: SecureEcdsaKey,
     {
-        let challenge_request = ChallengeRequest::new(sequence_number);
+        let challenge_request = ChallengeRequestPayload::new(sequence_number);
         let signed = SignedMessage::sign(&challenge_request, SignedType::HW, hardware_signing_key).await?;
 
         Ok(Self(signed))
@@ -122,7 +122,7 @@ impl SignedChallengeRequest {
         &self,
         sequence_number_comparison: SequenceNumberComparison,
         hardware_verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeRequest> {
+    ) -> Result<ChallengeRequestPayload> {
         let request = self.0.parse_and_verify(SignedType::HW, hardware_verifying_key)?;
         request.verify(sequence_number_comparison)?;
 
@@ -132,14 +132,14 @@ impl SignedChallengeRequest {
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChallengeResponse<T> {
+pub struct ChallengeResponsePayload<T> {
     pub payload: T,
     #[serde_as(as = "Base64")]
     pub challenge: Vec<u8>,
     pub sequence_number: u64,
 }
 
-impl<T> ChallengeResponse<T> {
+impl<T> ChallengeResponsePayload<T> {
     pub fn verify(&self, challenge: &[u8], sequence_number_comparison: SequenceNumberComparison) -> Result<()> {
         if challenge != self.challenge {
             return Err(Error::ChallengeMismatch);
@@ -156,9 +156,9 @@ impl<T> ChallengeResponse<T> {
 /// Wraps a [`ChallengeResponse`], which contains an arbitrary payload, and signs it with two keys. For the inner
 /// signing the PIN key is used, while the outer signing is done with the device's hardware key.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SignedChallengeResponse<T>(SignedMessage<SignedMessage<ChallengeResponse<T>>>);
+pub struct ChallengeResponse<T>(SignedMessage<SignedMessage<ChallengeResponsePayload<T>>>);
 
-impl<T> SignedChallengeResponse<T>
+impl<T> ChallengeResponse<T>
 where
     T: Serialize + DeserializeOwned,
 {
@@ -173,7 +173,7 @@ where
         HK: SecureEcdsaKey,
         PK: EphemeralEcdsaKey,
     {
-        let challenge_response = ChallengeResponse {
+        let challenge_response = ChallengeResponsePayload {
             payload,
             challenge,
             sequence_number,
@@ -184,7 +184,7 @@ where
         Ok(Self(outer_signed))
     }
 
-    pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponse<T>> {
+    pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>> {
         let challenge_response = self.0.dangerous_parse_unverified()?.dangerous_parse_unverified()?;
 
         Ok(challenge_response)
@@ -196,7 +196,7 @@ where
         sequence_number_comparison: SequenceNumberComparison,
         hardware_verifying_key: &VerifyingKey,
         pin_verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeResponse<T>> {
+    ) -> Result<ChallengeResponsePayload<T>> {
         let inner_signed = self.0.parse_and_verify(SignedType::HW, hardware_verifying_key)?;
         let challenge_response = inner_signed.parse_and_verify(SignedType::Pin, pin_verifying_key)?;
 
@@ -228,10 +228,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_signed_challenge_request() {
+    async fn test_challenge_request() {
         let hw_privkey = SigningKey::random(&mut OsRng);
 
-        let signed = SignedChallengeRequest::sign(42, &hw_privkey).await.unwrap();
+        let signed = ChallengeRequest::sign(42, &hw_privkey).await.unwrap();
 
         println!("{}", serde_json::to_string(&signed).unwrap());
 
@@ -243,12 +243,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_signed_challenge_response() {
+    async fn test_challenge_response() {
         let challenge = b"challenge";
         let hw_privkey = SigningKey::random(&mut OsRng);
         let pin_privkey = SigningKey::random(&mut OsRng);
 
-        let signed = SignedChallengeResponse::sign(
+        let signed = ChallengeResponse::sign(
             ToyMessage::default(),
             challenge.to_vec(),
             1337,
