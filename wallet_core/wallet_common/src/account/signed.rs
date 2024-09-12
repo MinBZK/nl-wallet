@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use p256::ecdsa::{signature::Verifier, VerifyingKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
@@ -71,6 +73,66 @@ where
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PayloadWithSubject<T> {
+    subject: Cow<'static, str>,
+    #[serde(flatten)]
+    payload: T,
+}
+
+trait SubjectPayload {
+    const SUBJECT: &str;
+}
+
+impl<T> PayloadWithSubject<T>
+where
+    T: SubjectPayload,
+{
+    fn new(payload: T) -> Self {
+        Self {
+            subject: Cow::Borrowed(T::SUBJECT),
+            payload,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SignedSubjectMessage<T>(SignedMessage<PayloadWithSubject<T>>);
+
+/// Same as [`SignedMessage`], but adds a subject string to the signed JSON object, the contents of which is verified.
+impl<T> SignedSubjectMessage<T>
+where
+    T: SubjectPayload + Serialize + DeserializeOwned,
+{
+    async fn sign<K>(payload: T, r#type: SignedType, signing_key: &K) -> Result<Self>
+    where
+        K: EcdsaKey,
+    {
+        let signed_message = SignedMessage::sign(&PayloadWithSubject::new(payload), r#type, signing_key).await?;
+
+        Ok(Self(signed_message))
+    }
+
+    fn dangerous_parse_unverified(&self) -> Result<T> {
+        let payload = self.0.dangerous_parse_unverified()?.payload;
+
+        Ok(payload)
+    }
+
+    fn parse_and_verify(&self, r#type: SignedType, verifying_key: &VerifyingKey) -> Result<T> {
+        let payload = self.0.parse_and_verify(r#type, verifying_key)?;
+
+        if payload.subject.as_ref() != T::SUBJECT {
+            return Err(Error::SubjectMismatch {
+                expected: T::SUBJECT.to_string(),
+                received: payload.subject.into_owned(),
+            });
+        }
+
+        Ok(payload.payload)
+    }
+}
+
 pub enum SequenceNumberComparison {
     EqualTo(u64),
     LargerThan(u64),
@@ -90,6 +152,10 @@ pub struct ChallengeRequestPayload {
     pub sequence_number: u64,
 }
 
+impl SubjectPayload for ChallengeRequestPayload {
+    const SUBJECT: &str = "instruction_challenge_request";
+}
+
 impl ChallengeRequestPayload {
     pub fn new(sequence_number: u64) -> Self {
         Self { sequence_number }
@@ -105,7 +171,7 @@ impl ChallengeRequestPayload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChallengeRequest(SignedMessage<ChallengeRequestPayload>);
+pub struct ChallengeRequest(SignedSubjectMessage<ChallengeRequestPayload>);
 
 impl ChallengeRequest {
     pub async fn sign<K>(sequence_number: u64, hardware_signing_key: &K) -> Result<Self>
@@ -113,7 +179,7 @@ impl ChallengeRequest {
         K: SecureEcdsaKey,
     {
         let challenge_request = ChallengeRequestPayload::new(sequence_number);
-        let signed = SignedMessage::sign(&challenge_request, SignedType::HW, hardware_signing_key).await?;
+        let signed = SignedSubjectMessage::sign(challenge_request, SignedType::HW, hardware_signing_key).await?;
 
         Ok(Self(signed))
     }
@@ -139,6 +205,10 @@ pub struct ChallengeResponsePayload<T> {
     pub sequence_number: u64,
 }
 
+impl<T> SubjectPayload for ChallengeResponsePayload<T> {
+    const SUBJECT: &str = "instruction_challenge_response";
+}
+
 impl<T> ChallengeResponsePayload<T> {
     pub fn verify(&self, challenge: &[u8], sequence_number_comparison: SequenceNumberComparison) -> Result<()> {
         if challenge != self.challenge {
@@ -156,7 +226,7 @@ impl<T> ChallengeResponsePayload<T> {
 /// Wraps a [`ChallengeResponse`], which contains an arbitrary payload, and signs it with two keys. For the inner
 /// signing the PIN key is used, while the outer signing is done with the device's hardware key.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChallengeResponse<T>(SignedMessage<SignedMessage<ChallengeResponsePayload<T>>>);
+pub struct ChallengeResponse<T>(SignedMessage<SignedSubjectMessage<ChallengeResponsePayload<T>>>);
 
 impl<T> ChallengeResponse<T>
 where
@@ -178,7 +248,7 @@ where
             challenge,
             sequence_number,
         };
-        let inner_signed = SignedMessage::sign(&challenge_response, SignedType::Pin, pin_signing_key).await?;
+        let inner_signed = SignedSubjectMessage::sign(challenge_response, SignedType::Pin, pin_signing_key).await?;
         let outer_signed = SignedMessage::sign(&inner_signed, SignedType::HW, hardware_signing_key).await?;
 
         Ok(Self(outer_signed))

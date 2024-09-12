@@ -15,6 +15,9 @@ pub enum Error {
     #[error("incorrect signing type (expected: {expected:?}, received: {received:?})")]
     #[category(critical)]
     TypeMismatch { expected: SignedType, received: SignedType },
+    #[error("incorrect signing subject (expected: {expected}, received: {received})")]
+    #[category(critical)]
+    SubjectMismatch { expected: String, received: String },
     #[error("challenge does not match")]
     #[category(critical)]
     ChallengeMismatch,
