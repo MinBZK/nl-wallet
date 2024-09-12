@@ -278,10 +278,26 @@ where
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
     use super::*;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct ToyPayload {
+        string: String,
+    }
+    impl Default for ToyPayload {
+        fn default() -> Self {
+            Self {
+                string: "Some payload.".to_string(),
+            }
+        }
+    }
+    impl SubjectPayload for ToyPayload {
+        const SUBJECT: &str = "toy_subject";
+    }
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {
@@ -298,6 +314,66 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_signed_message_error_type_mismatch() {
+        let key = SigningKey::random(&mut OsRng);
+        let signed_message = SignedMessage::sign(&ToyPayload::default(), SignedType::HW, &key)
+            .await
+            .unwrap();
+
+        // Verifying with the wrong signature type should return a `Error::TypeMismatch`.
+        let error = signed_message
+            .parse_and_verify(SignedType::Pin, key.verifying_key())
+            .expect_err("verifying SignedMessage should return an error");
+
+        assert_matches!(
+            error,
+            Error::TypeMismatch {
+                expected: SignedType::Pin,
+                received: SignedType::HW
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_subject_signed_message_error_subject_mismatch() {
+        #[derive(Debug, Serialize, Deserialize)]
+        struct WrongToyPayload {
+            string: String,
+        }
+        impl SubjectPayload for WrongToyPayload {
+            const SUBJECT: &str = "wrong_subject";
+        }
+
+        let key = SigningKey::random(&mut OsRng);
+        let signed_message = SignedSubjectMessage::sign(
+            WrongToyPayload {
+                string: "WRONG!".to_string(),
+            },
+            SignedType::HW,
+            &key,
+        )
+        .await
+        .unwrap();
+
+        let decoded_message =
+            serde_json::from_str::<SignedSubjectMessage<ToyPayload>>(&serde_json::to_string(&signed_message).unwrap())
+                .unwrap();
+
+        // Verifying with an incorrect subject field should return a `Error::SubjectMismatch`.
+        let error = decoded_message
+            .parse_and_verify(SignedType::HW, key.verifying_key())
+            .expect_err("verifying SignedMessage should return an error");
+
+        assert_matches!(
+            error,
+            Error::SubjectMismatch {
+                expected,
+                received,
+            } if expected == "toy_subject" && received == "wrong_subject"
+        );
+    }
+
+    #[tokio::test]
     async fn test_challenge_request() {
         let hw_privkey = SigningKey::random(&mut OsRng);
 
@@ -305,6 +381,14 @@ mod tests {
 
         println!("{}", serde_json::to_string(&signed).unwrap());
 
+        // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
+        let error = signed
+            .parse_and_verify(SequenceNumberComparison::LargerThan(42), hw_privkey.verifying_key())
+            .expect_err("verifying SignedChallengeRequest should return an error");
+
+        assert_matches!(error, Error::SequenceNumberMismatch);
+
+        // Verifying against the correct values should succeed.
         let request = signed
             .parse_and_verify(SequenceNumberComparison::EqualTo(42), hw_privkey.verifying_key())
             .expect("SignedChallengeRequest should be valid");
@@ -330,6 +414,31 @@ mod tests {
 
         println!("{}", serde_json::to_string(&signed).unwrap());
 
+        // Verifying against an incorrect challenge should return a `Error::ChallengeMismatch`.
+        let error = signed
+            .parse_and_verify(
+                b"wrong",
+                SequenceNumberComparison::LargerThan(1336),
+                hw_privkey.verifying_key(),
+                pin_privkey.verifying_key(),
+            )
+            .expect_err("verifying SignedChallengeRequest should return an error");
+
+        assert_matches!(error, Error::ChallengeMismatch);
+
+        // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
+        let error = signed
+            .parse_and_verify(
+                challenge,
+                SequenceNumberComparison::EqualTo(42),
+                hw_privkey.verifying_key(),
+                pin_privkey.verifying_key(),
+            )
+            .expect_err("verifying SignedChallengeRequest should return an error");
+
+        assert_matches!(error, Error::SequenceNumberMismatch);
+
+        // Verifying against the correct values should succeed.
         let verified = signed
             .parse_and_verify(
                 challenge,
