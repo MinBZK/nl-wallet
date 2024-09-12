@@ -4,8 +4,9 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::value::RawValue;
 
 /// Wraps a [`RawValue`], which internally holds a string slice. Next to this, the type it serializes from and
-/// deserializes to is held using [`PhantomData`]. It is to be used as a helper type for JSON structs, where a
-/// signature needs to be generated over an exact piece of JSON string data.
+/// deserializes to is held using [`PhantomData`]. It is used to keep track of the JSON serialization of a data
+/// structure, which is necessary when signing JSON since JSON has no stable map order and can include arbitrary
+/// whitespace.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct TypedRawValue<T>(Box<RawValue>, PhantomData<T>);
