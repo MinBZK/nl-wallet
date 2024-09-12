@@ -76,7 +76,7 @@ impl HttpConfigurationClient {
         let mut request_builder = self.http_client.get(url);
 
         if let Some(etag) = self.latest_etag.lock().as_ref() {
-            request_builder = request_builder.header(header::IF_NONE_MATCH, etag)
+            request_builder = request_builder.header(header::IF_NONE_MATCH, etag);
         }
 
         let request = request_builder.build()?;

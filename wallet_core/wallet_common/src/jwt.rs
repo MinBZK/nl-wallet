@@ -1,9 +1,15 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, str::FromStr, sync::LazyLock};
 
 use base64::prelude::*;
+use itertools::Itertools;
 use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use x509_parser::{
+    der_parser::{asn1_rs::BitString, Oid},
+    prelude::FromDer,
+    x509::AlgorithmIdentifier,
+};
 
 use error_category::ErrorCategory;
 
@@ -21,7 +27,7 @@ use crate::{
 ///
 /// Presence of the field may be enforced using [`Validation::required_spec_claims`] and/or by including it
 /// explicitly as a field in the (de)serialized type.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
 impl<T, S: Into<String>> From<S> for Jwt<T> {
     fn from(val: S) -> Self {
@@ -34,7 +40,7 @@ pub type Result<T, E = JwtError> = std::result::Result<T, E>;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum JwtError {
     #[error("JSON parsing error: {0}")]
-    #[category(critical)]
+    #[category(pd)]
     JsonParsing(#[from] serde_json::Error),
     #[error("error validating JWT: {0}")]
     #[category(critical)]
@@ -42,6 +48,21 @@ pub enum JwtError {
     #[error("error signing JWT: {0}")]
     #[category(critical)]
     Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("trust anchor key of unexpected format: {0}")]
+    #[category(critical)]
+    TrustAnchorKeyFormat(String),
+    #[error("failed to parse trust anchor algorithm: {0}")]
+    #[category(critical)]
+    TrustAnchorAlgorithmParsing(#[source] x509_parser::nom::Err<x509_parser::error::X509Error>),
+    #[error("failed to parse trust anchor key: {0}")]
+    #[category(critical)]
+    TrustAnchorKeyParsing(#[from] x509_parser::nom::Err<x509_parser::der_parser::error::Error>),
+    #[error("unexpected amount of parts in JWT credential: expected 3, found {0}")]
+    #[category(critical)]
+    UnexpectedNumberOfParts(usize),
+    #[error("failed to decode Base64: {0}")]
+    #[category(pd)]
+    Base64Error(#[from] base64::DecodeError),
 }
 
 pub trait JwtSubject {
@@ -96,6 +117,9 @@ impl EcdsaDecodingKey {
     }
 }
 
+/// The OID of Elliptic Curve public keys.
+static OID_EC_PUBKEY: LazyLock<Oid<'static>> = LazyLock::new(|| Oid::from_str("1.2.840.10045.2.1").unwrap());
+
 impl<T> Jwt<T>
 where
     T: DeserializeOwned,
@@ -107,6 +131,36 @@ where
             .claims;
 
         Ok(payload)
+    }
+
+    /// Verify a JWT against the `subjectPublicKeyInfo` of a trust anchor.
+    pub fn verify_against_spki(&self, spki: &[u8]) -> Result<T> {
+        let (key_bytes, algorithm) =
+            AlgorithmIdentifier::from_der(spki).map_err(JwtError::TrustAnchorAlgorithmParsing)?;
+        if algorithm.algorithm != *OID_EC_PUBKEY {
+            return Err(JwtError::TrustAnchorKeyFormat(algorithm.oid().to_id_string()));
+        }
+
+        let (_, key_bytes) = BitString::from_der(key_bytes)?;
+        let key = DecodingKey::from_ec_der(&key_bytes.data); // this is actually SEC1, not DER
+
+        let claims = jsonwebtoken::decode(&self.0, &key, &validations())
+            .map_err(JwtError::Validation)?
+            .claims;
+
+        Ok(claims)
+    }
+
+    pub fn dangerous_parse_unverified(&self) -> Result<(Header, T)> {
+        let parts = self.0.split('.').collect_vec();
+        if parts.len() != 3 {
+            return Err(JwtError::UnexpectedNumberOfParts(parts.len()));
+        }
+
+        let header: Header = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[0])?)?;
+        let body: T = serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(parts[1])?)?;
+
+        Ok((header, body))
     }
 }
 

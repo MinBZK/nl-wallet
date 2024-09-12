@@ -245,9 +245,10 @@ fn expand(input: DeriveInput) -> Result<TokenStream> {
 
     let name = input.ident;
 
+    let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
     let expanded = quote! {
         #[automatically_derived]
-        impl ::error_category::ErrorCategory for #name {
+        impl #impl_generics ::error_category::ErrorCategory for #name #type_generics #where_clause {
             fn category(&self) -> ::error_category::Category {
                 #body
             }

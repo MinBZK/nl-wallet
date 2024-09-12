@@ -127,7 +127,7 @@ fn test_baz() {
         let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
         rt.block_on(async {
             let _ = baz(&42).await;
-        })
+        });
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
@@ -205,7 +205,7 @@ fn test_wallet_baz() {
         let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
         rt.block_on(async {
             let _ = wallet.baz(&42).await;
-        })
+        });
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);
@@ -256,7 +256,7 @@ fn test_purse_baz() {
         let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
         rt.block_on(async {
             let _ = purse.baz(&42).await;
-        })
+        });
     });
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].level, Level::Error);

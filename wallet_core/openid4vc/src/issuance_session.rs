@@ -28,15 +28,15 @@ use wallet_common::{generator::TimeGenerator, jwt::JwtError, nonempty::NonEmpty,
 
 use crate::{
     credential::{
-        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
-        MdocCopies,
+        CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
+        CredentialResponses, MdocCopies,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    jwt::JwkConversionError,
+    jwt::{JwkConversionError, JwtCredential, JwtCredentialError},
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorResponse, TokenErrorCode, NL_WALLET_CLIENT_ID,
+    CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -62,10 +62,14 @@ pub enum IssuanceSessionError {
     #[error("base64 decoding failed: {0}")]
     #[category(pd)]
     Base64Error(#[from] base64::DecodeError),
-    #[error("mismatch between issued and expected attributes: {0}")]
-    IssuedAttributesMismatch(#[source] IssuedAttributesMismatch),
+    #[error("mismatch between issued and expected attributes in mdoc: {0}")]
+    IssuedMdocAttributesMismatch(#[source] IssuedAttributesMismatch),
+    #[error("mismatch between issued and expected attributes in JWT: {0}")]
+    IssuedJwtAttributesMismatch(#[source] IssuedAttributesMismatch<String>),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
+    #[error("jwt credential verification failed: {0}")]
+    JwtCredentialVerification(#[from] JwtCredentialError),
     #[error("error requesting access token: {0:?}")]
     #[category(pd)]
     TokenRequest(ErrorResponse<TokenErrorCode>),
@@ -88,9 +92,9 @@ pub enum IssuanceSessionError {
     HeaderToStr(#[from] ToStrError),
     #[error("error verifying certificate of credential preview: {0}")]
     Certificate(#[from] CertificateError),
-    #[error("issuer certificate contained in mdoc not equal to expected value")]
+    #[error("issuer contained in credential not equal to expected value")]
     #[category(critical)]
-    IssuerCertificateMismatch,
+    IssuerMismatch,
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
     #[error("error discovering Oauth metadata: {0}")]
@@ -105,6 +109,9 @@ pub enum IssuanceSessionError {
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]
     AttributeRandomLength(usize, usize),
+    #[error("unexpected credential format: expected {expected:?}, found {found:?}")]
+    #[category(critical)]
+    UnexpectedCredentialFormat { expected: Format, found: Format },
     #[error("received zero credential copies")]
     #[category(critical)]
     NoCredentialCopies,
@@ -113,11 +120,74 @@ pub enum IssuanceSessionError {
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
     MsoMdoc(Mdoc),
+    Jwt(JwtCredential),
+}
+
+impl TryFrom<IssuedCredential> for Mdoc {
+    type Error = IssuanceSessionError;
+
+    fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
+        match value {
+            IssuedCredential::MsoMdoc(mdoc) => Ok(mdoc),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                expected: Format::MsoMdoc,
+                found: (&value).into(),
+            }),
+        }
+    }
+}
+
+impl TryFrom<IssuedCredential> for JwtCredential {
+    type Error = IssuanceSessionError;
+
+    fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
+        match value {
+            IssuedCredential::Jwt(jwt) => Ok(jwt),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                expected: Format::Jwt,
+                found: (&value).into(),
+            }),
+        }
+    }
+}
+
+impl From<&IssuedCredential> for Format {
+    fn from(value: &IssuedCredential) -> Self {
+        match value {
+            IssuedCredential::MsoMdoc(_) => Format::MsoMdoc,
+            IssuedCredential::Jwt(_) => Format::Jwt,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredentialCopies {
     MsoMdoc(MdocCopies),
+    Jwt(CredentialCopies<JwtCredential>),
+}
+
+impl IssuedCredentialCopies {
+    pub fn len(&self) -> usize {
+        match self {
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.as_ref().len(),
+            IssuedCredentialCopies::Jwt(jwts) => jwts.as_ref().len(),
+        }
+    }
+
+    // Required by clippy
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl From<&IssuedCredentialCopies> for Format {
+    fn from(value: &IssuedCredentialCopies) -> Self {
+        match value {
+            IssuedCredentialCopies::MsoMdoc(_) => Format::MsoMdoc,
+            IssuedCredentialCopies::Jwt(_) => Format::Jwt,
+        }
+    }
 }
 
 impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
@@ -126,6 +196,10 @@ impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
     fn try_from(value: &'a IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match &value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                expected: Format::MsoMdoc,
+                found: value.into(),
+            }),
         }
     }
 }
@@ -136,7 +210,30 @@ impl TryFrom<IssuedCredentialCopies> for MdocCopies {
     fn try_from(value: IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
+            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                expected: Format::MsoMdoc,
+                found: (&value).into(),
+            }),
         }
+    }
+}
+
+impl<T> TryFrom<NonEmpty<Vec<IssuedCredential>>> for CredentialCopies<T>
+where
+    T: TryFrom<IssuedCredential>,
+{
+    type Error = <T as TryFrom<IssuedCredential>>::Error;
+
+    fn try_from(creds: NonEmpty<Vec<IssuedCredential>>) -> Result<Self, Self::Error> {
+        let copies = creds
+            .into_inner()
+            .into_iter()
+            .map(TryInto::try_into)
+            .collect::<Result<Vec<T>, _>>()?
+            .try_into()
+            .unwrap(); // We always have at least one credential because our input was nonempty
+
+        Ok(copies)
     }
 }
 
@@ -145,17 +242,9 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
 
     fn try_from(creds: Vec<IssuedCredential>) -> Result<Self, Self::Error> {
         let copies = match creds.first().ok_or(IssuanceSessionError::NoCredentialCopies)? {
-            IssuedCredential::MsoMdoc(_) => {
-                let mdoc_copies = creds
-                    .into_iter()
-                    .map(|mdoc| match mdoc {
-                        IssuedCredential::MsoMdoc(mdoc) => mdoc,
-                    })
-                    .collect_vec()
-                    .try_into()
-                    .unwrap(); // we checked above that we always have at least one credential
-                IssuedCredentialCopies::MsoMdoc(mdoc_copies)
-            }
+            // We can unwrap in these arms because we just checked that we have at least one credential
+            IssuedCredential::MsoMdoc(_) => IssuedCredentialCopies::MsoMdoc(NonEmpty::new(creds).unwrap().try_into()?),
+            IssuedCredential::Jwt(_) => IssuedCredentialCopies::Jwt(NonEmpty::new(creds).unwrap().try_into()?),
         };
 
         Ok(copies)
@@ -637,6 +726,13 @@ impl CredentialResponse {
             CredentialResponse::MsoMdoc {
                 credential: CborBase64(issuer_signed),
             } => {
+                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview else {
+                    return Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                        expected: Format::MsoMdoc,
+                        found: preview.into(),
+                    });
+                };
+
                 if issuer_signed
                     .public_key()
                     .map_err(IssuanceSessionError::PublicKeyFromMdoc)?
@@ -667,9 +763,8 @@ impl CredentialResponse {
 
                 // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
                 // in the credential preview.
-                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
                 if issuer_signed.issuer_auth.signing_cert()? != *issuer {
-                    return Err(IssuanceSessionError::IssuerCertificateMismatch);
+                    return Err(IssuanceSessionError::IssuerMismatch);
                 }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
@@ -678,9 +773,34 @@ impl CredentialResponse {
 
                 // Check that our mdoc contains exactly the attributes the issuer said it would have
                 mdoc.compare_unsigned(unsigned_mdoc)
-                    .map_err(IssuanceSessionError::IssuedAttributesMismatch)?;
+                    .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
                 Ok(IssuedCredential::MsoMdoc(mdoc))
+            }
+            CredentialResponse::Jwt { credential } => {
+                let (cred, cred_claims) = JwtCredential::new::<K>(key_id, credential, trust_anchors)?;
+
+                let CredentialPreview::Jwt {
+                    claims: expected_claims,
+                    ..
+                } = preview
+                else {
+                    return Err(IssuanceSessionError::UnexpectedCredentialFormat {
+                        expected: Format::Jwt,
+                        found: preview.into(),
+                    });
+                };
+
+                if cred_claims.contents.iss != expected_claims.iss {
+                    return Err(IssuanceSessionError::IssuerMismatch);
+                }
+
+                cred_claims
+                    .contents
+                    .compare_attributes(expected_claims)
+                    .map_err(IssuanceSessionError::IssuedJwtAttributesMismatch)?;
+
+                Ok(IssuedCredential::Jwt(cred))
             }
         }
     }
@@ -806,7 +926,7 @@ mod tests {
         assert_matches!(
             error,
             IssuanceSessionError::Certificate(CertificateError::Verification(_))
-        )
+        );
     }
 
     #[tokio::test]
@@ -893,7 +1013,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::PublicKeyMismatch)
+        assert_matches!(error, IssuanceSessionError::PublicKeyMismatch);
     }
 
     #[tokio::test]
@@ -915,6 +1035,7 @@ mod tests {
 
                 CredentialResponse::MsoMdoc { credential }
             }
+            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response
@@ -929,7 +1050,7 @@ mod tests {
         assert_matches!(
             error,
             IssuanceSessionError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH)
-        )
+        );
     }
 
     #[tokio::test]
@@ -950,6 +1071,7 @@ mod tests {
                 unsigned_mdoc,
                 issuer: other_issuance_key.certificate().clone(),
             },
+            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response
@@ -961,7 +1083,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuerCertificateMismatch)
+        assert_matches!(error, IssuanceSessionError::IssuerMismatch);
     }
 
     #[tokio::test]
@@ -974,7 +1096,7 @@ mod tests {
             .into_credential::<SoftwareEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::MdocVerification(_))
+        assert_matches!(error, IssuanceSessionError::MdocVerification(_));
     }
 
     #[tokio::test]
@@ -991,6 +1113,7 @@ mod tests {
                 unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
                 issuer,
             },
+            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response
@@ -1004,8 +1127,8 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceSessionError::IssuedAttributesMismatch(IssuedAttributesMismatch { missing, unexpected })
+            IssuanceSessionError::IssuedMdocAttributesMismatch(IssuedAttributesMismatch { missing, unexpected })
                 if missing.len() == 1 && unexpected.is_empty()
-        )
+        );
     }
 }

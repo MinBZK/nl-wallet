@@ -322,7 +322,7 @@ mod test {
 
             modify_func(&mut name_spaces);
 
-            mem::swap(self, &mut name_spaces.try_into().unwrap())
+            mem::swap(self, &mut name_spaces.try_into().unwrap());
         }
 
         pub fn modify_attributes<F>(&mut self, name_space: &str, modify_func: F)
@@ -336,7 +336,7 @@ mod test {
                 modify_func(&mut new_attributes);
 
                 mem::swap(attributes, &mut new_attributes.try_into().unwrap());
-            })
+            });
         }
 
         pub fn modify_first_attributes<F>(&mut self, modify_func: F)

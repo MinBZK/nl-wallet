@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if settings.structured_logging {
         builder.json().init();
     } else {
-        builder.init()
+        builder.init();
     }
 
     tokio::runtime::Builder::new_multi_thread()

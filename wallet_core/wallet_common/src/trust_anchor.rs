@@ -6,6 +6,7 @@ use std::{
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 use webpki::{Error, TrustAnchor};
+use x509_parser::{error::X509Error, prelude::FromDer, x509::RelativeDistinguishedName};
 
 /// A version of [`TrustAnchor`] that can more easily be used as a field
 /// in another struct, as it does not require a liftetime annotation.
@@ -34,7 +35,7 @@ impl Debug for DerTrustAnchor {
 
 impl Hash for DerTrustAnchor {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.der_bytes.hash(state)
+        self.der_bytes.hash(state);
     }
 }
 
@@ -66,6 +67,17 @@ impl<'a> From<&'a OwnedTrustAnchor> for TrustAnchor<'a> {
             name_constraints: value.name_constraints.as_deref(),
         }
     }
+}
+
+pub fn trust_anchor_names(trust_anchor: &TrustAnchor) -> Result<Vec<String>, x509_parser::nom::Err<X509Error>> {
+    let (_, names) = RelativeDistinguishedName::from_der(trust_anchor.subject)?;
+
+    let names = names
+        .iter()
+        .filter_map(|name| name.as_str().ok().map(str::to_string))
+        .collect();
+
+    Ok(names)
 }
 
 impl Serialize for DerTrustAnchor {

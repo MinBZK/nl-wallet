@@ -5453,6 +5453,7 @@ dependencies = [
  "etag",
  "futures",
  "http",
+ "itertools",
  "jsonwebtoken",
  "mime",
  "nutype",
@@ -5473,6 +5474,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
+ "x509-parser",
 ]
 
 [[package]]

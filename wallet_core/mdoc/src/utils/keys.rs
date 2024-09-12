@@ -8,14 +8,14 @@ use wallet_common::keys::{SecureEcdsaKey, WithIdentifier};
 /// Contract for ECDSA private keys suitable for mdoc attestations.
 /// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
 pub trait MdocEcdsaKey: SecureEcdsaKey + WithIdentifier {
-    const KEY_TYPE: MdocKeyType;
+    const KEY_TYPE: CredentialKeyType;
 
     // from WithIdentifier: identifier()
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum MdocKeyType {
+pub enum CredentialKeyType {
     #[cfg(any(test, feature = "software_keys"))]
     Software,
     Remote,
@@ -48,11 +48,11 @@ pub trait KeyFactory {
 mod software {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::utils::keys::MdocKeyType;
+    use crate::utils::keys::CredentialKeyType;
 
     use super::MdocEcdsaKey;
 
     impl MdocEcdsaKey for SoftwareEcdsaKey {
-        const KEY_TYPE: MdocKeyType = MdocKeyType::Software;
+        const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;
     }
 }
