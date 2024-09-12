@@ -390,7 +390,7 @@ mod filters {
 
     pub fn attribute(attributes: &DisclosedAttributes, name: &str) -> ::askama::Result<String> {
         for doctype in attributes {
-            for namespace in doctype.1.attributes.iter() {
+            for namespace in &doctype.1.attributes {
                 for (attribute_name, attribute_value) in namespace.1 {
                     if attribute_name == name {
                         return Ok(attribute_value.as_text().unwrap().to_owned());
