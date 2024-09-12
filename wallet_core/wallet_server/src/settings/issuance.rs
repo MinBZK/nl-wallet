@@ -53,7 +53,7 @@ impl TryFrom<&Issuer> for BrpPidAttributeService {
         BrpPidAttributeService::new(
             HttpBrpClient::new(issuer.brp_server.clone()),
             issuer.digid.issuer_url.clone(),
-            issuer.digid.bsn_privkey.clone(),
+            &issuer.digid.bsn_privkey,
             issuer.digid.trust_anchors.clone(),
             issuer.certificates(),
         )

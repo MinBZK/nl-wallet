@@ -1,4 +1,8 @@
-use std::{env, net::IpAddr, path::PathBuf};
+use std::{
+    env,
+    net::IpAddr,
+    path::{Path, PathBuf},
+};
 
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
@@ -63,8 +67,8 @@ pub struct PreloadedSettings {
 }
 
 impl<T> FileGbavClient<T> {
-    pub fn from_settings(settings: PreloadedSettings, client: T) -> Self {
-        Self::new(settings.xml_path.into(), client)
+    pub fn from_settings(settings: &PreloadedSettings, client: T) -> Self {
+        Self::new(Path::new(&settings.xml_path), client)
     }
 }
 

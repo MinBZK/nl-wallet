@@ -29,7 +29,7 @@ use super::x509::{Certificate, CertificateError, CertificateUsage};
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
 pub trait Cose {
     type Key;
-    fn payload(&self) -> &Option<Vec<u8>>;
+    fn payload(&self) -> Option<&[u8]>;
     fn unprotected(&self) -> &Header;
     fn verify(&self, key: &Self::Key) -> Result<(), CoseError>;
 }
@@ -69,8 +69,8 @@ pub enum CoseError {
 
 impl Cose for CoseSign1 {
     type Key = VerifyingKey;
-    fn payload(&self) -> &Option<Vec<u8>> {
-        &self.payload
+    fn payload(&self) -> Option<&[u8]> {
+        self.payload.as_deref()
     }
     fn unprotected(&self) -> &Header {
         &self.unprotected
@@ -91,8 +91,8 @@ impl Cose for CoseSign1 {
 
 impl Cose for CoseMac0 {
     type Key = hmac::Key;
-    fn payload(&self) -> &Option<Vec<u8>> {
-        &self.payload
+    fn payload(&self) -> Option<&[u8]> {
+        self.payload.as_deref()
     }
     fn unprotected(&self) -> &Header {
         &self.unprotected
@@ -122,14 +122,8 @@ where
     /// DANGEROUS: this ignores the Cose signature/mac entirely, so the authenticity of the Cose and
     /// its payload is in no way guaranteed. Use [`MdocCose::verify_and_parse()`] instead if possible.
     pub(crate) fn dangerous_parse_unverified(&self) -> Result<T, CoseError> {
-        let payload = cbor_deserialize(
-            self.0
-                .payload()
-                .as_ref()
-                .ok_or_else(|| CoseError::MissingPayload)?
-                .as_slice(),
-        )
-        .map_err(CoseError::Cbor)?;
+        let payload =
+            cbor_deserialize(self.0.payload().ok_or_else(|| CoseError::MissingPayload)?).map_err(CoseError::Cbor)?;
         Ok(payload)
     }
 
@@ -570,7 +564,7 @@ mod tests {
         let issuer_key_pair = ca
             .generate(
                 "cert.example.com",
-                IssuerRegistration::new_mock().into(),
+                &IssuerRegistration::new_mock().into(),
                 Default::default(),
             )
             .unwrap();
