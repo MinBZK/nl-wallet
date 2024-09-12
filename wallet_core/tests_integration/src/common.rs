@@ -380,6 +380,7 @@ impl AttributeService for MockAttributeService {
 }
 
 // The type of MockDigidSession::Context is too complex, but keeping ownership is important.
+#[must_use = "ownership of MockDigidSession::Context must be retained for the duration of the test"]
 pub fn setup_digid_context() -> Box<dyn Any> {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _| {

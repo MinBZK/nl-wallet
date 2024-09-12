@@ -5,7 +5,7 @@ use wallet::{AttributeValue, Document};
 
 #[tokio::test]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // ownerschip of context is required
+    // retain [`MockDigidSession::Context`]
     let _context = setup_digid_context();
 
     let pin = "112233".to_string();

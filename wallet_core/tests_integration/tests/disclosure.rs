@@ -109,7 +109,7 @@ async fn test_disclosure_usecases_ok(
         return_url_template,
     };
 
-    // ownerschip of context is required
+    // retain [`MockDigidSession::Context`]
     let _context = setup_digid_context();
 
     let ws_settings = wallet_server_settings();
