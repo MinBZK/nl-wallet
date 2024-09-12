@@ -9,7 +9,7 @@ use wallet_common::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
             errors::{AccountError, AccountErrorType},
             instructions::{
-                Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult,
+                Instruction, InstructionAndResult, InstructionChallengeRequestMessage, InstructionResult,
                 InstructionResultMessage,
             },
         },
@@ -153,9 +153,9 @@ impl AccountProviderClient for HttpAccountProviderClient {
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
-        I: InstructionEndpoint,
+        I: InstructionAndResult,
     {
-        let url = base_url.join(&format!("instructions/{}", I::ENDPOINT));
+        let url = base_url.join(&format!("instructions/{}", I::NAME));
         let message: InstructionResultMessage<I::Result> = self.send_json_post_request(url, &instruction).await?;
 
         Ok(message.result)

@@ -1,55 +1,127 @@
 use std::sync::Arc;
 
 use futures::future;
+use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use uuid::Uuid;
 
 use wallet_common::{
     account::{
-        messages::instructions::{CheckPin, GenerateKey, GenerateKeyResult, Sign, SignResult},
+        messages::instructions::{
+            ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult, Sign,
+            SignResult,
+        },
         serialization::{DerSignature, DerVerifyingKey},
     },
     generator::Generator,
 };
 use wallet_provider_domain::{
     model::{
+        encrypter::Encrypter,
         hsm::WalletUserHsm,
         wallet_user::{WalletUser, WalletUserKey, WalletUserKeys},
     },
     repository::{Committable, TransactionStarter, WalletUserRepository},
 };
 
-use crate::{account_server::InstructionError, hsm::HsmError};
+use crate::{
+    account_server::{InstructionError, InstructionValidationError},
+    hsm::HsmError,
+};
+
+pub trait ValidateInstruction {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        if wallet_user.pin_change_in_progress() {
+            return Err(InstructionValidationError::PinChangeInProgress);
+        }
+
+        Ok(())
+    }
+}
+
+impl ValidateInstruction for CheckPin {}
+impl ValidateInstruction for ChangePinStart {}
+impl ValidateInstruction for GenerateKey {}
+impl ValidateInstruction for Sign {}
+
+impl ValidateInstruction for ChangePinCommit {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        ensure_pin_change_in_progress(wallet_user)
+    }
+}
+
+impl ValidateInstruction for ChangePinRollback {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        ensure_pin_change_in_progress(wallet_user)
+    }
+}
+
+fn ensure_pin_change_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+    if !wallet_user.pin_change_in_progress() {
+        return Err(InstructionValidationError::PinChangeNotInProgress);
+    }
+
+    Ok(())
+}
 
 pub trait HandleInstruction {
     type Result: Serialize;
 
-    async fn handle<T, R>(
+    async fn handle<T, R, H>(
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
         wallet_user_repository: &R,
-        wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
+        wallet_user_hsm: &H,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>;
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>;
 }
 
 impl HandleInstruction for CheckPin {
     type Result = ();
 
-    async fn handle<T, R>(
+    async fn handle<T, R, H>(
         self,
         _wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
         _wallet_user_repository: &R,
-        _wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
+        _wallet_user_hsm: &H,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
+        Ok(())
+    }
+}
+
+impl HandleInstruction for ChangePinCommit {
+    type Result = ();
+
+    async fn handle<T, R, H>(
+        self,
+        wallet_user: &WalletUser,
+        _uuid_generator: &impl Generator<Uuid>,
+        wallet_user_repository: &R,
+        _wallet_user_hsm: &H,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    {
+        let tx = wallet_user_repository.begin_transaction().await?;
+
+        wallet_user_repository
+            .commit_pin_change(&tx, wallet_user.wallet_id.as_str())
+            .await?;
+
+        tx.commit().await?;
+
         Ok(())
     }
 }
@@ -57,16 +129,17 @@ impl HandleInstruction for CheckPin {
 impl HandleInstruction for GenerateKey {
     type Result = GenerateKeyResult;
 
-    async fn handle<T, R>(
+    async fn handle<T, R, H>(
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
         wallet_user_repository: &R,
-        wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
+        wallet_user_hsm: &H,
     ) -> Result<GenerateKeyResult, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
         let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
         let keys = wallet_user_hsm.generate_wrapped_keys(&identifiers).await?;
@@ -104,16 +177,17 @@ impl HandleInstruction for GenerateKey {
 impl HandleInstruction for Sign {
     type Result = SignResult;
 
-    async fn handle<T, R>(
+    async fn handle<T, R, H>(
         self,
         wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
         wallet_user_repository: &R,
-        wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
+        wallet_user_hsm: &H,
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
         let (data, identifiers): (Vec<_>, Vec<_>) = self.messages_with_identifiers.into_iter().unzip();
 

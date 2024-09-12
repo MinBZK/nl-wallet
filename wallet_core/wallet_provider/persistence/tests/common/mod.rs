@@ -14,6 +14,7 @@ use wallet_common::utils::random_bytes;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::{
     model::{
+        encrypted::Encrypted,
         encrypter::Encrypter,
         hsm::mock::MockPkcs11Client,
         wallet_user::{InstructionChallenge, WalletUserCreate},
@@ -42,6 +43,16 @@ pub async fn db_from_env() -> Result<Db, PersistenceError> {
     Db::new(settings.database.connection_string(), Default::default()).await
 }
 
+pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {
+    Encrypter::<VerifyingKey>::encrypt(
+        &MockPkcs11Client::<Infallible>::default(),
+        identifier,
+        *SigningKey::random(&mut OsRng).verifying_key(),
+    )
+    .await
+    .unwrap()
+}
+
 pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, id: Uuid, wallet_id: String)
 where
     S: ConnectionTrait,
@@ -53,13 +64,7 @@ where
             id,
             wallet_id,
             hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
-            encrypted_pin_pubkey: Encrypter::<VerifyingKey>::encrypt(
-                &MockPkcs11Client::<Infallible>::default(),
-                "key1",
-                *SigningKey::random(&mut OsRng).verifying_key(),
-            )
-            .await
-            .unwrap(),
+            encrypted_pin_pubkey: encrypted_pin_key("key1").await,
         },
     )
     .await

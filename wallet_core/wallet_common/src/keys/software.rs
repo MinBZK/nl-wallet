@@ -20,6 +20,7 @@ static SIGNING_KEYS: LazyLock<Mutex<HashMap<String, Arc<SigningKey>>>> = LazyLoc
 static ENCRYPTION_CIPHERS: LazyLock<Mutex<HashMap<String, Arc<Aes256Gcm>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+#[derive(Clone)]
 pub struct SoftwareEcdsaKey {
     identifier: String,
     key: Arc<SigningKey>,

@@ -70,7 +70,6 @@ impl From<WalletProviderError> for AccountError {
                 RegistrationError::MessageValidation(_) => Self::RegistrationParsing,
                 RegistrationError::SerialNumberMismatch { .. } => Self::RegistrationParsing,
                 RegistrationError::PinPubKeyEncoding(_) => Self::Unexpected,
-                RegistrationError::JwtSigning(_) => Self::Unexpected,
                 RegistrationError::CertificateStorage(_) => Self::Unexpected,
                 RegistrationError::WalletCertificate(_) => Self::Unexpected,
                 RegistrationError::HsmError(_) => Self::Unexpected,

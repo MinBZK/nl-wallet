@@ -10,7 +10,7 @@ use crate::{
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
-use super::auth::WalletCertificate;
+use super::auth::{Certificate, WalletCertificate};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Instruction<T> {
@@ -20,6 +20,17 @@ pub struct Instruction<T> {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CheckPin;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChangePinStart {
+    pub pin_pubkey: DerVerifyingKey,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChangePinCommit {}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChangePinRollback {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GenerateKey {
@@ -59,6 +70,7 @@ pub struct InstructionResultMessage<R> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstructionChallengeRequestClaims {
     pub sequence_number: u64,
+    pub instruction_name: String,
 
     pub iss: String,
     pub iat: u64,
@@ -72,8 +84,8 @@ pub struct InstructionChallengeRequestMessage {
     pub certificate: WalletCertificate,
 }
 
-pub trait InstructionEndpoint: Serialize + DeserializeOwned {
-    const ENDPOINT: &'static str;
+pub trait InstructionAndResult: Serialize + DeserializeOwned {
+    const NAME: &'static str;
 
     type Result: Serialize + DeserializeOwned;
 }
@@ -87,14 +99,18 @@ impl JwtSubject for InstructionChallengeRequestClaims {
 }
 
 impl InstructionChallengeRequest {
-    pub async fn new_signed(
+    pub async fn new_signed<I>(
         instruction_sequence_number: u64,
-        issuer: &str,
+        issuer: String,
         hw_privkey: &impl SecureEcdsaKey,
-    ) -> Result<Self> {
+    ) -> Result<Self>
+    where
+        I: InstructionAndResult,
+    {
         let cert = InstructionChallengeRequestClaims {
             sequence_number: instruction_sequence_number,
-            iss: issuer.to_string(),
+            instruction_name: I::NAME.to_string(),
+            iss: issuer,
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
@@ -102,20 +118,38 @@ impl InstructionChallengeRequest {
     }
 }
 
-impl InstructionEndpoint for CheckPin {
-    const ENDPOINT: &'static str = "check_pin";
+impl InstructionAndResult for CheckPin {
+    const NAME: &'static str = "check_pin";
 
     type Result = ();
 }
 
-impl InstructionEndpoint for GenerateKey {
-    const ENDPOINT: &'static str = "generate_key";
+impl InstructionAndResult for ChangePinStart {
+    const NAME: &'static str = "change_pin_start";
+
+    type Result = Certificate;
+}
+
+impl InstructionAndResult for ChangePinCommit {
+    const NAME: &'static str = "change_pin_commit";
+
+    type Result = ();
+}
+
+impl InstructionAndResult for ChangePinRollback {
+    const NAME: &'static str = "change_pin_rollback";
+
+    type Result = ();
+}
+
+impl InstructionAndResult for GenerateKey {
+    const NAME: &'static str = "generate_key";
 
     type Result = GenerateKeyResult;
 }
 
-impl InstructionEndpoint for Sign {
-    const ENDPOINT: &'static str = "sign";
+impl InstructionAndResult for Sign {
+    const NAME: &'static str = "sign";
 
     type Result = SignResult;
 }

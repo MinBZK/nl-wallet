@@ -7,13 +7,13 @@ use wallet_provider_domain::model::hsm::Hsm;
 
 use crate::hsm::{HsmError, Pkcs11Hsm};
 
-pub trait CertificateSigningKey: SecureEcdsaKey + WithIdentifier {}
+pub trait WalletCertificateSigningKey: SecureEcdsaKey + WithIdentifier {}
 pub trait InstructionResultSigningKey: SecureEcdsaKey + WithIdentifier {}
 
-pub struct CertificateSigning(pub WalletProviderEcdsaKey);
+pub struct WalletCertificateSigning(pub WalletProviderEcdsaKey);
 pub struct InstructionResultSigning(pub WalletProviderEcdsaKey);
 
-impl EcdsaKey for CertificateSigning {
+impl EcdsaKey for WalletCertificateSigning {
     type Error = HsmError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -37,8 +37,8 @@ impl EcdsaKey for InstructionResultSigning {
     }
 }
 
-impl SecureEcdsaKey for CertificateSigning {}
-impl WithIdentifier for CertificateSigning {
+impl SecureEcdsaKey for WalletCertificateSigning {}
+impl WithIdentifier for WalletCertificateSigning {
     fn identifier(&self) -> &str {
         &self.0.identifier
     }
@@ -51,7 +51,7 @@ impl WithIdentifier for InstructionResultSigning {
     }
 }
 
-impl CertificateSigningKey for CertificateSigning {}
+impl WalletCertificateSigningKey for WalletCertificateSigning {}
 impl InstructionResultSigningKey for InstructionResultSigning {}
 
 pub struct WalletProviderEcdsaKey {
@@ -89,8 +89,8 @@ impl SecureEcdsaKey for WalletProviderEcdsaKey {}
 pub mod mock {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::keys::{CertificateSigningKey, InstructionResultSigningKey};
+    use crate::keys::{InstructionResultSigningKey, WalletCertificateSigningKey};
 
-    impl CertificateSigningKey for SoftwareEcdsaKey {}
+    impl WalletCertificateSigningKey for SoftwareEcdsaKey {}
     impl InstructionResultSigningKey for SoftwareEcdsaKey {}
 }
