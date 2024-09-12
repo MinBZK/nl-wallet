@@ -429,7 +429,7 @@ where
         let response_uri = vp_auth_request.response_uri.clone();
 
         // Use async here so we get the async-version of .or_else(), as report_error_back() is async.
-        let auth_request = async { vp_auth_request.validate(&certificate, request_nonce.as_ref()) }
+        let auth_request = async { vp_auth_request.validate(&certificate, request_nonce.as_deref()) }
             .or_else(|error| async {
                 match response_uri {
                     None => Err(error.into()), // just return the error if we don't know the URL to report it to

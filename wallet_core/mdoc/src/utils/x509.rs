@@ -172,7 +172,7 @@ impl Certificate {
                 trust_anchors,
                 intermediate_certs,
                 Time::from_seconds_since_unix_epoch(time.generate().timestamp() as u64),
-                webpki::KeyUsage::required(usage.to_eku()),
+                webpki::KeyUsage::required(usage.eku()),
                 &[],
             )
             .map_err(CertificateError::Verification)
@@ -252,7 +252,7 @@ fn x509_common_names(x509name: &X509Name) -> Result<Vec<String>, CertificateErro
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
 /// being verified.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CertificateUsage {
     Mdl,
     ReaderAuth,
@@ -299,7 +299,7 @@ impl CertificateUsage {
         Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
     }
 
-    pub(crate) fn to_eku(self) -> &'static [u8] {
+    pub(crate) fn eku(self) -> &'static [u8] {
         match self {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
@@ -392,15 +392,15 @@ mod test {
 
     #[test]
     fn mdoc_eku_encoding_works() {
-        CertificateUsage::Mdl.to_eku();
-        CertificateUsage::ReaderAuth.to_eku();
+        CertificateUsage::Mdl.eku();
+        CertificateUsage::ReaderAuth.eku();
     }
 
     #[test]
     fn parse_oid() {
         let mdl_kp: ObjectIdentifier = "1.0.18013.5.1.2".parse().unwrap();
         let mdl_kp: &'static [u8] = Box::leak(mdl_kp.into()).as_bytes();
-        assert_eq!(mdl_kp, CertificateUsage::Mdl.to_eku());
+        assert_eq!(mdl_kp, CertificateUsage::Mdl.eku());
     }
 
     #[test]

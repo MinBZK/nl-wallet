@@ -179,7 +179,7 @@ mod generate {
             // DER-serialize it manually and add it to the custom extensions.
             // We unwrap in these functions because they have fixed input for which they always succeed.
             let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
-            seq.add(ObjectIdentifier::from_bytes(self.to_eku()).unwrap()).unwrap();
+            seq.add(ObjectIdentifier::from_bytes(self.eku()).unwrap()).unwrap();
             let mut ext = CustomExtension::from_oid_content(OID_EXT_KEY_USAGE, seq.to_der().unwrap());
             ext.set_criticality(true);
             ext

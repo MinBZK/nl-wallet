@@ -34,10 +34,10 @@ pub struct ReaderRegistration {
 
 impl ReaderRegistration {
     /// Verify whether all requested attributes exist in the registration.
-    pub fn verify_requested_attributes<'a>(
-        &self,
-        requested_attributes: &(impl IntoIterator<Item = &'a ItemsRequest> + Clone),
-    ) -> Result<(), ValidationError> {
+    pub fn verify_requested_attributes<'a, R>(&self, requested_attributes: &R) -> Result<(), ValidationError>
+    where
+        R: IntoIterator<Item = &'a ItemsRequest> + Clone,
+    {
         let difference: Vec<AttributeIdentifier> = requested_attributes.difference(self).into_iter().collect();
 
         if !difference.is_empty() {
