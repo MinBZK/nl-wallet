@@ -593,27 +593,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        // Set up a mock DigiD session that returns a token request.
-        let issuance_session = {
-            let mut session = MockDigidSession::default();
-
-            session.expect_into_token_request().return_once(|_uri| {
-                Ok(TokenRequest {
-                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                        pre_authorized_code: "123".to_string().into(),
-                    },
-                    code_verifier: None,
-                    client_id: None,
-                    redirect_uri: None,
-                })
-            });
-
-            session
-        };
-        wallet.issuance_session = Some(PidIssuanceSession::Digid(issuance_session));
+        let mut wallet = setup_wallet_with_digid_session().await;
 
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
@@ -681,9 +661,7 @@ mod tests {
         assert_matches!(error, PidIssuanceError::SessionState);
     }
 
-    #[tokio::test]
-    #[serial(MockIssuanceSession)]
-    async fn test_continue_pid_issuance_error_pid_issuer() {
+    async fn setup_wallet_with_digid_session() -> WalletWithMocks {
         // Prepare a registered wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -706,6 +684,14 @@ mod tests {
         };
         wallet.issuance_session = Some(PidIssuanceSession::Digid(digid_session));
 
+        wallet
+    }
+
+    #[tokio::test]
+    #[serial(MockIssuanceSession)]
+    async fn test_continue_pid_issuance_error_pid_issuer() {
+        let mut wallet = setup_wallet_with_digid_session().await;
+
         // Set up the `MockIssuanceSession` to return an error.
         let start_context = MockIssuanceSession::start_context();
         start_context
@@ -724,27 +710,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance_error_document() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        // Set up a mock DigiD session that returns a token request.
-        let digid_session = {
-            let mut session = MockDigidSession::default();
-
-            session.expect_into_token_request().return_once(|_uri| {
-                Ok(TokenRequest {
-                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                        pre_authorized_code: "123".to_string().into(),
-                    },
-                    code_verifier: None,
-                    client_id: None,
-                    redirect_uri: None,
-                })
-            });
-
-            session
-        };
-        wallet.issuance_session = Some(PidIssuanceSession::Digid(digid_session));
+        let mut wallet = setup_wallet_with_digid_session().await;
 
         // Set up the `MockIssuanceSession` to return an `AttestationPreview` with an unknown doctype.
         let start_context = MockIssuanceSession::start_context();
