@@ -43,6 +43,10 @@ pub enum AttestationValidationError {
     CounterMissing,
     #[error("counter is not 0, received: {0}")]
     CounterNotZero(u32),
+    #[error("attested credential data is not present in authenticator data")]
+    AttestedCredentialDataMissing,
+    #[error("key identifier does not match calculated value")]
+    KeyIdentifierMismatch,
 }
 
 #[serde_as]
@@ -127,7 +131,10 @@ impl Attestation {
             return Err(AttestationValidationError::NonceMismatch)?;
         }
 
-        // TODO: Perform step 5.
+        // 5. Create the SHA256 hash of the public key in credCert with X9.62 uncompressed point format, and verify that
+        // it matches the key identifier from your app.
+
+        let key_identifier = Sha256::digest(public_key.to_encoded_point(false));
 
         // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s
         // RP ID hash.
@@ -148,7 +155,20 @@ impl Attestation {
             return Err(AttestationValidationError::CounterNotZero(counter))?;
         }
 
-        // TODO: Perform steps 8 and 9.
+        // TODO: Perform step 8.
+
+        let attested_credential_data = attestation
+            .auth_data
+            .as_ref()
+            .attested_credential_data
+            .as_ref()
+            .ok_or(AttestationValidationError::AttestedCredentialDataMissing)?;
+
+        // 9. Verify that the authenticator data’s credentialId field is the same as the key identifier.
+
+        if *attested_credential_data.credential_id() != *key_identifier {
+            return Err(AttestationValidationError::KeyIdentifierMismatch)?;
+        }
 
         Ok((attestation, public_key, counter))
     }
