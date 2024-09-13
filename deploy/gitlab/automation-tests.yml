@@ -1,0 +1,97 @@
+.run-automation-tests-common-setup:
+  resource_group: automation-tests
+  extends: .env-ont-k8s
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:1b0d6c2f6fe1e66d5f72e3d76648c973c9d0c0fa1bf57c3d94da30f6e8c97414"
+  artifacts:
+    when: always
+    paths:
+      - uiautomation/build/test-results
+      - uiautomation/build/reports
+  before_script:
+    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_USER
+    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - export BROWSERSTACK_KEY
+    - set -euxo pipefail
+    - java -version
+    - git fetch origin
+    - git checkout $CI_DEFAULT_BRANCH
+    - cd uiautomation
+
+.run-automation-tests:
+  extends: .run-automation-tests-common-setup
+  script:
+    - gradle wrapper --gradle-version=7.5
+    - ./gradlew --info --stacktrace test
+      --tests $TESTS
+      -Dtest.config.app.identifier="$APP_IDENTIFIER"
+      -Dtest.config.device.name="$DEVICE_NAME"
+      -Dtest.config.platform.name="$PLATFORM_NAME"
+      -Dtest.config.platform.version="$PLATFORM_VERSION"
+      -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8
+  allow_failure: true # Allow failure as only the test results of succeeding pipelines are read into Quality Time.
+
+run-automation-tests-14-part-1:
+  extends: .run-automation-tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: always
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: manual
+  variables:
+    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
+    DEVICE_NAME: "Google Pixel 8"
+    PLATFORM_NAME: "Android"
+    PLATFORM_VERSION: "14.0"
+    TESTS: "suite.AppStartToDashboardTestSuite"
+
+run-automation-tests-14-part-2:
+  extends: .run-automation-tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: always
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: manual
+  needs:
+    - job: run-automation-tests-14-part-1
+      artifacts: false
+  variables:
+    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
+    DEVICE_NAME: "Google Pixel 8"
+    PLATFORM_NAME: "Android"
+    PLATFORM_VERSION: "14.0"
+    TESTS: "suite.DashboardAndBeyondTestSuite"
+
+run-automation-smoke-test-ont:
+  extends: .run-automation-tests-common-setup
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: upload-browserstack-android-app-ont
+      artifacts: false
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
+    - job: deploy-wallet-provider-ont
+      artifacts: false
+  script:
+    - gradle wrapper --gradle-version=7.5
+    - ./gradlew --info --stacktrace smokeTest
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
+      -Dtest.config.device.name="Google Pixel 8"
+      -Dtest.config.platform.name="Android"
+      -Dtest.config.platform.version="14.0"
+      -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8
+  allow_failure: true # Only meant as a warning indicator.
+
+# Warns when '.gitlab-ci.yaml' in '$CI_DEFAULT_BRANCH' & '$AUTOMATION_TESTS_BRANCH' branch are out-of-sync
+check-gitlab-ci-changed:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: always
+      allow_failure: true # Only meant as a warning as it's not a critical failure
+  script:
+    - git fetch origin
+    # fails if .gitlab-ci.yml is different on CI_DEFAULT_BRANCH
+    - git diff --exit-code origin/$CI_DEFAULT_BRANCH -- .gitlab-ci.yml
