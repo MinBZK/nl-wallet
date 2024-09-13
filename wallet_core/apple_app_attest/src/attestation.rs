@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 use webpki::TrustAnchor;
 
 use crate::{
+    app_identifier::AppIdentifier,
     auth_data::AuthenticatorDataWithSource,
     certificates::{CertificateError, DerX509CertificateChain},
 };
@@ -36,6 +37,8 @@ pub enum AttestationValidationError {
     CertificateChain(#[source] CertificateError),
     #[error("nonce does not match calculated nonce")]
     NonceMismatch,
+    #[error("relying party identifier does not match calculated value")]
+    RpIdMismatch,
     #[error("intial counter is not present in authenticator data")]
     CounterMissing,
     #[error("counter is not 0, received: {0}")]
@@ -77,6 +80,7 @@ impl Attestation {
         trust_anchors: &[TrustAnchor],
         time: DateTime<Utc>,
         challenge: &[u8],
+        app_identifier: &AppIdentifier,
     ) -> Result<(Self, VerifyingKey, u32), AttestationError> {
         let attestation: Self = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
 
@@ -123,7 +127,14 @@ impl Attestation {
             return Err(AttestationValidationError::NonceMismatch)?;
         }
 
-        // TODO: Perform steps 5 and 6.
+        // TODO: Perform step 5.
+
+        // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s
+        // RP ID hash.
+
+        if *attestation.auth_data.as_ref().rp_id_hash() != *Sha256::digest(app_identifier.as_ref()) {
+            return Err(AttestationValidationError::RpIdMismatch)?;
+        }
 
         // 7. Verify that the authenticator data’s counter field equals 0.
 
@@ -149,6 +160,8 @@ mod tests {
     use const_decoder::{Decoder, Pem};
     use webpki::TrustAnchor;
 
+    use crate::app_identifier::AppIdentifier;
+
     use super::Attestation;
 
     // Source: https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem
@@ -159,6 +172,8 @@ mod tests {
         Decoder::Base64.decode(include_bytes!("../assets/test_attestation_object.b64"));
     const TEST_CHALLENGE: &[u8] = b"test_server_challenge";
     const TEST_ATTESTATION_VALID_DATE: &str = "2024-04-18T12:00:00Z";
+    const TEST_APP_PREFIX: &str = "0352187391";
+    const TEST_APP_BUNDLE_ID: &str = "com.apple.example_app_attest";
 
     #[test]
     fn test_attestation() {
@@ -166,8 +181,9 @@ mod tests {
         let time = DateTime::parse_from_rfc3339(TEST_ATTESTATION_VALID_DATE)
             .unwrap()
             .to_utc();
+        let app_id = AppIdentifier::new(TEST_APP_PREFIX, TEST_APP_BUNDLE_ID);
 
-        let _ = Attestation::parse_and_verify(&TEST_ATTESTATION, &[trust_anchor], time, TEST_CHALLENGE)
+        let _ = Attestation::parse_and_verify(&TEST_ATTESTATION, &[trust_anchor], time, TEST_CHALLENGE, &app_id)
             .expect("should decode attestation object");
     }
 }
