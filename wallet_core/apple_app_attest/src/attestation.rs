@@ -1,12 +1,14 @@
 use chrono::{DateTime, Utc};
-use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
-use passkey_types::ctap2::AuthenticatorData;
+use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};
+use sha2::{Digest, Sha256};
 use webpki::TrustAnchor;
-use x509_parser::error::X509Error;
 
-use crate::certificate_chain::{CertificateChainError, DerX509CertificateChain};
+use crate::{
+    auth_data::AuthenticatorDataWithSource,
+    certificate_chain::{CertificateError, DerX509CertificateChain},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationError {
@@ -20,22 +22,27 @@ pub enum AttestationError {
 pub enum AttestationDecodingError {
     #[error("deserializing CBOR deserialization failed: {0}")]
     Cbor(#[source] ciborium::de::Error<std::io::Error>),
-    #[error("decoding X.509 certificate failed: {0}")]
-    Certificate(#[source] X509Error),
+    #[error("decoding credential certificate failed: {0}")]
+    CredentialCertificate(#[source] CertificateError),
     #[error("decoding public key failed: {0}")]
-    PublicKey(#[source] p256::pkcs8::spki::Error),
+    PublicKey(#[source] CertificateError),
+    #[error("decoding certificate extension data failed: {0}")]
+    CertificateExtension(#[source] CertificateError),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationValidationError {
-    #[error("certificate chain validation failed: {0}")]
-    CertificateChain(#[source] CertificateChainError),
+    #[error("certificate chain parsing or validation failed: {0}")]
+    CertificateChain(#[source] CertificateError),
+    #[error("nonce does not match calculated nonce")]
+    NonceMismatch,
     #[error("intial counter is not present in authenticator data")]
     CounterMissing,
     #[error("counter is not 0, received: {0}")]
     CounterNotZero(u32),
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Attestation {
@@ -43,7 +50,8 @@ pub struct Attestation {
     pub format: AttestationFormat,
     #[serde(rename = "attStmt")]
     pub attestation_statement: AttestationStatement,
-    pub auth_data: AuthenticatorData,
+    #[serde_as(as = "TryFromInto<Vec<u8>>")]
+    pub auth_data: AuthenticatorDataWithSource,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
@@ -68,6 +76,7 @@ impl Attestation {
         bytes: &[u8],
         trust_anchors: &[TrustAnchor],
         time: DateTime<Utc>,
+        challenge: &[u8],
     ) -> Result<(Self, VerifyingKey, u32), AttestationError> {
         let attestation: Self = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
 
@@ -84,23 +93,43 @@ impl Attestation {
             .map_err(AttestationValidationError::CertificateChain)?;
 
         // Extract the public key from the leaf certificate.
-        let public_key = VerifyingKey::from_public_key_der(
-            attestation
-                .attestation_statement
-                .x509_certificates
-                .credential_certificate()
-                .map_err(AttestationDecodingError::Certificate)?
-                .public_key()
-                .raw,
-        )
-        .map_err(AttestationDecodingError::PublicKey)?;
+        let credential_certificate = attestation
+            .attestation_statement
+            .x509_certificates
+            .credential_certificate()
+            .map_err(AttestationDecodingError::CredentialCertificate)?;
+        let public_key = credential_certificate
+            .public_key()
+            .map_err(AttestationDecodingError::PublicKey)?;
 
-        // TODO: Perform steps 2 through 6.
+        // 2. Create clientDataHash as the SHA256 hash of the one-time challenge your server sends to your app before
+        //    performing the attestation, and append that hash to the end of the authenticator data (authData from the
+        //    decoded object).
+        // 3. Generate a new SHA256 hash of the composite item to create nonce.
+        // 4. Obtain the value of the credCert extension with OID 1.2.840.113635.100.8.2, which is a DER-encoded ASN.1
+        //    sequence. Decode the sequence and extract the single octet string that it contains. Verify that the string
+        //    equals nonce.
+
+        let nonce = Sha256::new()
+            .chain_update(attestation.auth_data.source())
+            .chain_update(challenge)
+            .finalize();
+
+        let extension_nonce = credential_certificate
+            .attestation_extension_data()
+            .map_err(AttestationDecodingError::CertificateExtension)?;
+
+        if *nonce != *extension_nonce {
+            return Err(AttestationValidationError::NonceMismatch)?;
+        }
+
+        // TODO: Perform steps 5 and 6.
 
         // 7. Verify that the authenticator data’s counter field equals 0.
 
         let counter = attestation
             .auth_data
+            .as_ref()
             .counter
             .ok_or(AttestationValidationError::CounterMissing)?;
 
@@ -128,6 +157,7 @@ mod tests {
     // Source: https://developer.apple.com/documentation/devicecheck/attestation-object-validation-guide
     const TEST_ATTESTATION: [u8; 5637] =
         Decoder::Base64.decode(include_bytes!("../assets/test_attestation_object.b64"));
+    const TEST_CHALLENGE: &[u8] = b"test_server_challenge";
     const TEST_ATTESTATION_VALID_DATE: &str = "2024-04-18T12:00:00Z";
 
     #[test]
@@ -137,7 +167,7 @@ mod tests {
             .unwrap()
             .to_utc();
 
-        let _ = Attestation::parse_and_verify(&TEST_ATTESTATION, &[trust_anchor], time)
+        let _ = Attestation::parse_and_verify(&TEST_ATTESTATION, &[trust_anchor], time, TEST_CHALLENGE)
             .expect("should decode attestation object");
     }
 }
