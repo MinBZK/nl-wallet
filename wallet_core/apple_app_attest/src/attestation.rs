@@ -7,7 +7,7 @@ use webpki::TrustAnchor;
 
 use crate::{
     auth_data::AuthenticatorDataWithSource,
-    certificate_chain::{CertificateError, DerX509CertificateChain},
+    certificates::{CertificateError, DerX509CertificateChain},
 };
 
 #[derive(Debug, thiserror::Error)]
