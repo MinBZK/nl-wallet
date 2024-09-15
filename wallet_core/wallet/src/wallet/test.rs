@@ -339,7 +339,7 @@ pub async fn setup_mock_documents_callback(
     // should immediately be called with an empty `Vec`.
     let result = wallet
         .set_documents_callback(Box::new(move |documents| {
-            callback_documents.lock().push(documents.clone())
+            callback_documents.lock().push(documents.clone());
         }))
         .await;
 

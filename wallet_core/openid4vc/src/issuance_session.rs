@@ -853,7 +853,7 @@ mod tests {
         let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_discover_metadata()
-            .returning(|url| Ok(IssuerMetadata::new_mock(url.clone())));
+            .returning(|url| Ok(IssuerMetadata::new_mock(url)));
         mock_msg_client
             .expect_discover_oauth_metadata()
             .returning(|url| Ok(oidc::Config::new_mock(url)));
@@ -926,7 +926,7 @@ mod tests {
         assert_matches!(
             error,
             IssuanceSessionError::Certificate(CertificateError::Verification(_))
-        )
+        );
     }
 
     #[tokio::test]
@@ -1013,7 +1013,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::PublicKeyMismatch)
+        assert_matches!(error, IssuanceSessionError::PublicKeyMismatch);
     }
 
     #[tokio::test]
@@ -1050,7 +1050,7 @@ mod tests {
         assert_matches!(
             error,
             IssuanceSessionError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH)
-        )
+        );
     }
 
     #[tokio::test]
@@ -1083,7 +1083,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuerMismatch)
+        assert_matches!(error, IssuanceSessionError::IssuerMismatch);
     }
 
     #[tokio::test]
@@ -1096,7 +1096,7 @@ mod tests {
             .into_credential::<SoftwareEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::MdocVerification(_))
+        assert_matches!(error, IssuanceSessionError::MdocVerification(_));
     }
 
     #[tokio::test]
@@ -1129,6 +1129,6 @@ mod tests {
             error,
             IssuanceSessionError::IssuedMdocAttributesMismatch(IssuedAttributesMismatch { missing, unexpected })
                 if missing.len() == 1 && unexpected.is_empty()
-        )
+        );
     }
 }

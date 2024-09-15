@@ -72,6 +72,6 @@ mod tests {
         assert_eq!(
             ReturnUrlTemplate::is_valid_return_url_template(&return_url_string),
             should_parse
-        )
+        );
     }
 }

@@ -220,14 +220,14 @@ mod tests {
         candidates(pid_given_name() + pid_given_name())
     )]
     #[case(pid_full_name() + pid_given_name() + addr_street(), empty(), candidates(empty()))]
-    #[case(empty(), pid_given_name(), missing_attributes(pid_given_name()))]
+    #[case(empty(), pid_given_name(), missing_attributes(&pid_given_name()))]
     #[case(
         empty(),
         pid_given_name() + addr_street(),
-        missing_attributes(pid_given_name() + addr_street())
+        missing_attributes(&(pid_given_name() + addr_street()))
     )]
-    #[case(pid_given_name(), pid_full_name(), missing_attributes(pid_family_name()))]
-    #[case(pid_full_name(), addr_street(), missing_attributes(addr_street()))]
+    #[case(pid_given_name(), pid_full_name(), missing_attributes(&pid_family_name()))]
+    #[case(pid_full_name(), addr_street(), missing_attributes(&addr_street()))]
     #[tokio::test]
     async fn test_match_stored_documents(
         #[case] stored_documents: TestDocuments,
@@ -269,7 +269,7 @@ mod tests {
     fn candidates(candidates: TestDocuments) -> ExpectedDisclosureRequestMatch {
         ExpectedDisclosureRequestMatch::Candidates(candidates)
     }
-    fn missing_attributes(missing_attributes: TestDocuments) -> ExpectedDisclosureRequestMatch {
+    fn missing_attributes(missing_attributes: &TestDocuments) -> ExpectedDisclosureRequestMatch {
         ExpectedDisclosureRequestMatch::MissingAttributes(missing_attributes.attribute_identifiers())
     }
 

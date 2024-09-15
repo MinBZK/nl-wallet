@@ -2,9 +2,6 @@
   extends: .ruby-cache
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
-  # needs:
-  #   - job: build-ios-app # only deploy apps when both apps have been built successfully
-  #     artifacts: false
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"

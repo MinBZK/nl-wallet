@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-09-04T16:07:54+02:00",
+    "@@last_modified": "2024-09-09T14:40:24+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -900,6 +900,8 @@
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
     "resetWalletDialogTitle": "Wil je alle gegevens verwijderen?",
+    "rootDetectedScreenDescription": "Om je gegevens te beschermen, kun je NL Wallet niet langer op dit apparaat gebruiken. \n\nDit apparaat is niet meer in de originele staat en is daarom niet veilig.",
+    "rootDetectedScreenTitle": "Je apparaat is niet veilig",
     "scanWithWalletDialogBody": "Het lijkt erop dat je een QR-code hebt gescand met een andere app. Scan voor de zekerheid de QR-code met de NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR-code",
     "scanWithWalletDialogTitle": "Scan QR-code met NL Wallet",

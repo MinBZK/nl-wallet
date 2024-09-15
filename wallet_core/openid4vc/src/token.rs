@@ -283,6 +283,6 @@ mod tests {
                 "c_nonce_expires_in": 10
             })
             .to_string(),
-        )
+        );
     }
 }

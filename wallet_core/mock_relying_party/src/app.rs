@@ -134,7 +134,7 @@ pub fn create_router(settings: Settings) -> Router {
         .layer(TraceLayer::new_for_http());
 
     if let Some(cors) = cors_layer(settings.allow_origins) {
-        app = app.layer(cors)
+        app = app.layer(cors);
     }
 
     app
@@ -390,7 +390,7 @@ mod filters {
 
     pub fn attribute(attributes: &DisclosedAttributes, name: &str) -> ::askama::Result<String> {
         for doctype in attributes {
-            for namespace in doctype.1.attributes.iter() {
+            for namespace in &doctype.1.attributes {
                 for (attribute_name, attribute_value) in namespace.1 {
                     if attribute_name == name {
                         return Ok(attribute_value.as_text().unwrap().to_owned());

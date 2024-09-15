@@ -1,11 +1,11 @@
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Duration, Utc};
 
 pub trait PinPolicyEvaluator {
     fn evaluate(
         &self,
         attempts: u8,
-        last_failed_pin: Option<DateTime<Local>>,
-        current_datetime: DateTime<Local>,
+        last_failed_pin: Option<DateTime<Utc>>,
+        current_datetime: DateTime<Utc>,
     ) -> PinPolicyEvaluation;
 }
 
@@ -27,15 +27,15 @@ pub enum PinPolicyEvaluation {
 #[cfg(feature = "mock")]
 pub mod mock {
     use crate::model::pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator};
-    use chrono::{DateTime, Duration, Local};
+    use chrono::{DateTime, Duration, Utc};
 
     pub struct FailingPinPolicy;
     impl PinPolicyEvaluator for FailingPinPolicy {
         fn evaluate(
             &self,
             _attempts: u8,
-            _last_failed_pin: Option<DateTime<Local>>,
-            _current_datetime: DateTime<Local>,
+            _last_failed_pin: Option<DateTime<Utc>>,
+            _current_datetime: DateTime<Utc>,
         ) -> PinPolicyEvaluation {
             PinPolicyEvaluation::Failed {
                 attempts_left_in_round: 3,
@@ -49,8 +49,8 @@ pub mod mock {
         fn evaluate(
             &self,
             _attempts: u8,
-            _last_failed_pin: Option<DateTime<Local>>,
-            _current_datetime: DateTime<Local>,
+            _last_failed_pin: Option<DateTime<Utc>>,
+            _current_datetime: DateTime<Utc>,
         ) -> PinPolicyEvaluation {
             PinPolicyEvaluation::Timeout {
                 timeout: Duration::seconds(60),

@@ -8,7 +8,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
-import '../common/widget/loading_indicator.dart';
+import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/wallet_app_bar.dart';
 import 'bloc/qr_bloc.dart';
 import 'widget/qr_no_permission.dart';
@@ -107,18 +107,12 @@ class QrScreen extends StatelessWidget {
   _buildLoading(BuildContext context) => Stack(
         alignment: Alignment.center,
         children: [
-          QrScanner(key: _scannerKey),
-          Container(
-            width: 60,
-            height: 60,
-            padding: const EdgeInsets.all(16),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: context.colorScheme.surface,
-            ),
-            child: const LoadingIndicator(),
+          Visibility(
+            visible: false,
+            maintainState: true,
+            child: QrScanner(key: _scannerKey),
           ),
+          const CenteredLoadingIndicator(),
         ],
       );
 

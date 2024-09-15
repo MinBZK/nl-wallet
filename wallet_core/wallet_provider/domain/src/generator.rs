@@ -1,6 +1,6 @@
 #[cfg(feature = "mock")]
 pub mod mock {
-    use chrono::{offset::TimeZone, DateTime, Local};
+    use chrono::{offset::TimeZone, DateTime, Utc};
     use uuid::{uuid, Uuid};
     use wallet_common::generator::Generator;
 
@@ -14,9 +14,9 @@ pub mod mock {
 
     pub struct EpochGenerator;
 
-    impl Generator<DateTime<Local>> for EpochGenerator {
-        fn generate(&self) -> DateTime<Local> {
-            Local.timestamp_nanos(0)
+    impl Generator<DateTime<Utc>> for EpochGenerator {
+        fn generate(&self) -> DateTime<Utc> {
+            Utc.timestamp_nanos(0)
         }
     }
 
@@ -28,9 +28,9 @@ pub mod mock {
         }
     }
 
-    impl Generator<DateTime<Local>> for MockGenerators {
-        fn generate(&self) -> DateTime<Local> {
-            Local.timestamp_nanos(0)
+    impl Generator<DateTime<Utc>> for MockGenerators {
+        fn generate(&self) -> DateTime<Utc> {
+            Utc.timestamp_nanos(0)
         }
     }
 }

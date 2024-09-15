@@ -34,7 +34,7 @@ async fn test_pid_issuance_digid_bridge() {
     let attr_service = BrpPidAttributeService::new(
         HttpBrpClient::new(settings.issuer.brp_server.clone()),
         settings.issuer.digid.issuer_url.clone(),
-        settings.issuer.digid.bsn_privkey.clone(),
+        &settings.issuer.digid.bsn_privkey,
         settings.issuer.digid.trust_anchors.clone(),
         settings.issuer.certificates(),
     )

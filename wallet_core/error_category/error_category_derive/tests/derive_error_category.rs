@@ -145,5 +145,5 @@ fn derive_error_category() {
 #[case(ErrorWithDefaultCategory::Expected, Category::Expected)]
 #[case(ErrorWithDefaultCategory::Critical, Category::Critical)]
 fn derive_error_category_pass<T: ErrorCategory>(#[case] error: T, #[case] expected: Category) {
-    assert_eq!(error.category(), expected)
+    assert_eq!(error.category(), expected);
 }
