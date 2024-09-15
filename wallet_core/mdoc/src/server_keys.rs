@@ -2,7 +2,6 @@ use std::fmt::{Debug, Formatter};
 
 use p256::ecdsa::{Signature, SigningKey};
 
-use error_category::ErrorCategory;
 use wallet_common::keys::{EcdsaKey, EcdsaKeySend};
 
 use crate::utils::x509::Certificate;
@@ -10,13 +9,6 @@ use crate::utils::x509::Certificate;
 pub struct KeyPair<S = SigningKey> {
     private_key: S,
     certificate: Certificate,
-}
-
-#[derive(thiserror::Error, Debug, ErrorCategory)]
-#[category(pd)]
-pub enum KeysError {
-    #[error("key generation error: {0}")]
-    KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 impl<S> KeyPair<S> {

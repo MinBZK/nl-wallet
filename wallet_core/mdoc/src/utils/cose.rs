@@ -16,12 +16,9 @@ use webpki::TrustAnchor;
 use error_category::ErrorCategory;
 use wallet_common::{generator::Generator, keys::EcdsaKey};
 
-use crate::{
-    server_keys::KeysError,
-    utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
-        serialization::{cbor_deserialize, cbor_serialize, CborError},
-    },
+use crate::utils::{
+    keys::{KeyFactory, MdocEcdsaKey},
+    serialization::{cbor_deserialize, cbor_serialize, CborError},
 };
 
 use super::x509::{Certificate, CertificateError, CertificateUsage};
@@ -351,6 +348,13 @@ pub async fn sign_coses<K: MdocEcdsaKey>(
         .collect::<Result<Vec<_>, CoseError>>()?;
 
     Ok(signed)
+}
+
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(pd)]
+pub enum KeysError {
+    #[error("key generation error: {0}")]
+    KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 pub async fn generate_keys_and_sign_cose<K: MdocEcdsaKey>(
