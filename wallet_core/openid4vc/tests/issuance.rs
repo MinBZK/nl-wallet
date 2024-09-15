@@ -51,7 +51,7 @@ fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certifica
     let ca = KeyPair::<SigningKey>::generate_issuer_mock_ca().unwrap();
 
     // Use the CA itself as issuance key
-    let issuance_keypair = KeyPair::<SigningKey>::new(ca.private_key().clone(), ca.certificate().clone());
+    let issuance_keypair = KeyPair::<SigningKey>::new(ca.private_key().clone(), ca.certificate().clone()).unwrap();
 
     setup(
         MockAttributeService {

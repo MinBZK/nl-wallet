@@ -26,7 +26,7 @@ use openid4vc::{
 };
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings::{self, Urls};
+use crate::settings::{self, KeyPairError, Urls};
 
 use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
@@ -46,7 +46,7 @@ impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
 }
 
 impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing<SigningKey> {
-    type Error = p256::pkcs8::Error;
+    type Error = KeyPairError;
 
     fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
         let key_ring = private_keys

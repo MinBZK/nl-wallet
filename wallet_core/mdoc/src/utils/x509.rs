@@ -61,6 +61,8 @@ pub enum CertificateError {
     JsonEncodingError(#[from] serde_json::Error),
     #[error("X509 coding error: {0}")]
     X509Error(#[from] X509Error),
+    #[error("private key does not belong to public key from certificate")]
+    KeyMismatch,
 }
 
 pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
