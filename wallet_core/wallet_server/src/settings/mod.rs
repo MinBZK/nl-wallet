@@ -6,7 +6,7 @@ use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
-use nl_wallet_mdoc::{server_keys::AttestationSigner, utils::x509::Certificate};
+use nl_wallet_mdoc::utils::x509::Certificate;
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::{sentry::Sentry, urls::BaseUrl};
 
@@ -125,19 +125,6 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
         );
 
         Ok(key_pair)
-    }
-}
-
-impl TryFrom<&KeyPair> for AttestationSigner<SigningKey> {
-    type Error = p256::pkcs8::Error;
-
-    fn try_from(keypair: &KeyPair) -> Result<Self, Self::Error> {
-        let signer = Self::new(
-            SigningKey::from_pkcs8_der(&keypair.private_key)?,
-            Certificate::from(&keypair.certificate),
-        );
-
-        Ok(signer)
     }
 }
 

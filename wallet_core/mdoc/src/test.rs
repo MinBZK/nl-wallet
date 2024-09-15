@@ -169,10 +169,7 @@ impl TestDocument {
             unsigned.copy_count = copy_count;
             unsigned
         };
-        let issuance_key = ca
-            .generate_issuer_mock(IssuerRegistration::new_mock().into())
-            .unwrap()
-            .into();
+        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();

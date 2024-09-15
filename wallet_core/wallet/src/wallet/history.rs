@@ -327,7 +327,7 @@ mod tests {
         let pid_doc_type_event = WalletEvent::issuance_from_str(
             vec![PID_DOCTYPE],
             timestamp_older,
-            ISSUER_KEY.issuance_key.certificate.clone(),
+            ISSUER_KEY.issuance_key.certificate().clone(),
         );
         wallet.store_history_event(pid_doc_type_event.clone()).await.unwrap();
 
@@ -349,7 +349,7 @@ mod tests {
             vec![ADDRESS_DOCTYPE],
             timestamp_newer,
             reader_key.certificate().clone(),
-            &ISSUER_KEY.issuance_key.certificate,
+            ISSUER_KEY.issuance_key.certificate(),
         );
         wallet
             .store_history_event(address_doc_type_event.clone())

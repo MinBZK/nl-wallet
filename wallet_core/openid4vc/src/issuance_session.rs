@@ -873,13 +873,9 @@ mod tests {
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = mdoc_key.verifying_key().await.unwrap();
-        let issuer_signed = IssuerSigned::sign(
-            unsigned_mdoc,
-            (&mdoc_public_key).try_into().unwrap(),
-            &issuance_key.into(),
-        )
-        .await
-        .unwrap();
+        let issuer_signed = IssuerSigned::sign(unsigned_mdoc, (&mdoc_public_key).try_into().unwrap(), &issuance_key)
+            .await
+            .unwrap();
         let credential_response = CredentialResponse::MsoMdoc {
             credential: issuer_signed.into(),
         };

@@ -6,7 +6,7 @@ use wallet_common::keys::EcdsaKey;
 
 use crate::{
     iso::*,
-    server_keys::AttestationSigner,
+    server_keys::KeyPair,
     unsigned::UnsignedMdoc,
     utils::{
         cose::{CoseKey, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
@@ -19,7 +19,7 @@ impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
         device_public_key: CoseKey,
-        key: &AttestationSigner<impl EcdsaKey>,
+        key: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self> {
         let now = Utc::now();
         let validity = ValidityInfo {
@@ -44,12 +44,12 @@ impl IssuerSigned {
         let headers = HeaderBuilder::new()
             .value(
                 COSE_X5CHAIN_HEADER_LABEL,
-                Value::Bytes(key.certificate.as_bytes().to_vec()),
+                Value::Bytes(key.certificate().as_bytes().to_vec()),
             )
             .build();
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            MdocCose::sign(&mso_tagged, headers, &key.private_key, true).await?;
+            MdocCose::sign(&mso_tagged, headers, key, true).await?;
 
         let issuer_signed = IssuerSigned {
             name_spaces: attrs.into(),
@@ -87,10 +87,7 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-        let issuance_key = ca
-            .generate_issuer_mock(IssuerRegistration::new_mock().into())
-            .unwrap()
-            .into();
+        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let trust_anchors = &[(ca.certificate()).try_into().unwrap()];
 
         let unsigned = UnsignedMdoc {
@@ -124,8 +121,8 @@ mod tests {
 
         // The issuer certificate generated above should be included in the IssuerAuth
         assert_eq!(
-            issuer_signed.issuer_auth.signing_cert().unwrap(),
-            issuance_key.certificate
+            &issuer_signed.issuer_auth.signing_cert().unwrap(),
+            issuance_key.certificate()
         );
 
         let TaggedBytes(cose_payload) = issuer_signed.issuer_auth.dangerous_parse_unverified().unwrap();

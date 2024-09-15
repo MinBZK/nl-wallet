@@ -9,11 +9,7 @@ use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use nl_wallet_mdoc::{
-    holder::Mdoc,
-    server_keys::{AttestationSigner, KeyPair},
-    unsigned::UnsignedMdoc,
-    utils::issuer_auth::IssuerRegistration,
-    IssuerSigned,
+    holder::Mdoc, server_keys::KeyPair, unsigned::UnsignedMdoc, utils::issuer_auth::IssuerRegistration, IssuerSigned,
 };
 use openid4vc::mock::MockIssuanceSession;
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -50,7 +46,7 @@ pub struct AccountServerKeys {
 
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
-    pub issuance_key: AttestationSigner<SigningKey>,
+    pub issuance_key: KeyPair<SigningKey>,
     pub trust_anchor: DerTrustAnchor,
 }
 
@@ -87,10 +83,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-    let issuance_key = ca
-        .generate_issuer_mock(IssuerRegistration::new_mock().into())
-        .unwrap()
-        .into();
+    let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
     IssuerKey {
         issuance_key,
@@ -101,7 +94,7 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-    let issuance_key = ca.generate_issuer_mock(None).unwrap().into();
+    let issuance_key = ca.generate_issuer_mock(None).unwrap();
 
     IssuerKey {
         issuance_key,

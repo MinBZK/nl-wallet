@@ -25,7 +25,7 @@ fn read_signing_key(input: CachedInput) -> Result<SigningKey> {
 pub fn read_key_pair(ca_key_file: CachedInput, ca_crt_file: CachedInput) -> Result<KeyPair> {
     let ca_crt = read_certificate(ca_crt_file)?;
     let ca_key = read_signing_key(ca_key_file)?;
-    let key_pair = KeyPair::new(ca_key, ca_crt);
+    let key_pair = KeyPair::<SigningKey>::new(ca_key, ca_crt);
     Ok(key_pair)
 }
 
