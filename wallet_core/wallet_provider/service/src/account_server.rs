@@ -426,8 +426,12 @@ impl AccountServer {
     //
     // The ChangePinStart instruction is handled here explicitly instead of relying on the generic instruction
     // handling mechanism. The reason is that a new wallet_certificate has to be constructed here, similar to the
-    // registration functionality. Since they mostly use the same dependencies (which are different from  it follows
-    // they are kept together.
+    // registration functionality. Since both methods (registration and change_pin_start) mostly use the same
+    // dependencies (which are different from the dependencies for handling instructions) they are kept together here.
+    //
+    // Changing the PIN is implemented by saving the current PIN in a separate location and replacing it by the new
+    // PIN. From then on, the new PIN is used, although the pin change has to be committed first. A rollback is
+    // verified against the previous PIN that is stored separately.
     pub async fn handle_change_pin_start_instruction<T, R, G, H>(
         &self,
         instruction: Instruction<ChangePinStart>,
