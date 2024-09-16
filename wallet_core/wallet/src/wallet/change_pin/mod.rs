@@ -93,12 +93,19 @@ where
 }
 
 // TODO: implement ChangePinClient and ChangePinStorage on Wallet, so that this can also be implemented on Wallet.
-impl<C: ChangePinClient, S: ChangePinStorage, R: ChangePinConfiguration> ChangePin for ChangePinSession<C, S, R>
+impl<C, S, R, E> ChangePin for ChangePinSession<C, S, R>
 where
-    ChangePinError: From<<C as ChangePinClient>::Error>,
+    C: ChangePinClient<Error = E>,
+    S: ChangePinStorage,
+    R: ChangePinConfiguration,
+    E: ChangePinClientError + Into<ChangePinError>,
 {
     async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> ChangePinResult<()> {
         tracing::debug!("start change pin transaction");
+
+        if let Some(_state) = self.storage.get_change_pin_state().await? {
+            return Err(ChangePinError::ChangePinAlreadyInProgress);
+        }
 
         let new_pin_salt = pin_key::new_pin_salt();
 
@@ -158,6 +165,10 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(None));
+        change_pin_storage
             .expect_store_change_pin_state()
             .with(eq(State::Begin))
             .returning(|_| Ok(()));
@@ -187,6 +198,10 @@ mod test {
             .returning(|_, _, _| Err(ChangePinClientTestError { is_network: true }));
 
         let mut change_pin_storage = MockChangePinStorage::new();
+        change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(None));
         change_pin_storage
             .expect_store_change_pin_state()
             .with(eq(State::Begin))
@@ -221,6 +236,10 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(None));
+        change_pin_storage
             .expect_store_change_pin_state()
             .with(eq(State::Begin))
             .returning(|_| Ok(()));
@@ -241,6 +260,27 @@ mod test {
             actual,
             Err(ChangePinError::Instruction(InstructionError::InstructionValidation))
         );
+    }
+
+    #[tokio::test]
+    async fn begin_change_pin_error_already_in_progress() {
+        let change_pin_client = MockChangePinClient::new();
+
+        let mut change_pin_storage = MockChangePinStorage::new();
+        change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(Some(State::Begin)));
+
+        let change_pin_config = MockChangePinConfiguration::new();
+
+        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+
+        let actual = change_pin_session
+            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .await;
+
+        assert_matches!(actual, Err(ChangePinError::ChangePinAlreadyInProgress));
     }
 
     #[tokio::test]
@@ -471,5 +511,142 @@ mod test {
             actual,
             Err(ChangePinError::Instruction(InstructionError::InstructionValidation))
         );
+    }
+
+    #[tokio::test]
+    async fn continue_change_pin_begin_success() {
+        let mut change_pin_client = MockChangePinClient::new();
+        change_pin_client
+            .expect_rollback_new_pin()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let mut change_pin_storage = MockChangePinStorage::new();
+        change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(Some(State::Begin)));
+        change_pin_storage
+            .expect_clear_change_pin_state()
+            .times(1)
+            .returning(|| Ok(()));
+
+        let mut change_pin_config = MockChangePinConfiguration::new();
+        change_pin_config.expect_max_retries().times(1).returning(|| 2);
+
+        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+
+        let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
+
+        assert_matches!(actual, Ok(()));
+    }
+
+    #[tokio::test]
+    async fn continue_change_pin_begin_network_error() {
+        let mut change_pin_client = MockChangePinClient::new();
+        change_pin_client
+            .expect_rollback_new_pin()
+            .times(2)
+            .returning(|_| Err(ChangePinClientTestError { is_network: true }));
+
+        let mut change_pin_storage = MockChangePinStorage::new();
+        change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(Some(State::Begin)));
+
+        let mut change_pin_config = MockChangePinConfiguration::new();
+        change_pin_config.expect_max_retries().times(1).returning(|| 2);
+
+        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+
+        let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
+
+        assert_matches!(
+            actual,
+            Err(ChangePinError::Instruction(InstructionError::Timeout {
+                timeout_millis: 15
+            }))
+        );
+    }
+
+    #[tokio::test]
+    async fn continue_change_pin_begin_one_network_error() {
+        let mut change_pin_client = MockChangePinClient::new();
+        // First return a network error
+        change_pin_client
+            .expect_rollback_new_pin()
+            .times(1)
+            .returning(|_| Err(ChangePinClientTestError { is_network: true }));
+        // Then return successfully
+        change_pin_client
+            .expect_rollback_new_pin()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let mut change_pin_storage = MockChangePinStorage::new();
+        change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(Some(State::Begin)));
+        change_pin_storage
+            .expect_clear_change_pin_state()
+            .times(1)
+            .returning(|| Ok(()));
+
+        let mut change_pin_config = MockChangePinConfiguration::new();
+        change_pin_config.expect_max_retries().times(1).returning(|| 2);
+
+        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+
+        let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
+
+        assert_matches!(actual, Ok(()));
+    }
+
+    #[tokio::test]
+    async fn continue_change_pin_begin_error() {
+        let mut change_pin_client = MockChangePinClient::new();
+        change_pin_client
+            .expect_rollback_new_pin()
+            .times(1)
+            .returning(|_| Err(ChangePinClientTestError { is_network: false }));
+
+        let mut change_pin_storage = MockChangePinStorage::new();
+        change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(Some(State::Begin)));
+
+        let mut change_pin_config = MockChangePinConfiguration::new();
+        change_pin_config.expect_max_retries().times(1).returning(|| 2);
+
+        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+
+        let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
+
+        assert_matches!(
+            actual,
+            Err(ChangePinError::Instruction(InstructionError::InstructionValidation))
+        );
+    }
+
+    #[tokio::test]
+    async fn continue_change_pin_no_change_pin_in_progress() {
+        let change_pin_client = MockChangePinClient::new();
+
+        let mut change_pin_storage = MockChangePinStorage::new();
+        change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(None));
+
+        let change_pin_config = MockChangePinConfiguration::new();
+
+        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+
+        let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
+
+        assert_matches!(actual, Err(ChangePinError::NoChangePinInProgress));
     }
 }
