@@ -1,5 +1,6 @@
 #![allow(unused)] // TODO: remove once connected from api.rs
 
+mod config;
 mod storage;
 
 use std::future::Future;
