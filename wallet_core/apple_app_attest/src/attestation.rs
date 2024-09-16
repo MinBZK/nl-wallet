@@ -22,7 +22,7 @@ pub enum AttestationError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationDecodingError {
-    #[error("deserializing CBOR deserialization failed: {0}")]
+    #[error("deserializing attestation CBOR failed: {0}")]
     Cbor(#[source] ciborium::de::Error<std::io::Error>),
     #[error("decoding credential certificate failed: {0}")]
     CredentialCertificate(#[source] CertificateError),
@@ -30,6 +30,10 @@ pub enum AttestationDecodingError {
     PublicKey(#[source] CertificateError),
     #[error("decoding certificate extension data failed: {0}")]
     CertificateExtension(#[source] CertificateError),
+    #[error("intial counter is not present in authenticator data")]
+    CounterMissing,
+    #[error("attested credential data is not present in authenticator data")]
+    AttestedCredentialDataMissing,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -40,12 +44,8 @@ pub enum AttestationValidationError {
     NonceMismatch,
     #[error("relying party identifier does not match calculated value")]
     RpIdMismatch,
-    #[error("intial counter is not present in authenticator data")]
-    CounterMissing,
     #[error("counter is not 0, received: {0}")]
     CounterNotZero(u32),
-    #[error("attested credential data is not present in authenticator data")]
-    AttestedCredentialDataMissing,
     #[error("attestation environment is not match, expected: {:?}, received: {:?}", expected.0, received.0)]
     EnvironmentMismatch { expected: Aaguid, received: Aaguid },
     #[error("key identifier does not match calculated value")]
@@ -171,7 +171,7 @@ impl Attestation {
             .auth_data
             .as_ref()
             .counter
-            .ok_or(AttestationValidationError::CounterMissing)?;
+            .ok_or(AttestationDecodingError::CounterMissing)?;
 
         if counter != 0 {
             return Err(AttestationValidationError::CounterNotZero(counter))?;
@@ -186,7 +186,7 @@ impl Attestation {
             .as_ref()
             .attested_credential_data
             .as_ref()
-            .ok_or(AttestationValidationError::AttestedCredentialDataMissing)?;
+            .ok_or(AttestationDecodingError::AttestedCredentialDataMissing)?;
 
         let environment_aaguid = environment.aaguid();
         if attested_credential_data.aaguid != environment_aaguid {
