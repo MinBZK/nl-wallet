@@ -9,7 +9,7 @@ use webpki::{
 };
 use x509_parser::{
     certificate::X509Certificate,
-    der_parser::{self, ber::BerObjectContent, der, Oid},
+    der_parser::{self, der, Oid},
     error::X509Error,
     prelude::FromDer,
 };
@@ -47,6 +47,7 @@ pub struct DerX509CertificateChain(Vec<Vec<u8>>);
 
 impl DerX509CertificateChain {
     fn credential_certificate_der(&self) -> &[u8] {
+        // This is guaranteed to succeed by the type's validation predicate.
         self.as_ref().first().unwrap()
     }
 
@@ -116,14 +117,12 @@ impl<'a> CredentialCertificate<'a> {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|error| CertificateError::ExtensionParsing(error.into()))?;
 
-        if octet_strings.len() != 1 {
-            return Err(CertificateError::ExtensionSequenceCount(octet_strings.len()));
-        }
-
-        let (_, octet_string) = octet_strings.into_iter().next().unwrap();
-        let BerObjectContent::OctetString(data) = octet_string.content else {
-            panic!();
+        let octet_string = match (octet_strings.len(), octet_strings.into_iter().next()) {
+            (1, Some((_, octect_string))) => octect_string,
+            (count, _) => return Err(CertificateError::ExtensionSequenceCount(count)),
         };
+
+        let data = octet_string.as_slice().map_err(CertificateError::ExtensionParsing)?;
 
         Ok(data)
     }
