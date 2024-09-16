@@ -45,23 +45,15 @@ impl ValidateInstruction for GenerateKey {}
 impl ValidateInstruction for Sign {}
 
 impl ValidateInstruction for ChangePinCommit {
-    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        ensure_pin_change_in_progress(wallet_user)
+    fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        Ok(())
     }
 }
 
 impl ValidateInstruction for ChangePinRollback {
-    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-        ensure_pin_change_in_progress(wallet_user)
+    fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        Ok(())
     }
-}
-
-fn ensure_pin_change_in_progress(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
-    if !wallet_user.pin_change_in_progress() {
-        return Err(InstructionValidationError::PinChangeNotInProgress);
-    }
-
-    Ok(())
 }
 
 pub trait HandleInstruction {

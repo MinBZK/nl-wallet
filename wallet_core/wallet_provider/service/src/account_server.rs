@@ -1340,7 +1340,7 @@ mod tests {
             .parse_and_verify_with_sub(&(&instruction_result_signing_key.verifying_key().await.unwrap()).into())
             .expect("Could not parse and verify instruction result");
 
-        let validation_error = account_server
+        account_server
             .handle_instruction(
                 Instruction::new_signed(
                     ChangePinCommit {},
@@ -1364,12 +1364,7 @@ mod tests {
                 HSM.get().await,
             )
             .await
-            .expect_err("committing double should fail");
-
-        assert_matches!(
-            validation_error,
-            InstructionError::Validation(InstructionValidationError::PinChangeNotInProgress)
-        );
+            .expect("committing double should succeed");
 
         do_check_pin(
             &account_server,
@@ -1498,7 +1493,7 @@ mod tests {
             .await
             .expect_err("should fail for new pin");
 
-        let instruction_result = account_server
+        account_server
             .handle_change_pin_rollback_instruction(
                 Instruction::new_signed(
                     ChangePinRollback {},
@@ -1513,8 +1508,33 @@ mod tests {
                 &instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
-                    challenge: Some(challenge),
+                    challenge: Some(challenge.clone()),
                     previous_encrypted_pin_pubkey: Some(setup.encrypted_pin_pubkey.clone()),
+                    ..repo.clone()
+                },
+                &TimeoutPinPolicy,
+                HSM.get().await,
+            )
+            .await
+            .expect("should succeed for old pin");
+
+        let instruction_result = account_server
+            .handle_change_pin_rollback_instruction(
+                Instruction::new_signed(
+                    ChangePinRollback {},
+                    47,
+                    &setup.hw_privkey,
+                    &setup.pin_privkey,
+                    &challenge,
+                    cert.clone(),
+                )
+                .await
+                .unwrap(),
+                &instruction_result_signing_key,
+                &MockGenerators,
+                &WalletUserTestRepo {
+                    challenge: Some(challenge),
+                    previous_encrypted_pin_pubkey: None,
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
