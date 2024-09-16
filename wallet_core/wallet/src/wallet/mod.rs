@@ -1,3 +1,4 @@
+mod change_pin;
 mod config;
 mod disclosure;
 mod documents;

@@ -21,7 +21,7 @@ use nl_wallet_mdoc::{
 use openid4vc::credential::MdocCopies;
 
 pub use self::{
-    data::{InstructionData, KeyedData, RegistrationData, UnlockData, UnlockMethod},
+    data::{ChangePinData, InstructionData, KeyedData, RegistrationData, UnlockData, UnlockMethod},
     database_storage::DatabaseStorage,
     event_log::{EventDocuments, EventStatus, WalletEvent},
     key_file::KeyFileError,
