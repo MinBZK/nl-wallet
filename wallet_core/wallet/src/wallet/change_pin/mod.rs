@@ -74,7 +74,7 @@ where
                 }
             }
         }
-        self.storage.clean_state().await?;
+        self.storage.clear_change_pin_state().await?;
 
         tracing::debug!("{operation_name} successful");
         Ok(())
@@ -101,20 +101,20 @@ where
 
         let new_pin_salt = pin_key::new_pin_salt();
 
-        self.storage.store_state(State::Begin).await?;
+        self.storage.store_change_pin_state(State::Begin).await?;
 
         match self.client.start_new_pin(&old_pin, &new_pin, &new_pin_salt).await {
             Ok(new_pin_certificate) => {
-                self.storage.store_state(State::Commit).await?;
+                self.storage.store_change_pin_state(State::Commit).await?;
                 self.storage.change_pin(new_pin_salt, new_pin_certificate).await?;
                 Ok(())
             }
             Err(error) if error.is_network_error() => {
-                self.storage.store_state(State::Rollback).await?;
+                self.storage.store_change_pin_state(State::Rollback).await?;
                 Err(error.into())
             }
             Err(error) => {
-                self.storage.clean_state().await?;
+                self.storage.clear_change_pin_state().await?;
                 Err(error.into())
             }
         }
@@ -123,7 +123,7 @@ where
     async fn continue_change_pin(&self, pin: String) -> ChangePinResult<()> {
         tracing::debug!("continue change pin transaction");
 
-        match self.storage.get_state().await? {
+        match self.storage.get_change_pin_state().await? {
             None => Err(ChangePinError::NoChangePinInProgress),
             Some(State::Commit) => self.commit(pin).await,
             Some(State::Begin) | Some(State::Rollback) => self.rollback(pin).await,
@@ -157,11 +157,11 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_store_state()
+            .expect_store_change_pin_state()
             .with(eq(State::Begin))
             .returning(|_| Ok(()));
         change_pin_storage
-            .expect_store_state()
+            .expect_store_change_pin_state()
             .with(eq(State::Commit))
             .returning(|_| Ok(()));
         change_pin_storage.expect_change_pin().times(1).returning(|_, _| Ok(()));
@@ -187,11 +187,11 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_store_state()
+            .expect_store_change_pin_state()
             .with(eq(State::Begin))
             .returning(|_| Ok(()));
         change_pin_storage
-            .expect_store_state()
+            .expect_store_change_pin_state()
             .with(eq(State::Rollback))
             .returning(|_| Ok(()));
 
@@ -220,10 +220,13 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_store_state()
+            .expect_store_change_pin_state()
             .with(eq(State::Begin))
             .returning(|_| Ok(()));
-        change_pin_storage.expect_clean_state().times(1).returning(|| Ok(()));
+        change_pin_storage
+            .expect_clear_change_pin_state()
+            .times(1)
+            .returning(|| Ok(()));
 
         let change_pin_config = MockChangePinConfiguration::new();
 
@@ -246,10 +249,13 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_get_state()
+            .expect_get_change_pin_state()
             .times(1)
             .returning(|| Ok(Some(State::Commit)));
-        change_pin_storage.expect_clean_state().times(1).returning(|| Ok(()));
+        change_pin_storage
+            .expect_clear_change_pin_state()
+            .times(1)
+            .returning(|| Ok(()));
 
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
@@ -271,7 +277,7 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_get_state()
+            .expect_get_change_pin_state()
             .times(1)
             .returning(|| Ok(Some(State::Commit)));
 
@@ -303,10 +309,13 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_get_state()
+            .expect_get_change_pin_state()
             .times(1)
             .returning(|| Ok(Some(State::Commit)));
-        change_pin_storage.expect_clean_state().times(1).returning(|| Ok(()));
+        change_pin_storage
+            .expect_clear_change_pin_state()
+            .times(1)
+            .returning(|| Ok(()));
 
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
@@ -328,7 +337,7 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_get_state()
+            .expect_get_change_pin_state()
             .times(1)
             .returning(|| Ok(Some(State::Commit)));
 
@@ -355,10 +364,13 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_get_state()
+            .expect_get_change_pin_state()
             .times(1)
             .returning(|| Ok(Some(State::Rollback)));
-        change_pin_storage.expect_clean_state().times(1).returning(|| Ok(()));
+        change_pin_storage
+            .expect_clear_change_pin_state()
+            .times(1)
+            .returning(|| Ok(()));
 
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
@@ -380,7 +392,7 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_get_state()
+            .expect_get_change_pin_state()
             .times(1)
             .returning(|| Ok(Some(State::Rollback)));
 
@@ -415,10 +427,13 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_get_state()
+            .expect_get_change_pin_state()
             .times(1)
             .returning(|| Ok(Some(State::Rollback)));
-        change_pin_storage.expect_clean_state().times(1).returning(|| Ok(()));
+        change_pin_storage
+            .expect_clear_change_pin_state()
+            .times(1)
+            .returning(|| Ok(()));
 
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
@@ -440,7 +455,7 @@ mod test {
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
-            .expect_get_state()
+            .expect_get_change_pin_state()
             .times(1)
             .returning(|| Ok(Some(State::Rollback)));
 

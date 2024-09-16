@@ -11,19 +11,19 @@ impl<CR, S, PEK, APC, DS, IS, MDS> ChangePinStorage for Wallet<CR, S, PEK, APC, 
 where
     S: Storage,
 {
-    async fn get_state(&self) -> Result<Option<State>, StorageError> {
+    async fn get_change_pin_state(&self) -> Result<Option<State>, StorageError> {
         let storage = self.storage.read().await;
         let change_pin_data: Option<ChangePinData> = storage.fetch_data().await?;
         Ok(change_pin_data.and_then(|data| data.state))
     }
 
-    async fn store_state(&self, state: State) -> Result<(), StorageError> {
+    async fn store_change_pin_state(&self, state: State) -> Result<(), StorageError> {
         let mut storage = self.storage.write().await;
         let data = ChangePinData { state: Some(state) };
         storage.upsert_data(&data).await
     }
 
-    async fn clean_state(&self) -> Result<(), StorageError> {
+    async fn clear_change_pin_state(&self) -> Result<(), StorageError> {
         let mut storage = self.storage.write().await;
         let data = ChangePinData { state: None };
         storage.upsert_data(&data).await

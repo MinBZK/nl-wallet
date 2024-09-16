@@ -38,9 +38,9 @@ pub trait ChangePinClient {
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait ChangePinStorage {
-    async fn get_state(&self) -> Result<Option<State>, StorageError>;
-    async fn store_state(&self, state: State) -> Result<(), StorageError>;
-    async fn clean_state(&self) -> Result<(), StorageError>;
+    async fn get_change_pin_state(&self) -> Result<Option<State>, StorageError>;
+    async fn store_change_pin_state(&self, state: State) -> Result<(), StorageError>;
+    async fn clear_change_pin_state(&self) -> Result<(), StorageError>;
 
     async fn change_pin(
         &self,
