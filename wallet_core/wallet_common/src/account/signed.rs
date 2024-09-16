@@ -19,32 +19,6 @@ pub enum SignedType {
     HW,
 }
 
-trait SubjectPayload {
-    const SUBJECT: &'static str;
-}
-
-/// A payload to be sent in a [`SignedMessage`] can optionally include a subject. When they do they should be wrapped in
-/// this type and implement the [`SubjectPayload`] trait. The additional [`SignedMessage::sign_with_sub`] and
-/// [`SignedMessage:parse_and_verify_with_sub`] methods can then be used.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct PayloadWithSubject<T> {
-    subject: Cow<'static, str>,
-    #[serde(flatten)]
-    payload: T,
-}
-
-impl<T> PayloadWithSubject<T>
-where
-    T: SubjectPayload,
-{
-    fn new(payload: T) -> Self {
-        Self {
-            subject: Cow::Borrowed(T::SUBJECT),
-            payload,
-        }
-    }
-}
-
 /// Wraps an arbitrary payload that can be represented as a byte slice and includes a signature and signature type. Its
 /// data can be serialized and deserialized, while maintaining a stable string representation. This is necessary, as
 /// JSON representation is not deterministic.
@@ -99,30 +73,63 @@ where
     }
 }
 
-impl<T> SignedMessage<PayloadWithSubject<T>>
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PayloadWithSubject<T> {
+    subject: Cow<'static, str>,
+    #[serde(flatten)]
+    payload: T,
+}
+
+trait SubjectPayload {
+    const SUBJECT: &'static str;
+}
+
+impl<T> PayloadWithSubject<T>
+where
+    T: SubjectPayload,
+{
+    fn new(payload: T) -> Self {
+        Self {
+            subject: Cow::Borrowed(T::SUBJECT),
+            payload,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SignedSubjectMessage<T>(SignedMessage<PayloadWithSubject<T>>);
+
+/// Same as [`SignedMessage`], but adds a subject string to the signed JSON object, the contents of which is verified.
+impl<T> SignedSubjectMessage<T>
 where
     T: SubjectPayload + Serialize + DeserializeOwned,
 {
-    async fn sign_with_sub<K>(payload: T, r#type: SignedType, signing_key: &K) -> Result<Self>
+    async fn sign<K>(payload: T, r#type: SignedType, signing_key: &K) -> Result<Self>
     where
         K: EcdsaKey,
     {
-        let signed_message = Self::sign(&PayloadWithSubject::new(payload), r#type, signing_key).await?;
+        let signed_message = SignedMessage::sign(&PayloadWithSubject::new(payload), r#type, signing_key).await?;
 
-        Ok(signed_message)
+        Ok(Self(signed_message))
     }
 
-    fn parse_and_verify_with_sub(&self, r#type: SignedType, verifying_key: &VerifyingKey) -> Result<T> {
-        let payload_with_subject = self.parse_and_verify(r#type, verifying_key)?;
+    fn dangerous_parse_unverified(&self) -> Result<T> {
+        let payload = self.0.dangerous_parse_unverified()?.payload;
 
-        if payload_with_subject.subject.as_ref() != T::SUBJECT {
+        Ok(payload)
+    }
+
+    fn parse_and_verify(&self, r#type: SignedType, verifying_key: &VerifyingKey) -> Result<T> {
+        let payload = self.0.parse_and_verify(r#type, verifying_key)?;
+
+        if payload.subject.as_ref() != T::SUBJECT {
             return Err(Error::SubjectMismatch {
                 expected: T::SUBJECT.to_string(),
-                received: payload_with_subject.subject.into_owned(),
+                received: payload.subject.into_owned(),
             });
         }
 
-        Ok(payload_with_subject.payload)
+        Ok(payload.payload)
     }
 }
 
@@ -165,7 +172,7 @@ impl ChallengeRequestPayload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChallengeRequest(SignedMessage<PayloadWithSubject<ChallengeRequestPayload>>);
+pub struct ChallengeRequest(SignedSubjectMessage<ChallengeRequestPayload>);
 
 impl ChallengeRequest {
     pub async fn sign<K>(sequence_number: u64, hardware_signing_key: &K) -> Result<Self>
@@ -173,7 +180,7 @@ impl ChallengeRequest {
         K: SecureEcdsaKey,
     {
         let challenge_request = ChallengeRequestPayload::new(sequence_number);
-        let signed = SignedMessage::sign_with_sub(challenge_request, SignedType::HW, hardware_signing_key).await?;
+        let signed = SignedSubjectMessage::sign(challenge_request, SignedType::HW, hardware_signing_key).await?;
 
         Ok(Self(signed))
     }
@@ -183,9 +190,7 @@ impl ChallengeRequest {
         sequence_number_comparison: SequenceNumberComparison,
         hardware_verifying_key: &VerifyingKey,
     ) -> Result<ChallengeRequestPayload> {
-        let request = self
-            .0
-            .parse_and_verify_with_sub(SignedType::HW, hardware_verifying_key)?;
+        let request = self.0.parse_and_verify(SignedType::HW, hardware_verifying_key)?;
         request.verify(sequence_number_comparison)?;
 
         Ok(request)
@@ -222,7 +227,7 @@ impl<T> ChallengeResponsePayload<T> {
 /// Wraps a [`ChallengeResponse`], which contains an arbitrary payload, and signs it with two keys. For the inner
 /// signing the PIN key is used, while the outer signing is done with the device's hardware key.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChallengeResponse<T>(SignedMessage<SignedMessage<PayloadWithSubject<ChallengeResponsePayload<T>>>>);
+pub struct ChallengeResponse<T>(SignedMessage<SignedSubjectMessage<ChallengeResponsePayload<T>>>);
 
 impl<T> ChallengeResponse<T>
 where
@@ -244,18 +249,14 @@ where
             challenge,
             sequence_number,
         };
-        let inner_signed = SignedMessage::sign_with_sub(challenge_response, SignedType::Pin, pin_signing_key).await?;
+        let inner_signed = SignedSubjectMessage::sign(challenge_response, SignedType::Pin, pin_signing_key).await?;
         let outer_signed = SignedMessage::sign(&inner_signed, SignedType::HW, hardware_signing_key).await?;
 
         Ok(Self(outer_signed))
     }
 
     pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>> {
-        let challenge_response = self
-            .0
-            .dangerous_parse_unverified()?
-            .dangerous_parse_unverified()?
-            .payload;
+        let challenge_response = self.0.dangerous_parse_unverified()?.dangerous_parse_unverified()?;
 
         Ok(challenge_response)
     }
@@ -268,7 +269,7 @@ where
         pin_verifying_key: &VerifyingKey,
     ) -> Result<ChallengeResponsePayload<T>> {
         let inner_signed = self.0.parse_and_verify(SignedType::HW, hardware_verifying_key)?;
-        let challenge_response = inner_signed.parse_and_verify_with_sub(SignedType::Pin, pin_verifying_key)?;
+        let challenge_response = inner_signed.parse_and_verify(SignedType::Pin, pin_verifying_key)?;
 
         challenge_response.verify(challenge, sequence_number_comparison)?;
 
@@ -284,6 +285,21 @@ mod tests {
 
     use super::*;
 
+    #[derive(Debug, Serialize, Deserialize)]
+    struct ToyPayload {
+        string: String,
+    }
+    impl Default for ToyPayload {
+        fn default() -> Self {
+            Self {
+                string: "Some payload.".to_string(),
+            }
+        }
+    }
+    impl SubjectPayload for ToyPayload {
+        const SUBJECT: &'static str = "toy_subject";
+    }
+
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {
         number: u8,
@@ -297,14 +313,11 @@ mod tests {
             }
         }
     }
-    impl SubjectPayload for ToyMessage {
-        const SUBJECT: &'static str = "toy_message";
-    }
 
     #[tokio::test]
     async fn test_signed_message_error_type_mismatch() {
         let key = SigningKey::random(&mut OsRng);
-        let signed_message = SignedMessage::sign(&ToyMessage::default(), SignedType::HW, &key)
+        let signed_message = SignedMessage::sign(&ToyPayload::default(), SignedType::HW, &key)
             .await
             .unwrap();
 
@@ -323,20 +336,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_signed_message_error_subject_mismatch() {
+    async fn test_subject_signed_message_error_subject_mismatch() {
         #[derive(Debug, Serialize, Deserialize)]
-        struct WrongToyMessage {
-            number: u8,
+        struct WrongToyPayload {
             string: String,
         }
-        impl SubjectPayload for WrongToyMessage {
+        impl SubjectPayload for WrongToyPayload {
             const SUBJECT: &'static str = "wrong_subject";
         }
 
         let key = SigningKey::random(&mut OsRng);
-        let signed_message = SignedMessage::sign_with_sub(
-            WrongToyMessage {
-                number: 0,
+        let signed_message = SignedSubjectMessage::sign(
+            WrongToyPayload {
                 string: "WRONG!".to_string(),
             },
             SignedType::HW,
@@ -345,14 +356,13 @@ mod tests {
         .await
         .unwrap();
 
-        let decoded_message = serde_json::from_str::<SignedMessage<PayloadWithSubject<ToyMessage>>>(
-            &serde_json::to_string(&signed_message).unwrap(),
-        )
-        .unwrap();
+        let decoded_message =
+            serde_json::from_str::<SignedSubjectMessage<ToyPayload>>(&serde_json::to_string(&signed_message).unwrap())
+                .unwrap();
 
         // Verifying with an incorrect subject field should return a `Error::SubjectMismatch`.
         let error = decoded_message
-            .parse_and_verify_with_sub(SignedType::HW, key.verifying_key())
+            .parse_and_verify(SignedType::HW, key.verifying_key())
             .expect_err("verifying SignedMessage should return an error");
 
         assert_matches!(
@@ -360,7 +370,7 @@ mod tests {
             Error::SubjectMismatch {
                 expected,
                 received,
-            } if expected == "toy_message" && received == "wrong_subject"
+            } if expected == "toy_subject" && received == "wrong_subject"
         );
     }
 
