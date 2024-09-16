@@ -11,11 +11,15 @@ use nl_wallet_mdoc::{
     },
     IssuerSigned,
 };
-use wallet_common::{jwt::Jwt, nonempty::NonEmpty, urls::BaseUrl};
+use wallet_common::{
+    jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims},
+    nonempty::NonEmpty,
+    urls::BaseUrl,
+};
 
 use crate::{
     issuance_session::IssuanceSessionError,
-    jwt::{self, jwk_jwt_header, JwtCredentialClaims},
+    jwt::{self},
     token::CredentialPreview,
     Format,
 };

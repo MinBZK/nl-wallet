@@ -24,7 +24,12 @@ use nl_wallet_mdoc::{
     },
     ATTR_RANDOM_LENGTH,
 };
-use wallet_common::{generator::TimeGenerator, jwt::JwtError, nonempty::NonEmpty, urls::BaseUrl};
+use wallet_common::{
+    generator::TimeGenerator,
+    jwt::{JwkConversionError, JwtError},
+    nonempty::NonEmpty,
+    urls::BaseUrl,
+};
 
 use crate::{
     credential::{
@@ -32,7 +37,7 @@ use crate::{
         CredentialResponses, MdocCopies,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    jwt::{JwkConversionError, JwtCredential, JwtCredentialError},
+    jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
@@ -795,9 +800,7 @@ impl CredentialResponse {
                     return Err(IssuanceSessionError::IssuerMismatch);
                 }
 
-                cred_claims
-                    .contents
-                    .compare_attributes(expected_claims)
+                compare_jwt_attributes(&cred_claims.contents, expected_claims)
                     .map_err(IssuanceSessionError::IssuedJwtAttributesMismatch)?;
 
                 Ok(IssuedCredential::Jwt(cred))

@@ -17,7 +17,10 @@ use nl_wallet_mdoc::{
     IssuerSigned,
 };
 use wallet_common::{
-    jwt::{EcdsaDecodingKey, Jwt},
+    jwt::{
+        jwk_from_p256, jwk_to_p256, EcdsaDecodingKey, JwkConversionError, Jwt, JwtCredentialClaims, JwtCredentialCnf,
+        JwtCredentialContents,
+    },
     keys::EcdsaKey,
     nonempty::NonEmpty,
     urls::BaseUrl,
@@ -30,9 +33,6 @@ use crate::{
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
-    jwt::{
-        jwk_from_p256, jwk_to_p256, JwkConversionError, JwtCredentialClaims, JwtCredentialCnf, JwtCredentialContents,
-    },
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     server_state::{

@@ -18,11 +18,12 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
+    jwt::JwtCredentialContents,
     nonempty::NonEmpty,
     utils::{random_string, sha256},
 };
 
-use crate::{authorization::AuthorizationDetails, jwt::JwtCredentialContents, server_state::SessionToken, Format};
+use crate::{authorization::AuthorizationDetails, server_state::SessionToken, Format};
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);

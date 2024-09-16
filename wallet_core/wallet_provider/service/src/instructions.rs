@@ -8,8 +8,8 @@ use uuid::Uuid;
 use wallet_common::{
     account::{
         messages::instructions::{
-            ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult, Sign,
-            SignResult,
+            ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult, IssueWte,
+            IssueWteResult, Sign, SignResult,
         },
         serialization::{DerSignature, DerVerifyingKey},
     },
@@ -27,6 +27,7 @@ use wallet_provider_domain::{
 use crate::{
     account_server::{InstructionError, InstructionValidationError},
     hsm::HsmError,
+    wte_issuer::WteIssuer,
 };
 
 pub trait ValidateInstruction {
@@ -43,6 +44,7 @@ impl ValidateInstruction for CheckPin {}
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for GenerateKey {}
 impl ValidateInstruction for Sign {}
+impl ValidateInstruction for IssueWte {}
 
 impl ValidateInstruction for ChangePinCommit {
     fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -65,6 +67,7 @@ pub trait HandleInstruction {
         uuid_generator: &impl Generator<Uuid>,
         wallet_user_repository: &R,
         wallet_user_hsm: &H,
+        wte_issuer: &impl WteIssuer,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -81,6 +84,7 @@ impl HandleInstruction for CheckPin {
         _uuid_generator: &impl Generator<Uuid>,
         _wallet_user_repository: &R,
         _wallet_user_hsm: &H,
+        _wte_issuer: &impl WteIssuer,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
@@ -100,6 +104,7 @@ impl HandleInstruction for ChangePinCommit {
         _uuid_generator: &impl Generator<Uuid>,
         wallet_user_repository: &R,
         _wallet_user_hsm: &H,
+        _wte_issuer: &impl WteIssuer,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -127,6 +132,7 @@ impl HandleInstruction for GenerateKey {
         uuid_generator: &impl Generator<Uuid>,
         wallet_user_repository: &R,
         wallet_user_hsm: &H,
+        _wte_issuer: &impl WteIssuer,
     ) -> Result<GenerateKeyResult, InstructionError>
     where
         T: Committable,
@@ -175,6 +181,7 @@ impl HandleInstruction for Sign {
         _uuid_generator: &impl Generator<Uuid>,
         wallet_user_repository: &R,
         wallet_user_hsm: &H,
+        _wte_issuer: &impl WteIssuer,
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable,
@@ -210,6 +217,53 @@ impl HandleInstruction for Sign {
     }
 }
 
+static WTE_KEY_ID: &str = "wte_key_id";
+
+impl HandleInstruction for IssueWte {
+    type Result = IssueWteResult;
+
+    async fn handle<T, R, H>(
+        self,
+        wallet_user: &WalletUser,
+        uuid_generator: &impl Generator<Uuid>,
+        wallet_user_repository: &R,
+        _wallet_user_hsm: &H,
+        wte_issuer: &impl WteIssuer,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    {
+        let (wrapped_privkey, wte) = wte_issuer
+            .issue_wte()
+            .await
+            .map_err(|e| InstructionError::WteIssuance(Box::new(e)))?;
+
+        let tx = wallet_user_repository.begin_transaction().await?;
+        let key = WalletUserKey {
+            wallet_user_key_id: uuid_generator.generate(),
+            key_identifier: WTE_KEY_ID.to_string(),
+            key: wrapped_privkey,
+        };
+        wallet_user_repository
+            .save_keys(
+                &tx,
+                WalletUserKeys {
+                    wallet_user_id: wallet_user.id,
+                    keys: vec![key],
+                },
+            )
+            .await?;
+        tx.commit().await?;
+
+        Ok(IssueWteResult {
+            key_id: WTE_KEY_ID.to_string(),
+            wte,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -228,7 +282,7 @@ mod tests {
     };
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
-    use crate::instructions::HandleInstruction;
+    use crate::{instructions::HandleInstruction, wte_issuer::mock::MockWteIssuer};
 
     #[tokio::test]
     async fn should_handle_checkpin() {
@@ -241,6 +295,7 @@ mod tests {
                 &FixedUuidGenerator,
                 &MockTransactionalWalletUserRepository::new(),
                 &MockPkcs11Client::default(),
+                &MockWteIssuer,
             )
             .await
             .unwrap();
@@ -266,6 +321,7 @@ mod tests {
                 &FixedUuidGenerator,
                 &wallet_user_repo,
                 &MockPkcs11Client::default(),
+                &MockWteIssuer,
             )
             .await
             .unwrap();
@@ -314,7 +370,13 @@ mod tests {
             });
 
         let result = instruction
-            .handle(&wallet_user, &FixedUuidGenerator, &wallet_user_repo, &pkcs11_client)
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &wallet_user_repo,
+                &pkcs11_client,
+                &MockWteIssuer,
+            )
             .await
             .unwrap();
 

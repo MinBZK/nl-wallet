@@ -23,14 +23,14 @@ use openid4vc::{
         HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
     },
     issuer::{AttributeService, Created, IssuanceData, Issuer},
-    jwt::JwtCredentialContents,
+    jwt::compare_jwt_attributes,
     metadata::IssuerMetadata,
     oidc,
     server_state::{MemorySessionStore, SessionState},
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
-use wallet_common::{nonempty::NonEmpty, urls::BaseUrl};
+use wallet_common::{jwt::JwtCredentialContents, nonempty::NonEmpty, urls::BaseUrl};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -126,15 +126,14 @@ async fn accept_issuance(
                     _ => panic!("unexpected credential format"),
                 })
                 .unwrap(),
-            IssuedCredentialCopies::Jwt(jwts) => jwts
-                .first()
-                .jwt_claims()
-                .contents
-                .compare_attributes(match &preview {
+            IssuedCredentialCopies::Jwt(jwts) => compare_jwt_attributes(
+                &jwts.first().jwt_claims().contents,
+                match &preview {
                     CredentialPreview::Jwt { claims, .. } => claims,
                     _ => panic!("unexpected credential format"),
-                })
-                .unwrap(),
+                },
+            )
+            .unwrap(),
         });
 }
 

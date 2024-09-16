@@ -32,6 +32,7 @@ axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "t
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
+indexmap.workspace = true
 nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
 rand_core = { workspace = true, optional = true }

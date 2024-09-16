@@ -1,10 +1,18 @@
 use std::{marker::PhantomData, str::FromStr, sync::LazyLock};
 
 use base64::prelude::*;
+use indexmap::IndexMap;
 use itertools::Itertools;
-use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
-use p256::ecdsa::VerifyingKey;
+use jsonwebtoken::{
+    jwk::{self, EllipticCurve, Jwk},
+    Algorithm, DecodingKey, Header, Validation,
+};
+use p256::{
+    ecdsa::{signature, VerifyingKey},
+    EncodedPoint,
+};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use x509_parser::{
     der_parser::{asn1_rs::BitString, Oid},
     prelude::FromDer,
@@ -244,6 +252,100 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
     }
 }
 
+/// Claims of a [`JwtCredential`]: the body of the JWT.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct JwtCredentialClaims {
+    pub cnf: JwtCredentialCnf,
+
+    #[serde(flatten)]
+    pub contents: JwtCredentialContents,
+}
+
+/// Contents of a [`JwtCredential`], containing everything of the [`JwtCredentialClaims`] except the holder public
+/// key ([`Cnf`]): the attributes and metadata of the credential.
+#[skip_serializing_none]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct JwtCredentialContents {
+    pub iss: String,
+
+    #[serde(flatten)]
+    pub attributes: IndexMap<String, serde_json::Value>,
+}
+
+/// Contains the holder public key of a [`JwtCredential`].
+/// ("Cnf" stands for "confirmation", see https://datatracker.ietf.org/doc/html/rfc7800.)
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct JwtCredentialCnf {
+    pub jwk: Jwk,
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
+pub enum JwkConversionError {
+    #[error("unsupported JWK EC curve: expected P256, found {found:?}")]
+    #[category(critical)]
+    UnsupportedJwkEcCurve { found: EllipticCurve },
+    #[error("unsupported JWK algorithm")]
+    #[category(critical)]
+    UnsupportedJwkAlgorithm,
+    #[error("base64 decoding failed: {0}")]
+    Base64Error(#[from] base64::DecodeError),
+    #[error("failed to construct verifying key: {0}")]
+    VerifyingKeyConstruction(#[from] signature::Error),
+    #[error("missing coordinate in conversion to P256 public key")]
+    #[category(critical)]
+    MissingCoordinate,
+    #[error("failed to get public key: {0}")]
+    VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
+}
+
+pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
+    let point = value.to_encoded_point(false);
+    let jwk = Jwk {
+        common: Default::default(),
+        algorithm: jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
+            key_type: jwk::EllipticCurveKeyType::EC,
+            curve: jwk::EllipticCurve::P256,
+            x: BASE64_URL_SAFE_NO_PAD.encode(point.x().ok_or(JwkConversionError::MissingCoordinate)?),
+            y: BASE64_URL_SAFE_NO_PAD.encode(point.y().ok_or(JwkConversionError::MissingCoordinate)?),
+        }),
+    };
+    Ok(jwk)
+}
+
+pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
+    let ec_params = match value.algorithm {
+        jwk::AlgorithmParameters::EllipticCurve(ref params) => Ok(params),
+        _ => Err(JwkConversionError::UnsupportedJwkAlgorithm),
+    }?;
+    if !matches!(ec_params.curve, EllipticCurve::P256) {
+        return Err(JwkConversionError::UnsupportedJwkEcCurve {
+            found: ec_params.curve.clone(),
+        });
+    }
+
+    let key = VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
+        BASE64_URL_SAFE_NO_PAD.decode(&ec_params.x)?.as_slice().into(),
+        BASE64_URL_SAFE_NO_PAD.decode(&ec_params.y)?.as_slice().into(),
+        false,
+    ))?;
+    Ok(key)
+}
+
+pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, JwkConversionError> {
+    let header = Header {
+        typ: Some(typ.to_string()),
+        alg: Algorithm::ES256,
+        jwk: Some(jwk_from_p256(
+            &key.verifying_key()
+                .await
+                .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
+        )?),
+        ..Default::default()
+    };
+    Ok(header)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -339,5 +441,15 @@ mod tests {
             .decode(jwt.split('.').take((i + 1) as usize).last().unwrap())
             .unwrap();
         serde_json::from_slice(&bts).unwrap()
+    }
+
+    #[test]
+    fn jwk_p256_key_conversion() {
+        let private_key = SigningKey::random(&mut OsRng);
+        let verifying_key = private_key.verifying_key();
+        let jwk = jwk_from_p256(verifying_key).unwrap();
+        let converted = jwk_to_p256(&jwk).unwrap();
+
+        assert_eq!(*verifying_key, converted);
     }
 }

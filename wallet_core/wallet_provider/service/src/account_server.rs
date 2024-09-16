@@ -43,6 +43,7 @@ use crate::{
         new_wallet_certificate, parse_claims_and_retrieve_wallet_user, verify_wallet_certificate,
         verify_wallet_certificate_public_keys,
     },
+    wte_issuer::WteIssuer,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -132,6 +133,8 @@ pub enum InstructionError {
     Storage(#[from] PersistenceError),
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+    #[error("WTE issuance: {0}")]
+    WteIssuance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -376,6 +379,7 @@ impl AccountServer {
         Ok(challenge.bytes)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn handle_instruction<T, R, I, IR, G, H>(
         &self,
         instruction: Instruction<I>,
@@ -384,6 +388,7 @@ impl AccountServer {
         repositories: &R,
         pin_policy: &impl PinPolicyEvaluator,
         wallet_user_hsm: &H,
+        wte_issuer: &impl WteIssuer,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -408,7 +413,7 @@ impl AccountServer {
             .await?;
 
         let instruction_result = instruction_payload
-            .handle(&wallet_user, generators, repositories, wallet_user_hsm)
+            .handle(&wallet_user, generators, repositories, wallet_user_hsm, wte_issuer)
             .await?;
 
         self.sign_instruction_result(instruction_result_signing_key, instruction_result)
@@ -784,7 +789,10 @@ mod tests {
     };
     use wallet_provider_persistence::repositories::mock::{MockTransactionalWalletUserRepository, WalletUserTestRepo};
 
-    use crate::{wallet_certificate, wallet_certificate::mock::WalletCertificateSetup};
+    use crate::{
+        wallet_certificate::{self, mock::WalletCertificateSetup},
+        wte_issuer::mock::MockWteIssuer,
+    };
 
     use super::*;
 
@@ -920,6 +928,7 @@ mod tests {
                 },
                 &FailingPinPolicy,
                 HSM.get().await,
+                &MockWteIssuer,
             )
             .await
             .expect_err("sequence number mismatch error should result in IncorrectPin error");
@@ -953,6 +962,7 @@ mod tests {
                 },
                 &TimeoutPinPolicy,
                 HSM.get().await,
+                &MockWteIssuer,
             )
             .await?;
 
@@ -1294,6 +1304,7 @@ mod tests {
                 },
                 &TimeoutPinPolicy,
                 HSM.get().await,
+                &MockWteIssuer,
             )
             .await
             .expect_err("should fail for old pin");
@@ -1320,6 +1331,7 @@ mod tests {
                 },
                 &TimeoutPinPolicy,
                 HSM.get().await,
+                &MockWteIssuer,
             )
             .await
             .expect("should return instruction result");
@@ -1350,6 +1362,7 @@ mod tests {
                 },
                 &TimeoutPinPolicy,
                 HSM.get().await,
+                &MockWteIssuer,
             )
             .await
             .expect("committing double should succeed");
