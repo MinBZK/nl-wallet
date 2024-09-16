@@ -11,9 +11,30 @@ pub struct KeyPair<S = SigningKey> {
     certificate: Certificate,
 }
 
-impl<S> KeyPair<S> {
-    pub fn new(private_key: SigningKey, certificate: Certificate) -> Result<KeyPair, CertificateError> {
+impl KeyPair {
+    pub fn new_from_signing_key(
+        private_key: SigningKey,
+        certificate: Certificate,
+    ) -> Result<KeyPair, CertificateError> {
         if certificate.public_key()? != *private_key.verifying_key() {
+            return Err(CertificateError::KeyMismatch);
+        }
+
+        Ok(KeyPair {
+            private_key,
+            certificate,
+        })
+    }
+}
+
+impl<S: EcdsaKey> KeyPair<S> {
+    pub async fn new(private_key: S, certificate: Certificate) -> Result<KeyPair<S>, CertificateError> {
+        if certificate.public_key()?
+            != private_key
+                .verifying_key()
+                .await
+                .map_err(|e| CertificateError::PublicKeyFromPrivate(Box::new(e)))?
+        {
             return Err(CertificateError::KeyMismatch);
         }
 
@@ -117,7 +138,7 @@ mod generate {
             let certificate = RcgenCertificate::from_params(ca_params)?;
             let privkey = Self::rcgen_cert_privkey(&certificate)?;
 
-            Self::new(privkey, certificate.serialize_der()?.into())
+            Self::new_from_signing_key(privkey, certificate.serialize_der()?.into())
         }
 
         /// Generate a new key pair signed with the specified CA.
@@ -152,7 +173,7 @@ mod generate {
             let certificate = cert_unsigned.serialize_der_with_signer(&ca)?;
             let private_key = Self::rcgen_cert_privkey(&cert_unsigned)?;
 
-            Self::new(private_key, certificate.into())
+            Self::new_from_signing_key(private_key, certificate.into())
         }
 
         fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {

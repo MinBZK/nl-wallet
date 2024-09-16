@@ -63,6 +63,8 @@ pub enum CertificateError {
     X509Error(#[from] X509Error),
     #[error("private key does not belong to public key from certificate")]
     KeyMismatch,
+    #[error("failed to get public key from private key: {0}")]
+    PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
