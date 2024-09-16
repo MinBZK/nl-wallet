@@ -70,6 +70,8 @@ pub trait WalletUserRepository {
     async fn commit_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
     async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+
+    async fn save_wte_issued(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -175,6 +177,10 @@ pub mod mock {
         }
 
         async fn rollback_pin_change(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
+            Ok(())
+        }
+
+        async fn save_wte_issued(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
             Ok(())
         }
     }

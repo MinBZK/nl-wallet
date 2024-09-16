@@ -142,6 +142,14 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user::rollback_pin_change(transaction, wallet_id).await
     }
+
+    async fn save_wte_issued(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::save_wte_issued(transaction, wallet_id).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -246,6 +254,12 @@ pub mod mock {
             ) -> Result<(), PersistenceError>;
 
             async fn rollback_pin_change(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str
+            ) -> Result<(), PersistenceError>;
+
+            async fn save_wte_issued(
                 &self,
                 transaction: &MockTransaction,
                 wallet_id: &str
@@ -388,6 +402,14 @@ pub mod mock {
         }
 
         async fn rollback_pin_change(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn save_wte_issued(
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,

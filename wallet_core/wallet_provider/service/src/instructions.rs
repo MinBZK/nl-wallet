@@ -255,6 +255,9 @@ impl HandleInstruction for IssueWte {
                 },
             )
             .await?;
+        wallet_user_repository
+            .save_wte_issued(&tx, &wallet_user.wallet_id)
+            .await?;
         tx.commit().await?;
 
         Ok(IssueWteResult {
