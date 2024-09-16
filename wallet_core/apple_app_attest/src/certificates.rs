@@ -41,7 +41,7 @@ pub enum CertificateError {
 
 #[nutype(
     validate(predicate = |certs| !certs.is_empty()),
-    derive(Debug, Clone, TryFrom, Into, AsRef)
+    derive(Debug, Clone, TryFrom, AsRef)
 )]
 pub struct DerX509CertificateChain(Vec<Vec<u8>>);
 
@@ -59,7 +59,7 @@ impl DerX509CertificateChain {
         let (_, cert) = X509Certificate::from_der(self.credential_certificate_der())
             .map_err(|error| CertificateError::CredentialParsing(error.into()))?;
 
-        let certificate = CredentialCertificate::from(cert);
+        let certificate = CredentialCertificate::new(cert);
 
         Ok(certificate)
     }
@@ -91,7 +91,7 @@ impl DerX509CertificateChain {
     }
 }
 
-#[nutype(derive(Debug, From, Into, AsRef))]
+#[nutype(derive(Debug, AsRef))]
 pub struct CredentialCertificate<'a>(X509Certificate<'a>);
 
 impl<'a> CredentialCertificate<'a> {
