@@ -3,10 +3,7 @@ use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::{
-        messages::instructions::{Instruction, InstructionChallengeRequest, InstructionEndpoint},
-        signed::ChallengeRequest,
-    },
+    account::messages::instructions::{Instruction, InstructionAndResult, InstructionChallengeRequest},
     jwt::EcdsaDecodingKey,
     urls::BaseUrl,
 };
@@ -74,19 +71,23 @@ where
             .map_err(InstructionError::Signing)
     }
 
-    async fn instruction_challenge(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError> {
-        let request = self
-            .with_sequence_number(storage, |seq_num| ChallengeRequest::sign(seq_num, self.hw_privkey))
+    async fn instruction_challenge<I>(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError>
+    where
+        I: InstructionAndResult,
+    {
+        let challenge_request = self
+            .with_sequence_number(storage, |seq_num| {
+                InstructionChallengeRequest::new_signed::<I>(
+                    seq_num,
+                    self.hw_privkey,
+                    self.registration.wallet_certificate.clone(),
+                )
+            })
             .await?;
-
-        let instruction_request = InstructionChallengeRequest {
-            request,
-            certificate: self.registration.wallet_certificate.clone(),
-        };
 
         let result = self
             .account_provider_client
-            .instruction_challenge(self.account_provider_base_url, instruction_request)
+            .instruction_challenge(self.account_provider_base_url, challenge_request)
             .await?;
 
         Ok(result)
@@ -94,11 +95,11 @@ where
 
     pub async fn send<I>(&self, instruction: I) -> Result<I::Result, InstructionError>
     where
-        I: InstructionEndpoint + 'static,
+        I: InstructionAndResult + 'static,
     {
         let mut storage = self.storage.write().await;
 
-        let challenge = self.instruction_challenge(&mut storage).await?;
+        let challenge = self.instruction_challenge::<I>(&mut storage).await?;
 
         let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt);
 

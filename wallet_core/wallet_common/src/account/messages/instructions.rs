@@ -10,7 +10,7 @@ use crate::{
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
-use super::auth::WalletCertificate;
+use super::auth::{Certificate, WalletCertificate};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Instruction<T> {
@@ -20,6 +20,18 @@ pub struct Instruction<T> {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CheckPin;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChangePinStart {
+    pub pin_pubkey: DerVerifyingKey,
+    pub pop_pin_pubkey: DerSignature,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChangePinCommit {}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChangePinRollback {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GenerateKey {
@@ -62,8 +74,8 @@ pub struct InstructionChallengeRequest {
     pub certificate: WalletCertificate,
 }
 
-pub trait InstructionEndpoint: Serialize + DeserializeOwned {
-    const ENDPOINT: &'static str;
+pub trait InstructionAndResult: Serialize + DeserializeOwned {
+    const NAME: &'static str;
 
     type Result: Serialize + DeserializeOwned;
 }
@@ -72,20 +84,38 @@ impl<R> JwtSubject for InstructionResultClaims<R> {
     const SUB: &'static str = "instruction_result";
 }
 
-impl InstructionEndpoint for CheckPin {
-    const ENDPOINT: &'static str = "check_pin";
+impl InstructionAndResult for CheckPin {
+    const NAME: &'static str = "check_pin";
 
     type Result = ();
 }
 
-impl InstructionEndpoint for GenerateKey {
-    const ENDPOINT: &'static str = "generate_key";
+impl InstructionAndResult for ChangePinStart {
+    const NAME: &'static str = "change_pin_start";
+
+    type Result = Certificate;
+}
+
+impl InstructionAndResult for ChangePinCommit {
+    const NAME: &'static str = "change_pin_commit";
+
+    type Result = ();
+}
+
+impl InstructionAndResult for ChangePinRollback {
+    const NAME: &'static str = "change_pin_rollback";
+
+    type Result = ();
+}
+
+impl InstructionAndResult for GenerateKey {
+    const NAME: &'static str = "generate_key";
 
     type Result = GenerateKeyResult;
 }
 
-impl InstructionEndpoint for Sign {
-    const ENDPOINT: &'static str = "sign";
+impl InstructionAndResult for Sign {
+    const NAME: &'static str = "sign";
 
     type Result = SignResult;
 }
@@ -113,6 +143,24 @@ where
 
         Ok(Self {
             instruction: signed,
+            certificate,
+        })
+    }
+}
+
+impl InstructionChallengeRequest {
+    pub async fn new_signed<I>(
+        instruction_sequence_number: u64,
+        hw_privkey: &impl SecureEcdsaKey,
+        certificate: WalletCertificate,
+    ) -> Result<Self>
+    where
+        I: InstructionAndResult,
+    {
+        let signed = ChallengeRequest::sign(instruction_sequence_number, I::NAME.to_string(), hw_privkey).await?;
+
+        Ok(Self {
+            request: signed,
             certificate,
         })
     }

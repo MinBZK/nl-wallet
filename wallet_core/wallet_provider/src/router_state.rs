@@ -6,7 +6,7 @@ use tracing::info;
 use uuid::Uuid;
 
 use wallet_common::{
-    account::messages::instructions::{Instruction, InstructionEndpoint, InstructionResultMessage},
+    account::messages::instructions::{Instruction, InstructionAndResult, InstructionResultMessage},
     generator::Generator,
     keys::EcdsaKey,
 };
@@ -14,8 +14,8 @@ use wallet_provider_persistence::{database::Db, repositories::Repositories};
 use wallet_provider_service::{
     account_server::AccountServer,
     hsm::Pkcs11Hsm,
-    instructions::HandleInstruction,
-    keys::{CertificateSigning, InstructionResultSigning, WalletProviderEcdsaKey},
+    instructions::{HandleInstruction, ValidateInstruction},
+    keys::{InstructionResultSigning, WalletCertificateSigning, WalletProviderEcdsaKey},
     pin_policy::PinPolicy,
 };
 
@@ -26,7 +26,7 @@ pub struct RouterState {
     pub pin_policy: PinPolicy,
     pub repositories: Repositories,
     pub hsm: Pkcs11Hsm,
-    pub certificate_signing_key: CertificateSigning,
+    pub certificate_signing_key: WalletCertificateSigning,
     pub instruction_result_signing_key: InstructionResultSigning,
 }
 
@@ -40,7 +40,7 @@ impl RouterState {
             settings.attestation_wrapping_key_identifier,
         )?;
 
-        let certificate_signing_key = CertificateSigning(WalletProviderEcdsaKey::new(
+        let certificate_signing_key = WalletCertificateSigning(WalletProviderEcdsaKey::new(
             settings.certificate_signing_key_identifier,
             hsm.clone(),
         ));
@@ -57,8 +57,7 @@ impl RouterState {
             (&certificate_signing_pubkey).into(),
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
-        )
-        .await?;
+        )?;
 
         let db = Db::new(
             settings.database.connection_string(),
@@ -96,7 +95,7 @@ impl RouterState {
         instruction: Instruction<I>,
     ) -> Result<InstructionResultMessage<<I as HandleInstruction>::Result>, WalletProviderError>
     where
-        I: InstructionEndpoint<Result = R> + HandleInstruction<Result = R>,
+        I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
         R: Serialize + DeserializeOwned,
     {
         let result = self

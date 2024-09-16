@@ -24,9 +24,10 @@ impl SequenceNumberComparison {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChallengeRequestPayload {
     pub sequence_number: u64,
+    pub instruction_name: String,
 }
 
 impl SubjectPayload for ChallengeRequestPayload {
@@ -34,10 +35,6 @@ impl SubjectPayload for ChallengeRequestPayload {
 }
 
 impl ChallengeRequestPayload {
-    pub fn new(sequence_number: u64) -> Self {
-        Self { sequence_number }
-    }
-
     pub fn verify(&self, sequence_number_comparison: SequenceNumberComparison) -> Result<()> {
         if !sequence_number_comparison.verify(self.sequence_number) {
             return Err(Error::SequenceNumberMismatch);
@@ -51,11 +48,14 @@ impl ChallengeRequestPayload {
 pub struct ChallengeRequest(SignedSubjectMessage<ChallengeRequestPayload>);
 
 impl ChallengeRequest {
-    pub async fn sign<K>(sequence_number: u64, hardware_signing_key: &K) -> Result<Self>
+    pub async fn sign<K>(sequence_number: u64, instruction_name: String, hardware_signing_key: &K) -> Result<Self>
     where
         K: SecureEcdsaKey,
     {
-        let challenge_request = ChallengeRequestPayload::new(sequence_number);
+        let challenge_request = ChallengeRequestPayload {
+            sequence_number,
+            instruction_name,
+        };
         let signed = SignedSubjectMessage::sign(challenge_request, SignedType::HW, hardware_signing_key).await?;
 
         Ok(Self(signed))
@@ -179,7 +179,9 @@ mod tests {
     async fn test_challenge_request() {
         let hw_privkey = SigningKey::random(&mut OsRng);
 
-        let signed = ChallengeRequest::sign(42, &hw_privkey).await.unwrap();
+        let signed = ChallengeRequest::sign(42, "jump".to_string(), &hw_privkey)
+            .await
+            .unwrap();
 
         println!("{}", serde_json::to_string(&signed).unwrap());
 
@@ -196,6 +198,7 @@ mod tests {
             .expect("SignedChallengeRequest should be valid");
 
         assert_eq!(request.sequence_number, 42);
+        assert_eq!(request.instruction_name, "jump");
     }
 
     #[tokio::test]
