@@ -7,6 +7,8 @@ class Environment {
 
   static bool get isTest => Platform.environment.containsKey('FLUTTER_TEST');
 
+  static String get mockRelyingPartyUrl => const String.fromEnvironment('MOCK_RELYING_PARTY_URL');
+
   static String get sentryDsn => const String.fromEnvironment('SENTRY_DSN');
 
   static bool get hasSentryDsn => sentryDsn.isNotEmpty;
