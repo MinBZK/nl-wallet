@@ -5,7 +5,7 @@ use uuid::Uuid;
 use wallet_common::{
     account::messages::{
         auth::{Registration, WalletCertificate, WalletCertificateClaims},
-        instructions::{InstructionChallengeRequest, InstructionChallengeRequestMessage},
+        instructions::{CheckPin, InstructionChallengeRequest, InstructionChallengeRequestMessage},
     },
     generator::Generator,
     keys::{software::SoftwareEcdsaKey, EcdsaKey},
@@ -20,7 +20,8 @@ use wallet_provider_persistence::{database::Db, repositories::Repositories};
 use wallet_provider_service::{
     account_server::{mock, AccountServer},
     hsm::HsmError,
-    keys::CertificateSigningKey,
+    keys::WalletCertificateSigningKey,
+    wallet_certificate,
 };
 
 struct UuidGenerator;
@@ -45,7 +46,7 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
 async fn do_registration(
     account_server: &AccountServer,
     hsm: &MockPkcs11Client<HsmError>,
-    certificate_signing_key: &impl CertificateSigningKey,
+    certificate_signing_key: &impl WalletCertificateSigningKey,
     hw_privkey: &SigningKey,
     pin_privkey: &SigningKey,
     repos: &Repositories,
@@ -104,7 +105,8 @@ async fn test_instruction_challenge() {
     let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
     let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
-    let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;
+    let hsm = wallet_certificate::mock::setup_hsm().await;
+    let account_server = mock::setup_account_server(&certificate_signing_pubkey);
     let hw_privkey = SigningKey::random(&mut OsRng);
     let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -122,7 +124,7 @@ async fn test_instruction_challenge() {
         .instruction_challenge(
             InstructionChallengeRequestMessage {
                 certificate: certificate.clone(),
-                message: InstructionChallengeRequest::new_signed(1, "wallet", &hw_privkey)
+                message: InstructionChallengeRequest::new_signed::<CheckPin>(1, String::from("wallet"), &hw_privkey)
                     .await
                     .unwrap(),
             },
@@ -139,7 +141,7 @@ async fn test_instruction_challenge() {
         .instruction_challenge(
             InstructionChallengeRequestMessage {
                 certificate,
-                message: InstructionChallengeRequest::new_signed(2, "wallet", &hw_privkey)
+                message: InstructionChallengeRequest::new_signed::<CheckPin>(2, String::from("wallet"), &hw_privkey)
                     .await
                     .unwrap(),
             },

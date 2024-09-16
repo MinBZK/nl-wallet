@@ -9,7 +9,7 @@ use wallet_common::{
         messages::{
             auth::{Registration, WalletCertificate},
             errors::{AccountError, AccountErrorType},
-            instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
+            instructions::{Instruction, InstructionAndResult, InstructionChallengeRequestMessage, InstructionResult},
         },
         signed::SignedDouble,
     },
@@ -66,5 +66,5 @@ pub trait AccountProviderClient {
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
-        I: InstructionEndpoint + 'static;
+        I: InstructionAndResult + 'static;
 }

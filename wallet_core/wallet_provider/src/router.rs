@@ -14,10 +14,11 @@ use tracing::info;
 use wallet_common::{
     account::{
         messages::{
-            auth::{Certificate, Challenge, Registration},
+            auth::{Certificate, Challenge, Registration, WalletCertificate},
             instructions::{
-                CheckPin, GenerateKey, GenerateKeyResult, Instruction, InstructionChallengeRequestMessage,
-                InstructionEndpoint, InstructionResultMessage, Sign, SignResult,
+                ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult,
+                Instruction, InstructionAndResult, InstructionChallengeRequestMessage, InstructionResultMessage, Sign,
+                SignResult,
             },
         },
         serialization::DerVerifyingKey,
@@ -51,9 +52,21 @@ pub fn router(router_state: RouterState) -> Router {
                 .route("/enroll", post(enroll))
                 .route("/createwallet", post(create_wallet))
                 .route("/instructions/challenge", post(instruction_challenge))
-                .route(&format!("/instructions/{}", CheckPin::ENDPOINT), post(check_pin))
-                .route(&format!("/instructions/{}", GenerateKey::ENDPOINT), post(generate_key))
-                .route(&format!("/instructions/{}", Sign::ENDPOINT), post(sign))
+                .route(&format!("/instructions/{}", CheckPin::NAME), post(check_pin))
+                .route(
+                    &format!("/instructions/{}", ChangePinStart::NAME),
+                    post(change_pin_start),
+                )
+                .route(
+                    &format!("/instructions/{}", ChangePinCommit::NAME),
+                    post(change_pin_commit),
+                )
+                .route(
+                    &format!("/instructions/{}", ChangePinRollback::NAME),
+                    post(change_pin_rollback),
+                )
+                .route(&format!("/instructions/{}", GenerateKey::NAME), post(generate_key))
+                .route(&format!("/instructions/{}", Sign::NAME), post(sign))
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
@@ -133,6 +146,61 @@ async fn check_pin(
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received check pin request, handling the CheckPin instruction");
     let body = state.handle_instruction(payload).await?;
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn change_pin_start(
+    State(state): State<Arc<RouterState>>,
+    Json(payload): Json<Instruction<ChangePinStart>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)> {
+    info!("Received change pin start request, handling the ChangePinStart instruction");
+
+    let result = state
+        .account_server
+        .handle_change_pin_start_instruction(
+            payload,
+            (&state.instruction_result_signing_key, &state.certificate_signing_key),
+            state.as_ref(),
+            &state.repositories,
+            &state.pin_policy,
+            &state.hsm,
+        )
+        .await?;
+    let body = InstructionResultMessage { result };
+
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn change_pin_commit(
+    State(state): State<Arc<RouterState>>,
+    Json(payload): Json<Instruction<ChangePinCommit>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+    info!("Received change pin commit request, handling the ChangePinCommit instruction");
+    let body = state.handle_instruction(payload).await?;
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn change_pin_rollback(
+    State(state): State<Arc<RouterState>>,
+    Json(payload): Json<Instruction<ChangePinRollback>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+    info!("Received change pin rollback request, handling the ChangePinRollback instruction");
+
+    let result = state
+        .account_server
+        .handle_change_pin_rollback_instruction(
+            payload,
+            &state.instruction_result_signing_key,
+            state.as_ref(),
+            &state.repositories,
+            &state.pin_policy,
+            &state.hsm,
+        )
+        .await?;
+    let body = InstructionResultMessage { result };
+
+    info!("Replying with the instruction result");
+
     Ok((StatusCode::OK, body.into()))
 }
 
