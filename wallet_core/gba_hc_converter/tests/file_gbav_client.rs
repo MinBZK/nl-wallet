@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use gba_hc_converter::{
     gba::{
         client::{FileGbavClient, GbavClient},
@@ -21,8 +23,8 @@ impl GbavClient for EmptyGbavClient {
 
 #[tokio::test]
 async fn should_return_preloaded_xml() {
-    let client = FileGbavClient::new("tests/resources/gba".into(), EmptyGbavClient {});
-    let response = client.vraag(&Bsn::new("999991772").unwrap()).await.unwrap();
+    let client = FileGbavClient::new(Path::new("tests/resources/gba"), EmptyGbavClient {});
+    let response = client.vraag(&Bsn::try_new("999991772").unwrap()).await.unwrap();
     assert_eq!(
         "Froukje",
         &response.categorievoorkomens[0]
@@ -34,7 +36,7 @@ async fn should_return_preloaded_xml() {
 
 #[tokio::test]
 async fn should_return_empty() {
-    let client = FileGbavClient::new("tests/resources/gba".into(), EmptyGbavClient {});
-    let response = client.vraag(&Bsn::new("12345678").unwrap()).await.unwrap();
+    let client = FileGbavClient::new(Path::new("tests/resources/gba"), EmptyGbavClient {});
+    let response = client.vraag(&Bsn::try_new("12345678").unwrap()).await.unwrap();
     assert!(response.categorievoorkomens.is_empty());
 }

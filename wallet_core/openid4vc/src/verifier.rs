@@ -222,11 +222,6 @@ pub struct RedirectUri {
     nonce: String,
 }
 
-/// Convenience function for to avoid repetitive dealing with Option<RedirectUri>
-fn uri_from_option(redirect_uri: &Option<RedirectUri>) -> Option<BaseUrl> {
-    redirect_uri.as_ref().map(|u| u.uri.clone())
-}
-
 /// Wrapper for [`EcKeyPair`] that can be serialized.
 #[nutype(derive(Debug, Clone, AsRef, From))]
 struct EncryptionPrivateKey(EcKeyPair);
@@ -302,7 +297,7 @@ impl Expirable for DisclosureData {
     fn expire(&mut self) {
         *self = Self::Done(Done {
             session_result: SessionResult::Expired,
-        })
+        });
     }
 }
 
@@ -640,7 +635,11 @@ where
             )
             .await
         {
-            Ok((jws, next)) => (Ok(jws), uri_from_option(&next.state().redirect_uri), next.into()),
+            Ok((jws, next)) => (
+                Ok(jws),
+                next.state().redirect_uri.as_ref().map(|u| u.uri.clone()),
+                next.into(),
+            ),
             Err((err, next)) => {
                 let redirect_uri = err.redirect_uri.clone();
                 (Err(err), redirect_uri, next.into())
@@ -963,7 +962,7 @@ impl Session<Created> {
         // Construct the Authorization Request.
         let nonce = random_string(32);
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256)
-            .map_err(|err| WithRedirectUri::new(err.into(), uri_from_option(&redirect_uri)))?;
+            .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
         let auth_request = IsoVpAuthorizationRequest::new(
             &self.state.data.items_requests,
             usecase.key_pair.certificate(),
@@ -972,12 +971,12 @@ impl Session<Created> {
             response_uri,
             wallet_nonce,
         )
-        .map_err(|err| WithRedirectUri::new(err.into(), uri_from_option(&redirect_uri)))?;
+        .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
         let jws = jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
-            .map_err(|err| WithRedirectUri::new(err.into(), uri_from_option(&redirect_uri)))?;
+            .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
 
         Ok((jws, auth_request, redirect_uri, encryption_keypair))
     }
@@ -1075,7 +1074,7 @@ impl Session<WaitingForResponse> {
                 (Ok(response), next)
             }
             Err(err) => {
-                let redirect_uri = uri_from_option(&self.state().redirect_uri);
+                let redirect_uri = self.state().redirect_uri.as_ref().map(|u| u.uri.clone());
                 let next = self.transition_fail(&err);
                 (Err(WithRedirectUri::new(err.into(), redirect_uri)), next)
             }
@@ -1086,7 +1085,7 @@ impl Session<WaitingForResponse> {
 
     fn ok_response(&self) -> VpResponse {
         VpResponse {
-            redirect_uri: uri_from_option(&self.state().redirect_uri),
+            redirect_uri: self.state().redirect_uri.as_ref().map(|u| u.uri.clone()),
         }
     }
 
@@ -1226,7 +1225,7 @@ mod tests {
             let _ = result.expect("creating a new session should succeed");
         } else {
             let error = result.expect_err("creating a new session should not succeed");
-            assert_matches!(error, NewSessionError::ReturnUrlConfigurationMismatch)
+            assert_matches!(error, NewSessionError::ReturnUrlConfigurationMismatch);
         }
     }
 

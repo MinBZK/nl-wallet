@@ -84,7 +84,7 @@ jsonwebtoken = { version = "9.3.0", default-features = false }
 libsqlite3-sys = { version = "0.27.0", default-features = false }
 mime = "0.3.17"
 mockall = "0.13.0"
-nutype = "0.4.0"
+nutype = "0.5.0"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 parking_lot = "0.12.1"

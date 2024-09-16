@@ -31,7 +31,7 @@ class BiometricUnlockManager {
   }
 
   BiometricUnlockManager(this._appLifecycleService, this._walletRepository, this._isBiometricLoginEnabledUseCase) {
-    _appLifecycleService.observe().listen(_onStateChanged);
+    _appLifecycleService.observe().skip(1 /* skip the seeded/initial value */).listen(_onStateChanged);
     _walletRepository.isLockedStream.listen(_onLockChanged);
   }
 

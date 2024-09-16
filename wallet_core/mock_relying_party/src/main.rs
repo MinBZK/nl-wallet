@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     if settings.structured_logging {
         builder.json().init();
     } else {
-        builder.init()
+        builder.init();
     }
 
     // Retain [`ClientInitGuard`]

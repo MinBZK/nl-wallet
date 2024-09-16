@@ -1,8 +1,10 @@
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use futures::future::try_join_all;
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::{
+    holder::Mdoc,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::CborBase64,
@@ -13,13 +15,14 @@ use wallet_common::{jwt::Jwt, nonempty::NonEmpty, urls::BaseUrl};
 
 use crate::{
     issuance_session::IssuanceSessionError,
-    jwt::{self, jwk_jwt_header},
+    jwt::{self, jwk_jwt_header, JwtCredentialClaims},
+    token::CredentialPreview,
     Format,
 };
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
 /// Sent JSON-encoded to `POST /batch_credential`.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequests {
     pub credential_requests: NonEmpty<Vec<CredentialRequest>>,
 }
@@ -27,34 +30,80 @@ pub struct CredentialRequests {
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.
 /// Sent JSON-encoded to `POST /credential`.
 // TODO: add `wallet_attestation`, `wallet_attestation_pop`, and `proof_of_secure_combination` (PVW-2361, PVW-2362)
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequest {
-    pub format: Format,
-    pub doctype: Option<String>,
+    #[serde(flatten)]
+    pub credential_type: CredentialRequestType,
     pub proof: Option<CredentialRequestProof>,
 }
 
+impl CredentialRequest {
+    pub fn credential_type(&self) -> Option<&str> {
+        match &self.credential_type {
+            CredentialRequestType::MsoMdoc { doctype } => doctype.as_ref().map(String::as_str),
+            CredentialRequestType::Jwt => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "format", rename_all = "snake_case")]
+pub enum CredentialRequestType {
+    MsoMdoc { doctype: Option<String> },
+    Jwt,
+}
+
+impl From<&CredentialPreview> for CredentialRequestType {
+    fn from(value: &CredentialPreview) -> Self {
+        match value {
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => CredentialRequestType::MsoMdoc {
+                doctype: Some(unsigned_mdoc.doc_type.clone()),
+            },
+            CredentialPreview::Jwt { .. } => CredentialRequestType::Jwt,
+        }
+    }
+}
+
+impl From<&CredentialRequestType> for Format {
+    fn from(value: &CredentialRequestType) -> Self {
+        match value {
+            CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialRequestType::Jwt { .. } => Format::Jwt,
+        }
+    }
+}
+
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "proof_type", rename_all = "snake_case")]
 pub enum CredentialRequestProof {
     Jwt { jwt: Jwt<CredentialRequestProofJwtPayload> },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialResponses {
     pub credential_responses: Vec<CredentialResponse>,
 }
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-response.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
     MsoMdoc { credential: CborBase64<IssuerSigned> },
+    Jwt { credential: Jwt<JwtCredentialClaims> },
+}
+
+impl From<&CredentialResponse> for Format {
+    fn from(value: &CredentialResponse) -> Self {
+        match value {
+            CredentialResponse::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialResponse::Jwt { .. } => Format::Jwt,
+        }
+    }
 }
 
 // https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.1.1
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequestProofJwtPayload {
     pub iss: String,
     pub aud: String,
@@ -98,5 +147,36 @@ impl CredentialRequestProof {
             .collect();
 
         Ok(keys_and_proofs)
+    }
+}
+
+/// Stores multiple copies of credentials that have identical attributes.
+#[nutype(
+    validate(predicate = |copies| !copies.is_empty()),
+    derive(Debug, Clone, AsRef, TryFrom, Serialize, Deserialize, PartialEq)
+)]
+pub struct CredentialCopies<T>(Vec<T>);
+
+pub type MdocCopies = CredentialCopies<Mdoc>;
+
+impl<T> IntoIterator for CredentialCopies<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_inner().into_iter()
+    }
+}
+
+impl<T> CredentialCopies<T> {
+    pub fn first(&self) -> &T {
+        self.as_ref().first().unwrap()
+    }
+
+    pub fn len(&self) -> usize {
+        self.as_ref().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.as_ref().is_empty()
     }
 }

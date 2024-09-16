@@ -67,7 +67,7 @@ impl<I> DisclosureRequestMatch<I> {
             HashMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
             |mut requested_attributes, attribute_identifier| {
                 // This unwrap is safe, as `doc_types` is derived from the same `DeviceRequest`.
-                let doc_type = *doc_types.get(attribute_identifier.doc_type.as_str()).unwrap();
+                let doc_type = *doc_types.get(attribute_identifier.credential_type.as_str()).unwrap();
                 requested_attributes
                     .entry(doc_type)
                     .or_default()
@@ -220,14 +220,14 @@ mod tests {
         candidates(pid_given_name() + pid_given_name())
     )]
     #[case(pid_full_name() + pid_given_name() + addr_street(), empty(), candidates(empty()))]
-    #[case(empty(), pid_given_name(), missing_attributes(pid_given_name()))]
+    #[case(empty(), pid_given_name(), missing_attributes(&pid_given_name()))]
     #[case(
         empty(),
         pid_given_name() + addr_street(),
-        missing_attributes(pid_given_name() + addr_street())
+        missing_attributes(&(pid_given_name() + addr_street()))
     )]
-    #[case(pid_given_name(), pid_full_name(), missing_attributes(pid_family_name()))]
-    #[case(pid_full_name(), addr_street(), missing_attributes(addr_street()))]
+    #[case(pid_given_name(), pid_full_name(), missing_attributes(&pid_family_name()))]
+    #[case(pid_full_name(), addr_street(), missing_attributes(&addr_street()))]
     #[tokio::test]
     async fn test_match_stored_documents(
         #[case] stored_documents: TestDocuments,
@@ -269,7 +269,7 @@ mod tests {
     fn candidates(candidates: TestDocuments) -> ExpectedDisclosureRequestMatch {
         ExpectedDisclosureRequestMatch::Candidates(candidates)
     }
-    fn missing_attributes(missing_attributes: TestDocuments) -> ExpectedDisclosureRequestMatch {
+    fn missing_attributes(missing_attributes: &TestDocuments) -> ExpectedDisclosureRequestMatch {
         ExpectedDisclosureRequestMatch::MissingAttributes(missing_attributes.attribute_identifiers())
     }
 

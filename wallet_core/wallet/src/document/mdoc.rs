@@ -302,14 +302,15 @@ impl MissingDisclosureAttributes {
                 .into_iter()
                 .try_fold(IndexMap::<_, IndexMap<_, _>>::new(), {
                     |mut attributes_by_doc_type, missing_attribute| {
-                        let (doc_type, attribute_mapping) = mapping_for_doc_type(missing_attribute.doc_type.as_str())?;
+                        let (doc_type, attribute_mapping) =
+                            mapping_for_doc_type(missing_attribute.credential_type.as_str())?;
                         let value_mapping = attribute_mapping
                             .get(&(
                                 missing_attribute.namespace.as_str(),
                                 missing_attribute.attribute.as_str(),
                             ))
                             .ok_or_else(|| DocumentMdocError::UnknownAttribute {
-                                doc_type: missing_attribute.doc_type,
+                                doc_type: missing_attribute.credential_type,
                                 name_space: missing_attribute.namespace.clone(),
                                 name: missing_attribute.attribute.clone(),
                                 value: None,
@@ -989,6 +990,6 @@ pub mod tests {
             },
         )]);
 
-        assert_eq!(DisclosureType::from_proposed_attributes(&pa), expected)
+        assert_eq!(DisclosureType::from_proposed_attributes(&pa), expected);
     }
 }

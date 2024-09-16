@@ -34,10 +34,10 @@ pub struct ReaderRegistration {
 
 impl ReaderRegistration {
     /// Verify whether all requested attributes exist in the registration.
-    pub fn verify_requested_attributes<'a>(
-        &self,
-        requested_attributes: impl IntoIterator<Item = &'a ItemsRequest> + Clone,
-    ) -> Result<(), ValidationError> {
+    pub fn verify_requested_attributes<'a, R>(&self, requested_attributes: &R) -> Result<(), ValidationError>
+    where
+        R: IntoIterator<Item = &'a ItemsRequest> + Clone,
+    {
         let difference: Vec<AttributeIdentifier> = requested_attributes.difference(self).into_iter().collect();
 
         if !difference.is_empty() {
@@ -57,7 +57,7 @@ impl AttributeIdentifierHolder for ReaderRegistration {
                     .into_iter()
                     .flat_map(|(namespace, AuthorizedNamespace(attributes))| {
                         attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
-                            doc_type: doc_type.to_owned(),
+                            credential_type: doc_type.to_owned(),
                             namespace: namespace.to_owned(),
                             attribute: attribute.to_owned(),
                         })
@@ -121,23 +121,7 @@ pub mod mock {
 
     impl ReaderRegistration {
         pub fn new_mock() -> Self {
-            let organization = Organization {
-                display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
-                legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
-                description: vec![
-                    ("nl", "Beschrijving van Mijn Organisatie"),
-                    ("en", "Description of My Organization"),
-                ]
-                .into(),
-                category: vec![("nl", "Categorie"), ("en", "Category")].into(),
-                kvk: Some("some-kvk".to_owned()),
-                city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
-                department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
-                country_code: Some("nl".to_owned()),
-                web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
-                privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
-                logo: None,
-            };
+            let organization = Organization::new_mock();
 
             ReaderRegistration {
                 purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
@@ -222,6 +206,25 @@ mod tests {
 
     use super::*;
 
+    fn create_some_registration() -> ReaderRegistration {
+        create_registration(vec![
+            (
+                "some_doctype",
+                vec![
+                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
+                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
+                ],
+            ),
+            (
+                "another_doctype",
+                vec![
+                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
+                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
+                ],
+            ),
+        ])
+    }
+
     #[test]
     fn verify_requested_attributes_in_device_request() {
         let device_request = DeviceRequest::from_items_requests(vec![
@@ -238,24 +241,9 @@ mod tests {
                 vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
             )]),
         ]);
-        let registration = create_registration(vec![
-            (
-                "some_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-            (
-                "another_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-        ]);
+        let registration = create_some_registration();
         registration
-            .verify_requested_attributes(device_request.items_requests())
+            .verify_requested_attributes(&device_request.items_requests())
             .unwrap();
     }
 
@@ -275,23 +263,8 @@ mod tests {
                 vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
             )]),
         ]);
-        let registration = create_registration(vec![
-            (
-                "some_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-            (
-                "another_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-        ]);
-        let result = registration.verify_requested_attributes(device_request.items_requests());
+        let registration = create_some_registration();
+        let result = registration.verify_requested_attributes(&device_request.items_requests());
         assert_matches!(
             result,
             Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
@@ -310,24 +283,9 @@ mod tests {
             "some_doctype",
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )])]);
-        let registration = create_registration(vec![
-            (
-                "some_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-            (
-                "another_doctype",
-                vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
-                ],
-            ),
-        ]);
+        let registration = create_some_registration();
         registration
-            .verify_requested_attributes(request.items_requests())
+            .verify_requested_attributes(&request.items_requests())
             .unwrap();
     }
 
@@ -342,7 +300,7 @@ mod tests {
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )]);
 
-        let result = registration.verify_requested_attributes(request.items_requests());
+        let result = registration.verify_requested_attributes(&request.items_requests());
         assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
             "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
         ]);
@@ -359,7 +317,7 @@ mod tests {
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )]);
 
-        let result = registration.verify_requested_attributes(request.items_requests());
+        let result = registration.verify_requested_attributes(&request.items_requests());
         assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
             "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
             "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
@@ -377,7 +335,7 @@ mod tests {
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )]);
 
-        let result = registration.verify_requested_attributes(request.items_requests());
+        let result = registration.verify_requested_attributes(&request.items_requests());
         assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
             "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
             "missing_doctype/some_namespace/another_attribute".parse().unwrap(),

@@ -48,7 +48,7 @@ fn parse_pin_to_digits(pin: &str) -> Result<Vec<u8>, PinValidationError> {
 fn pin_should_contain_enough_unique_digits(digits: &[u8]) -> Result<(), PinValidationError> {
     let count: [u8; RADIX] = {
         let mut count: [u8; RADIX] = [0; RADIX];
-        for d in digits.iter() {
+        for d in digits {
             count[*d as usize] += 1;
         }
         count

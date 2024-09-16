@@ -92,7 +92,7 @@ where
 {
     pub fn new(
         session_type: SessionType,
-        verifier_url: BaseUrl,
+        verifier_url: &BaseUrl,
         redirect_uri: Option<BaseUrl>,
         reader_registration: Option<ReaderRegistration>,
         transform_auth_request: F,
@@ -266,7 +266,7 @@ where
     // Create a mock session and call the transform callback.
     let verifier_session = MockVerifierSession::<FD>::new(
         session_type,
-        VERIFIER_URL.parse().unwrap(),
+        &VERIFIER_URL.parse().unwrap(),
         Some(BaseUrl::from_str(VERIFIER_URL).unwrap().join_base_url("redirect_uri")),
         reader_registration,
         transform_device_request,

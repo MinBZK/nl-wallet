@@ -69,7 +69,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | CredentialRequestError::CoseKeyConversion(_)
                 | CredentialRequestError::MissingPrivateKey(_)
-                | CredentialRequestError::AttestationSigning(_)
+                | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::CborSerialization(_)
                 | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
                 CredentialRequestError::IssuanceError(_) | CredentialRequestError::UseBatchIssuance => {
@@ -84,9 +84,8 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::JwtDecodingFailed(_)
                 | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
-                CredentialRequestError::DoctypeMismatch | CredentialRequestError::DoctypeNotOffered(_) => {
-                    CredentialErrorCode::InvalidCredentialRequest
-                }
+                CredentialRequestError::CredentialTypeMismatch
+                | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
                 CredentialRequestError::UnsupportedCredentialFormat(_) => {
                     CredentialErrorCode::UnsupportedCredentialFormat
                 }

@@ -3,6 +3,7 @@ use std::{num::NonZeroU8, ops::Add};
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
+use rstest::rstest;
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -13,31 +14,64 @@ use nl_wallet_mdoc::{
     Tdate,
 };
 use openid4vc::{
-    credential::{CredentialRequestProof, CredentialRequests, CredentialResponses},
+    credential::{
+        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
+    },
     dpop::Dpop,
-    issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, VcMessageClient},
+    issuance_session::{
+        HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
+    },
     issuer::{AttributeService, Created, IssuanceData, Issuer},
+    jwt::JwtCredentialContents,
     metadata::IssuerMetadata,
     oidc,
     server_state::{MemorySessionStore, SessionState},
-    token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
+    token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
 use wallet_common::{nonempty::NonEmpty, urls::BaseUrl};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
-fn setup() -> (MockIssuer, Certificate, BaseUrl) {
+fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-    let keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+
+    setup(
+        MockAttributeService {
+            previews: mock_mdoc_attributes(issuance_keypair.certificate(), attestation_count, copy_count),
+        },
+        ca,
+        issuance_keypair,
+    )
+}
+
+fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+
+    // Use the CA itself as issuance key
+    let issuance_keypair = KeyPair::new(ca.private_key().clone(), ca.certificate().clone());
+
+    setup(
+        MockAttributeService {
+            previews: mock_jwt_attributes(issuance_keypair.certificate(), attestation_count, copy_count),
+        },
+        ca,
+        issuance_keypair,
+    )
+}
+
+fn setup(
+    attr_service: MockAttributeService,
+    ca: KeyPair,
+    issuance_keypair: KeyPair,
+) -> (MockIssuer, Certificate, BaseUrl) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();
 
     let issuer = MockIssuer::new(
         MemorySessionStore::default(),
-        MockAttributeService {
-            issuer_cert: keypair.certificate().clone(),
-        },
-        SingleKeyRing(keypair),
+        attr_service,
+        SingleKeyRing(issuance_keypair),
         &server_url,
         vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
     );
@@ -45,9 +79,22 @@ fn setup() -> (MockIssuer, Certificate, BaseUrl) {
     (issuer, ca.into(), server_url.join_base_url("issuance/"))
 }
 
+#[rstest]
+#[case(setup_mdoc, 1, 1)]
+#[case(setup_mdoc, 1, 2)]
+#[case(setup_mdoc, 2, 1)]
+#[case(setup_mdoc, 2, 2)]
+#[case(setup_jwt, 1, 1)]
+#[case(setup_jwt, 1, 2)]
+#[case(setup_jwt, 2, 1)]
+#[case(setup_jwt, 2, 2)]
 #[tokio::test]
-async fn accept_issuance() {
-    let (issuer, ca, server_url) = setup();
+async fn accept_issuance(
+    #[case] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
+    #[case] attestation_count: usize,
+    #[case] copy_count: u8,
+) {
+    let (issuer, ca, server_url) = setup(attestation_count, copy_count);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, previews) = HttpIssuanceSession::start_issuance(
@@ -59,27 +106,40 @@ async fn accept_issuance() {
     .await
     .unwrap();
 
-    let mdoc_copies = session
+    let issued_creds = session
         .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
         .await
         .unwrap();
 
-    assert_eq!(mdoc_copies.len(), 2);
-    assert_eq!(mdoc_copies[0].cred_copies.len(), 2);
+    assert_eq!(issued_creds.len(), attestation_count);
+    assert_eq!(issued_creds.first().unwrap().len(), copy_count as usize);
 
-    mdoc_copies.into_iter().zip(previews).for_each(|(copies, preview)| {
-        copies
-            .cred_copies
-            .first()
-            .unwrap()
-            .compare_unsigned(preview.as_ref())
-            .unwrap()
-    });
+    issued_creds
+        .into_iter()
+        .zip(previews)
+        .for_each(|(copies, preview)| match copies {
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs
+                .first()
+                .compare_unsigned(match &preview {
+                    CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
+                    _ => panic!("unexpected credential format"),
+                })
+                .unwrap(),
+            IssuedCredentialCopies::Jwt(jwts) => jwts
+                .first()
+                .jwt_claims()
+                .contents
+                .compare_attributes(match &preview {
+                    CredentialPreview::Jwt { claims, .. } => claims,
+                    _ => panic!("unexpected credential format"),
+                })
+                .unwrap(),
+        });
 }
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, ca, server_url) = setup();
+    let (issuer, ca, server_url) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, _previews) = HttpIssuanceSession::start_issuance(
@@ -94,14 +154,11 @@ async fn reject_issuance() {
     session.reject_issuance().await.unwrap();
 }
 
-#[tokio::test]
-async fn wrong_access_token() {
-    let (issuer, ca, server_url) = setup();
-    let message_client = MockOpenidMessageClient {
-        wrong_access_token: true,
-        ..MockOpenidMessageClient::new(issuer)
-    };
-
+async fn start_and_accept_err(
+    message_client: MockOpenidMessageClient,
+    server_url: BaseUrl,
+    ca: Certificate,
+) -> IssuanceSessionError {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
@@ -111,11 +168,21 @@ async fn wrong_access_token() {
     .await
     .unwrap();
 
-    let result = session
+    session
         .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
         .await
-        .unwrap_err();
+        .unwrap_err()
+}
 
+#[tokio::test]
+async fn wrong_access_token() {
+    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        wrong_access_token: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
@@ -124,26 +191,13 @@ async fn wrong_access_token() {
 
 #[tokio::test]
 async fn invalid_dpop() {
-    let (issuer, ca, server_url) = setup();
+    let (issuer, ca, server_url) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         invalidate_dpop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuanceSession::start_issuance(
-        message_client,
-        server_url.clone(),
-        TokenRequest::new_mock(),
-        &[(&ca).try_into().unwrap()],
-    )
-    .await
-    .unwrap();
-
-    let result = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
-        .await
-        .unwrap_err();
-
+    let result = start_and_accept_err(message_client, server_url, ca).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
@@ -152,26 +206,13 @@ async fn invalid_dpop() {
 
 #[tokio::test]
 async fn invalid_pop() {
-    let (issuer, ca, server_url) = setup();
+    let (issuer, ca, server_url) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         invalidate_pop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuanceSession::start_issuance(
-        message_client,
-        server_url.clone(),
-        TokenRequest::new_mock(),
-        &[(&ca).try_into().unwrap()],
-    )
-    .await
-    .unwrap();
-
-    let result = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
-        .await
-        .unwrap_err();
-
+    let result = start_and_accept_err(message_client, server_url, ca).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
@@ -226,23 +267,27 @@ impl MockOpenidMessageClient {
         }
     }
 
-    fn credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
+    fn credential_request(&self, mut credential_request: CredentialRequest) -> CredentialRequest {
         if self.invalidate_pop {
-            let invalidated_proof = match credential_requests.credential_requests.first().proof.as_ref().unwrap() {
+            let invalidated_proof = match credential_request.proof.as_ref().unwrap() {
                 CredentialRequestProof::Jwt { jwt } => CredentialRequestProof::Jwt {
                     jwt: invalidate_jwt(&jwt.0).into(),
                 },
             };
+            credential_request.proof = Some(invalidated_proof);
+        }
+        credential_request
+    }
+
+    fn credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
+        if self.invalidate_pop {
+            let invalidated_request = self.credential_request(credential_requests.credential_requests.first().clone());
 
             let mut requests = credential_requests.credential_requests.into_inner();
-
-            requests[0].proof = Some(invalidated_proof);
+            requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
-
-            credential_requests
-        } else {
-            credential_requests
         }
+        credential_requests
     }
 }
 
@@ -254,7 +299,7 @@ fn invalidate_jwt(jwt: &str) -> String {
 
 impl VcMessageClient for MockOpenidMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
-        Ok(IssuerMetadata::new_mock(url.clone()))
+        Ok(IssuerMetadata::new_mock(url))
     }
 
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
@@ -274,6 +319,23 @@ impl VcMessageClient for MockOpenidMessageClient {
             .await
             .map_err(|err| IssuanceSessionError::TokenRequest(err.into()))?;
         Ok((token_response, Some(dpop_nonce)))
+    }
+
+    async fn request_credential(
+        &self,
+        _url: &Url,
+        credential_request: &CredentialRequest,
+        dpop_header: &str,
+        access_token_header: &str,
+    ) -> Result<CredentialResponse, IssuanceSessionError> {
+        self.issuer
+            .process_credential(
+                self.access_token(access_token_header),
+                self.dpop(dpop_header),
+                self.credential_request(credential_request.clone()),
+            )
+            .await
+            .map_err(|err| IssuanceSessionError::CredentialRequest(err.into()))
     }
 
     async fn request_credentials(
@@ -310,12 +372,52 @@ impl VcMessageClient for MockOpenidMessageClient {
     }
 }
 
-const MOCK_PID_DOCTYPE: &str = "com.example.pid";
-const MOCK_ADDRESS_DOCTYPE: &str = "com.example.address";
+const MOCK_DOCTYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
+fn mock_mdoc_attributes(issuer_cert: &Certificate, attestation_count: usize, copy_count: u8) -> Vec<CredentialPreview> {
+    (0..attestation_count)
+        .map(|i| CredentialPreview::MsoMdoc {
+            unsigned_mdoc: UnsignedMdoc {
+                doc_type: MOCK_DOCTYPES[i].to_string(),
+                copy_count: NonZeroU8::new(copy_count).unwrap(),
+                valid_from: Tdate::now(),
+                valid_until: Utc::now().add(Days::new(365)).into(),
+                attributes: IndexMap::from([(
+                    MOCK_DOCTYPES[i].to_string(),
+                    MOCK_ATTRS
+                        .iter()
+                        .map(|(key, val)| Entry {
+                            name: key.to_string(),
+                            value: Value::Text(val.to_string()),
+                        })
+                        .collect(),
+                )])
+                .try_into()
+                .unwrap(),
+            },
+            issuer: issuer_cert.clone(),
+        })
+        .collect()
+}
+
+fn mock_jwt_attributes(issuer: &Certificate, attestation_count: usize, copy_count: u8) -> Vec<CredentialPreview> {
+    let issuer = issuer.common_names().unwrap().first().unwrap().clone();
+
+    (0..attestation_count)
+        .map(|_| CredentialPreview::Jwt {
+            jwt_typ: None,
+            claims: JwtCredentialContents {
+                iss: issuer.clone(),
+                attributes: IndexMap::from([("foo".to_string(), "bar".to_string().into())]),
+            },
+            copy_count: NonZeroU8::new(copy_count).unwrap(),
+        })
+        .collect()
+}
+
 struct MockAttributeService {
-    issuer_cert: Certificate,
+    previews: Vec<CredentialPreview>,
 }
 
 impl AttributeService for MockAttributeService {
@@ -325,52 +427,8 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
-        let previews = vec![
-            AttestationPreview::MsoMdoc {
-                unsigned_mdoc: UnsignedMdoc {
-                    doc_type: MOCK_PID_DOCTYPE.to_string(),
-                    copy_count: NonZeroU8::new(2).unwrap(),
-                    valid_from: Tdate::now(),
-                    valid_until: Utc::now().add(Days::new(365)).into(),
-                    attributes: IndexMap::from([(
-                        MOCK_PID_DOCTYPE.to_string(),
-                        MOCK_ATTRS
-                            .iter()
-                            .map(|(key, val)| Entry {
-                                name: key.to_string(),
-                                value: Value::Text(val.to_string()),
-                            })
-                            .collect(),
-                    )])
-                    .try_into()
-                    .unwrap(),
-                },
-                issuer: self.issuer_cert.clone(),
-            },
-            AttestationPreview::MsoMdoc {
-                unsigned_mdoc: UnsignedMdoc {
-                    doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                    copy_count: NonZeroU8::new(2).unwrap(),
-                    valid_from: Tdate::now(),
-                    valid_until: Utc::now().add(Days::new(365)).into(),
-                    attributes: IndexMap::from([(
-                        MOCK_ADDRESS_DOCTYPE.to_string(),
-                        MOCK_ATTRS
-                            .iter()
-                            .map(|(key, val)| Entry {
-                                name: key.to_string(),
-                                value: Value::Text(val.to_string()),
-                            })
-                            .collect(),
-                    )])
-                    .try_into()
-                    .unwrap(),
-                },
-                issuer: self.issuer_cert.clone(),
-            },
-        ];
-        Ok(previews.try_into().unwrap())
+    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error> {
+        Ok(self.previews.clone().try_into().unwrap())
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {

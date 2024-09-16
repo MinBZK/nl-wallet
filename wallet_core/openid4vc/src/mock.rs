@@ -3,16 +3,16 @@ use std::collections::HashMap;
 use indexmap::IndexSet;
 
 use nl_wallet_mdoc::{
-    holder::{MdocCopies, TrustAnchor},
+    holder::TrustAnchor,
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 use wallet_common::urls::BaseUrl;
 
 use crate::{
-    issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError},
+    issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies},
     metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
     oidc::Config,
-    token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
+    token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
 };
 
 // We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
@@ -20,13 +20,13 @@ use crate::{
 
 mockall::mock! {
     pub IssuanceSession {
-        pub fn start() -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
+        pub fn start() -> Result<(Self, Vec<CredentialPreview>), IssuanceSessionError>
         where
             Self: Sized;
 
         pub fn accept(
             &self,
-        ) -> Result<Vec<MdocCopies>, IssuanceSessionError>;
+        ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
     }
@@ -38,7 +38,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: BaseUrl,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
-    ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
+    ) -> Result<(Self, Vec<CredentialPreview>), IssuanceSessionError>
     where
         Self: Sized,
     {
@@ -50,7 +50,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
         _: BaseUrl,
-    ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         self.accept()
     }
 
@@ -106,7 +106,7 @@ impl Config {
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(url: BaseUrl) -> IssuerMetadata {
+    pub fn new_mock(url: &BaseUrl) -> IssuerMetadata {
         IssuerMetadata {
             issuer_config: IssuerData {
                 credential_issuer: url.clone(),

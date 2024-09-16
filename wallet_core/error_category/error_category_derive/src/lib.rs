@@ -37,14 +37,14 @@ pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::To
 /// Generate code for a `fn`.
 fn sentry_capture_error_fn(ItemFn { attrs, vis, sig, block }: ItemFn) -> TokenStream {
     let defaultness = None;
-    sentry_capture_error_function(&attrs, &vis, &defaultness, &sig, &block)
+    sentry_capture_error_function(&attrs, &vis, defaultness, &sig, &block)
 }
 
 /// Generate code for functions, can be used both for regular functions and associated functions.
 fn sentry_capture_error_function(
     attrs: &[Attribute],
     vis: &Visibility,
-    defaultness: &Option<syn::token::Default>,
+    defaultness: Option<syn::token::Default>,
     sig: &Signature,
     block: &Block,
 ) -> TokenStream {
@@ -109,7 +109,7 @@ fn sentry_capture_error_impl_fn(
         block,
     }: ImplItemFn,
 ) -> TokenStream {
-    sentry_capture_error_function(&attrs, &vis, &defaultness, &sig, &block)
+    sentry_capture_error_function(&attrs, &vis, defaultness, &sig, &block)
 }
 
 /// Derive `error_category::ErrorCategory` for Error types.
@@ -245,9 +245,10 @@ fn expand(input: DeriveInput) -> Result<TokenStream> {
 
     let name = input.ident;
 
+    let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
     let expanded = quote! {
         #[automatically_derived]
-        impl ::error_category::ErrorCategory for #name {
+        impl #impl_generics ::error_category::ErrorCategory for #name #type_generics #where_clause {
             fn category(&self) -> ::error_category::Category {
                 #body
             }

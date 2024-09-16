@@ -145,7 +145,7 @@ impl<'de> Deserialize<'de> for DerVerifyingKey {
 
 impl Hash for DerVerifyingKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.to_sec1_bytes().hash(state)
+        self.0.to_sec1_bytes().hash(state);
     }
 }
 
@@ -209,6 +209,6 @@ mod tests {
             .try_deserialize()
             .unwrap();
 
-        assert_eq!(der_verifying_key.0, test_config.key1.0)
+        assert_eq!(der_verifying_key.0, test_config.key1.0);
     }
 }

@@ -80,7 +80,7 @@ dependency-check-images:
     - job: build-pid-issuer-image
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:a832ee952d8a897aeb6961407eb42cbd133dbd9be92ff5ef02523c45e56d03da"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:8bc288772cf98250e4fb6e741843d9455dc5a3c3d4505fe90ffb1a035f9aba50"
   variables:
     GIT_STRATEGY: none
   before_script:

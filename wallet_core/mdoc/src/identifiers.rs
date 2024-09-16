@@ -5,7 +5,7 @@ use crate::{
     iso::{
         device_retrieval::{DeviceRequest, ItemsRequest},
         disclosure::IssuerSigned,
-        mdocs::{DataElementIdentifier, DocType, NameSpace},
+        mdocs::{DataElementIdentifier, NameSpace},
     },
     utils::serialization::TaggedBytes,
     Document,
@@ -13,14 +13,17 @@ use crate::{
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct AttributeIdentifier {
-    pub doc_type: DocType,
+    pub credential_type: String,
     pub namespace: NameSpace,
     pub attribute: DataElementIdentifier,
 }
 
 impl std::fmt::Debug for AttributeIdentifier {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
-        fmt.write_fmt(format_args!("{}/{}/{}", self.doc_type, self.namespace, self.attribute))
+        fmt.write_fmt(format_args!(
+            "{}/{}/{}",
+            self.credential_type, self.namespace, self.attribute
+        ))
     }
 }
 
@@ -37,7 +40,7 @@ impl IssuerSigned {
                             .as_ref()
                             .iter()
                             .map(|TaggedBytes(attribute)| AttributeIdentifier {
-                                doc_type: doc_type.to_owned(),
+                                credential_type: doc_type.to_owned(),
                                 namespace: namespace.to_owned(),
                                 attribute: attribute.element_identifier.to_owned(),
                             })
@@ -87,7 +90,7 @@ impl AttributeIdentifierHolder for ItemsRequest {
             .iter()
             .flat_map(|(namespace, attributes)| {
                 attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
-                    doc_type: self.doc_type.to_owned(),
+                    credential_type: self.doc_type.to_owned(),
                     namespace: namespace.to_owned(),
                     attribute: attribute.to_owned(),
                 })
@@ -111,7 +114,7 @@ mod examples {
             attributes
                 .into_iter()
                 .map(|attribute| AttributeIdentifier {
-                    doc_type: EXAMPLE_DOC_TYPE.to_string(),
+                    credential_type: EXAMPLE_DOC_TYPE.to_string(),
                     namespace: EXAMPLE_NAMESPACE.to_string(),
                     attribute: attribute.into(),
                 })
@@ -142,7 +145,7 @@ mod tests {
                 return Err(AttributeIdParsingError::InvalidPartsCount(parts.len()));
             }
             let result = Self {
-                doc_type: parts[0].to_owned(),
+                credential_type: parts[0].to_owned(),
                 namespace: parts[1].to_owned(),
                 attribute: parts[2].to_owned(),
             };

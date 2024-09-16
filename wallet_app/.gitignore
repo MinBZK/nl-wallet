@@ -13,3 +13,6 @@ app.*.symbols
 
 # Obfuscation related
 app.*.map.json
+
+# FVM Version Cache
+.fvm/

@@ -318,7 +318,7 @@ impl AttributeIdentifierHolder for TestDocuments {
             .flat_map(|document| {
                 document.namespaces.iter().flat_map(|(namespace, attributes)| {
                     attributes.iter().map(|attribute| AttributeIdentifier {
-                        doc_type: document.doc_type.clone(),
+                        credential_type: document.doc_type.clone(),
                         namespace: namespace.clone(),
                         attribute: attribute.name.clone(),
                     })

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{num::NonZeroU8, time::Duration};
 
 use derive_more::From;
 use indexmap::IndexSet;
@@ -9,18 +9,20 @@ use url::Url;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
+    holder::TrustAnchor,
     unsigned::UnsignedMdoc,
     utils::{
         issuer_auth::IssuerRegistration,
-        x509::{Certificate, CertificateError, CertificateType},
+        x509::{Certificate, CertificateError, CertificateType, CertificateUsage},
     },
 };
 use wallet_common::{
+    generator::TimeGenerator,
     nonempty::NonEmpty,
     utils::{random_string, sha256},
 };
 
-use crate::{authorization::AuthorizationDetails, server_state::SessionToken};
+use crate::{authorization::AuthorizationDetails, jwt::JwtCredentialContents, server_state::SessionToken, Format};
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -67,7 +69,7 @@ impl AccessToken {
 /// Sent URL-encoded in request body to POST /token.
 /// A DPoP HTTP header may be included.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenRequest {
     #[serde(flatten)]
     pub grant_type: TokenRequestGrantType,
@@ -90,7 +92,7 @@ impl TokenRequest {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename = "snake_case")]
 #[serde(tag = "grant_type")]
 pub enum TokenRequestGrantType {
@@ -108,7 +110,7 @@ pub enum TokenRequestGrantType {
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.1>.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenResponse {
     pub access_token: AccessToken,
     pub token_type: TokenType,
@@ -129,73 +131,94 @@ pub struct TokenResponse {
     pub authorization_details: Option<AuthorizationDetails>,
 }
 
-/// A [`TokenResponse`] with an extra field for the attestation previews.
+/// A [`TokenResponse`] with an extra field for the credential previews.
 /// This is an custom field so other implementations might not send it. For now however we assume that it is always
 /// present so it is not an [`Option`].
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
-    pub attestation_previews: NonEmpty<Vec<AttestationPreview>>,
+    pub credential_previews: NonEmpty<Vec<CredentialPreview>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
-pub enum AttestationPreview {
+pub enum CredentialPreview {
     MsoMdoc {
         unsigned_mdoc: UnsignedMdoc,
         issuer: Certificate,
     },
+    Jwt {
+        jwt_typ: Option<String>,
+        claims: JwtCredentialContents,
+        copy_count: NonZeroU8,
+    },
 }
 
-impl AttestationPreview {
+impl From<&CredentialPreview> for Format {
+    fn from(value: &CredentialPreview) -> Self {
+        match value {
+            CredentialPreview::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialPreview::Jwt { .. } => Format::Jwt,
+        }
+    }
+}
+
+impl CredentialPreview {
     pub fn copy_count(&self) -> u8 {
         match self {
-            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
+            CredentialPreview::Jwt { copy_count, .. } => (*copy_count).into(),
         }
     }
-}
 
-// Shorthands to convert the preview to the currently only supported format
-impl AsRef<Certificate> for AttestationPreview {
-    fn as_ref(&self) -> &Certificate {
+    pub fn credential_type(&self) -> Option<&str> {
         match self {
-            AttestationPreview::MsoMdoc { issuer, .. } => issuer,
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Some(&unsigned_mdoc.doc_type),
+            CredentialPreview::Jwt { .. } => None,
         }
     }
-}
-impl AsRef<UnsignedMdoc> for AttestationPreview {
-    fn as_ref(&self) -> &UnsignedMdoc {
+
+    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CertificateError> {
         match self {
-            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
-        }
-    }
-}
-impl From<AttestationPreview> for UnsignedMdoc {
-    fn from(value: AttestationPreview) -> Self {
-        match value {
-            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
+            CredentialPreview::MsoMdoc { issuer, .. } => {
+                // Verify the issuer certificates that the issuer presents for each credential to be issued.
+                // NB: this only proves the authenticity of the data inside the certificates (the [`IssuerRegistration`]s),
+                // but does not authenticate the issuer that presents them.
+                // Anyone that has ever seen these certificates (such as other wallets that received them during issuance)
+                // could present them here in the protocol without needing the corresponding issuer private key.
+                // This is not a problem, because at the end of the issuance protocol each mdoc is verified against the
+                // corresponding certificate in the credential preview, which implicitly authenticates the issuer because
+                // only it could have produced an mdoc against that certificate.
+                issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+            }
+            CredentialPreview::Jwt { .. } => Ok(()),
         }
     }
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum AttestationPreviewError {
+pub enum CredentialPreviewError {
     #[error("certificate error: {0}")]
     #[category(defer)]
     Certificate(#[from] CertificateError),
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
+    #[error("unexpected credential format: expected MsoMdoc, found {0:?}")]
+    #[category(critical)]
+    UnexpectedFormat(Format),
 }
 
-impl TryFrom<AttestationPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
-    type Error = AttestationPreviewError;
+impl TryFrom<CredentialPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
+    type Error = CredentialPreviewError;
 
-    fn try_from(value: AttestationPreview) -> Result<Self, Self::Error> {
-        let AttestationPreview::MsoMdoc { unsigned_mdoc, issuer } = value;
+    fn try_from(value: CredentialPreview) -> Result<Self, Self::Error> {
+        let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = value else {
+            Err(CredentialPreviewError::UnexpectedFormat(Format::Jwt))?
+        };
         let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&issuer)? else {
-            Err(AttestationPreviewError::NoIssuerRegistration)?
+            Err(CredentialPreviewError::NoIssuerRegistration)?
         };
         Ok((unsigned_mdoc, issuer))
     }
@@ -260,6 +283,6 @@ mod tests {
                 "c_nonce_expires_in": 10
             })
             .to_string(),
-        )
+        );
     }
 }

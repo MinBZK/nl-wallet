@@ -138,6 +138,6 @@ mod tests {
             })
             .unwrap(),
             json!({"type": "openid_credential","format": "mso_mdoc","doctype": "example_doctype"}).to_string(),
-        )
+        );
     }
 }

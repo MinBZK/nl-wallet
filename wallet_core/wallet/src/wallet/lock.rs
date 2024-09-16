@@ -92,7 +92,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
 
     #[instrument(skip_all)]
     pub fn lock(&mut self) {
-        self.lock.lock()
+        self.lock.lock();
     }
 
     async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>

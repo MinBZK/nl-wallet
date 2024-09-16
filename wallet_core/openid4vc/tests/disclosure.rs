@@ -17,8 +17,8 @@ use rstest::rstest;
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
     holder::{
-        mock::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocCopies, MdocDataSource,
-        StoredMdoc, TrustAnchor,
+        mock::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocDataSource, StoredMdoc,
+        TrustAnchor,
     },
     server_keys::KeyPair,
     software_key_factory::SoftwareKeyFactory,
@@ -31,6 +31,7 @@ use nl_wallet_mdoc::{
     DeviceResponse, DocType, SessionTranscript,
 };
 use openid4vc::{
+    credential::MdocCopies,
     disclosure_session::{
         DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
     },
@@ -279,7 +280,7 @@ impl From<Vec<Mdoc>> for MockMdocDataSource {
         MockMdocDataSource(
             value
                 .into_iter()
-                .map(|mdoc| (mdoc.doc_type.clone(), vec![mdoc].into()))
+                .map(|mdoc| (mdoc.doc_type.clone(), vec![mdoc].try_into().unwrap()))
                 .collect(),
         )
     }
@@ -300,7 +301,7 @@ impl MdocDataSource for MockMdocDataSource {
                 if doc_types.contains(doc_type.as_str()) {
                     return vec![StoredMdoc {
                         id: format!("{}_id", doc_type.clone()),
-                        mdoc: mdoc_copies.cred_copies.first().unwrap().clone(),
+                        mdoc: mdoc_copies.first().clone(),
                     }]
                     .into();
                 }

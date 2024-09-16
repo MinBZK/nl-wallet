@@ -39,7 +39,7 @@
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:87a2667a35d932da24b937e1e96770a2a12ea0f2204a8a97b1740dc120dc1394"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:80ee37043a73ff9c36d07c59c72971bd1922fd70adbbb7f34e78134a76a1b272"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -99,6 +99,7 @@ build-android-app-ont-profile:
   variables:
     APP_FILE_FORMAT: "apk"
     APP_BUILD_MODE: "profile"
+    MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 .build-android-app-release-tag:
   extends: [.env-ont-k8s, .build-android-app]
@@ -151,6 +152,7 @@ build-android-app-demo-profile:
   variables:
     APP_FILE_FORMAT: "apk" # override .build-android-app-release-tag
     APP_BUILD_MODE: "profile" # override .build-android-app-release-tag
+    MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 build-android-app-acceptance:
   extends: .build-android-app-release-tag

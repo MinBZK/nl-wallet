@@ -17,10 +17,8 @@ use entity::{
     disclosure_history_event_doc_type, history_doc_type, issuance_history_event, issuance_history_event_doc_type,
     keyed_data, mdoc, mdoc_copy,
 };
-use nl_wallet_mdoc::{
-    holder::MdocCopies,
-    utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
-};
+use nl_wallet_mdoc::utils::serialization::{cbor_deserialize, cbor_serialize, CborError};
+use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
 use super::{
@@ -378,12 +376,11 @@ where
         // based on the unique `MdocCopies`, to be inserted into the database.
         let mdoc_models = mdocs
             .into_iter()
-            .filter(|mdoc_copies| !mdoc_copies.cred_copies.is_empty())
             .map(|mdoc_copies| {
                 let mdoc_id = Uuid::new_v4();
 
                 let copy_models = mdoc_copies
-                    .cred_copies
+                    .as_ref()
                     .iter()
                     .map(|mdoc| {
                         let model = mdoc_copy::ActiveModel {
@@ -398,7 +395,7 @@ where
                     .collect::<Result<Vec<_>, CborError>>()?;
 
                 // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the filter() above.
-                let doc_type = mdoc_copies.cred_copies.into_iter().next().unwrap().doc_type;
+                let doc_type = mdoc_copies.into_iter().next().unwrap().doc_type;
                 let mdoc_model = mdoc::ActiveModel {
                     id: Set(mdoc_id),
                     doc_type: Set(doc_type),
@@ -827,7 +824,7 @@ pub(crate) mod tests {
 
         // Create MdocsMap from example Mdoc
         let mdoc = Mdoc::new_example_mock();
-        let mdoc_copies = MdocCopies::from([mdoc.clone(), mdoc.clone(), mdoc].to_vec());
+        let mdoc_copies = MdocCopies::try_from([mdoc.clone(), mdoc.clone(), mdoc].to_vec()).unwrap();
 
         // Insert mdocs
         storage
@@ -844,7 +841,7 @@ pub(crate) mod tests {
         // Only one unique `Mdoc` should be returned and it should match all copies.
         assert_eq!(fetched_unique.len(), 1);
         let mdoc_copy1 = fetched_unique.first().unwrap();
-        assert_eq!(&mdoc_copy1.mdoc, mdoc_copies.cred_copies.first().unwrap());
+        assert_eq!(&mdoc_copy1.mdoc, mdoc_copies.first());
 
         // Increment the usage count for this mdoc.
         storage
@@ -861,7 +858,7 @@ pub(crate) mod tests {
         // One matching `Mdoc` should be returned and it should be a different copy than the fist one.
         assert_eq!(fetched_unique_doctype.len(), 1);
         let mdoc_copy2 = fetched_unique_doctype.first().unwrap();
-        assert_eq!(&mdoc_copy2.mdoc, mdoc_copies.cred_copies.first().unwrap());
+        assert_eq!(&mdoc_copy2.mdoc, mdoc_copies.first());
         assert_ne!(mdoc_copy1.mdoc_copy_id, mdoc_copy2.mdoc_copy_id);
 
         // Increment the usage count for this mdoc.
@@ -999,7 +996,7 @@ pub(crate) mod tests {
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let disclosure_error = WalletEvent::disclosure_error_from_str(
-            vec![PID_DOCTYPE],
+            &[PID_DOCTYPE],
             timestamp,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),
@@ -1031,18 +1028,15 @@ pub(crate) mod tests {
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
         let disclosure_at_timestamp = WalletEvent::disclosure_from_str(
-            vec![PID_DOCTYPE],
+            &[PID_DOCTYPE],
             timestamp,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),
         );
         let issuance_at_older_timestamp =
-            WalletEvent::issuance_from_str(vec![ADDRESS_DOCTYPE], timestamp_older, ISSUER_KEY.certificate().clone());
-        let issuance_at_even_older_timestamp = WalletEvent::issuance_from_str(
-            vec![PID_DOCTYPE],
-            timestamp_even_older,
-            ISSUER_KEY.certificate().clone(),
-        );
+            WalletEvent::issuance_from_str(&[ADDRESS_DOCTYPE], timestamp_older, ISSUER_KEY.certificate());
+        let issuance_at_even_older_timestamp =
+            WalletEvent::issuance_from_str(&[PID_DOCTYPE], timestamp_even_older, ISSUER_KEY.certificate());
 
         // No data shared with RP
         assert!(!storage
@@ -1105,16 +1099,13 @@ pub(crate) mod tests {
         let timestamp_newest = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
 
         // Log Issuance of pid and address cards
-        let issuance = WalletEvent::issuance_from_str(
-            vec![PID_DOCTYPE, ADDRESS_DOCTYPE],
-            timestamp,
-            ISSUER_KEY.certificate().clone(),
-        );
+        let issuance =
+            WalletEvent::issuance_from_str(&[PID_DOCTYPE, ADDRESS_DOCTYPE], timestamp, ISSUER_KEY.certificate());
         storage.log_wallet_event(issuance.clone()).await.unwrap();
 
         // Log Disclosure of pid and address cards
         let disclosure_pid_and_address = WalletEvent::disclosure_from_str(
-            vec![PID_DOCTYPE, ADDRESS_DOCTYPE],
+            &[PID_DOCTYPE, ADDRESS_DOCTYPE],
             timestamp_newer,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),
@@ -1126,7 +1117,7 @@ pub(crate) mod tests {
 
         // Log Disclosure of pid card only
         let disclosure_pid_only = WalletEvent::disclosure_from_str(
-            vec![PID_DOCTYPE],
+            &[PID_DOCTYPE],
             timestamp_newest,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),

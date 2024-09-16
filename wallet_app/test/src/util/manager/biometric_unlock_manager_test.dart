@@ -32,7 +32,7 @@ void main() {
 
   Future<void> updateMockLifecycle(AppLifecycleState state) {
     lifecycleService.notifyStateChanged(state);
-    return Future.delayed(const Duration(milliseconds: 50));
+    return Future.delayed(const Duration(milliseconds: 150));
   }
 
   setUp(() async {
@@ -125,10 +125,13 @@ void main() {
 
     // Put the app in the background
     await updateMockLifecycle(AppLifecycleState.hidden);
+    expect(manager.shouldTriggerUnlock, isTrue);
 
     // Set lifecycle & lock WITHOUT helper method to simulate race conditions.
-    lifecycleService.notifyStateChanged(AppLifecycleState.resumed);
-    mockWalletLockSubject.add(true);
+    await Future.wait([
+      Future.microtask(() => lifecycleService.notifyStateChanged(AppLifecycleState.resumed)),
+      Future.microtask(() => mockWalletLockSubject.add(true)),
+    ]);
 
     expect(manager.shouldTriggerUnlock, isTrue);
   });
