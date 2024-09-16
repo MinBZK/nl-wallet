@@ -61,6 +61,10 @@ pub enum CertificateError {
     JsonEncodingError(#[from] serde_json::Error),
     #[error("X509 coding error: {0}")]
     X509Error(#[from] X509Error),
+    #[error("private key does not belong to public key from certificate")]
+    KeyMismatch,
+    #[error("failed to get public key from private key: {0}")]
+    PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
@@ -428,53 +432,40 @@ mod test {
         assert_certificate_validity(&x509_cert, now, later);
     }
 
-    #[test]
-    fn generate_and_verify_not_yet_valid_issuer_cert() {
+    fn generate_and_verify_issuer_for_validity(
+        not_before: Option<DateTime<Utc>>,
+        not_after: Option<DateTime<Utc>>,
+    ) -> CertificateError {
         let ca = generate_ca_for_validity_test();
 
-        let now = Utc::now();
-        let start = now + Duration::days(1);
-        let end = now + Duration::days(2);
-
-        let config = CertificateConfiguration {
-            not_before: Some(start),
-            not_after: Some(end),
-        };
-
+        let config = CertificateConfiguration { not_before, not_after };
         let mdl = IssuerRegistration::new_mock().into();
 
         let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
-
         let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
-        let error = issuer_key_pair
+        issuer_key_pair
             .certificate()
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
-            .expect_err("Expected verify to fail");
+            .expect_err("Expected verify to fail")
+    }
+
+    #[test]
+    fn generate_and_verify_not_yet_valid_issuer_cert() {
+        let now = Utc::now();
+        let start = Some(now + Duration::days(1));
+        let end = Some(now + Duration::days(2));
+
+        let error = generate_and_verify_issuer_for_validity(start, end);
         assert_matches!(error, CertificateError::Verification(webpki::Error::CertNotValidYet));
     }
 
     #[test]
     fn generate_and_verify_expired_issuer_cert() {
-        let ca = generate_ca_for_validity_test();
-
         let now = Utc::now();
-        let start = now - Duration::days(2);
-        let end = now - Duration::days(1);
+        let start = Some(now - Duration::days(2));
+        let end = Some(now - Duration::days(1));
 
-        let config = CertificateConfiguration {
-            not_before: Some(start),
-            not_after: Some(end),
-        };
-
-        let mdl = IssuerRegistration::new_mock().into();
-
-        let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
-
-        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
-        let error = issuer_key_pair
-            .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
-            .expect_err("Expected verify to fail");
+        let error = generate_and_verify_issuer_for_validity(start, end);
         assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired));
     }
 

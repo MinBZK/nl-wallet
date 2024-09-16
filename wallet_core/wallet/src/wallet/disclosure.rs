@@ -534,6 +534,16 @@ mod tests {
         LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
+    fn setup_proposed_attributes(name: String, value: DataElementValue) -> ProposedAttributes {
+        IndexMap::from([(
+            "com.example.pid".to_string(),
+            ProposedDocumentAttributes {
+                attributes: IndexMap::from([("com.example.pid".to_string(), vec![Entry { name, value }])]),
+                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+            },
+        )])
+    }
+
     #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure() {
@@ -541,19 +551,7 @@ mod tests {
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let reader_registration = ReaderRegistration::new_mock();
-        let proposed_attributes = IndexMap::from([(
-            "com.example.pid".to_string(),
-            ProposedDocumentAttributes {
-                attributes: IndexMap::from([(
-                    "com.example.pid".to_string(),
-                    vec![Entry {
-                        name: "age_over_18".to_string(),
-                        value: DataElementValue::Bool(true),
-                    }],
-                )]),
-                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-            },
-        )]);
+        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
         let proposal_session = MockMdocDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
@@ -800,19 +798,8 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let proposed_attributes = IndexMap::from([(
-            "com.example.pid".to_string(),
-            ProposedDocumentAttributes {
-                attributes: IndexMap::from([(
-                    "com.example.pid".to_string(),
-                    vec![Entry {
-                        name: "foo".to_string(),
-                        value: DataElementValue::Text("bar".to_string()),
-                    }],
-                )]),
-                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-            },
-        )]);
+        let proposed_attributes =
+            setup_proposed_attributes("foo".to_string(), DataElementValue::Text("bar".to_string()));
         let proposal_session = MockMdocDisclosureProposal {
             proposed_attributes,
             ..Default::default()
@@ -852,19 +839,7 @@ mod tests {
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let reader_registration = ReaderRegistration::new_mock();
-        let proposed_attributes = IndexMap::from([(
-            "com.example.pid".to_string(),
-            ProposedDocumentAttributes {
-                attributes: IndexMap::from([(
-                    "com.example.pid".to_string(),
-                    vec![Entry {
-                        name: "age_over_18".to_string(),
-                        value: DataElementValue::Bool(true),
-                    }],
-                )]),
-                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-            },
-        )]);
+        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
         let proposal_session = MockMdocDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
@@ -1046,19 +1021,7 @@ mod tests {
 
         let return_url = Url::parse("https://example.com/return/here").unwrap();
 
-        let proposed_attributes = IndexMap::from([(
-            "com.example.pid".to_string(),
-            ProposedDocumentAttributes {
-                attributes: IndexMap::from([(
-                    "com.example.pid".to_string(),
-                    vec![Entry {
-                        name: "age_over_18".to_string(),
-                        value: DataElementValue::Bool(true),
-                    }],
-                )]),
-                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-            },
-        )]);
+        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
         let disclosure_session = MockMdocDisclosureProposal {
             disclose_return_url: return_url.clone().into(),
             proposed_source_identifiers: vec![PROPOSED_ID],

@@ -62,3 +62,30 @@ pub struct Organization {
     pub country_code: Option<String>,
     pub privacy_policy_url: Option<Url>,
 }
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use super::*;
+
+    impl Organization {
+        pub fn new_mock() -> Self {
+            Organization {
+                display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
+                legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
+                description: vec![
+                    ("nl", "Beschrijving van Mijn Organisatie"),
+                    ("en", "Description of My Organization"),
+                ]
+                .into(),
+                category: vec![("nl", "Categorie"), ("en", "Category")].into(),
+                kvk: Some("some-kvk".to_owned()),
+                city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
+                department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
+                country_code: Some("nl".to_owned()),
+                web_url: Some(Url::parse("https://organisation.example.com").unwrap()),
+                privacy_policy_url: Some(Url::parse("https://organisation.example.com/privacy").unwrap()),
+                logo: None,
+            }
+        }
+    }
+}

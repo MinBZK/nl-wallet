@@ -3,6 +3,7 @@ use std::{num::NonZeroU8, ops::Add};
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
+use p256::ecdsa::SigningKey;
 use rstest::rstest;
 use url::Url;
 
@@ -47,10 +48,10 @@ fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certific
 }
 
 fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
-    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let ca = KeyPair::<SigningKey>::generate_issuer_mock_ca().unwrap();
 
     // Use the CA itself as issuance key
-    let issuance_keypair = KeyPair::new(ca.private_key().clone(), ca.certificate().clone());
+    let issuance_keypair = KeyPair::new_from_signing_key(ca.private_key().clone(), ca.certificate().clone()).unwrap();
 
     setup(
         MockAttributeService {
@@ -154,14 +155,11 @@ async fn reject_issuance() {
     session.reject_issuance().await.unwrap();
 }
 
-#[tokio::test]
-async fn wrong_access_token() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
-    let message_client = MockOpenidMessageClient {
-        wrong_access_token: true,
-        ..MockOpenidMessageClient::new(issuer)
-    };
-
+async fn start_and_accept_err(
+    message_client: MockOpenidMessageClient,
+    server_url: BaseUrl,
+    ca: Certificate,
+) -> IssuanceSessionError {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
@@ -171,11 +169,21 @@ async fn wrong_access_token() {
     .await
     .unwrap();
 
-    let result = session
+    session
         .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
         .await
-        .unwrap_err();
+        .unwrap_err()
+}
 
+#[tokio::test]
+async fn wrong_access_token() {
+    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        wrong_access_token: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
@@ -190,20 +198,7 @@ async fn invalid_dpop() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuanceSession::start_issuance(
-        message_client,
-        server_url.clone(),
-        TokenRequest::new_mock(),
-        &[(&ca).try_into().unwrap()],
-    )
-    .await
-    .unwrap();
-
-    let result = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
-        .await
-        .unwrap_err();
-
+    let result = start_and_accept_err(message_client, server_url, ca).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
@@ -218,20 +213,7 @@ async fn invalid_pop() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuanceSession::start_issuance(
-        message_client,
-        server_url.clone(),
-        TokenRequest::new_mock(),
-        &[(&ca).try_into().unwrap()],
-    )
-    .await
-    .unwrap();
-
-    let result = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
-        .await
-        .unwrap_err();
-
+    let result = start_and_accept_err(message_client, server_url, ca).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)

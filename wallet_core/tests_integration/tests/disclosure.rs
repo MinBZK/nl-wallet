@@ -15,12 +15,11 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{
     return_url::ReturnUrlTemplate,
-    token::TokenRequest,
     verifier::{SessionType, StatusResponse},
 };
 use tests_integration::common::*;
 use wallet::{errors::DisclosureError, mock::MockDigidSession, DisclosureUriSource};
-use wallet_common::{http_error::HttpJsonErrorBody, utils};
+use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_server::verifier::{
     DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse, StatusParams,
 };
@@ -110,23 +109,8 @@ async fn test_disclosure_usecases_ok(
         return_url_template,
     };
 
-    let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _| {
-        let mut session = MockDigidSession::default();
-
-        session.expect_into_token_request().return_once(|_url| {
-            Ok(TokenRequest {
-                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: utils::random_string(32).into(),
-                },
-                code_verifier: Some("my_code_verifier".to_string()),
-                client_id: Some("my_client_id".to_string()),
-                redirect_uri: Some("redirect://here".parse().unwrap()),
-            })
-        });
-
-        Ok((session, Url::parse("http://localhost/").unwrap()))
-    });
+    // retain [`MockDigidSession::Context`]
+    let _context = setup_digid_context();
 
     let ws_settings = wallet_server_settings();
     let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.urls.public_url);

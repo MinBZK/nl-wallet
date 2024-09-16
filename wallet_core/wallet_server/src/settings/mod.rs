@@ -6,7 +6,7 @@ use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::{Certificate, CertificateError};
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::{sentry::Sentry, urls::BaseUrl};
 
@@ -115,16 +115,22 @@ impl From<&Storage> for SessionStoreTimeouts {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum KeyPairError {
+    #[error("failed to parse private key: {0}")]
+    ParsePrivateKey(#[from] p256::pkcs8::Error),
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
+}
+
 impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
-    type Error = p256::pkcs8::Error;
+    type Error = KeyPairError;
 
     fn try_from(value: &KeyPair) -> Result<Self, Self::Error> {
-        let key_pair = Self::new(
+        Ok(Self::new_from_signing_key(
             SigningKey::from_pkcs8_der(&value.private_key)?,
             Certificate::from(&value.certificate),
-        );
-
-        Ok(key_pair)
+        )?)
     }
 }
 

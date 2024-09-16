@@ -2,32 +2,49 @@ use std::fmt::{Debug, Formatter};
 
 use p256::ecdsa::{Signature, SigningKey};
 
-use error_category::ErrorCategory;
-use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::{EcdsaKey, EcdsaKeySend};
 
-use crate::utils::x509::Certificate;
+use crate::utils::x509::{Certificate, CertificateError};
 
-pub struct KeyPair {
-    private_key: SigningKey,
+pub struct KeyPair<S = SigningKey> {
+    private_key: S,
     certificate: Certificate,
 }
 
-#[derive(thiserror::Error, Debug, ErrorCategory)]
-#[category(pd)]
-pub enum KeysError {
-    #[error("key generation error: {0}")]
-    KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
-}
-
 impl KeyPair {
-    pub fn new(private_key: SigningKey, certificate: Certificate) -> KeyPair {
-        KeyPair {
+    pub fn new_from_signing_key(
+        private_key: SigningKey,
+        certificate: Certificate,
+    ) -> Result<KeyPair, CertificateError> {
+        if certificate.public_key()? != *private_key.verifying_key() {
+            return Err(CertificateError::KeyMismatch);
+        }
+
+        Ok(KeyPair {
             private_key,
             certificate,
+        })
+    }
+}
+
+impl<S: EcdsaKey> KeyPair<S> {
+    pub async fn new(private_key: S, certificate: Certificate) -> Result<KeyPair<S>, CertificateError> {
+        if certificate.public_key()?
+            != private_key
+                .verifying_key()
+                .await
+                .map_err(|e| CertificateError::PublicKeyFromPrivate(Box::new(e)))?
+        {
+            return Err(CertificateError::KeyMismatch);
         }
+
+        Ok(KeyPair {
+            private_key,
+            certificate,
+        })
     }
 
-    pub fn private_key(&self) -> &SigningKey {
+    pub fn private_key(&self) -> &S {
         &self.private_key
     }
 
@@ -36,7 +53,7 @@ impl KeyPair {
     }
 }
 
-impl Debug for KeyPair {
+impl<S> Debug for KeyPair<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("KeyPair")
             .field("certificate", &self.certificate)
@@ -44,37 +61,43 @@ impl Debug for KeyPair {
     }
 }
 
-impl From<KeyPair> for Certificate {
-    fn from(source: KeyPair) -> Certificate {
+impl<S> From<KeyPair<S>> for Certificate {
+    fn from(source: KeyPair<S>) -> Certificate {
         source.certificate
     }
 }
 
-impl EcdsaKey for KeyPair {
-    type Error = p256::ecdsa::Error;
+impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
+    type Error = S::Error;
 
     async fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
-        Ok(*self.private_key.verifying_key())
+        self.private_key.verifying_key().await
     }
 
     async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, Self::Error> {
-        p256::ecdsa::signature::Signer::try_sign(&self.private_key, msg)
+        self.private_key.try_sign(msg).await
     }
 }
 
 pub trait KeyRing {
-    fn key_pair(&self, id: &str) -> Option<&KeyPair>;
+    type Key: EcdsaKeySend;
+
+    fn key_pair(&self, id: &str) -> Option<&KeyPair<Self::Key>>;
 }
 
 #[cfg(any(test, feature = "test"))]
 pub mod test {
+    use p256::ecdsa::SigningKey;
+
     use super::{KeyPair, KeyRing};
 
     /// An implementation of [`KeyRing`] containing a single key.
-    pub struct SingleKeyRing(pub KeyPair);
+    pub struct SingleKeyRing(pub KeyPair<SigningKey>);
 
     impl KeyRing for SingleKeyRing {
-        fn key_pair(&self, _: &str) -> Option<&KeyPair> {
+        type Key = SigningKey;
+
+        fn key_pair(&self, _: &str) -> Option<&KeyPair<SigningKey>> {
             Some(&self.0)
         }
     }
@@ -115,7 +138,7 @@ mod generate {
             let certificate = RcgenCertificate::from_params(ca_params)?;
             let privkey = Self::rcgen_cert_privkey(&certificate)?;
 
-            Ok(KeyPair::new(privkey, certificate.serialize_der()?.into()))
+            Self::new_from_signing_key(privkey, certificate.serialize_der()?.into())
         }
 
         /// Generate a new key pair signed with the specified CA.
@@ -150,7 +173,7 @@ mod generate {
             let certificate = cert_unsigned.serialize_der_with_signer(&ca)?;
             let private_key = Self::rcgen_cert_privkey(&cert_unsigned)?;
 
-            Ok(KeyPair::new(private_key, certificate.into()))
+            Self::new_from_signing_key(private_key, certificate.into())
         }
 
         fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {
