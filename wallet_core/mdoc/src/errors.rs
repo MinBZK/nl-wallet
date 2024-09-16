@@ -2,8 +2,12 @@ use error_category::ErrorCategory;
 
 use crate::{
     holder::HolderError,
-    server_keys::KeysError,
-    utils::{cose::CoseError, crypto::CryptoError, serialization::CborError, x509::CertificateError},
+    utils::{
+        cose::{CoseError, KeysError},
+        crypto::CryptoError,
+        serialization::CborError,
+        x509::CertificateError,
+    },
     verifier::VerificationError,
 };
 

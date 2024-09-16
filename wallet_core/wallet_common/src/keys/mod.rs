@@ -10,6 +10,7 @@ pub mod software;
 #[cfg(any(all(feature = "software_keys", test), feature = "integration_test"))]
 pub mod test;
 
+#[trait_variant::make(EcdsaKeySend: Send)]
 pub trait EcdsaKey {
     type Error: Error + Send + Sync + 'static;
 
@@ -31,7 +32,7 @@ pub trait EphemeralEcdsaKey: EcdsaKey {}
 pub trait SecureEcdsaKey: EcdsaKey {}
 
 // The `SigningKey` is an `EcdsaKey` but not a `SecureEcdsaKey` (except in mock/tests).
-impl EcdsaKey for p256::ecdsa::SigningKey {
+impl EcdsaKeySend for p256::ecdsa::SigningKey {
     type Error = p256::ecdsa::Error;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {

@@ -3,7 +3,11 @@ use anyhow::Result;
 use openid4vc::{issuer::AttributeService, server_state::SessionStore, verifier::DisclosureData};
 
 use super::*;
-use crate::{issuer::create_issuance_router, settings::Settings, verifier};
+use crate::{
+    issuer::{create_issuance_router, IssuerKeyRing},
+    settings::Settings,
+    verifier,
+};
 
 pub async fn serve<A, DS, IS>(
     attr_service: A,
@@ -18,8 +22,14 @@ where
 {
     let log_requests = settings.log_requests;
 
-    let wallet_issuance_router =
-        create_issuance_router(&settings.urls, settings.issuer, issuance_sessions, attr_service)?;
+    let private_keys: IssuerKeyRing<_> = settings.issuer.private_keys.try_into()?;
+    let wallet_issuance_router = create_issuance_router(
+        &settings.urls,
+        private_keys,
+        issuance_sessions,
+        attr_service,
+        settings.issuer.wallet_client_ids,
+    )?;
     let (wallet_disclosure_router, requester_router) =
         verifier::create_routers(settings.urls, settings.verifier, disclosure_sessions)?;
 
