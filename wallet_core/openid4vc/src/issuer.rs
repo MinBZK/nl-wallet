@@ -18,6 +18,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     jwt::{EcdsaDecodingKey, Jwt},
+    keys::EcdsaKey,
     nonempty::NonEmpty,
     urls::BaseUrl,
     utils::random_string,
@@ -518,7 +519,7 @@ impl Session<Created> {
         }
 
         let dpop_public_key = dpop
-            .verify(server_url.join("token"), Method::POST, None)
+            .verify(&server_url.join("token"), &Method::POST, None)
             .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let code = token_request.code().clone();
@@ -805,7 +806,7 @@ impl CredentialResponse {
     async fn new(
         preview: CredentialPreview,
         holder_pubkey: VerifyingKey,
-        issuer_privkey: &KeyPair,
+        issuer_privkey: &KeyPair<impl EcdsaKey>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         match preview {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {

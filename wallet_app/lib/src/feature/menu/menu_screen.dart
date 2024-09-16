@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../../environment.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
@@ -22,8 +24,13 @@ import 'widget/menu_row.dart';
 
 class MenuScreen extends StatefulWidget {
   final bool showDesignSystemRow;
+  final bool showBrowserTestRow;
 
-  const MenuScreen({this.showDesignSystemRow = kDebugMode, super.key});
+  const MenuScreen({
+    this.showDesignSystemRow = kDebugMode,
+    this.showBrowserTestRow = kProfileMode,
+    super.key,
+  });
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -143,7 +150,16 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
         icon: Icons.design_services,
         onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
       );
-      return defaultMenuItems..add(designSystemItem);
+      defaultMenuItems.add(designSystemItem);
+    }
+    if (widget.showBrowserTestRow && Environment.mockRelyingPartyUrl.isNotEmpty) {
+      final browserTestItem = MenuRow(
+        label: context.l10n.menuScreenBrowserCta,
+        subtitle: 'Open url: ${Environment.mockRelyingPartyUrl}',
+        icon: Icons.web,
+        onTap: () => launchUrlString(Environment.mockRelyingPartyUrl, mode: LaunchMode.externalApplication),
+      );
+      defaultMenuItems.add(browserTestItem);
     }
     return defaultMenuItems;
   }

@@ -294,12 +294,12 @@ mod test {
 
     impl WalletEvent {
         pub fn issuance_from_str(
-            doc_types: Vec<&str>,
+            doc_types: &[&str],
             timestamp: DateTime<Utc>,
-            issuer_certificate: Certificate,
+            issuer_certificate: &Certificate,
         ) -> Self {
             let docs = vec![create_full_unsigned_pid_mdoc(), create_full_unsigned_address_mdoc()];
-            let mdocs = from_unsigned_mdocs_filtered(docs, &doc_types, &issuer_certificate);
+            let mdocs = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate);
             Self::Issuance {
                 id: Uuid::new_v4(),
                 mdocs,
@@ -308,7 +308,7 @@ mod test {
         }
 
         pub fn disclosure_from_str(
-            doc_types: Vec<&str>,
+            doc_types: &[&str],
             timestamp: DateTime<Utc>,
             reader_certificate: Certificate,
             issuer_certificate: &Certificate,
@@ -317,7 +317,7 @@ mod test {
                 create_minimal_unsigned_pid_mdoc(),
                 create_minimal_unsigned_address_mdoc(),
             ];
-            let documents = from_unsigned_mdocs_filtered(docs, &doc_types, issuer_certificate).into();
+            let documents = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate).into();
             Self::Disclosure {
                 id: Uuid::new_v4(),
                 documents,
@@ -329,7 +329,7 @@ mod test {
         }
 
         pub fn disclosure_error_from_str(
-            doc_types: Vec<&str>,
+            doc_types: &[&str],
             timestamp: DateTime<Utc>,
             reader_certificate: Certificate,
             issuer_certificate: &Certificate,
@@ -338,7 +338,7 @@ mod test {
                 create_minimal_unsigned_pid_mdoc(),
                 create_minimal_unsigned_address_mdoc(),
             ];
-            let documents = from_unsigned_mdocs_filtered(docs, &doc_types, issuer_certificate).into();
+            let documents = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate).into();
             Self::Disclosure {
                 id: Uuid::new_v4(),
                 documents,

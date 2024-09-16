@@ -25,11 +25,11 @@ fn read_signing_key(input: CachedInput) -> Result<SigningKey> {
 pub fn read_key_pair(ca_key_file: CachedInput, ca_crt_file: CachedInput) -> Result<KeyPair> {
     let ca_crt = read_certificate(ca_crt_file)?;
     let ca_key = read_signing_key(ca_key_file)?;
-    let key_pair = KeyPair::new(ca_key, ca_crt);
+    let key_pair = KeyPair::new_from_signing_key(ca_key, ca_crt)?;
     Ok(key_pair)
 }
 
-pub fn write_key_pair(key_pair: KeyPair, file_prefix: &str, force: bool) -> Result<()> {
+pub fn write_key_pair(key_pair: &KeyPair, file_prefix: &str, force: bool) -> Result<()> {
     // Verify certificate and key files do not exist before writing to either
     let crt_file = format!("{}.crt.pem", file_prefix);
     let crt_path = Path::new(&crt_file);

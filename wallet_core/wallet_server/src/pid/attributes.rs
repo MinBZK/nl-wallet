@@ -66,7 +66,7 @@ impl BrpPidAttributeService {
     pub fn new(
         brp_client: HttpBrpClient,
         issuer_url: BaseUrl,
-        bsn_privkey: String,
+        bsn_privkey: &str,
         trust_anchors: Vec<reqwest::Certificate>,
         certificates: IndexMap<String, Certificate>,
     ) -> Result<Self, Error> {

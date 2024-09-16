@@ -11,6 +11,7 @@ use axum_extra::{
     TypedHeader,
 };
 use nutype::nutype;
+use p256::ecdsa::SigningKey;
 use serde::Serialize;
 
 use nl_wallet_mdoc::server_keys::{KeyPair, KeyRing};
@@ -23,8 +24,9 @@ use openid4vc::{
     token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode, ErrorResponse, ErrorStatusCode, TokenErrorCode,
 };
+use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings::{self, Urls};
+use crate::settings::{self, KeyPairError, Urls};
 
 use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
@@ -33,16 +35,18 @@ struct ApplicationState<A, K, S> {
 }
 
 #[nutype(derive(From, AsRef))]
-pub struct IssuerKeyRing(HashMap<String, KeyPair>);
+pub struct IssuerKeyRing<K>(HashMap<String, KeyPair<K>>);
 
-impl KeyRing for IssuerKeyRing {
-    fn key_pair(&self, id: &str) -> Option<&KeyPair> {
+impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
+    type Key = K;
+
+    fn key_pair(&self, id: &str) -> Option<&KeyPair<K>> {
         self.as_ref().get(id)
     }
 }
 
-impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
-    type Error = p256::pkcs8::Error;
+impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing<SigningKey> {
+    type Error = KeyPairError;
 
     fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
         let key_ring = private_keys
@@ -59,23 +63,26 @@ impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
     }
 }
 
-pub fn create_issuance_router<A, S>(
+pub fn create_issuance_router<A, K, S>(
     urls: &Urls,
-    issuer: settings::Issuer,
+    private_keys: K,
     sessions: S,
     attr_service: A,
+    wallet_client_ids: Vec<String>,
 ) -> anyhow::Result<Router>
 where
     A: AttributeService + Send + Sync + 'static,
+    K: KeyRing + Send + Sync + 'static,
+    <K as KeyRing>::Key: Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
 {
     let application_state = Arc::new(ApplicationState {
         issuer: Issuer::new(
             sessions,
             attr_service,
-            IssuerKeyRing::try_from(issuer.private_keys)?,
+            private_keys,
             &urls.public_url,
-            issuer.wallet_client_ids,
+            wallet_client_ids,
         ),
     });
 

@@ -853,7 +853,7 @@ mod tests {
         let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_discover_metadata()
-            .returning(|url| Ok(IssuerMetadata::new_mock(url.clone())));
+            .returning(|url| Ok(IssuerMetadata::new_mock(url)));
         mock_msg_client
             .expect_discover_oauth_metadata()
             .returning(|url| Ok(oidc::Config::new_mock(url)));
