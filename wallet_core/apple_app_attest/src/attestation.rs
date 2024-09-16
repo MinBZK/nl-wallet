@@ -161,7 +161,7 @@ impl Attestation {
         // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s
         // RP ID hash.
 
-        if *attestation.auth_data.as_ref().rp_id_hash() != *Sha256::digest(app_identifier.as_ref()) {
+        if attestation.auth_data.as_ref().rp_id_hash() != app_identifier.sha256_hash() {
             return Err(AttestationValidationError::RpIdMismatch)?;
         }
 
