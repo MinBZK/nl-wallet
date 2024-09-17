@@ -3,6 +3,7 @@ use std::{num::NonZeroU8, ops::Add};
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
+use p256::ecdsa::SigningKey;
 use rstest::rstest;
 use url::Url;
 
@@ -47,10 +48,10 @@ fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certific
 }
 
 fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
-    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let ca = KeyPair::<SigningKey>::generate_issuer_mock_ca().unwrap();
 
     // Use the CA itself as issuance key
-    let issuance_keypair = KeyPair::new(ca.private_key().clone(), ca.certificate().clone());
+    let issuance_keypair = KeyPair::new_from_signing_key(ca.private_key().clone(), ca.certificate().clone()).unwrap();
 
     setup(
         MockAttributeService {

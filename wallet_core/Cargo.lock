@@ -362,6 +362,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "async_once"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ce4f10ea3abcd6617873bae9f91d1c5332b4a778bd9ce34d0cd517474c1de82"
+
+[[package]]
 name = "atoi"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5467,6 +5473,7 @@ dependencies = [
  "strum 0.26.3",
  "thiserror",
  "tokio",
+ "trait-variant",
  "url",
  "x509-parser",
 ]
@@ -5560,13 +5567,16 @@ dependencies = [
 name = "wallet_provider_service"
 version = "0.2.1-dev"
 dependencies = [
+ "anyhow",
  "assert_matches",
+ "async_once",
  "chrono",
  "cryptoki",
  "der",
  "futures",
  "hmac",
  "jsonwebtoken",
+ "lazy_static",
  "p256",
  "r2d2-cryptoki",
  "rand",

@@ -3,3 +3,4 @@ pub mod hsm;
 pub mod instructions;
 pub mod keys;
 pub mod pin_policy;
+pub mod wallet_certificate;

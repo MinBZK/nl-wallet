@@ -11,14 +11,11 @@ use p256::{
     SecretKey,
 };
 use serde::{de, ser, Deserialize, Serialize};
-use serde_json::value::RawValue;
 use serde_with::{
     base64::{Base64, Standard},
     formats::Padded,
     DeserializeAs, SerializeAs,
 };
-
-use super::signed::{SignedDouble, SignedInner};
 
 /// ECDSA signature that (de)serializes from/to base64-encoded DER.
 #[derive(Debug, Clone)]
@@ -32,7 +29,7 @@ impl From<Signature> for DerSignature {
 
 impl Serialize for DerSignature {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        Base64::<Standard, Padded>::serialize_as(&self.0.to_der().as_bytes().to_vec(), serializer)
+        Base64::<Standard, Padded>::serialize_as(&self.0.to_der().as_bytes(), serializer)
     }
 }
 
@@ -155,30 +152,6 @@ impl From<DerVerifyingKey> for ValueKind {
             .expect("DerVerifyingKey should be serializable to String")
             .as_str()
             .into()
-    }
-}
-
-impl<T> Serialize for SignedDouble<T> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
-    }
-}
-
-impl<'de, T> Deserialize<'de> for SignedDouble<T> {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
-        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
-    }
-}
-
-impl<T> Serialize for SignedInner<T> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
-        RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
-    }
-}
-
-impl<'de, T> Deserialize<'de> for SignedInner<T> {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
-        Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
     }
 }
 

@@ -1,7 +1,10 @@
-use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
+use p256::ecdsa::VerifyingKey;
+
 use crate::model::{
+    encrypted::Encrypted,
     wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeys, WalletUserQueryResult},
     wrapped_key::WrappedKey,
 };
@@ -56,6 +59,17 @@ pub trait WalletUserRepository {
         wallet_user_id: uuid::Uuid,
         key_identifiers: &[String],
     ) -> Result<HashMap<String, WrappedKey>>;
+
+    async fn change_pin(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    ) -> Result<()>;
+
+    async fn commit_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+
+    async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -145,6 +159,23 @@ pub mod mock {
             _key_identifiers: &[String],
         ) -> Result<HashMap<String, WrappedKey>> {
             Ok(HashMap::new())
+        }
+
+        async fn change_pin(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn commit_pin_change(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
+            Ok(())
+        }
+
+        async fn rollback_pin_change(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
+            Ok(())
         }
     }
 }

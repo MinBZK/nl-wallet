@@ -22,7 +22,7 @@ required-features = ["db_test"]
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["mockall"]
+mock = ["mockall", "dep:rand_core"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "dep:ctor",

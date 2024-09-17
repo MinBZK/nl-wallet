@@ -2,6 +2,8 @@ use chrono::Utc;
 use ciborium::value::Value;
 use coset::{CoseSign1, HeaderBuilder};
 
+use wallet_common::keys::EcdsaKey;
+
 use crate::{
     iso::*,
     server_keys::KeyPair,
@@ -14,9 +16,11 @@ use crate::{
 };
 
 impl IssuerSigned {
-    // In the future, it should be an option to house the key used to sign IssuerSigned
-    // within secure hardware. This is especially relevant for signing the PID.
-    pub async fn sign(unsigned_mdoc: UnsignedMdoc, device_public_key: CoseKey, key: &KeyPair) -> Result<Self> {
+    pub async fn sign(
+        unsigned_mdoc: UnsignedMdoc,
+        device_public_key: CoseKey,
+        key: &KeyPair<impl EcdsaKey>,
+    ) -> Result<Self> {
         let now = Utc::now();
         let validity = ValidityInfo {
             signed: now.into(),
