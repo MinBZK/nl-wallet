@@ -6,7 +6,7 @@
     "@aboutScreenDescriptionLink": {
         "translatable": "false"
     },
-    "aboutScreenPrivacyCta": "Privacy policy",
+    "aboutScreenPrivacyCta": "Privacy statement",
     "aboutScreenTermsCta": "Terms of use",
     "aboutScreenTitle": "About the NL Wallet",
     "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {added {count} card} other {added {count} cards}}",
@@ -568,7 +568,7 @@
     "introductionConditionsScreenBulletPoints": "You can use your data online.\nYou can stop at any time.\nYou keep your PIN code to yourself.\nYou share your data at your own risk.",
     "introductionConditionsScreenConditionsCta": "Read the terms and conditions",
     "introductionConditionsScreenHeadline": "We agree on this",
-    "introductionConditionsScreenNextCta": "Accept",
+    "introductionConditionsScreenNextCta": "Understood",
     "introductionNextPageCta": "Next",
     "introductionPage1Description": "This is your digital wallet. You can add cards with your details, such as your name and address.",
     "introductionPage1Title": "Welcome to the NL Wallet",
@@ -579,7 +579,7 @@
     "introductionPrivacyScreenBulletPoints": "Your data is only on this device.\nYour data is protected by a PIN code.\nLost your phone? You can lock the app remotely.",
     "introductionPrivacyScreenHeadline": "The NL Wallet respects your privacy",
     "introductionPrivacyScreenNextCta": "Next",
-    "introductionPrivacyScreenPrivacyCta": "Read the privacy policy",
+    "introductionPrivacyScreenPrivacyCta": "Read the privacy statement",
     "introductionSkipCta": "Skip",
     "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
     "introductionWCAGPauseButtonLabel": "Moving image is playing, Pause",
@@ -853,7 +853,7 @@
     "policyScreenDataWillBeSharedDescription": "Your data will be shared with other companies or organizations",
     "policyScreenDataWillNotBeShared": "Data will not be shared with other organizations",
     "policyScreenDataWillNotBeSharedDescription": "Your data will not be shared with other companies or organizations",
-    "policyScreenPolicySectionPolicyCta": "privacy policy",
+    "policyScreenPolicySectionPolicyCta": "Privacy statement",
     "policyScreenPolicySectionText": "View the {policy} to learn more about how your data will be used.",
     "@policyScreenPolicySectionText": {
         "placeholders": {
