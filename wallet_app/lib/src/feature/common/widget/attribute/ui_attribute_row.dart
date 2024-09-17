@@ -22,7 +22,7 @@ class UiAttributeRow extends StatelessWidget {
         Icon(
           attribute.icon,
           size: 24,
-          color: context.colorScheme.primary,
+          color: context.colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: 16),
         Expanded(
