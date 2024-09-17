@@ -1,4 +1,4 @@
-use tokio::sync::{RwLock, RwLockWriteGuard};
+use tokio::sync::RwLock;
 
 use wallet_common::account::messages::auth::WalletCertificate;
 
@@ -6,7 +6,6 @@ use crate::{
     errors::StorageError,
     pin::change::{ChangePinStorage, State},
     storage::{ChangePinData, RegistrationData, Storage},
-    Wallet,
 };
 
 impl<S> ChangePinStorage for RwLock<S>

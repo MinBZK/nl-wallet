@@ -1,4 +1,4 @@
-use crate::{wallet::change_pin::ChangePinConfiguration, Wallet};
+use crate::pin::change::ChangePinConfiguration;
 
 impl ChangePinConfiguration for () {
     async fn max_retries(&self) -> u8 {
