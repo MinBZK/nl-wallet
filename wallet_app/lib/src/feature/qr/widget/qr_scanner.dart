@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:native_device_orientation/native_device_orientation.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
@@ -20,29 +21,77 @@ class QrScanner extends StatefulWidget {
 }
 
 class _QrScannerState extends State<QrScanner> {
-  final MobileScannerController cameraController = MobileScannerController(
-    formats: [BarcodeFormat.qrCode],
-    cameraResolution: kAndroidCameraResolution /* ignored on iOS */,
-  );
+  final Key _scannerKey = GlobalKey();
+
+  late MobileScannerController cameraController;
+
+  @override
+  void initState() {
+    super.initState();
+    cameraController = MobileScannerController(
+      formats: [BarcodeFormat.qrCode],
+      cameraResolution: kAndroidCameraResolution /* ignored on iOS */,
+    );
+  }
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MobileScanner(
-      controller: cameraController,
-      overlayBuilder: _buildOverlay,
-      placeholderBuilder: (context, child) => const CenteredLoadingIndicator(),
-      errorBuilder: (context, ex, child) {
-        Fimber.e('Failed to start camera', ex: ex);
-        return Center(child: Text.rich(context.l10n.errorScreenGenericHeadline.toTextSpan(context)));
-      },
-      onDetect: (capture) {
-        final event = QrScanCodeDetected(capture.barcodes.first);
-        context.read<QrBloc>().add(event);
+    return NativeDeviceOrientationReader(
+      builder: (context) {
+        final int quarterTurns = _resolveScannerTurns(context);
+        return RotatedBox(
+          quarterTurns: quarterTurns /* rotate camera feed to match device rotation */,
+          child: MobileScanner(
+            key: _scannerKey,
+            controller: cameraController,
+            overlayBuilder: (context, constraints) => RotatedBox(
+              quarterTurns: quarterTurns * -1 /* revert rotation for nested widget */,
+              child: _buildOverlay(context),
+            ),
+            placeholderBuilder: (context, child) => const CenteredLoadingIndicator(),
+            errorBuilder: (context, ex, child) {
+              Fimber.e('Failed to start camera', ex: ex);
+              return RotatedBox(
+                quarterTurns: quarterTurns * -1 /* revert rotation for nested widget */,
+                child: Center(
+                  child: Text.rich(
+                    context.l10n.errorScreenGenericHeadline.toTextSpan(context),
+                  ),
+                ),
+              );
+            },
+            onDetect: (capture) {
+              final event = QrScanCodeDetected(capture.barcodes.first);
+              context.read<QrBloc>().add(event);
+            },
+          ),
+        );
       },
     );
   }
 
-  Widget _buildOverlay(BuildContext context, BoxConstraints constraints) {
+  /// Resolve the quarter turns that should be applied to the [MobileScanner], since the image feed provided by
+  /// the plugin is always rendered in portrait (even when the device is rotated). By using the quarter turns provided
+  /// by this plugin the image feed will be rendered correctly. Note that this should NOT be applied to any other
+  /// widgets, as that is resolved by the framework as normal.
+  int _resolveScannerTurns(BuildContext context) {
+    final orientation = NativeDeviceOrientationReader.orientation(context);
+    return switch (orientation) {
+      NativeDeviceOrientation.portraitUp => 0,
+      NativeDeviceOrientation.portraitDown => 2,
+      NativeDeviceOrientation.landscapeLeft => -1,
+      NativeDeviceOrientation.landscapeRight => 1,
+      NativeDeviceOrientation.unknown => 0,
+    };
+  }
+
+  Widget _buildOverlay(BuildContext context) {
     return Stack(
       children: [
         _buildAlignedScanQrHint(),
