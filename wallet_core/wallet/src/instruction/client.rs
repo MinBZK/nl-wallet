@@ -3,9 +3,7 @@ use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::messages::instructions::{
-        Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionChallengeRequestMessage,
-    },
+    account::messages::instructions::{Instruction, InstructionAndResult, InstructionChallengeRequest},
     jwt::EcdsaDecodingKey,
     urls::BaseUrl,
 };
@@ -77,16 +75,15 @@ where
     where
         I: InstructionAndResult,
     {
-        let message = self
+        let challenge_request = self
             .with_sequence_number(storage, |seq_num| {
-                InstructionChallengeRequest::new_signed::<I>(seq_num, String::from("wallet"), self.hw_privkey)
+                InstructionChallengeRequest::new_signed::<I>(
+                    seq_num,
+                    self.hw_privkey,
+                    self.registration.wallet_certificate.clone(),
+                )
             })
             .await?;
-
-        let challenge_request = InstructionChallengeRequestMessage {
-            message,
-            certificate: self.registration.wallet_certificate.clone(),
-        };
 
         let result = self
             .account_provider_client
@@ -110,10 +107,10 @@ where
             .with_sequence_number(&mut storage, |seq_num| {
                 Instruction::new_signed(
                     instruction,
+                    challenge,
                     seq_num,
                     self.hw_privkey,
                     &pin_key,
-                    &challenge,
                     self.registration.wallet_certificate.clone(),
                 )
             })

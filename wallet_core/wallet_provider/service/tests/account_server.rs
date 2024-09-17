@@ -5,7 +5,7 @@ use uuid::Uuid;
 use wallet_common::{
     account::messages::{
         auth::{Registration, WalletCertificate, WalletCertificateClaims},
-        instructions::{CheckPin, InstructionChallengeRequest, InstructionChallengeRequestMessage},
+        instructions::{CheckPin, InstructionChallengeRequest},
     },
     generator::Generator,
     keys::{software::SoftwareEcdsaKey, EcdsaKey},
@@ -56,7 +56,7 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
-    let registration_message = Registration::new_signed(hw_privkey, pin_privkey, &challenge)
+    let registration_message = Registration::new_signed(hw_privkey, pin_privkey, challenge)
         .await
         .expect("Could not sign new registration");
 
@@ -122,12 +122,9 @@ async fn test_instruction_challenge() {
 
     let challenge1 = account_server
         .instruction_challenge(
-            InstructionChallengeRequestMessage {
-                certificate: certificate.clone(),
-                message: InstructionChallengeRequest::new_signed::<CheckPin>(1, String::from("wallet"), &hw_privkey)
-                    .await
-                    .unwrap(),
-            },
+            InstructionChallengeRequest::new_signed::<CheckPin>(1, &hw_privkey, certificate.clone())
+                .await
+                .unwrap(),
             &repos,
             &EpochGenerator,
             &hsm,
@@ -139,12 +136,9 @@ async fn test_instruction_challenge() {
 
     let challenge2 = account_server
         .instruction_challenge(
-            InstructionChallengeRequestMessage {
-                certificate,
-                message: InstructionChallengeRequest::new_signed::<CheckPin>(2, String::from("wallet"), &hw_privkey)
-                    .await
-                    .unwrap(),
-            },
+            InstructionChallengeRequest::new_signed::<CheckPin>(2, &hw_privkey, certificate)
+                .await
+                .unwrap(),
             &repos,
             &EpochGenerator,
             &hsm,

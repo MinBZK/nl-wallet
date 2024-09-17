@@ -17,12 +17,12 @@ use wallet_common::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
             instructions::{
                 ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult,
-                Instruction, InstructionAndResult, InstructionChallengeRequestMessage, InstructionResultMessage, Sign,
+                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResultMessage, Sign,
                 SignResult,
             },
         },
         serialization::DerVerifyingKey,
-        signed::SignedDouble,
+        signed::ChallengeResponse,
     },
     keys::EcdsaKey,
 };
@@ -100,7 +100,7 @@ async fn enroll(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Js
 
 async fn create_wallet(
     State(state): State<Arc<RouterState>>,
-    Json(payload): Json<SignedDouble<Registration>>,
+    Json(payload): Json<ChallengeResponse<Registration>>,
 ) -> Result<(StatusCode, Json<Certificate>)> {
     info!("Received create wallet request, registering with account server");
 
@@ -124,7 +124,7 @@ async fn create_wallet(
 
 async fn instruction_challenge(
     State(state): State<Arc<RouterState>>,
-    Json(payload): Json<InstructionChallengeRequestMessage>,
+    Json(payload): Json<InstructionChallengeRequest>,
 ) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received challenge request, creating challenge");
 

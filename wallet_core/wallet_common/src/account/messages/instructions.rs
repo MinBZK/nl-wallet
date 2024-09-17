@@ -4,7 +4,7 @@ use crate::{
     account::{
         errors::Result,
         serialization::{DerSignature, DerVerifyingKey},
-        signed::SignedDouble,
+        signed::{ChallengeRequest, ChallengeResponse},
     },
     jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
@@ -14,7 +14,7 @@ use super::auth::{Certificate, WalletCertificate};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Instruction<T> {
-    pub instruction: SignedDouble<T>,
+    pub instruction: ChallengeResponse<T>,
     pub certificate: WalletCertificate,
 }
 
@@ -68,20 +68,9 @@ pub struct InstructionResultMessage<R> {
     pub result: InstructionResult<R>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InstructionChallengeRequestClaims {
-    pub sequence_number: u64,
-    pub instruction_name: String,
-
-    pub iss: String,
-    pub iat: u64,
-}
-
-pub type InstructionChallengeRequest = Jwt<InstructionChallengeRequestClaims>;
-
 #[derive(Debug, Serialize, Deserialize)]
-pub struct InstructionChallengeRequestMessage {
-    pub message: InstructionChallengeRequest,
+pub struct InstructionChallengeRequest {
+    pub request: ChallengeRequest,
     pub certificate: WalletCertificate,
 }
 
@@ -93,30 +82,6 @@ pub trait InstructionAndResult: Serialize + DeserializeOwned {
 
 impl<R> JwtSubject for InstructionResultClaims<R> {
     const SUB: &'static str = "instruction_result";
-}
-
-impl JwtSubject for InstructionChallengeRequestClaims {
-    const SUB: &'static str = "instruction_challenge_request";
-}
-
-impl InstructionChallengeRequest {
-    pub async fn new_signed<I>(
-        instruction_sequence_number: u64,
-        issuer: String,
-        hw_privkey: &impl SecureEcdsaKey,
-    ) -> Result<Self>
-    where
-        I: InstructionAndResult,
-    {
-        let cert = InstructionChallengeRequestClaims {
-            sequence_number: instruction_sequence_number,
-            instruction_name: I::NAME.to_string(),
-            iss: issuer,
-            iat: jsonwebtoken::get_current_timestamp(),
-        };
-
-        Ok(Jwt::sign_with_sub(&cert, hw_privkey).await?)
-    }
 }
 
 impl InstructionAndResult for CheckPin {
@@ -161,13 +126,13 @@ where
 {
     pub async fn new_signed(
         instruction: T,
+        challenge: Vec<u8>,
         instruction_sequence_number: u64,
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
-        challenge: &[u8],
         certificate: WalletCertificate,
     ) -> Result<Self> {
-        let signed = SignedDouble::sign(
+        let signed = ChallengeResponse::sign(
             instruction,
             challenge,
             instruction_sequence_number,
@@ -178,6 +143,24 @@ where
 
         Ok(Self {
             instruction: signed,
+            certificate,
+        })
+    }
+}
+
+impl InstructionChallengeRequest {
+    pub async fn new_signed<I>(
+        instruction_sequence_number: u64,
+        hw_privkey: &impl SecureEcdsaKey,
+        certificate: WalletCertificate,
+    ) -> Result<Self>
+    where
+        I: InstructionAndResult,
+    {
+        let signed = ChallengeRequest::sign(instruction_sequence_number, I::NAME.to_string(), hw_privkey).await?;
+
+        Ok(Self {
+            request: signed,
             certificate,
         })
     }

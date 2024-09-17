@@ -9,9 +9,9 @@ use wallet_common::{
         messages::{
             auth::{Registration, WalletCertificate},
             errors::{AccountError, AccountErrorType},
-            instructions::{Instruction, InstructionAndResult, InstructionChallengeRequestMessage, InstructionResult},
+            instructions::{Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResult},
         },
-        signed::SignedDouble,
+        signed::ChallengeResponse,
     },
     urls::BaseUrl,
 };
@@ -51,13 +51,13 @@ pub trait AccountProviderClient {
     async fn register(
         &self,
         base_url: &BaseUrl,
-        registration_message: SignedDouble<Registration>,
+        registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError>;
 
     async fn instruction_challenge(
         &self,
         base_url: &BaseUrl,
-        challenge_request: InstructionChallengeRequestMessage,
+        challenge_request: InstructionChallengeRequest,
     ) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn instruction<I>(

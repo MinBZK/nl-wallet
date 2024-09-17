@@ -137,7 +137,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
             .verifying_key()
             .await
             .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
-        let registration_message = Registration::new_signed(&hw_privkey, &pin_key, &challenge)
+        let registration_message = Registration::new_signed(&hw_privkey, &pin_key, challenge)
             .await
             .map_err(WalletRegistrationError::Signing)?;
 

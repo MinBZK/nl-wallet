@@ -9,11 +9,11 @@ use wallet_common::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
             errors::{AccountError, AccountErrorType},
             instructions::{
-                Instruction, InstructionAndResult, InstructionChallengeRequestMessage, InstructionResult,
+                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResult,
                 InstructionResultMessage,
             },
         },
-        signed::SignedDouble,
+        signed::ChallengeResponse,
     },
     http_error::HttpJsonErrorBody,
     reqwest::{default_reqwest_client_builder, parse_content_type},
@@ -128,7 +128,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
     async fn register(
         &self,
         base_url: &BaseUrl,
-        registration_message: SignedDouble<Registration>,
+        registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError> {
         let url = base_url.join("createwallet");
         let cert: Certificate = self.send_json_post_request(url, &registration_message).await?;
@@ -139,7 +139,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
     async fn instruction_challenge(
         &self,
         base_url: &BaseUrl,
-        challenge_request: InstructionChallengeRequestMessage,
+        challenge_request: InstructionChallengeRequest,
     ) -> Result<Vec<u8>, AccountProviderError> {
         let url = base_url.join("instructions/challenge");
         let challenge: Challenge = self.send_json_post_request(url, &challenge_request).await?;

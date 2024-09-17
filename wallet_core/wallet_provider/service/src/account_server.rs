@@ -14,11 +14,11 @@ use wallet_common::{
             auth::{Registration, WalletCertificate},
             errors::{IncorrectPinData, PinTimeoutData},
             instructions::{
-                ChangePinRollback, ChangePinStart, Instruction, InstructionAndResult,
-                InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
+                ChangePinRollback, ChangePinStart, Instruction, InstructionAndResult, InstructionChallengeRequest,
+                InstructionResult, InstructionResultClaims,
             },
         },
-        signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
+        signed::{ChallengeResponse, ChallengeResponsePayload, SequenceNumberComparison},
     },
     generator::Generator,
     jwt::{EcdsaDecodingKey, Jwt, JwtError, JwtSubject},
@@ -244,7 +244,7 @@ impl AccountServer {
         uuid_generator: &impl Generator<Uuid>,
         repositories: &R,
         hsm: &H,
-        registration_message: SignedDouble<Registration>,
+        registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
         T: Committable,
@@ -315,7 +315,7 @@ impl AccountServer {
 
     pub async fn instruction_challenge<T, R, H>(
         &self,
-        challenge_request: InstructionChallengeRequestMessage,
+        challenge_request: InstructionChallengeRequest,
         repositories: &R,
         time_generator: &impl Generator<DateTime<Utc>>,
         hsm: &H,
@@ -334,17 +334,10 @@ impl AccountServer {
         .await?;
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
-        let parsed = challenge_request
-            .message
-            .parse_and_verify_with_sub(&EcdsaDecodingKey::from(&user.hw_pubkey.0))?;
-
-        debug!(
-            "Verifying sequence number - provided: {}, known: {}",
-            parsed.sequence_number, user.instruction_sequence_number
-        );
-        if parsed.sequence_number <= user.instruction_sequence_number {
-            return Err(ChallengeError::SequenceNumberValidation);
-        }
+        let request = challenge_request.request.parse_and_verify(
+            SequenceNumberComparison::LargerThan(user.instruction_sequence_number),
+            &user.hw_pubkey.0,
+        )?;
 
         debug!("Verifying wallet certificate");
         verify_wallet_certificate_public_keys(
@@ -352,7 +345,7 @@ impl AccountServer {
             &self.pin_public_disclosure_protection_key_identifier,
             &self.encryption_key_identifier,
             &user.hw_pubkey,
-            if parsed.instruction_name == ChangePinRollback::NAME {
+            if request.instruction_name == ChangePinRollback::NAME {
                 user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey)
             } else {
                 user.encrypted_pin_pubkey
@@ -361,7 +354,7 @@ impl AccountServer {
         )
         .await?;
 
-        debug!("Sequence number valid, persisting generated challenge and incremented sequence number");
+        debug!("Challenge request valid, persisting generated challenge and incremented sequence number");
         let challenge = InstructionChallenge {
             bytes: random_bytes(32),
             expiration_date_time: time_generator.generate() + self.instruction_challenge_timeout,
@@ -374,7 +367,7 @@ impl AccountServer {
                 &tx,
                 &user.wallet_id,
                 challenge.clone(),
-                parsed.sequence_number,
+                request.sequence_number,
             )
             .await?;
         tx.commit().await?;
@@ -811,7 +804,7 @@ mod tests {
             .await
             .expect("Could not get registration challenge");
 
-        let registration_message = Registration::new_signed(hw_privkey, pin_privkey, &challenge)
+        let registration_message = Registration::new_signed(hw_privkey, pin_privkey, challenge)
             .await
             .expect("Could not sign new registration");
 
@@ -875,16 +868,13 @@ mod tests {
     {
         account_server
             .instruction_challenge(
-                InstructionChallengeRequestMessage {
-                    message: InstructionChallengeRequest::new_signed::<I>(
-                        instruction_sequence_number,
-                        String::from("wallet"),
-                        hw_privkey,
-                    )
-                    .await
-                    .unwrap(),
-                    certificate: wallet_certificate,
-                },
+                InstructionChallengeRequest::new_signed::<I>(
+                    instruction_sequence_number,
+                    hw_privkey,
+                    wallet_certificate,
+                )
+                .await
+                .unwrap(),
                 repo,
                 &EpochGenerator,
                 hsm,
@@ -913,10 +903,10 @@ mod tests {
             .handle_instruction(
                 Instruction::new_signed(
                     CheckPin,
+                    challenge.clone(),
                     43,
                     &wallet_certificate_setup.hw_privkey,
                     &wallet_certificate_setup.pin_privkey,
-                    &challenge.clone(),
                     wallet_certificate.clone(),
                 )
                 .await
@@ -946,10 +936,10 @@ mod tests {
             .handle_instruction(
                 Instruction::new_signed(
                     CheckPin,
+                    challenge.clone(),
                     44,
                     &wallet_certificate_setup.hw_privkey,
                     &wallet_certificate_setup.pin_privkey,
-                    &challenge,
                     wallet_certificate.clone(),
                 )
                 .await
@@ -1007,10 +997,10 @@ mod tests {
                         pin_pubkey: new_pin_pubkey.into(),
                         pop_pin_pubkey: pop_pin_pubkey.into(),
                     },
+                    challenge.clone(),
                     44,
                     &wallet_certificate_setup.hw_privkey,
                     &wallet_certificate_setup.pin_privkey,
-                    &challenge,
                     wallet_certificate.clone(),
                 )
                 .await
@@ -1070,12 +1060,9 @@ mod tests {
     async fn valid_instruction_challenge_should_verify() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed::<CheckPin>(1, String::from("wallet"), &setup.hw_privkey)
-                .await
-                .unwrap(),
-            certificate: cert.clone(),
-        };
+        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(1, &setup.hw_privkey, cert.clone())
+            .await
+            .unwrap();
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, HSM.get().await)
@@ -1092,7 +1079,7 @@ mod tests {
             wallet_user,
             WalletUserQueryResult::Found(user) if AccountServer::verify_instruction(
                 wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-                Instruction::new_signed(CheckPin, 44, &setup.hw_privkey, &setup.pin_privkey, &challenge, cert.clone())
+                Instruction::new_signed(CheckPin, challenge, 44, &setup.hw_privkey, &setup.pin_privkey, cert.clone())
                     .await
                     .unwrap(),
                 &user,
@@ -1108,12 +1095,9 @@ mod tests {
     async fn wrong_instruction_challenge_should_not_verify() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed::<CheckPin>(1, String::from("wallet"), &setup.hw_privkey)
-                .await
-                .unwrap(),
-            certificate: cert.clone(),
-        };
+        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(1, &setup.hw_privkey, cert.clone())
+            .await
+            .unwrap();
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, HSM.get().await)
@@ -1133,10 +1117,10 @@ mod tests {
                     wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
                     Instruction::new_signed(
                             CheckPin,
+                            challenge,
                             44,
                             &setup.hw_privkey,
                             &setup.pin_privkey,
-                            &challenge,
                             cert.clone()
                     ).await.unwrap(),
                     &user,
@@ -1162,12 +1146,9 @@ mod tests {
     async fn expired_instruction_challenge_should_not_verify() {
         let (setup, account_server, cert, repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequestMessage {
-            message: InstructionChallengeRequest::new_signed::<CheckPin>(1, String::from("wallet"), &setup.hw_privkey)
-                .await
-                .unwrap(),
-            certificate: cert.clone(),
-        };
+        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(1, &setup.hw_privkey, cert.clone())
+            .await
+            .unwrap();
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, HSM.get().await)
@@ -1189,10 +1170,10 @@ mod tests {
                     wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
                     Instruction::new_signed(
                         CheckPin,
+                        challenge,
                         44,
                         &setup.hw_privkey,
                         &setup.pin_privkey,
-                        &challenge,
                         cert.clone()
                     )
                     .await
@@ -1225,7 +1206,10 @@ mod tests {
         .await
         .expect_err("should return instruction sequence number mismatch error");
 
-        assert_matches!(challenge_error, ChallengeError::SequenceNumberValidation);
+        assert_matches!(
+            challenge_error,
+            ChallengeError::Validation(wallet_common::account::errors::Error::SequenceNumberMismatch)
+        );
 
         let instruction_result = do_check_pin(&account_server, repo, &setup, cert, &instruction_result_signing_key)
             .await
@@ -1293,10 +1277,10 @@ mod tests {
             .handle_instruction(
                 Instruction::new_signed(
                     ChangePinCommit {},
+                    challenge.clone(),
                     46,
                     &setup.hw_privkey,
                     &setup.pin_privkey,
-                    &challenge,
                     cert.clone(),
                 )
                 .await
@@ -1318,10 +1302,10 @@ mod tests {
             .handle_instruction(
                 Instruction::new_signed(
                     ChangePinCommit {},
+                    challenge.clone(),
                     46,
                     &setup.hw_privkey,
                     &new_pin_privkey,
-                    &challenge,
                     new_cert.clone(),
                 )
                 .await
@@ -1348,10 +1332,10 @@ mod tests {
             .handle_instruction(
                 Instruction::new_signed(
                     ChangePinCommit {},
+                    challenge.clone(),
                     46,
                     &setup.hw_privkey,
                     &new_pin_privkey,
-                    &challenge,
                     new_cert.clone(),
                 )
                 .await
@@ -1416,10 +1400,10 @@ mod tests {
                         pin_pubkey: new_pin_pubkey.into(),
                         pop_pin_pubkey: pop_pin_pubkey.into(),
                     },
+                    challenge.clone(),
                     44,
                     &setup.hw_privkey,
                     &setup.pin_privkey,
-                    &challenge,
                     cert.clone(),
                 )
                 .await
@@ -1476,10 +1460,10 @@ mod tests {
             .handle_change_pin_rollback_instruction(
                 Instruction::new_signed(
                     ChangePinRollback {},
+                    challenge.clone(),
                     46,
                     &setup.hw_privkey,
                     &new_pin_privkey,
-                    &challenge,
                     new_cert.clone(),
                 )
                 .await
@@ -1501,10 +1485,10 @@ mod tests {
             .handle_change_pin_rollback_instruction(
                 Instruction::new_signed(
                     ChangePinRollback {},
+                    challenge.clone(),
                     46,
                     &setup.hw_privkey,
                     &setup.pin_privkey,
-                    &challenge,
                     cert.clone(),
                 )
                 .await
@@ -1526,10 +1510,10 @@ mod tests {
             .handle_change_pin_rollback_instruction(
                 Instruction::new_signed(
                     ChangePinRollback {},
+                    challenge.clone(),
                     47,
                     &setup.hw_privkey,
                     &setup.pin_privkey,
-                    &challenge,
                     cert.clone(),
                 )
                 .await
