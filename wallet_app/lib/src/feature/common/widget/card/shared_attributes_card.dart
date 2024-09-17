@@ -150,6 +150,7 @@ class SharedAttributesCard extends StatelessWidget {
     return BoxDecoration(
       borderRadius: _kBorderRadius,
       border: Border.all(
+        strokeAlign: BorderSide.strokeAlignOutside,
         color: context.colorScheme.outlineVariant,
         width: 1,
       ),
