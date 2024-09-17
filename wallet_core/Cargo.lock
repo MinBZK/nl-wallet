@@ -197,6 +197,7 @@ dependencies = [
 name = "apple_app_attest"
 version = "0.2.1-dev"
 dependencies = [
+ "assert_matches",
  "chrono",
  "ciborium",
  "const-decoder",

@@ -59,7 +59,7 @@ pub enum AttestationEnvironment {
 }
 
 impl AttestationEnvironment {
-    pub(crate) fn aaguid(&self) -> Aaguid {
+    pub fn aaguid(&self) -> Aaguid {
         let guid = match self {
             Self::Development => b"appattestdevelop",
             Self::Production => b"appattest\0\0\0\0\0\0\0",
