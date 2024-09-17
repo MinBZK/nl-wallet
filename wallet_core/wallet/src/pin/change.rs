@@ -61,21 +61,12 @@ pub enum ChangePinError {
     #[error("no pin_change transaction in progress")]
     NoChangePinInProgress,
     #[error("instruction failed: {0}")]
-    Instruction(#[from] InstructionError), // TODO: better errors, split in specific errors
+    Instruction(#[from] InstructionError),
     #[error("storage error: {0}")]
-    Storage(#[from] StorageError), // TODO: better errors, split in specific errors
+    Storage(#[from] StorageError),
 }
 
 pub type ChangePinResult<T> = Result<T, ChangePinError>;
-
-pub trait ChangePin {
-    /// Begin the ChangePin transaction.
-    /// After this operation, the user SHOULD immediately be notified about either the success or failure of the change pin, and after that invoke the [continue_change_pin].
-    async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> Result<(), ChangePinError>;
-    /// Continue the ChangePin transaction.
-    /// This will either Commit or Rollback the transaction that was started in [begin_change_pin].
-    async fn continue_change_pin(&self, pin: String) -> Result<(), ChangePinError>;
-}
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {

@@ -14,21 +14,21 @@ use crate::{
     errors::{InstructionError, StorageError},
     pin::{
         change::{
-            ChangePin, ChangePinClient, ChangePinClientError, ChangePinConfiguration, ChangePinError, ChangePinResult,
+            ChangePinClient, ChangePinClientError, ChangePinConfiguration, ChangePinError, ChangePinResult,
             ChangePinStorage, State,
         },
         key::{self as pin_key},
     },
 };
 
-struct ChangePinSession<C, S, R> {
-    client: C,
-    storage: S,
-    config: R,
+struct ChangePinSession<'a, C, S, R> {
+    client: &'a C,
+    storage: &'a S,
+    config: &'a R,
 }
 
-impl<C, S, R> ChangePinSession<C, S, R> {
-    fn new(client: C, storage: S, config: R) -> Self {
+impl<'a, C, S, R> ChangePinSession<'a, C, S, R> {
+    fn new(client: &'a C, storage: &'a S, config: &'a R) -> Self {
         Self {
             client,
             storage,
@@ -37,7 +37,7 @@ impl<C, S, R> ChangePinSession<C, S, R> {
     }
 }
 
-impl<C, S, R, E> ChangePinSession<C, S, R>
+impl<'a, C, S, R, E> ChangePinSession<'a, C, S, R>
 where
     C: ChangePinClient<Error = E>,
     S: ChangePinStorage,
@@ -90,16 +90,7 @@ where
         self.with_retries("rollback", || async { self.client.rollback_new_pin(&old_pin).await })
             .await
     }
-}
 
-// TODO: implement ChangePinClient and ChangePinStorage on Wallet, so that this can also be implemented on Wallet.
-impl<C, S, R, E> ChangePin for ChangePinSession<C, S, R>
-where
-    C: ChangePinClient<Error = E>,
-    S: ChangePinStorage,
-    R: ChangePinConfiguration,
-    E: ChangePinClientError + Into<ChangePinError>,
-{
     async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> ChangePinResult<()> {
         tracing::debug!("start change pin transaction");
 
@@ -180,7 +171,7 @@ mod test {
 
         let change_pin_config = MockChangePinConfiguration::new();
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session
             .begin_change_pin("000111".to_string(), "123789".to_string())
@@ -213,7 +204,7 @@ mod test {
 
         let change_pin_config = MockChangePinConfiguration::new();
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session
             .begin_change_pin("000111".to_string(), "123789".to_string())
@@ -250,7 +241,7 @@ mod test {
 
         let change_pin_config = MockChangePinConfiguration::new();
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session
             .begin_change_pin("000111".to_string(), "123789".to_string())
@@ -274,7 +265,7 @@ mod test {
 
         let change_pin_config = MockChangePinConfiguration::new();
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session
             .begin_change_pin("000111".to_string(), "123789".to_string())
@@ -301,7 +292,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -325,7 +316,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -361,7 +352,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -385,7 +376,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -416,7 +407,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -440,7 +431,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -479,7 +470,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -503,7 +494,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -534,7 +525,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -558,7 +549,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -597,7 +588,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -621,7 +612,7 @@ mod test {
         let mut change_pin_config = MockChangePinConfiguration::new();
         change_pin_config.expect_max_retries().times(1).returning(|| 2);
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -643,7 +634,7 @@ mod test {
 
         let change_pin_config = MockChangePinConfiguration::new();
 
-        let change_pin_session = ChangePinSession::new(change_pin_client, change_pin_storage, change_pin_config);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, &change_pin_config);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
