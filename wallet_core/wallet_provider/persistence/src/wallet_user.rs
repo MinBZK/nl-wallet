@@ -9,8 +9,8 @@ use sea_orm::{
     ActiveValue::Set,
     ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter,
 };
-
 use uuid::Uuid;
+
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider_domain::{
     model::{
@@ -38,6 +38,8 @@ where
         hw_pubkey_der: Set(user.hw_pubkey.to_public_key_der()?.to_vec()),
         encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.data),
         pin_pubkey_iv: Set(user.encrypted_pin_pubkey.iv.0),
+        encrypted_previous_pin_pubkey_sec1: Set(None),
+        previous_pin_pubkey_iv: Set(None),
         instruction_sequence_number: Set(0),
         pin_entries: Set(0),
         last_unsuccessful_pin: Set(None),
@@ -73,6 +75,11 @@ where
                         wallet_user.encrypted_pin_pubkey_sec1,
                         InitializationVector(wallet_user.pin_pubkey_iv),
                     ),
+                    encrypted_previous_pin_pubkey: wallet_user.encrypted_previous_pin_pubkey_sec1.and_then(|sec1| {
+                        wallet_user
+                            .previous_pin_pubkey_iv
+                            .map(|iv| Encrypted::new(sec1, InitializationVector(iv)))
+                    }),
                     hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&wallet_user.hw_pubkey_der).unwrap()),
                     unsuccessful_pin_entries: wallet_user.pin_entries.try_into().ok().unwrap_or(u8::MAX),
                     last_unsuccessful_pin_entry: wallet_user.last_unsuccessful_pin.map(DateTime::<Utc>::from),
@@ -86,6 +93,7 @@ where
         })
         .unwrap_or(WalletUserQueryResult::NotFound))
 }
+
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
 where
     S: ConnectionTrait,
@@ -217,18 +225,78 @@ where
     update_pin_entries(db, wallet_id, Expr::value(0), datetime, false).await
 }
 
-async fn update_fields<S, T, C>(db: &T, wallet_id: &str, col_values: Vec<(C, SimpleExpr)>) -> Result<()>
+pub async fn change_pin<S, T>(db: &T, wallet_id: &str, new_encrypted_pin_pubkey: Encrypted<VerifyingKey>) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
-    C: IntoIden,
 {
-    col_values
-        .into_iter()
-        .fold(wallet_user::Entity::update_many(), |stmt, col_value| {
-            stmt.col_expr(col_value.0, col_value.1)
-        })
-        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+    update_fields(
+        db,
+        wallet_id,
+        vec![
+            (
+                wallet_user::Column::EncryptedPinPubkeySec1,
+                Expr::value(new_encrypted_pin_pubkey.data),
+            ),
+            (
+                wallet_user::Column::PinPubkeyIv,
+                Expr::value(new_encrypted_pin_pubkey.iv.0),
+            ),
+            (
+                wallet_user::Column::EncryptedPreviousPinPubkeySec1,
+                Expr::col(wallet_user::Column::EncryptedPinPubkeySec1).into(),
+            ),
+            (
+                wallet_user::Column::PreviousPinPubkeyIv,
+                Expr::col(wallet_user::Column::PinPubkeyIv).into(),
+            ),
+        ],
+    )
+    .await
+}
+
+pub async fn commit_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::update_many()
+        .col_expr(wallet_user::Column::EncryptedPreviousPinPubkeySec1, Expr::cust("null"))
+        .col_expr(wallet_user::Column::PreviousPinPubkeyIv, Expr::cust("null"))
+        .filter(
+            wallet_user::Column::WalletId
+                .eq(wallet_id)
+                .and(wallet_user::Column::EncryptedPreviousPinPubkeySec1.is_not_null())
+                .and(wallet_user::Column::PreviousPinPubkeyIv.is_not_null()),
+        )
+        .exec(db.connection())
+        .await
+        .map(|_| ())
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+pub async fn rollback_pin_change<S, T>(db: &T, wallet_id: &str) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user::Entity::update_many()
+        .col_expr(
+            wallet_user::Column::EncryptedPinPubkeySec1,
+            Expr::col(wallet_user::Column::EncryptedPreviousPinPubkeySec1).into(),
+        )
+        .col_expr(
+            wallet_user::Column::PinPubkeyIv,
+            Expr::col(wallet_user::Column::PreviousPinPubkeyIv).into(),
+        )
+        .col_expr(wallet_user::Column::EncryptedPreviousPinPubkeySec1, Expr::cust("null"))
+        .col_expr(wallet_user::Column::PreviousPinPubkeyIv, Expr::cust("null"))
+        .filter(
+            wallet_user::Column::WalletId
+                .eq(wallet_id)
+                .and(wallet_user::Column::EncryptedPreviousPinPubkeySec1.is_not_null())
+                .and(wallet_user::Column::PreviousPinPubkeyIv.is_not_null()),
+        )
         .exec(db.connection())
         .await
         .map(|_| ())
@@ -250,6 +318,24 @@ where
         .col_expr(wallet_user::Column::PinEntries, pin_entries)
         .col_expr(wallet_user::Column::LastUnsuccessfulPin, Expr::value(datetime))
         .col_expr(wallet_user::Column::IsBlocked, Expr::value(is_blocked))
+        .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .exec(db.connection())
+        .await
+        .map(|_| ())
+        .map_err(|e| PersistenceError::Execution(e.into()))
+}
+
+async fn update_fields<S, T, C>(db: &T, wallet_id: &str, col_values: Vec<(C, SimpleExpr)>) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+    C: IntoIden,
+{
+    col_values
+        .into_iter()
+        .fold(wallet_user::Entity::update_many(), |stmt, col_value| {
+            stmt.col_expr(col_value.0, col_value.1)
+        })
         .filter(wallet_user::Column::WalletId.eq(wallet_id))
         .exec(db.connection())
         .await

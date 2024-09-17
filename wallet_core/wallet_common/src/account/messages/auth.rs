@@ -6,7 +6,7 @@ use crate::{
     account::{
         errors::{Error, Result},
         serialization::DerVerifyingKey,
-        signed::SignedDouble,
+        signed::ChallengeResponse,
     },
     jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
@@ -32,14 +32,14 @@ impl Registration {
     pub async fn new_signed(
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
-        challenge: &[u8],
-    ) -> Result<SignedDouble<Registration>> {
+        challenge: Vec<u8>,
+    ) -> Result<ChallengeResponse<Registration>> {
         let (pin_pubkey, hw_pubkey) = try_join!(
             pin_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
             hw_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
         )?;
 
-        SignedDouble::sign(
+        ChallengeResponse::sign(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
                 hw_pubkey: hw_pubkey.into(),
@@ -94,8 +94,7 @@ mod tests {
         let challenge = b"challenge";
 
         // wallet calculates wallet provider registration message
-        let msg = Registration::new_signed(&hw_privkey, &pin_privkey, challenge).await?;
-        println!("{}", &msg.0);
+        let msg = Registration::new_signed(&hw_privkey, &pin_privkey, challenge.to_vec()).await?;
 
         let unverified = msg.dangerous_parse_unverified()?;
 

@@ -46,7 +46,7 @@ pub struct AccountServerKeys {
 
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
-    pub issuance_key: KeyPair,
+    pub issuance_key: KeyPair<SigningKey>,
     pub trust_anchor: DerTrustAnchor,
 }
 

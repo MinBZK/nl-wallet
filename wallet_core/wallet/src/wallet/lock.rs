@@ -261,13 +261,10 @@ mod tests {
             .return_once(move |_, challenge_request| {
                 assert_eq!(challenge_request.certificate.0, wallet_cert.0);
 
-                let claims = challenge_request
-                    .message
-                    .parse_and_verify_with_sub(&(&hw_pubkey).into())
-                    .expect("Could not verify check pin challenge request");
-
-                assert_eq!(claims.sequence_number, 1);
-                assert_eq!(claims.iss, "wallet");
+                challenge_request
+                    .request
+                    .parse_and_verify(SequenceNumberComparison::EqualTo(1), &hw_pubkey)
+                    .expect("challenge request should be valid");
 
                 Ok(challenge_response)
             });

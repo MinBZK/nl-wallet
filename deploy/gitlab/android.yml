@@ -99,6 +99,7 @@ build-android-app-ont-profile:
   variables:
     APP_FILE_FORMAT: "apk"
     APP_BUILD_MODE: "profile"
+    MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 .build-android-app-release-tag:
   extends: [.env-ont-k8s, .build-android-app]
@@ -151,6 +152,7 @@ build-android-app-demo-profile:
   variables:
     APP_FILE_FORMAT: "apk" # override .build-android-app-release-tag
     APP_BUILD_MODE: "profile" # override .build-android-app-release-tag
+    MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 build-android-app-acceptance:
   extends: .build-android-app-release-tag

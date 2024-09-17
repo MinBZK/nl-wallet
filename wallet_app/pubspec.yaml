@@ -39,6 +39,7 @@ dependencies:
   lottie: ^3.1.2
   meta: ^1.12.0
   mobile_scanner: ^5.1.1
+  native_device_orientation: ^2.0.3
   package_info_plus: ^8.0.0
   permission_handler: ^11.3.1
   provider: ^6.1.2
@@ -47,7 +48,7 @@ dependencies:
   rxdart: ^0.27.7
   screen_brightness: ^1.0.1
   sensors_plus: ^5.0.1
-  sentry_flutter: ^7.18.0
+  sentry_flutter: ^8.9.0
   shared_preferences: ^2.2.3
   url_launcher: ^6.2.6
   vibration: ^1.9.0
