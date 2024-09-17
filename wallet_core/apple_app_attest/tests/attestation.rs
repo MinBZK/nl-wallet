@@ -4,8 +4,7 @@ use const_decoder::{Decoder, Pem};
 use webpki::TrustAnchor;
 
 use apple_app_attest::{
-    app_identifier::AppIdentifier,
-    attestation::{Attestation, AttestationEnvironment, AttestationError, AttestationValidationError},
+    AppIdentifier, Attestation, AttestationEnvironment, AttestationError, AttestationValidationError,
 };
 
 // Source: https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem

@@ -5,10 +5,7 @@ use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use apple_app_attest::{
-    app_identifier::AppIdentifier,
-    assertion::{Assertion, ClientData},
-};
+use apple_app_attest::{AppIdentifier, Assertion, ClientData};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct MockClientData {
