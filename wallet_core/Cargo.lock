@@ -2904,14 +2904,16 @@ dependencies = [
 
 [[package]]
 name = "passkey-types"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "499cff8432e71c5f8784d9645aac0f9fca604d67f59b68a606170b5e229c6538"
+checksum = "6b5d3d17d8ad54ba7c7574595f026244ab06ee44f0524379c1575a95aab4c030"
 dependencies = [
  "bitflags 2.6.0",
  "ciborium",
  "coset",
  "data-encoding",
+ "getrandom",
+ "hmac",
  "indexmap 2.2.6",
  "rand",
  "serde",
@@ -2919,6 +2921,7 @@ dependencies = [
  "sha2",
  "strum 0.25.0",
  "typeshare",
+ "zeroize",
 ]
 
 [[package]]
@@ -6248,3 +6251,17 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+dependencies = [
+ "zeroize_derive",
+]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.68",
+]
