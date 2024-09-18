@@ -28,7 +28,7 @@ class PageIllustration extends StatelessWidget {
       width: double.infinity,
       child: SvgOrImage(
         asset: asset,
-        fit: context.isLandscape ? BoxFit.contain : BoxFit.fitWidth,
+        fit: context.isLandscape ? BoxFit.contain : BoxFit.scaleDown,
       ),
     );
   }
