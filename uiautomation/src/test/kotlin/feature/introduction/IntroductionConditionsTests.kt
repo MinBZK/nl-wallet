@@ -6,11 +6,14 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.common.PlaceholderScreen
 import screen.introduction.IntroductionConditionsScreen
 import screen.security.PinScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${IntroductionConditionsTests.USE_CASE} User accepts terms & conditions [${IntroductionConditionsTests.JIRA_ID}]")
 class IntroductionConditionsTests : TestBase() {
 

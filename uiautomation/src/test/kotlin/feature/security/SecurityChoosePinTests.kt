@@ -6,10 +6,13 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.security.PinScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${SecurityChoosePinTests.USE_CASE} User chooses PIN [${SecurityChoosePinTests.JIRA_ID}]")
 class SecurityChoosePinTests : TestBase() {
 

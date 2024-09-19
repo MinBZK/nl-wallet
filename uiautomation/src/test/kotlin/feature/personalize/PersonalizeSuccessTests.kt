@@ -6,10 +6,13 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.personalize.PersonalizeSuccessScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${PersonalizeSuccessTests.USE_CASE} App confirms PID issuance to user [${PersonalizeSuccessTests.JIRA_ID}]")
 class PersonalizeSuccessTests : TestBase() {
 

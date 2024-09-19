@@ -4,12 +4,15 @@ import helper.TestBase
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.introduction.IntroductionScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${AppStartTests.USE_CASE} Open the App [${AppStartTests.JIRA_ID}]")
 class AppStartTests : TestBase() {
 
