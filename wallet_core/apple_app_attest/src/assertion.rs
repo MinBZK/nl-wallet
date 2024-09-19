@@ -38,9 +38,9 @@ pub enum AssertionValidationError {
     ChallengeMismatch,
 }
 
-/// Represents the server request that is to be signed with the attested key. The `hash_data()` method should produce a
-/// serialized representation of that request, which should include the challenge provided by the server. The
-/// `challenge()` method should provide just the server challenge.
+/// Represents the server request that is to be signed with the attested key. The `hash_data()` method produces a
+/// serialized representation of that request, which must include the challenge provided by the server. This is part of
+/// the contract of this trait. The `challenge()` method provides the server challenge itself.
 pub trait ClientData {
     type Error: Error + Send + Sync + 'static;
 
