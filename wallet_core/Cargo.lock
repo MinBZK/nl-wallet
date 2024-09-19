@@ -206,6 +206,7 @@ dependencies = [
  "p256",
  "passkey-types",
  "rand_core",
+ "rstest",
  "rustls-webpki 0.101.7",
  "serde",
  "serde_json",
