@@ -12,7 +12,7 @@ use crate::{app_identifier::AppIdentifier, auth_data::AuthenticatorDataWithSourc
 pub enum AssertionError {
     #[error("assertion could not be decoded: {0}")]
     Decoding(#[from] AssertionDecodingError),
-    #[error("asseration did not validate: {0}")]
+    #[error("assertion did not validate: {0}")]
     Validation(#[from] AssertionValidationError),
 }
 
