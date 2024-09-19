@@ -30,7 +30,7 @@ pub enum AttestationDecodingError {
     PublicKey(#[source] CertificateError),
     #[error("decoding certificate extension data failed: {0}")]
     CertificateExtension(#[source] CertificateError),
-    #[error("intial counter is not present in authenticator data")]
+    #[error("initial counter is not present in authenticator data")]
     CounterMissing,
     #[error("attested credential data is not present in authenticator data")]
     AttestedCredentialDataMissing,
