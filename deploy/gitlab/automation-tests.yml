@@ -91,9 +91,14 @@ run-automation-tests-suite-menu:
   needs: [ { job: run-automation-tests-suite-card } ]
   variables: { TESTS: "suite.MenuTestSuite" }
 
-run-automation-tests-suite-settings:
+run-automation-tests-suite-history:
   extends: .run-automation-tests-default
   needs: [ { job: run-automation-tests-suite-menu } ]
+  variables: { TESTS: "suite.HistoryTestSuite" }
+
+run-automation-tests-suite-settings:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-history } ]
   variables: { TESTS: "suite.SettingsTestSuite" }
 
 run-automation-tests-suite-lock:
