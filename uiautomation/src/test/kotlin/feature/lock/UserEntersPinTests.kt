@@ -6,7 +6,9 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.dashboard.DashboardScreen
@@ -14,6 +16,7 @@ import screen.menu.MenuScreen
 import screen.security.ForgotPinScreen
 import screen.security.PinScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${UserEntersPinTests.USE_CASE} User enters pin [${UserEntersPinTests.JIRA_ID}]")
 class UserEntersPinTests : TestBase() {
 

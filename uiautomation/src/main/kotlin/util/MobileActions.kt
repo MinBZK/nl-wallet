@@ -125,9 +125,6 @@ open class MobileActions {
 
                 // Switch to the web view context
                 androidDriver.context(androidDriver.contextHandles.first { it.contains(WEB_VIEW_CONTEXT_PREFIX) })
-
-                // Switch to the latest created browser tab (in case multiple tabs are open)
-                androidDriver.switchTo().window(androidDriver.windowHandles.first())
             }
         } else {
             throw Exception("Platform $platform is not supported")
@@ -168,7 +165,7 @@ open class MobileActions {
         private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 60000L
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 1200000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 1200000L
-        private const val BROWSER_STARTUP_TIMEOUT = 5000L
+        private const val BROWSER_STARTUP_TIMEOUT = 1000L
 
         private const val FLUTTER_APP_CONTEXT = "FLUTTER"
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"

@@ -6,11 +6,14 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeConfirmPinScreen
 import screen.personalize.PersonalizePidDataIncorrectScreen
 import screen.personalize.PersonalizePidPreviewScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${PersonalizePidPreviewTests.USE_CASE} User confirms/rejects offered PID [${PersonalizePidPreviewTests.JIRA_ID}]")
 class PersonalizePidPreviewTests : TestBase() {
 

@@ -6,13 +6,16 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.menu.MenuScreen
 import screen.security.PinScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${UserLocksWalletTests.USE_CASE} Log out of the App [${UserLocksWalletTests.JIRA_ID}]")
 class UserLocksWalletTests : TestBase() {
 

@@ -6,10 +6,13 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeInformScreen
 import screen.security.SecuritySetupCompletedScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${SecuritySetupCompletedTests.USE_CASE} Wallet creates account, initializes and confirms to user [${SecuritySetupCompletedTests.JIRA_ID}]")
 class SecuritySetupCompletedTests : TestBase() {
 

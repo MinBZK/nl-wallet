@@ -4,13 +4,16 @@ import helper.TestBase
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${IntroductionTests.USE_CASE} App displays introductory information [${IntroductionTests.JIRA_ID}]")
 class IntroductionTests : TestBase() {
 
