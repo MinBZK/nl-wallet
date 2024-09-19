@@ -33,40 +33,82 @@
       -Dfile.encoding=UTF-8
   allow_failure: true # Allow failure as only the test results of succeeding pipelines are read into Quality Time.
 
-run-automation-tests-14-part-1:
-  extends: .run-automation-tests
+.run-automation-tests-default-rules: &run-automation-tests-default-rules
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: always
     - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: manual
-  variables:
-    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
-    DEVICE_NAME: "Google Pixel 8"
-    PLATFORM_NAME: "Android"
-    PLATFORM_VERSION: "14.0"
-    TESTS: "suite.AppStartToDashboardTestSuite"
 
-run-automation-tests-14-part-2:
-  extends: .run-automation-tests
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
-      when: always
-    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
-      when: manual
-  needs:
-    - job: run-automation-tests-14-part-1
-      artifacts: false
+.run-automation-tests-default-variables: &run-automation-tests-default-variables
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
-    TESTS: "suite.DashboardAndBeyondTestSuite"
+
+.run-automation-tests-default:
+  extends: .run-automation-tests
+  <<: *run-automation-tests-default-rules
+  <<: *run-automation-tests-default-variables
+
+run-automation-tests-suite-appstart:
+  extends: .run-automation-tests-default
+  variables: { TESTS: "suite.AppStartTestSuite" }
+
+run-automation-tests-suite-introduction:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-appstart } ]
+  variables: { TESTS: "suite.IntroductionTestSuite" }
+
+run-automation-tests-suite-security:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-introduction } ]
+  variables: { TESTS: "suite.SecurityTestSuite" }
+
+run-automation-tests-suite-confirm:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-security } ]
+  variables: { TESTS: "suite.ConfirmTestSuite" }
+
+run-automation-tests-suite-personalize:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-confirm } ]
+  variables: { TESTS: "suite.PersonalizeTestSuite" }
+
+run-automation-tests-suite-dashboard:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-personalize } ]
+  variables: { TESTS: "suite.DashboardTestSuite" }
+
+run-automation-tests-suite-card:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-dashboard } ]
+  variables: { TESTS: "suite.CardTestSuite" }
+
+run-automation-tests-suite-menu:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-card } ]
+  variables: { TESTS: "suite.MenuTestSuite" }
+
+run-automation-tests-suite-settings:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-menu } ]
+  variables: { TESTS: "suite.SettingsTestSuite" }
+
+run-automation-tests-suite-lock:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-settings } ]
+  variables: { TESTS: "suite.LockTestSuite" }
+
+run-automation-tests-suite-web:
+  extends: .run-automation-tests-default
+  needs: [ { job: run-automation-tests-suite-lock } ]
+  variables: { TESTS: "suite.WebTestSuite" }
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
-  rules: !reference [.default-branch, rules]
+  rules: !reference [ .default-branch, rules ]
   needs:
     - job: upload-browserstack-android-app-ont
       artifacts: false
