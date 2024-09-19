@@ -154,12 +154,12 @@ impl Attestation {
         }
 
         // 5. Create the SHA256 hash of the public key in credCert with X9.62 uncompressed point format, and verify that
-        // it matches the key identifier from your app.
+        //    it matches the key identifier from your app.
 
         let key_identifier = Sha256::digest(public_key.to_encoded_point(false));
 
         // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s
-        // RP ID hash.
+        //    RP ID hash.
 
         if attestation.auth_data.as_ref().rp_id_hash() != app_identifier.sha256_hash() {
             return Err(AttestationValidationError::RpIdMismatch)?;
@@ -178,8 +178,8 @@ impl Attestation {
         }
 
         // 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the
-        // development environment, or appattest followed by seven 0x00 bytes if operating in the production
-        // environment.
+        //    development environment, or appattest followed by seven 0x00 bytes if operating in the production
+        //    environment.
 
         let attested_credential_data = attestation
             .auth_data
