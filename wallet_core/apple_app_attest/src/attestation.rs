@@ -156,6 +156,11 @@ impl Attestation {
         // 5. Create the SHA256 hash of the public key in credCert with X9.62 uncompressed point format, and verify that
         //    it matches the key identifier from your app.
 
+        // NB: The Apple documentation specifies that the app should send the key identifier to the server, along with
+        //     the attestation data. However, this does not appear to add any additional guarantees, as the key
+        //     identifier calculated here is already compared with the value extracted in step 9. For this reason we
+        //     do not take the key identifier as a parameter and only calculate it here in preparation for step 9.
+
         let key_identifier = Sha256::digest(public_key.to_encoded_point(false));
 
         // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s
