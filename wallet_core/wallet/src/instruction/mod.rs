@@ -11,6 +11,7 @@ use crate::{
 
 pub use self::{
     client::InstructionClient,
+    client::InstructionClientFactory,
     keys::{RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
 };
 

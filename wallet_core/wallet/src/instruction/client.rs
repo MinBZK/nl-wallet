@@ -97,11 +97,22 @@ where
     where
         I: InstructionAndResult + 'static,
     {
+        self.construct_and_send(|_| async { Ok(instruction) }).await
+    }
+
+    pub async fn construct_and_send<F, Fut, I>(&self, construct: F) -> Result<I::Result, InstructionError>
+    where
+        F: FnOnce(Vec<u8>) -> Fut,
+        Fut: Future<Output = Result<I, InstructionError>>,
+        I: InstructionAndResult + 'static,
+    {
         let mut storage = self.storage.write().await;
 
         let challenge = self.instruction_challenge::<I>(&mut storage).await?;
 
         let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt);
+
+        let instruction = construct(challenge.clone()).await?;
 
         let instruction = self
             .with_sequence_number(&mut storage, |seq_num| {
@@ -128,5 +139,46 @@ where
             .result;
 
         Ok(result)
+    }
+}
+
+pub struct InstructionClientFactory<'a, S, K, A> {
+    storage: &'a RwLock<S>,
+    hw_privkey: &'a K,
+    account_provider_client: &'a A,
+    registration: &'a RegistrationData,
+    account_provider_base_url: &'a BaseUrl,
+    instruction_result_public_key: &'a EcdsaDecodingKey,
+}
+
+impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
+    pub fn new(
+        storage: &'a RwLock<S>,
+        hw_privkey: &'a K,
+        account_provider_client: &'a A,
+        registration: &'a RegistrationData,
+        account_provider_base_url: &'a BaseUrl,
+        instruction_result_public_key: &'a EcdsaDecodingKey,
+    ) -> Self {
+        Self {
+            storage,
+            hw_privkey,
+            account_provider_client,
+            registration,
+            account_provider_base_url,
+            instruction_result_public_key,
+        }
+    }
+
+    pub fn create(&self, pin: String) -> InstructionClient<'a, S, K, A> {
+        InstructionClient {
+            pin,
+            storage: self.storage,
+            hw_privkey: self.hw_privkey,
+            account_provider_client: self.account_provider_client,
+            registration: self.registration,
+            account_provider_base_url: self.account_provider_base_url,
+            instruction_result_public_key: self.instruction_result_public_key,
+        }
     }
 }

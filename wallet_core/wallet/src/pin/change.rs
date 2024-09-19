@@ -1,10 +1,8 @@
-#![allow(unused)]
-
 use std::future::Future;
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
+use error_category::ErrorCategory;
 use wallet_common::account::messages::auth::WalletCertificate;
 
 use crate::{
@@ -54,11 +52,20 @@ pub trait ChangePinConfiguration {
     async fn max_retries(&self) -> u8;
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum ChangePinError {
+    #[error("wallet is not registered")]
+    #[category(expected)]
+    NotRegistered,
+    #[error("wallet is locked")]
+    #[category(expected)]
+    Locked,
     #[error("pin_change transaction already in progress")]
+    #[category(expected)]
     ChangePinAlreadyInProgress,
     #[error("no pin_change transaction in progress")]
+    #[category(expected)]
     NoChangePinInProgress,
     #[error("instruction failed: {0}")]
     Instruction(#[from] InstructionError),
@@ -68,14 +75,14 @@ pub enum ChangePinError {
 
 pub type ChangePinResult<T> = Result<T, ChangePinError>;
 
-struct ChangePinSession<'a, C, S, R> {
+pub struct ChangePinSession<'a, C, S, R> {
     client: &'a C,
     storage: &'a S,
     config: &'a R,
 }
 
 impl<'a, C, S, R> ChangePinSession<'a, C, S, R> {
-    fn new(client: &'a C, storage: &'a S, config: &'a R) -> Self {
+    pub fn new(client: &'a C, storage: &'a S, config: &'a R) -> Self {
         Self {
             client,
             storage,
@@ -138,7 +145,7 @@ where
             .await
     }
 
-    async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> ChangePinResult<()> {
+    pub async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> ChangePinResult<()> {
         tracing::debug!("start change pin transaction");
 
         if let Some(_state) = self.storage.get_change_pin_state().await? {
@@ -166,7 +173,7 @@ where
         }
     }
 
-    async fn continue_change_pin(&self, pin: String) -> ChangePinResult<()> {
+    pub async fn continue_change_pin(&self, pin: String) -> ChangePinResult<()> {
         tracing::debug!("continue change pin transaction");
 
         match self.storage.get_change_pin_state().await? {
@@ -216,8 +223,8 @@ mod test {
     use crate::{
         errors::InstructionError,
         pin::change::{
-            mock::ChangePinClientTestError, ChangePinClient, ChangePinConfiguration, ChangePinError, ChangePinStorage,
-            MockChangePinClient, MockChangePinConfiguration, MockChangePinStorage, State,
+            mock::ChangePinClientTestError, ChangePinError, MockChangePinClient, MockChangePinConfiguration,
+            MockChangePinStorage, State,
         },
     };
 

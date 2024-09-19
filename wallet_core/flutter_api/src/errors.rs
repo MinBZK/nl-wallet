@@ -8,9 +8,9 @@ use url::Url;
 use wallet::{
     errors::{
         openid4vc::{IssuanceSessionError, OidcError, VpClientError, VpMessageClientErrorType},
-        reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
-        PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
-        WalletUnlockError,
+        reqwest, AccountProviderError, ChangePinError, DigidSessionError, DisclosureError, HistoryError,
+        InstructionError, PidIssuanceError, ResetError, UriIdentificationError, WalletInitError,
+        WalletRegistrationError, WalletUnlockError,
     },
     openid4vc::SessionType,
 };
@@ -106,6 +106,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<HistoryError>().map(Self::from))
             .or_else(|e| e.downcast::<ResetError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
+            .or_else(|e| e.downcast::<ChangePinError>().map(Self::from))
     }
 }
 
@@ -315,6 +316,18 @@ impl FlutterApiErrorFields for ResetError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             ResetError::NotRegistered => FlutterApiErrorType::WalletState,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for ChangePinError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::NotRegistered | Self::Locked | Self::ChangePinAlreadyInProgress | Self::NoChangePinInProgress => {
+                FlutterApiErrorType::WalletState
+            }
+            Self::Instruction(e) => FlutterApiErrorType::from(e),
+            Self::Storage(_) => FlutterApiErrorType::Generic,
         }
     }
 }

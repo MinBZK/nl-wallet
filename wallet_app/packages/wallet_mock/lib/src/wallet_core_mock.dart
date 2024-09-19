@@ -266,6 +266,13 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
+  Future<WalletInstructionResult> continueChangePin({required String pin, hint}) async {
+    _pinManager.updatePin(pin);
+    await Future.delayed(const Duration(seconds: 1));
+    return _pinManager.checkPin(pin);
+  }
+
+  @override
   Future<WalletInstructionResult> checkPin({required String pin, hint}) async => _pinManager.checkPin(pin);
 }
 
@@ -337,6 +344,8 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kSetBiometricUnlockConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kChangePinConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kContinueChangePinConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kCheckPinConstMeta => throw UnimplementedError();
 }
