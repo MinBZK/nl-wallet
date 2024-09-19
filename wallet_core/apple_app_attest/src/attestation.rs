@@ -110,7 +110,7 @@ impl Attestation {
         let attestation: Self = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
 
         // The steps below are listed at:
-        // https://developer.apple.com/documentation/devicecheck/validating-apps-that-connect-to-your-server.
+        // https://developer.apple.com/documentation/devicecheck/validating-apps-that-connect-to-your-server#Verify-the-attestation
 
         // 1. Verify that the x5c array contains the intermediate and leaf certificates for App Attest, starting from
         //    the credential certificate in the first data buffer in the array (credcert). Verify the validity of the

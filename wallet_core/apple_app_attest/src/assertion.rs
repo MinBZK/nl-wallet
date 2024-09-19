@@ -79,6 +79,9 @@ impl Assertion {
     ) -> Result<(Self, u32), AssertionError> {
         let assertion: Self = ciborium::from_reader(bytes).map_err(AssertionDecodingError::Cbor)?;
 
+        // The steps below are listed at:
+        // https://developer.apple.com/documentation/devicecheck/validating-apps-that-connect-to-your-server#Verify-the-attestation
+
         // 1. Compute clientDataHash as the SHA256 hash of clientData.
 
         let client_data_hash = Sha256::digest(
