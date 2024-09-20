@@ -17,8 +17,10 @@ use crate::{
     account_provider::AccountProviderClient,
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     document::{Document, DocumentMdocError, PID_DOCTYPE},
+    errors::ChangePinError,
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     issuance::{DigidSession, DigidSessionError, HttpDigidSession},
+    pin::change::ChangePinStorage,
     storage::{Storage, StorageError, WalletEvent},
 };
 
@@ -76,6 +78,12 @@ pub enum PidIssuanceError {
     Document(#[source] DocumentsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
+    #[error("could not read pin change state from database: {0}")]
+    #[category(defer)]
+    ChangePinStorage(#[source] StorageError),
+    #[error("error finalizing pin change: {0}")]
+    #[category(defer)]
+    ChangePin(#[from] ChangePinError),
 }
 
 impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
@@ -260,6 +268,16 @@ where
         info!("Checking if locked");
         if self.lock.is_locked() {
             return Err(PidIssuanceError::Locked);
+        }
+
+        info!("Try to finalize PIN change if it is in progress");
+        if let Some(_state) = self
+            .storage
+            .get_change_pin_state()
+            .await
+            .map_err(PidIssuanceError::ChangePinStorage)?
+        {
+            self.continue_change_pin(pin.clone()).await?;
         }
 
         info!("Checking if there is an active PID issuance session");

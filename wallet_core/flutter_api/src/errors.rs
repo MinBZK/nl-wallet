@@ -149,6 +149,8 @@ impl FlutterApiErrorFields for WalletUnlockError {
             | WalletUnlockError::BiometricsUnlockingNotEnabled => FlutterApiErrorType::WalletState,
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
             WalletUnlockError::UnlockMethodStorage(_) => FlutterApiErrorType::Generic,
+            WalletUnlockError::ChangePinStorage(_) => FlutterApiErrorType::Generic,
+            WalletUnlockError::ChangePin(e) => e.typ(),
         }
     }
 }
@@ -328,6 +330,7 @@ impl FlutterApiErrorFields for ChangePinError {
             }
             Self::Instruction(e) => FlutterApiErrorType::from(e),
             Self::Storage(_) => FlutterApiErrorType::Generic,
+            Self::PinValidation(_) => FlutterApiErrorType::Generic,
         }
     }
 }

@@ -22,7 +22,9 @@ use crate::{
         MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
     },
     document::{DisclosureDocument, DisclosureType, DocumentMdocError, MissingDisclosureAttributes},
+    errors::ChangePinError,
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
+    pin::change::ChangePinStorage,
     storage::{EventStatus, Storage, StorageError, StoredMdocCopy, WalletEvent},
 };
 
@@ -71,6 +73,12 @@ pub enum DisclosureError {
     IncrementUsageCount(#[source] StorageError),
     #[error("could not store event in history database: {0}")]
     EventStorage(#[source] EventStorageError),
+    #[error("could not read pin change state from database: {0}")]
+    #[category(defer)]
+    ChangePinStorage(#[source] StorageError),
+    #[error("error finalizing pin change: {0}")]
+    #[category(defer)]
+    ChangePin(#[from] ChangePinError),
 }
 
 impl DisclosureError {
@@ -329,6 +337,16 @@ where
         info!("Checking if locked");
         if self.lock.is_locked() {
             return Err(DisclosureError::Locked);
+        }
+
+        info!("Try to finalize PIN change if it is in progress");
+        if let Some(_state) = self
+            .storage
+            .get_change_pin_state()
+            .await
+            .map_err(DisclosureError::ChangePinStorage)?
+        {
+            self.continue_change_pin(pin.clone()).await?;
         }
 
         info!("Checking if a disclosure session is present");

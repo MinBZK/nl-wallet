@@ -9,8 +9,9 @@ pub use crate::{lock::LockCallback, storage::UnlockMethod};
 use crate::{
     account_provider::AccountProviderClient,
     config::ConfigurationRepository,
-    errors::StorageError,
+    errors::{ChangePinError, StorageError},
     instruction::{InstructionClient, InstructionError},
+    pin::change::ChangePinStorage,
     storage::{Storage, UnlockData},
 };
 
@@ -33,6 +34,12 @@ pub enum WalletUnlockError {
     #[error("could not write or read unlock method to or from database: {0}")]
     #[category(defer)]
     UnlockMethodStorage(#[source] StorageError),
+    #[error("could not read pin change state from database: {0}")]
+    #[category(defer)]
+    ChangePinStorage(#[source] StorageError),
+    #[error("error finalizing pin change: {0}")]
+    #[category(defer)]
+    ChangePin(#[from] ChangePinError),
 }
 
 impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
@@ -145,6 +152,16 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
             return Err(WalletUnlockError::NotLocked);
         }
 
+        info!("Try to finalize PIN change if it is in progress");
+        if let Some(_state) = self
+            .storage
+            .get_change_pin_state()
+            .await
+            .map_err(WalletUnlockError::ChangePinStorage)?
+        {
+            self.continue_change_pin(pin.clone()).await?;
+        }
+
         self.send_check_pin_instruction(pin).await?;
 
         info!("Unlock instruction successful, unlocking wallet");
@@ -163,6 +180,16 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         APC: AccountProviderClient,
     {
         info!("Checking pin");
+
+        info!("Try to finalize PIN change if it is in progress");
+        if let Some(_state) = self
+            .storage
+            .get_change_pin_state()
+            .await
+            .map_err(WalletUnlockError::ChangePinStorage)?
+        {
+            self.continue_change_pin(pin.clone()).await?;
+        }
 
         self.send_check_pin_instruction(pin).await
     }
@@ -214,7 +241,11 @@ mod tests {
         utils,
     };
 
-    use crate::{account_provider::AccountProviderResponseError, pin::key::PinKey};
+    use crate::{
+        account_provider::AccountProviderResponseError,
+        pin::key::PinKey,
+        storage::{InstructionData, KeyedData},
+    };
 
     use super::{
         super::test::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
@@ -547,7 +578,7 @@ mod tests {
         wallet.lock();
 
         // Have the database return an error when fetching the sequence number.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.get_mut().set_keyed_data_error(InstructionData::KEY);
 
         // Unlocking the wallet should now result in an
         // `InstructionError::StoreInstructionSequenceNumber` error.

@@ -6,8 +6,9 @@ use error_category::ErrorCategory;
 use wallet_common::account::messages::auth::WalletCertificate;
 
 use crate::{
-    errors::{InstructionError, StorageError},
+    errors::{InstructionError, PinValidationError, StorageError},
     pin::key::{self as pin_key},
+    validate_pin,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,6 +68,8 @@ pub enum ChangePinError {
     #[error("no pin_change transaction in progress")]
     #[category(expected)]
     NoChangePinInProgress,
+    #[error("the new PIN does not adhere to requirements: {0}")]
+    PinValidation(#[from] PinValidationError),
     #[error("instruction failed: {0}")]
     Instruction(#[from] InstructionError),
     #[error("storage error: {0}")]
@@ -104,7 +107,7 @@ where
         F: Fn() -> Fut,
         Fut: Future<Output = Result<(), E>>,
     {
-        tracing::debug!("{operation_name} change pin transaction");
+        tracing::info!("{operation_name} change PIN transaction");
 
         let max_retries = self.config.max_retries().await;
 
@@ -116,22 +119,22 @@ where
                 Ok(()) => break,
                 Err(error) if error.is_network_error() => {
                     if retries >= max_retries {
-                        tracing::warn!("network error during {operation_name}: {error:?}");
-                        tracing::debug!("too many network errors during {operation_name}");
+                        tracing::warn!("Network error during {operation_name}: {error:?}");
+                        tracing::info!("Too many network errors during {operation_name}");
                         return Err(error.into());
                     } else {
-                        tracing::warn!("network error during {operation_name}, trying again: {error:?}")
+                        tracing::warn!("Network error during {operation_name}, trying again: {error:?}")
                     }
                 }
                 Err(error) => {
-                    tracing::error!("error during {operation_name}: {error:?}");
+                    tracing::error!("Error during {operation_name}: {error:?}");
                     return Err(error.into());
                 }
             }
         }
         self.storage.clear_change_pin_state().await?;
 
-        tracing::debug!("{operation_name} successful");
+        tracing::info!("{operation_name} successful");
         Ok(())
     }
 
@@ -146,11 +149,16 @@ where
     }
 
     pub async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> ChangePinResult<()> {
-        tracing::debug!("start change pin transaction");
+        tracing::info!("Start change PIN transaction");
 
+        tracing::info!("Ensure no PIN change is in progress");
         if let Some(_state) = self.storage.get_change_pin_state().await? {
             return Err(ChangePinError::ChangePinAlreadyInProgress);
         }
+
+        tracing::info!("Validating new PIN");
+        // Make sure the new PIN adheres to the requirements.
+        validate_pin(&new_pin)?;
 
         let new_pin_salt = pin_key::new_pin_salt();
 
@@ -174,7 +182,7 @@ where
     }
 
     pub async fn continue_change_pin(&self, pin: String) -> ChangePinResult<()> {
-        tracing::debug!("continue change pin transaction");
+        tracing::info!("Continue change PIN transaction");
 
         match self.storage.get_change_pin_state().await? {
             None => Err(ChangePinError::NoChangePinInProgress),

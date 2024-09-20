@@ -8,6 +8,10 @@ mod sql_cipher_key;
 #[cfg(any(test, feature = "mock"))]
 mod mock_storage;
 
+// #[cfg(any(test, feature = "mock"))]
+#[cfg(test)]
+pub use mock_storage::KeyedDataResult;
+
 use std::{array::TryFromSliceError, collections::HashSet, io};
 
 use sea_orm::DbErr;

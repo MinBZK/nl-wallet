@@ -23,6 +23,8 @@ where
     APC: AccountProviderClient,
 {
     pub async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> Result<(), ChangePinError> {
+        info!("Begin PIN change");
+
         info!("Checking if registered");
         let registration = self
             .registration
@@ -52,21 +54,21 @@ where
 
         session.begin_change_pin(old_pin, new_pin).await?;
 
+        info!("PIN change started");
+
         Ok(())
     }
 
     pub async fn continue_change_pin(&self, pin: String) -> Result<(), ChangePinError> {
-        info!("Checking if registered");
+        info!("Continue PIN change");
 
+        info!("Checking if registered");
         let registration = self
             .registration
             .as_ref()
             .ok_or_else(|| ChangePinError::NotRegistered)?;
 
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(ChangePinError::Locked);
-        }
+        // Wallet does not need to be unlocked, see [`Wallet::unlock`].
 
         let config = self.config_repository.config();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
@@ -85,6 +87,8 @@ where
         let session = ChangePinSession::new(&instruction_client, &self.storage, &change_pin_config);
 
         session.continue_change_pin(pin).await?;
+
+        info!("PIN change successfully finalized");
 
         Ok(())
     }
