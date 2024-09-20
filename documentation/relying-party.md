@@ -189,7 +189,7 @@ present a view of the relying party in the wallet app GUI. What we need to know:
 | organization_country_code       | -         | Two-letter country code of relying party residence.                               |
 | organization_kvk                | -         | Chamber of commerce number of relying party.                                      |
 | organization_privacy_policy_url | -         | Link to relying party's privacy policy.                                           |
-| request_origin_base_url         | -         | Where do your requests come from? See [CORS][11].                                 |
+| request_origin_base_url         | -         | What is the URL the user sees in the address bar when they start disclosure?      |
 | list_of_verifiable_attributes   | -         | List of attributes determined in previous section.                                |
 
 Collect answers to the above, they will be needed once we file the request later
@@ -378,7 +378,7 @@ organization_logo: A logo to display in the wallet app, preferably in SVG format
 organization_country_code: Two-letter country code of relying party residence.
 organization_kvk: Chamber of commerce number of relying party.
 organization_privacy_policy_url: Link to relying party's privacy policy.
-request_origin_base_url: Where do your requests come from? See [CORS][11].
+request_origin_base_url: What is the URL the user sees in the address bar when they start disclosure?.
 list_of_verifiable_attributes: List of attributes determined in previous section.
 
 Kind regards,
@@ -1045,7 +1045,7 @@ TODO: Link to VV/OV SAD, which are still in draft and not published yet.
 [8]: https://www.iso.org/standard/69084.html
 [9]: https://www.iso.org/standard/86785.html
 [10]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
-[11]: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+[11]: REMOVED
 [12]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
 [13]: https://www.w3.org/WAI/WCAG21/Understanding/intro
 [14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
