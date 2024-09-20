@@ -27,7 +27,7 @@ export default defineConfig({
     port: 5175,
   },
   define: {
-    "process.env": process.env,
+    "process.env.NODE_ENV": `'${process.env.NODE_ENV}'`,
   },
   plugins: [
     vue({ customElement }),
