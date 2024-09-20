@@ -2,6 +2,8 @@ pub mod hardware;
 
 use wallet_common::keys::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
 
+pub use crate::bridge::hw_keystore::KeyStoreError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
     #[error(transparent)]
@@ -10,15 +12,6 @@ pub enum HardwareKeyStoreError {
     PublicKeyError(#[from] p256::pkcs8::spki::Error),
     #[error("error signing with hardware key: {0}")]
     SigningError(#[from] p256::ecdsa::Error),
-}
-
-// implementation of KeyStoreError from UDL
-#[derive(Debug, thiserror::Error)]
-pub enum KeyStoreError {
-    #[error("key error: {reason}")]
-    KeyError { reason: String },
-    #[error("bridging error: {reason}")]
-    BridgingError { reason: String },
 }
 
 /// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
