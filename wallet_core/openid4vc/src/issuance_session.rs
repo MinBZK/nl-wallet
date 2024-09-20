@@ -41,6 +41,7 @@ use crate::{
     jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},
     metadata::IssuerMetadata,
     oidc,
+    poa::{new_poa, Poa, PoaError},
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };
@@ -121,6 +122,9 @@ pub enum IssuanceSessionError {
     #[error("received zero credential copies")]
     #[category(critical)]
     NoCredentialCopies,
+    #[error("error constructing PoA: {0}")]
+    #[category(pd)]
+    Poa(#[from] PoaError),
 }
 
 #[derive(Clone, Debug)]
@@ -602,27 +606,45 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         )
         .await?;
 
+        let pop_claims = JwtPopClaims::new(
+            Some(self.session_state.c_nonce.clone()),
+            NL_WALLET_CLIENT_ID.to_string(),
+            credential_issuer_identifier.as_ref().to_string(),
+        );
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
         let mut wte_disclosure = match wte {
             Some(wte) => {
                 let wte_pubkey = jwk_to_p256(&wte.jwt_claims().confirmation.jwk)?;
                 let wte_privkey = key_factory.generate_existing(&wte.private_key_id, wte_pubkey);
 
-                let wte_release = Jwt::<JwtPopClaims>::sign(
-                    &JwtPopClaims::new(
-                        Some(self.session_state.c_nonce.clone()),
-                        NL_WALLET_CLIENT_ID.to_string(),
-                        credential_issuer_identifier.as_ref().to_string(),
-                    ),
-                    &Header::new(Algorithm::ES256),
-                    &wte_privkey,
-                )
-                .await?;
+                let wte_release =
+                    Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
 
                 Some((wte.jwt, wte_release))
             }
             None => None,
         };
+
+        // let keys = keys_and_proofs.iter().map(|(key, _)| key)
+        let mut poa = (keys_and_proofs.len() > 1)
+            .then_some({
+                // We need to use the keys here to create the PoA, and then again later to sign the PoPs.
+                // We can't clone keys because K doesn't derive Clone, which makes sense, but it does make this
+                // code rather a kerfuffle.
+                let keys = try_join_all(keys_and_proofs.iter().map(|(key, _)| async {
+                    let pubkey = key
+                        .verifying_key()
+                        .await
+                        .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(Box::new(e)))?;
+                    Ok::<_, IssuanceSessionError>(key_factory.generate_existing(key.identifier(), pubkey))
+                }))
+                .await?
+                .try_into()
+                .unwrap(); // we have more than one key because `number_of_keys` is a `NonZeroUsize`
+
+                new_poa(keys, pop_claims, &key_factory).await
+            })
+            .transpose()?;
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
@@ -640,6 +662,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                         credential_type,
                         proof: Some(response),
                         attestations: None, // We set this field below if necessary
+                        poa: None,          // same
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
                 }),
@@ -654,11 +677,12 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             1 => {
                 let mut credential_request = credential_requests.pop().unwrap();
                 credential_request.attestations = wte_disclosure.take();
+                credential_request.poa = poa.take();
                 vec![self.request_credential(&credential_request).await?]
             }
             _ => {
                 let credential_requests = NonEmpty::new(credential_requests).unwrap();
-                self.request_batch_credentials(credential_requests, wte_disclosure.take())
+                self.request_batch_credentials(credential_requests, wte_disclosure.take(), poa.take())
                     .await?
             }
         };
@@ -724,6 +748,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         &self,
         credential_requests: NonEmpty<Vec<CredentialRequest>>,
         wte_disclosure: Option<WteDisclosure>,
+        poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
         let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
             .await?
@@ -738,6 +763,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 &CredentialRequests {
                     credential_requests,
                     attestations: wte_disclosure,
+                    poa,
                 },
                 &dpop_header,
                 &access_token_header,

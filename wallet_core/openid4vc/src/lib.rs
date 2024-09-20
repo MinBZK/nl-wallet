@@ -9,6 +9,7 @@ pub mod token;
 pub mod dpop;
 pub mod jwt;
 pub mod pkce;
+pub mod poa;
 
 // Issuance code for the server and client.
 pub mod issuance_session;

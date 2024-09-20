@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, str::FromStr, sync::LazyLock};
+use std::{collections::HashMap, marker::PhantomData, str::FromStr, sync::LazyLock};
 
 use base64::prelude::*;
 use chrono::{serde::ts_seconds, DateTime, Utc};
@@ -13,7 +13,7 @@ use p256::{
     EncodedPoint,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::skip_serializing_none;
+use serde_with::{formats::PreferOne, serde_as, skip_serializing_none, OneOrMany};
 use x509_parser::{
     der_parser::{asn1_rs::BitString, Oid},
     prelude::FromDer,
@@ -25,6 +25,7 @@ use error_category::ErrorCategory;
 use crate::{
     account::serialization::DerVerifyingKey,
     keys::{factory::KeyFactory, CredentialEcdsaKey, EcdsaKey, SecureEcdsaKey},
+    nonempty::NonEmpty,
 };
 
 /// JWT type, generic over its contents.
@@ -75,6 +76,9 @@ pub enum JwtError {
     #[error("JWT conversion error: {0}")]
     #[category(defer)]
     Jwk(#[from] JwkConversionError),
+    #[error("cannot construct JSON-serialized JWT: received differing payloads: {0}, {1}")]
+    #[category(pd)]
+    DifferentPayloads(String, String),
 }
 
 pub trait JwtSubject {
@@ -455,6 +459,66 @@ pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, Jw
         ..Default::default()
     };
     Ok(header)
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JsonJwt<T> {
+    pub payload: String,
+    #[serde_as(as = "OneOrMany<_, PreferOne>")]
+    pub signatures: Vec<JsonJwtSignature>,
+    #[serde(skip, default)]
+    _phantomdata: PhantomData<T>,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JsonJwtSignature {
+    pub protected: String,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub header: HashMap<String, serde_json::Value>,
+    pub signature: String,
+}
+
+impl<T> TryFrom<NonEmpty<Vec<Jwt<T>>>> for JsonJwt<T> {
+    type Error = JwtError;
+
+    fn try_from(jwts: NonEmpty<Vec<Jwt<T>>>) -> Result<Self, Self::Error> {
+        let split_jwts = jwts
+            .into_iter()
+            .map(|jwt| jwt.0.split('.').map(str::to_string).collect_vec())
+            .collect_vec();
+
+        let mut first = split_jwts.first().unwrap().clone(); // this came from a NonEmpty<>
+        if first.len() != 3 {
+            return Err(JwtError::UnexpectedNumberOfParts(first.len()));
+        }
+        let payload = first.remove(1); // `remove` is like `get`, but also moves out of the vec, so we can avoid cloning
+
+        let json_jwt = Self {
+            payload: payload.clone(),
+            signatures: split_jwts
+                .into_iter()
+                .map(|mut split_jwt| {
+                    if split_jwt.len() != 3 {
+                        return Err(JwtError::UnexpectedNumberOfParts(split_jwt.len()));
+                    }
+                    if split_jwt[1] != payload {
+                        return Err(JwtError::DifferentPayloads(split_jwt[1].clone(), payload.clone()));
+                    }
+                    Ok(JsonJwtSignature {
+                        signature: split_jwt.remove(2),
+                        protected: split_jwt.remove(0),
+                        header: HashMap::default(),
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+            _phantomdata: PhantomData,
+        };
+
+        Ok(json_jwt)
+    }
 }
 
 #[cfg(test)]

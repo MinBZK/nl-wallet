@@ -12,7 +12,7 @@ use wallet_common::{
     urls::BaseUrl,
 };
 
-use crate::{issuance_session::IssuanceSessionError, token::CredentialPreview, Format};
+use crate::{issuance_session::IssuanceSessionError, poa::Poa, token::CredentialPreview, Format};
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
 /// Sent JSON-encoded to `POST /batch_credential`.
@@ -21,6 +21,7 @@ use crate::{issuance_session::IssuanceSessionError, token::CredentialPreview, Fo
 pub struct CredentialRequests {
     pub credential_requests: NonEmpty<Vec<CredentialRequest>>,
     pub attestations: Option<WteDisclosure>,
+    pub poa: Option<Poa>,
 }
 
 pub type WteDisclosure = (Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>);
@@ -35,6 +36,7 @@ pub struct CredentialRequest {
     pub credential_type: CredentialRequestType,
     pub proof: Option<CredentialRequestProof>,
     pub attestations: Option<WteDisclosure>,
+    pub poa: Option<Poa>,
 }
 
 impl CredentialRequest {
