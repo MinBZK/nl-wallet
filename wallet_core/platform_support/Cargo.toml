@@ -25,11 +25,13 @@ parking_lot.workspace = true
 thiserror.workspace = true
 uniffi.workspace = true
 
-jni = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 
 error_category.path = "../error_category"
 wallet_common.path = "../wallet_common"
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "fs", "io-util"] }

@@ -1,5 +1,3 @@
-use jni::{objects::JClass, JNIEnv};
-
 use wallet_common::keys::test;
 
 use crate::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
@@ -18,15 +16,6 @@ fn hw_keystore_test_hardware_signature() {
     rt.block_on(test::sign_and_verify_signature::<HardwareEcdsaKey>(payload, identifier))
 }
 
-#[rustfmt::skip]
-#[no_mangle]
-extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_signing_SigningKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1signature(
-    _env: JNIEnv,
-    _: JClass,
-) {
-    hw_keystore_test_hardware_signature()
-}
-
 // this is the starting point for the encryption key integration test performed from Android / iOS.
 #[no_mangle]
 fn hw_keystore_test_hardware_encryption() {
@@ -43,11 +32,25 @@ fn hw_keystore_test_hardware_encryption() {
     ))
 }
 
-#[rustfmt::skip]
-#[no_mangle]
-extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_encryption_EncryptionKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1encryption(
-    _env: JNIEnv,
-    _: JClass,
-) {
-    hw_keystore_test_hardware_encryption()
+#[cfg(target_os = "android")]
+mod android {
+    use jni::{objects::JClass, JNIEnv};
+
+    #[rustfmt::skip]
+    #[no_mangle]
+    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_signing_SigningKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1signature(
+        _env: JNIEnv,
+        _: JClass,
+    ) {
+        super::hw_keystore_test_hardware_signature()
+    }
+
+    #[rustfmt::skip]
+    #[no_mangle]
+    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_encryption_EncryptionKeyBridgeInstrumentedTest_hw_1keystore_1test_1hardware_1encryption(
+        _env: JNIEnv,
+        _: JClass,
+    ) {
+        super::hw_keystore_test_hardware_encryption()
+    }
 }
