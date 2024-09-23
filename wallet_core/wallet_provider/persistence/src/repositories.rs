@@ -311,6 +311,7 @@ pub mod mock {
                     expiration_date_time: Utc::now() + Duration::from_millis(15000),
                 }),
                 instruction_sequence_number: self.instruction_sequence_number,
+                has_wte: false,
             })))
         }
 

@@ -89,6 +89,7 @@ where
                         expiration_date_time: DateTime::<Utc>::from(c.expiration_date_time),
                     }),
                     instruction_sequence_number: u64::try_from(wallet_user.instruction_sequence_number).unwrap(),
+                    has_wte: wallet_user.has_wte,
                 }))
             }
         })

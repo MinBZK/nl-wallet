@@ -235,26 +235,25 @@ impl HandleInstruction for IssueWte {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
+        if wallet_user.has_wte {
+            return Err(InstructionError::WteAlreadyIssued);
+        }
+
         let (wrapped_privkey, wte) = wte_issuer
             .issue_wte()
             .await
             .map_err(|e| InstructionError::WteIssuance(Box::new(e)))?;
 
         let tx = wallet_user_repository.begin_transaction().await?;
-        let key = WalletUserKey {
-            wallet_user_key_id: uuid_generator.generate(),
-            key_identifier: WTE_KEY_ID.to_string(),
-            key: wrapped_privkey,
+        let keys = WalletUserKeys {
+            wallet_user_id: wallet_user.id,
+            keys: vec![WalletUserKey {
+                wallet_user_key_id: uuid_generator.generate(),
+                key_identifier: WTE_KEY_ID.to_string(),
+                key: wrapped_privkey,
+            }],
         };
-        wallet_user_repository
-            .save_keys(
-                &tx,
-                WalletUserKeys {
-                    wallet_user_id: wallet_user.id,
-                    keys: vec![key],
-                },
-            )
-            .await?;
+        wallet_user_repository.save_keys(&tx, keys).await?;
         wallet_user_repository
             .save_wte_issued(&tx, &wallet_user.wallet_id)
             .await?;

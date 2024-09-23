@@ -135,6 +135,8 @@ pub enum InstructionError {
     HsmError(#[from] HsmError),
     #[error("WTE issuance: {0}")]
     WteIssuance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("WTE already issued")]
+    WteAlreadyIssued,
 }
 
 #[derive(Debug, thiserror::Error)]

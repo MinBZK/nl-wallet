@@ -22,6 +22,7 @@ pub enum AccountError {
     #[category(expected)]
     AccountBlocked,
     InstructionValidation,
+    WteAlreadyIssued,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,6 +75,7 @@ impl AccountError {
             AccountErrorType::PinTimeout => Self::PinTimeout(serde_json::from_value(data)?),
             AccountErrorType::AccountBlocked => Self::AccountBlocked,
             AccountErrorType::InstructionValidation => Self::InstructionValidation,
+            AccountErrorType::WteAlreadyIssued => Self::WteAlreadyIssued,
         };
 
         Ok(account_error)
