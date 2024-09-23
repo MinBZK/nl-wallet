@@ -4,7 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
+import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 import 'package:wallet/src/feature/history/detail/history_detail_screen.dart';
 import 'package:wallet/src/feature/history/detail/widget/page/history_detail_disclose_page.dart';
@@ -34,7 +34,7 @@ void main() {
           ),
         wrapper: walletAppWrapper(
           providers: [
-            RepositoryProvider<ContextMapper<Policy, String>>(
+            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
               create: (c) => PolicyBodyTextMapper(),
             ),
           ],
@@ -55,7 +55,7 @@ void main() {
         wrapper: walletAppWrapper(
           brightness: Brightness.dark,
           providers: [
-            RepositoryProvider<ContextMapper<Policy, String>>(
+            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
               create: (c) => PolicyBodyTextMapper(),
             ),
           ],
@@ -93,7 +93,7 @@ void main() {
               MockHistoryDetailBloc(),
               HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
             )
-            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+            .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
 
       expect(find.byType(HistoryDetailDisclosePage), findsOneWidget);
@@ -117,7 +117,7 @@ void main() {
               MockHistoryDetailBloc(),
               HistoryDetailLoadSuccess(WalletMockData.loginEvent, [WalletMockData.card]),
             )
-            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+            .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
 
       expect(find.byType(HistoryDetailLoginPage), findsOneWidget);
@@ -130,7 +130,7 @@ void main() {
               MockHistoryDetailBloc(),
               HistoryDetailLoadSuccess(WalletMockData.signEvent, [WalletMockData.card]),
             )
-            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+            .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
 
       expect(find.byType(HistoryDetailSignPage), findsOneWidget);
@@ -143,7 +143,7 @@ void main() {
               MockHistoryDetailBloc(),
               const HistoryDetailLoadFailure(),
             )
-            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+            .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
 
       final l10n = await TestUtils.englishLocalizations;

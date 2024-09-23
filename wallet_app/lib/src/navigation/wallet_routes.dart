@@ -312,6 +312,7 @@ WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
   return (context) {
     final PolicyScreenArguments args = PolicyScreen.getArguments(settings);
     return PolicyScreen(
+      relyingParty: args.relyingParty,
       policy: args.policy,
       showSignatureRow: args.showSignatureRow,
     );

@@ -12,6 +12,8 @@ class Policy extends Equatable {
   final bool deletionCanBeRequested;
   final String? privacyPolicyUrl;
 
+  bool get dataIsStored => storageDuration != null;
+
   const Policy({
     this.storageDuration,
     this.dataPurpose,

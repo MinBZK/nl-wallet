@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
+import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_confirm_data_attributes_page.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
@@ -14,7 +14,7 @@ import '../../../util/test_utils.dart';
 void main() {
   testWidgets('card titles are shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<Policy, String>>(
+      Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
           onDeclinePressed: () {},
@@ -40,7 +40,7 @@ void main() {
 
   testWidgets('organization title is shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<Policy, String>>(
+      Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
           onDeclinePressed: () {},
@@ -53,14 +53,14 @@ void main() {
       ),
     );
 
-    // Check if the card title is shown
-    final titleFinder = find.textContaining(WalletMockData.organization.displayName.testValue);
-    expect(titleFinder, findsOneWidget);
+    // Check if the card title is shown and if the agreement section shows the org. name
+    final orgNameFinder = find.textContaining(WalletMockData.organization.displayName.testValue);
+    expect(orgNameFinder, findsNWidgets(2));
   });
 
   testWidgets('data purpose is shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<Policy, String>>(
+      Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
           onDeclinePressed: () {},
@@ -81,7 +81,7 @@ void main() {
   testWidgets('verify decline button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<Policy, String>>(
+      Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
           onDeclinePressed: () => isCalled = true,
@@ -107,7 +107,7 @@ void main() {
   testWidgets('verify accept button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
-      Provider<ContextMapper<Policy, String>>(
+      Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
           onDeclinePressed: () {},

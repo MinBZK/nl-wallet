@@ -34,12 +34,12 @@ class SignLoadInProgress extends SignState {
 }
 
 class SignCheckOrganization extends SignState {
-  final Organization organization;
+  final Organization relyingParty;
 
   final bool afterBackPressed;
 
   const SignCheckOrganization({
-    required this.organization,
+    required this.relyingParty,
     this.afterBackPressed = false,
   });
 
@@ -50,18 +50,18 @@ class SignCheckOrganization extends SignState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  List<Object?> get props => [organization, ...super.props];
+  List<Object?> get props => [relyingParty, ...super.props];
 }
 
 class SignCheckAgreement extends SignState {
   final bool afterBackPressed;
 
-  final Organization organization;
+  final Organization relyingParty;
   final Organization trustProvider;
   final Document document;
 
   const SignCheckAgreement({
-    required this.organization,
+    required this.relyingParty,
     required this.trustProvider,
     required this.document,
     this.afterBackPressed = false,
@@ -77,19 +77,21 @@ class SignCheckAgreement extends SignState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  List<Object?> get props => [organization, trustProvider, document, ...super.props];
+  List<Object?> get props => [relyingParty, trustProvider, document, ...super.props];
 }
 
 class SignConfirmAgreement extends SignState {
   final bool afterBackPressed;
 
   final Policy policy;
+  final Organization relyingParty;
   final Organization trustProvider;
   final Document document;
   final List<Attribute> requestedAttributes;
 
   const SignConfirmAgreement({
     required this.policy,
+    required this.relyingParty,
     required this.trustProvider,
     required this.document,
     required this.requestedAttributes,
@@ -106,7 +108,7 @@ class SignConfirmAgreement extends SignState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  List<Object?> get props => [policy, trustProvider, document, requestedAttributes, ...super.props];
+  List<Object?> get props => [policy, relyingParty, trustProvider, document, requestedAttributes, ...super.props];
 }
 
 class SignConfirmPin extends SignState {
@@ -120,9 +122,9 @@ class SignConfirmPin extends SignState {
 }
 
 class SignSuccess extends SignState {
-  final Organization organization;
+  final Organization relyingParty;
 
-  const SignSuccess({required this.organization});
+  const SignSuccess({required this.relyingParty});
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 6, totalSteps: kSignSteps);
@@ -131,7 +133,7 @@ class SignSuccess extends SignState {
   bool get showStopConfirmation => false;
 
   @override
-  List<Object?> get props => [organization, ...super.props];
+  List<Object?> get props => [relyingParty, ...super.props];
 }
 
 class SignError extends SignState {

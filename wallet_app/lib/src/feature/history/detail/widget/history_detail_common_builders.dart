@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../domain/model/organization.dart';
+import '../../../../domain/model/policy/organization_policy.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
@@ -158,8 +159,9 @@ class HistoryDetailCommonBuilders {
     );
   }
 
-  static Widget buildPolicySliver(BuildContext context, Policy policy) {
-    final policyTextMapper = context.read<ContextMapper<Policy, String>>();
+  static Widget buildPolicySliver(BuildContext context, Organization organization, Policy policy) {
+    final OrganizationPolicy orgPolicy = OrganizationPolicy(policy: policy, organization: organization);
+    final policyTextMapper = context.read<ContextMapper<OrganizationPolicy, String>>();
     return SliverMainAxisGroup(
       slivers: [
         const SliverSizedBox(height: 24),
@@ -186,7 +188,7 @@ class HistoryDetailCommonBuilders {
                       ),
                       const SizedBox(height: 8),
                       BodyText(
-                        policyTextMapper.map(context, policy),
+                        policyTextMapper.map(context, orgPolicy),
                       ),
                     ],
                   ),
@@ -199,7 +201,7 @@ class HistoryDetailCommonBuilders {
           child: ListButton(
             text: Text.rich(context.l10n.historyDetailScreenTermsCta.toTextSpan(context)),
             dividerSide: DividerSide.none,
-            onPressed: () => PolicyScreen.show(context, policy),
+            onPressed: () => PolicyScreen.show(context, organization, policy),
           ),
         ),
         const SliverDivider(),

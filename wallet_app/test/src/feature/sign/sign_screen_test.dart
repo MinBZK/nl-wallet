@@ -64,7 +64,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignCheckOrganization(organization: WalletMockData.organization),
+              SignCheckOrganization(relyingParty: WalletMockData.organization),
             ),
             name: 'check_organization',
           ),
@@ -80,7 +80,7 @@ void main() {
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
               SignCheckAgreement(
-                organization: WalletMockData.organization,
+                relyingParty: WalletMockData.organization,
                 trustProvider: WalletMockData.organization,
                 document: WalletMockData.document,
               ),
@@ -122,6 +122,7 @@ void main() {
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
               SignConfirmAgreement(
+                relyingParty: WalletMockData.organization,
                 document: WalletMockData.document,
                 trustProvider: WalletMockData.organization,
                 policy: WalletMockData.policy,
@@ -142,6 +143,7 @@ void main() {
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
               SignConfirmAgreement(
+                relyingParty: WalletMockData.organization,
                 requestedAttributes: [WalletMockData.textDataAttribute],
                 policy: WalletMockData.policy,
                 trustProvider: WalletMockData.organization,
@@ -161,7 +163,7 @@ void main() {
           ..addScenario(
             widget: const SignScreen().withState<SignBloc, SignState>(
               MockSignBloc(),
-              SignSuccess(organization: WalletMockData.organization),
+              SignSuccess(relyingParty: WalletMockData.organization),
             ),
             name: 'success',
           ),
@@ -206,7 +208,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SignScreen().withState<SignBloc, SignState>(
           MockSignBloc(),
-          SignSuccess(organization: WalletMockData.organization),
+          SignSuccess(relyingParty: WalletMockData.organization),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
@@ -217,7 +219,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SignScreen().withState<SignBloc, SignState>(
           MockSignBloc(),
-          SignSuccess(organization: WalletMockData.organization),
+          SignSuccess(relyingParty: WalletMockData.organization),
         ),
       );
       expect(find.byType(SignSuccessPage), findsOneWidget);
@@ -247,7 +249,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SignScreen().withState<SignBloc, SignState>(
           MockSignBloc(),
-          SignCheckOrganization(organization: WalletMockData.organization),
+          SignCheckOrganization(relyingParty: WalletMockData.organization),
         ),
       );
       expect(find.byType(OrganizationApprovePage), findsOneWidget);
@@ -258,7 +260,7 @@ void main() {
         const SignScreen().withState<SignBloc, SignState>(
           MockSignBloc(),
           SignCheckAgreement(
-            organization: WalletMockData.organization,
+            relyingParty: WalletMockData.organization,
             trustProvider: WalletMockData.organization,
             document: WalletMockData.document,
           ),
@@ -272,6 +274,7 @@ void main() {
         const SignScreen().withState<SignBloc, SignState>(
           MockSignBloc(),
           SignConfirmAgreement(
+            relyingParty: WalletMockData.organization,
             trustProvider: WalletMockData.organization,
             document: WalletMockData.document,
             policy: WalletMockData.policy,
