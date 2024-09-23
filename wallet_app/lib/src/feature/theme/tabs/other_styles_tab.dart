@@ -13,6 +13,7 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
+import '../../card/data/widget/data_privacy_banner.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/sheet/error_details_sheet.dart';
@@ -476,6 +477,8 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'Miscellaneous'),
         const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'DataPrivacyBanner'),
+        const DataPrivacyBanner(),
         const ThemeSectionSubHeader(title: 'StepperIndicator'),
         const StepperIndicator(padding: EdgeInsets.zero),
         const ThemeSectionSubHeader(title: 'AnimatedVisibilityBackButton'),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/svg_or_image.dart';
 
@@ -22,7 +23,7 @@ class PageIllustration extends StatelessWidget {
       margin: padding,
       decoration: BoxDecoration(
         color: _kContainerColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: WalletTheme.kBorderRadius12,
       ),
       height: context.isLandscape ? _kLandscapeWidth : null,
       width: double.infinity,
