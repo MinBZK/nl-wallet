@@ -22,7 +22,7 @@ where
     PEK: PlatformEcdsaKey,
     APC: AccountProviderClient,
 {
-    pub async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> Result<(), ChangePinError> {
+    pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError> {
         info!("Begin PIN change");
 
         info!("Checking if registered");
@@ -51,8 +51,10 @@ where
         let change_pin_config = ();
 
         let session = ChangePinSession::new(&instruction_client, &self.storage, &change_pin_config);
-
         session.begin_change_pin(old_pin, new_pin).await?;
+
+        info!("Update PIN registration data on Wallet");
+        self.update_registration_from_db().await?;
 
         info!("PIN change started");
 

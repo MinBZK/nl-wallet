@@ -190,7 +190,7 @@ pub async fn check_pin(pin: String) -> Result<WalletInstructionResult> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn change_pin(old_pin: String, new_pin: String) -> Result<WalletInstructionResult> {
-    let wallet = wallet().read().await;
+    let mut wallet = wallet().write().await;
 
     let result = wallet.begin_change_pin(old_pin, new_pin).await.try_into()?;
 
