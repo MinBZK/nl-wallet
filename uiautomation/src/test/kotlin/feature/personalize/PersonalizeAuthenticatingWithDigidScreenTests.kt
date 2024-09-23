@@ -6,10 +6,13 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeAuthenticatingWithDigidScreen
 import screen.personalize.PersonalizeInformScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${PersonalizeAuthenticatingWithDigidScreenTests.USE_CASE} App performs issuance with PID provider [${PersonalizeAuthenticatingWithDigidScreenTests.JIRA_ID}]")
 class PersonalizeAuthenticatingWithDigidScreenTests : TestBase() {
 

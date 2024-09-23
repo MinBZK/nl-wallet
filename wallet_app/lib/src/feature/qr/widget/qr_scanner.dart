@@ -68,7 +68,7 @@ class _QrScannerState extends State<QrScanner> {
             },
             onDetect: (capture) {
               final event = QrScanCodeDetected(capture.barcodes.first);
-              context.read<QrBloc>().add(event);
+              if (this.context.mounted) this.context.read<QrBloc>().add(event);
             },
           ),
         );

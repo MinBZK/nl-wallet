@@ -32,7 +32,7 @@ class RequestDetailsScreen extends StatelessWidget {
                     HistoryDetailCommonBuilders.buildPurposeSliver(context, event),
                     HistoryDetailCommonBuilders.buildRequestedAttributesSliver(context, event)
                         .takeIf((_) => event.attributes.isNotEmpty),
-                    HistoryDetailCommonBuilders.buildPolicySliver(context, event.policy),
+                    HistoryDetailCommonBuilders.buildPolicySliver(context, event.relyingParty, event.policy),
                     const SliverSizedBox(height: 24),
                   ].nonNulls.toList(),
                 ),

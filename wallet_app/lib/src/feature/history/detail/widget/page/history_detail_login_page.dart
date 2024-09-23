@@ -34,7 +34,8 @@ class HistoryDetailLoginPage extends StatelessWidget {
         HistoryDetailCommonBuilders.buildStatusHeaderSliver(context, event).takeIf((_) => !event.wasSuccess),
         HistoryDetailCommonBuilders.buildPurposeSliver(context, event).takeIf((_) => event.wasSuccess),
         HistoryDetailCommonBuilders.buildSharedAttributesSliver(context, event).takeIf((_) => event.wasSuccess),
-        HistoryDetailCommonBuilders.buildPolicySliver(context, event.policy).takeIf((_) => event.wasSuccess),
+        HistoryDetailCommonBuilders.buildPolicySliver(context, event.relyingParty, event.policy)
+            .takeIf((_) => event.wasSuccess),
         HistoryDetailCommonBuilders.buildAboutOrganizationSliver(context, event.relyingParty),
         HistoryDetailCommonBuilders.buildShowDetailsSliver(context, event).takeIf((_) => !event.wasSuccess),
         HistoryDetailCommonBuilders.buildReportIssueSliver(context),

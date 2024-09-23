@@ -6,12 +6,15 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeInformScreen
 import screen.personalize.PersonalizeNoDigidScreen
 import screen.web.digid.DigidApplyWebPage
 import screen.web.digid.DigidLoginStartWebPage
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${PersonalizeInformTests.USE_CASE} App informs User before personalization [${PersonalizeInformTests.JIRA_ID}]")
 class PersonalizeInformTests : TestBase() {
 

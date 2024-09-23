@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/attribute/data_attribute.dart';
 import '../../domain/model/organization.dart';
+import '../../domain/model/policy/organization_policy.dart';
 import '../../domain/model/policy/policy.dart';
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
@@ -199,7 +200,13 @@ class LoginDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text.rich(
-                  context.read<ContextMapper<Policy, String>>().map(context, policy).toTextSpan(context),
+                  context
+                      .read<ContextMapper<OrganizationPolicy, String>>()
+                      .map(
+                        context,
+                        OrganizationPolicy(organization: organization, policy: policy),
+                      )
+                      .toTextSpan(context),
                   style: context.textTheme.bodyLarge,
                 ),
               ],
@@ -210,7 +217,7 @@ class LoginDetailScreen extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: LinkButton(
               text: Text.rich(context.l10n.loginDetailScreenAgreementCta.toTextSpan(context)),
-              onPressed: () => PolicyScreen.show(context, policy),
+              onPressed: () => PolicyScreen.show(context, organization, policy),
             ),
           ),
         ],

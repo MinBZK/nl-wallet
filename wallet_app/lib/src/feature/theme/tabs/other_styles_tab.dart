@@ -13,6 +13,7 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
+import '../../card/data/widget/data_privacy_banner.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/sheet/error_details_sheet.dart';
@@ -449,16 +450,17 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildPolicySection(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ThemeSectionHeader(title: 'Policy'),
-        SizedBox(height: 12),
-        ThemeSectionSubHeader(title: 'PolicyRow'),
-        PolicyRow(icon: Icons.alarm, title: 'This is a Policy Row'),
-        ThemeSectionSubHeader(title: 'PolicySection'),
+        const ThemeSectionHeader(title: 'Policy'),
+        const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'PolicyRow'),
+        const PolicyRow(icon: Icons.alarm, title: 'This is a Policy Row'),
+        const ThemeSectionSubHeader(title: 'PolicySection'),
         PolicySection(
-          Policy(
+          relyingParty: _kSampleOrganization,
+          policy: const Policy(
             storageDuration: Duration(days: 90),
             dataPurpose: 'Kaart uitgifte',
             dataIsShared: false,
@@ -476,6 +478,8 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'Miscellaneous'),
         const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'DataPrivacyBanner'),
+        const DataPrivacyBanner(),
         const ThemeSectionSubHeader(title: 'StepperIndicator'),
         const StepperIndicator(padding: EdgeInsets.zero),
         const ThemeSectionSubHeader(title: 'AnimatedVisibilityBackButton'),

@@ -32,6 +32,7 @@ class WalletAssets {
   static const svg_error_config_update = 'assets/non-free/svg/NL_WALLET_error_config_update.svg';
   static const svg_error_general = 'assets/non-free/svg/NL_WALLET_error_general.svg';
   static const svg_error_no_internet = 'assets/non-free/svg/NL_WALLET_error_no_internet.svg';
+  static const svg_error_rooted = 'assets/non-free/svg/NL_WALLET_error_rooted.svg';
   static const svg_error_server_outage = 'assets/non-free/svg/NL_WALLET_error_server_outage.svg';
   static const svg_error_server_overload = 'assets/non-free/svg/NL_WALLET_error_server_overload.svg';
   static const svg_error_session_expired = 'assets/non-free/svg/NL_WALLET_error_session_expired.svg';
