@@ -53,7 +53,7 @@ where
 
         let client: InstructionClient<S, K, A> = self.create(old_pin.to_string());
 
-        let begin_result = client
+        client
             .construct_and_send(|challenge| async move {
                 let new_pin_key_pop = new_pin_key
                     .try_sign(&challenge)
@@ -68,9 +68,7 @@ where
                 };
                 Ok(instruction)
             })
-            .await;
-
-        begin_result.map(|c| c.certificate)
+            .await
     }
 
     async fn commit_new_pin(&self, new_pin: &str) -> Result<(), Self::Error> {
