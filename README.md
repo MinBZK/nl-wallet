@@ -15,7 +15,7 @@ driver’s license, or to prove that you are 18+ to buy a beer.
 The NL Wallet is being developed in an open and transparent way. We offer the following channels to
 allow you to contribute:
 
-- The user interface of the app is available on [Figma](https://www.figma.com/design/aHOQVjnWMnSYxhnICRTMbw/20240902_Release_UI_NLWallet?node-id=1-3716&t=XOaFfX99s0Y5qIBa-1).
+- The user interface of the app is available on [Figma](https://www.figma.com/design/ouWgyuwvt3DrmN2MeGuh8P/20240923_Release_UI_NLWallet?node-id=1-3716&t=WI0g9Daoy1hSuWjg-1).
 - The source code is published in this [GitHub repository](https://github.com/MinBZK/nl-wallet).
 - More information, events and discussions can be found on [Pleio](https://edi.pleio.nl).
 
@@ -76,7 +76,7 @@ public service providers.
 - We want to share the lessons we learn with the public and share them with the EU.
 
 If you want to learn more about the NL Wallet development, please read the background information on
-the Pleio hub. The development of the user flows and screens can be followed through [Figma](https://www.figma.com/design/aHOQVjnWMnSYxhnICRTMbw/20240902_Release_UI_NLWallet?node-id=1-3716&t=XOaFfX99s0Y5qIBa-1).
+the Pleio hub. The development of the user flows and screens can be followed through [Figma](https://www.figma.com/design/ouWgyuwvt3DrmN2MeGuh8P/20240923_Release_UI_NLWallet?node-id=1-3716&t=WI0g9Daoy1hSuWjg-1).
 
 # Licensing
 
