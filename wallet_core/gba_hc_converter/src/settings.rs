@@ -4,9 +4,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use aes_gcm::{aes::Aes256, Aes256Gcm, Key};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
-use serde_with::{base64::Base64, serde_as};
+use serde_with::{
+    base64::{Base64, Standard},
+    formats::Padded,
+    serde_as, DeserializeAs,
+};
 
 use wallet_common::{reqwest::deserialize_certificate, sentry::Sentry, urls::BaseUrl};
 
@@ -61,14 +66,37 @@ impl HttpGbavClient {
     }
 }
 
+#[derive(Clone)]
+pub struct SymmetricKey {
+    bytes: Vec<u8>,
+}
+
+impl SymmetricKey {
+    pub fn new(bytes: Vec<u8>) -> Self {
+        Self { bytes }
+    }
+
+    pub fn key(&self) -> &aes_gcm::Key<Aes256> {
+        Key::<Aes256Gcm>::from_slice(self.bytes.as_slice())
+    }
+}
+
+impl<'de> Deserialize<'de> for SymmetricKey {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let bytes: Vec<u8> = Base64::<Standard, Padded>::deserialize_as::<D>(deserializer)?;
+        Ok(SymmetricKey { bytes })
+    }
+}
+
 #[derive(Clone, Deserialize)]
 pub struct PreloadedSettings {
+    pub symmetric_key: SymmetricKey,
     pub xml_path: String,
 }
 
 impl<T> FileGbavClient<T> {
-    pub fn from_settings(settings: &PreloadedSettings, client: T) -> Self {
-        Self::new(Path::new(&settings.xml_path), client)
+    pub fn try_from_settings(settings: PreloadedSettings, client: T) -> Result<Self, ConfigError> {
+        Ok(Self::new(Path::new(&settings.xml_path), settings.symmetric_key, client))
     }
 }
 

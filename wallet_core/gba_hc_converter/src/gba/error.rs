@@ -1,3 +1,5 @@
+use std::string::FromUtf8Error;
+
 use crate::gba::data::GbaResult;
 
 #[derive(Debug, thiserror::Error)]
@@ -20,4 +22,8 @@ pub enum Error {
     UnexpectedResponse,
     #[error("Received error response: {0}")]
     GbaErrorResponse(GbaResult),
+    #[error("Error decoding data: {0}")]
+    Decoding(#[from] FromUtf8Error),
+    #[error("Error decrypting data: {0}")]
+    Decrypting(#[from] aes_gcm::aead::Error),
 }

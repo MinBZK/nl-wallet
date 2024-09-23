@@ -14,7 +14,7 @@ use wallet_common::http_error::HttpJsonError;
 
 use crate::{
     error::{Error, ErrorType},
-    gba::client::GbavClient,
+    gba::{client::GbavClient, data::GbaResponse},
     haal_centraal::{Bsn, PersonQuery, PersonsResponse},
 };
 
@@ -73,7 +73,8 @@ async fn request_personen<T>(gbav_client: &T, bsn: &Bsn) -> Result<PersonsRespon
 where
     T: GbavClient,
 {
-    let gba_response = gbav_client.vraag(bsn).await?;
+    let response = gbav_client.vraag(bsn).await?;
+    let gba_response = response.map_or(Ok(GbaResponse::empty()), |xml| GbaResponse::new(&xml))?;
     gba_response.as_error()?;
 
     let mut response = PersonsResponse::create(gba_response)?;

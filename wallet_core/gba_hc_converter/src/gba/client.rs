@@ -1,6 +1,7 @@
 use std::{
     env,
     path::{Path, PathBuf},
+    str,
 };
 
 use base64::prelude::*;
@@ -12,14 +13,15 @@ use tracing::info;
 use wallet_common::{reqwest::tls_pinned_client_builder, urls::BaseUrl};
 
 use crate::{
-    gba::{data::GbaResponse, error::Error},
+    gba::{encryption::decrypt_bytes_from_dir, error::Error},
     haal_centraal::Bsn,
+    settings::SymmetricKey,
 };
 
 #[trait_variant::make(GbavClient: Send)]
 pub trait GbavClientLocal {
     #[allow(dead_code)]
-    async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error>;
+    async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error>;
 }
 
 pub struct HttpGbavClient {
@@ -74,7 +76,7 @@ impl HttpGbavClient {
 }
 
 impl GbavClient for HttpGbavClient {
-    async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error> {
+    async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error> {
         info!("Sending GBA-V request to: {}", &self.base_url.clone().into_inner());
 
         let mut request_builder = self.http_client.post(self.base_url.clone().into_inner());
@@ -103,21 +105,25 @@ impl GbavClient for HttpGbavClient {
         info!("Received GBA-V response with status: {}", &response.status());
 
         let body = response.text().await?;
-        let result = GbaResponse::new(&body)?;
-        Ok(result)
+        Ok(Some(body))
     }
 }
 
 pub struct FileGbavClient<T> {
     base_path: PathBuf,
+    symmetric_key: SymmetricKey,
     client: T,
 }
 
 impl<T> FileGbavClient<T> {
-    pub fn new(path: &Path, client: T) -> Self {
+    pub fn new(path: &Path, symmetric_key: SymmetricKey, client: T) -> Self {
         let mut base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
         base_path.push(path);
-        Self { base_path, client }
+        Self {
+            base_path,
+            symmetric_key,
+            client,
+        }
     }
 }
 
@@ -125,12 +131,17 @@ impl<T> GbavClient for FileGbavClient<T>
 where
     T: GbavClient + Sync,
 {
-    async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error> {
-        let xml_file = self.base_path.join(format!("{bsn}.xml"));
-        if xml_file.exists() {
-            let xml = tokio::fs::read_to_string(xml_file).await?;
-            let gba_response = GbaResponse::new(&xml)?;
-            Ok(gba_response)
+    async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error> {
+        let decrypted = decrypt_bytes_from_dir(
+            self.symmetric_key.key(),
+            self.base_path.as_path(),
+            bsn.to_string().as_str(),
+        )
+        .await?;
+
+        if let Some(bytes) = decrypted {
+            let xml = String::from_utf8(bytes)?;
+            Ok(Some(xml))
         } else {
             self.client.vraag(bsn).await
         }
@@ -139,7 +150,7 @@ where
 
 pub struct NoopGbavClient {}
 impl GbavClient for NoopGbavClient {
-    async fn vraag(&self, _bsn: &Bsn) -> Result<GbaResponse, Error> {
-        Ok(GbaResponse::empty())
+    async fn vraag(&self, _bsn: &Bsn) -> Result<Option<String>, Error> {
+        Ok(None)
     }
 }
