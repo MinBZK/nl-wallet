@@ -7,7 +7,6 @@ import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/page/page_illustration.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -78,7 +77,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
     );
     final FitsWidthWidget privacyButton = TertiaryButton(
       key: const Key('introductionPrivacyScreenPrivacyCta'),
-      onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
+      onPressed: () => Navigator.pushNamed(context, WalletRoutes.privacyPolicyRoute),
       text: Text.rich(context.l10n.introductionPrivacyScreenPrivacyCta.toTextSpan(context)),
       icon: const Icon(Icons.arrow_forward_rounded),
     );

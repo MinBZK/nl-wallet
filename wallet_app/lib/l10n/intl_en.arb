@@ -7,7 +7,6 @@
         "translatable": "false"
     },
     "aboutScreenPrivacyCta": "Privacy statement",
-    "aboutScreenTermsCta": "Terms of use",
     "aboutScreenTitle": "About the NL Wallet",
     "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {added {count} card} other {added {count} cards}}",
     "activitySummaryEmpty": "No activities",
