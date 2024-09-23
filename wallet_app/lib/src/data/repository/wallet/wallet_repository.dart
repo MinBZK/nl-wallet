@@ -33,7 +33,11 @@ abstract class WalletRepository {
   /// Check if the provided pin matches the one that is registered
   Future<WalletInstructionResult> checkPin(String pin);
 
-  // Changes the registered pin to the provided [newPin] it the currently registered pin matches [oldPin]
+  /// Request a pin change from [oldPin] to [newPin]. Only succeeds when [oldPin] matches the current pin and [newPin]
+  /// is considered valid. NOTE: This should be followed up by a call to [continueChangePin] when this call succeeds
+  /// to immediately confirm the pin change. When the call errors out, it's good practice (but not immediately mandatory)
+  /// to call [continueChangePin] with the old pin. This 'commiting' [continueChangePin] otherwise happens silently inside
+  /// wallet_core whenever the device unlocks/confirms with a pin.
   Future<WalletInstructionResult> changePin(String oldPin, String newPin);
 
   /// Confirm the pin change, should be called after [changePin] returns success
