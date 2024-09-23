@@ -449,16 +449,17 @@ class OtherStylesTab extends StatelessWidget {
   }
 
   Widget _buildPolicySection(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ThemeSectionHeader(title: 'Policy'),
-        SizedBox(height: 12),
-        ThemeSectionSubHeader(title: 'PolicyRow'),
-        PolicyRow(icon: Icons.alarm, title: 'This is a Policy Row'),
-        ThemeSectionSubHeader(title: 'PolicySection'),
+        const ThemeSectionHeader(title: 'Policy'),
+        const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'PolicyRow'),
+        const PolicyRow(icon: Icons.alarm, title: 'This is a Policy Row'),
+        const ThemeSectionSubHeader(title: 'PolicySection'),
         PolicySection(
-          Policy(
+          relyingParty: _kSampleOrganization,
+          policy: const Policy(
             storageDuration: Duration(days: 90),
             dataPurpose: 'Kaart uitgifte',
             dataIsShared: false,

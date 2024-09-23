@@ -43,7 +43,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
       add(
         SignUpdateState(
           SignCheckOrganization(
-            organization: result.relyingParty,
+            relyingParty: result.relyingParty,
           ),
         ),
       );
@@ -59,7 +59,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     try {
       emit(
         SignCheckAgreement(
-          organization: _startSignResult!.relyingParty,
+          relyingParty: _startSignResult!.relyingParty,
           document: _startSignResult!.document,
           trustProvider: _startSignResult!.trustProvider,
         ),
@@ -82,6 +82,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
       emit(
         SignConfirmAgreement(
           document: _startSignResult!.document,
+          relyingParty: _startSignResult!.relyingParty,
           policy: _startSignResult!.policy,
           requestedAttributes: requestedAttributes.values.flattened.toList(),
           trustProvider: _startSignResult!.trustProvider,
@@ -109,7 +110,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     assert(_startSignResult != null, 'Can not confirm pin when result is not available');
     emit(const SignLoadInProgress());
     try {
-      emit(SignSuccess(organization: _startSignResult!.relyingParty));
+      emit(SignSuccess(relyingParty: _startSignResult!.relyingParty));
     } catch (ex) {
       Fimber.e('Failed to move to SignSuccess state', ex: ex);
       emit(const SignError());
@@ -133,14 +134,14 @@ class SignBloc extends Bloc<SignEvent, SignState> {
       if (state is SignCheckAgreement) {
         emit(
           SignCheckOrganization(
-            organization: _startSignResult!.relyingParty,
+            relyingParty: _startSignResult!.relyingParty,
             afterBackPressed: true,
           ),
         );
       } else if (state is SignConfirmAgreement) {
         emit(
           SignCheckAgreement(
-            organization: _startSignResult!.relyingParty,
+            relyingParty: _startSignResult!.relyingParty,
             trustProvider: _startSignResult!.trustProvider,
             document: _startSignResult!.document,
             afterBackPressed: true,
@@ -151,6 +152,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
         emit(
           SignConfirmAgreement(
             policy: _startSignResult!.policy,
+            relyingParty: _startSignResult!.relyingParty,
             trustProvider: _startSignResult!.trustProvider,
             document: _startSignResult!.document,
             afterBackPressed: true,

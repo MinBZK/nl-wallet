@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../domain/model/attribute/attribute.dart';
+import '../../domain/model/organization.dart';
 import '../../domain/model/policy/policy.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/duration_extension.dart';
@@ -15,17 +17,17 @@ class PolicyEntriesBuilder {
 
   PolicyEntriesBuilder(this.context, this.urlTheme, {this.addSignatureEntry = false});
 
-  List<PolicyEntry> build(Policy interactionPolicy) {
+  List<PolicyEntry> build(Organization organization, Policy policy) {
     final results = <PolicyEntry>[];
 
-    final dataPurpose = interactionPolicy.dataPurpose;
-    final storageDuration = interactionPolicy.storageDuration;
-    final privacyPolicyUrl = interactionPolicy.privacyPolicyUrl;
+    final dataPurpose = policy.dataPurpose;
+    final storageDuration = policy.storageDuration;
+    final privacyPolicyUrl = policy.privacyPolicyUrl;
 
     if (dataPurpose != null) {
-      results.add(_buildDataPurposeEntry(dataPurpose, interactionPolicy.dataPurposeDescription));
+      results.add(_buildDataPurposeEntry(dataPurpose, policy.dataPurposeDescription));
     }
-    results.add(_buildDataSharingPolicy(interactionPolicy));
+    results.add(_buildDataSharingPolicy(policy));
     if (storageDuration != null) {
       results.add(_buildStorageDurationPolicy(storageDuration));
     } else {
@@ -35,10 +37,10 @@ class PolicyEntriesBuilder {
       results.add(_buildSignaturePolicy());
     }
     if (storageDuration != null && storageDuration.inDays > 0) {
-      results.add(_buildDeletionPolicy(interactionPolicy.deletionCanBeRequested));
+      results.add(_buildDeletionPolicy(policy.deletionCanBeRequested));
     }
     if (privacyPolicyUrl != null) {
-      results.add(_buildPrivacyPolicy(privacyPolicyUrl));
+      results.add(_buildPrivacyPolicy(organization.displayName.l10nValue(context), privacyPolicyUrl));
     }
 
     return results;
@@ -133,9 +135,9 @@ class PolicyEntriesBuilder {
     );
   }
 
-  PolicyEntry _buildPrivacyPolicy(String privacyPolicyUrl) {
+  PolicyEntry _buildPrivacyPolicy(String organizationName, String privacyPolicyUrl) {
     final policyCta = context.l10n.policyScreenPolicySectionPolicyCta;
-    final fullPolicyDescription = context.l10n.policyScreenPolicySectionText(policyCta);
+    final fullPolicyDescription = context.l10n.policyScreenPolicySectionText(organizationName, policyCta);
     final ctaIndex = fullPolicyDescription.indexOf(policyCta);
     final prefix = fullPolicyDescription.substring(0, ctaIndex);
     final suffix = fullPolicyDescription.substring(ctaIndex + policyCta.length, fullPolicyDescription.length);
