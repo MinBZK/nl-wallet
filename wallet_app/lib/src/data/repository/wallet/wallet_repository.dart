@@ -36,6 +36,9 @@ abstract class WalletRepository {
   // Changes the registered pin to the provided [newPin] it the currently registered pin matches [oldPin]
   Future<WalletInstructionResult> changePin(String oldPin, String newPin);
 
+  /// Confirm the pin change, should be called after [changePin] returns success
+  Future<WalletInstructionResult> continueChangePin(String pin);
+
   /// Lock the wallet, updates [isLockedStream]
   Future<void> lockWallet();
 

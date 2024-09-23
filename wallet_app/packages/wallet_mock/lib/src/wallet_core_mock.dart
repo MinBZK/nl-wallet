@@ -259,16 +259,17 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   @override
   Future<WalletInstructionResult> changePin({required String oldPin, required String newPin, hint}) async {
     final result = _pinManager.checkPin(oldPin);
-    final bool pinMatches = result is WalletInstructionResult_Ok;
-    if (pinMatches) _pinManager.updatePin(newPin);
+    final validationResult = await isValidPin(pin: newPin);
+    if (validationResult != PinValidationResult.Ok) throw StateError('Pin should be validated in the flow beforehand');
     await Future.delayed(const Duration(seconds: 1));
+    // Should be followed with a call to [continueChangePin] to actually update the PIN.
     return result;
   }
 
   @override
   Future<WalletInstructionResult> continueChangePin({required String pin, hint}) async {
     _pinManager.updatePin(pin);
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 500));
     return _pinManager.checkPin(pin);
   }
 
