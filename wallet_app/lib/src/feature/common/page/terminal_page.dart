@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../theme/wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../widget/button/primary_button.dart';
@@ -78,7 +79,7 @@ class TerminalPage extends StatelessWidget {
       height: 200,
       decoration: BoxDecoration(
         color: context.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: WalletTheme.kBorderRadius12,
       ),
       margin: const EdgeInsets.all(16),
     );
