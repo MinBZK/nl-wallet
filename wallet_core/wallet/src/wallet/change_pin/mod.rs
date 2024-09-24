@@ -95,3 +95,85 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use serde::{de::DeserializeOwned, Serialize};
+    use wallet_common::{
+        account::messages::{
+            auth::WalletCertificate,
+            instructions::{ChangePinCommit, ChangePinStart, Instruction, InstructionResultClaims},
+        },
+        jwt::Jwt,
+        utils,
+    };
+
+    use crate::{
+        pin::change::{ChangePinStorage, State},
+        wallet::test::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
+    };
+
+    async fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
+    where
+        T: Serialize + DeserializeOwned,
+    {
+        let result_claims = InstructionResultClaims {
+            result,
+            iss: "wallet_unit_test".to_string(),
+            iat: jsonwebtoken::get_current_timestamp(),
+        };
+        Jwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
+            .await
+            .expect("could not sign instruction result")
+    }
+
+    #[tokio::test]
+    async fn test_wallet_begin_change_pin() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        wallet
+            .account_provider_client
+            .expect_instruction_challenge()
+            .times(2)
+            .returning(|_, _| Ok(utils::random_bytes(32)));
+
+        let wp_result = create_wp_result(WalletCertificate::from("thisisdefinitelyvalid")).await;
+
+        wallet
+            .account_provider_client
+            .expect_instruction()
+            .times(1)
+            .return_once(|_, _: Instruction<ChangePinStart>| Ok(wp_result));
+
+        let actual = wallet
+            .begin_change_pin("123456".to_string(), "111122".to_string())
+            .await;
+        assert_matches!(actual, Ok(()));
+
+        let change_pin_state = wallet
+            .storage
+            .get_change_pin_state()
+            .await
+            .expect("could not read change_pin_state");
+        assert_eq!(change_pin_state, Some(State::Commit));
+
+        let wp_result = create_wp_result(()).await;
+
+        wallet
+            .account_provider_client
+            .expect_instruction()
+            .times(1)
+            .return_once(|_, _: Instruction<ChangePinCommit>| Ok(wp_result));
+
+        let actual = wallet.continue_change_pin("111122".to_string()).await;
+        assert_matches!(actual, Ok(()));
+
+        let change_pin_state = wallet
+            .storage
+            .get_change_pin_state()
+            .await
+            .expect("could not read change_pin_state");
+        assert_eq!(change_pin_state, None);
+    }
+}
