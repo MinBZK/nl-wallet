@@ -19,6 +19,10 @@ pub enum State {
 }
 
 pub trait ChangePinClientError: std::error::Error {
+    /// Classify error as network error, meaning that something went wrong with networking,
+    /// so that no statement can be done about the status of the server. Implementations
+    /// of this trait should implement this conservatively, meaning that in cases of uncertainty
+    /// this should return `true`.
     fn is_network_error(&self) -> bool;
 }
 
