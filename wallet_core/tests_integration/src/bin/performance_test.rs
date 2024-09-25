@@ -91,7 +91,7 @@ async fn main() {
         .expect("Could not continue pid issuance");
 
     wallet
-        .accept_pid_issuance(pin.clone(), true)
+        .accept_pid_issuance(pin.clone())
         .await
         .expect("Could not accept pid issuance");
 

@@ -4,23 +4,15 @@ use tracing::{info, instrument};
 use url::Url;
 
 use error_category::{sentry_capture_error, ErrorCategory};
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
-};
+use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 use openid4vc::{
     credential::MdocCopies,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
-    jwt::{JwtCredential, JwtCredentialError},
+    jwt::JwtCredentialError,
     token::CredentialPreviewError,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    account::messages::instructions::{IssueWte, IssueWteResult},
-    jwt::JwtError,
-    reqwest::trusted_reqwest_client_builder,
-    urls,
-};
+use wallet_common::{jwt::JwtError, reqwest::trusted_reqwest_client_builder, urls};
 
 use crate::{
     account_provider::AccountProviderClient,
@@ -29,6 +21,7 @@ use crate::{
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     issuance::{DigidSession, DigidSessionError, HttpDigidSession},
     storage::{Storage, StorageError, WalletEvent},
+    wte::WteIssuanceClient,
 };
 
 use super::{documents::DocumentsError, history::EventStorageError, Wallet};
@@ -90,7 +83,7 @@ pub enum PidIssuanceError {
     JwtCredential(#[from] JwtCredentialError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
 where
     CR: ConfigurationRepository,
     DS: DigidSession,
@@ -254,29 +247,14 @@ where
         Ok(documents)
     }
 
-    async fn obtain_wte(
-        &self,
-        trust_anchors: &[TrustAnchor<'_>],
-        remote_instruction: &InstructionClient<'_, S, PEK, APC>,
-    ) -> Result<JwtCredential, PidIssuanceError>
-    where
-        S: Storage,
-        PEK: PlatformEcdsaKey,
-        APC: AccountProviderClient,
-    {
-        use crate::instruction::RemoteEcdsaKey;
-        let IssueWteResult { key_id, wte } = remote_instruction.send(IssueWte).await?;
-        let (wte, _) = JwtCredential::new::<RemoteEcdsaKey<S, PEK, APC>>(key_id, wte, trust_anchors)?;
-        Ok(wte)
-    }
-
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn accept_pid_issuance(&mut self, pin: String, use_wte: bool) -> Result<(), PidIssuanceError>
+    pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: WteIssuanceClient,
     {
         info!("Accepting PID issuance");
 
@@ -312,14 +290,10 @@ where
         );
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
-        let wte = if use_wte {
-            Some(
-                self.obtain_wte(&config.account_server.wte_trust_anchors(), &remote_instruction)
-                    .await?,
-            )
-        } else {
-            None
-        };
+        let wte = self
+            .wte_issuance_client
+            .obtain_wte(&config.account_server.wte_trust_anchors(), &remote_instruction)
+            .await?;
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
@@ -327,7 +301,7 @@ where
             .accept_issuance(
                 &config.mdoc_trust_anchors(),
                 &remote_key_factory,
-                wte,
+                Some(wte),
                 config.pid_issuance.pid_issuer_url.clone(),
             )
             .await
@@ -826,7 +800,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         wallet
-            .accept_pid_issuance(PIN.to_string(), false)
+            .accept_pid_issuance(PIN.to_string())
             .await
             .expect("Could not accept PID issuance");
 
@@ -890,7 +864,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string(), false)
+            .accept_pid_issuance(PIN.to_string())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -911,7 +885,7 @@ mod tests {
 
         // Accepting PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string(), true)
+            .accept_pid_issuance(PIN.to_string())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -927,7 +901,7 @@ mod tests {
 
         // Accepting PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string(), true)
+            .accept_pid_issuance(PIN.to_string())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -945,7 +919,7 @@ mod tests {
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string(), true)
+            .accept_pid_issuance(PIN.to_string())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -973,7 +947,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string(), false)
+            .accept_pid_issuance(PIN.to_string())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1052,7 +1026,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string(), false)
+            .accept_pid_issuance(PIN.to_string())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1083,7 +1057,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string(), false)
+            .accept_pid_issuance(PIN.to_string())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 

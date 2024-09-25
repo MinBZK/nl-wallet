@@ -93,6 +93,15 @@ impl JwtCredential {
         Ok((cred, claims))
     }
 
+    #[cfg(feature = "test")]
+    pub fn new_unverified<K: MdocEcdsaKey>(private_key_id: String, jwt: Jwt<JwtCredentialClaims>) -> Self {
+        Self {
+            private_key_id,
+            key_type: K::KEY_TYPE,
+            jwt,
+        }
+    }
+
     pub fn jwt_claims(&self) -> JwtCredentialClaims {
         // Unwrapping is safe here because this was checked in new()
         let (_, contents) = self.jwt.dangerous_parse_unverified().unwrap();
