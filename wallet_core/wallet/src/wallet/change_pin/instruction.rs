@@ -24,13 +24,18 @@ use crate::{
 impl ChangePinClientError for InstructionError {
     fn is_network_error(&self) -> bool {
         match self {
+            InstructionError::IncorrectPin { .. } => false,
+            InstructionError::Timeout { .. } => true,
+            InstructionError::Blocked => false,
             InstructionError::ServerError(AccountProviderError::Response(AccountProviderResponseError::Account(
                 _,
                 _,
             ))) => false,
             InstructionError::ServerError(_) => true,
-            InstructionError::Timeout { .. } => true,
-            _ => false,
+            InstructionError::InstructionValidation => false,
+            InstructionError::Signing(_) => false,
+            InstructionError::InstructionResultValidation(_) => false,
+            InstructionError::StoreInstructionSequenceNumber(_) => false,
         }
     }
 }
@@ -63,7 +68,7 @@ where
                     pin_pubkey: new_pin_key
                         .verifying_key()
                         .map_err(|e| InstructionError::Signing(AccountError::Signing(e.into())))?
-                        .into(), // TODO error handling
+                        .into(),
                     pop_pin_pubkey: new_pin_key_pop.into(),
                 };
                 Ok(instruction)
