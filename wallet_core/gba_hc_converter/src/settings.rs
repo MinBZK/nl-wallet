@@ -4,14 +4,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aes_gcm::{aes::Aes256, Aes256Gcm, Key};
 use config::{Config, ConfigError, Environment, File};
-use serde::Deserialize;
-use serde_with::{
-    base64::{Base64, Standard},
-    formats::Padded,
-    serde_as, DeserializeAs,
-};
+use crypto_common::{Key, KeySizeUser};
+use serde::{de, Deserialize};
+use serde_with::{base64::Base64, serde_as};
 
 use wallet_common::{reqwest::deserialize_certificate, sentry::Sentry, urls::BaseUrl};
 
@@ -76,27 +72,38 @@ impl SymmetricKey {
         Self { bytes }
     }
 
-    pub fn key(&self) -> &aes_gcm::Key<Aes256> {
-        Key::<Aes256Gcm>::from_slice(self.bytes.as_slice())
+    pub fn key<B>(&self) -> &Key<B>
+    where
+        B: KeySizeUser,
+    {
+        Key::<B>::from_slice(self.bytes.as_slice())
     }
 }
 
 impl<'de> Deserialize<'de> for SymmetricKey {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bytes: Vec<u8> = Base64::<Standard, Padded>::deserialize_as::<D>(deserializer)?;
-        Ok(SymmetricKey { bytes })
+        String::deserialize(deserializer)
+            .map(|s| s.as_bytes().to_vec())
+            .map(Self::new)
+            .map_err(de::Error::custom)
     }
 }
 
 #[derive(Clone, Deserialize)]
 pub struct PreloadedSettings {
-    pub symmetric_key: SymmetricKey,
+    pub encryption_key: SymmetricKey,
+    pub hmac_key: SymmetricKey,
     pub xml_path: String,
 }
 
 impl<T> FileGbavClient<T> {
     pub fn try_from_settings(settings: PreloadedSettings, client: T) -> Result<Self, ConfigError> {
-        Ok(Self::new(Path::new(&settings.xml_path), settings.symmetric_key, client))
+        Ok(Self::new(
+            Path::new(&settings.xml_path),
+            settings.encryption_key,
+            settings.hmac_key,
+            client,
+        ))
     }
 }
 

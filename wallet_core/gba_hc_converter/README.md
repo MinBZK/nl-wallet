@@ -5,13 +5,23 @@ point to a path containing encrypted gba-v xml responses. See the settings below
 
 ## Settings
 
-### Generate random symmetric key
+### Generate random keys
 
-The gba-hc-converter needs a `preloaded.symmetric_key` configured for decrypting the gba-v responses. This can be
-manually
-generated using:
+The gba-hc-converter needs a `preloaded.encryption_key` configured for decrypting the gba-v responses. This can be
+manually generated using:
 
-    openssl rand -base64 32 > symmetric.key
+    openssl rand -hex 16 > encryption.key
+
+In addition, a `preloaded.hmac_key` is necessary for hashing the BSN so it can be used as filename:
+
+    openssl rand -hex 32 > hmac.key
+
+### Prefetching GBA-V responses
+
+For manually prefetching a gba-v response, the following binary can be used:
+
+    mkdir output_dir
+    cargo run --bin gba_fetch -- --output output_dir
 
 ### Encrypting the GBA-V responses
 
@@ -22,3 +32,9 @@ If a gba-v response needs to be manually encrypted, the following command can be
                 --basename "999991772" \
                 --output "resources/encrypted-gba-v-responses" \
                 "gba-v-responses/999991772.xml"
+
+### Calculating HMAC manually
+
+The filename of the encrypted gba-v can be calculated manually as follows:
+
+    echo -n "999991772" | openssl dgst -hmac "<hmac_key>" -sha256

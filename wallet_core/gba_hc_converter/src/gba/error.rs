@@ -1,6 +1,6 @@
-use std::string::FromUtf8Error;
-
 use crate::gba::data::GbaResult;
+use hex::FromHexError;
+use std::string::FromUtf8Error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -26,4 +26,6 @@ pub enum Error {
     Decoding(#[from] FromUtf8Error),
     #[error("Error decrypting data: {0}")]
     Decrypting(#[from] aes_gcm::aead::Error),
+    #[error("Error decoding data: {0}")]
+    HexDecode(#[from] FromHexError),
 }

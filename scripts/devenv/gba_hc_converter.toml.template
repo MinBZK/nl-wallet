@@ -3,4 +3,5 @@ port = ${GBA_HC_CONV_PORT}
 
 [run_mode.preloaded]
 xml_path = "resources/encrypted-gba-v-responses"
-symmetric_key = "${GBA_HC_CONV_KEY}"
+encryption_key = "${GBA_HC_CONV_ENCRYPTION_KEY}"
+hmac_key = "${GBA_HC_CONV_HMAC_KEY}"

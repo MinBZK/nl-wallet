@@ -21,9 +21,9 @@ impl GbavClient for EmptyGbavClient {
 
 #[tokio::test]
 async fn should_return_preloaded_xml() {
-    let (key, dir) = encrypt_xmls().await;
+    let (encryption_key, hmac_key, dir) = encrypt_xmls().await;
 
-    let client = FileGbavClient::new(dir.path(), key, EmptyGbavClient {});
+    let client = FileGbavClient::new(dir.path(), encryption_key, hmac_key, EmptyGbavClient {});
     let response = client
         .vraag(&Bsn::try_new("999991772").unwrap())
         .await
@@ -43,9 +43,9 @@ async fn should_return_preloaded_xml() {
 
 #[tokio::test]
 async fn should_return_empty() {
-    let (key, dir) = encrypt_xmls().await;
+    let (encryption_key, hmac_key, dir) = encrypt_xmls().await;
 
-    let client = FileGbavClient::new(dir.path(), key, EmptyGbavClient {});
+    let client = FileGbavClient::new(dir.path(), encryption_key, hmac_key, EmptyGbavClient {});
     let response = client.vraag(&Bsn::try_new("12345678").unwrap()).await.unwrap().unwrap();
     let gba_response = GbaResponse::new(&response).unwrap();
     assert!(gba_response.is_empty());

@@ -39,8 +39,10 @@ export RDO_MAX_PORT=8006
 
 PID_ISSUER_API_KEY=$(echo $RANDOM | shasum -a1 | head -c 40)
 export PID_ISSUER_API_KEY
-GBA_HC_CONV_KEY=$(openssl rand -base64 32)
-export GBA_HC_CONV_KEY
+GBA_HC_CONV_ENCRYPTION_KEY=$(openssl rand -hex 16)
+export GBA_HC_CONV_ENCRYPTION_KEY
+GBA_HC_CONV_HMAC_KEY=$(openssl rand -hex 32)
+export GBA_HC_CONV_HMAC_KEY
 
 # Database properties for the wallet_provider, with defaults.
 # The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.

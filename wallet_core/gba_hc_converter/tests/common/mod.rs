@@ -4,7 +4,10 @@ use aes_gcm::{Aes256Gcm, KeyInit};
 use rand_core::OsRng;
 use tempfile::TempDir;
 
-use gba_hc_converter::{gba::encryption::encrypt_bytes_to_dir, settings::SymmetricKey};
+use gba_hc_converter::{
+    gba::encryption::{encrypt_bytes_to_dir, name_to_encoded_hash, HmacSha256},
+    settings::SymmetricKey,
+};
 
 fn manifest_path() -> PathBuf {
     env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap()
@@ -20,8 +23,9 @@ pub async fn read_file(name: &str) -> String {
         .unwrap()
 }
 
-pub async fn encrypt_xmls() -> (SymmetricKey, TempDir) {
-    let key = SymmetricKey::new(Aes256Gcm::generate_key(OsRng).to_vec());
+pub async fn encrypt_xmls() -> (SymmetricKey, SymmetricKey, TempDir) {
+    let encryption_key = SymmetricKey::new(Aes256Gcm::generate_key(OsRng).to_vec());
+    let hmac_key = SymmetricKey::new(HmacSha256::generate_key(OsRng).to_vec());
 
     let temp_path = tempfile::tempdir().unwrap();
 
@@ -33,11 +37,13 @@ pub async fn encrypt_xmls() -> (SymmetricKey, TempDir) {
             let filename = String::from(file.file_stem().unwrap().to_str().unwrap());
             let content = tokio::fs::read(file).await.unwrap();
 
-            encrypt_bytes_to_dir(key.key(), &content, temp_path.path(), &filename)
+            let name = name_to_encoded_hash(&filename, &hmac_key);
+
+            encrypt_bytes_to_dir(encryption_key.key::<Aes256Gcm>(), &content, temp_path.path(), &name)
                 .await
                 .unwrap();
         }
     }
 
-    (key, temp_path)
+    (encryption_key, hmac_key, temp_path)
 }

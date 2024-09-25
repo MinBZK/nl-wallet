@@ -1654,8 +1654,11 @@ dependencies = [
  "clap",
  "clio",
  "config",
+ "crypto-common",
  "csv",
  "ctor",
+ "hex",
+ "hmac",
  "http",
  "indexmap 2.2.6",
  "nutype",
@@ -1670,6 +1673,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "sha2",
  "strum 0.26.3",
  "tempfile",
  "thiserror",
@@ -1877,6 +1881,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hex-literal"

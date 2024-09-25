@@ -415,6 +415,7 @@ echo -e "${SECTION}Configure gba-hc-converter${NC}"
 render_template "${DEVENV}/gba_hc_converter.toml.template" "${BASE_DIR}/wallet_core/gba_hc_converter/gba_hc_converter.toml"
 render_template "${DEVENV}/gba_hc_converter.toml.template" "${BASE_DIR}/wallet_core/tests_integration/gba_hc_converter.toml"
 
+rm -rf "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses"
 encrypt_gba_v_responses
 
 ########################################################################

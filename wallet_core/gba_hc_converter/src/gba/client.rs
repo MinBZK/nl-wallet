@@ -4,16 +4,21 @@ use std::{
     str,
 };
 
+use aes_gcm::Aes256Gcm;
 use base64::prelude::*;
 use http::header;
 use pem::Pem;
 use reqwest::{tls, Certificate, Identity};
+
 use tracing::info;
 
 use wallet_common::{reqwest::tls_pinned_client_builder, urls::BaseUrl};
 
 use crate::{
-    gba::{encryption::decrypt_bytes_from_dir, error::Error},
+    gba::{
+        encryption::{decrypt_bytes_from_dir, name_to_encoded_hash},
+        error::Error,
+    },
     haal_centraal::Bsn,
     settings::SymmetricKey,
 };
@@ -111,17 +116,19 @@ impl GbavClient for HttpGbavClient {
 
 pub struct FileGbavClient<T> {
     base_path: PathBuf,
-    symmetric_key: SymmetricKey,
+    decryption_key: SymmetricKey,
+    hmac_key: SymmetricKey,
     client: T,
 }
 
 impl<T> FileGbavClient<T> {
-    pub fn new(path: &Path, symmetric_key: SymmetricKey, client: T) -> Self {
+    pub fn new(path: &Path, decryption_key: SymmetricKey, hmac_key: SymmetricKey, client: T) -> Self {
         let mut base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
         base_path.push(path);
         Self {
             base_path,
-            symmetric_key,
+            decryption_key,
+            hmac_key,
             client,
         }
     }
@@ -132,12 +139,9 @@ where
     T: GbavClient + Sync,
 {
     async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error> {
-        let decrypted = decrypt_bytes_from_dir(
-            self.symmetric_key.key(),
-            self.base_path.as_path(),
-            bsn.to_string().as_str(),
-        )
-        .await?;
+        let hmac = name_to_encoded_hash(&bsn.to_string(), &self.hmac_key);
+
+        let decrypted = decrypt_bytes_from_dir(self.decryption_key.key::<Aes256Gcm>(), &self.base_path, &hmac).await?;
 
         if let Some(bytes) = decrypted {
             let xml = String::from_utf8(bytes)?;

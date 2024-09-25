@@ -34,12 +34,12 @@ spec:
               memory: "128Mi"
               cpu: "100m"
           volumeMounts:
-            - name: gba-hc-converter-xml-files-volume
-              mountPath: /resources/gba-v-responses
+            - name: preloaded-gba-v-data-volume
+              mountPath: /resources/encrypted-gba-v-responses
               readOnly: true
-            - name: config-volume
-              mountPath: /gba_hc_converter.toml
-              subPath: gba_hc_converter.toml
+            - mountPath: /resources/remote/bsn_zoeken_template.xml
+              name: zoek-xml-volume
+              subPath: bsn_zoeken_template.xml
           env:
             - name: RUST_BACKTRACE
               value: "1"
@@ -49,6 +49,18 @@ spec:
               value: "true"
             - name: GBA_HC_CONVERTER_PORT
               value: "3006"
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__PRELOADED__XML_PATH
+              value: "resources/encrypted-gba-v-responses"
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__PRELOADED__ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: encryption_key
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__PRELOADED__HMAC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: hmac_key
             - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__ADHOC_URL
               valueFrom:
                 secretKeyRef:
@@ -113,9 +125,6 @@ spec:
           persistentVolumeClaim:
             claimName: preloaded-gba-v-data-pvc
             readOnly: true
-        - name: gba-hc-converter-xml-files-volume
+        - name: zoek-xml-volume
           configMap:
-            name: nl-wallet-gba-hc-converter-xml-files
-        - name: config-volume
-          secret:
-            secretName: nl-wallet-gba-hc-converter-config
+            name: nl-wallet-gba-hc-converter-zoek-xml
