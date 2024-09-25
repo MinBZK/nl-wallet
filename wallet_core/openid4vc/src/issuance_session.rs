@@ -34,8 +34,8 @@ use wallet_common::{
 
 use crate::{
     credential::{
-        CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequestProofJwtPayload,
-        CredentialRequests, CredentialResponse, CredentialResponses, MdocCopies, WteDisclosure,
+        CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
+        CredentialResponses, JwtPopClaims, MdocCopies, WteDisclosure,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},
@@ -608,8 +608,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             Some(wte) => {
                 let wte_pubkey = jwk_to_p256(&wte.jwt_claims().cnf.jwk)?;
                 let wte_privkey = key_factory.generate_existing(&wte.private_key_id, wte_pubkey);
-                let wte_release = Jwt::<CredentialRequestProofJwtPayload>::sign(
-                    &CredentialRequestProofJwtPayload::new(
+                let wte_release = Jwt::<JwtPopClaims>::sign(
+                    &JwtPopClaims::new(
                         Some(self.session_state.c_nonce.clone()),
                         NL_WALLET_CLIENT_ID.to_string(),
                         credential_issuer_identifier.as_ref().to_string(),

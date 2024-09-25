@@ -34,7 +34,7 @@ pub struct CredentialRequests {
     pub attestations: Option<WteDisclosure>,
 }
 
-pub type WteDisclosure = (Jwt<JwtCredentialClaims>, Jwt<CredentialRequestProofJwtPayload>);
+pub type WteDisclosure = (Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>);
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.
 /// Sent JSON-encoded to `POST /credential`.
@@ -88,7 +88,7 @@ impl From<&CredentialRequestType> for Format {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "proof_type", rename_all = "snake_case")]
 pub enum CredentialRequestProof {
-    Jwt { jwt: Jwt<CredentialRequestProofJwtPayload> },
+    Jwt { jwt: Jwt<JwtPopClaims> },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -113,9 +113,10 @@ impl From<&CredentialResponse> for Format {
     }
 }
 
-// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.1.1
+/// JWT claims of a PoP (Proof of Possession). Used a.o. as a JWT proof in a Credential Request
+/// (<https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.1.1>).
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CredentialRequestProofJwtPayload {
+pub struct JwtPopClaims {
     pub iss: String,
     pub aud: String,
     pub nonce: Option<String>,
@@ -123,7 +124,7 @@ pub struct CredentialRequestProofJwtPayload {
     pub iat: DateTime<Utc>,
 }
 
-impl CredentialRequestProofJwtPayload {
+impl JwtPopClaims {
     pub fn new(nonce: Option<String>, iss: String, aud: String) -> Self {
         Self {
             nonce,
@@ -149,7 +150,7 @@ impl CredentialRequestProof {
             .await
             .map_err(|e| IssuanceSessionError::PrivateKeyGeneration(Box::new(e)))?;
 
-        let payload = CredentialRequestProofJwtPayload {
+        let payload = JwtPopClaims {
             nonce: Some(nonce),
             iss: wallet_client_id,
             aud: credential_issuer_identifier.as_ref().to_string(),

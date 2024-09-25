@@ -29,8 +29,8 @@ use wallet_common::{
 
 use crate::{
     credential::{
-        CredentialRequest, CredentialRequestProof, CredentialRequestProofJwtPayload, CredentialRequests,
-        CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
+        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
+        JwtPopClaims, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
@@ -870,7 +870,7 @@ impl CredentialRequestProof {
         validation_options.set_audience(&[credential_issuer_identifier]);
 
         // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
-        let token_data = jsonwebtoken::decode::<CredentialRequestProofJwtPayload>(
+        let token_data = jsonwebtoken::decode::<JwtPopClaims>(
             &jwt.0,
             &EcdsaDecodingKey::from(&verifying_key).0,
             &validation_options,
