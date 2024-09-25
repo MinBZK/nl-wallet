@@ -217,8 +217,6 @@ impl HandleInstruction for Sign {
     }
 }
 
-static WTE_KEY_ID: &str = "wte_key_id";
-
 impl HandleInstruction for IssueWte {
     type Result = IssueWteResult;
 
@@ -235,6 +233,9 @@ impl HandleInstruction for IssueWte {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
+        // Since the user can exchange the WTE for the PID at the PID issuer, and since one of the purposes of the WTE
+        // is ensuring that a user can have only a single PID in their wallet, we must ensure that we didn't already
+        // issue a WTE at some point in the past.
         if wallet_user.has_wte {
             return Err(InstructionError::WteAlreadyIssued);
         }
@@ -249,7 +250,7 @@ impl HandleInstruction for IssueWte {
             wallet_user_id: wallet_user.id,
             keys: vec![WalletUserKey {
                 wallet_user_key_id: uuid_generator.generate(),
-                key_identifier: WTE_KEY_ID.to_string(),
+                key_identifier: self.key_identifier,
                 key: wrapped_privkey,
             }],
         };
@@ -259,10 +260,7 @@ impl HandleInstruction for IssueWte {
             .await?;
         tx.commit().await?;
 
-        Ok(IssueWteResult {
-            key_id: WTE_KEY_ID.to_string(),
-            wte,
-        })
+        Ok(IssueWteResult { wte })
     }
 }
 

@@ -54,11 +54,12 @@ pub struct SignResult {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct IssueWte;
+pub struct IssueWte {
+    pub key_identifier: String,
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IssueWteResult {
-    pub key_id: String,
     pub wte: Jwt<JwtCredentialClaims>,
 }
 

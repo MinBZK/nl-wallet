@@ -1,7 +1,10 @@
 use nl_wallet_mdoc::holder::TrustAnchor;
 use openid4vc::jwt::JwtCredential;
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::messages::instructions::{IssueWte, IssueWteResult};
+use wallet_common::{
+    account::messages::instructions::{IssueWte, IssueWteResult},
+    utils::random_string,
+};
 
 use crate::{
     account_provider::AccountProviderClient,
@@ -35,7 +38,12 @@ impl WteIssuanceClient for WpWteIssuanceClient {
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
     {
-        let IssueWteResult { key_id, wte } = remote_instruction.send(IssueWte).await?;
+        let key_id = random_string(32);
+        let IssueWteResult { wte } = remote_instruction
+            .send(IssueWte {
+                key_identifier: key_id.clone(),
+            })
+            .await?;
         let (wte, _) = JwtCredential::new::<RemoteEcdsaKey<S, PEK, APC>>(key_id, wte, trust_anchors)?;
         Ok(wte)
     }
