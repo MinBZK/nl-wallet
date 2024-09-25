@@ -40,6 +40,15 @@ const DIGID_TRUST_ANCHORS: &str = "";
 const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttykoP/\
                                              iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
 
+const WTE_ISSUANCE_CERTIFICATE: &str = "MIIBljCCAT2gAwIBAgIUZVDK9QLrjHGnezEC6Wj+7wxbPQ4wCgYIKoZIzj0EAwIwITEfMB0GA1UEAw\
+                                        wWd3RlLWlzc3Vlci5leGFtcGxlLmNvbTAeFw0yNDA5MTgxNDA2MTJaFw0yOTA5MTcxNDA2MTJaMCEx\
+                                        HzAdBgNVBAMMFnd0ZS1pc3N1ZXIuZXhhbXBsZS5jb20wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAA\
+                                        RQs06oXCcgvGsD0mdyUhzBefd8rd8VvvIDZOhY2R0bU5RcsAiVEPsYiDMgtIXaEfY9D+gv6i8kpXka\
+                                        Wbk+yHElo1MwUTAdBgNVHQ4EFgQUG6MvwxRHXu22zjUiMWb8IwqBKj8wHwYDVR0jBBgwFoAUG6Mvwx\
+                                        RHXu22zjUiMWb8IwqBKj8wDwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAgNHADBEAiBODdO45E7l\
+                                        iS9hd2BAlkTY9k532ayA9dAaP+GD6sXDkQIgUUtZywRu99iGgoIETyeuuVy58SuPyi648+DRig2ylQ\
+                                        4=";
+
 const PID_ISSUER_URL: &str = "http://localhost:3001/issuance/";
 
 const MDOC_TRUST_ANCHORS: &str = "MIIBlTCCATqgAwIBAgIURlVkuYVVlqtiuecbOwVySS9jdFwwCgYIKoZIzj0EAwIwGTEXMBUGA1UEAwwO\
@@ -144,6 +153,7 @@ pub fn default_configuration() -> WalletConfiguration {
             )
             .unwrap()
             .into(),
+            wte_trust_anchors: parse_trust_anchors(config_default!(WTE_ISSUANCE_CERTIFICATE)),
         },
         pid_issuance: PidIssuanceConfiguration {
             pid_issuer_url: config_default!(PID_ISSUER_URL).parse().unwrap(),

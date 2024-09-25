@@ -346,7 +346,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
         .await
         .expect("Could not continue pid issuance");
     wallet
-        .accept_pid_issuance(pin)
+        .accept_pid_issuance(pin, true)
         .await
         .expect("Could not accept pid issuance");
     wallet

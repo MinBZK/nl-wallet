@@ -2,6 +2,7 @@ use chrono::{serde::ts_seconds, DateTime, Utc};
 use futures::future::try_join_all;
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 use nl_wallet_mdoc::{
     holder::Mdoc,
@@ -26,19 +27,25 @@ use crate::{
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
 /// Sent JSON-encoded to `POST /batch_credential`.
+#[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequests {
     pub credential_requests: NonEmpty<Vec<CredentialRequest>>,
+    pub attestations: Option<WteDisclosure>,
 }
+
+pub type WteDisclosure = (Jwt<JwtCredentialClaims>, Jwt<CredentialRequestProofJwtPayload>);
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.
 /// Sent JSON-encoded to `POST /credential`.
 // TODO: add `wallet_attestation`, `wallet_attestation_pop`, and `proof_of_secure_combination` (PVW-2361, PVW-2362)
+#[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequest {
     #[serde(flatten)]
     pub credential_type: CredentialRequestType,
     pub proof: Option<CredentialRequestProof>,
+    pub attestations: Option<WteDisclosure>,
 }
 
 impl CredentialRequest {
@@ -116,6 +123,17 @@ pub struct CredentialRequestProofJwtPayload {
     pub iat: DateTime<Utc>,
 }
 
+impl CredentialRequestProofJwtPayload {
+    pub fn new(nonce: Option<String>, iss: String, aud: String) -> Self {
+        Self {
+            nonce,
+            iss,
+            aud,
+            iat: Utc::now(),
+        }
+    }
+}
+
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 
 impl CredentialRequestProof {
@@ -124,7 +142,7 @@ impl CredentialRequestProof {
         wallet_client_id: String,
         credential_issuer_identifier: BaseUrl,
         number_of_keys: u64,
-        key_factory: impl KeyFactory<Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<(K, CredentialRequestProof)>, IssuanceSessionError> {
         let keys = key_factory
             .generate_new_multiple(number_of_keys)
@@ -137,6 +155,7 @@ impl CredentialRequestProof {
             aud: credential_issuer_identifier.as_ref().to_string(),
             iat: Utc::now(),
         };
+
         let keys_and_jwt_payloads = try_join_all(keys.into_iter().map(|privkey| async {
             let header = jwk_jwt_header(OPENID4VCI_VC_POP_JWT_TYPE, &privkey).await?;
             let payload = payload.clone();
@@ -144,7 +163,7 @@ impl CredentialRequestProof {
         }))
         .await?;
 
-        let keys_and_proofs = jwt::sign_jwts(keys_and_jwt_payloads, &key_factory)
+        let keys_and_proofs = jwt::sign_jwts(keys_and_jwt_payloads, key_factory)
             .await?
             .into_iter()
             .map(|(key, jwt)| (key, CredentialRequestProof::Jwt { jwt }))

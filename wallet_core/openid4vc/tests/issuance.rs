@@ -108,7 +108,12 @@ async fn accept_issuance(
     .unwrap();
 
     let issued_creds = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
+        .accept_issuance(
+            &[(&ca).try_into().unwrap()],
+            SoftwareKeyFactory::default(),
+            None,
+            server_url,
+        )
         .await
         .unwrap();
 
@@ -169,7 +174,12 @@ async fn start_and_accept_err(
     .unwrap();
 
     session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
+        .accept_issuance(
+            &[(&ca).try_into().unwrap()],
+            SoftwareKeyFactory::default(),
+            None,
+            server_url,
+        )
         .await
         .unwrap_err()
 }

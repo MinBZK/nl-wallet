@@ -264,7 +264,7 @@ pub async fn continue_pid_issuance(uri: String) -> Result<Vec<Card>> {
 pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
+    let result = wallet.accept_pid_issuance(pin, true).await.try_into()?;
 
     Ok(result)
 }

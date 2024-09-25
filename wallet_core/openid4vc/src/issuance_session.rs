@@ -2,6 +2,7 @@ use std::{collections::VecDeque, fmt::Debug};
 
 use futures::{future::try_join_all, TryFutureExt};
 use itertools::Itertools;
+use jsonwebtoken::{Algorithm, Header};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     elliptic_curve::rand_core::OsRng,
@@ -26,15 +27,15 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
-    jwt::{JwkConversionError, JwtError},
+    jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
 
 use crate::{
     credential::{
-        CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
-        CredentialResponses, MdocCopies,
+        CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequestProofJwtPayload,
+        CredentialRequests, CredentialResponse, CredentialResponses, MdocCopies, WteDisclosure,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},
@@ -270,6 +271,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
+        wte: Option<JwtCredential>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
 
@@ -570,6 +572,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
+        wte: Option<JwtCredential>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
@@ -585,6 +588,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count().into()))
             .collect_vec();
 
+        let total_credential_count = types.len();
+
         // Generate the PoPs to be sent to the issuer, and the private keys with which they were generated
         // (i.e., the private key of the future mdoc).
         // If N is the total amount of copies of credentials to be issued, then this returns N key/proof pairs.
@@ -592,11 +597,31 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let keys_and_proofs = CredentialRequestProof::new_multiple(
             self.session_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
-            credential_issuer_identifier,
-            types.len().try_into().unwrap(),
-            key_factory,
+            credential_issuer_identifier.clone(),
+            total_credential_count.try_into().unwrap(),
+            &key_factory,
         )
         .await?;
+
+        // This could be written better with `Option::map`, but `Option::map` does not support async closures
+        let mut wte_disclosure = match wte {
+            Some(wte) => {
+                let wte_pubkey = jwk_to_p256(&wte.jwt_claims().cnf.jwk)?;
+                let wte_privkey = key_factory.generate_existing(&wte.private_key_id, wte_pubkey);
+                let wte_release = Jwt::<CredentialRequestProofJwtPayload>::sign(
+                    &CredentialRequestProofJwtPayload::new(
+                        Some(self.session_state.c_nonce.clone()),
+                        NL_WALLET_CLIENT_ID.to_string(),
+                        credential_issuer_identifier.as_ref().to_string(),
+                    ),
+                    &Header::new(Algorithm::ES256),
+                    &wte_privkey,
+                )
+                .await?;
+                Some((wte.jwt, wte_release))
+            }
+            None => None,
+        };
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
@@ -604,17 +629,21 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             keys_and_proofs
                 .into_iter()
                 .zip(types)
-                .map(|((key, response), credential_type)| async move {
-                    let pubkey = key
-                        .verifying_key()
-                        .await
-                        .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
-                    let id = key.identifier().to_string();
-                    let cred_request = CredentialRequest {
-                        credential_type,
-                        proof: Some(response),
-                    };
-                    Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
+                .map(|((key, response), credential_type)| {
+                    let mut wte_disclosure = wte_disclosure.clone();
+                    async move {
+                        let pubkey = key
+                            .verifying_key()
+                            .await
+                            .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
+                        let id = key.identifier().to_string();
+                        let cred_request = CredentialRequest {
+                            credential_type,
+                            proof: Some(response),
+                            attestations: (total_credential_count == 1).then_some(wte_disclosure.take()).flatten(),
+                        };
+                        Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
+                    }
                 }),
         )
         .await?
@@ -625,7 +654,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let credential_requests = NonEmpty::new(credential_requests).unwrap();
         let responses = match credential_requests.as_ref().len() {
             1 => vec![self.request_credential(credential_requests.first()).await?],
-            _ => self.request_batch_credentials(credential_requests).await?,
+            _ => {
+                self.request_batch_credentials(credential_requests, wte_disclosure.take())
+                    .await?
+            }
         };
         let mut responses_and_pubkeys: VecDeque<_> = responses.into_iter().zip(pubkeys).collect();
 
@@ -688,6 +720,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn request_batch_credentials(
         &self,
         credential_requests: NonEmpty<Vec<CredentialRequest>>,
+        wte_disclosure: Option<WteDisclosure>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
         let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
             .await?
@@ -699,7 +732,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .message_client
             .request_credentials(
                 &url,
-                &CredentialRequests { credential_requests },
+                &CredentialRequests {
+                    credential_requests,
+                    attestations: wte_disclosure,
+                },
                 &dpop_header,
                 &access_token_header,
             )
@@ -975,6 +1011,7 @@ mod tests {
             .accept_issuance(
                 trust_anchors,
                 SoftwareKeyFactory::default(),
+                None,
                 "https://example.com".parse().unwrap(),
             )
             .await
