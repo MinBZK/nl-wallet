@@ -588,8 +588,6 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count().into()))
             .collect_vec();
 
-        let total_credential_count = types.len();
-
         // Generate the PoPs to be sent to the issuer, and the private keys with which they were generated
         // (i.e., the private key of the future mdoc).
         // If N is the total amount of copies of credentials to be issued, then this returns N key/proof pairs.
@@ -598,7 +596,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             self.session_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
             credential_issuer_identifier.clone(),
-            total_credential_count.try_into().unwrap(),
+            types.len().try_into().unwrap(),
             &key_factory,
         )
         .await?;
@@ -608,6 +606,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             Some(wte) => {
                 let wte_pubkey = jwk_to_p256(&wte.jwt_claims().cnf.jwk)?;
                 let wte_privkey = key_factory.generate_existing(&wte.private_key_id, wte_pubkey);
+
                 let wte_release = Jwt::<JwtPopClaims>::sign(
                     &JwtPopClaims::new(
                         Some(self.session_state.c_nonce.clone()),
@@ -618,6 +617,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     &wte_privkey,
                 )
                 .await?;
+
                 Some((wte.jwt, wte_release))
             }
             None => None,
@@ -629,32 +629,34 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             keys_and_proofs
                 .into_iter()
                 .zip(types)
-                .map(|((key, response), credential_type)| {
-                    let mut wte_disclosure = wte_disclosure.clone();
-                    async move {
-                        let pubkey = key
-                            .verifying_key()
-                            .await
-                            .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
-                        let id = key.identifier().to_string();
-                        let cred_request = CredentialRequest {
-                            credential_type,
-                            proof: Some(response),
-                            attestations: (total_credential_count == 1).then_some(wte_disclosure.take()).flatten(),
-                        };
-                        Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
-                    }
+                .map(|((key, response), credential_type)| async move {
+                    let pubkey = key
+                        .verifying_key()
+                        .await
+                        .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
+                    let id = key.identifier().to_string();
+                    let cred_request = CredentialRequest {
+                        credential_type,
+                        proof: Some(response),
+                        attestations: None, // We set this field below if necessary
+                    };
+                    Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
                 }),
         )
         .await?
         .into_iter()
         .unzip();
 
-        // Unwrapping is safe because N > 0, see above.
-        let credential_requests = NonEmpty::new(credential_requests).unwrap();
-        let responses = match credential_requests.as_ref().len() {
-            1 => vec![self.request_credential(credential_requests.first()).await?],
+        // The following two unwraps are safe because N > 0, see above.
+        let mut credential_requests = credential_requests; // Make it mutable so we can pop() to avoid cloning
+        let responses = match credential_requests.len() {
+            1 => {
+                let mut credential_request = credential_requests.pop().unwrap();
+                credential_request.attestations = wte_disclosure.take();
+                vec![self.request_credential(&credential_request).await?]
+            }
             _ => {
+                let credential_requests = NonEmpty::new(credential_requests).unwrap();
                 self.request_batch_credentials(credential_requests, wte_disclosure.take())
                     .await?
             }
