@@ -178,8 +178,6 @@ build-gba-fetch-binary:
   extends: .build-binary
   script:
     - cargo build --locked --target x86_64-unknown-linux-gnu --package "gba_hc_converter" --bin gba_fetch
-    - cargo build --locked --target x86_64-unknown-linux-musl --package "gba_hc_converter" --bin gba_fetch
   artifacts:
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_fetch
-      - wallet_core/target/x86_64-unknown-linux-musl/debug/gba_fetch
