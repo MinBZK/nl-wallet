@@ -31,8 +31,6 @@ async fn main() -> Result<()> {
         .unwrap_or_default()
         .join(cli.output.path());
 
-    let bsn = Bsn::try_new(&rpassword::prompt_password("Enter BSN: ")?)?;
-
     let settings = Settings::new()?;
 
     let (gbav_settings, preloaded_settings) = match settings.run_mode {
@@ -41,6 +39,8 @@ async fn main() -> Result<()> {
     };
 
     let http_client = HttpGbavClient::from_settings(gbav_settings).await?;
+
+    let bsn = Bsn::try_new(&rpassword::prompt_password("Enter BSN: ")?)?;
 
     let xml = http_client
         .vraag(&bsn)
