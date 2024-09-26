@@ -66,7 +66,7 @@ build-mock-relying-party-image:
     - job: build-demo-relying-party-binary
       artifacts: true
   before_script:
-    - !reference [.kaniko, before_script]
+    - !reference [.build-docker-image, before_script]
     - export ARG_CSP_SCRIPT_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt)"
     - export ARG_CSP_STYLE_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt)"
     - export ARG_WALLET_WEB_FILENAME="$(cat wallet_core/mock_relying_party/hashes/wallet_web_filename.txt)"
