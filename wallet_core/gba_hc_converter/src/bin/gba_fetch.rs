@@ -8,7 +8,7 @@ use clio::ClioPath;
 use gba_hc_converter::{
     gba::{
         client::{GbavClient, HttpGbavClient},
-        encryption::{encrypt_bytes_to_dir, name_to_encoded_hash},
+        encryption::{encrypt_bytes_to_dir, HmacSha256},
     },
     haal_centraal::Bsn,
     settings::{RunMode, Settings},
@@ -47,13 +47,12 @@ async fn main() -> Result<()> {
         .await?
         .ok_or(anyhow!("No GBA-V results found for the supplied BSN"))?;
 
-    let name = name_to_encoded_hash(&bsn.to_string(), &preloaded_settings.hmac_key);
-
     encrypt_bytes_to_dir(
         preloaded_settings.encryption_key.key::<Aes256Gcm>(),
+        preloaded_settings.hmac_key.key::<HmacSha256>(),
         xml.as_bytes(),
         &base_path,
-        &name,
+        bsn.as_ref(),
     )
     .await?;
 

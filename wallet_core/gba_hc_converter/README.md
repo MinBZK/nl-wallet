@@ -37,4 +37,4 @@ If a gba-v response needs to be manually encrypted, the following command can be
 
 The filename of the encrypted gba-v can be calculated manually as follows:
 
-    echo -n "999991772" | openssl dgst -hmac "<hmac_key>" -sha256
+    echo -n "999991772" | openssl mac -digest sha256 -macopt hexkey:<hmac_key> HMAC

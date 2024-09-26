@@ -9,14 +9,13 @@ use base64::prelude::*;
 use http::header;
 use pem::Pem;
 use reqwest::{tls, Certificate, Identity};
-
 use tracing::info;
 
 use wallet_common::{reqwest::tls_pinned_client_builder, urls::BaseUrl};
 
 use crate::{
     gba::{
-        encryption::{decrypt_bytes_from_dir, name_to_encoded_hash},
+        encryption::{decrypt_bytes_from_dir, HmacSha256},
         error::Error,
     },
     haal_centraal::Bsn,
@@ -103,7 +102,7 @@ impl GbavClient for HttpGbavClient {
         let response = request_builder
             .header(header::CONTENT_TYPE, "application/xml;charset=UTF-8")
             .header(header::ACCEPT_CHARSET, "UTF-8")
-            .body(self.vraag_request_template.replace("{{bsn}}", &bsn.to_string()))
+            .body(self.vraag_request_template.replace("{{bsn}}", bsn.as_ref()))
             .send()
             .await?;
 
@@ -139,9 +138,13 @@ where
     T: GbavClient + Sync,
 {
     async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error> {
-        let hmac = name_to_encoded_hash(&bsn.to_string(), &self.hmac_key);
-
-        let decrypted = decrypt_bytes_from_dir(self.decryption_key.key::<Aes256Gcm>(), &self.base_path, &hmac).await?;
+        let decrypted = decrypt_bytes_from_dir(
+            self.decryption_key.key::<Aes256Gcm>(),
+            self.hmac_key.key::<HmacSha256>(),
+            &self.base_path,
+            bsn.as_ref(),
+        )
+        .await?;
 
         if let Some(bytes) = decrypted {
             let xml = String::from_utf8(bytes)?;

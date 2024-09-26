@@ -6,7 +6,7 @@ use clap::Parser;
 use clio::{ClioPath, Input};
 
 use gba_hc_converter::{
-    gba::encryption::{encrypt_bytes_to_dir, name_to_encoded_hash},
+    gba::encryption::{encrypt_bytes_to_dir, HmacSha256},
     settings::{RunMode, Settings},
 };
 
@@ -46,13 +46,12 @@ async fn main() -> Result<()> {
         _ => bail!("Only Runmode::All and Runmode::Preloaded are allowed"),
     };
 
-    let name = name_to_encoded_hash(&cli.basename, &preloaded_settings.hmac_key);
-
     encrypt_bytes_to_dir(
         preloaded_settings.encryption_key.key::<Aes256Gcm>(),
+        preloaded_settings.hmac_key.key::<HmacSha256>(),
         &bytes,
         &base_path,
-        &name,
+        &cli.basename,
     )
     .await?;
 

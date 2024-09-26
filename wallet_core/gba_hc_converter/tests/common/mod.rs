@@ -5,7 +5,7 @@ use rand_core::OsRng;
 use tempfile::TempDir;
 
 use gba_hc_converter::{
-    gba::encryption::{encrypt_bytes_to_dir, name_to_encoded_hash, HmacSha256},
+    gba::encryption::{encrypt_bytes_to_dir, HmacSha256},
     settings::SymmetricKey,
 };
 
@@ -37,11 +37,15 @@ pub async fn encrypt_xmls() -> (SymmetricKey, SymmetricKey, TempDir) {
             let filename = String::from(file.file_stem().unwrap().to_str().unwrap());
             let content = tokio::fs::read(file).await.unwrap();
 
-            let name = name_to_encoded_hash(&filename, &hmac_key);
-
-            encrypt_bytes_to_dir(encryption_key.key::<Aes256Gcm>(), &content, temp_path.path(), &name)
-                .await
-                .unwrap();
+            encrypt_bytes_to_dir(
+                encryption_key.key::<Aes256Gcm>(),
+                hmac_key.key::<HmacSha256>(),
+                &content,
+                temp_path.path(),
+                &filename,
+            )
+            .await
+            .unwrap();
         }
     }
 
