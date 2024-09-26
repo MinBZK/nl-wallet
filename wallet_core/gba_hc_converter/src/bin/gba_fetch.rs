@@ -3,7 +3,7 @@ use std::{env, path::PathBuf};
 use aes_gcm::Aes256Gcm;
 use anyhow::{anyhow, bail, Result};
 use clap::Parser;
-use clio::*;
+use clio::ClioPath;
 
 use gba_hc_converter::{
     gba::{

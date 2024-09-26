@@ -3,7 +3,7 @@ use std::{env, io::Read, path::PathBuf};
 use aes_gcm::Aes256Gcm;
 use anyhow::{bail, Result};
 use clap::Parser;
-use clio::*;
+use clio::{ClioPath, Input};
 
 use gba_hc_converter::{
     gba::encryption::{encrypt_bytes_to_dir, name_to_encoded_hash},
