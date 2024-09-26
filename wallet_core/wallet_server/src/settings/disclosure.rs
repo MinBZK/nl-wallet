@@ -6,7 +6,7 @@ use serde::Deserialize;
 use serde_with::{hex::Hex, serde_as};
 
 use openid4vc::verifier::{SessionTypeReturnUrl, UseCase, UseCases};
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::{trust_anchor::DerTrustAnchor, urls::Origin};
 
 use super::*;
 
@@ -19,6 +19,8 @@ pub struct Verifier {
     pub trust_anchors: Vec<DerTrustAnchor>,
     #[serde_as(as = "Hex")]
     pub ephemeral_id_secret: EhpemeralIdSecret,
+    #[serde(default)]
+    pub allow_origins: Vec<Origin>,
 }
 
 #[nutype(derive(Clone, From, Deserialize, Deref, AsRef))]

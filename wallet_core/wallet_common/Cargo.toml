@@ -11,6 +11,8 @@ workspace = true
 doctest = false
 
 [features]
+# Allow the disclosure return URL and its prefix to use http://
+allow_http_return_url = []
 # Include implementations of the axum IntoResponse trait.
 axum = ["dep:axum"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
