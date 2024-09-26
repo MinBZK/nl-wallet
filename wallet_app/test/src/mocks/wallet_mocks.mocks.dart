@@ -1558,6 +1558,28 @@ class MockWalletRepository extends _i1.Mock implements _i22.WalletRepository {
       ) as _i9.Future<_i7.WalletInstructionResult>);
 
   @override
+  _i9.Future<_i7.WalletInstructionResult> continueChangePin(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #continueChangePin,
+          [pin],
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [pin],
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
   _i9.Future<void> lockWallet() => (super.noSuchMethod(
         Invocation.method(
           #lockWallet,
@@ -1919,6 +1941,28 @@ class MockTypedWalletCore extends _i1.Mock implements _i30.TypedWalletCore {
               oldPin,
               newPin,
             ],
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
+  _i9.Future<_i7.WalletInstructionResult> continueChangePin(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #continueChangePin,
+          [pin],
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [pin],
           ),
         )),
       ) as _i9.Future<_i7.WalletInstructionResult>);
