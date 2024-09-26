@@ -4,7 +4,7 @@ use std::{
 };
 
 use futures::future::try_join_all;
-use jsonwebtoken::{Algorithm, Header, Validation};
+use jsonwebtoken::{Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -17,10 +17,7 @@ use nl_wallet_mdoc::{
     IssuerSigned,
 };
 use wallet_common::{
-    jwt::{
-        jwk_from_p256, jwk_to_p256, EcdsaDecodingKey, JwkConversionError, Jwt, JwtCredentialClaims, JwtCredentialCnf,
-        JwtCredentialContents,
-    },
+    jwt::{jwk_to_p256, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError},
     keys::EcdsaKey,
     nonempty::NonEmpty,
     urls::BaseUrl,
@@ -105,6 +102,8 @@ pub enum CredentialRequestError {
     JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
+    #[error("JWT error: {0}")]
+    Jwt(#[from] JwtError),
     #[error("failed to convert P256 public key to COSE key: {0}")]
     CoseKeyConversion(CryptoError),
     #[error("missing issuance private key for doctype {0}")]
@@ -825,25 +824,20 @@ impl CredentialResponse {
 
             CredentialPreview::Jwt { claims, jwt_typ, .. } => {
                 // Add the holder public key to the claims that are going to be signed
-                let jwk = jwk_from_p256(&holder_pubkey)?;
-                let claims = JwtCredentialClaims {
-                    cnf: JwtCredentialCnf { jwk },
-                    contents: JwtCredentialContents {
-                        iss: issuer_privkey
-                            .certificate()
-                            .common_names()
-                            .unwrap()
-                            .first()
-                            .unwrap()
-                            .to_string(),
-                        attributes: claims.attributes,
-                    },
-                };
-
-                let mut header = Header::new(Algorithm::ES256);
-                header.typ = jwt_typ.or(header.typ);
-
-                let credential = Jwt::sign(&claims, &header, issuer_privkey.private_key()).await.unwrap();
+                let credential = JwtCredentialClaims::new_signed(
+                    &holder_pubkey,
+                    issuer_privkey.private_key(),
+                    issuer_privkey
+                        .certificate()
+                        .common_names()
+                        .unwrap()
+                        .first()
+                        .unwrap()
+                        .to_string(),
+                    jwt_typ.or(Some("jwt".to_string())),
+                    claims.attributes,
+                )
+                .await?;
 
                 Ok(CredentialResponse::Jwt { credential })
             }

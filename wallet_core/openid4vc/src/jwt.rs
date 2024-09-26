@@ -260,8 +260,6 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
 mod tests {
     use assert_matches::assert_matches;
     use futures::StreamExt;
-    use indexmap::IndexMap;
-    use jsonwebtoken::{Algorithm, Header};
     use serde::{Deserialize, Serialize};
     use serde_json::json;
 
@@ -275,10 +273,7 @@ mod tests {
     };
     use wallet_common::{
         generator::TimeGenerator,
-        jwt::{
-            jwk_from_p256, validations, EcdsaDecodingKey, Jwt, JwtCredentialClaims, JwtCredentialCnf,
-            JwtCredentialContents,
-        },
+        jwt::{validations, EcdsaDecodingKey, JwtCredentialClaims},
         keys::{software::SoftwareEcdsaKey, EcdsaKey, StoredByIdentifier},
     };
 
@@ -374,24 +369,21 @@ mod tests {
         let issuer_keypair = KeyPair::generate_issuer_mock_ca().unwrap();
 
         // Produce a JWT with `JwtCredentialClaims` in it
-        let claims = JwtCredentialClaims {
-            cnf: JwtCredentialCnf {
-                jwk: jwk_from_p256(&holder_keypair.verifying_key().await.unwrap()).unwrap(),
-            },
-            contents: JwtCredentialContents {
-                iss: issuer_keypair
-                    .certificate()
-                    .common_names()
-                    .unwrap()
-                    .first()
-                    .unwrap()
-                    .to_string(),
-                attributes: IndexMap::default(),
-            },
-        };
-        let jwt = Jwt::sign(&claims, &Header::new(Algorithm::ES256), issuer_keypair.private_key())
-            .await
-            .unwrap();
+        let jwt = JwtCredentialClaims::new_signed(
+            &holder_keypair.verifying_key().await.unwrap(),
+            issuer_keypair.private_key(),
+            issuer_keypair
+                .certificate()
+                .common_names()
+                .unwrap()
+                .first()
+                .unwrap()
+                .to_string(),
+            None,
+            Default::default(),
+        )
+        .await
+        .unwrap();
 
         let (cred, claims) = JwtCredential::new::<SoftwareEcdsaKey>(
             holder_key_id.to_string(),

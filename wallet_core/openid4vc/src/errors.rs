@@ -71,6 +71,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::MissingPrivateKey(_)
                 | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::CborSerialization(_)
+                | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
                 CredentialRequestError::IssuanceError(_) | CredentialRequestError::UseBatchIssuance => {
                     CredentialErrorCode::InvalidRequest

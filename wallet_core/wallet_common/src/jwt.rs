@@ -71,6 +71,9 @@ pub enum JwtError {
     #[error("failed to decode Base64: {0}")]
     #[category(pd)]
     Base64Error(#[from] base64::DecodeError),
+    #[error("JWT conversion error: {0}")]
+    #[category(defer)]
+    Jwk(#[from] JwkConversionError),
 }
 
 pub trait JwtSubject {
@@ -259,6 +262,43 @@ pub struct JwtCredentialClaims {
 
     #[serde(flatten)]
     pub contents: JwtCredentialContents,
+}
+
+impl JwtCredentialClaims {
+    pub fn new(
+        pubkey: &VerifyingKey,
+        iss: String,
+        attributes: IndexMap<String, serde_json::Value>,
+    ) -> Result<Self, JwkConversionError> {
+        let claims = Self {
+            cnf: JwtCredentialCnf {
+                jwk: jwk_from_p256(pubkey)?,
+            },
+            contents: JwtCredentialContents { iss, attributes },
+        };
+
+        Ok(claims)
+    }
+
+    pub async fn new_signed(
+        holder_pubkey: &VerifyingKey,
+        issuer_privkey: &impl EcdsaKey,
+        iss: String,
+        typ: Option<String>,
+        attributes: IndexMap<String, serde_json::Value>,
+    ) -> Result<Jwt<JwtCredentialClaims>, JwtError> {
+        let jwt = Jwt::<JwtCredentialClaims>::sign(
+            &JwtCredentialClaims::new(holder_pubkey, iss, attributes)?,
+            &Header {
+                typ: typ.or(Some("jwt".to_string())),
+                ..Header::new(jsonwebtoken::Algorithm::ES256)
+            },
+            issuer_privkey,
+        )
+        .await?;
+
+        Ok(jwt)
+    }
 }
 
 /// Contents of a [`JwtCredential`], containing everything of the [`JwtCredentialClaims`] except the holder public

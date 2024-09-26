@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
     server_keys::{test::SingleKeyRing, KeyPair},
     software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
-    utils::{issuer_auth::IssuerRegistration, x509::Certificate},
+    utils::{issuer_auth::IssuerRegistration, keys::KeyFactory, x509::Certificate},
     Tdate,
 };
 use openid4vc::{
@@ -23,14 +23,19 @@ use openid4vc::{
         HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
     },
     issuer::{AttributeService, Created, IssuanceData, Issuer},
-    jwt::compare_jwt_attributes,
+    jwt::{compare_jwt_attributes, JwtCredential},
     metadata::IssuerMetadata,
     oidc,
     server_state::{MemorySessionStore, SessionState},
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
-use wallet_common::{jwt::JwtCredentialContents, nonempty::NonEmpty, urls::BaseUrl};
+use wallet_common::{
+    jwt::{JwtCredentialClaims, JwtCredentialContents},
+    keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
+    nonempty::NonEmpty,
+    urls::BaseUrl,
+};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -107,13 +112,11 @@ async fn accept_issuance(
     .await
     .unwrap();
 
+    let key_factory = SoftwareKeyFactory::default();
+    let wte = mock_wte(&key_factory).await;
+
     let issued_creds = session
-        .accept_issuance(
-            &[(&ca).try_into().unwrap()],
-            SoftwareKeyFactory::default(),
-            None,
-            server_url,
-        )
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
         .await
         .unwrap();
 
@@ -140,6 +143,24 @@ async fn accept_issuance(
             )
             .unwrap(),
         });
+}
+
+async fn mock_wte(key_factory: &impl KeyFactory) -> JwtCredential {
+    // As a shortcut we use this private key both as the cnf in the WTE and as the issuer private key
+    // to sign the WTE with.
+    let privkey = key_factory.generate_new().await.unwrap();
+
+    let wte = JwtCredentialClaims::new_signed(
+        &privkey.verifying_key().await.unwrap(),
+        &privkey,
+        "iss".to_string(),
+        None,
+        Default::default(),
+    )
+    .await
+    .unwrap();
+
+    JwtCredential::new_unverified::<SoftwareEcdsaKey>(privkey.identifier().to_string(), wte)
 }
 
 #[tokio::test]

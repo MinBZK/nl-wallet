@@ -2,10 +2,9 @@ use std::error::Error;
 
 use chrono::{TimeDelta, Utc};
 use indexmap::IndexMap;
-use jsonwebtoken::Header;
 
 use wallet_common::{
-    jwt::{jwk_from_p256, JwkConversionError, Jwt, JwtCredentialClaims, JwtCredentialCnf, JwtCredentialContents},
+    jwt::{Jwt, JwtCredentialClaims, JwtError},
     keys::SecureEcdsaKey,
 };
 use wallet_provider_domain::model::{hsm::WalletUserHsm, wrapped_key::WrappedKey};
@@ -34,8 +33,8 @@ impl<H, K> HsmWteIssuer<H, K> {
 pub enum HsmWteIssuerError {
     #[error("HSM error: {0}")]
     Hsm(#[from] HsmError),
-    #[error("key conversion error: {0}")]
-    KeyConversion(#[from] JwkConversionError),
+    #[error("JWT error: {0}")]
+    KeyConversion(#[from] JwtError),
 }
 
 static WTE_JWT_TYP: &str = "wte+jwt";
@@ -49,31 +48,22 @@ where
 
     async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error> {
         let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key().await?;
-        let jwk = jwk_from_p256(&pubkey)?;
 
-        let jwt = Jwt::<JwtCredentialClaims>::sign(
-            &JwtCredentialClaims {
-                cnf: JwtCredentialCnf { jwk },
-                contents: JwtCredentialContents {
-                    iss: self.iss.clone(),
-                    attributes: IndexMap::from([(
-                        "exp".to_string(),
-                        Utc::now()
-                            .checked_add_signed(TimeDelta::minutes(5))
-                            .unwrap() // Adding 5 minutes won't overflow
-                            .timestamp()
-                            .into(),
-                    )]),
-                },
-            },
-            &Header {
-                typ: Some(WTE_JWT_TYP.to_string()),
-                ..Header::new(jsonwebtoken::Algorithm::ES256)
-            },
+        let jwt = JwtCredentialClaims::new_signed(
+            &pubkey,
             &self.private_key,
+            self.iss.clone(),
+            Some(WTE_JWT_TYP.to_string()),
+            IndexMap::from([(
+                "exp".to_string(),
+                Utc::now()
+                    .checked_add_signed(TimeDelta::minutes(5))
+                    .unwrap() // Adding 5 minutes won't overflow
+                    .timestamp()
+                    .into(),
+            )]),
         )
-        .await
-        .unwrap();
+        .await?;
 
         Ok((wrapped_privkey, jwt))
     }
