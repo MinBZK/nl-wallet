@@ -13,7 +13,7 @@ metadata:
       more_set_headers "X-Content-Type-Options: nosniff";
       more_set_headers "X-Frame-Options: deny";
       more_set_headers "Permissions-Policy: camera=(), microphone=()";
-      more_set_headers "Content-Security-Policy: default-src 'self'; script-src ${CSP_SCRIPT_SRC_MRP}; style-src ${CSP_STYLE_SRC_MRP}; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'; base-uri 'none';";
+      more_set_headers "Content-Security-Policy: default-src 'self'; script-src ${CSP_SCRIPT_SRC_MRP}; style-src ${CSP_STYLE_SRC_MRP}; img-src 'self' data:; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';";
 spec:
   ingressClassName: nginx
   rules:
