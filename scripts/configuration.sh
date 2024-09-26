@@ -39,9 +39,9 @@ export RDO_MAX_PORT=8006
 
 PID_ISSUER_API_KEY=$(echo $RANDOM | shasum -a1 | head -c 40)
 export PID_ISSUER_API_KEY
-GBA_HC_CONV_ENCRYPTION_KEY=$(openssl rand -hex 16)
+GBA_HC_CONV_ENCRYPTION_KEY=$(openssl rand -hex 32)
 export GBA_HC_CONV_ENCRYPTION_KEY
-GBA_HC_CONV_HMAC_KEY=$(openssl rand -hex 32)
+GBA_HC_CONV_HMAC_KEY=$(openssl rand -hex 64)
 export GBA_HC_CONV_HMAC_KEY
 
 # Database properties for the wallet_provider, with defaults.

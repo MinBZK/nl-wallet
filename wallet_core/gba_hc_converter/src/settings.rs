@@ -82,7 +82,7 @@ impl SymmetricKey {
 impl<'de> Deserialize<'de> for SymmetricKey {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer)
-            .map(|s| s.as_bytes().to_vec())
+            .map(hex::decode)?
             .map(Self::new)
             .map_err(de::Error::custom)
     }

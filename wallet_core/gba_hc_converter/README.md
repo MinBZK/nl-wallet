@@ -10,11 +10,11 @@ point to a path containing encrypted gba-v xml responses. See the settings below
 The gba-hc-converter needs a `preloaded.encryption_key` configured for decrypting the gba-v responses. This can be
 manually generated using:
 
-    openssl rand -hex 16 > encryption.key
+    openssl rand -hex 32 > encryption.key
 
 In addition, a `preloaded.hmac_key` is necessary for hashing the BSN so it can be used as filename:
 
-    openssl rand -hex 32 > hmac.key
+    openssl rand -hex 64 > hmac.key
 
 ### Prefetching GBA-V responses
 
