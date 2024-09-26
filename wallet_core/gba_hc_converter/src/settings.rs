@@ -16,7 +16,7 @@ use crate::gba::{
     client::{FileGbavClient, HttpGbavClient},
 };
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
@@ -29,7 +29,7 @@ pub struct Settings {
 }
 
 #[serde_as]
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct GbavSettings {
     pub adhoc_url: BaseUrl,
     pub username: String,
@@ -62,7 +62,6 @@ impl HttpGbavClient {
     }
 }
 
-#[derive(Clone)]
 pub struct SymmetricKey {
     bytes: Vec<u8>,
 }
@@ -89,7 +88,7 @@ impl<'de> Deserialize<'de> for SymmetricKey {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct PreloadedSettings {
     pub encryption_key: SymmetricKey,
     pub hmac_key: SymmetricKey,
@@ -107,7 +106,7 @@ impl<T> FileGbavClient<T> {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 #[serde(rename_all(deserialize = "lowercase"))]
 #[derive(strum::Display)]
 pub enum RunMode {
