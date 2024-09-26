@@ -970,24 +970,28 @@ mod tests {
         );
     }
 
+    /// Return a new session ready for `accept_issuance()`.
+    fn new_session(
+        mock_msg_client: MockVcMessageClient,
+        previews: Vec<CredentialPreview>,
+    ) -> HttpIssuanceSession<MockVcMessageClient> {
+        HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: IssuanceState {
+                access_token: "access_token".to_string().into(),
+                c_nonce: "c_nonce".to_string(),
+                credential_previews: NonEmpty::new(previews).unwrap(),
+                issuer_url: "https://issuer.example.com".parse().unwrap(),
+                dpop_private_key: SigningKey::random(&mut OsRng),
+                dpop_nonce: Some("dpop_nonce".to_string()),
+            },
+        }
+    }
+
     #[tokio::test]
     async fn test_accept_issuance_wrong_response_count() {
-        let (cred_response, preview, ca_cert, _) = create_credential_response().await;
-        let trust_anchors = &[((&ca_cert).try_into().unwrap())];
-
         let mut mock_msg_client = mock_openid_message_client();
-        mock_msg_client
-            .expect_request_token()
-            .return_once(|_url, _token_request, _dpop_header| {
-                Ok((
-                    TokenResponseWithPreviews {
-                        token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        // return two previews
-                        credential_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(),
-                    },
-                    Some("dpop_nonce".to_string()),
-                ))
-            });
+        let (cred_response, preview, ca_cert, _) = create_credential_response().await;
         mock_msg_client.expect_request_credentials().return_once(
             |_url, _credential_requests, _dpop_header, _access_token_header| {
                 Ok(CredentialResponses {
@@ -995,26 +999,14 @@ mod tests {
                 })
             },
         );
+        let session = new_session(mock_msg_client, vec![preview.clone(), preview]);
 
-        let token_request = TokenRequest::new_mock();
-
-        let (client, previews) = HttpIssuanceSession::start_issuance(
-            mock_msg_client,
-            "https://example.com".parse().unwrap(),
-            token_request,
-            trust_anchors,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(previews.len(), 2);
-
-        let error = client
+        let error = session
             .accept_issuance(
-                trust_anchors,
+                &[((&ca_cert).try_into().unwrap())],
                 SoftwareKeyFactory::default(),
                 None,
-                "https://example.com".parse().unwrap(),
+                "https://issuer.example.com".parse().unwrap(),
             )
             .await
             .unwrap_err();
