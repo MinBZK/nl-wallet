@@ -60,6 +60,7 @@ class RootDetectedScreen extends StatelessWidget {
 
   Widget _buildCloseAppButton(BuildContext context) {
     return SliverFillRemaining(
+      hasScrollBody: false,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [

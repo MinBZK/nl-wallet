@@ -47,6 +47,7 @@ import '../feature/pin_blocked/pin_blocked_screen.dart';
 import '../feature/pin_timeout/pin_timeout_screen.dart';
 import '../feature/policy/policy_screen.dart';
 import '../feature/policy/policy_screen_arguments.dart';
+import '../feature/privacy_policy/privacy_policy_screen.dart';
 import '../feature/qr/bloc/qr_bloc.dart';
 import '../feature/qr/qr_screen.dart';
 import '../feature/settings/settings_screen.dart';
@@ -82,6 +83,7 @@ class WalletRoutes {
     themeRoute,
     changeLanguageRoute,
     changePinRoute,
+    privacyPolicyRoute,
   ];
 
   static const splashRoute = '/';
@@ -113,6 +115,7 @@ class WalletRoutes {
   static const qrRoute = '/qr';
   static const loginDetailRoute = '/login_detail';
   static const biometricsSettingsRoute = '/settings/biometrics';
+  static const privacyPolicyRoute = '/privacy_policy';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     final WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -195,6 +198,8 @@ class WalletRoutes {
         return _createSettingsScreenBuilder;
       case WalletRoutes.biometricsSettingsRoute:
         return _createBiometricsSettingsScreenBuilder;
+      case WalletRoutes.privacyPolicyRoute:
+        return _createPrivacyPolicyScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -462,3 +467,5 @@ Widget _createBiometricsSettingsScreenBuilder(BuildContext context) => BlocProvi
       },
       child: const BiometricSettingScreen(),
     );
+
+Widget _createPrivacyPolicyScreenBuilder(BuildContext context) => const PrivacyPolicyScreen();

@@ -1,6 +1,6 @@
 {
   "name": "nl-wallet-web",
-  "version": "0.2.1-dev",
+  "version": "0.2.2-dev",
   "type": "module",
   "files": [
     "dist"

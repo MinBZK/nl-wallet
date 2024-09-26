@@ -4,7 +4,7 @@ description: EDI - NL Public Reference Wallet
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
 
-version: 0.2.1-dev
+version: 0.2.2-dev
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -26,6 +26,7 @@ dependencies:
   flutter_bloc: ^8.1.5
   flutter_localizations:
     sdk: flutter
+  flutter_markdown: ^0.7.3+1
   flutter_native_splash: ^2.4.0
   flutter_staggered_grid_view: ^0.7.0
   flutter_sticky_header: ^0.6.5
@@ -80,7 +81,7 @@ flutter:
   generate: true
 
   assets:
-    # Add assets from the images directory to the application.
+    # Add assets to the application.
     - assets/non-free/svg/
     - assets/non-free/images/
     - assets/non-free/logos/
@@ -88,6 +89,7 @@ flutter:
     - assets/non-free/illustrations/
     - assets/non-free/icons/
     - assets/non-free/lottie/
+    - assets/non-free/markdown/
 
   fonts:
     - family: RijksoverheidSansWebText

@@ -3,7 +3,6 @@
     "@@last_modified": "2024-09-16T17:42:12+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
-    "aboutScreenTermsCta": "Gebruiksvoorwaarden",
     "aboutScreenTitle": "Over de NL Wallet",
     "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} kaart toegevoegd} other {{count} kaarten toegevoegd}}",
     "activitySummaryEmpty": "Geen activiteiten",
