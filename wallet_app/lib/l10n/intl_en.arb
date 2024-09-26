@@ -1,13 +1,12 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-09-13T11:08:32+02:00",
+    "@@last_modified": "2024-09-16T17:42:12+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
         "translatable": "false"
     },
-    "aboutScreenPrivacyCta": "Privacy policy",
-    "aboutScreenTermsCta": "Terms of use",
+    "aboutScreenPrivacyCta": "Privacy statement",
     "aboutScreenTitle": "About the NL Wallet",
     "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {added {count} card} other {added {count} cards}}",
     "activitySummaryEmpty": "No activities",
@@ -247,26 +246,50 @@
     "disclosureConfirmDataAttributesDisclaimer": "Always consider if sharing is wise.",
     "disclosureConfirmDataAttributesPageApproveCta": "Share",
     "disclosureConfirmDataAttributesPageDenyCta": "No, decline",
-    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {Your data will be stored for 1 month and not shared with other organizations} other {Your data will be stored for {count} months and not shared with other organizations}}",
+    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {The {organization} will store your data for 1 month and will not share it with other organizations.} other {The {organization} will store your data for {count} months and will not share it with other organizations.}}",
     "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
         "placeholders": {
             "count": {
                 "example": "3",
                 "type": "int"
+            },
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
             }
         }
     },
-    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "Your data will not be stored and not shared with other organizations",
-    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {Your data will be stored for 1 month and shared with other organizations} other {Your data will be stored for {count} months and shared with other organizations}}",
+    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "The {organization} will not store your data and your data will not be shared with other organizations.",
+    "@disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {The {organization} will store your data for 1 month and can share your data with other organizations.} other {The {organization} will store your data for {count} months and can share your data with other organizations.}}",
     "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
         "placeholders": {
             "count": {
                 "example": "3",
                 "type": "int"
+            },
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
             }
         }
     },
-    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Your data will not be stored but is shared with other organizations",
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} will not store your data but can share it with other organizations.",
+    "@disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
+            }
+        }
+    },
     "disclosureConfirmDataAttributesShareWithTitle": "Do you want to share data with {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
@@ -565,10 +588,9 @@
     "historyDetailScreenTitleForIssuance": "Created {card} card",
     "historyDetailScreenTitleForLogin": "Logged in with {organization}",
     "historyOverviewScreenTitle": "Activities",
-    "introductionConditionsScreenBulletPoints": "You can use your data online.\nYou can stop at any time.\nYou keep your PIN code to yourself.\nYou share your data at your own risk.",
-    "introductionConditionsScreenConditionsCta": "Read the terms and conditions",
-    "introductionConditionsScreenHeadline": "We agree on this",
-    "introductionConditionsScreenNextCta": "Accept",
+    "introductionConditionsScreenBulletPoints": "You can stop at any time.\nYou keep your PIN code to yourself.\nYou decide who you share with.",
+    "introductionConditionsScreenHeadline": "Remember this",
+    "introductionConditionsScreenNextCta": "Understood",
     "introductionNextPageCta": "Next",
     "introductionPage1Description": "This is your digital wallet. You can add cards with your details, such as your name and address.",
     "introductionPage1Title": "Welcome to the NL Wallet",
@@ -576,10 +598,10 @@
     "introductionPage2Title": "Secure login",
     "introductionPage3Description": "If an organization needs your ZIP code, you simply share your ZIP code.",
     "introductionPage3Title": "Easy data sharing",
-    "introductionPrivacyScreenBulletPoints": "Your data is only on this device.\nYour data is protected by a PIN code.\nLost your phone? You can lock the app remotely.",
-    "introductionPrivacyScreenHeadline": "The NL Wallet respects your privacy",
+    "introductionPrivacyScreenBulletPoints": "Your data is secure on this device.\nYour data is protected by your PIN code.",
+    "introductionPrivacyScreenHeadline": "You have control over your privacy",
     "introductionPrivacyScreenNextCta": "Next",
-    "introductionPrivacyScreenPrivacyCta": "Read the privacy policy",
+    "introductionPrivacyScreenPrivacyCta": "Read the privacy statement",
     "introductionSkipCta": "Skip",
     "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
     "introductionWCAGPauseButtonLabel": "Moving image is playing, Pause",
@@ -854,9 +876,13 @@
     "policyScreenDataWillNotBeShared": "Data will not be shared with other organizations",
     "policyScreenDataWillNotBeSharedDescription": "Your data will not be shared with other companies or organizations",
     "policyScreenPolicySectionPolicyCta": "privacy policy",
-    "policyScreenPolicySectionText": "View the {policy} to learn more about how your data will be used.",
+    "policyScreenPolicySectionText": "Read more in the {policy} of the {organization}. Here you can read more about how the {organization} will use your data.",
     "@policyScreenPolicySectionText": {
         "placeholders": {
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
+            },
             "policy": {
                 "example": "privacy policy",
                 "type": "String"
@@ -905,7 +931,7 @@
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",
     "resetWalletDialogTitle": "Do you want to delete all data?",
-    "rootDetectedScreenDescription": "To protect your data, you can no longer use NL Wallet on this device. \n\nThis device is not in its original settings, which makes it not secure.",
+    "rootDetectedScreenDescription": "To protect your data, you can not use NL Wallet on this device. \n\nThis device is not in its original state, which makes it not secure.",
     "rootDetectedScreenTitle": "Your device is not secure",
     "scanWithWalletDialogBody": "It looks like you have scanned a QR code with a different app. To be sure, scan the QR code with the NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR-code",

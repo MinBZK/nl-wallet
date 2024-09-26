@@ -6,7 +6,9 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.introduction.IntroductionScreen
@@ -14,6 +16,7 @@ import screen.menu.MenuScreen
 import screen.settings.ClearDataDialog
 import screen.settings.SettingsScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${ClearDataTests.USE_CASE} Wipe all data from the App [${ChangeLanguageTests.JIRA_ID}]")
 class ClearDataTests : TestBase() {
 

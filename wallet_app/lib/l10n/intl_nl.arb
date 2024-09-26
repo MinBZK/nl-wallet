@@ -1,9 +1,8 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-09-13T11:08:32+02:00",
+    "@@last_modified": "2024-09-16T17:42:12+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
-    "aboutScreenPrivacyCta": "Privacybeleid",
-    "aboutScreenTermsCta": "Gebruiksvoorwaarden",
+    "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
     "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} kaart toegevoegd} other {{count} kaarten toegevoegd}}",
     "activitySummaryEmpty": "Geen activiteiten",
@@ -243,26 +242,50 @@
     "disclosureConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is.",
     "disclosureConfirmDataAttributesPageApproveCta": "Delen",
     "disclosureConfirmDataAttributesPageDenyCta": "Nee",
-    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {Je gegevens worden 1 maand bewaard en niet gedeeld met andere  organisaties} other {Je gegevens worden {count} maanden bewaard en niet gedeeld met andere organisaties}}",
+    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {De {organization} bewaard je gegevens voor 1 maand en je gegevens worden niet gedeeld met andere organisaties.} other {De {organization} bewaard je gegevens voor {count} maanden en je gegevens worden niet gedeeld met andere organisaties.}}",
     "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
         "placeholders": {
             "count": {
                 "example": "3",
                 "type": "int"
+            },
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
             }
         }
     },
-    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "Je gegevens worden niet bewaard en niet gedeeld met andere organisaties",
-    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {Je gegevens worden 1 maand bewaard en gedeeld met andere organisaties} other {Je gegevens worden {count} maanden bewaard en gedeeld met andere organisaties}}",
+    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "De {organization} zal je gegevens niet bewaren en je gegevens worden niet gedeeld met andere organisaties",
+    "@disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {De {organization} bewaard je gegevens voor 1 maand en kan deze delen met andere organisaties.} other {De {organization} bewaard je gegevens voor {count} maanden en kan deze delen met andere organisaties.}}",
     "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
         "placeholders": {
             "count": {
                 "example": "3",
                 "type": "int"
+            },
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
             }
         }
     },
-    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Je gegevens worden niet bewaard maar wel gedeeld met organisaties",
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} bewaard je gegevens niet maar kan deze wel delen met andere organisaties.",
+    "@disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
+            }
+        }
+    },
     "disclosureConfirmDataAttributesShareWithTitle": "Wil je delen met {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
@@ -561,10 +584,9 @@
     "historyDetailScreenTitleForIssuance": "{card} kaart aangemaakt",
     "historyDetailScreenTitleForLogin": "Ingelogd bij {organization}",
     "historyOverviewScreenTitle": "Activiteiten",
-    "introductionConditionsScreenBulletPoints": "Je kunt je gegevens online gebruiken.\nJe kunt op elk moment stoppen.\nJe houdt je pincode voor jezelf.\nJe deelt je gegevens op eigen risico.",
-    "introductionConditionsScreenConditionsCta": "Lees de voorwaarden",
-    "introductionConditionsScreenHeadline": "Dit spreken we af",
-    "introductionConditionsScreenNextCta": "Akkoord",
+    "introductionConditionsScreenBulletPoints": "Je kunt op elke moment stoppen.\nJe houdt je pincode voor jezelf.\nJe bepaalt zelf met wie je deelt.",
+    "introductionConditionsScreenHeadline": "Vergeet dit niet",
+    "introductionConditionsScreenNextCta": "Begrepen",
     "introductionNextPageCta": "Volgende",
     "introductionPage1Description": "Dit is jouw digitale portemonnee. Je kunt kaarten toevoegen met je gegevens, zoals je naam en adres.",
     "introductionPage1Title": "Welkom in de NL Wallet",
@@ -572,10 +594,10 @@
     "introductionPage2Title": "Veilig inloggen",
     "introductionPage3Description": "Heeft een organisatie bijvoorbeeld je postcode nodig? Dan deel je eenvoudig je postcode.",
     "introductionPage3Title": "Eenvoudig gegevens delen",
-    "introductionPrivacyScreenBulletPoints": "Je gegevens staan alleen op dit apparaat.\nJe gegevens zijn beschermd door een pincode.\nTelefoon kwijt? Je kunt de app op afstand op slot zetten.",
-    "introductionPrivacyScreenHeadline": "De NL Wallet respecteert jouw privacy",
+    "introductionPrivacyScreenBulletPoints": "Je gegevens staan beveiligd op dit apparaat.\nJe gegevens zijn beschermd door jouw pincode.",
+    "introductionPrivacyScreenHeadline": "Je hebt controle over je privacy",
     "introductionPrivacyScreenNextCta": "Volgende",
-    "introductionPrivacyScreenPrivacyCta": "Lees het privacybeleid",
+    "introductionPrivacyScreenPrivacyCta": "Lees de privacyverklaring",
     "introductionSkipCta": "Overslaan",
     "introductionWCAGDutchGovernmentLogoLabel": "Rijksoverheid logo",
     "introductionWCAGPauseButtonLabel": "Bewegende afbeelding speelt af, Pauze",
@@ -849,10 +871,14 @@
     "policyScreenDataWillBeSharedDescription": "Je gegevens worden gedeeld met andere bedrijven of organisaties.",
     "policyScreenDataWillNotBeShared": "Gegevens worden niet gedeeld met andere organisaties",
     "policyScreenDataWillNotBeSharedDescription": "Je gegevens worden niet gedeeld met andere bedrijven of organisaties",
-    "policyScreenPolicySectionPolicyCta": "privacybeleid",
-    "policyScreenPolicySectionText": "Bekijk het {policy} voor meer informatie over hoe je gegevens gebruikt gaan worden.",
+    "policyScreenPolicySectionPolicyCta": "privacyverklaring",
+    "policyScreenPolicySectionText": "Lees meer in het {policy} van {organization}. Hierin lees je meer over hoe {organization} je gegevens gaat gebruiken.",
     "@policyScreenPolicySectionText": {
         "placeholders": {
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
+            },
             "policy": {
                 "example": "privacy policy",
                 "type": "String"
@@ -901,7 +927,7 @@
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
     "resetWalletDialogTitle": "Wil je alle gegevens verwijderen?",
-    "rootDetectedScreenDescription": "Om je gegevens te beschermen, kun je NL Wallet niet langer op dit apparaat gebruiken. \n\nDit apparaat is niet meer in de originele staat en is daarom niet veilig.",
+    "rootDetectedScreenDescription": "Om je gegevens te beschermen, kun je NL Wallet niet op dit apparaat gebruiken. \n\nDit apparaat is niet meer in de originele staat en is daarom niet veilig.",
     "rootDetectedScreenTitle": "Je apparaat is niet veilig",
     "scanWithWalletDialogBody": "Het lijkt erop dat je een QR-code hebt gescand met een andere app. Scan voor de zekerheid de QR-code met de NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR-code",

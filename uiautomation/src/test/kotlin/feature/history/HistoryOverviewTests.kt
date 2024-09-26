@@ -6,11 +6,14 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.history.HistoryOverviewScreen
 import screen.menu.MenuScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${HistoryOverviewTests.USE_CASE} App logs PID/address issuance [${HistoryOverviewTests.JIRA_ID}]")
 class HistoryOverviewTests : TestBase() {
 

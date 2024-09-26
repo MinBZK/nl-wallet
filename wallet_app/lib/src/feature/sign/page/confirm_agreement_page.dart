@@ -22,6 +22,7 @@ class ConfirmAgreementPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
   final VoidCallback onAcceptPressed;
   final Policy policy;
+  final Organization relyingParty;
   final Organization trustProvider;
   final List<DataAttribute> requestedAttributes;
 
@@ -29,6 +30,7 @@ class ConfirmAgreementPage extends StatelessWidget {
     required this.onDeclinePressed,
     required this.onAcceptPressed,
     required this.policy,
+    required this.relyingParty,
     required this.trustProvider,
     required this.requestedAttributes,
     super.key,
@@ -45,7 +47,7 @@ class ConfirmAgreementPage extends StatelessWidget {
           const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverSizedBox(height: 16),
-          SliverToBoxAdapter(child: PolicySection(policy, addSignatureRow: true)),
+          SliverToBoxAdapter(child: PolicySection(relyingParty: relyingParty, policy: policy, addSignatureRow: true)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverToBoxAdapter(child: _buildTrustProvider(context)),
           const SliverToBoxAdapter(child: Divider(height: 32)),

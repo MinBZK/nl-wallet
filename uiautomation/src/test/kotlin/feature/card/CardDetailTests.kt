@@ -6,12 +6,15 @@ import navigator.screen.CardScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDataScreen
 import screen.card.CardDetailScreen
 import screen.card.CardHistoryScreen
 import screen.dashboard.DashboardScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${CardDetailTests.USE_CASE} App shows card detail overview [${CardDetailTests.JIRA_ID}]")
 class CardDetailTests : TestBase() {
 

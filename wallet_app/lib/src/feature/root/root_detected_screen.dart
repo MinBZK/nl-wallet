@@ -43,7 +43,7 @@ class RootDetectedScreen extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: PageIllustration(
-                          asset: WalletAssets.svg_error_config_update,
+                          asset: WalletAssets.svg_error_rooted,
                         ),
                       ),
                     ),
@@ -60,6 +60,7 @@ class RootDetectedScreen extends StatelessWidget {
 
   Widget _buildCloseAppButton(BuildContext context) {
     return SliverFillRemaining(
+      hasScrollBody: false,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [

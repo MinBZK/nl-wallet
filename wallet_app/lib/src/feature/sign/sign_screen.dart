@@ -113,13 +113,13 @@ class SignScreen extends StatelessWidget {
     return OrganizationApprovePage(
       onDeclinePressed: () => _stopSigning(context),
       onAcceptPressed: () => context.read<SignBloc>().add(const SignOrganizationApproved()),
-      organization: state.organization,
+      organization: state.relyingParty,
       originUrl: 'http://sign.origin.org',
       purpose: ApprovalPurpose.sign,
       onShowDetailsPressed: () {
         OrganizationDetailScreen.showPreloaded(
           context,
-          state.organization,
+          state.relyingParty,
           sharedDataWithOrganizationBefore: false,
         );
       },
@@ -130,7 +130,7 @@ class SignScreen extends StatelessWidget {
     return CheckAgreementPage(
       onDecline: () => _stopSigning(context),
       onAccept: () => context.read<SignBloc>().add(const SignAgreementChecked()),
-      organization: state.organization,
+      organization: state.relyingParty,
       trustProvider: state.trustProvider,
       document: state.document,
     );
@@ -143,6 +143,7 @@ class SignScreen extends StatelessWidget {
     return ConfirmAgreementPage(
       requestedAttributes: state.requestedAttributes.whereType<DataAttribute>().toList(),
       policy: state.policy,
+      relyingParty: state.relyingParty,
       trustProvider: state.trustProvider,
       onDeclinePressed: () => _stopSigning(context),
       onAcceptPressed: () => context.read<SignBloc>().add(const SignAgreementApproved()),
@@ -181,7 +182,7 @@ class SignScreen extends StatelessWidget {
 
   Widget _buildSuccess(BuildContext context, SignSuccess state) {
     return SignSuccessPage(
-      organizationName: state.organization.displayName,
+      organizationName: state.relyingParty.displayName,
       onClosePressed: () => Navigator.pop(context),
       onHistoryPressed: () => Navigator.restorablePushNamed(
         context,

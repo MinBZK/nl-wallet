@@ -16,10 +16,17 @@ pub struct WalletUser {
     pub wallet_id: WalletId,
     pub hw_pubkey: DerVerifyingKey,
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    pub encrypted_previous_pin_pubkey: Option<Encrypted<VerifyingKey>>,
     pub unsuccessful_pin_entries: u8,
     pub last_unsuccessful_pin_entry: Option<DateTime<Utc>>,
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
+}
+
+impl WalletUser {
+    pub fn pin_change_in_progress(&self) -> bool {
+        self.encrypted_previous_pin_pubkey.is_some()
+    }
 }
 
 impl Debug for WalletUser {
@@ -90,6 +97,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
                 .unwrap(),
             ),
             encrypted_pin_pubkey: Encrypted::new(random_bytes(32), InitializationVector(random_bytes(32))),
+            encrypted_previous_pin_pubkey: None,
             unsuccessful_pin_entries: 0,
             last_unsuccessful_pin_entry: None,
             instruction_challenge: None,

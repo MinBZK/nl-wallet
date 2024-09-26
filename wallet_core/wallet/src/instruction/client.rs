@@ -3,9 +3,7 @@ use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::messages::instructions::{
-        Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
-    },
+    account::messages::instructions::{Instruction, InstructionAndResult, InstructionChallengeRequest},
     jwt::EcdsaDecodingKey,
     urls::BaseUrl,
 };
@@ -73,17 +71,19 @@ where
             .map_err(InstructionError::Signing)
     }
 
-    async fn instruction_challenge(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError> {
-        let message = self
+    async fn instruction_challenge<I>(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError>
+    where
+        I: InstructionAndResult,
+    {
+        let challenge_request = self
             .with_sequence_number(storage, |seq_num| {
-                InstructionChallengeRequest::new_signed(seq_num, "wallet", self.hw_privkey)
+                InstructionChallengeRequest::new_signed::<I>(
+                    seq_num,
+                    self.hw_privkey,
+                    self.registration.wallet_certificate.clone(),
+                )
             })
             .await?;
-
-        let challenge_request = InstructionChallengeRequestMessage {
-            message,
-            certificate: self.registration.wallet_certificate.clone(),
-        };
 
         let result = self
             .account_provider_client
@@ -95,11 +95,11 @@ where
 
     pub async fn send<I>(&self, instruction: I) -> Result<I::Result, InstructionError>
     where
-        I: InstructionEndpoint + 'static,
+        I: InstructionAndResult + 'static,
     {
         let mut storage = self.storage.write().await;
 
-        let challenge = self.instruction_challenge(&mut storage).await?;
+        let challenge = self.instruction_challenge::<I>(&mut storage).await?;
 
         let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt);
 
@@ -107,10 +107,10 @@ where
             .with_sequence_number(&mut storage, |seq_num| {
                 Instruction::new_signed(
                     instruction,
+                    challenge,
                     seq_num,
                     self.hw_privkey,
                     &pin_key,
-                    &challenge,
                     self.registration.wallet_certificate.clone(),
                 )
             })

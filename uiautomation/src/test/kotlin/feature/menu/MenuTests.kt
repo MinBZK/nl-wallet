@@ -6,12 +6,15 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.history.HistoryOverviewScreen
 import screen.menu.MenuScreen
 import screen.settings.SettingsScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${MenuTests.USE_CASE} Show app menu [${MenuTests.JIRA_ID}]")
 class MenuTests : TestBase() {
 

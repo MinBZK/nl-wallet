@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "apple_app_attest",
     "configuration_server",
     "error_category",
     "error_category/error_category_derive",
@@ -29,7 +30,7 @@ exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 edition = "2021"
 rust-version = "1.80"
 
@@ -46,6 +47,7 @@ assert_fs = "1.0.13"
 assert-json-diff = "2.0.2"
 askama = "0.12.1"
 assert_matches = "1"
+async_once = "0.2.6"
 async-trait = "0.1.68"
 axum = { version = "0.7.5", default-features = false }
 axum-extra = "0.9.3"
@@ -59,6 +61,7 @@ ciborium = "0.2.1"
 clap = "4.4.7"
 clio = "0.3.4"
 config = { version = "0.14.0", default-features = false }
+const-decoder = "0.3.0"
 coset = "0.3.3"
 cryptoki = "0.7.0"
 crypto-common = "0.1.6"
@@ -82,12 +85,14 @@ itertools = "0.13.0"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = { version = "9.3.0", default-features = false }
+lazy_static = "1.5.0"
 libsqlite3-sys = { version = "0.27.0", default-features = false }
 mime = "0.3.17"
 mockall = "0.12.1"
 nutype = "0.5.0"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
+passkey-types = "0.3.0"
 parking_lot = "0.12.1"
 pem = "3.0.2"
 predicates = { version = "3.0.4", default-features = false }
@@ -110,7 +115,7 @@ sea-query = { version = "0.30.7", default-features = false }
 sec1 = "0.7.3"
 sentry = { version = "0.34", default-features = false }
 sentry-panic = "0.34"
-serde = { version = "1.0.193", default-features = false }
+serde = "1.0.193"
 serde-aux = "4.2.0"
 serde_bytes = "0.11.7"
 serde_json = { version = "1.0.92", default-features = false }

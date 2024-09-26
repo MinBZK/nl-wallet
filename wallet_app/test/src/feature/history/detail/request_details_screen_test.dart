@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
+import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/history/detail/request_details_screen.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
@@ -15,7 +15,7 @@ void main() {
       final event = WalletMockData.disclosureEvent;
       await tester.pumpWidgetWithAppWrapper(
         RequestDetailsScreen(event: event)
-            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+            .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
 
       final allAttributes = event.cards.map((card) => card.attributes).flattened;
@@ -29,7 +29,7 @@ void main() {
       final event = WalletMockData.disclosureEvent;
       await tester.pumpWidgetWithAppWrapper(
         RequestDetailsScreen(event: event)
-            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+            .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
 
       expect(find.text(event.purpose.testValue), findsOneWidget);

@@ -6,11 +6,14 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeInformScreen
 import screen.personalize.PersonalizePidDataIncorrectScreen
 import screen.personalize.PersonalizePidPreviewScreen
 
+@TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${PersonalizePidDataIncorrectTests.USE_CASE} User reports that PID/address is incorrect [${PersonalizePidDataIncorrectTests.JIRA_ID}]")
 class PersonalizePidDataIncorrectTests : TestBase() {
 

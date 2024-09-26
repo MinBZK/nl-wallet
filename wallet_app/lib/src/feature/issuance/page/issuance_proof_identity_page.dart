@@ -45,7 +45,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverList(delegate: _getDataAttributesDelegate()),
           const SliverToBoxAdapter(child: Divider(height: 32)),
-          SliverToBoxAdapter(child: PolicySection(policy)),
+          SliverToBoxAdapter(child: PolicySection(relyingParty: organization, policy: policy)),
           const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
           const SliverSizedBox(height: 24),
