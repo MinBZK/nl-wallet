@@ -261,3 +261,16 @@ function generate_mock_relying_party_key_pair {
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/mock_relying_party/$1.key.pem" -out "${TARGET_DIR}/mock_relying_party/$1.key.der" -nocrypt
 }
+
+function encrypt_gba_v_responses {
+    mkdir -p "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses"
+    for file in "${GBA_HC_CONVERTER_DIR}"/resources/gba-v-responses/*; do
+        if [ -f "$file" ]; then
+            cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+                --bin gba_encrypt -- \
+                --basename "$(basename "$file" .xml)" \
+                --output "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses" \
+                "$file"
+        fi
+    done
+}
