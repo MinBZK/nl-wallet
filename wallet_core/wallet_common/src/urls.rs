@@ -1,5 +1,6 @@
 use http::{header::InvalidHeaderValue, HeaderValue};
 use nutype::nutype;
+use serde::Deserialize;
 use url::Url;
 
 #[nutype(
@@ -40,10 +41,10 @@ pub fn disclosure_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
     universal_link_base.join_base_url(DISCLOSURE_BASE_PATH)
 }
 
-#[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(TryFrom, Deserialize, Clone))]
-pub struct Origin(Url);
+#[nutype(validate(predicate = |u| OriginUrl::is_valid(u)), derive(TryFrom, Deserialize, Clone, Debug, PartialEq, Eq))]
+pub struct OriginUrl(Url);
 
-impl Origin {
+impl OriginUrl {
     fn is_valid(u: &Url) -> bool {
         #[cfg(feature = "allow_http_return_url")]
         let allowed_schemes = ["https", "http"];
@@ -59,10 +60,10 @@ impl Origin {
     }
 }
 
-impl TryFrom<Origin> for HeaderValue {
+impl TryFrom<OriginUrl> for HeaderValue {
     type Error = InvalidHeaderValue;
 
-    fn try_from(value: Origin) -> Result<Self, Self::Error> {
+    fn try_from(value: OriginUrl) -> Result<Self, Self::Error> {
         let url = value.into_inner();
         let mut str = format!("{0}://{1}", url.scheme(), url.host_str().unwrap(),);
         if let Some(port) = url.port() {
@@ -70,6 +71,14 @@ impl TryFrom<Origin> for HeaderValue {
         }
         HeaderValue::try_from(str)
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub enum Origin {
+    #[serde(rename = "*")]
+    All,
+    #[serde(untagged)]
+    Urls(Vec<OriginUrl>),
 }
 
 #[cfg(test)]
@@ -112,5 +121,30 @@ mod tests {
     async fn base_url_join(#[case] value: BaseUrl, #[case] path: &str, #[case] expected: &str) {
         assert_eq!(value.join(path).as_str(), expected);
         assert_eq!(value.join_base_url(path).as_ref().as_str(), expected);
+    }
+
+    fn origin_urls(urls: Vec<&'static str>) -> Origin {
+        let cors_urls = urls
+            .into_iter()
+            .map(|url| Url::parse(url).unwrap().try_into().unwrap())
+            .collect::<Vec<_>>();
+        Origin::Urls(cors_urls)
+    }
+
+    #[rstest]
+    #[case(r#""*""#, Origin::All)]
+    #[case(r#"[]"#, origin_urls(vec![]))]
+    #[case(r#"["https://wallet.nl"]"#, origin_urls(vec!["https://wallet.nl"]))]
+    #[case(r#"["https://wallet.nl", "https://nl-wallet.nl"]"#, origin_urls(vec!["https://wallet.nl", "https://nl-wallet.nl"]))]
+    fn deserialize_origin(#[case] input: &str, #[case] expected: Origin) {
+        let actual: Origin = serde_json::from_str(input).expect("json");
+        assert_eq!(actual, expected);
+    }
+
+    #[rstest]
+    #[case(r#"invalid"#)]
+    #[case(r#"["data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD"]"#)]
+    fn deserialize_origin_errors(#[case] input: &str) {
+        let _ = serde_json::from_str::<Origin>(input).expect_err("invalid json");
     }
 }

@@ -15,8 +15,7 @@ pub struct Settings {
     pub public_wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
     pub structured_logging: bool,
-    #[serde(default)]
-    pub allow_origins: Vec<Origin>,
+    pub allow_origins: Option<Origin>,
     pub wallet_web: WalletWeb,
     pub usecases: IndexMap<String, Usecase>,
     pub sentry: Option<Sentry>,

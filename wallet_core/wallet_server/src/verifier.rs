@@ -58,14 +58,10 @@ where
     Ok(application_state)
 }
 
-fn cors_layer(allow_origins: Vec<Origin>) -> CorsLayer {
-    if allow_origins.is_empty() {
-        CorsLayer::new()
-            .allow_methods([Method::GET, Method::DELETE])
-            .allow_origin(Any)
-    } else {
-        CorsLayer::new()
-            .allow_origin(
+fn cors_layer(allow_origins: Option<Origin>) -> Option<CorsLayer> {
+    allow_origins
+        .map(|origin| match origin {
+            Origin::Urls(allow_origins) => CorsLayer::new().allow_origin(
                 allow_origins
                     .into_iter()
                     .map(|url| {
@@ -73,10 +69,10 @@ fn cors_layer(allow_origins: Vec<Origin>) -> CorsLayer {
                             .expect("cross_origin base_url should be parseable to header value")
                     })
                     .collect::<Vec<_>>(),
-            )
-            .allow_headers(Any)
-            .allow_methods([Method::GET, Method::DELETE])
-    }
+            ),
+            Origin::All => CorsLayer::new().allow_origin(Any),
+        })
+        .map(|cors| cors.allow_methods([Method::GET, Method::DELETE]))
 }
 
 pub fn create_routers<S>(urls: Urls, verifier: settings::Verifier, sessions: S) -> anyhow::Result<(Router, Router)>
@@ -86,11 +82,14 @@ where
     let allow_origins = verifier.allow_origins.clone();
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
-    let wallet_web = Router::new()
+    let mut wallet_web = Router::new()
         .route("/:session_token", get(status::<S>))
-        .route("/:session_token", delete(cancel::<S>))
+        .route("/:session_token", delete(cancel::<S>));
+
+    if let Some(cors_layer) = cors_layer(allow_origins) {
         // The CORS headers should be set for these routes, so that any web browser may call them.
-        .layer(cors_layer(allow_origins));
+        wallet_web = wallet_web.layer(cors_layer);
+    }
 
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the

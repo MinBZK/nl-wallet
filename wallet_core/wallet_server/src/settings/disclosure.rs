@@ -19,8 +19,7 @@ pub struct Verifier {
     pub trust_anchors: Vec<DerTrustAnchor>,
     #[serde_as(as = "Hex")]
     pub ephemeral_id_secret: EhpemeralIdSecret,
-    #[serde(default)]
-    pub allow_origins: Vec<Origin>,
+    pub allow_origins: Option<Origin>,
 }
 
 #[nutype(derive(Clone, From, Deserialize, Deref, AsRef))]

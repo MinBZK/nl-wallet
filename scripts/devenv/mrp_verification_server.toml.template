@@ -17,7 +17,7 @@ trust_anchors = [
     "${PID_CA_CRT}",
 ]
 ephemeral_id_secret = "${MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
-allow_origins = ["http://localhost:${MOCK_RP_PORT}", "http://${SERVICES_HOST}:${MOCK_RP_PORT}"]
+allow_origins = ["http://${SERVICES_HOST}:${MOCK_RP_PORT}"]
 
 [verifier.usecases.mijn_amsterdam]
 certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"

@@ -170,7 +170,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
             usecases,
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
             trust_anchors: vec![issuer_trust_anchor],
-            allow_origins: vec![],
+            allow_origins: None,
         },
         sentry: None,
     };

@@ -73,25 +73,21 @@ struct ApplicationState {
     wallet_web: WalletWeb,
 }
 
-fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
-    if allow_origins.is_empty() {
-        return None;
-    }
-
-    let layer = CorsLayer::new()
-        .allow_origin(
-            allow_origins
-                .into_iter()
-                .map(|url| {
-                    url.try_into()
-                        .expect("cross_origin base_url should be parseable to header value")
-                })
-                .collect::<Vec<_>>(),
-        )
-        .allow_headers(Any)
-        .allow_methods([Method::GET, Method::POST]);
-
-    Some(layer)
+fn cors_layer(allow_origins: Option<Origin>) -> Option<CorsLayer> {
+    allow_origins
+        .map(|origin| match origin {
+            Origin::Urls(allow_origins) => CorsLayer::new().allow_origin(
+                allow_origins
+                    .into_iter()
+                    .map(|url| {
+                        url.try_into()
+                            .expect("cross_origin base_url should be parseable to header value")
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            Origin::All => CorsLayer::new().allow_origin(Any),
+        })
+        .map(|cors| cors.allow_headers(Any).allow_methods([Method::GET, Method::POST]))
 }
 
 async fn set_static_cache_control(request: Request, next: Next) -> Response {
