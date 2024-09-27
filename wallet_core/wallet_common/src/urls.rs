@@ -41,10 +41,10 @@ pub fn disclosure_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
     universal_link_base.join_base_url(DISCLOSURE_BASE_PATH)
 }
 
-#[nutype(validate(predicate = |u| OriginUrl::is_valid(u)), derive(TryFrom, Deserialize, Clone, Debug, PartialEq, Eq))]
-pub struct OriginUrl(Url);
+#[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(TryFrom, Deserialize, Clone, Debug, PartialEq, Eq))]
+pub struct Origin(Url);
 
-impl OriginUrl {
+impl Origin {
     fn is_valid(u: &Url) -> bool {
         #[cfg(feature = "allow_insecure_url")]
         let allowed_schemes = ["https", "http"];
@@ -60,10 +60,10 @@ impl OriginUrl {
     }
 }
 
-impl TryFrom<OriginUrl> for HeaderValue {
+impl TryFrom<Origin> for HeaderValue {
     type Error = InvalidHeaderValue;
 
-    fn try_from(value: OriginUrl) -> Result<Self, Self::Error> {
+    fn try_from(value: Origin) -> Result<Self, Self::Error> {
         let url = value.into_inner();
         let mut str = format!("{0}://{1}", url.scheme(), url.host_str().unwrap(),);
         if let Some(port) = url.port() {
@@ -74,11 +74,11 @@ impl TryFrom<OriginUrl> for HeaderValue {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
-pub enum Origin {
+pub enum CorsOrigin {
     #[serde(rename = "*")]
-    All,
+    Any,
     #[serde(untagged)]
-    Urls(Vec<OriginUrl>),
+    Origins(Vec<Origin>),
 }
 
 #[cfg(test)]
@@ -123,21 +123,21 @@ mod tests {
         assert_eq!(value.join_base_url(path).as_ref().as_str(), expected);
     }
 
-    fn origin_urls(urls: Vec<&'static str>) -> Origin {
+    fn origin_urls(urls: Vec<&'static str>) -> CorsOrigin {
         let cors_urls = urls
             .into_iter()
             .map(|url| Url::parse(url).unwrap().try_into().unwrap())
             .collect::<Vec<_>>();
-        Origin::Urls(cors_urls)
+        CorsOrigin::Origins(cors_urls)
     }
 
     #[rstest]
-    #[case(r#""*""#, Origin::All)]
+    #[case(r#""*""#, CorsOrigin::Any)]
     #[case(r#"[]"#, origin_urls(vec![]))]
     #[case(r#"["https://wallet.nl"]"#, origin_urls(vec!["https://wallet.nl"]))]
     #[case(r#"["https://wallet.nl", "https://nl-wallet.nl"]"#, origin_urls(vec!["https://wallet.nl", "https://nl-wallet.nl"]))]
-    fn deserialize_origin(#[case] input: &str, #[case] expected: Origin) {
-        let actual: Origin = serde_json::from_str(input).expect("json");
+    fn deserialize_origin(#[case] input: &str, #[case] expected: CorsOrigin) {
+        let actual: CorsOrigin = serde_json::from_str(input).expect("json");
         assert_eq!(actual, expected);
     }
 
@@ -145,6 +145,6 @@ mod tests {
     #[case(r#"invalid"#)]
     #[case(r#"["data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD"]"#)]
     fn deserialize_origin_errors(#[case] input: &str) {
-        let _ = serde_json::from_str::<Origin>(input).expect_err("invalid json");
+        let _ = serde_json::from_str::<CorsOrigin>(input).expect_err("invalid json");
     }
 }

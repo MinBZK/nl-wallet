@@ -41,7 +41,7 @@ use wallet_common::{urls::BaseUrl, utils::sha256};
 use crate::{
     askama_axum,
     client::WalletServerClient,
-    settings::{Origin, ReturnUrlMode, Settings, Usecase, WalletWeb},
+    settings::{CorsOrigin, ReturnUrlMode, Settings, Usecase, WalletWeb},
     translations::{Words, TRANSLATIONS},
 };
 
@@ -73,10 +73,10 @@ struct ApplicationState {
     wallet_web: WalletWeb,
 }
 
-fn cors_layer(allow_origins: Option<Origin>) -> Option<CorsLayer> {
+fn cors_layer(allow_origins: Option<CorsOrigin>) -> Option<CorsLayer> {
     allow_origins
         .map(|origin| match origin {
-            Origin::Urls(allow_origins) => CorsLayer::new().allow_origin(
+            CorsOrigin::Origins(allow_origins) => CorsLayer::new().allow_origin(
                 allow_origins
                     .into_iter()
                     .map(|url| {
@@ -85,7 +85,7 @@ fn cors_layer(allow_origins: Option<Origin>) -> Option<CorsLayer> {
                     })
                     .collect::<Vec<_>>(),
             ),
-            Origin::All => CorsLayer::new().allow_origin(Any),
+            CorsOrigin::Any => CorsLayer::new().allow_origin(Any),
         })
         .map(|cors| cors.allow_headers(Any).allow_methods([Method::GET, Method::POST]))
 }

@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::verifier::ItemsRequests;
-pub use wallet_common::urls::Origin;
+pub use wallet_common::urls::CorsOrigin;
 use wallet_common::{sentry::Sentry, urls::BaseUrl};
 
 #[derive(Deserialize, Clone)]
@@ -15,7 +15,7 @@ pub struct Settings {
     pub public_wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
     pub structured_logging: bool,
-    pub allow_origins: Option<Origin>,
+    pub allow_origins: Option<CorsOrigin>,
     pub wallet_web: WalletWeb,
     pub usecases: IndexMap<String, Usecase>,
     pub sentry: Option<Sentry>,
