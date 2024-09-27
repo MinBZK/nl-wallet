@@ -5578,7 +5578,6 @@ dependencies = [
  "chrono",
  "config",
  "http",
- "indexmap 2.2.6",
  "nutype",
  "p256",
  "rand_core",
