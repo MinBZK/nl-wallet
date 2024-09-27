@@ -37,7 +37,6 @@ impl HttpJsonErrorType for WalletProviderErrorType {
             AccountErrorType::PinTimeout => "PIN checking is currently in timeout",
             AccountErrorType::AccountBlocked => "The requested account is blocked",
             AccountErrorType::InstructionValidation => "Could not validate instruction",
-            AccountErrorType::WteAlreadyIssued => "A WTE has already been issued",
         };
 
         title.to_string()
@@ -52,7 +51,6 @@ impl HttpJsonErrorType for WalletProviderErrorType {
             AccountErrorType::PinTimeout => StatusCode::FORBIDDEN,
             AccountErrorType::AccountBlocked => StatusCode::UNAUTHORIZED,
             AccountErrorType::InstructionValidation => StatusCode::FORBIDDEN,
-            AccountErrorType::WteAlreadyIssued => StatusCode::FORBIDDEN,
         }
     }
 }
@@ -81,7 +79,6 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::PinTimeout(data) => Self::PinTimeout(data),
                 InstructionError::AccountBlocked => Self::AccountBlocked,
                 InstructionError::Validation(_) => Self::InstructionValidation,
-                InstructionError::WteAlreadyIssued => Self::WteAlreadyIssued,
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)
                 | InstructionError::WalletCertificate(_)

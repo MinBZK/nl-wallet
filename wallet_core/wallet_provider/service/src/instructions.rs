@@ -44,7 +44,19 @@ impl ValidateInstruction for CheckPin {}
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for GenerateKey {}
 impl ValidateInstruction for Sign {}
-impl ValidateInstruction for IssueWte {}
+
+impl ValidateInstruction for IssueWte {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        // Since the user can exchange the WTE for the PID at the PID issuer, and since one of the purposes of the WTE
+        // is ensuring that a user can have only a single PID in their wallet, we must ensure that we didn't already
+        // issue a WTE at some point in the past.
+        if wallet_user.has_wte {
+            return Err(InstructionValidationError::WteAlreadyIssued);
+        }
+
+        Ok(())
+    }
+}
 
 impl ValidateInstruction for ChangePinCommit {
     fn validate_instruction(&self, _wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -233,13 +245,6 @@ impl HandleInstruction for IssueWte {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        // Since the user can exchange the WTE for the PID at the PID issuer, and since one of the purposes of the WTE
-        // is ensuring that a user can have only a single PID in their wallet, we must ensure that we didn't already
-        // issue a WTE at some point in the past.
-        if wallet_user.has_wte {
-            return Err(InstructionError::WteAlreadyIssued);
-        }
-
         let (wrapped_privkey, wte) = wte_issuer
             .issue_wte()
             .await
@@ -287,7 +292,11 @@ mod tests {
     };
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
-    use crate::{account_server::InstructionError, instructions::HandleInstruction, wte_issuer::mock::MockWteIssuer};
+    use crate::{
+        account_server::InstructionValidationError,
+        instructions::{HandleInstruction, ValidateInstruction},
+        wte_issuer::mock::MockWteIssuer,
+    };
 
     #[tokio::test]
     async fn should_handle_checkpin() {
@@ -440,24 +449,13 @@ mod tests {
             has_wte: true,
             ..wallet_user::mock::wallet_user_1()
         };
-        let pkcs11_client = MockPkcs11Client::default();
 
         let instruction = IssueWte {
             key_identifier: random_string(32),
         };
 
-        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        let result = instruction
-            .handle(
-                &wallet_user,
-                &FixedUuidGenerator,
-                &wallet_user_repo,
-                &pkcs11_client,
-                &MockWteIssuer,
-            )
-            .await
-            .unwrap_err();
+        let result = instruction.validate_instruction(&wallet_user).unwrap_err();
 
-        assert_matches!(result, InstructionError::WteAlreadyIssued);
+        assert_matches!(result, InstructionValidationError::WteAlreadyIssued);
     }
 }
