@@ -268,21 +268,26 @@ impl HandleInstruction for IssueWte {
 mod tests {
     use std::collections::HashMap;
 
+    use assert_matches::assert_matches;
     use p256::ecdsa::{signature::Verifier, SigningKey};
     use rand::rngs::OsRng;
 
     use wallet_common::{
-        account::messages::instructions::{CheckPin, GenerateKey, Sign},
-        utils::random_bytes,
+        account::messages::instructions::{CheckPin, GenerateKey, IssueWte, Sign},
+        utils::{random_bytes, random_string},
     };
     use wallet_provider_domain::{
-        model::{hsm::mock::MockPkcs11Client, wallet_user, wrapped_key::WrappedKey},
+        model::{
+            hsm::mock::MockPkcs11Client,
+            wallet_user::{self, WalletUser},
+            wrapped_key::WrappedKey,
+        },
         repository::MockTransaction,
         FixedUuidGenerator,
     };
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
-    use crate::{instructions::HandleInstruction, wte_issuer::mock::MockWteIssuer};
+    use crate::{account_server::InstructionError, instructions::HandleInstruction, wte_issuer::mock::MockWteIssuer};
 
     #[tokio::test]
     async fn should_handle_checkpin() {
@@ -392,5 +397,67 @@ mod tests {
             .verifying_key()
             .verify(&random_msg_2, &result.signatures[1][0].0)
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_issue_wte() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let pkcs11_client = MockPkcs11Client::default();
+
+        let instruction = IssueWte {
+            key_identifier: random_string(32),
+        };
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_save_wte_issued()
+            .times(1)
+            .return_once(|_, _| Ok(()));
+        wallet_user_repo.expect_save_keys().times(1).return_once(|_, _| Ok(()));
+
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &wallet_user_repo,
+                &pkcs11_client,
+                &MockWteIssuer,
+            )
+            .await
+            .unwrap();
+
+        // MockWteIssuer returns "a.b.c"
+        assert!(result.wte.0.chars().filter(|c| *c == '.').count() == 2);
+    }
+
+    #[tokio::test]
+    async fn should_not_issue_multiple_wtes() {
+        let wallet_user = WalletUser {
+            has_wte: true,
+            ..wallet_user::mock::wallet_user_1()
+        };
+        let pkcs11_client = MockPkcs11Client::default();
+
+        let instruction = IssueWte {
+            key_identifier: random_string(32),
+        };
+
+        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        let result = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &wallet_user_repo,
+                &pkcs11_client,
+                &MockWteIssuer,
+            )
+            .await
+            .unwrap_err();
+
+        assert_matches!(result, InstructionError::WteAlreadyIssued);
     }
 }
