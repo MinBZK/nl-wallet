@@ -46,9 +46,9 @@ pub struct OriginUrl(Url);
 
 impl OriginUrl {
     fn is_valid(u: &Url) -> bool {
-        #[cfg(feature = "allow_http_return_url")]
+        #[cfg(feature = "allow_insecure_url")]
         let allowed_schemes = ["https", "http"];
-        #[cfg(not(feature = "allow_http_return_url"))]
+        #[cfg(not(feature = "allow_insecure_url"))]
         let allowed_schemes = ["https"];
 
         (allowed_schemes.contains(&u.scheme()))

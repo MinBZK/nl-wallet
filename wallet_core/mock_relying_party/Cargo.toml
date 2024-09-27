@@ -12,7 +12,7 @@ doctest = false
 
 [features]
 # Allow the disclosure return URL and its prefix to use http://
-allow_http_return_url = ["wallet_common/allow_http_return_url", "wallet_server/allow_http_return_url"]
+allow_insecure_url = ["wallet_common/allow_insecure_url", "wallet_server/allow_insecure_url"]
 
 [dependencies]
 accept-language.workspace = true
