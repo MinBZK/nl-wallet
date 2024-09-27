@@ -73,21 +73,10 @@ struct ApplicationState {
     wallet_web: WalletWeb,
 }
 
-fn cors_layer(allow_origins: Option<CorsOrigin>) -> Option<CorsLayer> {
-    allow_origins
-        .map(|origin| match origin {
-            CorsOrigin::Origins(allow_origins) => CorsLayer::new().allow_origin(
-                allow_origins
-                    .into_iter()
-                    .map(|url| {
-                        url.try_into()
-                            .expect("cross_origin base_url should be parseable to header value")
-                    })
-                    .collect::<Vec<_>>(),
-            ),
-            CorsOrigin::Any => CorsLayer::new().allow_origin(Any),
-        })
-        .map(|cors| cors.allow_headers(Any).allow_methods([Method::GET, Method::POST]))
+fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
+    CorsLayer::from(allow_origins)
+        .allow_headers(Any)
+        .allow_methods([Method::GET, Method::POST])
 }
 
 async fn set_static_cache_control(request: Request, next: Next) -> Response {
@@ -129,8 +118,8 @@ pub fn create_router(settings: Settings) -> Router {
         .with_state(application_state)
         .layer(TraceLayer::new_for_http());
 
-    if let Some(cors) = cors_layer(settings.allow_origins) {
-        app = app.layer(cors);
+    if let Some(cors_origin) = settings.allow_origins {
+        app = app.layer(cors_layer(cors_origin));
     }
 
     app

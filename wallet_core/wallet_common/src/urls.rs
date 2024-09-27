@@ -1,6 +1,8 @@
 use http::{header::InvalidHeaderValue, HeaderValue};
 use nutype::nutype;
 use serde::Deserialize;
+#[cfg(feature = "axum")]
+use tower_http::cors::{Any, CorsLayer};
 use url::Url;
 
 #[nutype(
@@ -79,6 +81,24 @@ pub enum CorsOrigin {
     Any,
     #[serde(untagged)]
     Origins(Vec<Origin>),
+}
+
+#[cfg(feature = "axum")]
+impl From<CorsOrigin> for CorsLayer {
+    fn from(value: CorsOrigin) -> Self {
+        match value {
+            CorsOrigin::Origins(allow_origins) => CorsLayer::new().allow_origin(
+                allow_origins
+                    .into_iter()
+                    .map(|url| {
+                        url.try_into()
+                            .expect("cross_origin base_url should be parseable to header value")
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            CorsOrigin::Any => CorsLayer::new().allow_origin(Any),
+        }
+    }
 }
 
 #[cfg(test)]

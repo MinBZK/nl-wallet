@@ -7,7 +7,7 @@ use axum::{
 };
 use http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri};
 use serde::{Deserialize, Serialize};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
 
 use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests};
@@ -58,21 +58,8 @@ where
     Ok(application_state)
 }
 
-fn cors_layer(allow_origins: Option<CorsOrigin>) -> Option<CorsLayer> {
-    allow_origins
-        .map(|origin| match origin {
-            CorsOrigin::Origins(allow_origins) => CorsLayer::new().allow_origin(
-                allow_origins
-                    .into_iter()
-                    .map(|url| {
-                        url.try_into()
-                            .expect("cross_origin base_url should be parseable to header value")
-                    })
-                    .collect::<Vec<_>>(),
-            ),
-            CorsOrigin::Any => CorsLayer::new().allow_origin(Any),
-        })
-        .map(|cors| cors.allow_methods([Method::GET, Method::DELETE]))
+fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
+    CorsLayer::from(allow_origins).allow_methods([Method::GET, Method::DELETE])
 }
 
 pub fn create_routers<S>(urls: Urls, verifier: settings::Verifier, sessions: S) -> anyhow::Result<(Router, Router)>
@@ -86,9 +73,9 @@ where
         .route("/:session_token", get(status::<S>))
         .route("/:session_token", delete(cancel::<S>));
 
-    if let Some(cors_layer) = cors_layer(allow_origins) {
+    if let Some(cors_origin) = allow_origins {
         // The CORS headers should be set for these routes, so that any web browser may call them.
-        wallet_web = wallet_web.layer(cors_layer);
+        wallet_web = wallet_web.layer(cors_layer(cors_origin));
     }
 
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
