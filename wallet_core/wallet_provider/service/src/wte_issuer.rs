@@ -133,7 +133,10 @@ mod tests {
             .sign_wrapped(wte_privkey, Arc::new(b"".to_vec()))
             .await
             .unwrap();
-        jwk_to_p256(&wte_claims.cnf.jwk).unwrap().verify(b"", &sig).unwrap();
+        jwk_to_p256(&wte_claims.confirmation.jwk)
+            .unwrap()
+            .verify(b"", &sig)
+            .unwrap();
 
         // Check that the fields have the expected contents
         assert_eq!(wte_claims.contents.iss, iss.to_string());

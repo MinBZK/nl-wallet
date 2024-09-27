@@ -258,7 +258,8 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
 /// Claims of a [`JwtCredential`]: the body of the JWT.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct JwtCredentialClaims {
-    pub cnf: JwtCredentialCnf,
+    #[serde(rename = "cnf")]
+    pub confirmation: JwtCredentialConfirmation,
 
     #[serde(flatten)]
     pub contents: JwtCredentialContents,
@@ -271,7 +272,7 @@ impl JwtCredentialClaims {
         attributes: IndexMap<String, serde_json::Value>,
     ) -> Result<Self, JwkConversionError> {
         let claims = Self {
-            cnf: JwtCredentialCnf {
+            confirmation: JwtCredentialConfirmation {
                 jwk: jwk_from_p256(pubkey)?,
             },
             contents: JwtCredentialContents { iss, attributes },
@@ -315,7 +316,7 @@ pub struct JwtCredentialContents {
 /// Contains the holder public key of a [`JwtCredential`].
 /// ("Cnf" stands for "confirmation", see https://datatracker.ietf.org/doc/html/rfc7800.)
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialCnf {
+pub struct JwtCredentialConfirmation {
     pub jwk: Jwk,
 }
 

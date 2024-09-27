@@ -605,7 +605,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
         let mut wte_disclosure = match wte {
             Some(wte) => {
-                let wte_pubkey = jwk_to_p256(&wte.jwt_claims().cnf.jwk)?;
+                let wte_pubkey = jwk_to_p256(&wte.jwt_claims().confirmation.jwk)?;
                 let wte_privkey = key_factory.generate_existing(&wte.private_key_id, wte_pubkey);
 
                 let wte_release = Jwt::<JwtPopClaims>::sign(
