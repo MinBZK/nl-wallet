@@ -25,7 +25,7 @@ use crate::{
     Format,
 };
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
 /// Sent JSON-encoded to `POST /batch_credential`.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -36,7 +36,7 @@ pub struct CredentialRequests {
 
 pub type WteDisclosure = (Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>);
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
 /// Sent JSON-encoded to `POST /credential`.
 // TODO: add `wallet_attestation`, `wallet_attestation_pop`, and `proof_of_secure_combination` (PVW-2361, PVW-2362)
 #[skip_serializing_none]
@@ -84,7 +84,7 @@ impl From<&CredentialRequestType> for Format {
     }
 }
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-endpoint>
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "proof_type", rename_all = "snake_case")]
 pub enum CredentialRequestProof {
@@ -96,7 +96,7 @@ pub struct CredentialResponses {
     pub credential_responses: Vec<CredentialResponse>,
 }
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-response.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-response>.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
@@ -114,7 +114,7 @@ impl From<&CredentialResponse> for Format {
 }
 
 /// JWT claims of a PoP (Proof of Possession). Used a.o. as a JWT proof in a Credential Request
-/// (<https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.1.1>).
+/// (<https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2.1.1>).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JwtPopClaims {
     pub iss: String,
