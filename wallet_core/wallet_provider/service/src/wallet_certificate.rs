@@ -20,7 +20,12 @@ use wallet_provider_domain::{
     repository::{Committable, TransactionStarter, WalletUserRepository},
 };
 
-use crate::{account_server::WalletCertificateError, hsm::HsmError, keys::WalletCertificateSigningKey};
+use crate::{
+    account_server::{InstructionState, WalletCertificateError},
+    hsm::HsmError,
+    keys::WalletCertificateSigningKey,
+    wte_issuer::WteIssuer,
+};
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
@@ -133,9 +138,8 @@ pub async fn verify_wallet_certificate<T, R, H, F>(
     certificate_signing_pubkey: &EcdsaDecodingKey,
     pin_public_disclosure_protection_key_identifier: &str,
     encryption_key_identifier: &str,
-    wallet_user_repository: &R,
-    hsm: &H,
     pin_pubkey: F,
+    instruction_state: &InstructionState<R, H, impl WteIssuer>,
 ) -> Result<WalletUser, WalletCertificateError>
 where
     T: Committable,
@@ -146,7 +150,8 @@ where
     debug!("Parsing and verifying the provided certificate");
 
     let (user, claims) =
-        parse_claims_and_retrieve_wallet_user(certificate, certificate_signing_pubkey, wallet_user_repository).await?;
+        parse_claims_and_retrieve_wallet_user(certificate, certificate_signing_pubkey, &instruction_state.repositories)
+            .await?;
 
     verify_wallet_certificate_public_keys(
         claims,
@@ -154,7 +159,7 @@ where
         encryption_key_identifier,
         &user.hw_pubkey,
         pin_pubkey(&user),
-        hsm,
+        &instruction_state.wallet_user_hsm,
     )
     .await?;
     Ok(user)
@@ -271,9 +276,7 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use async_once::AsyncOnce;
     use hmac::digest::crypto_common::rand_core::OsRng;
-    use lazy_static::lazy_static;
     use p256::ecdsa::{SigningKey, VerifyingKey};
 
     use wallet_common::jwt::EcdsaDecodingKey;
@@ -281,29 +284,28 @@ mod tests {
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::{
+        account_server::mock,
         hsm::HsmError,
         wallet_certificate::{
-            mock, new_wallet_certificate, sign_pin_pubkey, verify_pin_pubkey, verify_wallet_certificate,
+            mock::{self as mock_cryptography, setup_hsm},
+            new_wallet_certificate, sign_pin_pubkey, verify_pin_pubkey, verify_wallet_certificate,
         },
     };
 
-    lazy_static! {
-        static ref HSM: AsyncOnce<MockPkcs11Client<HsmError>> = AsyncOnce::new(mock::setup_hsm());
-    }
-
     #[tokio::test]
     async fn sign_verify_pin_pubkey() {
-        let setup = mock::WalletCertificateSetup::new().await;
+        let setup = mock_cryptography::WalletCertificateSetup::new().await;
+        let hsm = setup_hsm().await;
 
-        let signed = sign_pin_pubkey(&setup.signing_pubkey, mock::SIGNING_KEY_IDENTIFIER, HSM.get().await)
+        let signed = sign_pin_pubkey(&setup.signing_pubkey, mock_cryptography::SIGNING_KEY_IDENTIFIER, &hsm)
             .await
             .unwrap();
 
         verify_pin_pubkey(
             &setup.signing_pubkey,
             signed,
-            mock::SIGNING_KEY_IDENTIFIER,
-            HSM.get().await,
+            mock_cryptography::SIGNING_KEY_IDENTIFIER,
+            &hsm,
         )
         .await
         .unwrap();
@@ -311,34 +313,38 @@ mod tests {
 
     #[tokio::test]
     async fn verify_new_wallet_certificate() {
-        let setup = mock::WalletCertificateSetup::new().await;
+        let setup = mock_cryptography::WalletCertificateSetup::new().await;
+        let hsm = setup_hsm().await;
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            mock_cryptography::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
             String::from("wallet_id_1"),
             setup.hw_pubkey,
             &setup.pin_pubkey,
-            HSM.get().await,
+            &hsm,
         )
         .await
         .unwrap();
 
-        verify_wallet_certificate(
-            &wallet_certificate,
-            &((&setup.signing_pubkey).into()),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::SIGNING_KEY_IDENTIFIER,
-            &WalletUserTestRepo {
+        let instruction_state = mock::instruction_state(
+            WalletUserTestRepo {
                 hw_pubkey: setup.hw_pubkey,
                 encrypted_pin_pubkey: setup.encrypted_pin_pubkey,
                 previous_encrypted_pin_pubkey: None,
                 challenge: None,
                 instruction_sequence_number: 42,
             },
-            HSM.get().await,
+            hsm,
+        );
+        verify_wallet_certificate(
+            &wallet_certificate,
+            &((&setup.signing_pubkey).into()),
+            mock_cryptography::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            mock_cryptography::SIGNING_KEY_IDENTIFIER,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            &instruction_state,
         )
         .await
         .unwrap();
@@ -346,34 +352,38 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_hw_key_should_not_validate() {
-        let setup = mock::WalletCertificateSetup::new().await;
+        let setup = mock_cryptography::WalletCertificateSetup::new().await;
+        let hsm = setup_hsm().await;
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            mock_cryptography::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
             String::from("wallet_id_1"),
             setup.hw_pubkey,
             &setup.pin_pubkey,
-            HSM.get().await,
+            &hsm,
         )
         .await
         .unwrap();
 
-        verify_wallet_certificate(
-            &wallet_certificate,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::ENCRYPTION_KEY_IDENTIFIER,
-            &WalletUserTestRepo {
+        let instruction_state = mock::instruction_state(
+            WalletUserTestRepo {
                 hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
                 encrypted_pin_pubkey: setup.encrypted_pin_pubkey,
                 previous_encrypted_pin_pubkey: None,
                 challenge: None,
                 instruction_sequence_number: 0,
             },
-            HSM.get().await,
+            setup_hsm().await,
+        );
+        verify_wallet_certificate(
+            &wallet_certificate,
+            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            mock_cryptography::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            mock_cryptography::ENCRYPTION_KEY_IDENTIFIER,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            &instruction_state,
         )
         .await
         .expect_err("Should not validate");
@@ -381,42 +391,46 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_pin_key_should_not_validate() {
-        let setup = mock::WalletCertificateSetup::new().await;
+        let setup = mock_cryptography::WalletCertificateSetup::new().await;
+        let hsm = setup_hsm().await;
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            mock_cryptography::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
             String::from("wallet_id_1"),
             setup.hw_pubkey,
             &setup.pin_pubkey,
-            HSM.get().await,
+            &hsm,
         )
         .await
         .unwrap();
 
         let other_encrypted_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
             &MockPkcs11Client::<HsmError>::default(),
-            mock::ENCRYPTION_KEY_IDENTIFIER,
+            mock_cryptography::ENCRYPTION_KEY_IDENTIFIER,
             *SigningKey::random(&mut OsRng).verifying_key(),
         )
         .await
         .unwrap();
 
-        verify_wallet_certificate(
-            &wallet_certificate,
-            &EcdsaDecodingKey::from(&setup.signing_pubkey),
-            mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
-            mock::ENCRYPTION_KEY_IDENTIFIER,
-            &WalletUserTestRepo {
+        let instruction_state = mock::instruction_state(
+            WalletUserTestRepo {
                 hw_pubkey: setup.hw_pubkey,
                 encrypted_pin_pubkey: other_encrypted_pin_pubkey,
                 previous_encrypted_pin_pubkey: None,
                 challenge: None,
                 instruction_sequence_number: 0,
             },
-            HSM.get().await,
+            hsm,
+        );
+        verify_wallet_certificate(
+            &wallet_certificate,
+            &EcdsaDecodingKey::from(&setup.signing_pubkey),
+            mock_cryptography::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
+            mock_cryptography::ENCRYPTION_KEY_IDENTIFIER,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
+            &instruction_state,
         )
         .await
         .expect_err("Should not validate");

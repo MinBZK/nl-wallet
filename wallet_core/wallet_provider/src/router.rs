@@ -110,9 +110,8 @@ async fn create_wallet(
         .register(
             &state.certificate_signing_key,
             state.as_ref(),
-            &state.repositories,
-            &state.hsm,
             payload,
+            &state.instruction_state,
         )
         .await?;
 
@@ -131,7 +130,7 @@ async fn instruction_challenge(
 
     let challenge = state
         .account_server
-        .instruction_challenge(payload, &state.repositories, state.as_ref(), &state.hsm)
+        .instruction_challenge(payload, state.as_ref(), &state.instruction_state)
         .await?;
 
     let body = Challenge { challenge };
@@ -162,9 +161,8 @@ async fn change_pin_start(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
             state.as_ref(),
-            &state.repositories,
             &state.pin_policy,
-            &state.hsm,
+            &state.instruction_state,
         )
         .await?;
     let body = InstructionResultMessage { result };
@@ -193,9 +191,8 @@ async fn change_pin_rollback(
             payload,
             &state.instruction_result_signing_key,
             state.as_ref(),
-            &state.repositories,
             &state.pin_policy,
-            &state.hsm,
+            &state.instruction_state,
         )
         .await?;
     let body = InstructionResultMessage { result };

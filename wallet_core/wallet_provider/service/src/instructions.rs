@@ -25,7 +25,7 @@ use wallet_provider_domain::{
 };
 
 use crate::{
-    account_server::{InstructionError, InstructionValidationError},
+    account_server::{InstructionError, InstructionState, InstructionValidationError},
     hsm::HsmError,
     wte_issuer::WteIssuer,
 };
@@ -77,9 +77,7 @@ pub trait HandleInstruction {
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
-        wallet_user_repository: &R,
-        wallet_user_hsm: &H,
-        wte_issuer: &impl WteIssuer,
+        instruction_state: &InstructionState<R, H, impl WteIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
@@ -94,9 +92,7 @@ impl HandleInstruction for CheckPin {
         self,
         _wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        _wallet_user_repository: &R,
-        _wallet_user_hsm: &H,
-        _wte_issuer: &impl WteIssuer,
+        _instruction_state: &InstructionState<R, H, impl WteIssuer>,
     ) -> Result<(), InstructionError>
     where
         T: Committable,
@@ -114,18 +110,17 @@ impl HandleInstruction for ChangePinCommit {
         self,
         wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        wallet_user_repository: &R,
-        _wallet_user_hsm: &H,
-        _wte_issuer: &impl WteIssuer,
+        instruction_state: &InstructionState<R, H, impl WteIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let tx = wallet_user_repository.begin_transaction().await?;
+        let tx = instruction_state.repositories.begin_transaction().await?;
 
-        wallet_user_repository
+        instruction_state
+            .repositories
             .commit_pin_change(&tx, wallet_user.wallet_id.as_str())
             .await?;
 
@@ -142,9 +137,7 @@ impl HandleInstruction for GenerateKey {
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
-        wallet_user_repository: &R,
-        wallet_user_hsm: &H,
-        _wte_issuer: &impl WteIssuer,
+        instruction_state: &InstructionState<R, H, impl WteIssuer>,
     ) -> Result<GenerateKeyResult, InstructionError>
     where
         T: Committable,
@@ -152,7 +145,10 @@ impl HandleInstruction for GenerateKey {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
         let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
-        let keys = wallet_user_hsm.generate_wrapped_keys(&identifiers).await?;
+        let keys = instruction_state
+            .wallet_user_hsm
+            .generate_wrapped_keys(&identifiers)
+            .await?;
 
         let (public_keys, wrapped_keys): (Vec<(String, DerVerifyingKey)>, Vec<WalletUserKey>) = keys
             .into_iter()
@@ -168,8 +164,9 @@ impl HandleInstruction for GenerateKey {
             })
             .unzip();
 
-        let tx = wallet_user_repository.begin_transaction().await?;
-        wallet_user_repository
+        let tx = instruction_state.repositories.begin_transaction().await?;
+        instruction_state
+            .repositories
             .save_keys(
                 &tx,
                 WalletUserKeys {
@@ -191,9 +188,7 @@ impl HandleInstruction for Sign {
         self,
         wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        wallet_user_repository: &R,
-        wallet_user_hsm: &H,
-        _wte_issuer: &impl WteIssuer,
+        instruction_state: &InstructionState<R, H, impl WteIssuer>,
     ) -> Result<SignResult, InstructionError>
     where
         T: Committable,
@@ -202,8 +197,9 @@ impl HandleInstruction for Sign {
     {
         let (data, identifiers): (Vec<_>, Vec<_>) = self.messages_with_identifiers.into_iter().unzip();
 
-        let tx = wallet_user_repository.begin_transaction().await?;
-        let found_keys = wallet_user_repository
+        let tx = instruction_state.repositories.begin_transaction().await?;
+        let found_keys = instruction_state
+            .repositories
             .find_keys_by_identifiers(
                 &tx,
                 wallet_user.id,
@@ -216,7 +212,8 @@ impl HandleInstruction for Sign {
             let data = Arc::new(data);
             future::try_join_all(identifiers.iter().map(|identifier| async {
                 let wrapped_key = found_keys.get(identifier).cloned().unwrap();
-                wallet_user_hsm
+                instruction_state
+                    .wallet_user_hsm
                     .sign_wrapped(wrapped_key, Arc::clone(&data))
                     .await
                     .map(DerSignature::from)
@@ -236,21 +233,20 @@ impl HandleInstruction for IssueWte {
         self,
         wallet_user: &WalletUser,
         uuid_generator: &impl Generator<Uuid>,
-        wallet_user_repository: &R,
-        _wallet_user_hsm: &H,
-        wte_issuer: &impl WteIssuer,
+        instruction_state: &InstructionState<R, H, impl WteIssuer>,
     ) -> Result<Self::Result, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (wrapped_privkey, wte) = wte_issuer
+        let (wrapped_privkey, wte) = instruction_state
+            .wte_issuer
             .issue_wte()
             .await
             .map_err(|e| InstructionError::WteIssuance(Box::new(e)))?;
 
-        let tx = wallet_user_repository.begin_transaction().await?;
+        let tx = instruction_state.repositories.begin_transaction().await?;
         let keys = WalletUserKeys {
             wallet_user_id: wallet_user.id,
             keys: vec![WalletUserKey {
@@ -259,8 +255,9 @@ impl HandleInstruction for IssueWte {
                 key: wrapped_privkey,
             }],
         };
-        wallet_user_repository.save_keys(&tx, keys).await?;
-        wallet_user_repository
+        instruction_state.repositories.save_keys(&tx, keys).await?;
+        instruction_state
+            .repositories
             .save_wte_issued(&tx, &wallet_user.wallet_id)
             .await?;
         tx.commit().await?;
@@ -283,7 +280,6 @@ mod tests {
     };
     use wallet_provider_domain::{
         model::{
-            hsm::mock::MockPkcs11Client,
             wallet_user::{self, WalletUser},
             wrapped_key::WrappedKey,
         },
@@ -293,9 +289,8 @@ mod tests {
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
     use crate::{
-        account_server::InstructionValidationError,
-        instructions::{HandleInstruction, ValidateInstruction},
-        wte_issuer::mock::MockWteIssuer,
+        account_server::mock, account_server::InstructionValidationError, instructions::HandleInstruction,
+        instructions::ValidateInstruction, wallet_certificate::mock::setup_hsm,
     };
 
     #[tokio::test]
@@ -307,9 +302,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &MockTransactionalWalletUserRepository::new(),
-                &MockPkcs11Client::default(),
-                &MockWteIssuer,
+                &mock::instruction_state(MockTransactionalWalletUserRepository::new(), setup_hsm().await),
             )
             .await
             .unwrap();
@@ -333,9 +326,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &wallet_user_repo,
-                &MockPkcs11Client::default(),
-                &MockWteIssuer,
+                &mock::instruction_state(wallet_user_repo, setup_hsm().await),
             )
             .await
             .unwrap();
@@ -365,8 +356,6 @@ mod tests {
         let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
         let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
 
-        let pkcs11_client = MockPkcs11Client::default();
-
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
 
         wallet_user_repo
@@ -387,9 +376,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &wallet_user_repo,
-                &pkcs11_client,
-                &MockWteIssuer,
+                &mock::instruction_state(wallet_user_repo, setup_hsm().await),
             )
             .await
             .unwrap();
@@ -411,7 +398,6 @@ mod tests {
     #[tokio::test]
     async fn should_handle_issue_wte() {
         let wallet_user = wallet_user::mock::wallet_user_1();
-        let pkcs11_client = MockPkcs11Client::default();
 
         let instruction = IssueWte {
             key_identifier: random_string(32),
@@ -432,9 +418,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &wallet_user_repo,
-                &pkcs11_client,
-                &MockWteIssuer,
+                &mock::instruction_state(wallet_user_repo, setup_hsm().await),
             )
             .await
             .unwrap();

@@ -12,7 +12,7 @@ use wallet_common::{
 };
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
 use wallet_provider_service::{
-    account_server::AccountServer,
+    account_server::{AccountServer, InstructionState},
     hsm::Pkcs11Hsm,
     instructions::{HandleInstruction, ValidateInstruction},
     keys::{InstructionResultSigning, WalletCertificateSigning, WalletProviderEcdsaKey},
@@ -25,11 +25,9 @@ use crate::{errors::WalletProviderError, settings::Settings};
 pub struct RouterState {
     pub account_server: AccountServer,
     pub pin_policy: PinPolicy,
-    pub repositories: Repositories,
-    pub hsm: Pkcs11Hsm,
-    pub certificate_signing_key: WalletCertificateSigning,
     pub instruction_result_signing_key: InstructionResultSigning,
-    pub wte_issuer: HsmWteIssuer<Pkcs11Hsm>,
+    pub certificate_signing_key: WalletCertificateSigning,
+    pub instruction_state: InstructionState<Repositories, Pkcs11Hsm, HsmWteIssuer<Pkcs11Hsm>>,
 }
 
 impl RouterState {
@@ -87,12 +85,14 @@ impl RouterState {
 
         let state = RouterState {
             account_server,
-            repositories,
-            pin_policy,
-            hsm,
-            certificate_signing_key,
             instruction_result_signing_key,
-            wte_issuer,
+            certificate_signing_key,
+            pin_policy,
+            instruction_state: InstructionState {
+                repositories,
+                wallet_user_hsm: hsm,
+                wte_issuer,
+            },
         };
 
         Ok(state)
@@ -112,10 +112,8 @@ impl RouterState {
                 instruction,
                 &self.instruction_result_signing_key,
                 self,
-                &self.repositories,
                 &self.pin_policy,
-                &self.hsm,
-                &self.wte_issuer,
+                &self.instruction_state,
             )
             .await?;
 

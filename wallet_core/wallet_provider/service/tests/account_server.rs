@@ -18,10 +18,11 @@ use wallet_provider_domain::{
 };
 use wallet_provider_persistence::{database::Db, repositories::Repositories};
 use wallet_provider_service::{
-    account_server::{mock, AccountServer},
+    account_server::{mock, AccountServer, InstructionState},
     hsm::HsmError,
     keys::WalletCertificateSigningKey,
     wallet_certificate,
+    wte_issuer::mock::MockWteIssuer,
 };
 
 struct UuidGenerator;
@@ -45,12 +46,15 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
 
 async fn do_registration(
     account_server: &AccountServer,
-    hsm: &MockPkcs11Client<HsmError>,
     certificate_signing_key: &impl WalletCertificateSigningKey,
     hw_privkey: &SigningKey,
     pin_privkey: &SigningKey,
-    repos: &Repositories,
-) -> (WalletCertificate, WalletCertificateClaims) {
+    db: Db,
+) -> (
+    WalletCertificate,
+    WalletCertificateClaims,
+    InstructionState<Repositories, MockPkcs11Client<HsmError>, MockWteIssuer>,
+) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
         .await
@@ -60,13 +64,13 @@ async fn do_registration(
         .await
         .expect("Could not sign new registration");
 
+    let instruction_state = mock::instruction_state(Repositories::new(db), wallet_certificate::mock::setup_hsm().await);
     let certificate = account_server
         .register(
             certificate_signing_key,
             &UuidGenerator,
-            repos,
-            hsm,
             registration_message,
+            &instruction_state,
         )
         .await
         .expect("Could not process registration message at account server");
@@ -75,7 +79,7 @@ async fn do_registration(
         .parse_and_verify_with_sub(&(&certificate_signing_key.verifying_key().await.unwrap()).into())
         .expect("Could not parse and verify wallet certificate");
 
-    (certificate, cert_data)
+    (certificate, cert_data, instruction_state)
 }
 
 async fn assert_instruction_data(
@@ -100,53 +104,41 @@ async fn assert_instruction_data(
 #[tokio::test]
 async fn test_instruction_challenge() {
     let db = db_from_env().await.expect("Could not connect to database");
-    let repos = Repositories::new(db);
 
     let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
     let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
-
-    let hsm = wallet_certificate::mock::setup_hsm().await;
     let account_server = mock::setup_account_server(&certificate_signing_pubkey);
     let hw_privkey = SigningKey::random(&mut OsRng);
     let pin_privkey = SigningKey::random(&mut OsRng);
 
-    let (certificate, cert_data) = do_registration(
-        &account_server,
-        &hsm,
-        &certificate_signing_key,
-        &hw_privkey,
-        &pin_privkey,
-        &repos,
-    )
-    .await;
+    let (certificate, cert_data, instruction_state) =
+        do_registration(&account_server, &certificate_signing_key, &hw_privkey, &pin_privkey, db).await;
 
     let challenge1 = account_server
         .instruction_challenge(
             InstructionChallengeRequest::new_signed::<CheckPin>(1, &hw_privkey, certificate.clone())
                 .await
                 .unwrap(),
-            &repos,
             &EpochGenerator,
-            &hsm,
+            &instruction_state,
         )
         .await
         .unwrap();
 
-    assert_instruction_data(&repos, &cert_data.wallet_id, 1, true).await;
+    assert_instruction_data(&instruction_state.repositories, &cert_data.wallet_id, 1, true).await;
 
     let challenge2 = account_server
         .instruction_challenge(
             InstructionChallengeRequest::new_signed::<CheckPin>(2, &hw_privkey, certificate)
                 .await
                 .unwrap(),
-            &repos,
             &EpochGenerator,
-            &hsm,
+            &instruction_state,
         )
         .await
         .unwrap();
 
-    assert_instruction_data(&repos, &cert_data.wallet_id, 2, true).await;
+    assert_instruction_data(&instruction_state.repositories, &cert_data.wallet_id, 2, true).await;
 
     assert_ne!(challenge1, challenge2);
 }
