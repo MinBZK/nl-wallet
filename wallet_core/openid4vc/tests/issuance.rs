@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
     server_keys::{test::SingleKeyRing, KeyPair},
     software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
-    utils::{issuer_auth::IssuerRegistration, keys::KeyFactory, x509::Certificate},
+    utils::{issuer_auth::IssuerRegistration, x509::Certificate},
     Tdate,
 };
 use openid4vc::{
@@ -20,22 +20,17 @@ use openid4vc::{
     },
     dpop::Dpop,
     issuance_session::{
-        HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
+        mock_wte, HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
     },
     issuer::{AttributeService, Created, IssuanceData, Issuer},
-    jwt::{compare_jwt_attributes, JwtCredential},
+    jwt::compare_jwt_attributes,
     metadata::IssuerMetadata,
     oidc,
     server_state::{MemorySessionStore, SessionState},
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
-use wallet_common::{
-    jwt::{JwtCredentialClaims, JwtCredentialContents},
-    keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
-    nonempty::NonEmpty,
-    urls::BaseUrl,
-};
+use wallet_common::{jwt::JwtCredentialContents, nonempty::NonEmpty, urls::BaseUrl};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -86,19 +81,12 @@ fn setup(
 }
 
 #[rstest]
-#[case(setup_mdoc, 1, 1)]
-#[case(setup_mdoc, 1, 2)]
-#[case(setup_mdoc, 2, 1)]
-#[case(setup_mdoc, 2, 2)]
-#[case(setup_jwt, 1, 1)]
-#[case(setup_jwt, 1, 2)]
-#[case(setup_jwt, 2, 1)]
-#[case(setup_jwt, 2, 2)]
 #[tokio::test]
 async fn accept_issuance(
-    #[case] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
-    #[case] attestation_count: usize,
-    #[case] copy_count: u8,
+    #[values(setup_mdoc, setup_jwt)] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
+    #[values(1, 2)] attestation_count: usize,
+    #[values(1, 2)] copy_count: u8,
+    #[values(true, false)] use_wte: bool,
 ) {
     let (issuer, ca, server_url) = setup(attestation_count, copy_count);
     let message_client = MockOpenidMessageClient::new(issuer);
@@ -113,10 +101,14 @@ async fn accept_issuance(
     .unwrap();
 
     let key_factory = SoftwareKeyFactory::default();
-    let wte = mock_wte(&key_factory).await;
+    let wte = if use_wte {
+        Some(mock_wte(&key_factory).await)
+    } else {
+        None
+    };
 
     let issued_creds = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, wte, server_url)
         .await
         .unwrap();
 
@@ -143,24 +135,6 @@ async fn accept_issuance(
             )
             .unwrap(),
         });
-}
-
-async fn mock_wte(key_factory: &impl KeyFactory) -> JwtCredential {
-    // As a shortcut we use this private key both as the cnf in the WTE and as the issuer private key
-    // to sign the WTE with.
-    let privkey = key_factory.generate_new().await.unwrap();
-
-    let wte = JwtCredentialClaims::new_signed(
-        &privkey.verifying_key().await.unwrap(),
-        &privkey,
-        "iss".to_string(),
-        None,
-        Default::default(),
-    )
-    .await
-    .unwrap();
-
-    JwtCredential::new_unverified::<SoftwareEcdsaKey>(privkey.identifier().to_string(), wte)
 }
 
 #[tokio::test]

@@ -459,6 +459,7 @@ impl HttpVcMessageClient {
     }
 }
 
+#[cfg_attr(test, derive(Clone))]
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
@@ -864,9 +865,34 @@ impl IssuanceState {
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+pub async fn mock_wte(key_factory: &impl KeyFactory) -> JwtCredential {
+    use wallet_common::{
+        jwt::JwtCredentialClaims,
+        keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
+    };
+
+    // As a shortcut we use this private key both as the cnf in the WTE and as the issuer private key
+    // to sign the WTE with.
+    let privkey = key_factory.generate_new().await.unwrap();
+
+    let wte = JwtCredentialClaims::new_signed(
+        &privkey.verifying_key().await.unwrap(),
+        &privkey,
+        "iss".to_string(),
+        None,
+        Default::default(),
+    )
+    .await
+    .unwrap();
+
+    JwtCredential::new_unverified::<SoftwareEcdsaKey>(privkey.identifier().to_string(), wte)
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use rstest::rstest;
     use serde_bytes::ByteBuf;
 
     use nl_wallet_mdoc::{
@@ -882,6 +908,7 @@ mod tests {
         IssuerSigned,
     };
     use wallet_common::{
+        jwt::JwtCredentialClaims,
         keys::{software::SoftwareEcdsaKey, EcdsaKey},
         nonempty::NonEmpty,
     };
@@ -901,7 +928,13 @@ mod tests {
         mock_msg_client
     }
 
-    async fn create_credential_response() -> (CredentialResponse, CredentialPreview, Certificate, VerifyingKey) {
+    async fn create_credential_response() -> (
+        CredentialResponse,
+        CredentialPreview,
+        Certificate,
+        VerifyingKey,
+        SoftwareKeyFactory,
+    ) {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = SoftwareKeyFactory::default();
@@ -921,7 +954,13 @@ mod tests {
             credential: issuer_signed.into(),
         };
 
-        (credential_response, preview, ca.certificate().clone(), mdoc_public_key)
+        (
+            credential_response,
+            preview,
+            ca.certificate().clone(),
+            mdoc_public_key,
+            key_factory,
+        )
     }
 
     #[tokio::test]
@@ -971,27 +1010,119 @@ mod tests {
     }
 
     /// Return a new session ready for `accept_issuance()`.
-    fn new_session(
-        mock_msg_client: MockVcMessageClient,
-        previews: Vec<CredentialPreview>,
-    ) -> HttpIssuanceSession<MockVcMessageClient> {
-        HttpIssuanceSession {
-            message_client: mock_msg_client,
-            session_state: IssuanceState {
-                access_token: "access_token".to_string().into(),
-                c_nonce: "c_nonce".to_string(),
-                credential_previews: NonEmpty::new(previews).unwrap(),
-                issuer_url: "https://issuer.example.com".parse().unwrap(),
-                dpop_private_key: SigningKey::random(&mut OsRng),
-                dpop_nonce: Some("dpop_nonce".to_string()),
-            },
+    fn new_session_state(previews: Vec<CredentialPreview>) -> IssuanceState {
+        IssuanceState {
+            access_token: "access_token".to_string().into(),
+            c_nonce: "c_nonce".to_string(),
+            credential_previews: NonEmpty::new(previews).unwrap(),
+            issuer_url: "https://issuer.example.com".parse().unwrap(),
+            dpop_private_key: SigningKey::random(&mut OsRng),
+            dpop_nonce: Some("dpop_nonce".to_string()),
         }
+    }
+
+    /// Check consistency and validity of the input of the /(batch_)credential endpoints.
+    fn check_credential_endpoint_input(
+        url: &Url,
+        session_state: &IssuanceState,
+        dpop_header: &str,
+        access_token_header: &str,
+        attestations: &Option<(Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>)>,
+        use_wte: bool,
+    ) {
+        assert_eq!(
+            access_token_header,
+            "DPoP ".to_string() + session_state.access_token.as_ref()
+        );
+
+        Dpop::from(dpop_header.to_string())
+            .verify_expecting_key(
+                session_state.dpop_private_key.verifying_key(),
+                url,
+                &Method::POST,
+                Some(&session_state.access_token),
+                session_state.dpop_nonce.as_deref(),
+            )
+            .unwrap();
+
+        if use_wte != attestations.is_some() {
+            panic!("unexpected WTE usage");
+        }
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
+        let (cred_response, preview, ca_cert, _, key_factory) = create_credential_response().await;
+        let wte = if use_wte {
+            Some(mock_wte(&key_factory).await)
+        } else {
+            None
+        };
+        let session_state = new_session_state(if multiple_creds {
+            vec![preview.clone(), preview]
+        } else {
+            vec![preview]
+        });
+
+        let mut mock_msg_client = mock_openid_message_client();
+
+        // The client must use `request_credentials()` (which uses `/batch_credentials`) iff more than one credential
+        // is being issued, and `request_credential()` instead (which uses `/credential`).
+        if multiple_creds {
+            mock_msg_client.expect_request_credentials().times(1).return_once({
+                let session_state = session_state.clone();
+                move |url, credential_requests, dpop_header, access_token_header| {
+                    check_credential_endpoint_input(
+                        url,
+                        &session_state,
+                        dpop_header,
+                        access_token_header,
+                        &credential_requests.attestations,
+                        use_wte,
+                    );
+                    Ok(CredentialResponses {
+                        credential_responses: vec![cred_response.clone(), cred_response],
+                    })
+                }
+            });
+        } else {
+            mock_msg_client.expect_request_credential().times(1).return_once({
+                let session_state = session_state.clone();
+                move |url, credential_request, dpop_header, access_token_header| {
+                    check_credential_endpoint_input(
+                        url,
+                        &session_state,
+                        dpop_header,
+                        access_token_header,
+                        &credential_request.attestations,
+                        use_wte,
+                    );
+                    Ok(cred_response)
+                }
+            });
+        }
+
+        // _ is an error because our mock does not behave like an actual issuer should, but it doesn't matter
+        // because we are just inspecting what the client sent in this test with the expectation above.
+        let _ = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state,
+        }
+        .accept_issuance(
+            &[((&ca_cert).try_into().unwrap())],
+            key_factory,
+            wte,
+            "https://issuer.example.com".parse().unwrap(),
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn test_accept_issuance_wrong_response_count() {
         let mut mock_msg_client = mock_openid_message_client();
-        let (cred_response, preview, ca_cert, _) = create_credential_response().await;
+        let (cred_response, preview, ca_cert, _, _) = create_credential_response().await;
+
         mock_msg_client.expect_request_credentials().return_once(
             |_url, _credential_requests, _dpop_header, _access_token_header| {
                 Ok(CredentialResponses {
@@ -999,17 +1130,19 @@ mod tests {
                 })
             },
         );
-        let session = new_session(mock_msg_client, vec![preview.clone(), preview]);
 
-        let error = session
-            .accept_issuance(
-                &[((&ca_cert).try_into().unwrap())],
-                SoftwareKeyFactory::default(),
-                None,
-                "https://issuer.example.com".parse().unwrap(),
-            )
-            .await
-            .unwrap_err();
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(vec![preview.clone(), preview]),
+        }
+        .accept_issuance(
+            &[((&ca_cert).try_into().unwrap())],
+            SoftwareKeyFactory::default(),
+            None,
+            "https://issuer.example.com".parse().unwrap(),
+        )
+        .await
+        .unwrap_err();
 
         assert_matches!(
             error,
@@ -1019,7 +1152,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc() {
-        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         let _ = credential_response
             .into_credential::<SoftwareEcdsaKey>(
@@ -1033,7 +1166,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_public_key_mismatch_error() {
-        let (credential_response, preview, ca_cert, _) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, _, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
         // public key than the one contained within the response should fail.
@@ -1052,7 +1185,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_attribute_random_length_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` from a response
         // that contains insufficient random data should fail.
@@ -1089,7 +1222,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
@@ -1122,7 +1255,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_mdoc_verification_error() {
-        let (credential_response, preview, _, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, _, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` that is
         // validated against incorrect trust anchors should fail.
@@ -1135,7 +1268,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail.
