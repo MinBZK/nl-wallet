@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: preload-gba-v-data-pod
+  labels:
+    app: preload-gba-v-data-pod
+    tier: zeer-vertrouwd
+    egress-frontoffice-policy: allow
+spec:
+  restartPolicy: Never
+  imagePullSecrets:
+    - name: harbor-puller
+  containers:
+    - name: preload-gba-v-data-pod
+      image: $GBA_FETCH_IMAGE
+      command: ["sh", "-c", "--"]
+      args:
+        - while true; do sleep 30; done;
+      volumeMounts:
+        - mountPath: /data
+          name: preloaded-gba-v-data-volume
+        - mountPath: /home/nonroot/resources/remote/bsn_zoeken_template.xml
+          name: zoek-xml-volume
+          subPath: bsn_zoeken_template.xml
+      env:
+        - name: RUST_BACKTRACE
+          value: "1"
+        - name: RUST_LOG
+          value: "debug,hyper=warn"
+        - name: GBA_HC_CONVERTER_PORT
+          value: "3006"
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__PRELOADED__XML_PATH
+          value: "/data"
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__PRELOADED__ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: encryption_key
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__PRELOADED__HMAC_KEY
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: hmac_key
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__ADHOC_URL
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: adhoc_url
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: username
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: password
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__CLIENT_CERT
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: client_cert
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__CLIENT_CERT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: client_cert_key
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__TRUST_ANCHOR
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: trust_anchor
+        - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__CA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: ca_api_key
+        - name: GBAV_PROXY_IP
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: proxy_ip
+        - name: GBAV_PROXY_PORT
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: proxy_port
+        - name: GBAV_PROXY_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: proxy_username
+        - name: GBAV_PROXY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: nl-wallet-gba-hc-converter-secrets
+              key: proxy_password
+        - name: HTTP_PROXY
+          value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
+        - name: HTTPS_PROXY
+          value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
+  volumes:
+    - name: preloaded-gba-v-data-volume
+      persistentVolumeClaim:
+        claimName: preloaded-gba-v-data-pvc
+    - name: zoek-xml-volume
+      configMap:
+        name: nl-wallet-gba-hc-converter-zoek-xml

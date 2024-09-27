@@ -423,6 +423,7 @@ deploy-pid-issuer-demo:
     - envsubst < deploy/kubernetes/${ENV}/gba-hc-converter-deployment.yaml | kubectl apply -f -
     - kubectl apply -f deploy/kubernetes/gba-hc-converter-network-policies.yaml
     - kubectl apply -f deploy/kubernetes/gba-hc-converter-service.yaml
+    - kubectl apply -f deploy/kubernetes/gba-hc-converter-volume.yaml
     - kubectl rollout status deployment/gba-hc-converter
 
 deploy-gba-hc-converter-ont:
@@ -437,15 +438,30 @@ deploy-gba-hc-converter-demo:
   variables:
     ENV: demo
 
-run-preload-gba-v-job:
-  extends: .env-demo-k8s
-  rules: !reference [.release-tag, rules]
+.deploy-preload-gba-v-pod:
+  needs:
+    - job: build-gba-fetch-image
+      artifacts: false
+  rules: !reference [.default-or-merge-request, rules]
   when: manual
+  variables:
+    GBA_FETCH_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch:${CI_COMMIT_SHORT_SHA}
   script:
-    - kubectl create configmap nl-wallet-gba-hc-converter-preload-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/preload.sh -o yaml | kubectl apply -f -
     - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
-    - envsubst < deploy/kubernetes/preload-gba-v-data-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=/preload-gba-v-data
+    - kubectl apply -f deploy/kubernetes/gba-hc-converter-volume.yaml
+    - envsubst < deploy/kubernetes/${ENV}/preload-gba-v-data-pod.yaml | kubectl apply -f -
+
+deploy-preload-gba-v-pod-ont:
+  extends: [.env-ont-k8s, .deploy-preload-gba-v-pod]
+  rules: !reference [.default-or-merge-request, rules]
+  variables:
+    ENV: ont
+
+deploy-preload-gba-v-pod-demo:
+  extends: [.env-demo-k8s, .deploy-preload-gba-v-pod]
+  rules: !reference [.release-tag, rules]
+  variables:
+    ENV: demo
 
 build-sbom:
   rules: !reference [.default-branch, rules]
