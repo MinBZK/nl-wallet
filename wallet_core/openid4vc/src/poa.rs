@@ -4,12 +4,10 @@ use jsonwebtoken::{jwk::Jwk, Algorithm, Header};
 use serde::{Deserialize, Serialize};
 
 use wallet_common::{
-    jwt::{jwk_from_p256, JsonJwt, JwkConversionError, Jwt, JwtError},
+    jwt::{jwk_from_p256, JsonJwt, JwkConversionError, Jwt, JwtError, JwtPopClaims},
     keys::{factory::KeyFactory, CredentialEcdsaKey},
     nonempty::NonEmpty,
 };
-
-use crate::credential::JwtPopClaims;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
@@ -30,14 +28,18 @@ pub enum PoaError {
     Signing(#[from] JwtError),
     #[error("error obtaining verifying key from signing key: {0}")]
     VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("cannot associate {0} keys, a minimum of 2 is required")]
+    InsufficientKeys(usize),
 }
 
 pub async fn new_poa<K: CredentialEcdsaKey>(
-    keys: NonEmpty<Vec<K>>,
+    keys: Vec<K>,
     payload: JwtPopClaims,
     key_factory: &impl KeyFactory<Key = K>,
 ) -> Result<Poa, PoaError> {
-    let keys = keys.into_inner();
+    if keys.len() < 2 {
+        return Err(PoaError::InsufficientKeys(keys.len()));
+    }
 
     let payload = PoaPayload {
         payload,

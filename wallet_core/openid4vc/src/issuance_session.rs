@@ -26,7 +26,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
-    jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError, JwtPopClaims},
+    jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims},
     keys::{factory::KeyFactory, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
@@ -611,40 +611,49 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             NL_WALLET_CLIENT_ID.to_string(),
             credential_issuer_identifier.as_ref().to_string(),
         );
+
+        let wte_privkey = wte.as_ref().map(|wte| wte.private_key(&key_factory)).transpose()?;
+
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
         let mut wte_disclosure = match wte {
             Some(wte) => {
-                let wte_pubkey = jwk_to_p256(&wte.jwt_claims().confirmation.jwk)?;
-                let wte_privkey = key_factory.generate_existing(&wte.private_key_id, wte_pubkey);
-
-                let wte_release =
-                    Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
+                let wte_release = Jwt::<JwtPopClaims>::sign(
+                    &pop_claims,
+                    &Header::new(Algorithm::ES256),
+                    wte_privkey.as_ref().unwrap(), // We just constructed this iff wte is Some
+                )
+                .await?;
 
                 Some((wte.jwt, wte_release))
             }
             None => None,
         };
 
-        // let keys = keys_and_proofs.iter().map(|(key, _)| key)
-        let mut poa = (keys_and_proofs.len() > 1)
-            .then_some({
-                // We need to use the keys here to create the PoA, and then again later to sign the PoPs.
-                // We can't clone keys because K doesn't derive Clone, which makes sense, but it does make this
-                // code rather a kerfuffle.
-                let keys = try_join_all(keys_and_proofs.iter().map(|(key, _)| async {
-                    let pubkey = key
-                        .verifying_key()
-                        .await
-                        .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(Box::new(e)))?;
-                    Ok::<_, IssuanceSessionError>(key_factory.generate_existing(key.identifier(), pubkey))
-                }))
-                .await?
-                .try_into()
-                .unwrap(); // we have more than one key because `number_of_keys` is a `NonZeroUsize`
+        // Ensure we include the WTE private key in the keys we need to prove association of.
+        let poa_keys = keys_and_proofs
+            .iter()
+            .map(|(key, _)| key)
+            .chain(wte_privkey.as_ref())
+            .collect_vec();
 
-                new_poa(keys, pop_claims, &key_factory).await
-            })
-            .transpose()?;
+        // We need a minimum of two keys to associate for a PoA to be sensible.
+        let mut poa = if poa_keys.len() <= 1 {
+            None
+        } else {
+            // We need to use the keys here to create the PoA, and then again later to sign the PoPs.
+            // We can't clone the keys because K doesn't derive Clone, which makes sense, but it does make this
+            // code something of a hassle.
+            let keys = try_join_all(poa_keys.into_iter().map(|key| async {
+                let pubkey = key
+                    .verifying_key()
+                    .await
+                    .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(Box::new(e)))?;
+                Ok::<_, IssuanceSessionError>(key_factory.generate_existing(key.identifier(), pubkey))
+            }))
+            .await?;
+
+            Some(new_poa(keys, pop_claims, &key_factory).await?)
+        };
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
