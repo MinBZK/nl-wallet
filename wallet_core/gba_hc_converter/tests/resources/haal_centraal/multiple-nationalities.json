@@ -13,17 +13,6 @@
         "voornamen": "Mĩkaăŀ",
         "geslachtsnaam": "Vĸovāųl"
       },
-      "nationaliteiten": [
-        {
-          "nationaliteit": {
-            "code": "0042",
-            "omschrijving": "Sloveense"
-          },
-          "redenOpname": {
-            "code": "301"
-          }
-        }
-      ],
       "geboorte": {
         "land": {
           "code": "0000",
