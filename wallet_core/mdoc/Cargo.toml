@@ -11,11 +11,7 @@ workspace = true
 # Include code for generating certificates and keys
 generate = ["dep:rcgen"]
 # Include examples from the ISO specification
-examples = ["dep:anyhow", "dep:hex-literal"]
-# Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
-software_keys = ["wallet_common/software_keys"]
-# Include SoftwareKeyFactory, which implements KeyFactory for testing
-software_key_factory = ["software_keys", "dep:parking_lot"]
+examples = ["wallet_common/software_keys"]
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
@@ -79,7 +75,6 @@ tokio = { workspace = true, features = ["macros"] }
 
 wallet_common = { path = "../wallet_common", features = [
     "mock_secure_keys",
-    "software_keys",
     "software_key_factory",
     "examples",
 ]}

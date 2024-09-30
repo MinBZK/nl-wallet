@@ -24,7 +24,7 @@ impl MockMdocDataSource {
 impl Default for MockMdocDataSource {
     fn default() -> Self {
         let mdocs = vec![
-            #[cfg(any(test, all(feature = "examples", feature = "software_keys")))]
+            #[cfg(any(test, feature = "examples"))]
             Mdoc::new_example_mock(),
         ];
 

@@ -206,7 +206,7 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
     }
 }
 
-#[cfg(any(test, feature = "software_keys"))]
+#[cfg(test)]
 mod tests {
     use crate::keys::{
         software::{SoftwareEcdsaKey, SoftwareEncryptionKey},

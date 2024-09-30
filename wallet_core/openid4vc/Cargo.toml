@@ -23,7 +23,7 @@ axum = ["dep:axum"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = []
 # Include mock implementations for testing
-mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/software_keys", "nl_wallet_mdoc/mock"]
+mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/mock", "wallet_common/software_keys"]
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
@@ -82,12 +82,5 @@ serde_bytes = { workspace = true, features = ["std"] }
 tracing-test.workspace = true
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = [
-    "mock",
-    "software_key_factory",
-    "generate",
-    "test",
-    "examples",
-    "mock_time",
-] }
+nl_wallet_mdoc = { path = "../mdoc", features = [ "mock", "generate", "test", "examples", "mock_time"] }
 wallet_common = { path = "../wallet_common", features = ["software_key_factory"] }

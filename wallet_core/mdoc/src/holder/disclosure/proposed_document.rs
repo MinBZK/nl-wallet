@@ -202,7 +202,7 @@ impl<I> ProposedDocument<I> {
     }
 }
 
-#[cfg(any(test, all(feature = "examples", feature = "mock", feature = "software_keys")))]
+#[cfg(any(test, all(feature = "examples", feature = "mock")))]
 mod examples {
     use crate::holder::Mdoc;
 
