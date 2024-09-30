@@ -302,7 +302,7 @@ https://localhost:8006/ . Note the https in the URL, which is provided using
 self-signed certificates.
 
 Besides that, the development setup runs without using TLS. Therefore, the
-feature `allow_http_return_url` enables the possibility to use a return URL with
+feature `allow_insecure_url` enables the possibility to use a return URL with
 the scheme `http` (while normally `https` is only allowed).
 
 The local wallet can be connected to Sentry for crash and error reporting by

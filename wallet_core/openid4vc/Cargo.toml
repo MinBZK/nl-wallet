@@ -21,7 +21,7 @@ required-features = ["integration"]
 # Include implementations of the axum IntoResponse trait.
 axum = ["dep:axum"]
 # Allow the disclosure return URL and its prefix to use http://
-allow_http_return_url = []
+allow_insecure_url = []
 # Include mock implementations for testing
 mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/software_keys", "nl_wallet_mdoc/mock"]
 # Include miscellaneous test utilities
