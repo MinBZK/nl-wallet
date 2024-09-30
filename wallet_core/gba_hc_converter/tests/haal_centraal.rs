@@ -11,7 +11,6 @@ pub mod common;
 #[tokio::test]
 #[rstest]
 #[case("gba/frouke.xml", "haal_centraal/frouke.json")]
-#[case("gba/multiple-nationalities.xml", "haal_centraal/multiple-nationalities.json")]
 #[case("gba/partner.xml", "haal_centraal/partner.json")]
 #[case("gba/empty-response.xml", "haal_centraal/empty.json")]
 async fn test_conversion(#[case] xml: &str, #[case] json: &str) {

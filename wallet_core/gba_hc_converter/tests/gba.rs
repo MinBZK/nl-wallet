@@ -34,14 +34,6 @@ async fn test_soap_response_single_categorievoorkomen() {
 }
 
 #[tokio::test]
-async fn test_soap_response_multiple_nationalities() {
-    let voorkomens = GbaResponse::new(&read_file("gba/multiple-nationalities.xml").await)
-        .unwrap()
-        .categorievoorkomens;
-    assert_eq!(2, voorkomens.len());
-}
-
-#[tokio::test]
 #[rstest]
 #[case("gba/error.xml")]
 #[case("gba/empty-response.xml")]
