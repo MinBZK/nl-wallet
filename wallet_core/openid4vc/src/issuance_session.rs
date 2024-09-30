@@ -27,7 +27,7 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     generator::TimeGenerator,
     jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError},
-    keys::factory::{KeyFactory, MdocEcdsaKey},
+    keys::factory::{CredentialEcdsaKey, KeyFactory},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -267,7 +267,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     where
         Self: Sized;
 
-    async fn accept_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
@@ -569,7 +569,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok((issuance_client, credential_previews))
     }
 
-    async fn accept_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
@@ -759,7 +759,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
 impl CredentialResponse {
     /// Create a credential out of the credential response. Also verifies the credential.
-    fn into_credential<K: MdocEcdsaKey>(
+    fn into_credential<K: CredentialEcdsaKey>(
         self,
         key_id: String,
         verifying_key: &VerifyingKey,

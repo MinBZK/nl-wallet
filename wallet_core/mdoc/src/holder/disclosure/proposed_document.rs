@@ -1,6 +1,6 @@
 use indexmap::{IndexMap, IndexSet};
 
-use wallet_common::keys::factory::{KeyFactory, MdocEcdsaKey};
+use wallet_common::keys::factory::{KeyFactory, CredentialEcdsaKey};
 
 use crate::{
     errors::Result,
@@ -173,7 +173,7 @@ impl<I> ProposedDocument<I> {
     ) -> Result<Vec<Document>>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
     {
         let keys_and_challenges = proposed_documents
             .iter()

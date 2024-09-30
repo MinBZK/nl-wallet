@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexSet;
 
-use wallet_common::keys::factory::{KeyFactory, MdocEcdsaKey};
+use wallet_common::keys::factory::{KeyFactory, CredentialEcdsaKey};
 
 use nl_wallet_mdoc::holder::TrustAnchor;
 use wallet_common::urls::BaseUrl;
@@ -45,7 +45,7 @@ impl IssuanceSession for MockIssuanceSession {
         Self::start()
     }
 
-    async fn accept_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,

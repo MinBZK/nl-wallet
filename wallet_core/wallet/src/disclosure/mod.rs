@@ -13,7 +13,7 @@ use openid4vc::{
     verifier::SessionType,
 };
 use wallet_common::{
-    keys::factory::{KeyFactory, MdocEcdsaKey},
+    keys::factory::{KeyFactory, CredentialEcdsaKey},
     reqwest::default_reqwest_client_builder,
 };
 
@@ -74,7 +74,7 @@ pub trait MdocDisclosureProposal {
     async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey;
+        K: CredentialEcdsaKey;
 }
 
 type VpDisclosureSession = openid4vc::disclosure_session::DisclosureSession<HttpVpMessageClient, Uuid>;
@@ -162,7 +162,7 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
     async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
     {
         let redirect_uri = self
             .disclose(key_factory)
@@ -235,7 +235,7 @@ mod mock {
         async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
         where
             KF: KeyFactory<Key = K>,
-            K: MdocEcdsaKey,
+            K: CredentialEcdsaKey,
         {
             if let Some(error) = self.next_error.lock().take() {
                 return Err(DisclosureError::new(self.attributes_shared, error));

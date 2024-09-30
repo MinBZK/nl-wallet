@@ -17,7 +17,7 @@ use error_category::ErrorCategory;
 use wallet_common::{
     generator::Generator,
     keys::{
-        factory::{KeyFactory, MdocEcdsaKey},
+        factory::{KeyFactory, CredentialEcdsaKey},
         EcdsaKey,
     },
 };
@@ -183,7 +183,7 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose.into())
     }
 
-    pub async fn generate_keys_and_sign<K: MdocEcdsaKey>(
+    pub async fn generate_keys_and_sign<K: CredentialEcdsaKey>(
         obj: &T,
         unprotected_header: Header,
         number_of_keys: u64,
@@ -309,7 +309,7 @@ pub async fn sign_cose(
     Ok(signed)
 }
 
-pub async fn sign_coses<K: MdocEcdsaKey>(
+pub async fn sign_coses<K: CredentialEcdsaKey>(
     keys_and_challenges: Vec<(K, &[u8])>,
     key_factory: &impl KeyFactory<Key = K>,
     unprotected_header: Header,
@@ -354,7 +354,7 @@ pub enum KeysError {
     KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-pub async fn generate_keys_and_sign_cose<K: MdocEcdsaKey>(
+pub async fn generate_keys_and_sign_cose<K: CredentialEcdsaKey>(
     payload: &[u8],
     unprotected_header: Header,
     number_of_keys: u64,

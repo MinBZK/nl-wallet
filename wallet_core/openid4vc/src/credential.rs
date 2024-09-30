@@ -7,7 +7,7 @@ use serde_with::skip_serializing_none;
 use nl_wallet_mdoc::{holder::Mdoc, utils::serialization::CborBase64, IssuerSigned};
 use wallet_common::{
     jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims},
-    keys::factory::{KeyFactory, MdocEcdsaKey},
+    keys::factory::{CredentialEcdsaKey, KeyFactory},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -132,7 +132,7 @@ impl JwtPopClaims {
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 
 impl CredentialRequestProof {
-    pub async fn new_multiple<K: MdocEcdsaKey>(
+    pub async fn new_multiple<K: CredentialEcdsaKey>(
         nonce: String,
         wallet_client_id: String,
         credential_issuer_identifier: BaseUrl,

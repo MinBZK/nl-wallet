@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::keys::{SecureEcdsaKey, WithIdentifier};
 
-/// Contract for ECDSA private keys suitable for mdoc attestations.
+/// Contract for ECDSA private keys suitable for credentials.
 /// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
-pub trait MdocEcdsaKey: SecureEcdsaKey + WithIdentifier {
+pub trait CredentialEcdsaKey: SecureEcdsaKey + WithIdentifier {
     const KEY_TYPE: CredentialKeyType;
 
     // from WithIdentifier: identifier()
@@ -22,7 +22,7 @@ pub enum CredentialKeyType {
 }
 
 pub trait KeyFactory {
-    type Key: MdocEcdsaKey;
+    type Key: CredentialEcdsaKey;
     type Error: Error + Send + Sync + 'static;
 
     async fn generate_new(&self) -> Result<Self::Key, Self::Error> {
@@ -48,9 +48,9 @@ pub trait KeyFactory {
 mod software {
     use crate::keys::software::SoftwareEcdsaKey;
 
-    use super::{CredentialKeyType, MdocEcdsaKey};
+    use super::{CredentialKeyType, CredentialEcdsaKey};
 
-    impl MdocEcdsaKey for SoftwareEcdsaKey {
+    impl CredentialEcdsaKey for SoftwareEcdsaKey {
         const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;
     }
 }

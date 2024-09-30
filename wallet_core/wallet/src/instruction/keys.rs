@@ -6,7 +6,7 @@ use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign},
     keys::{
-        factory::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
+        factory::{CredentialKeyType, KeyFactory, CredentialEcdsaKey},
         EcdsaKey, SecureEcdsaKey, WithIdentifier,
     },
     utils::random_string,
@@ -176,7 +176,7 @@ where
 {
 }
 
-impl<S, K, A> MdocEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
+impl<S, K, A> CredentialEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
     S: Storage,
     K: PlatformEcdsaKey,

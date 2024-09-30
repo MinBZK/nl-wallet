@@ -9,7 +9,7 @@ use webpki::TrustAnchor;
 use error_category::ErrorCategory;
 use wallet_common::{
     generator::Generator,
-    keys::factory::{CredentialKeyType, MdocEcdsaKey},
+    keys::factory::{CredentialKeyType, CredentialEcdsaKey},
 };
 
 use crate::{
@@ -39,7 +39,7 @@ pub struct Mdoc {
 
 impl Mdoc {
     /// Construct a new `Mdoc`, verifying it against the specified thrust anchors before returning it.
-    pub fn new<K: MdocEcdsaKey>(
+    pub fn new<K: CredentialEcdsaKey>(
         private_key_id: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,

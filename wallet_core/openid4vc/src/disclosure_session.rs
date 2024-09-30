@@ -21,7 +21,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     jwt::Jwt,
-    keys::factory::{KeyFactory, MdocEcdsaKey},
+    keys::factory::{KeyFactory, CredentialEcdsaKey},
     urls::BaseUrl,
     utils::random_string,
 };
@@ -650,7 +650,7 @@ where
     pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
     {
         info!("disclose proposed documents");
 

@@ -3,7 +3,7 @@ use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
 use indexmap::IndexMap;
 use p256::{PublicKey, SecretKey};
 
-use wallet_common::keys::factory::{KeyFactory, MdocEcdsaKey};
+use wallet_common::keys::factory::{KeyFactory, CredentialEcdsaKey};
 
 use crate::{
     errors::Result,
@@ -21,7 +21,7 @@ impl DeviceSigned {
         key_factory: &KF,
     ) -> Result<Vec<DeviceSigned>>
     where
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
         KF: KeyFactory<Key = K>,
     {
         let coses = sign_coses(keys_and_challenges, key_factory, Header::default(), false).await?;

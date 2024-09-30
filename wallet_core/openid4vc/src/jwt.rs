@@ -25,7 +25,7 @@ use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
     jwt::{validations, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
-    keys::factory::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
+    keys::factory::{CredentialEcdsaKey, CredentialKeyType, KeyFactory},
     trust_anchor::trust_anchor_names,
 };
 
@@ -56,7 +56,7 @@ pub enum JwtCredentialError {
 }
 
 impl JwtCredential {
-    pub fn new<K: MdocEcdsaKey>(
+    pub fn new<K: CredentialEcdsaKey>(
         private_key_id: String,
         jwt: Jwt<JwtCredentialClaims>,
         pubkey: &VerifyingKey,
@@ -72,7 +72,7 @@ impl JwtCredential {
         Ok((cred, claims))
     }
 
-    pub fn new_verify_against_trust_anchors<K: MdocEcdsaKey>(
+    pub fn new_verify_against_trust_anchors<K: CredentialEcdsaKey>(
         private_key_id: String,
         jwt: Jwt<JwtCredentialClaims>,
         trust_anchors: &[TrustAnchor],
@@ -109,7 +109,7 @@ impl JwtCredential {
     }
 
     #[cfg(feature = "test")]
-    pub fn new_unverified<K: MdocEcdsaKey>(private_key_id: String, jwt: Jwt<JwtCredentialClaims>) -> Self {
+    pub fn new_unverified<K: CredentialEcdsaKey>(private_key_id: String, jwt: Jwt<JwtCredentialClaims>) -> Self {
         Self {
             private_key_id,
             key_type: K::KEY_TYPE,
@@ -139,7 +139,7 @@ pub fn compare_jwt_attributes(
 }
 
 /// Bulk-sign the keys and JWT payloads into JWTs.
-pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
+pub async fn sign_jwts<T: Serialize, K: CredentialEcdsaKey>(
     keys_and_messages: Vec<(K, (T, jsonwebtoken::Header))>,
     key_factory: &impl KeyFactory<Key = K>,
 ) -> Result<Vec<(K, Jwt<T>)>, JwtError> {
@@ -282,7 +282,7 @@ mod tests {
         generator::TimeGenerator,
         jwt::{validations, EcdsaDecodingKey, JwtCredentialClaims},
         keys::{
-            factory::{KeyFactory, MdocEcdsaKey},
+            factory::{CredentialEcdsaKey, KeyFactory},
             software::SoftwareEcdsaKey,
             software_key_factory::SoftwareKeyFactory,
             EcdsaKey, StoredByIdentifier,
@@ -353,7 +353,7 @@ mod tests {
         }
     }
 
-    pub async fn bulk_jwt_sign<K: MdocEcdsaKey>(key_factory: &impl KeyFactory<Key = K>) {
+    pub async fn bulk_jwt_sign<K: CredentialEcdsaKey>(key_factory: &impl KeyFactory<Key = K>) {
         // Generate keys to sign with and messages to sign
         let keys = key_factory.generate_new_multiple(4).await.unwrap();
         let keys_and_messages = keys
