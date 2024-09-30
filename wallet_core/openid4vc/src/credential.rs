@@ -12,12 +12,7 @@ use wallet_common::{
     urls::BaseUrl,
 };
 
-use crate::{
-    issuance_session::IssuanceSessionError,
-    jwt::{self},
-    token::CredentialPreview,
-    Format,
-};
+use crate::{issuance_session::IssuanceSessionError, token::CredentialPreview, Format};
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
 /// Sent JSON-encoded to `POST /batch_credential`.
@@ -158,7 +153,7 @@ impl CredentialRequestProof {
         }))
         .await?;
 
-        let keys_and_proofs = jwt::sign_jwts(keys_and_jwt_payloads, key_factory)
+        let keys_and_proofs = Jwt::sign_bulk(keys_and_jwt_payloads, key_factory)
             .await?
             .into_iter()
             .map(|(key, jwt)| (key, CredentialRequestProof::Jwt { jwt }))

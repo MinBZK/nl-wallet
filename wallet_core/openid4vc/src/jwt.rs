@@ -24,8 +24,8 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
-    jwt::{validations, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
-    keys::factory::{CredentialEcdsaKey, CredentialKeyType, KeyFactory},
+    jwt::{Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
+    keys::factory::{CredentialEcdsaKey, CredentialKeyType},
     trust_anchor::trust_anchor_names,
 };
 
@@ -138,55 +138,6 @@ pub fn compare_jwt_attributes(
     Ok(())
 }
 
-/// Bulk-sign the keys and JWT payloads into JWTs.
-pub async fn sign_jwts<T: Serialize, K: CredentialEcdsaKey>(
-    keys_and_messages: Vec<(K, (T, jsonwebtoken::Header))>,
-    key_factory: &impl KeyFactory<Key = K>,
-) -> Result<Vec<(K, Jwt<T>)>, JwtError> {
-    let (keys, to_sign): (Vec<_>, Vec<_>) = keys_and_messages.into_iter().unzip();
-
-    // Construct a Vec containing the strings to be signed with the private keys, i.e. schematically "header.body"
-    let messages = to_sign
-        .iter()
-        .map(|(message, header)| {
-            Ok([
-                BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?),
-                BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(message)?),
-            ]
-            .join("."))
-        })
-        .collect::<Result<Vec<_>, JwtError>>()?;
-
-    // Have the WP sign our messages.
-    let signatures = key_factory
-        .sign_multiple_with_existing_keys(
-            messages
-                .iter()
-                .map(|msg| msg.clone().into_bytes())
-                .zip(keys.iter().map(|key| vec![key]))
-                .collect_vec(),
-        )
-        .await
-        .map_err(|err| JwtError::Signing(Box::new(err)))?;
-
-    // For each received key-signature pair, we use the key to lookup the appropriate message
-    // from the map constructed above and create the JWT.
-    let jwts = signatures
-        .into_iter()
-        .zip(keys)
-        .zip(messages)
-        .map(|((sigs, key), msg)| {
-            // The WP will respond only with the keys we fed it above, so we can unwrap
-            let jwt = [msg, BASE64_URL_SAFE_NO_PAD.encode(sigs.first().unwrap().to_vec())]
-                .join(".")
-                .into();
-            (key, jwt)
-        })
-        .collect();
-
-    Ok(jwts)
-}
-
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum JwtX5cError {
@@ -274,19 +225,12 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use futures::StreamExt;
-    use serde::{Deserialize, Serialize};
     use serde_json::json;
 
     use wallet_common::{
         generator::TimeGenerator,
-        jwt::{validations, EcdsaDecodingKey, JwtCredentialClaims},
-        keys::{
-            factory::{CredentialEcdsaKey, KeyFactory},
-            software::SoftwareEcdsaKey,
-            software_key_factory::SoftwareKeyFactory,
-            EcdsaKey, StoredByIdentifier,
-        },
+        jwt::JwtCredentialClaims,
+        keys::{software::SoftwareEcdsaKey, EcdsaKey, StoredByIdentifier},
     };
 
     use nl_wallet_mdoc::{server_keys::KeyPair, utils::x509::CertificateError};
@@ -334,46 +278,6 @@ mod tests {
             err,
             JwtX5cError::CertificateValidation(CertificateError::Verification(_))
         );
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    struct ToyMessage {
-        count: usize,
-    }
-
-    #[tokio::test]
-    async fn test_sign_jwts() {
-        bulk_jwt_sign(&SoftwareKeyFactory::default()).await;
-    }
-
-    fn json_header() -> jsonwebtoken::Header {
-        jsonwebtoken::Header {
-            alg: jsonwebtoken::Algorithm::ES256,
-            ..Default::default()
-        }
-    }
-
-    pub async fn bulk_jwt_sign<K: CredentialEcdsaKey>(key_factory: &impl KeyFactory<Key = K>) {
-        // Generate keys to sign with and messages to sign
-        let keys = key_factory.generate_new_multiple(4).await.unwrap();
-        let keys_and_messages = keys
-            .into_iter()
-            .enumerate()
-            .map(|(count, key)| (key, (ToyMessage { count }, json_header())))
-            .collect();
-
-        let jwts = super::sign_jwts(keys_and_messages, key_factory).await.unwrap();
-
-        // Verify JWTs
-        futures::stream::iter(jwts) // convert to stream which supports async for_each closures
-            .for_each(|(key, jwt)| async move {
-                jwt.parse_and_verify(
-                    &EcdsaDecodingKey::from(&key.verifying_key().await.unwrap()),
-                    &validations(),
-                )
-                .unwrap();
-            })
-            .await;
     }
 
     #[tokio::test]
