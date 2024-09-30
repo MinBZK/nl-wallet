@@ -1,7 +1,8 @@
+use wallet_common::keys::factory::{KeyFactory, MdocEcdsaKey};
+
 use crate::{
     errors::Result,
     iso::disclosure::{DeviceResponse, DeviceResponseVersion},
-    utils::factory::{KeyFactory, MdocEcdsaKey},
 };
 
 use super::proposed_document::ProposedDocument;

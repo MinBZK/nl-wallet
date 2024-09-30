@@ -3,7 +3,7 @@ use std::error::Error;
 use p256::ecdsa::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
-use wallet_common::keys::{SecureEcdsaKey, WithIdentifier};
+use crate::keys::{SecureEcdsaKey, WithIdentifier};
 
 /// Contract for ECDSA private keys suitable for mdoc attestations.
 /// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
@@ -46,11 +46,9 @@ pub trait KeyFactory {
 
 #[cfg(any(test, feature = "software_keys"))]
 mod software {
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use crate::keys::software::SoftwareEcdsaKey;
 
-    use crate::utils::factory::CredentialKeyType;
-
-    use super::MdocEcdsaKey;
+    use super::{CredentialKeyType, MdocEcdsaKey};
 
     impl MdocEcdsaKey for SoftwareEcdsaKey {
         const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;

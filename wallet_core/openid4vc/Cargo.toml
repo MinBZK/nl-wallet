@@ -27,7 +27,7 @@ mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/software_keys"
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
-integration = ["mock", "test", "dep:ciborium"]
+integration = ["mock", "test", "dep:ciborium", "wallet_common/software_key_factory"]
 
 [dependencies]
 base64.workspace = true

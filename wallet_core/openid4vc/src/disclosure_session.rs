@@ -15,12 +15,16 @@ use nl_wallet_mdoc::{
     holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
     identifiers::AttributeIdentifier,
     utils::{
-        factory::{KeyFactory, MdocEcdsaKey},
         reader_auth::{ReaderRegistration, ValidationError},
         x509::{Certificate, CertificateError, CertificateType},
     },
 };
-use wallet_common::{jwt::Jwt, urls::BaseUrl, utils::random_string};
+use wallet_common::{
+    jwt::Jwt,
+    keys::factory::{KeyFactory, MdocEcdsaKey},
+    urls::BaseUrl,
+    utils::random_string,
+};
 
 use crate::{
     openid4vp::{
@@ -705,21 +709,27 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
+    use wallet_common::{
+        keys::{
+            factory::KeyFactory,
+            software::SoftwareEcdsaKey,
+            software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
+        },
+        utils::random_string,
+    };
+
     use nl_wallet_mdoc::{
         examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
         holder::{mock::MdocDataSourceError, HolderError, ProposedDocument},
         identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-        software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
         utils::{
             cose::ClonePayload,
-            factory::KeyFactory,
             reader_auth::{ReaderRegistration, ValidationError},
             serialization::{cbor_deserialize, cbor_serialize, CborBase64, CborSeq, TaggedBytes},
             x509::CertificateError,
         },
         DeviceAuth, DeviceAuthenticationKeyed, ItemsRequest, MobileSecurityObject, SessionTranscript,
     };
-    use wallet_common::{keys::software::SoftwareEcdsaKey, utils::random_string};
 
     use crate::{
         jwt::JwtX5cError,

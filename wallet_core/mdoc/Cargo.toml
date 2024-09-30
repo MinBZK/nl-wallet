@@ -19,7 +19,7 @@ software_key_factory = ["software_keys", "dep:parking_lot"]
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
-mock = []
+mock = ["wallet_common/examples", "wallet_common/software_keys"]
 # Include MockTimeGenerator, which can be used to mock the curren time for testing purposes
 mock_time = ["dep:parking_lot"]
 

@@ -15,11 +15,15 @@ doctest = false
 allow_insecure_url = []
 # Include implementations of the axum IntoResponse trait.
 axum = ["dep:axum", "dep:tower-http"]
+# Include examples from the ISO specification
+examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
 software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
+# Include SoftwareEcdsaKey implementation of KeyFactory
+software_key_factory = ["software_keys"]
 # Enable helper code for integration tests
 integration_test = []
 # Enable sentry feature
@@ -27,11 +31,14 @@ sentry = ["dep:sentry", "error_category/sentry"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
+anyhow = { workspace = true, optional = true }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 config.workspace = true
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
+hex = { workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true

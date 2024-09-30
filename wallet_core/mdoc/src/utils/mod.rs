@@ -1,6 +1,5 @@
 pub mod auth;
 pub mod cose;
-pub mod factory;
 pub mod serialization;
 pub mod x509;
 

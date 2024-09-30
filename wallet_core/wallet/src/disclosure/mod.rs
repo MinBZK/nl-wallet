@@ -6,17 +6,16 @@ use uuid::Uuid;
 use nl_wallet_mdoc::{
     holder::{MdocDataSource, ProposedAttributes, TrustAnchor},
     identifiers::AttributeIdentifier,
-    utils::{
-        factory::{KeyFactory, MdocEcdsaKey},
-        reader_auth::ReaderRegistration,
-        x509::Certificate,
-    },
+    utils::{reader_auth::ReaderRegistration, x509::Certificate},
 };
 use openid4vc::{
     disclosure_session::{DisclosureError, HttpVpMessageClient, VpClientError},
     verifier::SessionType,
 };
-use wallet_common::reqwest::default_reqwest_client_builder;
+use wallet_common::{
+    keys::factory::{KeyFactory, MdocEcdsaKey},
+    reqwest::default_reqwest_client_builder,
+};
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 

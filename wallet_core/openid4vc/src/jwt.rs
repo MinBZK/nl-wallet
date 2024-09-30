@@ -19,15 +19,13 @@ use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::{map_difference, IssuedAttributesMismatch, TrustAnchor},
     server_keys::KeyPair,
-    utils::{
-        factory::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
-        x509::{Certificate, CertificateError, CertificateUsage},
-    },
+    utils::x509::{Certificate, CertificateError, CertificateUsage},
 };
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
     jwt::{validations, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
+    keys::factory::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
     trust_anchor::trust_anchor_names,
 };
 
@@ -280,19 +278,18 @@ mod tests {
     use serde::{Deserialize, Serialize};
     use serde_json::json;
 
-    use nl_wallet_mdoc::{
-        server_keys::KeyPair,
-        software_key_factory::SoftwareKeyFactory,
-        utils::{
-            factory::{KeyFactory, MdocEcdsaKey},
-            x509::CertificateError,
-        },
-    };
     use wallet_common::{
         generator::TimeGenerator,
         jwt::{validations, EcdsaDecodingKey, JwtCredentialClaims},
-        keys::{software::SoftwareEcdsaKey, EcdsaKey, StoredByIdentifier},
+        keys::{
+            factory::{KeyFactory, MdocEcdsaKey},
+            software::SoftwareEcdsaKey,
+            software_key_factory::SoftwareKeyFactory,
+            EcdsaKey, StoredByIdentifier,
+        },
     };
+
+    use nl_wallet_mdoc::{server_keys::KeyPair, utils::x509::CertificateError};
 
     use crate::jwt::{sign_with_certificate, JwtCredential, JwtX5cError};
 

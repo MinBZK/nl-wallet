@@ -1,5 +1,7 @@
 use indexmap::{IndexMap, IndexSet};
 
+use wallet_common::keys::factory::{KeyFactory, MdocEcdsaKey};
+
 use crate::{
     errors::Result,
     identifiers::AttributeIdentifier,
@@ -8,10 +10,7 @@ use crate::{
         mdocs::DocType,
     },
     unsigned::Entry,
-    utils::{
-        factory::{KeyFactory, MdocEcdsaKey},
-        x509::Certificate,
-    },
+    utils::x509::Certificate,
     NameSpace,
 };
 
@@ -232,12 +231,13 @@ mod tests {
     use assert_matches::assert_matches;
     use coset::Header;
 
+    use wallet_common::keys::{examples::Examples, software_key_factory::SoftwareKeyFactory};
+
     use crate::{
         errors::Error,
-        examples::{Examples, EXAMPLE_NAMESPACE},
+        examples::EXAMPLE_NAMESPACE,
         holder::Mdoc,
         iso::disclosure::DeviceAuth,
-        software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{self, CoseError},
             serialization::TaggedBytes,

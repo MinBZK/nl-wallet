@@ -7,17 +7,16 @@ use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
 use error_category::ErrorCategory;
-use wallet_common::generator::Generator;
+use wallet_common::{
+    generator::Generator,
+    keys::factory::{CredentialKeyType, MdocEcdsaKey},
+};
 
 use crate::{
     identifiers::AttributeIdentifier,
     iso::*,
     unsigned::{Entry, UnsignedMdoc},
-    utils::{
-        cose::CoseError,
-        factory::{CredentialKeyType, MdocEcdsaKey},
-        x509::Certificate,
-    },
+    utils::{cose::CoseError, x509::Certificate},
     verifier::ValidityRequirement,
 };
 

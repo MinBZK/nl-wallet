@@ -19,7 +19,6 @@ use nl_wallet_mdoc::{
     holder::{IssuedAttributesMismatch, Mdoc, TrustAnchor},
     utils::{
         cose::CoseError,
-        factory::{KeyFactory, MdocEcdsaKey},
         serialization::{CborBase64, CborError, TaggedBytes},
         x509::CertificateError,
     },
@@ -28,6 +27,7 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     generator::TimeGenerator,
     jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError},
+    keys::factory::{KeyFactory, MdocEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -898,7 +898,6 @@ mod tests {
 
     use nl_wallet_mdoc::{
         server_keys::KeyPair,
-        software_key_factory::SoftwareKeyFactory,
         test::data,
         unsigned::UnsignedMdoc,
         utils::{
@@ -910,7 +909,7 @@ mod tests {
     };
     use wallet_common::{
         jwt::JwtCredentialClaims,
-        keys::{software::SoftwareEcdsaKey, EcdsaKey},
+        keys::{factory::KeyFactory, software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory, EcdsaKey},
         nonempty::NonEmpty,
     };
 

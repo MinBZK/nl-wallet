@@ -2,10 +2,9 @@ use std::collections::HashMap;
 
 use indexmap::IndexSet;
 
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    utils::factory::{KeyFactory, MdocEcdsaKey},
-};
+use wallet_common::keys::factory::{KeyFactory, MdocEcdsaKey};
+
+use nl_wallet_mdoc::holder::TrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 use crate::{

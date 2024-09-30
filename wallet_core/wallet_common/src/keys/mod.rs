@@ -5,8 +5,14 @@ use p256::ecdsa::{Signature, VerifyingKey};
 
 use crate::utils;
 
+pub mod factory;
+
+#[cfg(any(test, feature = "examples"))]
+pub mod examples;
 #[cfg(feature = "software_keys")]
 pub mod software;
+#[cfg(any(test, feature = "software_key_factory"))]
+pub mod software_key_factory;
 #[cfg(any(all(feature = "software_keys", test), feature = "integration_test"))]
 pub mod test;
 

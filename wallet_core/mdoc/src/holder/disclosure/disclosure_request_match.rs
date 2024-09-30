@@ -193,6 +193,8 @@ mod tests {
     use futures::future;
     use rstest::rstest;
 
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+
     use crate::{
         holder::mock::MockMdocDataSource,
         iso::{
@@ -200,7 +202,6 @@ mod tests {
             unsigned::Entry,
         },
         server_keys::KeyPair,
-        software_key_factory::SoftwareKeyFactory,
         test::{
             data::{addr_street, empty, pid_family_name, pid_full_name, pid_given_name},
             TestDocument, TestDocuments,

@@ -14,12 +14,15 @@ use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
 
 use error_category::ErrorCategory;
-use wallet_common::{generator::Generator, keys::EcdsaKey};
-
-use crate::utils::{
-    factory::{KeyFactory, MdocEcdsaKey},
-    serialization::{cbor_deserialize, cbor_serialize, CborError},
+use wallet_common::{
+    generator::Generator,
+    keys::{
+        factory::{KeyFactory, MdocEcdsaKey},
+        EcdsaKey,
+    },
 };
+
+use crate::utils::serialization::{cbor_deserialize, cbor_serialize, CborError};
 
 use super::x509::{Certificate, CertificateError, CertificateUsage};
 

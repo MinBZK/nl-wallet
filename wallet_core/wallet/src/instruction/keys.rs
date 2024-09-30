@@ -2,11 +2,13 @@ use std::iter;
 
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 
-use nl_wallet_mdoc::utils::factory::{CredentialKeyType, KeyFactory, MdocEcdsaKey};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign},
-    keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier},
+    keys::{
+        factory::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
+        EcdsaKey, SecureEcdsaKey, WithIdentifier,
+    },
     utils::random_string,
 };
 
