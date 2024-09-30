@@ -36,12 +36,15 @@ use url::Url;
 
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
-use wallet_common::{urls::BaseUrl, utils::sha256};
+use wallet_common::{
+    urls::{BaseUrl, CorsOrigin},
+    utils::sha256,
+};
 
 use crate::{
     askama_axum,
     client::WalletServerClient,
-    settings::{CorsOrigin, ReturnUrlMode, Settings, Usecase, WalletWeb},
+    settings::{ReturnUrlMode, Settings, Usecase, WalletWeb},
     translations::{Words, TRANSLATIONS},
 };
 
@@ -74,7 +77,8 @@ struct ApplicationState {
 }
 
 fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
-    CorsLayer::from(allow_origins)
+    CorsLayer::new()
+        .allow_origin(allow_origins)
         .allow_headers(Any)
         .allow_methods([Method::GET, Method::POST])
 }

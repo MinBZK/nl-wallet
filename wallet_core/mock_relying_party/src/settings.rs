@@ -5,8 +5,10 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::verifier::ItemsRequests;
-pub use wallet_common::urls::CorsOrigin;
-use wallet_common::{sentry::Sentry, urls::BaseUrl};
+use wallet_common::{
+    sentry::Sentry,
+    urls::{BaseUrl, CorsOrigin},
+};
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {

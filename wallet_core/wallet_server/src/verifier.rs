@@ -59,7 +59,9 @@ where
 }
 
 fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
-    CorsLayer::from(allow_origins).allow_methods([Method::GET, Method::DELETE])
+    CorsLayer::new()
+        .allow_origin(allow_origins)
+        .allow_methods([Method::GET, Method::DELETE])
 }
 
 pub fn create_routers<S>(urls: Urls, verifier: settings::Verifier, sessions: S) -> anyhow::Result<(Router, Router)>
