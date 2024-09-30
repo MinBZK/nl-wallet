@@ -15,7 +15,7 @@ use crate::{
     unsigned::{Entry, UnsignedMdoc},
     utils::{
         cose::CoseError,
-        keys::{CredentialKeyType, MdocEcdsaKey},
+        factory::{CredentialKeyType, MdocEcdsaKey},
         x509::Certificate,
     },
     verifier::ValidityRequirement,

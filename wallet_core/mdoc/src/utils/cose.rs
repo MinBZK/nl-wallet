@@ -17,7 +17,7 @@ use error_category::ErrorCategory;
 use wallet_common::{generator::Generator, keys::EcdsaKey};
 
 use crate::utils::{
-    keys::{KeyFactory, MdocEcdsaKey},
+    factory::{KeyFactory, MdocEcdsaKey},
     serialization::{cbor_deserialize, cbor_serialize, CborError},
 };
 

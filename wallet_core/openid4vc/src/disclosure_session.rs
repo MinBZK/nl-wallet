@@ -15,7 +15,7 @@ use nl_wallet_mdoc::{
     holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
     identifiers::AttributeIdentifier,
     utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
+        factory::{KeyFactory, MdocEcdsaKey},
         reader_auth::{ReaderRegistration, ValidationError},
         x509::{Certificate, CertificateError, CertificateType},
     },
@@ -712,7 +712,7 @@ mod tests {
         software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
         utils::{
             cose::ClonePayload,
-            keys::KeyFactory,
+            factory::KeyFactory,
             reader_auth::{ReaderRegistration, ValidationError},
             serialization::{cbor_deserialize, cbor_serialize, CborBase64, CborSeq, TaggedBytes},
             x509::CertificateError,

@@ -9,7 +9,7 @@ use crate::{
     },
     unsigned::Entry,
     utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
+        factory::{KeyFactory, MdocEcdsaKey},
         x509::Certificate,
     },
     NameSpace,

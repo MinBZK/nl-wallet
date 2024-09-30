@@ -9,7 +9,7 @@ use crate::{
     utils::{
         cose::{sign_coses, ClonePayload},
         crypto::dh_hmac_key,
-        keys::{KeyFactory, MdocEcdsaKey},
+        factory::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_serialize, TaggedBytes},
     },
 };

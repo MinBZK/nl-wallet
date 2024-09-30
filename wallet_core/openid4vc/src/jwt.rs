@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
     holder::{map_difference, IssuedAttributesMismatch, TrustAnchor},
     server_keys::KeyPair,
     utils::{
-        keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
+        factory::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
         x509::{Certificate, CertificateError, CertificateUsage},
     },
 };
@@ -284,7 +284,7 @@ mod tests {
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         utils::{
-            keys::{KeyFactory, MdocEcdsaKey},
+            factory::{KeyFactory, MdocEcdsaKey},
             x509::CertificateError,
         },
     };

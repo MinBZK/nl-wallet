@@ -19,7 +19,7 @@ use nl_wallet_mdoc::{
     holder::{IssuedAttributesMismatch, Mdoc, TrustAnchor},
     utils::{
         cose::CoseError,
-        keys::{KeyFactory, MdocEcdsaKey},
+        factory::{KeyFactory, MdocEcdsaKey},
         serialization::{CborBase64, CborError, TaggedBytes},
         x509::CertificateError,
     },

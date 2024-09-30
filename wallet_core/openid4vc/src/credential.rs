@@ -7,7 +7,7 @@ use serde_with::skip_serializing_none;
 use nl_wallet_mdoc::{
     holder::Mdoc,
     utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
+        factory::{KeyFactory, MdocEcdsaKey},
         serialization::CborBase64,
     },
     IssuerSigned,

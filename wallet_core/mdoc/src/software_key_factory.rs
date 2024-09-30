@@ -10,7 +10,7 @@ use wallet_common::{
     utils,
 };
 
-use crate::utils::keys::KeyFactory;
+use crate::utils::factory::KeyFactory;
 
 /// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
 /// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple

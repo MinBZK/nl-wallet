@@ -7,7 +7,7 @@ use nl_wallet_mdoc::{
     holder::{MdocDataSource, ProposedAttributes, TrustAnchor},
     identifiers::AttributeIdentifier,
     utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
+        factory::{KeyFactory, MdocEcdsaKey},
         reader_auth::ReaderRegistration,
         x509::Certificate,
     },

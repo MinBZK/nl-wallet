@@ -155,7 +155,7 @@ impl TestDocument {
         copy_count: NonZeroU8,
     ) -> crate::holder::Mdoc
     where
-        KF: crate::utils::keys::KeyFactory,
+        KF: crate::utils::factory::KeyFactory,
     {
         use wallet_common::{
             generator::TimeGenerator,

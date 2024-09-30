@@ -4,7 +4,7 @@ use indexmap::IndexSet;
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
-    utils::keys::{KeyFactory, MdocEcdsaKey},
+    utils::factory::{KeyFactory, MdocEcdsaKey},
 };
 use wallet_common::urls::BaseUrl;
 

@@ -48,7 +48,7 @@ pub trait KeyFactory {
 mod software {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::utils::keys::CredentialKeyType;
+    use crate::utils::factory::CredentialKeyType;
 
     use super::MdocEcdsaKey;
 
