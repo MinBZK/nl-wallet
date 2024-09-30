@@ -5703,7 +5703,6 @@ dependencies = [
  "futures",
  "hmac",
  "jsonwebtoken",
- "lazy_static",
  "p256",
  "r2d2-cryptoki",
  "rand",

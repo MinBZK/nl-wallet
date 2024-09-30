@@ -59,7 +59,6 @@ anyhow.workspace = true
 assert_matches.workspace = true
 async_once.workspace = true
 hmac = { workspace = true, features = ["std"] }
-lazy_static.workspace = true
 rand.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
