@@ -261,7 +261,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}mock_relying_party${NC}"
-        RUST_LOG=debug cargo run --features "allow_http_return_url" --bin mock_relying_party > "${TARGET_DIR}/mock_relying_party.log" 2>&1 &
+        RUST_LOG=debug cargo run --features "allow_insecure_url" --bin mock_relying_party > "${TARGET_DIR}/mock_relying_party.log" 2>&1 &
 
         echo -e "mock_relying_party logs can be found at ${CYAN}${TARGET_DIR}/mock_relying_party.log${NC}"
     fi
@@ -335,7 +335,7 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
-        RUST_LOG=debug cargo run --no-default-features --features "allow_http_return_url,disclosure,postgres" --bin verification_server > "${TARGET_DIR}/mrp_verification_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,disclosure,postgres" --bin verification_server > "${TARGET_DIR}/mrp_verification_server.log" 2>&1 &
 
         echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_verification_server.log${NC}"
     fi
@@ -474,7 +474,7 @@ then
         cd "${BASE_DIR}"/wallet_app
         flutter run \
             --dart-define MOCK_REPOSITORIES=false \
-            --dart-define ALLOW_HTTP_RETURN_URL=true \
+            --dart-define ALLOW_INSECURE_URL=true \
             --dart-define ENV_CONFIGURATION=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \

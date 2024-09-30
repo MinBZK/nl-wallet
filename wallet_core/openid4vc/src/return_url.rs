@@ -22,7 +22,7 @@ impl ReturnUrlTemplate {
 
     fn is_valid_return_url_template(s: &str) -> bool {
         cfg_if! {
-            if #[cfg(feature = "allow_http_return_url")] {
+            if #[cfg(feature = "allow_insecure_url")] {
                 const ALLOWED_SCHEMES: [&str; 2] = ["https", "http"];
             } else {
                 const ALLOWED_SCHEMES: [&str; 1] = ["https"];
@@ -62,9 +62,9 @@ mod tests {
     #[case("file://etc/passwd", false)]
     #[case("file://etc/{session_token}", false)]
     #[case("https://{session_token}", false)]
-    #[cfg_attr(feature = "allow_http_return_url", case("http://example.com/{session_token}", true))]
+    #[cfg_attr(feature = "allow_insecure_url", case("http://example.com/{session_token}", true))]
     #[cfg_attr(
-        not(feature = "allow_http_return_url"),
+        not(feature = "allow_insecure_url"),
         case("http://example.com/{session_token}", false)
     )]
     fn test_return_url_template(#[case] return_url_string: String, #[case] should_parse: bool) {
