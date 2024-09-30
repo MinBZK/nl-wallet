@@ -17,8 +17,8 @@ use wallet_common::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
             instructions::{
                 ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult,
-                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResultMessage, Sign,
-                SignResult,
+                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResultMessage, IssueWte,
+                IssueWteResult, Sign, SignResult,
             },
         },
         serialization::DerVerifyingKey,
@@ -67,6 +67,7 @@ pub fn router(router_state: RouterState) -> Router {
                 )
                 .route(&format!("/instructions/{}", GenerateKey::NAME), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
+                .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
@@ -218,6 +219,15 @@ async fn sign(
     Json(payload): Json<Instruction<Sign>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<SignResult>>)> {
     info!("Received sign request, handling the SignRequest instruction");
+    let body = state.handle_instruction(payload).await?;
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn issue_wte(
+    State(state): State<Arc<RouterState>>,
+    Json(payload): Json<Instruction<IssueWte>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<IssueWteResult>>)> {
+    info!("Received issue WTE request, handling the IssueWte instruction");
     let body = state.handle_instruction(payload).await?;
     Ok((StatusCode::OK, body.into()))
 }

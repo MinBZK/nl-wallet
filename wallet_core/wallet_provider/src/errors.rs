@@ -82,6 +82,7 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)
                 | InstructionError::WalletCertificate(_)
+                | InstructionError::WteIssuance(_)
                 | InstructionError::HsmError(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,

@@ -8,6 +8,7 @@ mod lock;
 mod pin;
 mod storage;
 mod wallet;
+mod wte;
 
 pub mod errors;
 

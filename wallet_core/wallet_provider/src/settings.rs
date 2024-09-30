@@ -15,6 +15,8 @@ pub struct Settings {
     pub attestation_wrapping_key_identifier: String,
     pub pin_pubkey_encryption_key_identifier: String,
     pub pin_public_disclosure_protection_key_identifier: String,
+    pub wte_signing_key_identifier: String,
+    pub wte_issuer_identifier: String,
     pub database: Database,
     pub webserver: Webserver,
     pub hsm: Hsm,
@@ -74,6 +76,8 @@ impl Settings {
                 "pin_public_disclosure_protection_key_identifier",
                 "pin_public_disclosure_protection_key",
             )?
+            .set_default("wte_signing_key_identifier", "wte_signing_key")?
+            .set_default("wte_issuer_identifier", "wte-issuer.example.com")?
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3000)?
             .set_default("pin_policy.rounds", 4)?

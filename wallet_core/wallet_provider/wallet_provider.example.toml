@@ -16,6 +16,12 @@ pin_pubkey_encryption_key_identifier = "pin_pubkey_encryption_key"
 # Identifier for key used to sign the hash of the pin public key for use in the wallet certificate
 pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protection_key"
 
+# Identifier for key used to issue WTEs to wallets
+wte_signing_key_identifier = "wte_signing_key"
+
+# Identifier for the WTE issuer. Must equal the CN from the WTE trust anchor CA certificate.
+wte_issuer_identifier = "wte-issuer.example.com"
+
 # Indicates whether logging should be output in a structured (JSON) manner.
 #structured_logging = false
 

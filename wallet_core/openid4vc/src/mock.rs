@@ -10,6 +10,7 @@ use wallet_common::urls::BaseUrl;
 
 use crate::{
     issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies},
+    jwt::JwtCredential,
     metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
     oidc::Config,
     token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
@@ -49,6 +50,7 @@ impl IssuanceSession for MockIssuanceSession {
         &self,
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
+        _: Option<JwtCredential>,
         _: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         self.accept()

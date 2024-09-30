@@ -33,6 +33,7 @@ config.workspace = true
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
+indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
 mime.workspace = true

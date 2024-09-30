@@ -43,7 +43,9 @@ impl<S: EcdsaKey> KeyPair<S> {
             certificate,
         })
     }
+}
 
+impl<S> KeyPair<S> {
     pub fn private_key(&self) -> &S {
         &self.private_key
     }
