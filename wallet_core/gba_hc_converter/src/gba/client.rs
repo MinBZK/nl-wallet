@@ -8,7 +8,7 @@ use aes_gcm::Aes256Gcm;
 use base64::prelude::*;
 use http::header;
 use pem::Pem;
-use reqwest::{tls, Certificate, Identity};
+use reqwest::{Certificate, Identity};
 use tracing::info;
 
 use wallet_common::{reqwest::tls_pinned_client_builder, urls::BaseUrl};
@@ -60,8 +60,6 @@ impl HttpGbavClient {
         let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
 
         let http_client = tls_pinned_client_builder(vec![trust_anchor])
-            // TLS_1_3 is currently not supported and version negotiation seems broken
-            .max_tls_version(tls::Version::TLS_1_2)
             .identity(Identity::from_pem(cert_buf.as_bytes())?)
             .build()
             .expect("Could not build reqwest HTTP client");
