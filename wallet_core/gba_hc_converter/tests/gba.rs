@@ -10,19 +10,15 @@ async fn test_soap_response_deserialization() {
     let voorkomens = GbaResponse::new(&read_file("gba/frouke.xml").await)
         .unwrap()
         .categorievoorkomens;
-    assert_eq!(3, voorkomens.len());
+    assert_eq!(2, voorkomens.len());
 
     let first = voorkomens.first().unwrap();
     assert_eq!(1, first.categorienummer);
     assert_eq!(8, first.elementen.map.len());
 
     let second = voorkomens.get(1).unwrap();
-    assert_eq!(4, second.categorienummer);
-    assert_eq!(4, second.elementen.map.len());
-
-    let third = voorkomens.get(2).unwrap();
-    assert_eq!(8, third.categorienummer);
-    assert_eq!(6, third.elementen.map.len());
+    assert_eq!(8, second.categorienummer);
+    assert_eq!(6, second.elementen.map.len());
 }
 
 #[tokio::test]
