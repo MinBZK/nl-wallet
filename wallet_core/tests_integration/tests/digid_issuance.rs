@@ -79,6 +79,7 @@ async fn test_pid_issuance_digid_bridge() {
         .accept_issuance(
             &trust_anchors(&default_configuration()),
             SoftwareKeyFactory::default(),
+            None,
             server_url,
         )
         .await

@@ -45,6 +45,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(false),
                     )
+                    .col(ColumnDef::new(WalletUser::HasWte).boolean().not_null().default(false))
                     .to_owned(),
             )
             .await?;
@@ -67,4 +68,5 @@ enum WalletUser {
     PinEntries,
     LastUnsuccessfulPin,
     IsBlocked,
+    HasWte,
 }

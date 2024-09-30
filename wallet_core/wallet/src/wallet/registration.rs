@@ -71,7 +71,7 @@ pub enum WalletRegistrationError {
     StoreCertificate(#[from] StorageError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC> {
     pub(super) fn hw_privkey() -> PEK
     where
         PEK: StoredByIdentifier,

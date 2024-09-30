@@ -6,7 +6,7 @@ use crate::{
         serialization::{DerSignature, DerVerifyingKey},
         signed::{ChallengeRequest, ChallengeResponse},
     },
-    jwt::{Jwt, JwtSubject},
+    jwt::{Jwt, JwtCredentialClaims, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
@@ -51,6 +51,16 @@ pub struct Sign {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SignResult {
     pub signatures: Vec<Vec<DerSignature>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IssueWte {
+    pub key_identifier: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IssueWteResult {
+    pub wte: Jwt<JwtCredentialClaims>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -118,6 +128,12 @@ impl InstructionAndResult for Sign {
     const NAME: &'static str = "sign";
 
     type Result = SignResult;
+}
+
+impl InstructionAndResult for IssueWte {
+    const NAME: &'static str = "issue_wte";
+
+    type Result = IssueWteResult;
 }
 
 impl<T> Instruction<T>

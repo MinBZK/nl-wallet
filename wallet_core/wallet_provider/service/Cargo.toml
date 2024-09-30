@@ -29,6 +29,7 @@ chrono = { workspace = true, features = ["std", "clock"] }
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
 futures = { workspace = true, features = ["std", "async-await"] }
+indexmap.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 r2d2-cryptoki.workspace = true

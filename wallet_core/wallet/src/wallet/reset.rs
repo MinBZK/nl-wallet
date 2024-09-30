@@ -16,7 +16,7 @@ pub enum ResetError {
 
 type ResetResult<T> = std::result::Result<T, ResetError>;
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
     PEK: StoredByIdentifier,

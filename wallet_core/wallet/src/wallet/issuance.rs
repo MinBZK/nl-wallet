@@ -8,6 +8,7 @@ use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x5
 use openid4vc::{
     credential::MdocCopies,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
+    jwt::JwtCredentialError,
     token::CredentialPreviewError,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -20,6 +21,7 @@ use crate::{
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     issuance::{DigidSession, DigidSessionError, HttpDigidSession},
     storage::{Storage, StorageError, WalletEvent},
+    wte::WteIssuanceClient,
 };
 
 use super::{documents::DocumentsError, history::EventStorageError, Wallet};
@@ -76,14 +78,18 @@ pub enum PidIssuanceError {
     Document(#[source] DocumentsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
+    #[error("JWT credential error: {0}")]
+    #[category(defer)]
+    JwtCredential(#[from] JwtCredentialError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
 where
     CR: ConfigurationRepository,
     DS: DigidSession,
     IS: IssuanceSession,
     S: Storage,
+    APC: AccountProviderClient,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
@@ -248,6 +254,7 @@ where
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: WteIssuanceClient,
     {
         info!("Accepting PID issuance");
 
@@ -283,12 +290,18 @@ where
         );
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
+        let wte = self
+            .wte_issuance_client
+            .obtain_wte(&config.account_server.wte_trust_anchors(), &remote_instruction)
+            .await?;
+
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
         let issuance_result = pid_issuer
             .accept_issuance(
                 &config.mdoc_trust_anchors(),
                 &remote_key_factory,
+                Some(wte),
                 config.pid_issuance.pid_issuer_url.clone(),
             )
             .await

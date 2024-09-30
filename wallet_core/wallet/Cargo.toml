@@ -76,7 +76,7 @@ tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lo
 wiremock.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["examples", "generate", "mock", "software_keys", "test"] }
-openid4vc = { path = "../openid4vc", features = ["mock"] }
+openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "software_keys"] }

@@ -35,7 +35,7 @@ pub enum WalletUnlockError {
     UnlockMethodStorage(#[source] StorageError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC> {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()
     }

@@ -40,7 +40,7 @@ pub trait ErrorStatusCode {
 }
 
 /// See
-/// <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-error-response>
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-error-response>
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialErrorCode {
@@ -71,6 +71,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::MissingPrivateKey(_)
                 | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::CborSerialization(_)
+                | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
                 CredentialRequestError::IssuanceError(_) | CredentialRequestError::UseBatchIssuance => {
                     CredentialErrorCode::InvalidRequest
@@ -112,8 +113,8 @@ impl ErrorStatusCode for CredentialErrorCode {
     }
 }
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-6.3
-/// and https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-6.3>
+/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TokenErrorCode {
