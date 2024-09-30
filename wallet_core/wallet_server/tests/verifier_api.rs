@@ -169,7 +169,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         verifier: Verifier {
             usecases,
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
-            trust_anchors: vec![issuer_trust_anchor],
+            issuer_trust_anchors: vec![issuer_trust_anchor],
             allow_origins: None,
         },
         sentry: None,
@@ -790,7 +790,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         &issuer_key_pair,
         &settings
             .verifier
-            .trust_anchors
+            .issuer_trust_anchors
             .iter()
             .map(|anchor| (&anchor.owned_trust_anchor).into())
             .collect_vec(),

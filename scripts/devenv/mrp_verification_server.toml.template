@@ -13,7 +13,7 @@ ip = '0.0.0.0'
 port = ${MOCK_RP_RS_PORT}
 
 [verifier]
-trust_anchors = [
+issuer_trust_anchors = [
     "${PID_CA_CRT}",
 ]
 ephemeral_id_secret = "${MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"

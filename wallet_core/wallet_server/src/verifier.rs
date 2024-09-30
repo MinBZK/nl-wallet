@@ -46,7 +46,7 @@ where
             verifier.usecases.try_into()?,
             sessions,
             verifier
-                .trust_anchors
+                .issuer_trust_anchors
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
                 .collect::<Vec<_>>(),

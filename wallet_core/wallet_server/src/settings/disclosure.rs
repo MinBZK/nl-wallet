@@ -16,7 +16,8 @@ const MIN_KEY_LENGTH_BYTES: usize = 16;
 #[derive(Clone, Deserialize)]
 pub struct Verifier {
     pub usecases: VerifierUseCases,
-    pub trust_anchors: Vec<DerTrustAnchor>,
+    #[serde(alias = "trust_anchors")] // TODO: remove alias after notifying RPs
+    pub issuer_trust_anchors: Vec<DerTrustAnchor>,
     #[serde_as(as = "Hex")]
     pub ephemeral_id_secret: EhpemeralIdSecret,
     pub allow_origins: Option<CorsOrigin>,
