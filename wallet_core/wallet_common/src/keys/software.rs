@@ -206,9 +206,12 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "software_keys"))]
 mod tests {
-    use super::{super::test, *};
+    use crate::keys::{
+        software::{SoftwareEcdsaKey, SoftwareEncryptionKey},
+        test,
+    };
 
     #[tokio::test]
     async fn test_software_signature() {

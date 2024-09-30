@@ -70,8 +70,12 @@ tower-http = { workspace = true, optional = true, features = ["cors"] }
 error_category.path = "../error_category"
 
 [dev-dependencies]
+anyhow = { workspace = true }
 assert_matches.workspace = true
 aes-gcm = { workspace = true, features = ["std"] }
+hex = { workspace = true }
+hex-literal = { workspace = true }
+parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 sentry = { workspace = true, features = ["test"] }
