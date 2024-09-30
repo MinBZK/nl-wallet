@@ -5,7 +5,8 @@ use std::{
 };
 
 use config::{Config, ConfigError, Environment, File};
-use serde::Deserialize;
+use crypto_common::{Key, KeySizeUser};
+use serde::{de, Deserialize};
 use serde_with::{base64::Base64, serde_as};
 
 use wallet_common::{reqwest::deserialize_certificate, sentry::Sentry, urls::BaseUrl};
@@ -15,7 +16,7 @@ use crate::gba::{
     client::{FileGbavClient, HttpGbavClient},
 };
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
@@ -28,7 +29,7 @@ pub struct Settings {
 }
 
 #[serde_as]
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct GbavSettings {
     pub adhoc_url: BaseUrl,
     pub username: String,
@@ -61,18 +62,51 @@ impl HttpGbavClient {
     }
 }
 
-#[derive(Clone, Deserialize)]
+pub struct SymmetricKey {
+    bytes: Vec<u8>,
+}
+
+impl SymmetricKey {
+    pub fn new(bytes: Vec<u8>) -> Self {
+        Self { bytes }
+    }
+
+    pub fn key<B>(&self) -> &Key<B>
+    where
+        B: KeySizeUser,
+    {
+        Key::<B>::from_slice(self.bytes.as_slice())
+    }
+}
+
+impl<'de> Deserialize<'de> for SymmetricKey {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer)
+            .map(hex::decode)?
+            .map(Self::new)
+            .map_err(de::Error::custom)
+    }
+}
+
+#[derive(Deserialize)]
 pub struct PreloadedSettings {
+    pub encryption_key: SymmetricKey,
+    pub hmac_key: SymmetricKey,
     pub xml_path: String,
 }
 
 impl<T> FileGbavClient<T> {
-    pub fn from_settings(settings: &PreloadedSettings, client: T) -> Self {
-        Self::new(Path::new(&settings.xml_path), client)
+    pub fn try_from_settings(settings: PreloadedSettings, client: T) -> Result<Self, ConfigError> {
+        Ok(Self::new(
+            Path::new(&settings.xml_path),
+            settings.encryption_key,
+            settings.hmac_key,
+            client,
+        ))
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 #[serde(rename_all(deserialize = "lowercase"))]
 #[derive(strum::Display)]
 pub enum RunMode {

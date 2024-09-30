@@ -104,7 +104,7 @@ static BSN_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[0-9]{8,9}$").
 
 #[nutype(
     validate(regex = BSN_REGEX),
-    derive(Deserialize, Serialize, Clone, Debug, Display)
+    derive(Deserialize, Serialize, Clone, Debug, Display, AsRef)
 )]
 pub struct Bsn(String);
 

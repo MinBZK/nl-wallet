@@ -4,8 +4,8 @@ metadata:
   name: preloaded-gba-v-data-pvc
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 500Mi
-  storageClassName: encrypted-csi
+  storageClassName: nfs

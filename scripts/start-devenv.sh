@@ -453,6 +453,8 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "Starting ${ORANGE}gba_hc_converter${NC}"
+
+        encrypt_gba_v_responses
         RUST_LOG=debug cargo run --bin gba_hc_converter > "${TARGET_DIR}/gba_hc_converter.log" 2>&1 &
 
         echo -e "gba_hc_converter logs can be found at ${CYAN}${TARGET_DIR}/gba_hc_converter.log${NC}"
