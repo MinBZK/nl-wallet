@@ -132,6 +132,28 @@ run-automation-smoke-test-ont:
       -Dfile.encoding=UTF-8
   allow_failure: true # Only meant as a warning indicator.
 
+run-performance-test-ont:
+  rules: !reference [ .default-branch, rules ]
+  extends: .env-ont-k8s
+  needs:
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
+    - job: deploy-wallet-provider-ont
+      artifacts: false
+    - job: deploy-pid-issuer-ont
+      artifacts: false
+    - job: wallet-env-config-ont
+      artifacts: true
+  variables:
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
+    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}"
+    INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
+  script: |
+      cd ./wallet_core/tests_integration/ 
+      cargo build --release --bin performance_test --features performance_test,allow_http_return_url
+      bash ./run_performance_test.sh 100
+  allow_failure: true
+
 # Warns when '.gitlab-ci.yaml' in '$CI_DEFAULT_BRANCH' & '$AUTOMATION_TESTS_BRANCH' branch are out-of-sync
 check-gitlab-ci-changed:
   rules:
