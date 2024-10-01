@@ -474,7 +474,7 @@ deploy-preload-gba-v-pod-demo:
   script:
     - kubectl create configmap nl-wallet-gba-hc-converter-encrypt-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/encrypt_all.sh -o yaml | kubectl apply -f -
     - envsubst < deploy/kubernetes/encrypt-gba-v-testdata-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=/encrypt-gba-v-testdata
+    - kubectl wait --for=condition=complete --timeout=300s job -l app=encrypt-gba-v-testdata
 
 run-encrypt-gba-v-testdata-job-ont:
   extends: [.env-ont-k8s, .run-encrypt-gba-v-testdata-job]
