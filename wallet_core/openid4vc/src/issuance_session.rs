@@ -26,7 +26,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
-    jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError},
+    jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError, JwtPopClaims},
     keys::{factory::KeyFactory, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
@@ -35,7 +35,7 @@ use wallet_common::{
 use crate::{
     credential::{
         CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
-        CredentialResponses, JwtPopClaims, MdocCopies, WteDisclosure,
+        CredentialResponses, MdocCopies, WteDisclosure,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},

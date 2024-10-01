@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, str::FromStr, sync::LazyLock};
 
 use base64::prelude::*;
+use chrono::{serde::ts_seconds, DateTime, Utc};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::{
@@ -365,6 +366,28 @@ pub struct JwtCredentialContents {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct JwtCredentialConfirmation {
     pub jwk: Jwk,
+}
+
+/// JWT claims of a PoP (Proof of Possession). Used a.o. as a JWT proof in a Credential Request
+/// (<https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2.1.1>).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct JwtPopClaims {
+    pub iss: String,
+    pub aud: String,
+    pub nonce: Option<String>,
+    #[serde(with = "ts_seconds")]
+    pub iat: DateTime<Utc>,
+}
+
+impl JwtPopClaims {
+    pub fn new(nonce: Option<String>, iss: String, aud: String) -> Self {
+        Self {
+            nonce,
+            iss,
+            aud,
+            iat: Utc::now(),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
