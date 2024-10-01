@@ -22,11 +22,11 @@
                       </ns2:item>
                       <ns2:item>
                         <ns2:nummer>230</ns2:nummer>
-                        <ns2:waarde>van</ns2:waarde>
+                        <ns2:waarde>van der</ns2:waarde>
                       </ns2:item>
                       <ns2:item>
                         <ns2:nummer>240</ns2:nummer>
-                        <ns2:waarde>Waarde</ns2:waarde>
+                        <ns2:waarde>Oever</ns2:waarde>
                       </ns2:item>
                       <ns2:item>
                         <ns2:nummer>310</ns2:nummer>
@@ -47,31 +47,6 @@
                       <ns2:item>
                         <ns2:nummer>6110</ns2:nummer>
                         <ns2:waarde>E</ns2:waarde>
-                      </ns2:item>
-                    </ns2:elementen>
-                  </ns2:item>
-                </ns2:categorievoorkomens>
-              </ns2:item>
-              <ns2:item>
-                <ns2:categorievoorkomens>
-                  <ns2:item>
-                    <ns2:categorienummer>4</ns2:categorienummer>
-                    <ns2:elementen>
-                      <ns2:item>
-                        <ns2:nummer>510</ns2:nummer>
-                        <ns2:waarde>0001</ns2:waarde>
-                      </ns2:item>
-                      <ns2:item>
-                        <ns2:nummer>6310</ns2:nummer>
-                        <ns2:waarde>017</ns2:waarde>
-                      </ns2:item>
-                      <ns2:item>
-                        <ns2:nummer>8510</ns2:nummer>
-                        <ns2:waarde>20000324</ns2:waarde>
-                      </ns2:item>
-                      <ns2:item>
-                        <ns2:nummer>8610</ns2:nummer>
-                        <ns2:waarde>20000325</ns2:waarde>
                       </ns2:item>
                     </ns2:elementen>
                   </ns2:item>
