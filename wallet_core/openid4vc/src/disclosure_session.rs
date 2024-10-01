@@ -21,7 +21,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     jwt::Jwt,
-    keys::factory::{KeyFactory, CredentialEcdsaKey},
+    keys::{factory::KeyFactory, CredentialEcdsaKey},
     urls::BaseUrl,
     utils::random_string,
 };

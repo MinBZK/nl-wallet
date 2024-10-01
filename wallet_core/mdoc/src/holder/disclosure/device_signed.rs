@@ -3,7 +3,7 @@ use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
 use indexmap::IndexMap;
 use p256::{PublicKey, SecretKey};
 
-use wallet_common::keys::factory::{KeyFactory, CredentialEcdsaKey};
+use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
 
 use crate::{
     errors::Result,

@@ -1,25 +1,8 @@
 use std::error::Error;
 
 use p256::ecdsa::{Signature, VerifyingKey};
-use serde::{Deserialize, Serialize};
 
-use crate::keys::{SecureEcdsaKey, WithIdentifier};
-
-/// Contract for ECDSA private keys suitable for credentials.
-/// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
-pub trait CredentialEcdsaKey: SecureEcdsaKey + WithIdentifier {
-    const KEY_TYPE: CredentialKeyType;
-
-    // from WithIdentifier: identifier()
-    // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum CredentialKeyType {
-    #[cfg(any(test, feature = "software_keys"))]
-    Software,
-    Remote,
-}
+use super::CredentialEcdsaKey;
 
 pub trait KeyFactory {
     type Key: CredentialEcdsaKey;
@@ -46,9 +29,9 @@ pub trait KeyFactory {
 
 #[cfg(any(test, feature = "software_keys"))]
 mod software {
-    use crate::keys::software::SoftwareEcdsaKey;
+    use crate::keys::{software::SoftwareEcdsaKey, CredentialKeyType};
 
-    use super::{CredentialKeyType, CredentialEcdsaKey};
+    use super::CredentialEcdsaKey;
 
     impl CredentialEcdsaKey for SoftwareEcdsaKey {
         const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;

@@ -7,7 +7,7 @@ use serde_with::skip_serializing_none;
 use nl_wallet_mdoc::{holder::Mdoc, utils::serialization::CborBase64, IssuerSigned};
 use wallet_common::{
     jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims},
-    keys::factory::{CredentialEcdsaKey, KeyFactory},
+    keys::{factory::KeyFactory, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };

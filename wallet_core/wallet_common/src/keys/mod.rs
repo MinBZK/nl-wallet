@@ -2,6 +2,7 @@ use std::error::Error;
 
 use aes_gcm::{aead::Aead, Aes256Gcm, Nonce};
 use p256::ecdsa::{Signature, VerifyingKey};
+use serde::{Deserialize, Serialize};
 
 use crate::utils;
 
@@ -120,6 +121,22 @@ pub trait StoredByIdentifier: WithIdentifier {
 
     /// Delete the key from the backing store and consume the type.
     async fn delete(self) -> Result<(), Self::Error>;
+}
+
+/// Contract for ECDSA private keys suitable for credentials.
+/// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
+pub trait CredentialEcdsaKey: SecureEcdsaKey + WithIdentifier {
+    const KEY_TYPE: CredentialKeyType;
+
+    // from WithIdentifier: identifier()
+    // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum CredentialKeyType {
+    #[cfg(any(test, feature = "software_keys"))]
+    Software,
+    Remote,
 }
 
 #[cfg(any(test, feature = "mock_secure_keys"))]

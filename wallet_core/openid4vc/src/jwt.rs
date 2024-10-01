@@ -24,8 +24,8 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
-    jwt::{Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
-    keys::factory::{CredentialEcdsaKey, CredentialKeyType},
+    jwt::{validations, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
+    keys::{CredentialEcdsaKey, CredentialKeyType},
     trust_anchor::trust_anchor_names,
 };
 

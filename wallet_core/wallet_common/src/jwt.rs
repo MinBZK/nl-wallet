@@ -23,10 +23,7 @@ use error_category::ErrorCategory;
 
 use crate::{
     account::serialization::DerVerifyingKey,
-    keys::{
-        factory::{CredentialEcdsaKey, KeyFactory},
-        EcdsaKey, SecureEcdsaKey,
-    },
+    keys::{factory::KeyFactory, CredentialEcdsaKey, EcdsaKey, SecureEcdsaKey},
 };
 
 /// JWT type, generic over its contents.

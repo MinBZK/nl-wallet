@@ -5,10 +5,7 @@ use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign},
-    keys::{
-        factory::{CredentialKeyType, KeyFactory, CredentialEcdsaKey},
-        EcdsaKey, SecureEcdsaKey, WithIdentifier,
-    },
+    keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType, EcdsaKey, SecureEcdsaKey, WithIdentifier},
     utils::random_string,
 };
 

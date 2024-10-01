@@ -13,7 +13,7 @@ use openid4vc::{
     verifier::SessionType,
 };
 use wallet_common::{
-    keys::factory::{KeyFactory, CredentialEcdsaKey},
+    keys::{factory::KeyFactory, CredentialEcdsaKey},
     reqwest::default_reqwest_client_builder,
 };
 

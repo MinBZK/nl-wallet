@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexSet;
 
-use wallet_common::keys::factory::{KeyFactory, CredentialEcdsaKey};
+use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
 
 use nl_wallet_mdoc::holder::TrustAnchor;
 use wallet_common::urls::BaseUrl;

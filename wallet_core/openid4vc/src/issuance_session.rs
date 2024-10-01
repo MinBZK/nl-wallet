@@ -27,7 +27,7 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     generator::TimeGenerator,
     jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError},
-    keys::factory::{CredentialEcdsaKey, KeyFactory},
+    keys::{factory::KeyFactory, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };

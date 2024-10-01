@@ -17,8 +17,8 @@ use error_category::ErrorCategory;
 use wallet_common::{
     generator::Generator,
     keys::{
-        factory::{KeyFactory, CredentialEcdsaKey},
         EcdsaKey,
+        {factory::KeyFactory, CredentialEcdsaKey},
     },
 };
 

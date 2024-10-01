@@ -1,4 +1,4 @@
-use wallet_common::keys::factory::{KeyFactory, CredentialEcdsaKey};
+use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
 
 use crate::{
     errors::Result,

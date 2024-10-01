@@ -9,7 +9,7 @@ use webpki::TrustAnchor;
 use error_category::ErrorCategory;
 use wallet_common::{
     generator::Generator,
-    keys::factory::{CredentialKeyType, CredentialEcdsaKey},
+    keys::{CredentialEcdsaKey, CredentialKeyType},
 };
 
 use crate::{
