@@ -292,7 +292,7 @@ where
 
         let wte = self
             .wte_issuance_client
-            .obtain_wte(&config.account_server.wte_trust_anchors(), &remote_instruction)
+            .obtain_wte(&config.account_server.wte_public_key.0, &remote_instruction)
             .await?;
 
         info!("Accepting PID by signing mdoc using Wallet Provider");

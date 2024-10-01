@@ -26,6 +26,7 @@ use wallet_common::{
     },
     keys::EcdsaKey,
 };
+use wallet_provider_service::wte_issuer::WteIssuer;
 
 use crate::{errors::WalletProviderError, router_state::RouterState};
 
@@ -236,15 +237,18 @@ async fn issue_wte(
 struct PublicKeys {
     certificate_public_key: DerVerifyingKey,
     instruction_result_public_key: DerVerifyingKey,
+    wte_signing_key: DerVerifyingKey,
 }
 
 async fn public_keys(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<PublicKeys>)> {
     let certificate_public_key = state.certificate_signing_key.verifying_key().await?.into();
     let instruction_result_public_key = state.instruction_result_signing_key.verifying_key().await?.into();
+    let wte_signing_key = state.wte_issuer.public_key().await?.into();
 
     let body = PublicKeys {
         certificate_public_key,
         instruction_result_public_key,
+        wte_signing_key,
     };
 
     Ok((StatusCode::OK, body.into()))

@@ -12,6 +12,7 @@ use itertools::Itertools;
 use josekit::JoseError;
 use jsonwebtoken::{Algorithm, Header, Validation};
 
+use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use error_category::ErrorCategory;
@@ -26,7 +27,7 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
-    jwt::{Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
+    jwt::{validations, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
     trust_anchor::trust_anchor_names,
 };
 
@@ -58,6 +59,22 @@ pub enum JwtCredentialError {
 
 impl JwtCredential {
     pub fn new<K: MdocEcdsaKey>(
+        private_key_id: String,
+        jwt: Jwt<JwtCredentialClaims>,
+        pubkey: &VerifyingKey,
+    ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
+        let claims = jwt.parse_and_verify(&pubkey.into(), &validations())?;
+
+        let cred = Self {
+            private_key_id,
+            key_type: K::KEY_TYPE,
+            jwt,
+        };
+
+        Ok((cred, claims))
+    }
+
+    pub fn new_verify_against_trust_anchors<K: MdocEcdsaKey>(
         private_key_id: String,
         jwt: Jwt<JwtCredentialClaims>,
         trust_anchors: &[TrustAnchor],
@@ -388,7 +405,7 @@ mod tests {
         let (cred, claims) = JwtCredential::new::<SoftwareEcdsaKey>(
             holder_key_id.to_string(),
             jwt,
-            &[issuer_keypair.certificate().try_into().unwrap()],
+            &issuer_keypair.certificate().public_key().unwrap(),
         )
         .unwrap();
 
