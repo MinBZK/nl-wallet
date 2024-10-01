@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: encrypt-gba-v-testdata
+  labels:
+    app: encrypt-gba-v-testdata
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        tier: zeer-vertrouwd
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: encrypt-gba-v-testdata
+          image: $GBA_FETCH_IMAGE
+          command: ["sh", "-c", "--"]
+          args: ["encrypt_all.sh"]
+          volumeMounts:
+            - mountPath: /data
+              name: preloaded-gba-v-data-volume
+            - mountPath: /home/nonroot/encrypt_all.sh
+              name: script-volume
+              subPath: encrypt_all.sh
+          env:
+            - name: GBA_HC_CONVERTER_RUN_MODE__PRELOADED__XML_PATH
+              value: "/data"
+            - name: GBA_HC_CONVERTER_RUN_MODE__PRELOADED__ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: encryption_key
+            - name: GBA_HC_CONVERTER_RUN_MODE__PRELOADED__HMAC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: hmac_key
+      volumes:
+        - name: preloaded-gba-v-data-volume
+          persistentVolumeClaim:
+            claimName: preloaded-gba-v-data-pvc
+        - name: script-volume
+          configMap:
+            name: nl-wallet-gba-hc-converter-encrypt-script
+            defaultMode: 0777
