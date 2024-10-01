@@ -305,11 +305,11 @@ export WP_CERTIFICATE_SIGNING_KEY_PATH
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
-generate_wp_self_signed_certificate wte_signing wte-issuer.example.com
+generate_wp_signing_key wte_signing
 WP_WTE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wte_signing.pem"
 export WP_WTE_SIGNING_KEY_PATH
-WP_WTE_SIGNING_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wte_signing.crt" ${BASE64})
-export WP_WTE_SIGNING_CERTIFICATE
+WP_WTE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wte_signing.pub.der" ${BASE64})
+export WP_WTE_PUBLIC_KEY
 
 generate_wp_signing_key instruction_result_signing
 WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"

@@ -1,4 +1,5 @@
-use nl_wallet_mdoc::holder::TrustAnchor;
+use p256::ecdsa::VerifyingKey;
+
 use openid4vc::jwt::JwtCredential;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
@@ -16,7 +17,7 @@ use crate::{
 pub trait WteIssuanceClient {
     async fn obtain_wte<S, PEK, APC>(
         &self,
-        trust_anchors: &[TrustAnchor<'_>],
+        wte_issuer_pubkey: &VerifyingKey,
         remote_instruction: &InstructionClient<'_, S, PEK, APC>,
     ) -> Result<JwtCredential, PidIssuanceError>
     where
@@ -30,7 +31,7 @@ pub struct WpWteIssuanceClient;
 impl WteIssuanceClient for WpWteIssuanceClient {
     async fn obtain_wte<S, PEK, APC>(
         &self,
-        trust_anchors: &[TrustAnchor<'_>],
+        wte_issuer_pubkey: &VerifyingKey,
         remote_instruction: &InstructionClient<'_, S, PEK, APC>,
     ) -> Result<JwtCredential, PidIssuanceError>
     where
@@ -44,7 +45,7 @@ impl WteIssuanceClient for WpWteIssuanceClient {
                 key_identifier: key_id.clone(),
             })
             .await?;
-        let (wte, _) = JwtCredential::new::<RemoteEcdsaKey<S, PEK, APC>>(key_id, wte, trust_anchors)?;
+        let (wte, _) = JwtCredential::new::<RemoteEcdsaKey<S, PEK, APC>>(key_id, wte, wte_issuer_pubkey)?;
         Ok(wte)
     }
 }
@@ -57,7 +58,8 @@ impl Default for WpWteIssuanceClient {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use nl_wallet_mdoc::holder::TrustAnchor;
+    use p256::ecdsa::VerifyingKey;
+
     use openid4vc::jwt::JwtCredential;
     use platform_support::hw_keystore::PlatformEcdsaKey;
     use wallet_common::{
@@ -77,7 +79,7 @@ pub(crate) mod tests {
     impl WteIssuanceClient for MockWteIssuanceClient {
         async fn obtain_wte<S, PEK, APC>(
             &self,
-            _trust_anchors: &[TrustAnchor<'_>],
+            _pubkey: &VerifyingKey,
             _remote_instruction: &InstructionClient<'_, S, PEK, APC>,
         ) -> Result<JwtCredential, PidIssuanceError>
         where

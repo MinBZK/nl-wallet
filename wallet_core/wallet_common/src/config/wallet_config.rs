@@ -68,16 +68,7 @@ pub struct AccountServerConfiguration {
     // The known public key for the Wallet Provider
     pub certificate_public_key: DerVerifyingKey,
     pub instruction_result_public_key: DerVerifyingKey,
-    pub wte_trust_anchors: Vec<DerTrustAnchor>,
-}
-
-impl AccountServerConfiguration {
-    pub fn wte_trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.wte_trust_anchors
-            .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect()
-    }
+    pub wte_public_key: DerVerifyingKey,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]

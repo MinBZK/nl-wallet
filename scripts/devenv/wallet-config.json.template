@@ -8,7 +8,7 @@
     "base_url": "http://${SERVICES_HOST}:${WALLET_PROVIDER_PORT}/api/v1/",
     "certificate_public_key": "${WP_CERTIFICATE_PUBLIC_KEY}",
     "instruction_result_public_key": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}",
-    "wte_trust_anchors": ["${WP_WTE_SIGNING_CERTIFICATE}"]
+    "wte_public_key": "${WP_WTE_PUBLIC_KEY}"
   },
   "pid_issuance": {
     "pid_issuer_url": "http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/issuance/",

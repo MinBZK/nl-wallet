@@ -2,6 +2,7 @@ use std::error::Error;
 
 use chrono::{TimeDelta, Utc};
 use indexmap::IndexMap;
+use p256::ecdsa::VerifyingKey;
 
 use wallet_common::{
     jwt::{Jwt, JwtCredentialClaims, JwtError},
@@ -15,6 +16,7 @@ pub trait WteIssuer {
     type Error: Error + Send + Sync + 'static;
 
     async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error>;
+    async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
 pub struct HsmWteIssuer<H, K = WalletProviderEcdsaKey> {
@@ -35,6 +37,8 @@ pub enum HsmWteIssuerError {
     Hsm(#[from] HsmError),
     #[error("JWT error: {0}")]
     KeyConversion(#[from] JwtError),
+    #[error("public key error: {0}")]
+    PublicKeyError(Box<dyn Error + Send + Sync + 'static>),
 }
 
 static WTE_JWT_TYP: &str = "wte+jwt";
@@ -67,6 +71,13 @@ where
 
         Ok((wrapped_privkey, jwt))
     }
+
+    async fn public_key(&self) -> Result<VerifyingKey, Self::Error> {
+        self.private_key
+            .verifying_key()
+            .await
+            .map_err(|e| HsmWteIssuerError::PublicKeyError(Box::new(e)))
+    }
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -85,6 +96,10 @@ pub mod mock {
 
         async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error> {
             Ok((WrappedKey::new(b"mock_key_bytes".to_vec()), "a.b.c".into()))
+        }
+
+        async fn public_key(&self) -> Result<p256::ecdsa::VerifyingKey, Self::Error> {
+            unimplemented!()
         }
     }
 }
