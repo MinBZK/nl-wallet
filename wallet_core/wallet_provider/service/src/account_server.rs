@@ -773,11 +773,10 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use async_once::AsyncOnce;
     use chrono::TimeZone;
     use hmac::digest::crypto_common::rand_core::OsRng;
-    use lazy_static::lazy_static;
     use p256::ecdsa::SigningKey;
+    use tokio::sync::OnceCell;
 
     use wallet_common::{
         account::messages::instructions::{ChangePinCommit, CheckPin, InstructionChallengeRequest},
@@ -798,8 +797,10 @@ mod tests {
 
     use super::*;
 
-    lazy_static! {
-        static ref HSM: AsyncOnce<MockPkcs11Client<HsmError>> = AsyncOnce::new(wallet_certificate::mock::setup_hsm());
+    static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
+
+    async fn get_global_hsm() -> &'static MockPkcs11Client<HsmError> {
+        HSM.get_or_init(wallet_certificate::mock::setup_hsm).await
     }
 
     async fn do_registration(
@@ -847,7 +848,7 @@ mod tests {
 
         let cert = do_registration(
             &account_server,
-            HSM.get().await,
+            get_global_hsm().await,
             &setup.signing_key,
             &setup.hw_privkey,
             &setup.pin_privkey,
@@ -905,7 +906,7 @@ mod tests {
             &wallet_certificate_setup.hw_privkey,
             wallet_certificate.clone(),
             43,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await?;
 
@@ -929,7 +930,7 @@ mod tests {
                     ..repo.clone()
                 },
                 &FailingPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
                 &MockWteIssuer,
             )
             .await
@@ -963,7 +964,7 @@ mod tests {
                     ..repo
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
                 &MockWteIssuer,
             )
             .await?;
@@ -995,7 +996,7 @@ mod tests {
             &wallet_certificate_setup.hw_privkey,
             wallet_certificate.clone(),
             43,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .unwrap();
@@ -1027,7 +1028,7 @@ mod tests {
                     instruction_sequence_number: 2,
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
             )
             .await
             .expect("should return instruction result");
@@ -1061,7 +1062,7 @@ mod tests {
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
             &repo,
-            HSM.get().await,
+            get_global_hsm().await,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
         )
         .await
@@ -1077,7 +1078,7 @@ mod tests {
             .unwrap();
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator, HSM.get().await)
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)
             .await
             .unwrap();
 
@@ -1096,7 +1097,7 @@ mod tests {
                     .unwrap(),
                 &user,
                 &EpochGenerator,
-                HSM.get().await,
+                get_global_hsm().await,
             )
             .await
             .is_ok()
@@ -1112,7 +1113,7 @@ mod tests {
             .unwrap();
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator, HSM.get().await)
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)
             .await
             .unwrap();
 
@@ -1137,7 +1138,7 @@ mod tests {
                     ).await.unwrap(),
                     &user,
                     &EpochGenerator,
-                    HSM.get().await,
+                    get_global_hsm().await,
                 ).await,
                 Err(InstructionValidationError::VerificationFailed(
                     wallet_common::account::errors::Error::ChallengeMismatch
@@ -1163,7 +1164,7 @@ mod tests {
             .unwrap();
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &repo, &EpochGenerator, HSM.get().await)
+            .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)
             .await
             .unwrap();
 
@@ -1192,7 +1193,7 @@ mod tests {
                     .unwrap(),
                     &user,
                     &EpochGenerator,
-                    HSM.get().await,
+                    get_global_hsm().await,
                 )
                 .await,
                 Err(InstructionValidationError::ChallengeTimeout)
@@ -1213,7 +1214,7 @@ mod tests {
             &setup.hw_privkey,
             cert.clone(),
             9,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .expect_err("should return instruction sequence number mismatch error");
@@ -1254,7 +1255,7 @@ mod tests {
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
             &repo,
-            HSM.get().await,
+            get_global_hsm().await,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
         )
         .await
@@ -1268,7 +1269,7 @@ mod tests {
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
             &repo,
-            HSM.get().await,
+            get_global_hsm().await,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
         )
         .await
@@ -1280,7 +1281,7 @@ mod tests {
             &setup.hw_privkey,
             new_cert.clone(),
             45,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .unwrap();
@@ -1305,7 +1306,7 @@ mod tests {
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
                 &MockWteIssuer,
             )
             .await
@@ -1332,7 +1333,7 @@ mod tests {
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
                 &MockWteIssuer,
             )
             .await
@@ -1363,7 +1364,7 @@ mod tests {
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
                 &MockWteIssuer,
             )
             .await
@@ -1401,7 +1402,7 @@ mod tests {
             &setup.hw_privkey,
             cert.clone(),
             43,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .unwrap();
@@ -1433,7 +1434,7 @@ mod tests {
                     instruction_sequence_number: 2,
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
             )
             .await
             .expect_err("should return instruction error for invalid PoP");
@@ -1466,7 +1467,7 @@ mod tests {
             &setup.hw_privkey,
             cert.clone(),
             45,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .unwrap();
@@ -1491,7 +1492,7 @@ mod tests {
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
             )
             .await
             .expect_err("should fail for new pin");
@@ -1516,7 +1517,7 @@ mod tests {
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
             )
             .await
             .expect("should succeed for old pin");
@@ -1541,7 +1542,7 @@ mod tests {
                     ..repo.clone()
                 },
                 &TimeoutPinPolicy,
-                HSM.get().await,
+                get_global_hsm().await,
             )
             .await
             .expect("should return instruction result for old pin");
