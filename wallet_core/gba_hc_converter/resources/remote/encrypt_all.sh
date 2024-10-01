@@ -1,4 +1,3 @@
-#!/bin/sh
 set -euo
 
 CUR_DIR="$(cd "$(dirname "$0")" && pwd)"

@@ -93,7 +93,7 @@ dependency-check-images:
       "nl-wallet-mock-relying-party"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
-      "nl-wallet-server-migration"
+      "nl-wallet-server-migrations"
       "nl-wallet-server"
       "nl-verification-server"
       "nl-pid-issuer"
