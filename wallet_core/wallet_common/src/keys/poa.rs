@@ -3,7 +3,7 @@ use itertools::Itertools;
 use jsonwebtoken::{jwk::Jwk, Algorithm, Header};
 use serde::{Deserialize, Serialize};
 
-use wallet_common::{
+use crate::{
     jwt::{jwk_from_p256, JsonJwt, JwkConversionError, Jwt, JwtError, JwtPopClaims},
     keys::{factory::KeyFactory, CredentialEcdsaKey},
     nonempty::NonEmpty,

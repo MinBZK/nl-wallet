@@ -27,7 +27,11 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     generator::TimeGenerator,
     jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims},
-    keys::{factory::KeyFactory, CredentialEcdsaKey},
+    keys::{
+        factory::KeyFactory,
+        poa::{new_poa, Poa, PoaError},
+        CredentialEcdsaKey,
+    },
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -41,7 +45,6 @@ use crate::{
     jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},
     metadata::IssuerMetadata,
     oidc,
-    poa::{new_poa, Poa, PoaError},
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };

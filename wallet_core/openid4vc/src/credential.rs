@@ -7,12 +7,12 @@ use serde_with::skip_serializing_none;
 use nl_wallet_mdoc::{holder::Mdoc, utils::serialization::CborBase64, IssuerSigned};
 use wallet_common::{
     jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims, JwtPopClaims},
-    keys::{factory::KeyFactory, CredentialEcdsaKey},
+    keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
 
-use crate::{issuance_session::IssuanceSessionError, poa::Poa, token::CredentialPreview, Format};
+use crate::{issuance_session::IssuanceSessionError, token::CredentialPreview, Format};
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
 /// Sent JSON-encoded to `POST /batch_credential`.
