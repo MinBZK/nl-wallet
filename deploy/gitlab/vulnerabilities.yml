@@ -39,6 +39,7 @@ osv-scanner:
   script:
     - /osv-scanner --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif || /osv-scanner --format table --recursive "$CI_PROJECT_DIR"
   artifacts:
+    when: always
     paths:
       - osv.sarif
   allow_failure: true
