@@ -37,7 +37,7 @@ osv-scanner:
   image:
     name: "$HARBOR_REGISTRY/ghcr-io-proxy/google/osv-scanner:latest"
   script:
-    - /osv-scanner --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif
+    - /osv-scanner --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif || /osv-scanner --format table --recursive "$CI_PROJECT_DIR"
   artifacts:
     paths:
       - osv.sarif
