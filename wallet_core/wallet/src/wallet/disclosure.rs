@@ -340,11 +340,12 @@ where
         }
 
         info!("Try to finalize PIN change if it is in progress");
-        if let Some(_state) = self
+        if self
             .storage
             .get_change_pin_state()
             .await
             .map_err(DisclosureError::ChangePinStorage)?
+            .is_some()
         {
             self.continue_change_pin(pin.clone()).await?;
         }

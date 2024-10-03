@@ -170,15 +170,20 @@ impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
         }
     }
 
-    pub fn create(&self, pin: String) -> InstructionClient<'a, S, K, A> {
-        InstructionClient {
+    pub fn create(&self, pin: String) -> InstructionClient<'a, S, K, A>
+    where
+        S: Storage,
+        K: PlatformEcdsaKey,
+        A: AccountProviderClient,
+    {
+        InstructionClient::new(
             pin,
-            storage: self.storage,
-            hw_privkey: self.hw_privkey,
-            account_provider_client: self.account_provider_client,
-            registration: self.registration,
-            account_provider_base_url: self.account_provider_base_url,
-            instruction_result_public_key: self.instruction_result_public_key,
-        }
+            self.storage,
+            self.hw_privkey,
+            self.account_provider_client,
+            self.registration,
+            self.account_provider_base_url,
+            self.instruction_result_public_key,
+        )
     }
 }

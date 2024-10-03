@@ -1,4 +1,3 @@
-mod config;
 mod instruction;
 mod storage;
 
@@ -48,9 +47,7 @@ where
             &instruction_result_public_key,
         );
 
-        let change_pin_config = ();
-
-        let session = ChangePinSession::new(&instruction_client, &self.storage, &change_pin_config);
+        let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
         session.begin_change_pin(old_pin, new_pin).await?;
 
         info!("Update PIN registration data on Wallet");
@@ -84,9 +81,7 @@ where
             &instruction_result_public_key,
         );
 
-        let change_pin_config = ();
-
-        let session = ChangePinSession::new(&instruction_client, &self.storage, &change_pin_config);
+        let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
 
         session.continue_change_pin(pin).await?;
 
