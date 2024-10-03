@@ -133,6 +133,9 @@ impl EcdsaDecodingKey {
     }
 }
 
+/// Used as the `iss` field in various JWTs, identifying this wallet solution as the issuer of the JWT.
+pub const NL_WALLET_CLIENT_ID: &str = "https://wallet.edi.rijksoverheid.nl";
+
 /// The OID of Elliptic Curve public keys.
 static OID_EC_PUBKEY: LazyLock<Oid<'static>> = LazyLock::new(|| Oid::from_str("1.2.840.10045.2.1").unwrap());
 

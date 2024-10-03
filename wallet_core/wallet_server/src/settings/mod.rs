@@ -169,7 +169,7 @@ impl Settings {
         let config_builder = config_builder
             .set_default(
                 "issuer.wallet_client_ids",
-                vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
+                vec![wallet_common::jwt::NL_WALLET_CLIENT_ID.to_string()],
             )?
             .set_default("issuer.brp_server", "http://localhost:3007/")?;
 
