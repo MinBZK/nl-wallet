@@ -12,8 +12,7 @@ XML responses. See the settings below for more details.
 ### Generate random keys
 
 The gba-hc-converter needs a `preloaded.encryption_key` configured for
-decrypting the GBA-V responses. This can be
-manually generated using:
+decrypting the GBA-V responses. This can be manually generated using:
 
     openssl rand -hex 32 > encryption.key
 
