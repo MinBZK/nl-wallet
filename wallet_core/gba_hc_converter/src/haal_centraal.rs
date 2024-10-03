@@ -110,6 +110,10 @@ impl Bsn {
     // Validate the BSN by using the so-called "Elfproef".
     // See section I.2.3 of Logisch Ontwerp BSN 2024 Q1 for the details on the "Elfproef"
     fn validate(bsn: &str) -> bool {
+        if !(matches!(bsn.len(), 8 | 9)) {
+            return false;
+        }
+
         // Pad the BSN with a leading zero when the length is 8
         let padded_bsn = format!("{:0>9}", bsn);
 
@@ -589,10 +593,12 @@ mod test {
     #[case("999991773")]
     #[case("900253011")]
     #[case("900265463")]
+    #[case("9999917721")]
     #[case("900265")]
     #[case("abcd")]
     #[case("abcdefghi")]
     #[case("11122234")]
+    #[case("218")]
     fn test_bsn_should_not_validate(#[case] bsn: &str) {
         assert!(!Bsn::validate(bsn));
     }
