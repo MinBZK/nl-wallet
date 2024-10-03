@@ -1,14 +1,23 @@
 use std::{env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
 
+use chrono::{DateTime, Utc};
 use config::{Config, ConfigError, Environment, File};
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
-use nl_wallet_mdoc::utils::x509::{Certificate, CertificateError};
+use nl_wallet_mdoc::{
+    holder::TrustAnchor,
+    utils::x509::{Certificate, CertificateError, CertificateType, CertificateUsage},
+};
 use openid4vc::server_state::SessionStoreTimeouts;
-use wallet_common::{sentry::Sentry, urls::BaseUrl};
+use wallet_common::{
+    generator::Generator,
+    sentry::Sentry,
+    trust_anchor::{DerTrustAnchor, OwnedTrustAnchor},
+    urls::BaseUrl,
+};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
@@ -134,6 +143,64 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum CertificateVerificationError {
+    #[error("invalid trust anchor: {0}")]
+    InvalidTrustAnchor(#[source] CertificateError),
+    #[error("invalid certificate {1}: {0}")]
+    InvalidCertificate(#[source] CertificateError, String),
+    #[error("no CertificateType found in certificate {1}: {0}")]
+    NoCertificateType(#[source] CertificateError, String),
+    #[error("certificate {0} is missing CertificateType registration data")]
+    IncompleteCertificateType(String),
+}
+
+pub fn verify_certificates<F>(
+    certificates: &[(String, Certificate)],
+    trust_anchors: &[TrustAnchor<'_>],
+    usage: CertificateUsage,
+    time: &impl Generator<DateTime<Utc>>,
+    has_usage_registration: F,
+) -> Result<(), CertificateVerificationError>
+where
+    F: Fn(CertificateType) -> bool,
+{
+    if trust_anchors.is_empty() {
+        tracing::warn!("no trust anchors found; certificate chains are not verified");
+    }
+
+    for (certificate_id, certificate) in certificates {
+        tracing::debug!("verifying certificate of {certificate_id}");
+
+        if !trust_anchors.is_empty() {
+            certificate
+                .verify(usage, &[], time, trust_anchors)
+                .map_err(|e| CertificateVerificationError::InvalidCertificate(e, certificate_id.clone()))?;
+        }
+
+        let certificate_type = CertificateType::from_certificate(certificate)
+            .map_err(|e| CertificateVerificationError::NoCertificateType(e, certificate_id.clone()))?;
+
+        if !has_usage_registration(certificate_type) {
+            return Err(CertificateVerificationError::IncompleteCertificateType(
+                certificate_id.clone(),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+pub fn certificates_to_trust_anchors(trust_anchors: &[Certificate]) -> Result<Vec<OwnedTrustAnchor>, CertificateError> {
+    trust_anchors
+        .iter()
+        .map(|anchor| {
+            let der: DerTrustAnchor = anchor.try_into()?;
+            Ok(der.owned_trust_anchor)
+        })
+        .collect::<Result<Vec<_>, CertificateError>>()
+}
+
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Settings::new_custom("wallet_server.toml", "wallet_server")
@@ -189,11 +256,46 @@ impl Settings {
 
         let environment_parser = environment_parser.try_parsing(true);
 
-        config_builder
+        let config: Settings = config_builder
             .add_source(File::from(config_source).required(false))
             .add_source(File::from(PathBuf::from(config_file)).required(false))
             .add_source(environment_parser)
             .build()?
-            .try_deserialize()
+            .try_deserialize()?;
+
+        #[cfg(feature = "disclosure")]
+        config.verifier.verify_all().expect("invalid verifier configuration");
+
+        #[cfg(all(feature = "issuance", feature = "disclosure"))]
+        {
+            let trust_anchors = config
+                .verifier
+                .issuer_trust_anchors
+                .iter()
+                .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+                .collect::<Vec<_>>();
+            config
+                .issuer
+                .verify_all(&trust_anchors)
+                .expect("invalid issuer configuration");
+        }
+
+        #[cfg(all(feature = "issuance", not(feature = "disclosure")))]
+        {
+            let trust_anchors = config
+                .issuer
+                .issuer_trust_anchors
+                .iter()
+                .flatten()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()
+                .expect("invalid certificate in issuer_trust_anchors");
+            config
+                .issuer
+                .verify_all(&trust_anchors)
+                .expect("invalid issuer configuration");
+        }
+
+        Ok(config)
     }
 }

@@ -5,8 +5,12 @@ use ring::hmac;
 use serde::Deserialize;
 use serde_with::{hex::Hex, serde_as};
 
+use nl_wallet_mdoc::{
+    holder::TrustAnchor,
+    utils::x509::{CertificateType, CertificateUsage},
+};
 use openid4vc::verifier::{SessionTypeReturnUrl, UseCase, UseCases};
-use wallet_common::{trust_anchor::DerTrustAnchor, urls::CorsOrigin};
+use wallet_common::{generator::TimeGenerator, trust_anchor::DerTrustAnchor, urls::CorsOrigin};
 
 use super::*;
 
@@ -15,12 +19,54 @@ const MIN_KEY_LENGTH_BYTES: usize = 16;
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Verifier {
+    pub reader_trust_anchors: Option<Vec<Certificate>>,
     pub usecases: VerifierUseCases,
     #[serde(alias = "trust_anchors")] // TODO: remove alias after notifying RPs
     pub issuer_trust_anchors: Vec<DerTrustAnchor>,
     #[serde_as(as = "Hex")]
     pub ephemeral_id_secret: EhpemeralIdSecret,
     pub allow_origins: Option<CorsOrigin>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum VerifierConfigurationError {
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
+    #[error("")]
+    MissingReaderRegistration,
+}
+
+impl Verifier {
+    pub fn verify_all<'a>(&'a self) -> Result<(), CertificateVerificationError> {
+        let time = TimeGenerator;
+
+        let trust_anchors: Vec<TrustAnchor<'a>> = self
+            .reader_trust_anchors
+            .iter()
+            .flatten()
+            .map(TryInto::try_into)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(CertificateVerificationError::InvalidTrustAnchor)?;
+
+        let certificates: Vec<(String, Certificate)> = self
+            .usecases
+            .iter()
+            .map(|(use_case_id, usecase)| {
+                (
+                    use_case_id.clone(),
+                    Certificate::from(usecase.key_pair.certificate.clone()),
+                )
+            })
+            .collect();
+
+        verify_certificates(
+            &certificates,
+            &trust_anchors,
+            CertificateUsage::ReaderAuth,
+            &time,
+            |certificate_type| matches!(certificate_type, CertificateType::ReaderAuth(Some(_))),
+        )
+    }
 }
 
 #[nutype(derive(Clone, From, Deserialize, Deref, AsRef))]

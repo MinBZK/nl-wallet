@@ -83,6 +83,8 @@ fn fake_issuer_settings() -> Issuer {
     let url: BaseUrl = "http://fake.fake".parse().unwrap();
 
     Issuer {
+        #[cfg(not(feature = "disclosure"))]
+        issuer_trust_anchors: None,
         private_keys: Default::default(),
         wallet_client_ids: Default::default(),
         digid: Digid {
@@ -167,6 +169,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         #[cfg(feature = "issuance")]
         issuer: fake_issuer_settings(),
         verifier: Verifier {
+            reader_trust_anchors: Some(vec![rp_ca.certificate().clone()]),
             usecases,
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
             issuer_trust_anchors: vec![issuer_trust_anchor],

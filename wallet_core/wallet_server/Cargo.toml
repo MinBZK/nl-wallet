@@ -53,7 +53,7 @@ issuance = [
     "dep:serde_urlencoded",
 ]
 # Enable disclosure
-disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:strum"]
+disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:serde_json", "dep:strum"]
 # Enable mock PID issuance
 mock = ["issuance"]
 
