@@ -11,7 +11,7 @@ workspace = true
 # Include code for generating certificates and keys
 generate = ["dep:rcgen"]
 # Include examples from the ISO specification
-examples = ["wallet_common/software_keys"]
+examples = []
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
@@ -74,7 +74,7 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 wallet_common = { path = "../wallet_common", features = [
+    "examples",
     "mock_secure_keys",
     "software_key_factory",
-    "examples",
 ]}
