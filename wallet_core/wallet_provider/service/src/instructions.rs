@@ -296,7 +296,7 @@ impl HandleInstruction for NewPoa {
             iat: Utc::now(),
         };
 
-        let keys = self
+        let keys: Vec<_> = self
             .key_identifiers
             .iter()
             .map(|key_identifier| HsmCredentialSigningKey {
@@ -306,7 +306,7 @@ impl HandleInstruction for NewPoa {
             })
             .collect();
 
-        let poa = new_poa(keys, claims).await.unwrap();
+        let poa = new_poa(keys.iter().collect(), claims).await.unwrap();
 
         Ok(NewPoaResult { poa })
     }

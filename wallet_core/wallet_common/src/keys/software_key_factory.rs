@@ -1,12 +1,14 @@
 use std::{collections::HashMap, iter};
 
+use chrono::Utc;
 use futures::future;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use crate::{
-    keys::{factory::KeyFactory, software::SoftwareEcdsaKey, EcdsaKey},
+    jwt::{JwtPopClaims, NL_WALLET_CLIENT_ID},
+    keys::{factory::KeyFactory, poa::new_poa, software::SoftwareEcdsaKey, EcdsaKey},
     utils,
 };
 
@@ -54,6 +56,8 @@ pub enum SoftwareKeyFactoryError {
     Signing,
     #[error("ECDSA error: {0}")]
     Ecdsa(#[source] <SoftwareEcdsaKey as EcdsaKey>::Error),
+    #[error("PoA error: {0}")]
+    Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 impl KeyFactory for SoftwareKeyFactory {
@@ -158,5 +162,26 @@ impl KeyFactory for SoftwareKeyFactory {
         .await?;
 
         Ok(result)
+    }
+
+    async fn poa(
+        &self,
+        keys: Vec<&Self::Key>,
+        aud: String,
+        nonce: Option<String>,
+    ) -> Result<super::poa::Poa, Self::Error> {
+        let poa = new_poa(
+            keys,
+            JwtPopClaims {
+                iss: NL_WALLET_CLIENT_ID.to_string(),
+                aud,
+                nonce,
+                iat: Utc::now(),
+            },
+        )
+        .await
+        .map_err(|e| SoftwareKeyFactoryError::Poa(Box::new(e)))?;
+
+        Ok(poa)
     }
 }

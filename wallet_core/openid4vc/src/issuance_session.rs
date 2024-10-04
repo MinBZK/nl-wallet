@@ -27,11 +27,7 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     generator::TimeGenerator,
     jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims, NL_WALLET_CLIENT_ID},
-    keys::{
-        factory::KeyFactory,
-        poa::{new_poa, Poa, PoaError},
-        CredentialEcdsaKey,
-    },
+    keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -127,7 +123,7 @@ pub enum IssuanceSessionError {
     NoCredentialCopies,
     #[error("error constructing PoA: {0}")]
     #[category(pd)]
-    Poa(#[from] PoaError),
+    Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Clone, Debug)]
@@ -643,19 +639,12 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let mut poa = if poa_keys.len() <= 1 {
             None
         } else {
-            // We need to use the keys here to create the PoA, and then again later to sign the PoPs.
-            // We can't clone the keys because K doesn't derive Clone, which makes sense, but it does make this
-            // code something of a hassle.
-            let keys = try_join_all(poa_keys.into_iter().map(|key| async {
-                let pubkey = key
-                    .verifying_key()
+            Some(
+                key_factory
+                    .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
                     .await
-                    .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(Box::new(e)))?;
-                Ok::<_, IssuanceSessionError>(key_factory.generate_existing(key.identifier(), pubkey))
-            }))
-            .await?;
-
-            Some(new_poa(keys, pop_claims).await?)
+                    .map_err(|e| IssuanceSessionError::Poa(Box::new(e)))?,
+            )
         };
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately

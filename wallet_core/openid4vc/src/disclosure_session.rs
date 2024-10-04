@@ -712,6 +712,7 @@ mod tests {
     use wallet_common::{
         keys::{
             factory::KeyFactory,
+            poa::Poa,
             software::SoftwareEcdsaKey,
             software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
         },
@@ -1586,6 +1587,9 @@ mod tests {
                 unimplemented!()
             }
             async fn generate_new_multiple(&self, _: u64) -> Result<Vec<Self::Key>, Self::Error> {
+                unimplemented!()
+            }
+            async fn poa(&self, _: Vec<&Self::Key>, _: String, _: Option<String>) -> Result<Poa, Self::Error> {
                 unimplemented!()
             }
         }

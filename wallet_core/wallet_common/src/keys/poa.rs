@@ -32,7 +32,7 @@ pub enum PoaError {
     InsufficientKeys(usize),
 }
 
-pub async fn new_poa<K: EcdsaKey>(keys: Vec<K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
+pub async fn new_poa<K: EcdsaKey>(keys: Vec<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
     if keys.len() < 2 {
         return Err(PoaError::InsufficientKeys(keys.len()));
     }
@@ -55,7 +55,7 @@ pub async fn new_poa<K: EcdsaKey>(keys: Vec<K>, payload: JwtPopClaims) -> Result
         ..Header::new(Algorithm::ES256)
     };
 
-    let jwts: NonEmpty<_> = try_join_all(keys.iter().map(|key| Jwt::sign(&payload, &header, key)))
+    let jwts: NonEmpty<_> = try_join_all(keys.iter().map(|key| Jwt::sign(&payload, &header, *key)))
         .await?
         .try_into()
         .unwrap(); // This came from `keys` which is `NonEmpty`.

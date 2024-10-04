@@ -2,7 +2,7 @@ use std::error::Error;
 
 use p256::ecdsa::{Signature, VerifyingKey};
 
-use super::CredentialEcdsaKey;
+use super::{poa::Poa, CredentialEcdsaKey};
 
 pub trait KeyFactory {
     type Key: CredentialEcdsaKey;
@@ -25,6 +25,8 @@ pub trait KeyFactory {
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
     ) -> Result<Vec<Vec<Signature>>, Self::Error>;
+
+    async fn poa(&self, keys: Vec<&Self::Key>, aud: String, nonce: Option<String>) -> Result<Poa, Self::Error>;
 }
 
 #[cfg(any(test, feature = "software_keys"))]
