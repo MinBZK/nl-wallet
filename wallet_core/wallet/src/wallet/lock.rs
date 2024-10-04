@@ -10,14 +10,14 @@ use crate::{
     account_provider::AccountProviderClient,
     config::ConfigurationRepository,
     errors::{ChangePinError, StorageError},
-    instruction::{InstructionClient, InstructionError},
-    pin::change::ChangePinStorage,
+    instruction::InstructionError,
     storage::{Storage, UnlockData},
 };
 
 use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum WalletUnlockError {
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -29,16 +29,10 @@ pub enum WalletUnlockError {
     #[category(expected)]
     BiometricsUnlockingNotEnabled,
     #[error("error sending instruction to Wallet Provider: {0}")]
-    #[category(defer)]
     Instruction(#[from] InstructionError),
     #[error("could not write or read unlock method to or from database: {0}")]
-    #[category(defer)]
     UnlockMethodStorage(#[source] StorageError),
-    #[error("could not read pin change state from database: {0}")]
-    #[category(defer)]
-    ChangePinStorage(#[source] StorageError),
     #[error("error finalizing pin change: {0}")]
-    #[category(defer)]
     ChangePin(#[from] ChangePinError),
 }
 
@@ -119,15 +113,14 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         let config = self.config_repository.config();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
+        let remote_instruction = self
+            .get_instruction_client(
+                pin,
+                registration,
+                &config.account_server.base_url,
+                &instruction_result_public_key,
+            )
+            .await?;
 
         info!("Sending check pin instruction to Wallet Provider");
 
@@ -152,17 +145,6 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
             return Err(WalletUnlockError::NotLocked);
         }
 
-        info!("Try to finalize PIN change if it is in progress");
-        if self
-            .storage
-            .get_change_pin_state()
-            .await
-            .map_err(WalletUnlockError::ChangePinStorage)?
-            .is_some()
-        {
-            self.continue_change_pin(pin.clone()).await?;
-        }
-
         self.send_check_pin_instruction(pin).await?;
 
         info!("Unlock instruction successful, unlocking wallet");
@@ -181,18 +163,6 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         APC: AccountProviderClient,
     {
         info!("Checking pin");
-
-        info!("Try to finalize PIN change if it is in progress");
-        if self
-            .storage
-            .get_change_pin_state()
-            .await
-            .map_err(WalletUnlockError::ChangePinStorage)?
-            .is_some()
-        {
-            self.continue_change_pin(pin.clone()).await?;
-        }
-
         self.send_check_pin_instruction(pin).await
     }
 

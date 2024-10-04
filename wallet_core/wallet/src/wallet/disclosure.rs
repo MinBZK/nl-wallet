@@ -23,8 +23,7 @@ use crate::{
     },
     document::{DisclosureDocument, DisclosureType, DocumentMdocError, MissingDisclosureAttributes},
     errors::ChangePinError,
-    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    pin::change::ChangePinStorage,
+    instruction::{InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     storage::{EventStatus, Storage, StorageError, StoredMdocCopy, WalletEvent},
 };
 
@@ -73,11 +72,7 @@ pub enum DisclosureError {
     IncrementUsageCount(#[source] StorageError),
     #[error("could not store event in history database: {0}")]
     EventStorage(#[source] EventStorageError),
-    #[error("could not read pin change state from database: {0}")]
-    #[category(defer)]
-    ChangePinStorage(#[source] StorageError),
     #[error("error finalizing pin change: {0}")]
-    #[category(defer)]
     ChangePin(#[from] ChangePinError),
 }
 
@@ -339,17 +334,6 @@ where
             return Err(DisclosureError::Locked);
         }
 
-        info!("Try to finalize PIN change if it is in progress");
-        if self
-            .storage
-            .get_change_pin_state()
-            .await
-            .map_err(DisclosureError::ChangePinStorage)?
-            .is_some()
-        {
-            self.continue_change_pin(pin.clone()).await?;
-        }
-
         info!("Checking if a disclosure session is present");
         let session = self.disclosure_session.as_ref().ok_or(DisclosureError::SessionState)?;
 
@@ -390,15 +374,16 @@ where
         let config = self.config_repository.config();
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
+
+        let remote_instruction = self
+            .get_instruction_client(
+                pin,
+                registration,
+                &config.account_server.base_url,
+                &instruction_result_public_key,
+            )
+            .await?;
+
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
         // Actually perform disclosure, casting any `InstructionError` that

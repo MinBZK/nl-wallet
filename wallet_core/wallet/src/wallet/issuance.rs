@@ -18,9 +18,8 @@ use crate::{
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     document::{Document, DocumentMdocError, PID_DOCTYPE},
     errors::ChangePinError,
-    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
+    instruction::{InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     issuance::{DigidSession, DigidSessionError, HttpDigidSession},
-    pin::change::ChangePinStorage,
     storage::{Storage, StorageError, WalletEvent},
 };
 
@@ -78,11 +77,7 @@ pub enum PidIssuanceError {
     Document(#[source] DocumentsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
-    #[error("could not read pin change state from database: {0}")]
-    #[category(defer)]
-    ChangePinStorage(#[source] StorageError),
     #[error("error finalizing pin change: {0}")]
-    #[category(defer)]
     ChangePin(#[from] ChangePinError),
 }
 
@@ -270,17 +265,6 @@ where
             return Err(PidIssuanceError::Locked);
         }
 
-        info!("Try to finalize PIN change if it is in progress");
-        if self
-            .storage
-            .get_change_pin_state()
-            .await
-            .map_err(PidIssuanceError::ChangePinStorage)?
-            .is_some()
-        {
-            self.continue_change_pin(pin.clone()).await?;
-        }
-
         info!("Checking if there is an active PID issuance session");
         let pid_issuer = match self.issuance_session.as_ref().ok_or(PidIssuanceError::SessionState)? {
             PidIssuanceSession::Digid(_) => Err(PidIssuanceError::SessionState)?,
@@ -291,15 +275,15 @@ where
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
+        let remote_instruction = self
+            .get_instruction_client(
+                pin,
+                registration,
+                &config.account_server.base_url,
+                &instruction_result_public_key,
+            )
+            .await?;
+
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
         info!("Accepting PID by signing mdoc using Wallet Provider");

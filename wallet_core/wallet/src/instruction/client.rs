@@ -32,6 +32,10 @@ where
     K: PlatformEcdsaKey,
     A: AccountProviderClient,
 {
+    /// Creates an [`InstructionClient`].
+    /// In most cases this function should not be used directly, as the wallet must try to finalize
+    /// a PIN change if it is in progress. [`Wallet::get_instruction_client`] will do this before
+    /// returning the [`InstructionClient`] and so is the recommended way to obtain an [`InstructionClient`].
     pub fn new(
         pin: String,
         storage: &'a RwLock<S>,
@@ -170,6 +174,8 @@ impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
         }
     }
 
+    /// Creates an [`InstructionClient`].
+    /// See [`InstructionClient::new`].
     pub fn create(&self, pin: String) -> InstructionClient<'a, S, K, A>
     where
         S: Storage,
