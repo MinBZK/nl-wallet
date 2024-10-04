@@ -30,20 +30,19 @@ stored in a location that the gba-hc-converter can access. The gba-hc-converter
 can be configured in such a way that it cannot connect to the GBA-V, but only
 serves preloaded data.
 
-The preloaded data is encrypted at rest using the AES-GCM Authenticated
-Encryption with Associated Data (AEAD) cipher. Encrypting the data at rest
-protects from unwanted data leakage, for instance accidental (off-site) backups.
-Both the preload binary and gba-hc-converter are in possession of the encryption
-key. The preload binary writes that encrypted data to a shared storage location,
-from which the gba-hc-converter is only allowed to read. The encrypted data is
-stored having a specific filename. The filename is constructed as the signature
-from the BSN and a secret key using HMAC-SHA256. This way, when the
+The preloaded data is encrypted at rest using the AES-GCM cipher. Encrypting the
+data at rest protects from unwanted data leakage, for instance accidental (
+off-site) backups. Both the preload binary and gba-hc-converter are in
+possession of the encryption key. The preload binary writes that encrypted data
+to a shared storage location, from which the gba-hc-converter is only allowed to
+read. The encrypted data is stored having a specific filename. The filename is
+constructed as the HMAC-SHA256 over the BSN and a secret key. This way, when the
 gba-hc-converter receives a request to fetch data for a specific BSN, it
-calculates the signature of the BSN (using the method described above) and
-checks if there is a file having that signature as filename on the filesystem.
-If so, the preloaded data is decrypted and served. If not, it can either return
-a not found response or fetch the data from GBA-V, depending on how it is
-configured.
+calculates the HMAC-SHA256 (using the method described above) and checks if
+there is a file having that filename on the filesystem, ensuring authentication
+and integrity. If there is such a filename, the preloaded data is decrypted and
+served. If not, it can either return a not found response or fetch the data from
+GBA-V, depending on how it is configured.
 
 For manually prefetching a GBA-V response, the following binary can be used:
 
