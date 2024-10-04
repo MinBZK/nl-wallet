@@ -1,6 +1,5 @@
 use std::{collections::HashMap, iter};
 
-use chrono::Utc;
 use futures::future;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
@@ -170,17 +169,9 @@ impl KeyFactory for SoftwareKeyFactory {
         aud: String,
         nonce: Option<String>,
     ) -> Result<super::poa::Poa, Self::Error> {
-        let poa = new_poa(
-            keys,
-            JwtPopClaims {
-                iss: NL_WALLET_CLIENT_ID.to_string(),
-                aud,
-                nonce,
-                iat: Utc::now(),
-            },
-        )
-        .await
-        .map_err(|e| SoftwareKeyFactoryError::Poa(Box::new(e)))?;
+        let poa = new_poa(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud))
+            .await
+            .map_err(|e| SoftwareKeyFactoryError::Poa(Box::new(e)))?;
 
         Ok(poa)
     }

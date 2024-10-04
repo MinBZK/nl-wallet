@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use chrono::Utc;
 use futures::future::{self};
 use p256::ecdsa::{Signature, VerifyingKey};
 use serde::Serialize;
@@ -289,13 +288,6 @@ impl HandleInstruction for NewPoa {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let claims = JwtPopClaims {
-            iss: NL_WALLET_CLIENT_ID.to_string(),
-            aud: self.aud,
-            nonce: self.nonce,
-            iat: Utc::now(),
-        };
-
         let keys: Vec<_> = self
             .key_identifiers
             .iter()
@@ -306,6 +298,7 @@ impl HandleInstruction for NewPoa {
             })
             .collect();
 
+        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
         let poa = new_poa(keys.iter().collect(), claims).await.unwrap();
 
         Ok(NewPoaResult { poa })
