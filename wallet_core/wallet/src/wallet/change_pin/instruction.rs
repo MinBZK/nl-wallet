@@ -24,18 +24,35 @@ use crate::{
 impl ChangePinClientError for InstructionError {
     fn is_network_error(&self) -> bool {
         match self {
-            InstructionError::IncorrectPin { .. } => false,
-            InstructionError::Timeout { .. } => true,
-            InstructionError::Blocked => false,
-            InstructionError::ServerError(AccountProviderError::Response(AccountProviderResponseError::Account(
-                _,
-                _,
-            ))) => false,
-            InstructionError::ServerError(_) => true,
-            InstructionError::InstructionValidation => false,
-            InstructionError::Signing(_) => false,
-            InstructionError::InstructionResultValidation(_) => false,
-            InstructionError::StoreInstructionSequenceNumber(_) => false,
+            Self::ServerError(error) => error.is_network_error(),
+            Self::Timeout { .. } => true,
+            Self::IncorrectPin { .. } => false,
+            Self::Blocked => false,
+            Self::InstructionValidation => false,
+            Self::Signing(_) => false,
+            Self::InstructionResultValidation(_) => false,
+            Self::StoreInstructionSequenceNumber(_) => false,
+        }
+    }
+}
+
+impl ChangePinClientError for AccountProviderError {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::Response(error) => error.is_network_error(),
+            Self::Networking(_) => true,
+            Self::BaseUrl(_) => false,
+        }
+    }
+}
+
+/// Classifies any status codes as network error.
+impl ChangePinClientError for AccountProviderResponseError {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::Status(_status_code) => true,
+            Self::Text(_status_code, _) => true,
+            Self::Account(_, _) => false,
         }
     }
 }
