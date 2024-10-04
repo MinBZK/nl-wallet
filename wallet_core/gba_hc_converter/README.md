@@ -36,13 +36,14 @@ off-site) backups. Both the preload binary and gba-hc-converter are in
 possession of the encryption key. The preload binary writes that encrypted data
 to a shared storage location, from which the gba-hc-converter is only allowed to
 read. The encrypted data is stored having a specific filename. The filename is
-constructed as the HMAC-SHA256 over the BSN and a secret key. This way, when the
-gba-hc-converter receives a request to fetch data for a specific BSN, it
-calculates the HMAC-SHA256 (using the method described above) and checks if
-there is a file having that filename on the filesystem, ensuring authentication
-and integrity. If there is such a filename, the preloaded data is decrypted and
-served. If not, it can either return a not found response or fetch the data from
-GBA-V, depending on how it is configured.
+constructed as the HMAC-SHA256 over the BSN and a secret key. Since BSN numbers
+have a predictable structure and limited possible values, HMAC-SHA256 is used to
+ensure secrecy, integrity and authentication. When the gba-hc-converter receives
+a request to fetch data for a specific BSN, it calculates the HMAC-SHA256 (using
+the method described above) and checks if there is a file having that filename
+on the filesystem. If there is such a filename, the preloaded data is decrypted
+and served. If not, it can either return a not found response or fetch the data
+from GBA-V, depending on how it is configured.
 
 For manually prefetching a GBA-V response, the following binary can be used:
 
