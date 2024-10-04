@@ -46,7 +46,7 @@ async fn should_return_empty() {
     let (encryption_key, hmac_key, dir) = encrypt_xmls().await;
 
     let client = FileGbavClient::new(dir.path(), encryption_key, hmac_key, EmptyGbavClient {});
-    let response = client.vraag(&Bsn::try_new("12345678").unwrap()).await.unwrap().unwrap();
+    let response = client.vraag(&Bsn::try_new("11122146").unwrap()).await.unwrap().unwrap();
     let gba_response = GbaResponse::new(&response).unwrap();
     assert!(gba_response.is_empty());
 }
