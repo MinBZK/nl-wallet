@@ -1,5 +1,8 @@
 FROM ${HARBOR_REGISTRY}/gcr-io-proxy/distroless/cc-debian12:debug-nonroot
 
+COPY --chown=nonroot ./target/x86_64-unknown-linux-gnu/debug/gba_encrypt .
 COPY --chown=nonroot ./target/x86_64-unknown-linux-gnu/debug/gba_fetch .
+
+COPY --chown=nonroot ./gba_hc_converter/resources/gba-v-responses ./unencrypted-gba-v-responses
 
 ENTRYPOINT ["sh"]
