@@ -228,6 +228,10 @@ impl WalletUserHsm for Pkcs11Hsm {
         let signature = Pkcs11Client::sign(self, handle, SigningMechanism::Ecdsa256, data).await?;
         Ok(Signature::from_slice(&signature)?)
     }
+
+    async fn verifying_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey> {
+        Hsm::get_verifying_key(self, &hsm::key_identifier(wallet_id, identifier)).await
+    }
 }
 
 impl Hsm for Pkcs11Hsm {

@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use futures::future;
-use p256::ecdsa::VerifyingKey;
+use chrono::Utc;
+use futures::future::{self};
+use p256::ecdsa::{Signature, VerifyingKey};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -9,17 +10,19 @@ use wallet_common::{
     account::{
         messages::instructions::{
             ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult, IssueWte,
-            IssueWteResult, Sign, SignResult,
+            IssueWteResult, NewPoa, NewPoaResult, Sign, SignResult,
         },
         serialization::{DerSignature, DerVerifyingKey},
     },
     generator::Generator,
+    jwt::{JwtPopClaims, NL_WALLET_CLIENT_ID},
+    keys::{poa::new_poa, EcdsaKey},
 };
 use wallet_provider_domain::{
     model::{
         encrypter::Encrypter,
         hsm::WalletUserHsm,
-        wallet_user::{WalletUser, WalletUserKey, WalletUserKeys},
+        wallet_user::{WalletId, WalletUser, WalletUserKey, WalletUserKeys},
     },
     repository::{Committable, TransactionStarter, WalletUserRepository},
 };
@@ -44,6 +47,7 @@ impl ValidateInstruction for CheckPin {}
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for GenerateKey {}
 impl ValidateInstruction for Sign {}
+impl ValidateInstruction for NewPoa {}
 
 impl ValidateInstruction for IssueWte {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -266,6 +270,68 @@ impl HandleInstruction for IssueWte {
         tx.commit().await?;
 
         Ok(IssueWteResult { wte })
+    }
+}
+
+impl HandleInstruction for NewPoa {
+    type Result = NewPoaResult;
+
+    async fn handle<T, R, H>(
+        self,
+        wallet_user: &WalletUser,
+        _uuid_generator: &impl Generator<Uuid>,
+        _wallet_user_repository: &R,
+        wallet_user_hsm: &H,
+        _wte_issuer: &impl WteIssuer,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    {
+        let claims = JwtPopClaims {
+            iss: NL_WALLET_CLIENT_ID.to_string(),
+            aud: self.aud,
+            nonce: self.nonce,
+            iat: Utc::now(),
+        };
+
+        let keys = self
+            .key_identifiers
+            .iter()
+            .map(|key_identifier| HsmCredentialSigningKey {
+                hsm: wallet_user_hsm,
+                wallet_id: &wallet_user.wallet_id,
+                key_identifier,
+            })
+            .collect();
+
+        let poa = new_poa(keys, claims).await.unwrap();
+
+        Ok(NewPoaResult { poa })
+    }
+}
+
+struct HsmCredentialSigningKey<'a, H> {
+    hsm: &'a H,
+    wallet_id: &'a WalletId,
+    key_identifier: &'a str,
+}
+
+impl<'a, H> EcdsaKey for HsmCredentialSigningKey<'a, H>
+where
+    H: WalletUserHsm<Error = HsmError>,
+{
+    type Error = HsmError;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        self.hsm.verifying_key(&self.wallet_id, &self.key_identifier).await
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        self.hsm
+            .sign(&self.wallet_id, &self.key_identifier, Arc::new(msg.to_vec()))
+            .await
     }
 }
 

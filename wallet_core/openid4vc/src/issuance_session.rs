@@ -655,7 +655,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             }))
             .await?;
 
-            Some(new_poa(keys, pop_claims, &key_factory).await?)
+            Some(new_poa(keys, pop_claims).await?)
         };
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately

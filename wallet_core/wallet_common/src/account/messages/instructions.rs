@@ -7,7 +7,7 @@ use crate::{
         signed::{ChallengeRequest, ChallengeResponse},
     },
     jwt::{Jwt, JwtCredentialClaims, JwtSubject},
-    keys::{EphemeralEcdsaKey, SecureEcdsaKey},
+    keys::{poa::Poa, EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
 use super::auth::{Certificate, WalletCertificate};
@@ -61,6 +61,18 @@ pub struct IssueWte {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IssueWteResult {
     pub wte: Jwt<JwtCredentialClaims>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NewPoa {
+    pub key_identifiers: Vec<String>,
+    pub aud: String,
+    pub nonce: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NewPoaResult {
+    pub poa: Poa,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,6 +146,12 @@ impl InstructionAndResult for IssueWte {
     const NAME: &'static str = "issue_wte";
 
     type Result = IssueWteResult;
+}
+
+impl InstructionAndResult for NewPoa {
+    const NAME: &'static str = "new_poa";
+
+    type Result = NewPoaResult;
 }
 
 impl<T> Instruction<T>

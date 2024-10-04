@@ -1,13 +1,13 @@
 use futures::future::try_join_all;
-use itertools::Itertools;
 use jsonwebtoken::{jwk::Jwk, Algorithm, Header};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     jwt::{jwk_from_p256, JsonJwt, JwkConversionError, Jwt, JwtError, JwtPopClaims},
-    keys::{factory::KeyFactory, CredentialEcdsaKey},
     nonempty::NonEmpty,
 };
+
+use super::EcdsaKey;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
@@ -32,11 +32,7 @@ pub enum PoaError {
     InsufficientKeys(usize),
 }
 
-pub async fn new_poa<K: CredentialEcdsaKey>(
-    keys: Vec<K>,
-    payload: JwtPopClaims,
-    key_factory: &impl KeyFactory<Key = K>,
-) -> Result<Poa, PoaError> {
+pub async fn new_poa<K: EcdsaKey>(keys: Vec<K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
     if keys.len() < 2 {
         return Err(PoaError::InsufficientKeys(keys.len()));
     }
@@ -59,16 +55,8 @@ pub async fn new_poa<K: CredentialEcdsaKey>(
         ..Header::new(Algorithm::ES256)
     };
 
-    let keys_and_messages = keys
-        .into_iter()
-        .map(|key| (key, (payload.clone(), header.clone())))
-        .collect();
-
-    let jwts: NonEmpty<_> = Jwt::sign_bulk(keys_and_messages, key_factory)
+    let jwts: NonEmpty<_> = try_join_all(keys.iter().map(|key| Jwt::sign(&payload, &header, key)))
         .await?
-        .into_iter()
-        .map(|(_, jwt)| jwt)
-        .collect_vec()
         .try_into()
         .unwrap(); // This came from `keys` which is `NonEmpty`.
 
