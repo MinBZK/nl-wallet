@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-09-16T17:42:12+02:00",
+    "@@last_modified": "2024-10-07T09:43:45+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -767,6 +767,7 @@
         }
     },
     "organizationApprovePageMoreInfoCta": "See details",
+    "organizationApprovePageMoreInfoLoginCta": "See what data you share",
     "organizationApprovePageShareWithApproveCta": "Yes, continue",
     "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationButtonLabel": "About this organization",
