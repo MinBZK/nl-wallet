@@ -31,14 +31,11 @@ sentry = ["dep:sentry", "error_category/sentry"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
-anyhow = { workspace = true, optional = true }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
 config.workspace = true
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
-hex = { workspace = true, optional = true }
-hex-literal = { workspace = true, optional = true }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
@@ -61,7 +58,10 @@ trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
 
+anyhow = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
+hex = { workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
