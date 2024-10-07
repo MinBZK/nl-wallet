@@ -50,9 +50,9 @@ impl ChangePinClientError for AccountProviderError {
 impl ChangePinClientError for AccountProviderResponseError {
     fn is_network_error(&self) -> bool {
         match self {
-            Self::Status(_status_code) => true,
-            Self::Text(_status_code, _) => true,
-            Self::Account(_, _) => false,
+            Self::Status(..) => true,
+            Self::Text(..) => true,
+            Self::Account(..) => false,
         }
     }
 }
