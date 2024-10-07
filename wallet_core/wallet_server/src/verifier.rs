@@ -7,7 +7,7 @@ use axum::{
 };
 use http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri};
 use serde::{Deserialize, Serialize};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
 
 use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests};
@@ -22,7 +22,7 @@ use openid4vc::{
 use wallet_common::{
     generator::TimeGenerator,
     http_error::HttpJsonError,
-    urls::{self, BaseUrl},
+    urls::{self, BaseUrl, CorsOrigin},
 };
 
 use crate::settings::{self, Urls};
@@ -58,21 +58,27 @@ where
     Ok(application_state)
 }
 
+fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin(allow_origins)
+        .allow_methods([Method::GET, Method::DELETE])
+}
+
 pub fn create_routers<S>(urls: Urls, verifier: settings::Verifier, sessions: S) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
+    let allow_origins = verifier.allow_origins.clone();
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
-    let wallet_web = Router::new()
+    let mut wallet_web = Router::new()
         .route("/:session_token", get(status::<S>))
-        .route("/:session_token", delete(cancel::<S>))
+        .route("/:session_token", delete(cancel::<S>));
+
+    if let Some(cors_origin) = allow_origins {
         // The CORS headers should be set for these routes, so that any web browser may call them.
-        .layer(
-            CorsLayer::new()
-                .allow_methods([Method::GET, Method::DELETE])
-                .allow_origin(Any),
-        );
+        wallet_web = wallet_web.layer(cors_layer(cors_origin));
+    }
 
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the

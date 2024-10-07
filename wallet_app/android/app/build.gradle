@@ -183,8 +183,8 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         if (profileMode != null) {
             args += profileMode
         }
-        if (dartEnvironmentVariables['ALLOW_HTTP_RETURN_URL'] == 'true') {
-            args += ['--features', 'wallet/allow_http_return_url']
+        if (dartEnvironmentVariables['ALLOW_INSECURE_URL'] == 'true') {
+            args += ['--features', 'wallet/allow_insecure_url']
         }
         if (dartEnvironmentVariables['ENV_CONFIGURATION'] == 'true') {
             args += ['--features', 'wallet/env_config']

@@ -57,7 +57,7 @@ or shorter:
 
 To build from `wallet_core`:
 
-    cargo build --release --bin performance_test --features performance_test,allow_http_return_url
+    cargo build --release --bin performance_test --features performance_test,allow_insecure_url
 
 And run with:
 
@@ -65,11 +65,11 @@ And run with:
 
 To run the test using Cargo from `wallet_core`:
 
-    RUST_LOG=debug cargo run --bin performance_test --features performance_test,allow_http_return_url
+    RUST_LOG=debug cargo run --bin performance_test --features performance_test,allow_insecure_url
 
 ### Running externally
 
-Change the values in `test_integration/.env` appropriately. The `allow_http_return_url` feature is not necessary (but
+Change the values in `test_integration/.env` appropriately. The `allow_insecure_url` feature is not necessary (but
 also doesn't hurt).
 
 ## GBA-V to PID tests

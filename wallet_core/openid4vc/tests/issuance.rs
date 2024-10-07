@@ -9,7 +9,6 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_keys::{test::SingleKeyRing, KeyPair},
-    software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
     utils::{issuer_auth::IssuerRegistration, x509::Certificate},
     Tdate,
@@ -20,17 +19,19 @@ use openid4vc::{
     },
     dpop::Dpop,
     issuance_session::{
-        HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
+        mock_wte, HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
     },
     issuer::{AttributeService, Created, IssuanceData, Issuer},
-    jwt::JwtCredentialContents,
+    jwt::compare_jwt_attributes,
     metadata::IssuerMetadata,
     oidc,
     server_state::{MemorySessionStore, SessionState},
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
-use wallet_common::{nonempty::NonEmpty, urls::BaseUrl};
+use wallet_common::{
+    jwt::JwtCredentialContents, keys::software_key_factory::SoftwareKeyFactory, nonempty::NonEmpty, urls::BaseUrl,
+};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -81,19 +82,12 @@ fn setup(
 }
 
 #[rstest]
-#[case(setup_mdoc, 1, 1)]
-#[case(setup_mdoc, 1, 2)]
-#[case(setup_mdoc, 2, 1)]
-#[case(setup_mdoc, 2, 2)]
-#[case(setup_jwt, 1, 1)]
-#[case(setup_jwt, 1, 2)]
-#[case(setup_jwt, 2, 1)]
-#[case(setup_jwt, 2, 2)]
 #[tokio::test]
 async fn accept_issuance(
-    #[case] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
-    #[case] attestation_count: usize,
-    #[case] copy_count: u8,
+    #[values(setup_mdoc, setup_jwt)] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
+    #[values(1, 2)] attestation_count: usize,
+    #[values(1, 2)] copy_count: u8,
+    #[values(true, false)] use_wte: bool,
 ) {
     let (issuer, ca, server_url) = setup(attestation_count, copy_count);
     let message_client = MockOpenidMessageClient::new(issuer);
@@ -107,8 +101,15 @@ async fn accept_issuance(
     .await
     .unwrap();
 
+    let key_factory = SoftwareKeyFactory::default();
+    let wte = if use_wte {
+        Some(mock_wte(&key_factory).await)
+    } else {
+        None
+    };
+
     let issued_creds = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, wte, server_url)
         .await
         .unwrap();
 
@@ -126,15 +127,14 @@ async fn accept_issuance(
                     _ => panic!("unexpected credential format"),
                 })
                 .unwrap(),
-            IssuedCredentialCopies::Jwt(jwts) => jwts
-                .first()
-                .jwt_claims()
-                .contents
-                .compare_attributes(match &preview {
+            IssuedCredentialCopies::Jwt(jwts) => compare_jwt_attributes(
+                &jwts.first().jwt_claims().contents,
+                match &preview {
                     CredentialPreview::Jwt { claims, .. } => claims,
                     _ => panic!("unexpected credential format"),
-                })
-                .unwrap(),
+                },
+            )
+            .unwrap(),
         });
 }
 
@@ -170,7 +170,12 @@ async fn start_and_accept_err(
     .unwrap();
 
     session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
+        .accept_issuance(
+            &[(&ca).try_into().unwrap()],
+            SoftwareKeyFactory::default(),
+            None,
+            server_url,
+        )
         .await
         .unwrap_err()
 }

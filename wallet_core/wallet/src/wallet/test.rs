@@ -30,6 +30,7 @@ use crate::{
     issuance::MockDigidSession,
     pin::key as pin_key,
     storage::{KeyedData, KeyedDataResult, MockStorage, RegistrationData, StorageState},
+    wte::tests::MockWteIssuanceClient,
     Document, HistoryEvent,
 };
 
@@ -72,6 +73,7 @@ pub type WalletWithMocks = Wallet<
     MockDigidSession,
     MockIssuanceSession,
     MockMdocDisclosureSession,
+    MockWteIssuanceClient,
 >;
 
 /// The account server key material, generated once for testing.

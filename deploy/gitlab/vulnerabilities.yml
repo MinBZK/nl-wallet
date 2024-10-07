@@ -18,6 +18,7 @@ dependency-check:
       --scan "."
       --suppression $CI_PROJECT_DIR/dependency_check_suppressions.xml
       --nvdApiKey "$NVD_API_KEY"
+      --failOnCVSS 0.1
   artifacts:
     when: always
     paths:
@@ -36,10 +37,12 @@ osv-scanner:
   image:
     name: "$HARBOR_REGISTRY/ghcr-io-proxy/google/osv-scanner:latest"
   script:
-    - /osv-scanner --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif || true
+    - /osv-scanner --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif || /osv-scanner --format table --recursive "$CI_PROJECT_DIR"
   artifacts:
+    when: always
     paths:
       - osv.sarif
+  allow_failure: true
 
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -93,7 +96,7 @@ dependency-check-images:
       "nl-wallet-mock-relying-party"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
-      "nl-wallet-server-migration"
+      "nl-wallet-server-migrations"
       "nl-wallet-server"
       "nl-verification-server"
       "nl-pid-issuer"

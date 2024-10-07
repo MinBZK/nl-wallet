@@ -68,6 +68,7 @@ pub struct AccountServerConfiguration {
     // The known public key for the Wallet Provider
     pub certificate_public_key: DerVerifyingKey,
     pub instruction_result_public_key: DerVerifyingKey,
+    pub wte_public_key: DerVerifyingKey,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]

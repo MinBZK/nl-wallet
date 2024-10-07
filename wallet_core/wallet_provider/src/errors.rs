@@ -9,6 +9,7 @@ use wallet_common::{
 use wallet_provider_service::{
     account_server::{ChallengeError, InstructionError, RegistrationError, WalletCertificateError},
     hsm::HsmError,
+    wte_issuer::HsmWteIssuerError,
 };
 
 // Make a newtype to circumvent the orphan rule.
@@ -25,6 +26,8 @@ pub enum WalletProviderError {
     Instruction(#[from] InstructionError),
     #[error("{0}")]
     Hsm(#[from] HsmError),
+    #[error("{0}")]
+    Wte(#[from] HsmWteIssuerError),
 }
 
 impl HttpJsonErrorType for WalletProviderErrorType {
@@ -82,9 +85,11 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)
                 | InstructionError::WalletCertificate(_)
+                | InstructionError::WteIssuance(_)
                 | InstructionError::HsmError(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,
+            WalletProviderError::Wte(_) => Self::Unexpected,
         }
     }
 }

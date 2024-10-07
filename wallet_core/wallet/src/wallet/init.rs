@@ -47,11 +47,12 @@ impl Wallet {
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
     CR: ConfigurationRepository,
     S: Storage,
     PEK: PlatformEcdsaKey,
+    WIC: Default,
 {
     pub(super) fn new(
         config_repository: CR,
@@ -74,6 +75,7 @@ where
             registration,
             documents_callback: None,
             recent_history_callback: None,
+            wte_issuance_client: WIC::default(),
         }
     }
 

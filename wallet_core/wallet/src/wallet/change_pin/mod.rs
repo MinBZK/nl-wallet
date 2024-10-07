@@ -14,12 +14,13 @@ use crate::{
     Wallet,
 };
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
     CR: ConfigurationRepository,
     S: Storage,
     PEK: PlatformEcdsaKey,
     APC: AccountProviderClient,
+    WIC: Default,
 {
     pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError> {
         info!("Begin PIN change");

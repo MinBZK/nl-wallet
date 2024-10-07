@@ -36,7 +36,7 @@ pub enum WalletUnlockError {
     ChangePin(#[from] ChangePinError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC> {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()
     }
@@ -102,6 +102,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Checking if registered");
 
@@ -137,6 +138,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Unlocking wallet with pin");
 
@@ -161,6 +163,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Checking pin");
         self.send_check_pin_instruction(pin).await

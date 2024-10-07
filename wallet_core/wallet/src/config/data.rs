@@ -40,6 +40,9 @@ const DIGID_TRUST_ANCHORS: &str = "";
 const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttykoP/\
                                              iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
 
+const WTE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttykoP/\
+                                        iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
+
 const PID_ISSUER_URL: &str = "http://localhost:3001/issuance/";
 
 const MDOC_TRUST_ANCHORS: &str = "MIIBlTCCATqgAwIBAgIURlVkuYVVlqtiuecbOwVySS9jdFwwCgYIKoZIzj0EAwIwGTEXMBUGA1UEAwwO\
@@ -141,6 +144,11 @@ pub fn default_configuration() -> WalletConfiguration {
                 &BASE64_STANDARD
                     .decode(config_default!(INSTRUCTION_RESULT_PUBLIC_KEY))
                     .unwrap(),
+            )
+            .unwrap()
+            .into(),
+            wte_public_key: VerifyingKey::from_public_key_der(
+                &BASE64_STANDARD.decode(config_default!(WTE_PUBLIC_KEY)).unwrap(),
             )
             .unwrap()
             .into(),

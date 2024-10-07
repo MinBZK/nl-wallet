@@ -305,6 +305,12 @@ export WP_CERTIFICATE_SIGNING_KEY_PATH
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
 
+generate_wp_signing_key wte_signing
+WP_WTE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wte_signing.pem"
+export WP_WTE_SIGNING_KEY_PATH
+WP_WTE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wte_signing.pub.der" ${BASE64})
+export WP_WTE_PUBLIC_KEY
+
 generate_wp_signing_key instruction_result_signing
 WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
 export WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH
@@ -340,6 +346,7 @@ render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/sof
 softhsm2-util --delete-token --token test_token --force > /dev/null || true
 softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
 softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
+softhsm2-util --import "${WP_WTE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wte_signing" | xxd -p)" --label "wte_signing_key" --token "test_token"
 softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
 softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "test_token"
 softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "test_token"
@@ -414,6 +421,9 @@ echo -e "${SECTION}Configure gba-hc-converter${NC}"
 
 render_template "${DEVENV}/gba_hc_converter.toml.template" "${BASE_DIR}/wallet_core/gba_hc_converter/gba_hc_converter.toml"
 render_template "${DEVENV}/gba_hc_converter.toml.template" "${BASE_DIR}/wallet_core/tests_integration/gba_hc_converter.toml"
+
+rm -rf "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses"
+encrypt_gba_v_responses
 
 ########################################################################
 # Configure wallet

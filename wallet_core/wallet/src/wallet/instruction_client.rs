@@ -8,12 +8,13 @@ use crate::{
 
 use super::{Wallet, WalletRegistration};
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
     CR: ConfigurationRepository,
     S: Storage,
     PEK: PlatformEcdsaKey,
     APC: AccountProviderClient,
+    WIC: Default,
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].
     /// This is the recommended way to obtain an [`InstructionClient`], because this function

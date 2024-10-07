@@ -8,34 +8,24 @@ use std::collections::HashSet;
 
 use base64::{prelude::*, DecodeError};
 use chrono::{DateTime, Utc};
-use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::JoseError;
-use jsonwebtoken::{
-    jwk::{self, EllipticCurve, Jwk},
-    Algorithm, Header, Validation,
-};
-use p256::{
-    ecdsa::{signature, VerifyingKey},
-    EncodedPoint,
-};
+use jsonwebtoken::{Algorithm, Header, Validation};
+
+use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
     holder::{map_difference, IssuedAttributesMismatch, TrustAnchor},
     server_keys::KeyPair,
-    utils::{
-        keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey},
-        x509::{Certificate, CertificateError, CertificateUsage},
-    },
+    utils::x509::{Certificate, CertificateError, CertificateUsage},
 };
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
-    jwt::{Jwt, JwtError},
-    keys::EcdsaKey,
+    jwt::{validations, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
+    keys::{CredentialEcdsaKey, CredentialKeyType},
     trust_anchor::trust_anchor_names,
 };
 
@@ -66,7 +56,23 @@ pub enum JwtCredentialError {
 }
 
 impl JwtCredential {
-    pub fn new<K: MdocEcdsaKey>(
+    pub fn new<K: CredentialEcdsaKey>(
+        private_key_id: String,
+        jwt: Jwt<JwtCredentialClaims>,
+        pubkey: &VerifyingKey,
+    ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
+        let claims = jwt.parse_and_verify(&pubkey.into(), &validations())?;
+
+        let cred = Self {
+            private_key_id,
+            key_type: K::KEY_TYPE,
+            jwt,
+        };
+
+        Ok((cred, claims))
+    }
+
+    pub fn new_verify_against_trust_anchors<K: CredentialEcdsaKey>(
         private_key_id: String,
         jwt: Jwt<JwtCredentialClaims>,
         trust_anchors: &[TrustAnchor],
@@ -102,6 +108,15 @@ impl JwtCredential {
         Ok((cred, claims))
     }
 
+    #[cfg(feature = "test")]
+    pub fn new_unverified<K: CredentialEcdsaKey>(private_key_id: String, jwt: Jwt<JwtCredentialClaims>) -> Self {
+        Self {
+            private_key_id,
+            key_type: K::KEY_TYPE,
+            jwt,
+        }
+    }
+
     pub fn jwt_claims(&self) -> JwtCredentialClaims {
         // Unwrapping is safe here because this was checked in new()
         let (_, contents) = self.jwt.dangerous_parse_unverified().unwrap();
@@ -109,160 +124,18 @@ impl JwtCredential {
     }
 }
 
-/// Claims of a [`JwtCredential`]: the body of the JWT.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialClaims {
-    pub cnf: JwtCredentialCnf,
+pub fn compare_jwt_attributes(
+    cred: &JwtCredentialContents,
+    other: &JwtCredentialContents,
+) -> Result<(), IssuedAttributesMismatch<String>> {
+    let missing = map_difference(&other.attributes, &cred.attributes);
+    let unexpected = map_difference(&cred.attributes, &other.attributes);
 
-    #[serde(flatten)]
-    pub contents: JwtCredentialContents,
-}
-
-/// Contents of a [`JwtCredential`], containing everything of the [`JwtCredentialClaims`] except the holder public
-/// key ([`Cnf`]): the attributes and metadata of the credential.
-#[skip_serializing_none]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialContents {
-    pub iss: String,
-
-    #[serde(flatten)]
-    pub attributes: IndexMap<String, serde_json::Value>,
-}
-
-/// Contains the holder public key of a [`JwtCredential`].
-/// ("Cnf" stands for "confirmation", see https://datatracker.ietf.org/doc/html/rfc7800.)
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialCnf {
-    pub jwk: Jwk,
-}
-
-impl JwtCredentialContents {
-    pub fn compare_attributes(&self, other: &JwtCredentialContents) -> Result<(), IssuedAttributesMismatch<String>> {
-        let missing = map_difference(&other.attributes, &self.attributes);
-        let unexpected = map_difference(&self.attributes, &other.attributes);
-
-        if !missing.is_empty() || !unexpected.is_empty() {
-            return Err(IssuedAttributesMismatch { missing, unexpected });
-        }
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(pd)]
-pub enum JwkConversionError {
-    #[error("unsupported JWK EC curve: expected P256, found {found:?}")]
-    #[category(critical)]
-    UnsupportedJwkEcCurve { found: EllipticCurve },
-    #[error("unsupported JWK algorithm")]
-    #[category(critical)]
-    UnsupportedJwkAlgorithm,
-    #[error("base64 decoding failed: {0}")]
-    Base64Error(#[from] base64::DecodeError),
-    #[error("failed to construct verifying key: {0}")]
-    VerifyingKeyConstruction(#[from] signature::Error),
-    #[error("missing coordinate in conversion to P256 public key")]
-    #[category(critical)]
-    MissingCoordinate,
-    #[error("failed to get public key: {0}")]
-    VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
-}
-
-pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
-    let point = value.to_encoded_point(false);
-    let jwk = Jwk {
-        common: Default::default(),
-        algorithm: jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
-            key_type: jwk::EllipticCurveKeyType::EC,
-            curve: jwk::EllipticCurve::P256,
-            x: BASE64_URL_SAFE_NO_PAD.encode(point.x().ok_or(JwkConversionError::MissingCoordinate)?),
-            y: BASE64_URL_SAFE_NO_PAD.encode(point.y().ok_or(JwkConversionError::MissingCoordinate)?),
-        }),
-    };
-    Ok(jwk)
-}
-
-pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
-    let ec_params = match value.algorithm {
-        jwk::AlgorithmParameters::EllipticCurve(ref params) => Ok(params),
-        _ => Err(JwkConversionError::UnsupportedJwkAlgorithm),
-    }?;
-    if !matches!(ec_params.curve, EllipticCurve::P256) {
-        return Err(JwkConversionError::UnsupportedJwkEcCurve {
-            found: ec_params.curve.clone(),
-        });
+    if !missing.is_empty() || !unexpected.is_empty() {
+        return Err(IssuedAttributesMismatch { missing, unexpected });
     }
 
-    let key = VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
-        BASE64_URL_SAFE_NO_PAD.decode(&ec_params.x)?.as_slice().into(),
-        BASE64_URL_SAFE_NO_PAD.decode(&ec_params.y)?.as_slice().into(),
-        false,
-    ))?;
-    Ok(key)
-}
-
-pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, JwkConversionError> {
-    let header = Header {
-        typ: Some(typ.to_string()),
-        alg: Algorithm::ES256,
-        jwk: Some(jwk_from_p256(
-            &key.verifying_key()
-                .await
-                .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
-        )?),
-        ..Default::default()
-    };
-    Ok(header)
-}
-
-/// Bulk-sign the keys and JWT payloads into JWTs.
-pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
-    keys_and_messages: Vec<(K, (T, jsonwebtoken::Header))>,
-    key_factory: &impl KeyFactory<Key = K>,
-) -> Result<Vec<(K, Jwt<T>)>, JwtError> {
-    let (keys, to_sign): (Vec<_>, Vec<_>) = keys_and_messages.into_iter().unzip();
-
-    // Construct a Vec containing the strings to be signed with the private keys, i.e. schematically "header.body"
-    let messages = to_sign
-        .iter()
-        .map(|(message, header)| {
-            Ok([
-                BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?),
-                BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(message)?),
-            ]
-            .join("."))
-        })
-        .collect::<Result<Vec<_>, JwtError>>()?;
-
-    // Have the WP sign our messages.
-    let signatures = key_factory
-        .sign_multiple_with_existing_keys(
-            messages
-                .iter()
-                .map(|msg| msg.clone().into_bytes())
-                .zip(keys.iter().map(|key| vec![key]))
-                .collect_vec(),
-        )
-        .await
-        .map_err(|err| JwtError::Signing(Box::new(err)))?;
-
-    // For each received key-signature pair, we use the key to lookup the appropriate message
-    // from the map constructed above and create the JWT.
-    let jwts = signatures
-        .into_iter()
-        .zip(keys)
-        .zip(messages)
-        .map(|((sigs, key), msg)| {
-            // The WP will respond only with the keys we fed it above, so we can unwrap
-            let jwt = [msg, BASE64_URL_SAFE_NO_PAD.encode(sigs.first().unwrap().to_vec())]
-                .join(".")
-                .into();
-            (key, jwt)
-        })
-        .collect();
-
-    Ok(jwts)
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -352,32 +225,19 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use futures::StreamExt;
-    use indexmap::IndexMap;
-    use jsonwebtoken::{Algorithm, Header};
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
-    use serde::{Deserialize, Serialize};
     use serde_json::json;
 
-    use nl_wallet_mdoc::{
-        server_keys::KeyPair,
-        software_key_factory::SoftwareKeyFactory,
-        utils::{
-            keys::{KeyFactory, MdocEcdsaKey},
-            x509::CertificateError,
-        },
-    };
     use wallet_common::{
         generator::TimeGenerator,
-        jwt::{validations, EcdsaDecodingKey, Jwt},
+        jwt::JwtCredentialClaims,
         keys::{software::SoftwareEcdsaKey, EcdsaKey, StoredByIdentifier},
     };
 
-    use crate::jwt::{
-        sign_with_certificate, JwtCredential, JwtCredentialClaims, JwtCredentialCnf, JwtCredentialContents, JwtX5cError,
-    };
+    use nl_wallet_mdoc::{server_keys::KeyPair, utils::x509::CertificateError};
 
-    use super::{jwk_from_p256, jwk_to_p256, verify_against_trust_anchors};
+    use crate::jwt::{sign_with_certificate, JwtCredential, JwtX5cError};
+
+    use super::verify_against_trust_anchors;
 
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
@@ -420,56 +280,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn jwk_p256_key_conversion() {
-        let private_key = SigningKey::random(&mut OsRng);
-        let verifying_key = private_key.verifying_key();
-        let jwk = jwk_from_p256(verifying_key).unwrap();
-        let converted = jwk_to_p256(&jwk).unwrap();
-
-        assert_eq!(*verifying_key, converted);
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    struct ToyMessage {
-        count: usize,
-    }
-
-    #[tokio::test]
-    async fn test_sign_jwts() {
-        bulk_jwt_sign(&SoftwareKeyFactory::default()).await;
-    }
-
-    fn json_header() -> jsonwebtoken::Header {
-        jsonwebtoken::Header {
-            alg: jsonwebtoken::Algorithm::ES256,
-            ..Default::default()
-        }
-    }
-
-    pub async fn bulk_jwt_sign<K: MdocEcdsaKey>(key_factory: &impl KeyFactory<Key = K>) {
-        // Generate keys to sign with and messages to sign
-        let keys = key_factory.generate_new_multiple(4).await.unwrap();
-        let keys_and_messages = keys
-            .into_iter()
-            .enumerate()
-            .map(|(count, key)| (key, (ToyMessage { count }, json_header())))
-            .collect();
-
-        let jwts = super::sign_jwts(keys_and_messages, key_factory).await.unwrap();
-
-        // Verify JWTs
-        futures::stream::iter(jwts) // convert to stream which supports async for_each closures
-            .for_each(|(key, jwt)| async move {
-                jwt.parse_and_verify(
-                    &EcdsaDecodingKey::from(&key.verifying_key().await.unwrap()),
-                    &validations(),
-                )
-                .unwrap();
-            })
-            .await;
-    }
-
     #[tokio::test]
     async fn test_jwt_credential() {
         let holder_key_id = "key";
@@ -477,29 +287,26 @@ mod tests {
         let issuer_keypair = KeyPair::generate_issuer_mock_ca().unwrap();
 
         // Produce a JWT with `JwtCredentialClaims` in it
-        let claims = JwtCredentialClaims {
-            cnf: JwtCredentialCnf {
-                jwk: jwk_from_p256(&holder_keypair.verifying_key().await.unwrap()).unwrap(),
-            },
-            contents: JwtCredentialContents {
-                iss: issuer_keypair
-                    .certificate()
-                    .common_names()
-                    .unwrap()
-                    .first()
-                    .unwrap()
-                    .to_string(),
-                attributes: IndexMap::default(),
-            },
-        };
-        let jwt = Jwt::sign(&claims, &Header::new(Algorithm::ES256), issuer_keypair.private_key())
-            .await
-            .unwrap();
+        let jwt = JwtCredentialClaims::new_signed(
+            &holder_keypair.verifying_key().await.unwrap(),
+            issuer_keypair.private_key(),
+            issuer_keypair
+                .certificate()
+                .common_names()
+                .unwrap()
+                .first()
+                .unwrap()
+                .to_string(),
+            None,
+            Default::default(),
+        )
+        .await
+        .unwrap();
 
         let (cred, claims) = JwtCredential::new::<SoftwareEcdsaKey>(
             holder_key_id.to_string(),
             jwt,
-            &[issuer_keypair.certificate().try_into().unwrap()],
+            &issuer_keypair.certificate().public_key().unwrap(),
         )
         .unwrap();
 

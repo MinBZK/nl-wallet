@@ -1,28 +1,11 @@
 use std::error::Error;
 
 use p256::ecdsa::{Signature, VerifyingKey};
-use serde::{Deserialize, Serialize};
 
-use wallet_common::keys::{SecureEcdsaKey, WithIdentifier};
-
-/// Contract for ECDSA private keys suitable for mdoc attestations.
-/// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
-pub trait MdocEcdsaKey: SecureEcdsaKey + WithIdentifier {
-    const KEY_TYPE: CredentialKeyType;
-
-    // from WithIdentifier: identifier()
-    // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum CredentialKeyType {
-    #[cfg(any(test, feature = "software_keys"))]
-    Software,
-    Remote,
-}
+use super::CredentialEcdsaKey;
 
 pub trait KeyFactory {
-    type Key: MdocEcdsaKey;
+    type Key: CredentialEcdsaKey;
     type Error: Error + Send + Sync + 'static;
 
     async fn generate_new(&self) -> Result<Self::Key, Self::Error> {
@@ -46,13 +29,11 @@ pub trait KeyFactory {
 
 #[cfg(any(test, feature = "software_keys"))]
 mod software {
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use crate::keys::{software::SoftwareEcdsaKey, CredentialKeyType};
 
-    use crate::utils::keys::CredentialKeyType;
+    use super::CredentialEcdsaKey;
 
-    use super::MdocEcdsaKey;
-
-    impl MdocEcdsaKey for SoftwareEcdsaKey {
+    impl CredentialEcdsaKey for SoftwareEcdsaKey {
         const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;
     }
 }

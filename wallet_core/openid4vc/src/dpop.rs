@@ -54,15 +54,12 @@ use url::Url;
 
 use error_category::ErrorCategory;
 use wallet_common::{
-    jwt::{EcdsaDecodingKey, Jwt, JwtError},
+    jwt::{jwk_jwt_header, jwk_to_p256, EcdsaDecodingKey, JwkConversionError, Jwt, JwtError},
     keys::EcdsaKey,
     utils::random_string,
 };
 
-use crate::{
-    jwt::{jwk_jwt_header, jwk_to_p256, JwkConversionError},
-    token::AccessToken,
-};
+use crate::token::AccessToken;
 
 pub const DPOP_HEADER_NAME: &str = "DPoP";
 pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";

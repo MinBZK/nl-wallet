@@ -110,7 +110,7 @@ impl From<MdocDisclosureError> for DisclosureError {
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
 where
     CR: ConfigurationRepository,
     MDS: MdocDisclosureSession<Self>,
@@ -320,6 +320,7 @@ where
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Accepting disclosure");
 
@@ -460,7 +461,7 @@ where
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> MdocDataSource for Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
 {

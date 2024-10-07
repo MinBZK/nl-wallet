@@ -3,13 +3,14 @@ use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
 use indexmap::IndexMap;
 use p256::{PublicKey, SecretKey};
 
+use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
+
 use crate::{
     errors::Result,
     iso::*,
     utils::{
         cose::{sign_coses, ClonePayload},
         crypto::dh_hmac_key,
-        keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_serialize, TaggedBytes},
     },
 };
@@ -20,7 +21,7 @@ impl DeviceSigned {
         key_factory: &KF,
     ) -> Result<Vec<DeviceSigned>>
     where
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
         KF: KeyFactory<Key = K>,
     {
         let coses = sign_coses(keys_and_challenges, key_factory, Header::default(), false).await?;
@@ -69,8 +70,10 @@ impl DeviceSigned {
 mod tests {
     use p256::SecretKey;
 
+    use wallet_common::keys::examples::Examples;
+
     use crate::{
-        examples::{Example, Examples, IsoCertTimeGenerator},
+        examples::{Example, IsoCertTimeGenerator},
         holder::Mdoc,
         DeviceAuthenticationBytes, DeviceSigned, Document,
     };

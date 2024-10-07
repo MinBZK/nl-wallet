@@ -29,6 +29,7 @@ use crate::{
     issuance::HttpDigidSession,
     lock::WalletLock,
     storage::{DatabaseStorage, RegistrationData},
+    wte::WpWteIssuanceClient,
 };
 
 pub use self::{
@@ -61,6 +62,7 @@ pub struct Wallet<
     DS = HttpDigidSession,                        // DigidSession
     IC = HttpIssuanceSession,                     // IssuanceSession
     MDS = DisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
+    WIC = WpWteIssuanceClient,                    // WteIssuanceClient
 > {
     config_repository: CR,
     storage: RwLock<S>,
@@ -71,4 +73,5 @@ pub struct Wallet<
     registration: Option<WalletRegistration<PEK>>,
     documents_callback: Option<DocumentsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,
+    wte_issuance_client: WIC,
 }
