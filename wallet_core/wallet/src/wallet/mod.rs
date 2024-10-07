@@ -1,8 +1,10 @@
+mod change_pin;
 mod config;
 mod disclosure;
 mod documents;
 mod history;
 mod init;
+mod instruction_client;
 mod issuance;
 mod lock;
 mod registration;
