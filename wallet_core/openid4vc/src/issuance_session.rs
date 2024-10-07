@@ -19,7 +19,6 @@ use nl_wallet_mdoc::{
     holder::{IssuedAttributesMismatch, Mdoc, TrustAnchor},
     utils::{
         cose::CoseError,
-        keys::{KeyFactory, MdocEcdsaKey},
         serialization::{CborBase64, CborError, TaggedBytes},
         x509::CertificateError,
     },
@@ -27,7 +26,8 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
-    jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError},
+    jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError, JwtPopClaims},
+    keys::{factory::KeyFactory, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -35,7 +35,7 @@ use wallet_common::{
 use crate::{
     credential::{
         CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
-        CredentialResponses, JwtPopClaims, MdocCopies, WteDisclosure,
+        CredentialResponses, MdocCopies, WteDisclosure,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},
@@ -267,7 +267,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     where
         Self: Sized;
 
-    async fn accept_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
@@ -569,7 +569,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok((issuance_client, credential_previews))
     }
 
-    async fn accept_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
@@ -759,7 +759,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
 impl CredentialResponse {
     /// Create a credential out of the credential response. Also verifies the credential.
-    fn into_credential<K: MdocEcdsaKey>(
+    fn into_credential<K: CredentialEcdsaKey>(
         self,
         key_id: String,
         verifying_key: &VerifyingKey,
@@ -898,7 +898,6 @@ mod tests {
 
     use nl_wallet_mdoc::{
         server_keys::KeyPair,
-        software_key_factory::SoftwareKeyFactory,
         test::data,
         unsigned::UnsignedMdoc,
         utils::{
@@ -910,7 +909,7 @@ mod tests {
     };
     use wallet_common::{
         jwt::JwtCredentialClaims,
-        keys::{software::SoftwareEcdsaKey, EcdsaKey},
+        keys::{factory::KeyFactory, software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory, EcdsaKey},
         nonempty::NonEmpty,
     };
 

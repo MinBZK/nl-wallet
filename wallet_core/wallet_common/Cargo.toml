@@ -15,11 +15,15 @@ doctest = false
 allow_insecure_url = []
 # Include implementations of the axum IntoResponse trait.
 axum = ["dep:axum", "dep:tower-http"]
+# Include examples from the ISO specification
+examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
 software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
+# Include SoftwareEcdsaKey implementation of KeyFactory
+software_key_factory = ["software_keys"]
 # Enable helper code for integration tests
 integration_test = []
 # Enable sentry feature
@@ -28,7 +32,7 @@ sentry = ["dep:sentry", "error_category/sentry"]
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 base64.workspace = true
-chrono = { workspace = true, features = ["std", "clock"] }
+chrono = { workspace = true, features = ["std", "clock", "serde"] }
 config.workspace = true
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
@@ -54,7 +58,10 @@ trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
 
+anyhow = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
+hex = { workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
@@ -63,8 +70,12 @@ tower-http = { workspace = true, optional = true, features = ["cors"] }
 error_category.path = "../error_category"
 
 [dev-dependencies]
+anyhow = { workspace = true }
 assert_matches.workspace = true
 aes-gcm = { workspace = true, features = ["std"] }
+hex = { workspace = true }
+hex-literal = { workspace = true }
+parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 sentry = { workspace = true, features = ["test"] }

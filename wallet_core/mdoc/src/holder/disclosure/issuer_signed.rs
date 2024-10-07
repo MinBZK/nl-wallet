@@ -16,7 +16,9 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
-    use crate::{examples::Examples, holder::Mdoc};
+    use wallet_common::keys::examples::Examples;
+
+    use crate::holder::Mdoc;
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {

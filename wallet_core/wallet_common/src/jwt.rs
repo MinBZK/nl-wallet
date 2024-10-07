@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, str::FromStr, sync::LazyLock};
 
 use base64::prelude::*;
+use chrono::{serde::ts_seconds, DateTime, Utc};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::{
@@ -23,7 +24,7 @@ use error_category::ErrorCategory;
 
 use crate::{
     account::serialization::DerVerifyingKey,
-    keys::{EcdsaKey, SecureEcdsaKey},
+    keys::{factory::KeyFactory, CredentialEcdsaKey, EcdsaKey, SecureEcdsaKey},
 };
 
 /// JWT type, generic over its contents.
@@ -192,6 +193,53 @@ where
 
         Ok([message, encoded_signature].join(".").into())
     }
+
+    /// Bulk-sign the keys and JWT payloads into JWTs.
+    pub async fn sign_bulk<K: CredentialEcdsaKey>(
+        keys_and_messages: Vec<(K, (T, jsonwebtoken::Header))>,
+        key_factory: &impl KeyFactory<Key = K>,
+    ) -> Result<Vec<(K, Jwt<T>)>, JwtError> {
+        let (keys, to_sign): (Vec<_>, Vec<_>) = keys_and_messages.into_iter().unzip();
+
+        // Construct a Vec containing the strings to be signed with the private keys, i.e. schematically "header.body"
+        let messages = to_sign
+            .iter()
+            .map(|(message, header)| {
+                Ok([
+                    BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?),
+                    BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(message)?),
+                ]
+                .join("."))
+            })
+            .collect::<Result<Vec<_>, JwtError>>()?;
+
+        // Have the WP sign our messages.
+        let signatures = key_factory
+            .sign_multiple_with_existing_keys(
+                messages
+                    .iter()
+                    .map(|msg| msg.clone().into_bytes())
+                    .zip(keys.iter().map(|key| vec![key]))
+                    .collect_vec(),
+            )
+            .await
+            .map_err(|err| JwtError::Signing(Box::new(err)))?;
+
+        let jwts = signatures
+            .into_iter()
+            .zip(keys)
+            .zip(messages)
+            .map(|((sigs, key), msg)| {
+                // unwrap: we sent `vec![key]` above, i.e. a single key, so we will get a single signature back
+                let jwt = [msg, BASE64_URL_SAFE_NO_PAD.encode(sigs.first().unwrap().to_vec())]
+                    .join(".")
+                    .into();
+                (key, jwt)
+            })
+            .collect();
+
+        Ok(jwts)
+    }
 }
 
 pub fn validations() -> Validation {
@@ -320,6 +368,28 @@ pub struct JwtCredentialConfirmation {
     pub jwk: Jwk,
 }
 
+/// JWT claims of a PoP (Proof of Possession). Used a.o. as a JWT proof in a Credential Request
+/// (<https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2.1.1>).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct JwtPopClaims {
+    pub iss: String,
+    pub aud: String,
+    pub nonce: Option<String>,
+    #[serde(with = "ts_seconds")]
+    pub iat: DateTime<Utc>,
+}
+
+impl JwtPopClaims {
+    pub fn new(nonce: Option<String>, iss: String, aud: String) -> Self {
+        Self {
+            nonce,
+            iss,
+            aud,
+            iat: Utc::now(),
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
 pub enum JwkConversionError {
@@ -391,8 +461,11 @@ pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, Jw
 mod tests {
     use std::collections::HashMap;
 
+    use futures::StreamExt;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+
+    use crate::keys::software_key_factory::SoftwareKeyFactory;
 
     use super::*;
 
@@ -492,5 +565,44 @@ mod tests {
         let converted = jwk_to_p256(&jwk).unwrap();
 
         assert_eq!(*verifying_key, converted);
+    }
+
+    #[tokio::test]
+    async fn test_sign_jwts() {
+        bulk_jwt_sign(&SoftwareKeyFactory::default()).await;
+    }
+
+    pub async fn bulk_jwt_sign<K: CredentialEcdsaKey>(key_factory: &impl KeyFactory<Key = K>) {
+        // Generate keys to sign with and messages to sign
+        let keys = key_factory.generate_new_multiple(4).await.unwrap();
+        let keys_and_messages = keys
+            .into_iter()
+            .enumerate()
+            .map(|(number, key)| {
+                (
+                    key,
+                    (
+                        ToyMessage {
+                            number: number as u8,
+                            ..Default::default()
+                        },
+                        Header::new(Algorithm::ES256),
+                    ),
+                )
+            })
+            .collect();
+
+        let jwts = Jwt::sign_bulk(keys_and_messages, key_factory).await.unwrap();
+
+        // Verify JWTs. (futures::stream supports async for_each closures.)
+        futures::stream::iter(jwts)
+            .for_each(|(key, jwt)| async move {
+                jwt.parse_and_verify(
+                    &EcdsaDecodingKey::from(&key.verifying_key().await.unwrap()),
+                    &validations(),
+                )
+                .unwrap();
+            })
+            .await;
     }
 }

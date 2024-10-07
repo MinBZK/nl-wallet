@@ -2,11 +2,10 @@ use std::iter;
 
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 
-use nl_wallet_mdoc::utils::keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign},
-    keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier},
+    keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType, EcdsaKey, SecureEcdsaKey, WithIdentifier},
     utils::random_string,
 };
 
@@ -174,7 +173,7 @@ where
 {
 }
 
-impl<S, K, A> MdocEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
+impl<S, K, A> CredentialEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
     S: Storage,
     K: PlatformEcdsaKey,

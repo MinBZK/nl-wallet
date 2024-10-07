@@ -4,14 +4,17 @@ use openid4vc::{
     oidc::HttpOidcClient,
 };
 
-use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
+use nl_wallet_mdoc::holder::TrustAnchor;
 use tests_integration::{common::*, fake_digid::fake_digid_auth};
 use wallet::{
     mock::default_configuration,
     wallet_common::WalletConfiguration,
     wallet_deps::{DigidSession, HttpDigidSession},
 };
-use wallet_common::urls::{self, DEFAULT_UNIVERSAL_LINK_BASE};
+use wallet_common::{
+    keys::software_key_factory::SoftwareKeyFactory,
+    urls::{self, DEFAULT_UNIVERSAL_LINK_BASE},
+};
 use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP

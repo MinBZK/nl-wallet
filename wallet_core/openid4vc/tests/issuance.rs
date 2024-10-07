@@ -9,7 +9,6 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_keys::{test::SingleKeyRing, KeyPair},
-    software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
     utils::{issuer_auth::IssuerRegistration, x509::Certificate},
     Tdate,
@@ -30,7 +29,9 @@ use openid4vc::{
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
-use wallet_common::{jwt::JwtCredentialContents, nonempty::NonEmpty, urls::BaseUrl};
+use wallet_common::{
+    jwt::JwtCredentialContents, keys::software_key_factory::SoftwareKeyFactory, nonempty::NonEmpty, urls::BaseUrl,
+};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 

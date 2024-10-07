@@ -180,11 +180,11 @@ uuid = { workspace = true, optional = true }
 
 configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
-nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "software_key_factory", "test"] }
+nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
 platform_support = { path = "../platform_support", optional = true, features = ["software"] }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "env_config", "test"] }
-wallet_common = { path = "../wallet_common", optional = true }
+wallet_common = { path = "../wallet_common", optional = true, features = ["software_key_factory"] }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_server = { path = "../wallet_server", optional = true, features = ["issuance", "disclosure", "mock"] }
