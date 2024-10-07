@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-09-16T17:42:12+02:00",
+    "@@last_modified": "2024-10-07T09:43:45+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -584,7 +584,7 @@
     "historyDetailScreenTitleForIssuance": "{card} kaart aangemaakt",
     "historyDetailScreenTitleForLogin": "Ingelogd bij {organization}",
     "historyOverviewScreenTitle": "Activiteiten",
-    "introductionConditionsScreenBulletPoints": "Je kunt op elke moment stoppen.\nJe houdt je pincode voor jezelf.\nJe bepaalt zelf met wie je deelt.",
+    "introductionConditionsScreenBulletPoints": "Je kunt op elk moment stoppen.\nJe houdt je pincode voor jezelf.\nJe bepaalt zelf met wie je deelt.",
     "introductionConditionsScreenHeadline": "Vergeet dit niet",
     "introductionConditionsScreenNextCta": "Begrepen",
     "introductionNextPageCta": "Volgende",
@@ -763,6 +763,7 @@
         }
     },
     "organizationApprovePageMoreInfoCta": "Bekijk details",
+    "organizationApprovePageMoreInfoLoginCta": "Bekijk welke gegevens jij deelt",
     "organizationApprovePageShareWithApproveCta": "Ja, verder",
     "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationButtonLabel": "Over deze organisatie",
