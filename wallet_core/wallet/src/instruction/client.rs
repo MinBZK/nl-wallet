@@ -34,7 +34,7 @@ where
 {
     /// Creates an [`InstructionClient`].
     /// In most cases this function should not be used directly, as the wallet must try to finalize
-    /// a PIN change if it is in progress. [`Wallet::get_instruction_client`] will do this before
+    /// a PIN change if it is in progress. [`Wallet::new_instruction_client`] will do this before
     /// returning the [`InstructionClient`] and so is the recommended way to obtain an [`InstructionClient`].
     pub fn new(
         pin: String,

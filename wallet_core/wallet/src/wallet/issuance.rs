@@ -276,7 +276,7 @@ where
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
         let remote_instruction = self
-            .get_instruction_client(
+            .new_instruction_client(
                 pin,
                 registration,
                 &config.account_server.base_url,

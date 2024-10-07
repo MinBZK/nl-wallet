@@ -18,7 +18,7 @@ where
     /// Construct an [`InstructionClient`] for this [`Wallet`].
     /// This is the recommended way to obtain an [`InstructionClient`], because this function
     /// will try to finalize any unfinished PIN change process.
-    pub(super) async fn get_instruction_client<'a>(
+    pub(super) async fn new_instruction_client<'a>(
         &'a self,
         pin: String,
         registration: &'a WalletRegistration<PEK>,
