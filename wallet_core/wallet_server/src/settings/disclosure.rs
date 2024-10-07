@@ -21,19 +21,11 @@ const MIN_KEY_LENGTH_BYTES: usize = 16;
 pub struct Verifier {
     pub reader_trust_anchors: Option<Vec<Certificate>>,
     pub usecases: VerifierUseCases,
-    #[serde(alias = "trust_anchors")] // TODO: remove alias after notifying RPs
+    #[serde(alias = "trust_anchors")] // TODO: introduced for backwards compatibility, remove alias after notifying RPs
     pub issuer_trust_anchors: Vec<DerTrustAnchor>,
     #[serde_as(as = "Hex")]
     pub ephemeral_id_secret: EhpemeralIdSecret,
     pub allow_origins: Option<CorsOrigin>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum VerifierConfigurationError {
-    #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
-    #[error("")]
-    MissingReaderRegistration,
 }
 
 impl Verifier {
@@ -51,12 +43,7 @@ impl Verifier {
         let certificates: Vec<(String, Certificate)> = self
             .usecases
             .iter()
-            .map(|(use_case_id, usecase)| {
-                (
-                    use_case_id.clone(),
-                    Certificate::from(usecase.key_pair.certificate.clone()),
-                )
-            })
+            .map(|(use_case_id, usecase)| (use_case_id.clone(), usecase.key_pair.certificate.clone().into()))
             .collect();
 
         verify_certificates(
