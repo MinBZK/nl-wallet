@@ -274,7 +274,7 @@ impl Settings {
         Ok(config)
     }
 
-    pub fn verify_certificates(&self) -> Result<(), CertificateVerificationError> {
+    pub fn verify_key_pairs(&self) -> Result<(), CertificateVerificationError> {
         #[cfg(feature = "disclosure")]
         {
             tracing::debug!("Verifying verifier.usecases certificates");
