@@ -21,7 +21,7 @@ use axum::{routing::get, Router};
 use http::{header, HeaderValue};
 use tokio::net::TcpListener;
 use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
-use tracing::{debug, level_filters::LevelFilter};
+use tracing::{debug, error, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
 use crate::{
@@ -162,6 +162,12 @@ pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
         builder.json().init();
     } else {
         builder.init();
+    }
+
+    // Verify the settings here, now that we've setup tracing.
+    if let Err(error) = settings.verify_certificates() {
+        error!("certificate verification failed: {error}");
+        return Err(error.into());
     }
 
     // Retain [`ClientInitGuard`]

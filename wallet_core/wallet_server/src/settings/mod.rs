@@ -263,39 +263,42 @@ impl Settings {
             .build()?
             .try_deserialize()?;
 
+        Ok(config)
+    }
+
+    pub fn verify_certificates(&self) -> Result<(), CertificateVerificationError> {
         #[cfg(feature = "disclosure")]
-        config.verifier.verify_all().expect("invalid verifier configuration");
+        {
+            tracing::info!("Verifying verifier.usecases certificates");
+            self.verifier.verify_all()?;
+        }
 
         #[cfg(all(feature = "issuance", feature = "disclosure"))]
         {
-            let trust_anchors = config
+            tracing::info!("Verifying issuer.private_keys certificates");
+            let trust_anchors = self
                 .verifier
                 .issuer_trust_anchors
                 .iter()
                 .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
                 .collect::<Vec<_>>();
-            config
-                .issuer
-                .verify_all(&trust_anchors)
-                .expect("invalid issuer configuration");
+            self.issuer.verify_all(&trust_anchors)?;
         }
 
         #[cfg(all(feature = "issuance", not(feature = "disclosure")))]
         {
-            let trust_anchors = config
+            tracing::info!("Verifying issuer.private_keys certificates");
+            let trust_anchors = self
                 .issuer
                 .issuer_trust_anchors
                 .iter()
                 .flatten()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>, _>>()
-                .expect("invalid certificate in issuer_trust_anchors");
-            config
-                .issuer
-                .verify_all(&trust_anchors)
-                .expect("invalid issuer configuration");
+                .map_err(CertificateVerificationError::InvalidTrustAnchor)?;
+            self.issuer.verify_all(&trust_anchors)?;
         }
 
-        Ok(config)
+        Ok(())
     }
 }
