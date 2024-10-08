@@ -39,14 +39,14 @@ impl Issuer {
     pub fn verify_all<'a>(&'a self, trust_anchors: &[TrustAnchor<'a>]) -> Result<(), CertificateVerificationError> {
         let time = TimeGenerator;
 
-        let certificates: Vec<(String, Certificate)> = self
+        let key_pairs: Vec<(String, KeyPair)> = self
             .private_keys
             .iter()
-            .map(|(id, keypair)| (id.clone(), Certificate::from(keypair.certificate.clone())))
+            .map(|(id, keypair)| (id.clone(), keypair.clone()))
             .collect();
 
-        verify_certificates(
-            &certificates,
+        verify_key_pairs(
+            &key_pairs,
             trust_anchors,
             CertificateUsage::Mdl,
             &time,

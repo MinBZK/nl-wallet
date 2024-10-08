@@ -40,14 +40,14 @@ impl Verifier {
             .collect::<Result<Vec<_>, _>>()
             .map_err(CertificateVerificationError::InvalidTrustAnchor)?;
 
-        let certificates: Vec<(String, Certificate)> = self
+        let key_pairs: Vec<(String, KeyPair)> = self
             .usecases
             .iter()
-            .map(|(use_case_id, usecase)| (use_case_id.clone(), usecase.key_pair.certificate.clone().into()))
+            .map(|(use_case_id, usecase)| (use_case_id.clone(), usecase.key_pair.clone()))
             .collect();
 
-        verify_certificates(
-            &certificates,
+        verify_key_pairs(
+            &key_pairs,
             &trust_anchors,
             CertificateUsage::ReaderAuth,
             &time,

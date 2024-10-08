@@ -147,16 +147,18 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
 pub enum CertificateVerificationError {
     #[error("invalid trust anchor: {0}")]
     InvalidTrustAnchor(#[source] CertificateError),
-    #[error("invalid certificate {1}: {0}")]
+    #[error("invalid certificate `{1}`: {0}")]
     InvalidCertificate(#[source] CertificateError, String),
-    #[error("no CertificateType found in certificate {1}: {0}")]
+    #[error("invalid key pair `{1}`: {0}")]
+    InvalidKeyPair(#[source] KeyPairError, String),
+    #[error("no CertificateType found in certificate `{1}`: {0}")]
     NoCertificateType(#[source] CertificateError, String),
-    #[error("certificate {0} is missing CertificateType registration data")]
+    #[error("certificate `{0}` is missing CertificateType registration data")]
     IncompleteCertificateType(String),
 }
 
-pub fn verify_certificates<F>(
-    certificates: &[(String, Certificate)],
+pub fn verify_key_pairs<F>(
+    key_pairs: &[(String, KeyPair)],
     trust_anchors: &[TrustAnchor<'_>],
     usage: CertificateUsage,
     time: &impl Generator<DateTime<Utc>>,
@@ -169,21 +171,27 @@ where
         tracing::warn!("no trust anchors found; certificate chains are not verified");
     }
 
-    for (certificate_id, certificate) in certificates {
-        tracing::debug!("verifying certificate of {certificate_id}");
+    for (key_pair_id, key_pair) in key_pairs {
+        tracing::debug!("verifying certificate of {key_pair_id}");
+
+        let key_pair: nl_wallet_mdoc::server_keys::KeyPair = key_pair
+            .try_into()
+            .map_err(|error| CertificateVerificationError::InvalidKeyPair(error, key_pair_id.clone()))?;
+
+        let certificate = key_pair.certificate();
 
         if !trust_anchors.is_empty() {
             certificate
                 .verify(usage, &[], time, trust_anchors)
-                .map_err(|e| CertificateVerificationError::InvalidCertificate(e, certificate_id.clone()))?;
+                .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.clone()))?;
         }
 
         let certificate_type = CertificateType::from_certificate(certificate)
-            .map_err(|e| CertificateVerificationError::NoCertificateType(e, certificate_id.clone()))?;
+            .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.clone()))?;
 
         if !has_usage_registration(certificate_type) {
             return Err(CertificateVerificationError::IncompleteCertificateType(
-                certificate_id.clone(),
+                key_pair_id.clone(),
             ));
         }
     }
@@ -269,13 +277,13 @@ impl Settings {
     pub fn verify_certificates(&self) -> Result<(), CertificateVerificationError> {
         #[cfg(feature = "disclosure")]
         {
-            tracing::info!("Verifying verifier.usecases certificates");
+            tracing::debug!("Verifying verifier.usecases certificates");
             self.verifier.verify_all()?;
         }
 
         #[cfg(all(feature = "issuance", feature = "disclosure"))]
         {
-            tracing::info!("Verifying issuer.private_keys certificates");
+            tracing::debug!("Verifying issuer.private_keys certificates");
             let trust_anchors = self
                 .verifier
                 .issuer_trust_anchors
@@ -287,7 +295,7 @@ impl Settings {
 
         #[cfg(all(feature = "issuance", not(feature = "disclosure")))]
         {
-            tracing::info!("Verifying issuer.private_keys certificates");
+            tracing::debug!("Verifying issuer.private_keys certificates");
             let trust_anchors = self
                 .issuer
                 .issuer_trust_anchors

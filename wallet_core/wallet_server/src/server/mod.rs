@@ -166,7 +166,7 @@ pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
 
     // Verify the settings here, now that we've setup tracing.
     if let Err(error) = settings.verify_certificates() {
-        error!("certificate verification failed: {error}");
+        error!("invalid certificate configuration: {error}");
         return Err(error.into());
     }
 
