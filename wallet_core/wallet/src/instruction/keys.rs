@@ -4,7 +4,7 @@ use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::messages::instructions::{GenerateKey, GenerateKeyResult, NewPoa, Sign},
+    account::messages::instructions::{GenerateKey, GenerateKeyResult, ConstructPoa, Sign},
     keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType, EcdsaKey, SecureEcdsaKey, WithIdentifier},
     utils::random_string,
 };
@@ -133,7 +133,7 @@ where
     ) -> Result<wallet_common::keys::poa::Poa, Self::Error> {
         let poa = self
             .instruction_client
-            .send(NewPoa {
+            .send(ConstructPoa {
                 key_identifiers: keys.into_iter().map(|key| key.identifier.clone()).collect(),
                 aud,
                 nonce,

@@ -8,8 +8,8 @@ use uuid::Uuid;
 use wallet_common::{
     account::{
         messages::instructions::{
-            ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult, IssueWte,
-            IssueWteResult, NewPoa, NewPoaResult, Sign, SignResult,
+            ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, ConstructPoa, ConstructPoaResult,
+            GenerateKey, GenerateKeyResult, IssueWte, IssueWteResult, Sign, SignResult,
         },
         serialization::{DerSignature, DerVerifyingKey},
     },
@@ -47,7 +47,7 @@ impl ValidateInstruction for CheckPin {}
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for GenerateKey {}
 impl ValidateInstruction for Sign {}
-impl ValidateInstruction for NewPoa {}
+impl ValidateInstruction for ConstructPoa {}
 
 impl ValidateInstruction for IssueWte {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -273,8 +273,8 @@ impl HandleInstruction for IssueWte {
     }
 }
 
-impl HandleInstruction for NewPoa {
-    type Result = NewPoaResult;
+impl HandleInstruction for ConstructPoa {
+    type Result = ConstructPoaResult;
 
     async fn handle<T, R, H>(
         self,
@@ -312,7 +312,7 @@ impl HandleInstruction for NewPoa {
         let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
         let poa = new_poa(keys.iter().collect(), claims).await?;
 
-        Ok(NewPoaResult { poa })
+        Ok(ConstructPoaResult { poa })
     }
 }
 

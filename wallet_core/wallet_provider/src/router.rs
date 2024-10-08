@@ -16,9 +16,9 @@ use wallet_common::{
         messages::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
             instructions::{
-                ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult,
-                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResultMessage, IssueWte,
-                IssueWteResult, NewPoa, NewPoaResult, Sign, SignResult,
+                ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, ConstructPoa, ConstructPoaResult,
+                GenerateKey, GenerateKeyResult, Instruction, InstructionAndResult, InstructionChallengeRequest,
+                InstructionResultMessage, IssueWte, IssueWteResult, Sign, SignResult,
             },
         },
         serialization::DerVerifyingKey,
@@ -69,7 +69,7 @@ pub fn router(router_state: RouterState) -> Router {
                 .route(&format!("/instructions/{}", GenerateKey::NAME), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
                 .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
-                .route(&format!("/instructions/{}", NewPoa::NAME), post(new_poa))
+                .route(&format!("/instructions/{}", ConstructPoa::NAME), post(construct_poa))
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
@@ -234,11 +234,11 @@ async fn issue_wte(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn new_poa(
+async fn construct_poa(
     State(state): State<Arc<RouterState>>,
-    Json(payload): Json<Instruction<NewPoa>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<NewPoaResult>>)> {
-    info!("Received new PoA request, handling the NewPoa instruction");
+    Json(payload): Json<Instruction<ConstructPoa>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<ConstructPoaResult>>)> {
+    info!("Received new PoA request, handling the ConstructPoa instruction");
     let body = state.handle_instruction(payload).await?;
     Ok((StatusCode::OK, body.into()))
 }

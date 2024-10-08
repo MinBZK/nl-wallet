@@ -64,14 +64,14 @@ pub struct IssueWteResult {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NewPoa {
+pub struct ConstructPoa {
     pub key_identifiers: Vec<String>,
     pub aud: String,
     pub nonce: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NewPoaResult {
+pub struct ConstructPoaResult {
     pub poa: Poa,
 }
 
@@ -148,10 +148,10 @@ impl InstructionAndResult for IssueWte {
     type Result = IssueWteResult;
 }
 
-impl InstructionAndResult for NewPoa {
-    const NAME: &'static str = "new_poa";
+impl InstructionAndResult for ConstructPoa {
+    const NAME: &'static str = "construct_poa";
 
-    type Result = NewPoaResult;
+    type Result = ConstructPoaResult;
 }
 
 impl<T> Instruction<T>
