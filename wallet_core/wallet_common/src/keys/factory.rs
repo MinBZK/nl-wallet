@@ -26,6 +26,8 @@ pub trait KeyFactory {
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
     ) -> Result<Vec<Vec<Signature>>, Self::Error>;
 
+    /// Construct a Proof of Association, with which the key factory asserts that all provided keys
+    /// are managed by this one key factory.
     async fn poa(&self, keys: Vec<&Self::Key>, aud: String, nonce: Option<String>) -> Result<Poa, Self::Error>;
 }
 

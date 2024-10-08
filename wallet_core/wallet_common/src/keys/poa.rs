@@ -16,6 +16,7 @@ pub struct PoaPayload {
     pub jwks: Vec<Jwk>,
 }
 
+/// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
 pub type Poa = JsonJwt<PoaPayload>;
 
 pub static POA_JWT_TYP: &str = "poa+jwt";

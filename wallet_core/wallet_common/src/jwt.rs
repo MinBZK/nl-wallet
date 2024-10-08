@@ -464,6 +464,8 @@ pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, Jw
     Ok(header)
 }
 
+/// The JWS JSON serialization, see https://www.rfc-editor.org/rfc/rfc7515.html#section-7.2,
+/// which allows for a single payload to be signed by multiple signatures.
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonJwt<T> {
