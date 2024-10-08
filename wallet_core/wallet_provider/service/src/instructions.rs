@@ -21,7 +21,8 @@ use wallet_provider_domain::{
     model::{
         encrypter::Encrypter,
         hsm::WalletUserHsm,
-        wallet_user::{WalletId, WalletUser, WalletUserKey, WalletUserKeys},
+        wallet_user::{WalletUser, WalletUserKey, WalletUserKeys},
+        wrapped_key::WrappedKey,
     },
     repository::{Committable, TransactionStarter, WalletUserRepository},
 };
@@ -279,7 +280,7 @@ impl HandleInstruction for NewPoa {
         self,
         wallet_user: &WalletUser,
         _uuid_generator: &impl Generator<Uuid>,
-        _wallet_user_repository: &R,
+        wallet_user_repository: &R,
         wallet_user_hsm: &H,
         _wte_issuer: &impl WteIssuer,
     ) -> Result<Self::Result, InstructionError>
@@ -288,18 +289,28 @@ impl HandleInstruction for NewPoa {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let keys: Vec<_> = self
+        let tx = wallet_user_repository.begin_transaction().await?;
+        let mut keys = wallet_user_repository
+            .find_keys_by_identifiers(&tx, wallet_user.id.clone(), &self.key_identifiers)
+            .await?;
+        tx.commit().await?;
+
+        let keys = self
             .key_identifiers
             .iter()
-            .map(|key_identifier| HsmCredentialSigningKey {
-                hsm: wallet_user_hsm,
-                wallet_id: &wallet_user.wallet_id,
-                key_identifier,
+            .map(|key_identifier| {
+                let wrapped_key = keys
+                    .remove(key_identifier) // remove() is like get() but lets us take ownership, avoiding a clone
+                    .ok_or(InstructionError::NonexistingKey(key_identifier.clone()))?;
+                Ok(HsmCredentialSigningKey {
+                    hsm: wallet_user_hsm,
+                    wrapped_key,
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, InstructionError>>()?;
 
         let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
-        let poa = new_poa(keys.iter().collect(), claims).await.unwrap();
+        let poa = new_poa(keys.iter().collect(), claims).await?;
 
         Ok(NewPoaResult { poa })
     }
@@ -307,8 +318,7 @@ impl HandleInstruction for NewPoa {
 
 struct HsmCredentialSigningKey<'a, H> {
     hsm: &'a H,
-    wallet_id: &'a WalletId,
-    key_identifier: &'a str,
+    wrapped_key: WrappedKey,
 }
 
 impl<'a, H> EcdsaKey for HsmCredentialSigningKey<'a, H>
@@ -318,12 +328,12 @@ where
     type Error = HsmError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        self.hsm.verifying_key(&self.wallet_id, &self.key_identifier).await
+        Ok(self.wrapped_key.public_key().clone())
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         self.hsm
-            .sign(&self.wallet_id, &self.key_identifier, Arc::new(msg.to_vec()))
+            .sign_wrapped(self.wrapped_key.clone(), Arc::new(msg.to_vec()))
             .await
     }
 }
@@ -423,6 +433,8 @@ mod tests {
         let signing_key_2 = SigningKey::random(&mut OsRng);
         let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
         let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
+        let signing_key_1_public = signing_key_1.verifying_key().clone();
+        let signing_key_2_public = signing_key_2.verifying_key().clone();
 
         let pkcs11_client = MockPkcs11Client::default();
 
@@ -437,8 +449,14 @@ mod tests {
             .withf(|_, _, key_identifiers| key_identifiers.contains(&"key1".to_string()))
             .return_once(move |_, _, _| {
                 Ok(HashMap::from([
-                    ("key1".to_string(), WrappedKey::new(signing_key_1_bytes)),
-                    ("key2".to_string(), WrappedKey::new(signing_key_2_bytes)),
+                    (
+                        "key1".to_string(),
+                        WrappedKey::new(signing_key_1_bytes, signing_key_1_public),
+                    ),
+                    (
+                        "key2".to_string(),
+                        WrappedKey::new(signing_key_2_bytes, signing_key_2_public),
+                    ),
                 ]))
             });
 

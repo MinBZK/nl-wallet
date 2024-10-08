@@ -77,7 +77,12 @@ pub(crate) trait Pkcs11Client {
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle>;
     async fn get_verifying_key(&self, public_key_handle: PublicKeyHandle) -> Result<VerifyingKey>;
-    async fn wrap_key(&self, wrapping_key: PrivateKeyHandle, key: PrivateKeyHandle) -> Result<WrappedKey>;
+    async fn wrap_key(
+        &self,
+        wrapping_key: PrivateKeyHandle,
+        key: PrivateKeyHandle,
+        public_key: VerifyingKey,
+    ) -> Result<WrappedKey>;
     async fn unwrap_signing_key(
         &self,
         unwrapping_key: PrivateKeyHandle,
@@ -203,9 +208,12 @@ impl WalletUserHsm for Pkcs11Hsm {
     async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey)> {
         let private_wrapping_handle = self.get_private_key_handle(&self.wrapping_key_identifier).await?;
         let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
-
-        let wrapped = self.wrap_key(private_wrapping_handle, private_handle).await?;
         let verifying_key = Pkcs11Client::get_verifying_key(self, public_handle).await?;
+
+        let wrapped = self
+            .wrap_key(private_wrapping_handle, private_handle, verifying_key)
+            .await?;
+
         Ok((verifying_key, wrapped))
     }
 
@@ -227,10 +235,6 @@ impl WalletUserHsm for Pkcs11Hsm {
         let handle = self.get_private_key_handle(&key_identifier).await?;
         let signature = Pkcs11Client::sign(self, handle, SigningMechanism::Ecdsa256, data).await?;
         Ok(Signature::from_slice(&signature)?)
-    }
-
-    async fn verifying_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey> {
-        Hsm::get_verifying_key(self, &hsm::key_identifier(wallet_id, identifier)).await
     }
 }
 
@@ -405,13 +409,18 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
-    async fn wrap_key(&self, wrapping_key: PrivateKeyHandle, key: PrivateKeyHandle) -> Result<WrappedKey> {
+    async fn wrap_key(
+        &self,
+        wrapping_key: PrivateKeyHandle,
+        key: PrivateKeyHandle,
+        public_key: VerifyingKey,
+    ) -> Result<WrappedKey> {
         let pool = self.pool.clone();
 
         spawn::blocking(move || {
             let session = pool.get()?;
             let wrapped_key_bytes = session.wrap_key(&Mechanism::AesKeyWrapPad, wrapping_key.0, key.0)?;
-            Ok(WrappedKey::new(wrapped_key_bytes))
+            Ok(WrappedKey::new(wrapped_key_bytes, public_key))
         })
         .await
     }

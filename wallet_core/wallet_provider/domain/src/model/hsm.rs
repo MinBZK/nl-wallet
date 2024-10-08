@@ -56,8 +56,6 @@ pub trait WalletUserHsm {
         }))
         .await
     }
-
-    async fn verifying_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey, Self::Error>;
 }
 
 pub trait Hsm {
@@ -142,7 +140,10 @@ pub mod mock {
         async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey), Self::Error> {
             let key = SigningKey::random(&mut OsRng);
             let verifying_key = *key.verifying_key();
-            Ok((verifying_key, WrappedKey::new(key.to_bytes().to_vec())))
+            Ok((
+                verifying_key.clone(),
+                WrappedKey::new(key.to_bytes().to_vec(), verifying_key),
+            ))
         }
 
         async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey, Self::Error> {
@@ -166,10 +167,6 @@ pub mod mock {
             data: Arc<Vec<u8>>,
         ) -> Result<Signature, Self::Error> {
             Hsm::sign_ecdsa(self, &key_identifier(wallet_id, identifier), data).await
-        }
-
-        async fn verifying_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey, Self::Error> {
-            Hsm::get_verifying_key(self, &key_identifier(wallet_id, identifier)).await
         }
     }
 

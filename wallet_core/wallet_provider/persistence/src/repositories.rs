@@ -377,9 +377,11 @@ pub mod mock {
             Ok(key_identifiers
                 .iter()
                 .map(|id| {
+                    let privkey = SigningKey::random(&mut OsRng);
+
                     (
                         id.clone(),
-                        WrappedKey::new(SigningKey::random(&mut OsRng).to_bytes().to_vec()),
+                        WrappedKey::new(privkey.to_bytes().to_vec(), privkey.verifying_key().clone()),
                     )
                 })
                 .collect())

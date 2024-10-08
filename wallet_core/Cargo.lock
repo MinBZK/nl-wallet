@@ -5704,6 +5704,7 @@ dependencies = [
  "p256",
  "r2d2-cryptoki",
  "rand",
+ "rand_core",
  "rstest",
  "sec1",
  "serde",

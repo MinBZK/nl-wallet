@@ -14,15 +14,17 @@ pub mod common;
 async fn test_create_keys() {
     let db = common::db_from_env().await.expect("Could not connect to database");
 
+    let privkey = SigningKey::random(&mut OsRng);
     let key1 = WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
         key_identifier: "key1".to_string(),
-        key: WrappedKey::new(SigningKey::random(&mut OsRng).to_bytes().to_vec()),
+        key: WrappedKey::new(privkey.to_bytes().to_vec(), privkey.verifying_key().clone()),
     };
+    let privkey = SigningKey::random(&mut OsRng);
     let key2 = WalletUserKey {
         wallet_user_key_id: Uuid::new_v4(),
         key_identifier: "key2".to_string(),
-        key: WrappedKey::new(SigningKey::random(&mut OsRng).to_bytes().to_vec()),
+        key: WrappedKey::new(privkey.to_bytes().to_vec(), privkey.verifying_key().clone()),
     };
 
     let wallet_user_id = Uuid::new_v4();
