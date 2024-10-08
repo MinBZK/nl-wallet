@@ -345,6 +345,7 @@ platform :ios do
             "--#{build_mode}",
             "--export-method", export_method,
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
+            "--dart-define=MOCK_RELYING_PARTY_URL=#{mock_relying_party_url}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
