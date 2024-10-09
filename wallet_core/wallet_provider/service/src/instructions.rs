@@ -321,7 +321,7 @@ impl HandleInstruction for ConstructPoa {
     {
         let tx = wallet_user_repository.begin_transaction().await?;
         let mut keys = wallet_user_repository
-            .find_keys_by_identifiers(&tx, wallet_user.id.clone(), &self.key_identifiers)
+            .find_keys_by_identifiers(&tx, wallet_user.id, &self.key_identifiers)
             .await?;
         tx.commit().await?;
 
@@ -358,7 +358,7 @@ where
     type Error = HsmError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(self.wrapped_key.public_key().clone())
+        Ok(*self.wrapped_key.public_key())
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
@@ -410,7 +410,7 @@ fn is_poa_message(message: &[u8]) -> bool {
         return false; // not a PoA in case of JSON deserialization errors
     };
 
-    &header.typ.to_ascii_lowercase() == POA_JWT_TYP
+    header.typ.to_ascii_lowercase() == POA_JWT_TYP
 }
 
 #[cfg(test)]
@@ -512,8 +512,8 @@ mod tests {
         let signing_key_2 = SigningKey::random(&mut OsRng);
         let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
         let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
-        let signing_key_1_public = signing_key_1.verifying_key().clone();
-        let signing_key_2_public = signing_key_2.verifying_key().clone();
+        let signing_key_1_public = *signing_key_1.verifying_key();
+        let signing_key_2_public = *signing_key_2.verifying_key();
 
         let pkcs11_client = MockPkcs11Client::default();
 
@@ -624,8 +624,8 @@ mod tests {
         let signing_key_2 = SigningKey::random(&mut OsRng);
         let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
         let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
-        let signing_key_1_public = signing_key_1.verifying_key().clone();
-        let signing_key_2_public = signing_key_2.verifying_key().clone();
+        let signing_key_1_public = *signing_key_1.verifying_key();
+        let signing_key_2_public = *signing_key_2.verifying_key();
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo

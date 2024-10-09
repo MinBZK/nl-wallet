@@ -381,7 +381,7 @@ pub mod mock {
 
                     (
                         id.clone(),
-                        WrappedKey::new(privkey.to_bytes().to_vec(), privkey.verifying_key().clone()),
+                        WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
                     )
                 })
                 .collect())

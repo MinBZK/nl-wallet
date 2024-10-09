@@ -100,7 +100,7 @@ pub mod mock {
         async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             Ok((
-                WrappedKey::new(privkey.to_bytes().to_vec(), privkey.verifying_key().clone()),
+                WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
                 "a.b.c".into(),
             ))
         }
