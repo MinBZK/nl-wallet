@@ -347,7 +347,9 @@ mod tests {
     use rand::rngs::OsRng;
 
     use wallet_common::{
-        account::messages::instructions::{CheckPin, GenerateKey, IssueWte, Sign},
+        account::messages::instructions::{CheckPin, ConstructPoa, GenerateKey, IssueWte, Sign},
+        jwt::{validations, Jwt},
+        keys::poa::PoaPayload,
         utils::{random_bytes, random_string},
     };
     use wallet_provider_domain::{
@@ -534,5 +536,65 @@ mod tests {
         let result = instruction.validate_instruction(&wallet_user).unwrap_err();
 
         assert_matches!(result, InstructionValidationError::WteAlreadyIssued);
+    }
+
+    #[tokio::test]
+    async fn should_handle_construct_poa() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let pkcs11_client = MockPkcs11Client::default();
+
+        let signing_key_1 = SigningKey::random(&mut OsRng);
+        let signing_key_2 = SigningKey::random(&mut OsRng);
+        let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
+        let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
+        let signing_key_1_public = signing_key_1.verifying_key().clone();
+        let signing_key_2_public = signing_key_2.verifying_key().clone();
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_keys_by_identifiers()
+            .return_once(move |_, _, _| {
+                Ok(HashMap::from([
+                    (
+                        "key1".to_string(),
+                        WrappedKey::new(signing_key_1_bytes, signing_key_1_public),
+                    ),
+                    (
+                        "key2".to_string(),
+                        WrappedKey::new(signing_key_2_bytes, signing_key_2_public),
+                    ),
+                ]))
+            });
+
+        let instruction = ConstructPoa {
+            key_identifiers: vec!["key1".to_string(), "key2".to_string()],
+            aud: "aud".to_string(),
+            nonce: None,
+        };
+
+        let poa = instruction
+            .handle(
+                &wallet_user,
+                &FixedUuidGenerator,
+                &wallet_user_repo,
+                &pkcs11_client,
+                &MockWteIssuer,
+            )
+            .await
+            .unwrap()
+            .poa;
+
+        let mut validations = validations();
+        validations.set_audience(&["aud"]);
+
+        Vec::<Jwt<PoaPayload>>::from(poa)
+            .into_iter()
+            .zip([signing_key_1_public, signing_key_2_public])
+            .for_each(|(jwt, pubkey)| {
+                jwt.parse_and_verify(&(&pubkey).into(), &validations).unwrap();
+            });
     }
 }

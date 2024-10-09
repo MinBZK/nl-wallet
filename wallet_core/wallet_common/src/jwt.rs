@@ -486,6 +486,16 @@ pub struct JsonJwtSignature {
     pub signature: String,
 }
 
+impl<T> From<JsonJwt<T>> for Vec<Jwt<T>> {
+    fn from(value: JsonJwt<T>) -> Self {
+        value
+            .signatures
+            .into_iter()
+            .map(|sig| [sig.protected, value.payload.clone(), sig.signature].join(".").into())
+            .collect()
+    }
+}
+
 impl<T> TryFrom<NonEmpty<Vec<Jwt<T>>>> for JsonJwt<T> {
     type Error = JwtError;
 
