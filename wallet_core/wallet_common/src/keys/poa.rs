@@ -33,36 +33,38 @@ pub enum PoaError {
     InsufficientKeys(usize),
 }
 
-pub async fn new_poa<K: EcdsaKey>(keys: Vec<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
-    if keys.len() < 2 {
-        return Err(PoaError::InsufficientKeys(keys.len()));
+impl Poa {
+    pub async fn new<K: EcdsaKey>(keys: Vec<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
+        if keys.len() < 2 {
+            return Err(PoaError::InsufficientKeys(keys.len()));
+        }
+
+        let payload = PoaPayload {
+            payload,
+            jwks: try_join_all(keys.iter().map(|privkey| async {
+                jwk_from_p256(
+                    &privkey
+                        .verifying_key()
+                        .await
+                        .map_err(|e| PoaError::VerifyingKey(Box::new(e)))?,
+                )
+                .map_err(PoaError::Jwk)
+            }))
+            .await?,
+        };
+        let header = Header {
+            typ: Some(POA_JWT_TYP.to_string()),
+            ..Header::new(Algorithm::ES256)
+        };
+
+        let jwts: NonEmpty<_> = try_join_all(keys.iter().map(|key| Jwt::sign(&payload, &header, *key)))
+            .await?
+            .try_into()
+            .unwrap(); // This came from `keys` which is `NonEmpty`.
+
+        // This unwrap() is safe because we correctly constructed the `jwts` above.
+        Ok(jwts.try_into().unwrap())
     }
-
-    let payload = PoaPayload {
-        payload,
-        jwks: try_join_all(keys.iter().map(|privkey| async {
-            jwk_from_p256(
-                &privkey
-                    .verifying_key()
-                    .await
-                    .map_err(|e| PoaError::VerifyingKey(Box::new(e)))?,
-            )
-            .map_err(PoaError::Jwk)
-        }))
-        .await?,
-    };
-    let header = Header {
-        typ: Some(POA_JWT_TYP.to_string()),
-        ..Header::new(Algorithm::ES256)
-    };
-
-    let jwts: NonEmpty<_> = try_join_all(keys.iter().map(|key| Jwt::sign(&payload, &header, *key)))
-        .await?
-        .try_into()
-        .unwrap(); // This came from `keys` which is `NonEmpty`.
-
-    // This unwrap() is safe because we correctly constructed the `jwts` above.
-    Ok(jwts.try_into().unwrap())
 }
 
 #[cfg(all(test, feature = "software_keys"))]
@@ -70,7 +72,7 @@ mod tests {
     use crate::{
         jwt::{validations, Jwt, JwtPopClaims},
         keys::{
-            poa::{new_poa, PoaPayload},
+            poa::{Poa, PoaPayload},
             software::SoftwareEcdsaKey,
             EcdsaKey,
         },
@@ -83,7 +85,7 @@ mod tests {
         let iss = "iss".to_string();
         let aud = "aud".to_string();
 
-        let poa = new_poa(vec![&key1, &key2], JwtPopClaims::new(None, iss.clone(), aud.clone()))
+        let poa = Poa::new(vec![&key1, &key2], JwtPopClaims::new(None, iss.clone(), aud.clone()))
             .await
             .unwrap();
 

@@ -7,7 +7,7 @@ use rand_core::OsRng;
 
 use crate::{
     jwt::{JwtPopClaims, NL_WALLET_CLIENT_ID},
-    keys::{factory::KeyFactory, poa::new_poa, software::SoftwareEcdsaKey, EcdsaKey},
+    keys::{factory::KeyFactory, poa::Poa, software::SoftwareEcdsaKey, EcdsaKey},
     utils,
 };
 
@@ -163,13 +163,8 @@ impl KeyFactory for SoftwareKeyFactory {
         Ok(result)
     }
 
-    async fn poa(
-        &self,
-        keys: Vec<&Self::Key>,
-        aud: String,
-        nonce: Option<String>,
-    ) -> Result<super::poa::Poa, Self::Error> {
-        let poa = new_poa(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud))
+    async fn poa(&self, keys: Vec<&Self::Key>, aud: String, nonce: Option<String>) -> Result<Poa, Self::Error> {
+        let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud))
             .await
             .map_err(|e| SoftwareKeyFactoryError::Poa(Box::new(e)))?;
 

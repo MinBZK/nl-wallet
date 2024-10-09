@@ -18,7 +18,7 @@ use wallet_common::{
     generator::Generator,
     jwt::{JwtPopClaims, NL_WALLET_CLIENT_ID},
     keys::{
-        poa::{new_poa, POA_JWT_TYP},
+        poa::{Poa, POA_JWT_TYP},
         EcdsaKey,
     },
 };
@@ -340,7 +340,7 @@ impl HandleInstruction for ConstructPoa {
             .collect::<Result<Vec<_>, InstructionError>>()?;
 
         let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
-        let poa = new_poa(keys.iter().collect(), claims).await?;
+        let poa = Poa::new(keys.iter().collect(), claims).await?;
 
         Ok(ConstructPoaResult { poa })
     }
