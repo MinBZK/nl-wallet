@@ -74,6 +74,10 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kChangePinConstMeta;
 
+  Future<WalletInstructionResult> continueChangePin({required String pin, dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kContinueChangePinConstMeta;
+
   Future<bool> hasRegistration({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kHasRegistrationConstMeta;
@@ -651,6 +655,23 @@ class WalletCoreImpl implements WalletCore {
   FlutterRustBridgeTaskConstMeta get kChangePinConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "change_pin",
         argNames: ["oldPin", "newPin"],
+      );
+
+  Future<WalletInstructionResult> continueChangePin({required String pin, dynamic hint}) {
+    var arg0 = _platform.api2wire_String(pin);
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_continue_change_pin(port_, arg0),
+      parseSuccessData: _wire2api_wallet_instruction_result,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kContinueChangePinConstMeta,
+      argValues: [pin],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kContinueChangePinConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "continue_change_pin",
+        argNames: ["pin"],
       );
 
   Future<bool> hasRegistration({dynamic hint}) {
@@ -1629,6 +1650,22 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
       'wire_change_pin');
   late final _wire_change_pin = _wire_change_pinPtr
       .asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_continue_change_pin(
+    int port_,
+    ffi.Pointer<wire_uint_8_list> pin,
+  ) {
+    return _wire_continue_change_pin(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire_continue_change_pinPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>(
+          'wire_continue_change_pin');
+  late final _wire_continue_change_pin =
+      _wire_continue_change_pinPtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
   void wire_has_registration(
     int port_,

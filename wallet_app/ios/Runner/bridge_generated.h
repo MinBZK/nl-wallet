@@ -58,6 +58,8 @@ void wire_change_pin(int64_t port_,
                      struct wire_uint_8_list *old_pin,
                      struct wire_uint_8_list *new_pin);
 
+void wire_continue_change_pin(int64_t port_, struct wire_uint_8_list *pin);
+
 void wire_has_registration(int64_t port_);
 
 void wire_register(int64_t port_, struct wire_uint_8_list *pin);
@@ -115,6 +117,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_lock_wallet);
     dummy_var ^= ((int64_t) (void*) wire_check_pin);
     dummy_var ^= ((int64_t) (void*) wire_change_pin);
+    dummy_var ^= ((int64_t) (void*) wire_continue_change_pin);
     dummy_var ^= ((int64_t) (void*) wire_has_registration);
     dummy_var ^= ((int64_t) (void*) wire_register);
     dummy_var ^= ((int64_t) (void*) wire_identify_uri);

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../environment.dart';
 import '../../domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/object_extension.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
@@ -52,11 +50,7 @@ class SettingsScreen extends StatelessWidget {
           label: context.l10n.settingsScreenChangePinCta,
           icon: Icons.key,
           onTap: () {
-            if (Environment.mockRepositories) {
-              Navigator.pushNamed(context, WalletRoutes.changePinRoute);
-            } else {
-              PlaceholderScreen.showGeneric(context);
-            }
+            Navigator.pushNamed(context, WalletRoutes.changePinRoute);
           },
         ),
         const Divider(height: 1),

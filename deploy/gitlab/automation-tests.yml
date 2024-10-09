@@ -134,6 +134,8 @@ run-automation-smoke-test-ont:
 
 run-performance-test-ont:
   rules: !reference [ .default-branch, rules ]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
   extends: .env-ont-k8s
   needs:
     - job: deploy-mock-relying-party-ont
@@ -145,13 +147,18 @@ run-performance-test-ont:
     - job: wallet-env-config-ont
       artifacts: true
   variables:
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
-    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}"
-    INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
+    INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
   script: |
-      cd ./wallet_core/tests_integration/ 
-      cargo build --release --bin performance_test --features performance_test,allow_http_return_url
-      bash ./run_performance_test.sh 100
+      cd ./wallet_core/
+      cargo build --release --bin performance_test --features performance_test,allow_insecure_url
+      export PT_START_DATE=$(date -u +%s)
+      bash ./tests_integration/run_performance_test.sh 100
+      export PT_END_DATE=$(date -u +%s)
+      export PT_DURATION=$(( PT_END_DATE - PT_START_DATE ))
+      echo "Load: 100"
+      echo "Duration: ${PT_DURATION} seconds"
   allow_failure: true
 
 # Warns when '.gitlab-ci.yaml' in '$CI_DEFAULT_BRANCH' & '$AUTOMATION_TESTS_BRANCH' branch are out-of-sync

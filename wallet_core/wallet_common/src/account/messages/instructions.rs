@@ -10,7 +10,7 @@ use crate::{
     keys::{poa::Poa, EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
-use super::auth::{Certificate, WalletCertificate};
+use super::auth::WalletCertificate;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Instruction<T> {
@@ -115,7 +115,7 @@ impl InstructionAndResult for CheckPin {
 impl InstructionAndResult for ChangePinStart {
     const NAME: &'static str = "change_pin_start";
 
-    type Result = Certificate;
+    type Result = WalletCertificate;
 }
 
 impl InstructionAndResult for ChangePinCommit {

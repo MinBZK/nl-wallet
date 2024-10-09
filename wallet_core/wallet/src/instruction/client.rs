@@ -32,6 +32,10 @@ where
     K: PlatformEcdsaKey,
     A: AccountProviderClient,
 {
+    /// Creates an [`InstructionClient`].
+    /// In most cases this function should not be used directly, as the wallet must try to finalize
+    /// a PIN change if it is in progress. [`Wallet::new_instruction_client`] will do this before
+    /// returning the [`InstructionClient`] and so is the recommended way to obtain an [`InstructionClient`].
     pub fn new(
         pin: String,
         storage: &'a RwLock<S>,
@@ -97,11 +101,22 @@ where
     where
         I: InstructionAndResult + 'static,
     {
+        self.construct_and_send(|_| async { Ok(instruction) }).await
+    }
+
+    pub async fn construct_and_send<F, Fut, I>(&self, construct: F) -> Result<I::Result, InstructionError>
+    where
+        F: FnOnce(Vec<u8>) -> Fut,
+        Fut: Future<Output = Result<I, InstructionError>>,
+        I: InstructionAndResult + 'static,
+    {
         let mut storage = self.storage.write().await;
 
         let challenge = self.instruction_challenge::<I>(&mut storage).await?;
 
         let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt);
+
+        let instruction = construct(challenge.clone()).await?;
 
         let instruction = self
             .with_sequence_number(&mut storage, |seq_num| {
@@ -128,5 +143,53 @@ where
             .result;
 
         Ok(result)
+    }
+}
+
+pub struct InstructionClientFactory<'a, S, K, A> {
+    storage: &'a RwLock<S>,
+    hw_privkey: &'a K,
+    account_provider_client: &'a A,
+    registration: &'a RegistrationData,
+    account_provider_base_url: &'a BaseUrl,
+    instruction_result_public_key: &'a EcdsaDecodingKey,
+}
+
+impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
+    pub fn new(
+        storage: &'a RwLock<S>,
+        hw_privkey: &'a K,
+        account_provider_client: &'a A,
+        registration: &'a RegistrationData,
+        account_provider_base_url: &'a BaseUrl,
+        instruction_result_public_key: &'a EcdsaDecodingKey,
+    ) -> Self {
+        Self {
+            storage,
+            hw_privkey,
+            account_provider_client,
+            registration,
+            account_provider_base_url,
+            instruction_result_public_key,
+        }
+    }
+
+    /// Creates an [`InstructionClient`].
+    /// See [`InstructionClient::new`].
+    pub fn create(&self, pin: String) -> InstructionClient<'a, S, K, A>
+    where
+        S: Storage,
+        K: PlatformEcdsaKey,
+        A: AccountProviderClient,
+    {
+        InstructionClient::new(
+            pin,
+            self.storage,
+            self.hw_privkey,
+            self.account_provider_client,
+            self.registration,
+            self.account_provider_base_url,
+            self.instruction_result_public_key,
+        )
     }
 }
