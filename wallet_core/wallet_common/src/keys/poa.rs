@@ -64,3 +64,38 @@ pub async fn new_poa<K: EcdsaKey>(keys: Vec<&K>, payload: JwtPopClaims) -> Resul
     // This unwrap() is safe because we correctly constructed the `jwts` above.
     Ok(jwts.try_into().unwrap())
 }
+
+#[cfg(all(test, feature = "software_keys"))]
+mod tests {
+    use crate::{
+        jwt::{validations, Jwt, JwtPopClaims},
+        keys::{
+            poa::{new_poa, PoaPayload},
+            software::SoftwareEcdsaKey,
+            EcdsaKey,
+        },
+    };
+
+    #[tokio::test]
+    async fn test_poa() {
+        let key1 = SoftwareEcdsaKey::new_random("key1".to_string());
+        let key2 = SoftwareEcdsaKey::new_random("key2".to_string());
+        let iss = "iss".to_string();
+        let aud = "aud".to_string();
+
+        let poa = new_poa(vec![&key1, &key2], JwtPopClaims::new(None, iss.clone(), aud.clone()))
+            .await
+            .unwrap();
+
+        let jwts: Vec<Jwt<PoaPayload>> = poa.into();
+
+        let mut validations = validations();
+        validations.set_audience(&[aud]);
+        validations.set_issuer(&[iss]);
+
+        for (jwt, key) in jwts.into_iter().zip([key1, key2]) {
+            jwt.parse_and_verify(&(&key.verifying_key().await.unwrap()).into(), &validations)
+                .unwrap();
+        }
+    }
+}
