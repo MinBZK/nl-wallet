@@ -33,6 +33,21 @@ name = "postgres"
 path = "tests/postgres.rs"
 required-features = ["db_test"]
 
+[[test]]
+name = "pid_issuer_settings"
+path = "tests/pid_issuer_settings.rs"
+required-features = ["issuance", "test"]
+
+[[test]]
+name = "verification_server_settings"
+path = "tests/verification_server_settings.rs"
+required-features = ["disclosure", "test"]
+
+[[test]]
+name = "wallet_server_settings"
+path = "tests/wallet_server_settings.rs"
+required-features = ["disclosure", "issuance", "test"]
+
 [features]
 default = ["disclosure", "postgres"]
 # Allow the disclosure return URL and its prefix to use http://
@@ -56,6 +71,7 @@ issuance = [
 disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:serde_json", "dep:strum"]
 # Enable mock PID issuance
 mock = ["issuance"]
+test = []
 
 [dependencies]
 anyhow.workspace = true

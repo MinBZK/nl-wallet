@@ -2,6 +2,8 @@ use std::{env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
 
 use chrono::{DateTime, Utc};
 use config::{Config, ConfigError, Environment, File};
+#[cfg(feature = "test")]
+use p256::pkcs8::EncodePrivateKey;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
@@ -140,6 +142,20 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
             SigningKey::from_pkcs8_der(&value.private_key)?,
             Certificate::from(&value.certificate),
         )?)
+    }
+}
+
+#[cfg(feature = "test")]
+impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
+    type Error = KeyPairError;
+    fn try_from(source: nl_wallet_mdoc::server_keys::KeyPair) -> Result<Self, Self::Error> {
+        let private_key = source.private_key().to_pkcs8_der()?.as_bytes().to_vec();
+        let certificate = source.certificate().as_bytes().to_vec();
+
+        Ok(Self {
+            certificate,
+            private_key,
+        })
     }
 }
 
