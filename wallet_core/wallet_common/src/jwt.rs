@@ -145,11 +145,20 @@ where
 {
     /// Verify the JWT, and parse and return its payload.
     pub fn parse_and_verify(&self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<T> {
-        let payload = jsonwebtoken::decode::<T>(&self.0, &pubkey.0, validation_options)
-            .map_err(JwtError::Validation)?
-            .claims;
+        let (_, claims) = self.parse_and_verify_with_header(pubkey, validation_options)?;
 
-        Ok(payload)
+        Ok(claims)
+    }
+
+    pub fn parse_and_verify_with_header(
+        &self,
+        pubkey: &EcdsaDecodingKey,
+        validation_options: &Validation,
+    ) -> Result<(Header, T)> {
+        let payload =
+            jsonwebtoken::decode::<T>(&self.0, &pubkey.0, validation_options).map_err(JwtError::Validation)?;
+
+        Ok((payload.header, payload.claims))
     }
 
     /// Verify a JWT against the `subjectPublicKeyInfo` of a trust anchor.
