@@ -63,6 +63,7 @@
         file_format:"${APP_FILE_FORMAT}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
+        mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}" \
