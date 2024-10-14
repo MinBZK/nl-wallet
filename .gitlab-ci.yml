@@ -463,6 +463,27 @@ deploy-preload-gba-v-pod-demo:
   variables:
     ENV: demo
 
+.run-encrypt-gba-v-testdata-job:
+  needs:
+    - job: build-gba-fetch-image
+      artifacts: false
+  rules: !reference [.default-or-merge-request, rules]
+  when: manual
+  variables:
+    GBA_FETCH_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch:${CI_COMMIT_SHORT_SHA}
+  script:
+    - kubectl create configmap nl-wallet-gba-hc-converter-encrypt-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/encrypt_all.sh -o yaml | kubectl apply -f -
+    - envsubst < deploy/kubernetes/encrypt-gba-v-testdata-job.yaml | kubectl apply -f -
+    - kubectl wait --for=condition=complete --timeout=300s job -l app=encrypt-gba-v-testdata
+
+run-encrypt-gba-v-testdata-job-ont:
+  extends: [.env-ont-k8s, .run-encrypt-gba-v-testdata-job]
+  rules: !reference [.default-or-merge-request, rules]
+
+run-encrypt-gba-v-testdata-job-demo:
+  extends: [.env-demo-k8s, .run-encrypt-gba-v-testdata-job]
+  rules: !reference [.release-tag, rules]
+
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:

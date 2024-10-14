@@ -18,11 +18,12 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
+    jwt::JwtCredentialContents,
     nonempty::NonEmpty,
     utils::{random_string, sha256},
 };
 
-use crate::{authorization::AuthorizationDetails, jwt::JwtCredentialContents, server_state::SessionToken, Format};
+use crate::{authorization::AuthorizationDetails, server_state::SessionToken, Format};
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -64,8 +65,8 @@ impl AccessToken {
     }
 }
 
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-token-request
-/// and https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.3.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-token-request>
+/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.3>.
 /// Sent URL-encoded in request body to POST /token.
 /// A DPoP HTTP header may be included.
 #[skip_serializing_none]
@@ -106,7 +107,7 @@ pub enum TokenRequestGrantType {
 }
 
 /// See
-/// <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-successful-token-response>
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-successful-token-response>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.1>.
 #[serde_as]
 #[skip_serializing_none]

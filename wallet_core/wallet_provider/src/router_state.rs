@@ -17,6 +17,7 @@ use wallet_provider_service::{
     instructions::{HandleInstruction, ValidateInstruction},
     keys::{InstructionResultSigning, WalletCertificateSigning, WalletProviderEcdsaKey},
     pin_policy::PinPolicy,
+    wte_issuer::HsmWteIssuer,
 };
 
 use crate::{errors::WalletProviderError, settings::Settings};
@@ -28,6 +29,7 @@ pub struct RouterState {
     pub hsm: Pkcs11Hsm,
     pub certificate_signing_key: WalletCertificateSigning,
     pub instruction_result_signing_key: InstructionResultSigning,
+    pub wte_issuer: HsmWteIssuer<Pkcs11Hsm>,
 }
 
 impl RouterState {
@@ -77,6 +79,11 @@ impl RouterState {
         );
 
         let repositories = Repositories::new(db);
+        let wte_issuer = HsmWteIssuer::new(
+            WalletProviderEcdsaKey::new(settings.wte_signing_key_identifier, hsm.clone()),
+            settings.wte_issuer_identifier,
+            hsm.clone(),
+        );
 
         let state = RouterState {
             account_server,
@@ -85,6 +92,7 @@ impl RouterState {
             hsm,
             certificate_signing_key,
             instruction_result_signing_key,
+            wte_issuer,
         };
 
         Ok(state)
@@ -107,6 +115,7 @@ impl RouterState {
                 &self.repositories,
                 &self.pin_policy,
                 &self.hsm,
+                &self.wte_issuer,
             )
             .await?;
 

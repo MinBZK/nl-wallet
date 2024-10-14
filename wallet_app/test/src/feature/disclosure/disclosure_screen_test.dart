@@ -566,7 +566,7 @@ void main() {
         );
 
         final l10n = await TestUtils.englishLocalizations;
-        await tester.tap(find.text(l10n.organizationApprovePageMoreInfoCta));
+        await tester.tap(find.text(l10n.organizationApprovePageMoreInfoLoginCta));
         await tester.pumpAndSettle();
         expect(find.byType(LoginDetailScreen), findsOneWidget);
       },

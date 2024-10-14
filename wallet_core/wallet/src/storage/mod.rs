@@ -8,6 +8,9 @@ mod sql_cipher_key;
 #[cfg(any(test, feature = "mock"))]
 mod mock_storage;
 
+#[cfg(test)]
+pub use mock_storage::KeyedDataResult;
+
 use std::{array::TryFromSliceError, collections::HashSet, io};
 
 use sea_orm::DbErr;
@@ -21,7 +24,7 @@ use nl_wallet_mdoc::{
 use openid4vc::credential::MdocCopies;
 
 pub use self::{
-    data::{InstructionData, KeyedData, RegistrationData, UnlockData, UnlockMethod},
+    data::{ChangePinData, InstructionData, KeyedData, RegistrationData, UnlockData, UnlockMethod},
     database_storage::DatabaseStorage,
     event_log::{EventDocuments, EventStatus, WalletEvent},
     key_file::KeyFileError,

@@ -271,10 +271,9 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use async_once::AsyncOnce;
     use hmac::digest::crypto_common::rand_core::OsRng;
-    use lazy_static::lazy_static;
     use p256::ecdsa::{SigningKey, VerifyingKey};
+    use tokio::sync::OnceCell;
 
     use wallet_common::jwt::EcdsaDecodingKey;
     use wallet_provider_domain::model::{encrypter::Encrypter, hsm::mock::MockPkcs11Client};
@@ -287,23 +286,29 @@ mod tests {
         },
     };
 
-    lazy_static! {
-        static ref HSM: AsyncOnce<MockPkcs11Client<HsmError>> = AsyncOnce::new(mock::setup_hsm());
+    static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
+
+    async fn get_global_hsm() -> &'static MockPkcs11Client<HsmError> {
+        HSM.get_or_init(mock::setup_hsm).await
     }
 
     #[tokio::test]
     async fn sign_verify_pin_pubkey() {
         let setup = mock::WalletCertificateSetup::new().await;
 
-        let signed = sign_pin_pubkey(&setup.signing_pubkey, mock::SIGNING_KEY_IDENTIFIER, HSM.get().await)
-            .await
-            .unwrap();
+        let signed = sign_pin_pubkey(
+            &setup.signing_pubkey,
+            mock::SIGNING_KEY_IDENTIFIER,
+            get_global_hsm().await,
+        )
+        .await
+        .unwrap();
 
         verify_pin_pubkey(
             &setup.signing_pubkey,
             signed,
             mock::SIGNING_KEY_IDENTIFIER,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .unwrap();
@@ -320,7 +325,7 @@ mod tests {
             String::from("wallet_id_1"),
             setup.hw_pubkey,
             &setup.pin_pubkey,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .unwrap();
@@ -337,7 +342,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 42,
             },
-            HSM.get().await,
+            get_global_hsm().await,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
         )
         .await
@@ -355,7 +360,7 @@ mod tests {
             String::from("wallet_id_1"),
             setup.hw_pubkey,
             &setup.pin_pubkey,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .unwrap();
@@ -372,7 +377,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 0,
             },
-            HSM.get().await,
+            get_global_hsm().await,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
         )
         .await
@@ -390,7 +395,7 @@ mod tests {
             String::from("wallet_id_1"),
             setup.hw_pubkey,
             &setup.pin_pubkey,
-            HSM.get().await,
+            get_global_hsm().await,
         )
         .await
         .unwrap();
@@ -415,7 +420,7 @@ mod tests {
                 challenge: None,
                 instruction_sequence_number: 0,
             },
-            HSM.get().await,
+            get_global_hsm().await,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
         )
         .await

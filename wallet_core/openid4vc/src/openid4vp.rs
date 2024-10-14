@@ -755,14 +755,18 @@ mod tests {
     use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
     use serde_json::json;
 
-    use nl_wallet_mdoc::{
-        examples::{Example, Examples, IsoCertTimeGenerator, EXAMPLE_DOC_TYPE, EXAMPLE_KEY_IDENTIFIER},
-        server_keys::KeyPair,
+    use wallet_common::keys::{
+        examples::{Examples, EXAMPLE_KEY_IDENTIFIER},
+        software::SoftwareEcdsaKey,
         software_key_factory::SoftwareKeyFactory,
+    };
+
+    use nl_wallet_mdoc::{
+        examples::{example_items_requests, Example, IsoCertTimeGenerator, EXAMPLE_DOC_TYPE},
+        server_keys::KeyPair,
         utils::serialization::{cbor_serialize, CborBase64, CborSeq, TaggedBytes},
         DeviceAuthenticationKeyed, DeviceResponse, DeviceResponseVersion, DeviceSigned, Document, SessionTranscript,
     };
-    use wallet_common::keys::software::SoftwareEcdsaKey;
 
     use crate::{openid4vp::IsoVpAuthorizationRequest, AuthorizationErrorCode, VpAuthorizationErrorCode};
 
@@ -788,7 +792,7 @@ mod tests {
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = IsoVpAuthorizationRequest::new(
-            &Examples::items_requests(),
+            &example_items_requests(),
             rp_keypair.certificate(),
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),

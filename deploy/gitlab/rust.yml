@@ -181,3 +181,11 @@ build-gba-fetch-binary:
   artifacts:
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_fetch
+
+build-gba-encrypt-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --package "gba_hc_converter" --bin gba_encrypt
+  artifacts:
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_encrypt

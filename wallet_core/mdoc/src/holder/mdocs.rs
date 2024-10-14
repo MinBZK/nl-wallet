@@ -7,17 +7,16 @@ use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
 use error_category::ErrorCategory;
-use wallet_common::generator::Generator;
+use wallet_common::{
+    generator::Generator,
+    keys::{CredentialEcdsaKey, CredentialKeyType},
+};
 
 use crate::{
     identifiers::AttributeIdentifier,
     iso::*,
     unsigned::{Entry, UnsignedMdoc},
-    utils::{
-        cose::CoseError,
-        keys::{CredentialKeyType, MdocEcdsaKey},
-        x509::Certificate,
-    },
+    utils::{cose::CoseError, x509::Certificate},
     verifier::ValidityRequirement,
 };
 
@@ -40,7 +39,7 @@ pub struct Mdoc {
 
 impl Mdoc {
     /// Construct a new `Mdoc`, verifying it against the specified thrust anchors before returning it.
-    pub fn new<K: MdocEcdsaKey>(
+    pub fn new<K: CredentialEcdsaKey>(
         private_key_id: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,

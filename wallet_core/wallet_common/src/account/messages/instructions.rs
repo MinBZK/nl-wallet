@@ -6,11 +6,11 @@ use crate::{
         serialization::{DerSignature, DerVerifyingKey},
         signed::{ChallengeRequest, ChallengeResponse},
     },
-    jwt::{Jwt, JwtSubject},
+    jwt::{Jwt, JwtCredentialClaims, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
-use super::auth::{Certificate, WalletCertificate};
+use super::auth::WalletCertificate;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Instruction<T> {
@@ -53,6 +53,16 @@ pub struct SignResult {
     pub signatures: Vec<Vec<DerSignature>>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IssueWte {
+    pub key_identifier: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IssueWteResult {
+    pub wte: Jwt<JwtCredentialClaims>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstructionResultClaims<R> {
     pub result: R,
@@ -93,7 +103,7 @@ impl InstructionAndResult for CheckPin {
 impl InstructionAndResult for ChangePinStart {
     const NAME: &'static str = "change_pin_start";
 
-    type Result = Certificate;
+    type Result = WalletCertificate;
 }
 
 impl InstructionAndResult for ChangePinCommit {
@@ -118,6 +128,12 @@ impl InstructionAndResult for Sign {
     const NAME: &'static str = "sign";
 
     type Result = SignResult;
+}
+
+impl InstructionAndResult for IssueWte {
+    const NAME: &'static str = "issue_wte";
+
+    type Result = IssueWteResult;
 }
 
 impl<T> Instruction<T>

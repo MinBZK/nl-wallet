@@ -24,7 +24,6 @@ use nl_wallet_mdoc::{
     examples::{Example, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
     holder::{mock::MockMdocDataSource, Mdoc, TrustAnchor},
     server_keys::KeyPair,
-    software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
     utils::{
         issuer_auth::IssuerRegistration, mock_time::MockTimeGenerator, reader_auth::ReaderRegistration,
@@ -40,8 +39,13 @@ use openid4vc::{
     ErrorResponse,
 };
 use wallet_common::{
-    generator::TimeGenerator, http_error::HttpJsonErrorBody, keys::software::SoftwareEcdsaKey,
-    reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, urls::BaseUrl, utils,
+    generator::TimeGenerator,
+    http_error::HttpJsonErrorBody,
+    keys::{software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory},
+    reqwest::default_reqwest_client_builder,
+    trust_anchor::OwnedTrustAnchor,
+    urls::BaseUrl,
+    utils,
 };
 #[cfg(feature = "issuance")]
 use wallet_server::settings::{Digid, Issuer};

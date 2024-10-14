@@ -3,6 +3,8 @@ use serde_with::{base64::Base64, serde_as};
 
 use wallet_common::account::messages::auth::WalletCertificate;
 
+use crate::pin::change::State;
+
 pub trait KeyedData: Serialize + DeserializeOwned {
     const KEY: &'static str;
 }
@@ -26,6 +28,11 @@ pub enum UnlockMethod {
     #[default]
     PinCode,
     PinCodeAndBiometrics,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChangePinData {
+    pub state: Option<State>,
 }
 
 impl UnlockMethod {
@@ -52,4 +59,8 @@ impl KeyedData for InstructionData {
 
 impl KeyedData for UnlockData {
     const KEY: &'static str = "unlock";
+}
+
+impl KeyedData for ChangePinData {
+    const KEY: &'static str = "change_pin";
 }

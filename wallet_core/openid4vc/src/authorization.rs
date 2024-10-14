@@ -4,7 +4,7 @@ use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, Strin
 use url::Url;
 
 /// See
-/// <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-authorization-request>
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-authorization-request>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1>.
 /// When sent using [PAR (Pushed Authorization Requests)](https://datatracker.ietf.org/doc/html/rfc9126),
 /// it is usually sent URL-encoded in the request body to POST /op/par.
@@ -109,7 +109,7 @@ pub enum AuthorizationDetailsType {
 }
 
 /// See
-/// <https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-successful-authorization-re>
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-successful-authorization-re>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2>.
 /// Contains the token that may be exchanged for an access token.
 /// URL-encoded and provided as query parameters added to the `redirect_uri` that was passed in the

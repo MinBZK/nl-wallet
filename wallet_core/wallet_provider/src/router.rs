@@ -17,8 +17,8 @@ use wallet_common::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
             instructions::{
                 ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult,
-                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResultMessage, Sign,
-                SignResult,
+                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResultMessage, IssueWte,
+                IssueWteResult, Sign, SignResult,
             },
         },
         serialization::DerVerifyingKey,
@@ -26,6 +26,7 @@ use wallet_common::{
     },
     keys::EcdsaKey,
 };
+use wallet_provider_service::wte_issuer::WteIssuer;
 
 use crate::{errors::WalletProviderError, router_state::RouterState};
 
@@ -67,6 +68,7 @@ pub fn router(router_state: RouterState) -> Router {
                 )
                 .route(&format!("/instructions/{}", GenerateKey::NAME), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
+                .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
@@ -222,19 +224,31 @@ async fn sign(
     Ok((StatusCode::OK, body.into()))
 }
 
+async fn issue_wte(
+    State(state): State<Arc<RouterState>>,
+    Json(payload): Json<Instruction<IssueWte>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<IssueWteResult>>)> {
+    info!("Received issue WTE request, handling the IssueWte instruction");
+    let body = state.handle_instruction(payload).await?;
+    Ok((StatusCode::OK, body.into()))
+}
+
 #[derive(Serialize)]
 struct PublicKeys {
     certificate_public_key: DerVerifyingKey,
     instruction_result_public_key: DerVerifyingKey,
+    wte_signing_key: DerVerifyingKey,
 }
 
 async fn public_keys(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<PublicKeys>)> {
     let certificate_public_key = state.certificate_signing_key.verifying_key().await?.into();
     let instruction_result_public_key = state.instruction_result_signing_key.verifying_key().await?.into();
+    let wte_signing_key = state.wte_issuer.public_key().await?.into();
 
     let body = PublicKeys {
         certificate_public_key,
         instruction_result_public_key,
+        wte_signing_key,
     };
 
     Ok((StatusCode::OK, body.into()))

@@ -18,7 +18,7 @@ pub use crate::{
     document::{AttributeValueType, DocumentMdocError},
     instruction::{InstructionError, RemoteEcdsaKeyError},
     issuance::DigidSessionError,
-    pin::{key::PinKeyError, validation::PinValidationError},
+    pin::{change::ChangePinError, key::PinKeyError, validation::PinValidationError},
     storage::{KeyFileError, StorageError},
     wallet::{
         DisclosureError, EventConversionError, EventStorageError, HistoryError, PidIssuanceError, ResetError,

@@ -233,7 +233,7 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use nl_wallet_mdoc::{examples::Examples, verifier::ItemsRequests};
+    use nl_wallet_mdoc::{examples::example_items_requests, verifier::ItemsRequests};
 
     use super::{FormatAlg, LimitDisclosure, PresentationDefinition, VpFormat, FIELD_PATH_REGEX};
 
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn convert_pd_itemsrequests() {
-        let items_requests: ItemsRequests = Examples::items_requests();
+        let items_requests: ItemsRequests = example_items_requests();
         let pd: PresentationDefinition = (&items_requests).into();
         let converted: ItemsRequests = (&pd).try_into().unwrap();
 
