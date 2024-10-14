@@ -1,6 +1,6 @@
 package navigator
 
-import navigator.screen.OnboardingScreen
+import navigator.screen.OnboardingNavigatorScreen
 import screen.introduction.IntroductionConditionsScreen
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
@@ -18,19 +18,19 @@ class OnboardingNavigator {
         const val PIN = "122222"
     }
 
-    fun toScreen(screen: OnboardingScreen) {
-        if (screen > OnboardingScreen.Introduction) IntroductionScreen().clickSkipButton()
-        if (screen > OnboardingScreen.IntroductionPrivacy) IntroductionPrivacyScreen().clickNextButton()
-        if (screen > OnboardingScreen.IntroductionConditions) IntroductionConditionsScreen().clickNextButton()
-        if (screen > OnboardingScreen.SecurityChoosePin) PinScreen().choosePin(PIN)
-        if (screen > OnboardingScreen.SecurityConfirmPin) PinScreen().confirmPin(PIN)
-        if (screen > OnboardingScreen.SecuritySetupCompleted) SecuritySetupCompletedScreen().clickNextButton()
-        if (screen > OnboardingScreen.PersonalizeInform) PersonalizeInformScreen().clickLoginWithDigidButton()
-        if (screen > OnboardingScreen.DigidLoginStartWebPage) DigidLoginStartWebPage().clickMockLoginButton()
-        if (screen > OnboardingScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().clickLoginButton()
-        if (screen > OnboardingScreen.PersonalizePidPreview) PersonalizePidPreviewScreen().clickAcceptButton()
-        if (screen > OnboardingScreen.PersonalizeConfirmIssuance) PinScreen().enterPin(PIN)
-        if (screen > OnboardingScreen.PersonalizeSuccess) PersonalizeSuccessScreen().clickNextButton()
+    fun toScreen(screen: OnboardingNavigatorScreen) {
+        if (screen > OnboardingNavigatorScreen.Introduction) IntroductionScreen().clickSkipButton()
+        if (screen > OnboardingNavigatorScreen.IntroductionPrivacy) IntroductionPrivacyScreen().clickNextButton()
+        if (screen > OnboardingNavigatorScreen.IntroductionConditions) IntroductionConditionsScreen().clickNextButton()
+        if (screen > OnboardingNavigatorScreen.SecurityChoosePin) PinScreen().choosePin(PIN)
+        if (screen > OnboardingNavigatorScreen.SecurityConfirmPin) PinScreen().confirmPin(PIN)
+        if (screen > OnboardingNavigatorScreen.SecuritySetupCompleted) SecuritySetupCompletedScreen().clickNextButton()
+        if (screen > OnboardingNavigatorScreen.PersonalizeInform) PersonalizeInformScreen().clickLoginWithDigidButton()
+        if (screen > OnboardingNavigatorScreen.DigidLoginStartWebPage) DigidLoginStartWebPage().clickMockLoginButton()
+        if (screen > OnboardingNavigatorScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().clickLoginButton()
+        if (screen > OnboardingNavigatorScreen.PersonalizePidPreview) PersonalizePidPreviewScreen().clickAcceptButton()
+        if (screen > OnboardingNavigatorScreen.PersonalizeConfirmIssuance) PinScreen().enterPin(PIN)
+        if (screen > OnboardingNavigatorScreen.PersonalizeSuccess) PersonalizeSuccessScreen().clickNextButton()
 
         // App now shows the dashboard screen.
     }

@@ -2,7 +2,7 @@ package feature.introduction
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.screen.OnboardingScreen
+import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -25,7 +25,7 @@ class IntroductionConditionsTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.IntroductionConditions)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.IntroductionConditions)
 
         conditionsScreen = IntroductionConditionsScreen()
     }
