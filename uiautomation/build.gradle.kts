@@ -15,7 +15,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
-    implementation("com.codeborne:selenide-appium:7.5.0")
+    implementation("com.codeborne:selenide-appium:7.5.1")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
     implementation("io.appium:java-client:9.3.0")
     implementation("io.github.ashwithpoojary98:appium_flutterfinder_java:1.0.9")

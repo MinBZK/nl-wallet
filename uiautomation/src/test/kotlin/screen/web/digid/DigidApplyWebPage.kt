@@ -5,7 +5,7 @@ import util.MobileActions
 
 class DigidApplyWebPage : MobileActions() {
 
-    private val headlineText = findElement(By.xpath("//h1[contains(text(), 'DigiD aanvragen')]"))
+    private val headlineText = findElement(By.xpath("//h1[text()='DigiD aanvragen']"))
 
     fun visible() = isWebElementVisible(headlineText)
 }

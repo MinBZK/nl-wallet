@@ -1,15 +1,14 @@
 package feature.lock
 
 import helper.TestBase
-import navigator.OnboardingNavigator
-import navigator.screen.OnboardingScreen
+import navigator.MenuNavigator
+import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import screen.dashboard.DashboardScreen
 import screen.menu.MenuScreen
 import screen.security.PinScreen
 
@@ -26,9 +25,7 @@ class AppLockedStateTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.Dashboard)
-
-        DashboardScreen().clickMenuButton()
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickLogoutButton()
 
         pinScreen = PinScreen()
