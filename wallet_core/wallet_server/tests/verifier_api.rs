@@ -83,8 +83,6 @@ fn fake_issuer_settings() -> Issuer {
     let url: BaseUrl = "http://fake.fake".parse().unwrap();
 
     Issuer {
-        #[cfg(not(feature = "disclosure"))]
-        issuer_trust_anchors: None,
         private_keys: Default::default(),
         wallet_client_ids: Default::default(),
         digid: Digid {

@@ -29,6 +29,39 @@ fn certificates_to_trust_anchors(trust_anchors: &[Certificate]) -> Result<Vec<De
 }
 
 #[test]
+fn test_settings_success() {
+    let mut settings = Settings::new_custom("wallet_server.toml", "wallet_server").expect("default settings");
+
+    let issuer_ca = KeyPair::generate_issuer_mock_ca().expect("generate issuer CA");
+    let reader_ca = KeyPair::generate_reader_mock_ca().expect("generate reader CA");
+
+    let issuer_cert_valid = issuer_ca
+        .generate_issuer_mock(IssuerRegistration::new_mock().into())
+        .expect("generate valid issuer cert");
+
+    let reader_cert_valid = reader_ca
+        .generate_reader_mock(ReaderRegistration::new_mock().into())
+        .expect("generate valid reader cert");
+
+    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
+    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
+
+    settings.issuer.private_keys.clear();
+    settings
+        .issuer
+        .private_keys
+        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+
+    let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
+    usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
+
+    settings.verifier.usecases = usecases.into();
+    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+
+    settings.verify_key_pairs().expect("should succeed");
+}
+
+#[test]
 fn test_settings_no_reader_registration() {
     let mut settings = Settings::new_custom("wallet_server.toml", "wallet_server").expect("default settings");
 
