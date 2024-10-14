@@ -30,7 +30,8 @@ fn certificates_to_trust_anchors(trust_anchors: &[Certificate]) -> Result<Vec<De
 
 #[test]
 fn test_settings_success() {
-    let mut settings = Settings::new_custom("wallet_server.toml", "wallet_server").expect("default settings");
+    let mut settings =
+        Settings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
 
     let issuer_ca = KeyPair::generate_issuer_mock_ca().expect("generate issuer CA");
     let reader_ca = KeyPair::generate_reader_mock_ca().expect("generate reader CA");
@@ -63,7 +64,8 @@ fn test_settings_success() {
 
 #[test]
 fn test_settings_no_reader_registration() {
-    let mut settings = Settings::new_custom("wallet_server.toml", "wallet_server").expect("default settings");
+    let mut settings =
+        Settings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
 
     let issuer_ca = KeyPair::generate_issuer_mock_ca().expect("generate issuer CA");
     let reader_ca = KeyPair::generate_reader_mock_ca().expect("generate reader CA");
@@ -101,7 +103,8 @@ fn test_settings_no_reader_registration() {
 
 #[test]
 fn test_settings_wrong_reader_ca() {
-    let mut settings = Settings::new_custom("wallet_server.toml", "wallet_server").expect("default settings");
+    let mut settings =
+        Settings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
 
     let issuer_ca = KeyPair::generate_issuer_mock_ca().expect("generate issuer CA");
     let reader_ca = KeyPair::generate_reader_mock_ca().expect("generate reader CA");
@@ -139,7 +142,8 @@ fn test_settings_wrong_reader_ca() {
 
 #[test]
 fn test_settings_no_issuer_registration() {
-    let mut settings = Settings::new_custom("wallet_server.toml", "wallet_server").expect("default settings");
+    let mut settings =
+        Settings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
 
     let issuer_ca = KeyPair::generate_issuer_mock_ca().expect("generate issuer CA");
     let reader_ca = KeyPair::generate_reader_mock_ca().expect("generate reader CA");
@@ -180,7 +184,8 @@ fn test_settings_no_issuer_registration() {
 
 #[test]
 fn test_settings_wrong_issuer_ca() {
-    let mut settings = Settings::new_custom("wallet_server.toml", "wallet_server").expect("default settings");
+    let mut settings =
+        Settings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
 
     let issuer_ca = KeyPair::generate_issuer_mock_ca().expect("generate issuer CA");
     let reader_ca = KeyPair::generate_reader_mock_ca().expect("generate reader CA");
