@@ -2,7 +2,7 @@ use std::{env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
 
 use chrono::{DateTime, Utc};
 use config::{Config, ConfigError, Environment, File};
-#[cfg(feature = "test")]
+#[cfg(feature = "integration_test")]
 use p256::pkcs8::EncodePrivateKey;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use serde::Deserialize;
@@ -15,9 +15,9 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::{
-    generator::Generator,
+    generator::{Generator, TimeGenerator},
     sentry::Sentry,
-    trust_anchor::{DerTrustAnchor, OwnedTrustAnchor},
+    trust_anchor::DerTrustAnchor,
     urls::BaseUrl,
 };
 
@@ -66,8 +66,18 @@ pub struct Settings {
     #[cfg(feature = "issuance")]
     pub issuer: Issuer,
 
+    /// Issuer trust anchors are used to validate the keys and certificates in the `issuer.private_keys` configuration
+    /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
+    #[cfg(any(feature = "issuance", feature = "disclosure"))]
+    pub issuer_trust_anchors: Vec<DerTrustAnchor>,
+
     #[cfg(feature = "disclosure")]
     pub verifier: Verifier,
+
+    /// Reader trust anchors are used to verify the keys and certificates in the `verifier.usecases` configuration on
+    /// application startup.
+    #[cfg(feature = "disclosure")]
+    pub reader_trust_anchors: Vec<DerTrustAnchor>,
 
     pub sentry: Option<Sentry>,
 }
@@ -145,7 +155,7 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
     }
 }
 
-#[cfg(feature = "test")]
+#[cfg(feature = "integration_test")]
 impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
     type Error = KeyPairError;
     fn try_from(source: nl_wallet_mdoc::server_keys::KeyPair) -> Result<Self, Self::Error> {
@@ -161,8 +171,6 @@ impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CertificateVerificationError {
-    #[error("invalid trust anchor: {0}")]
-    InvalidTrustAnchor(#[source] CertificateError),
     #[error("invalid certificate `{1}`: {0}")]
     InvalidCertificate(#[source] CertificateError, String),
     #[error("invalid key pair `{1}`: {0}")]
@@ -215,16 +223,6 @@ where
     Ok(())
 }
 
-pub fn certificates_to_trust_anchors(trust_anchors: &[Certificate]) -> Result<Vec<OwnedTrustAnchor>, CertificateError> {
-    trust_anchors
-        .iter()
-        .map(|anchor| {
-            let der: DerTrustAnchor = anchor.try_into()?;
-            Ok(der.owned_trust_anchor)
-        })
-        .collect::<Result<Vec<_>, CertificateError>>()
-}
-
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Settings::new_custom("wallet_server.toml", "wallet_server")
@@ -254,7 +252,10 @@ impl Settings {
             )?;
 
         #[cfg(feature = "disclosure")]
-        let config_builder = config_builder.set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?;
+        let config_builder = config_builder
+            .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
+            .set_default("requester_server.ip", "0.0.0.0")?
+            .set_default("requester_server.port", 3002)?;
 
         #[cfg(feature = "issuance")]
         let config_builder = config_builder
@@ -271,12 +272,14 @@ impl Settings {
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
-            .prefix_separator("_");
+            .prefix_separator("_")
+            .list_separator(",");
+
+        #[cfg(any(feature = "issuance", feature = "disclosure"))]
+        let environment_parser = environment_parser.with_list_parse_key("issuer_trust_anchors");
 
         #[cfg(feature = "disclosure")]
-        let environment_parser = environment_parser
-            .list_separator(",")
-            .with_list_parse_key("verifier.trust_anchors");
+        let environment_parser = environment_parser.with_list_parse_key("reader_trust_anchors");
 
         let environment_parser = environment_parser.try_parsing(true);
 
@@ -294,35 +297,67 @@ impl Settings {
         #[cfg(feature = "disclosure")]
         {
             tracing::debug!("Verifying verifier.usecases certificates");
-            self.verifier.verify_all()?;
+            self.verify_verifier_key_pairs()?;
         }
 
-        #[cfg(all(feature = "issuance", feature = "disclosure"))]
+        #[cfg(feature = "issuance")]
         {
             tracing::debug!("Verifying issuer.private_keys certificates");
-            let trust_anchors = self
-                .verifier
-                .issuer_trust_anchors
-                .iter()
-                .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
-                .collect::<Vec<_>>();
-            self.issuer.verify_all(&trust_anchors)?;
-        }
-
-        #[cfg(all(feature = "issuance", not(feature = "disclosure")))]
-        {
-            tracing::debug!("Verifying issuer.private_keys certificates");
-            let trust_anchors = self
-                .issuer
-                .issuer_trust_anchors
-                .iter()
-                .flatten()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(CertificateVerificationError::InvalidTrustAnchor)?;
-            self.issuer.verify_all(&trust_anchors)?;
+            self.verify_issuer_key_pairs()?;
         }
 
         Ok(())
+    }
+
+    #[cfg(feature = "disclosure")]
+    pub fn verify_verifier_key_pairs<'a>(&'a self) -> Result<(), CertificateVerificationError> {
+        let time = TimeGenerator;
+
+        let trust_anchors: Vec<TrustAnchor<'a>> = self
+            .reader_trust_anchors
+            .iter()
+            .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+            .collect::<Vec<_>>();
+
+        let key_pairs: Vec<(String, KeyPair)> = self
+            .verifier
+            .usecases
+            .iter()
+            .map(|(use_case_id, usecase)| (use_case_id.clone(), usecase.key_pair.clone()))
+            .collect();
+
+        verify_key_pairs(
+            &key_pairs,
+            &trust_anchors,
+            CertificateUsage::ReaderAuth,
+            &time,
+            |certificate_type| matches!(certificate_type, CertificateType::ReaderAuth(Some(_))),
+        )
+    }
+
+    #[cfg(feature = "issuance")]
+    pub fn verify_issuer_key_pairs<'a>(&'a self) -> Result<(), CertificateVerificationError> {
+        let time = TimeGenerator;
+
+        let trust_anchors: Vec<TrustAnchor<'a>> = self
+            .issuer_trust_anchors
+            .iter()
+            .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+            .collect::<Vec<_>>();
+
+        let key_pairs: Vec<(String, KeyPair)> = self
+            .issuer
+            .private_keys
+            .iter()
+            .map(|(id, keypair)| (id.clone(), keypair.clone()))
+            .collect();
+
+        verify_key_pairs(
+            &key_pairs,
+            &trust_anchors,
+            CertificateUsage::Mdl,
+            &time,
+            |certificate_type| matches!(certificate_type, CertificateType::Mdl(Some(_))),
+        )
     }
 }

@@ -1,6 +1,7 @@
 # Example config
 
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/'
+issuer_trust_anchors = ["${PID_CA_CRT}"]
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
@@ -8,9 +9,6 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
 [wallet_server]
 ip = '0.0.0.0'
 port = ${PID_ISSUER_WS_PORT}
-
-[issuer]
-issuer_trust_anchors = ["${PID_CA_CRT}"]
 
 [issuer.digid]
 issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"

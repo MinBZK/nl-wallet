@@ -3,11 +3,8 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    utils::x509::{Certificate, CertificateType, CertificateUsage},
-};
-use wallet_common::{generator::TimeGenerator, reqwest::deserialize_certificates, urls::BaseUrl};
+use nl_wallet_mdoc::utils::x509::Certificate;
+use wallet_common::{reqwest::deserialize_certificates, urls::BaseUrl};
 
 use super::*;
 use crate::pid::{
@@ -17,10 +14,7 @@ use crate::pid::{
 
 #[derive(Clone, Deserialize)]
 pub struct Issuer {
-    #[cfg(not(feature = "disclosure"))]
-    pub issuer_trust_anchors: Option<Vec<Certificate>>,
-
-    // Issuer private keys index per doctype
+    /// Issuer private keys index per doctype
     pub private_keys: HashMap<String, KeyPair>,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
@@ -33,26 +27,6 @@ pub struct Issuer {
     pub digid: Digid,
 
     pub brp_server: BaseUrl,
-}
-
-impl Issuer {
-    pub fn verify_all<'a>(&'a self, trust_anchors: &[TrustAnchor<'a>]) -> Result<(), CertificateVerificationError> {
-        let time = TimeGenerator;
-
-        let key_pairs: Vec<(String, KeyPair)> = self
-            .private_keys
-            .iter()
-            .map(|(id, keypair)| (id.clone(), keypair.clone()))
-            .collect();
-
-        verify_key_pairs(
-            &key_pairs,
-            trust_anchors,
-            CertificateUsage::Mdl,
-            &time,
-            |certificate_type| matches!(certificate_type, CertificateType::Mdl(Some(_))),
-        )
-    }
 }
 
 #[derive(Clone, Deserialize)]
