@@ -17,9 +17,6 @@
     "activitySummarySharedWithMultiple": "gedeeld met {organizations} en {organization}",
     "activitySummarySharedWithOthers": "nog {nrOrganizations} organisaties",
     "activitySummaryToday": "Activiteiten vandaag",
-    "appBlockedScreenDescription": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de Play Store op de app bij te werken.",
-    "appBlockedScreenDescriptioniOSVariant": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de App Store op de app bij te werken.",
-    "appBlockedScreenTitle": "Een nieuwe app versie is vereist",
     "appTitle": "NL Wallet",
     "biometricSettingsScreenDescription": "Hiermee open je de NL Wallet sneller. Je gebruikt jouw {supportedBiometrics} in plaats van jouw pincode.\nZet {supportedBiometrics} aan en bevestig met jouw pincode.",
     "@biometricSettingsScreenDescription": {
@@ -446,7 +443,6 @@
             }
         }
     },
-    "generalNeedHelpCta": "Hulp nodig?",
     "generalOff": "Uit",
     "generalOkCta": "OK",
     "generalOn": "Aan",
@@ -481,8 +477,6 @@
     "generalShowDetailsCta": "Bekijk details",
     "generalTimeAgo": "geleden",
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
-    "generalToAppStoreCta": "Naar App Store",
-    "generalToPlayStoreCta": "Naar Play Store",
     "generalVersionText": "Appversie:",
     "generalWCAGBack": "Terug",
     "generalWCAGChangeLanguage": "Taal te selecteren",
@@ -1023,44 +1017,6 @@
     "signSuccessPageHistoryCta": "Activiteiten",
     "signSuccessPageTitle": "Gelukt!",
     "unlockWithBiometricsReason": "Open de NL Wallet",
-    "updateBannerNotifyDescription": "Hiermee krijg je de beste ervaring.",
-    "updateBannerNotifyTitle": "Update de app",
-    "updateBannerRecommendDescription": "Hiermee los je de problemen op.",
-    "updateBannerRecommendTitle": "Update nodig",
-    "updateBannerWarnDescription": "{days, plural, one {De app werkt nog een dag.} other {De app werkt nog {days} dagen.}}",
-    "@updateBannerWarnDescription": {
-        "placeholders": {
-            "days": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "updateBannerWarnTitle": "Update nodig",
-    "updateInfoScreenDescription": "Er zijn problemen met deze versie van de app. Haal de laatste versie uit de Play Store voor een betere ervaring.",
-    "updateInfoScreenDescriptioniOSVariant": "Er zijn problemen met deze versie van de app. Haal de laatste versie uit de App Store voor een betere ervaring.",
-    "updateInfoScreenTitle": "Update vereist",
-    "updateNotificationDialogCountdownDescription": "{days, plural, one {Over een dag kun je de huidige versie van de app niet meer gebruiken. Update de app nu via de Play Store om de app te blijven gebruiken.} other {Over {days} dagen kun je de huidige versie van de app niet meer gebruiken. Update de app nu via de Play Store om de app te blijven gebruiken.}}",
-    "@updateNotificationDialogCountdownDescription": {
-        "placeholders": {
-            "days": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "updateNotificationDialogCountdownDescriptioniOSVariant": "{days, plural, one {Over een dag kun je de huidige versie van de app niet meer gebruiken. Update de app nu via de App Store om de app te blijven gebruiken.} other {Over {days} dagen kun je de huidige versie van de app niet meer gebruiken. Update de app nu via de App Store om de app te blijven gebruiken.}}",
-    "@updateNotificationDialogCountdownDescriptioniOSVariant": {
-        "placeholders": {
-            "days": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "updateNotificationDialogDescription": "Er zijn problemen gevonden in deze versie van de app. Update de app in de Play Store om ze op te lossen.",
-    "updateNotificationDialogDescriptioniOSVariant": "Er zijn problemen gevonden in deze versie van de app. Update de app in de App Store om ze op te lossen.",
-    "updateNotificationDialogTitle": "Update nodig",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Toevoegen",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",

@@ -21,9 +21,6 @@
     "activitySummarySharedWithMultiple": "shared with {organizations} and {organization}",
     "activitySummarySharedWithOthers": "{nrOrganizations} other organizations",
     "activitySummaryToday": "Activities today",
-    "appBlockedScreenDescription": "You can no longer use this version of the app. Go to the Play Store to update the app.",
-    "appBlockedScreenDescriptioniOSVariant": "You can no longer use this version of the app. Go to the App Store to update the app.",
-    "appBlockedScreenTitle": "A new app version is needed",
     "appTitle": "NL Wallet",
     "biometricSettingsScreenDescription": "This will open your NL Wallet faster. You'll use your {supportedBiometrics} instead of your PIN.\nEnable {supportedBiometrics} and confirm with your PIN.",
     "@biometricSettingsScreenDescription": {
@@ -450,7 +447,6 @@
             }
         }
     },
-    "generalNeedHelpCta": "Need help?",
     "generalOff": "Off",
     "generalOkCta": "OK",
     "generalOn": "On",
@@ -485,8 +481,6 @@
     "generalShowDetailsCta": "See details",
     "generalTimeAgo": "ago",
     "generalTimeAgoLessThenOneMinute": "less then a minute",
-    "generalToAppStoreCta": "To App Store",
-    "generalToPlayStoreCta": "To Play Store",
     "generalVersionText": "App version:",
     "generalWCAGBack": "Back",
     "generalWCAGChangeLanguage": "Change language",
@@ -1027,44 +1021,6 @@
     "signSuccessPageHistoryCta": "Activities",
     "signSuccessPageTitle": "Success!",
     "unlockWithBiometricsReason": "Unlock the NL Wallet",
-    "updateBannerNotifyDescription": "This way, you get the best experience.",
-    "updateBannerNotifyTitle": "Update the app",
-    "updateBannerRecommendDescription": "This way, you solve the problems.",
-    "updateBannerRecommendTitle": "Update urgently needed",
-    "updateBannerWarnDescription": "{days, plural, one {The app will work for one more day.} other {The app will work for {days} more days.}}",
-    "@updateBannerWarnDescription": {
-        "placeholders": {
-            "days": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "updateBannerWarnTitle": "Update urgently needed",
-    "updateInfoScreenDescription": "There are problems with this version of the app. Get the latest version from the Play Store for a better experience.",
-    "updateInfoScreenDescriptioniOSVariant": "There are problems with this version of the app. Get the latest version from the App Store for a better experience.",
-    "updateInfoScreenTitle": "Update urgently needed",
-    "updateNotificationDialogCountdownDescription": "{days, plural, one {After one day, you won't be able to use the version you have now. Update now via Play Store to continue using the app.} other {After {days} days, you won't be able to use the version you have now. Update now via Play Store to continue using the app.}}",
-    "@updateNotificationDialogCountdownDescription": {
-        "placeholders": {
-            "days": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "updateNotificationDialogCountdownDescriptioniOSVariant": "{days, plural, one {After one day, you won't be able to use the version you have now. Update now via App Store to continue using the app.} other {After {days} days, you won't be able to use the version you have now. Update now via App Store to continue using the app.}}",
-    "@updateNotificationDialogCountdownDescriptioniOSVariant": {
-        "placeholders": {
-            "days": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "updateNotificationDialogDescription": "There are problems found in this version of the app. Update the app in the Play Store to fix them.",
-    "updateNotificationDialogDescriptioniOSVariant": "There are problems found in this version of the app. Update the app in the App Store to fix them.",
-    "updateNotificationDialogTitle": "Update urgently needed",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Add",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Address",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Born",
