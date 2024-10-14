@@ -296,13 +296,13 @@ impl Settings {
     pub fn verify_key_pairs(&self) -> Result<(), CertificateVerificationError> {
         #[cfg(feature = "disclosure")]
         {
-            tracing::debug!("Verifying verifier.usecases certificates");
+            tracing::debug!("verifying verifier.usecases certificates");
             self.verify_verifier_key_pairs()?;
         }
 
         #[cfg(feature = "issuance")]
         {
-            tracing::debug!("Verifying issuer.private_keys certificates");
+            tracing::debug!("verifying issuer.private_keys certificates");
             self.verify_issuer_key_pairs()?;
         }
 
