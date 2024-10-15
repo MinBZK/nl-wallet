@@ -68,7 +68,6 @@ pub struct Settings {
 
     /// Issuer trust anchors are used to validate the keys and certificates in the `issuer.private_keys` configuration
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
-    #[cfg(any(feature = "issuance", feature = "disclosure"))]
     pub issuer_trust_anchors: Vec<DerTrustAnchor>,
 
     #[cfg(feature = "disclosure")]
@@ -233,7 +232,6 @@ impl Settings {
             .prefix_separator("_")
             .list_separator(",");
 
-        #[cfg(any(feature = "issuance", feature = "disclosure"))]
         let environment_parser = environment_parser.with_list_parse_key("issuer_trust_anchors");
 
         #[cfg(feature = "disclosure")]
@@ -241,7 +239,7 @@ impl Settings {
 
         let environment_parser = environment_parser.try_parsing(true);
 
-        let config: Settings = config_builder
+        let config = config_builder
             .add_source(File::from(config_source).required(false))
             .add_source(File::from(PathBuf::from(config_file)).required(false))
             .add_source(environment_parser)
