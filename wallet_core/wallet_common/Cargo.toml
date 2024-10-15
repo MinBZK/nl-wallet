@@ -64,7 +64,7 @@ hex = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-sentry = { workspace = true, optional = true }
+sentry = { workspace = true, optional = true, features = ["debug-logs"] }
 tower-http = { workspace = true, optional = true, features = ["cors"] }
 
 error_category.path = "../error_category"

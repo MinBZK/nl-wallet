@@ -3918,6 +3918,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5484316556650182f03b43d4c746ce0e3e48074a21e2f51244b648b6542e1066"
 dependencies = [
  "httpdate",
+ "log",
  "reqwest",
  "rustls 0.22.4",
  "sentry-anyhow",
@@ -3976,6 +3977,7 @@ version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "161283cfe8e99c8f6f236a402b9ccf726b201f365988b5bb637ebca0abbd4a30"
 dependencies = [
+ "log",
  "once_cell",
  "rand",
  "sentry-types",
