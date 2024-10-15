@@ -170,6 +170,8 @@ impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CertificateVerificationError {
+    #[error("missing trust anchors, expected at least 1")]
+    MissingTrustAnchors,
     #[error("invalid certificate `{1}`: {0}")]
     InvalidCertificate(#[source] CertificateError, String),
     #[error("invalid key pair `{1}`: {0}")]
@@ -329,7 +331,7 @@ where
     F: Fn(CertificateType) -> bool,
 {
     if trust_anchors.is_empty() {
-        tracing::warn!("no trust anchors found; certificate chains are not verified");
+        return Err(CertificateVerificationError::MissingTrustAnchors);
     }
 
     for (key_pair_id, key_pair) in key_pairs {
