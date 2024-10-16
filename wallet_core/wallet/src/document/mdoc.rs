@@ -539,7 +539,7 @@ pub mod tests {
         assert_matches!(document.persistence, DocumentPersistence::InMemory);
         assert_eq!(document.doc_type, PID_DOCTYPE);
         assert_eq!(
-            document.attributes.keys().cloned().collect::<Vec<_>>(),
+            document.attributes.keys().copied().collect::<Vec<_>>(),
             vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
         );
         assert_matches!(
@@ -760,7 +760,7 @@ pub mod tests {
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
-            disclosure_document.attributes.keys().cloned().collect::<Vec<_>>(),
+            disclosure_document.attributes.keys().copied().collect::<Vec<_>>(),
             vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
         );
         assert_matches!(
@@ -823,7 +823,7 @@ pub mod tests {
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
-            disclosure_document.attributes.keys().cloned().collect::<Vec<_>>(),
+            disclosure_document.attributes.keys().copied().collect::<Vec<_>>(),
             vec!["age_over_18"]
         );
         assert_matches!(

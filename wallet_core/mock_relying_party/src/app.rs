@@ -377,6 +377,7 @@ async fn disclosed_attributes(
 mod filters {
     use nl_wallet_mdoc::verifier::DisclosedAttributes;
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn attribute(attributes: &DisclosedAttributes, name: &str) -> ::askama::Result<String> {
         for doctype in attributes {
             for namespace in &doctype.1.attributes {

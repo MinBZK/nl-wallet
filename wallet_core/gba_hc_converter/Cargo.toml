@@ -71,3 +71,5 @@ ctor.workspace = true
 rstest.workspace = true
 tempfile.workspace = true
 tokio = { workspace = true, features = ["macros"] }
+
+tests_integration = { path = "../tests_integration", features = ["test_common"] }

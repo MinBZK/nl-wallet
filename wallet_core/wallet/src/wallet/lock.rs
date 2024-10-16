@@ -194,7 +194,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Deref, sync::Arc};
+    use std::sync::Arc;
 
     use assert_matches::assert_matches;
     use http::StatusCode;
@@ -324,7 +324,7 @@ mod tests {
         {
             let is_locked_vec = is_locked_vec.lock();
 
-            assert_eq!(is_locked_vec.deref(), &vec![false, true, false]);
+            assert_eq!(*is_locked_vec, vec![false, true, false]);
         }
 
         // Clear the lock callback on the `Wallet.`
