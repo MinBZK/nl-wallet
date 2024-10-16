@@ -75,7 +75,7 @@ tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["examples", "generate", "mock", "software_keys", "test"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["examples", "generate", "mock", "test"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }

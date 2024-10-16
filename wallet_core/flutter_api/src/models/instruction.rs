@@ -1,4 +1,4 @@
-use wallet::errors::{InstructionError, PidIssuanceError, WalletUnlockError};
+use wallet::errors::{ChangePinError, InstructionError, PidIssuanceError, WalletUnlockError};
 
 pub enum WalletInstructionResult {
     Ok,
@@ -74,6 +74,27 @@ impl TryFrom<Result<(), PidIssuanceError>> for WalletInstructionResult {
             Ok(_) => Ok(WalletInstructionResult::Ok),
             Err(PidIssuanceError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
                 error: instruction_error.try_into().map_err(PidIssuanceError::Instruction)?,
+            }),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+/// This conversion distinguishes between 3 distinct cases:
+///
+/// 1. In case of a successful result, [`WalletInstructionResult::Ok`] will be returned.
+/// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by mapping
+///    the nested [InstructionError].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`ChangePinError`] will be returned
+///    unchanged.
+impl TryFrom<Result<(), ChangePinError>> for WalletInstructionResult {
+    type Error = ChangePinError;
+
+    fn try_from(value: Result<(), ChangePinError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(_) => Ok(WalletInstructionResult::Ok),
+            Err(ChangePinError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
+                error: instruction_error.try_into().map_err(ChangePinError::Instruction)?,
             }),
             Err(error) => Err(error),
         }

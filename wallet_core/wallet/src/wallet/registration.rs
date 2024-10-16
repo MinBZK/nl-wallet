@@ -195,6 +195,7 @@ mod tests {
 
     use crate::{
         account_provider::AccountProviderResponseError,
+        storage::{KeyedData, KeyedDataResult},
         wallet::test::{FallibleSoftwareEcdsaKey, ACCOUNT_SERVER_KEYS},
     };
 
@@ -476,7 +477,7 @@ mod tests {
 
         // Have the database return an error
         // when inserting the wallet certificate.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.get_mut().set_keyed_data_error(RegistrationData::KEY);
 
         let error = wallet
             .register(PIN.to_string())
@@ -485,6 +486,9 @@ mod tests {
 
         assert_matches!(error, WalletRegistrationError::StoreCertificate(_));
         assert!(!wallet.has_registration());
-        assert!(wallet.storage.get_mut().data.is_empty());
+        assert_matches!(
+            wallet.storage.get_mut().data.get(RegistrationData::KEY),
+            Some(KeyedDataResult::Error)
+        );
     }
 }

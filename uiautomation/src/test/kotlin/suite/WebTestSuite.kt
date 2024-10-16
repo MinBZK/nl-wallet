@@ -6,6 +6,7 @@ import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
     feature.web.digid.MockDigidWebTests::class,
+    feature.web.rp.RelyingPartyWebTests::class,
 )
 @Suite
 @SuiteDisplayName("Web Test Suite")

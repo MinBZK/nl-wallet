@@ -77,6 +77,11 @@ pub extern "C" fn wire_change_pin(port_: i64, old_pin: *mut wire_uint_8_list, ne
 }
 
 #[no_mangle]
+pub extern "C" fn wire_continue_change_pin(port_: i64, pin: *mut wire_uint_8_list) {
+    wire_continue_change_pin_impl(port_, pin)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_has_registration(port_: i64) {
     wire_has_registration_impl(port_)
 }

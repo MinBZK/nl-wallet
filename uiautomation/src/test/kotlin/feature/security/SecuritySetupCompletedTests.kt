@@ -2,7 +2,7 @@ package feature.security
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.screen.OnboardingScreen
+import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -25,7 +25,7 @@ class SecuritySetupCompletedTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.SecuritySetupCompleted)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecuritySetupCompleted)
 
         securitySetupCompletedScreen = SecuritySetupCompletedScreen()
     }

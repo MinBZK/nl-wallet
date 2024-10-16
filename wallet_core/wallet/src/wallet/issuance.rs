@@ -18,7 +18,8 @@ use crate::{
     account_provider::AccountProviderClient,
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     document::{Document, DocumentMdocError, PID_DOCTYPE},
-    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
+    errors::ChangePinError,
+    instruction::{InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     issuance::{DigidSession, DigidSessionError, HttpDigidSession},
     storage::{Storage, StorageError, WalletEvent},
     wte::WteIssuanceClient,
@@ -78,8 +79,9 @@ pub enum PidIssuanceError {
     Document(#[source] DocumentsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
+    #[error("error finalizing pin change: {0}")]
+    ChangePin(#[from] ChangePinError),
     #[error("JWT credential error: {0}")]
-    #[category(defer)]
     JwtCredential(#[from] JwtCredentialError),
 }
 
@@ -254,7 +256,7 @@ where
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
-        WIC: WteIssuanceClient,
+        WIC: WteIssuanceClient + Default,
     {
         info!("Accepting PID issuance");
 
@@ -279,15 +281,15 @@ where
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
+        let remote_instruction = self
+            .new_instruction_client(
+                pin,
+                registration,
+                &config.account_server.base_url,
+                &instruction_result_public_key,
+            )
+            .await?;
+
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
         let wte = self

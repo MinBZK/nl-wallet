@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
     derive(strum::Display, strum::EnumString),
     strum(serialize_all = "snake_case")
 )]
-#[category(critical)]
+#[category(pd)]
 pub enum AccountError {
     Unexpected,
     ChallengeValidation,

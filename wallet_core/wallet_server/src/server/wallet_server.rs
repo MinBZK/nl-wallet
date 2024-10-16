@@ -30,8 +30,12 @@ where
         attr_service,
         settings.issuer.wallet_client_ids,
     )?;
-    let (wallet_disclosure_router, requester_router) =
-        verifier::create_routers(settings.urls, settings.verifier, disclosure_sessions)?;
+    let (wallet_disclosure_router, requester_router) = verifier::create_routers(
+        settings.urls,
+        settings.verifier,
+        settings.issuer_trust_anchors,
+        disclosure_sessions,
+    )?;
 
     listen(
         settings.wallet_server,

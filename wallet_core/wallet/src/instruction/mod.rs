@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub use self::{
-    client::InstructionClient,
+    client::{InstructionClient, InstructionClientFactory},
     keys::{RemoteEcdsaKey, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
 };
 

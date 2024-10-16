@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     IssuerSigned,
 };
 use wallet_common::{
-    jwt::{jwk_to_p256, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError},
+    jwt::{jwk_to_p256, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims},
     keys::EcdsaKey,
     nonempty::NonEmpty,
     urls::BaseUrl,
@@ -27,7 +27,7 @@ use wallet_common::{
 use crate::{
     credential::{
         CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
-        JwtPopClaims, OPENID4VCI_VC_POP_JWT_TYPE,
+        OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},

@@ -3,14 +3,12 @@ use std::{collections::HashMap, iter};
 use futures::future;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
-
 use rand_core::OsRng;
-use wallet_common::{
-    keys::{software::SoftwareEcdsaKey, EcdsaKey},
+
+use crate::{
+    keys::{factory::KeyFactory, software::SoftwareEcdsaKey, EcdsaKey},
     utils,
 };
-
-use crate::utils::keys::KeyFactory;
 
 /// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
 /// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple
@@ -37,7 +35,7 @@ impl Default for SoftwareKeyFactory {
         let keys = HashMap::from([
             #[cfg(any(test, feature = "examples"))]
             {
-                use crate::examples::{Examples, EXAMPLE_KEY_IDENTIFIER};
+                use super::examples::{Examples, EXAMPLE_KEY_IDENTIFIER};
 
                 (EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())
             },

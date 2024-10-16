@@ -11,8 +11,12 @@ where
 {
     let log_requests = settings.log_requests;
 
-    let (wallet_disclosure_router, requester_router) =
-        verifier::create_routers(settings.urls, settings.verifier, disclosure_sessions)?;
+    let (wallet_disclosure_router, requester_router) = verifier::create_routers(
+        settings.urls,
+        settings.verifier,
+        settings.issuer_trust_anchors,
+        disclosure_sessions,
+    )?;
 
     listen(
         settings.wallet_server,

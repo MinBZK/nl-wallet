@@ -22,6 +22,7 @@ use openid4vc::{
 use wallet_common::{
     generator::TimeGenerator,
     http_error::HttpJsonError,
+    trust_anchor::DerTrustAnchor,
     urls::{self, BaseUrl, CorsOrigin},
 };
 
@@ -36,6 +37,7 @@ struct ApplicationState<S> {
 fn create_application_state<S>(
     urls: Urls,
     verifier: settings::Verifier,
+    issuer_trust_anchors: Vec<DerTrustAnchor>,
     sessions: S,
 ) -> anyhow::Result<ApplicationState<S>>
 where
@@ -45,8 +47,7 @@ where
         verifier: Verifier::new(
             verifier.usecases.try_into()?,
             sessions,
-            verifier
-                .trust_anchors
+            issuer_trust_anchors
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
                 .collect::<Vec<_>>(),
@@ -64,12 +65,22 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
         .allow_methods([Method::GET, Method::DELETE])
 }
 
-pub fn create_routers<S>(urls: Urls, verifier: settings::Verifier, sessions: S) -> anyhow::Result<(Router, Router)>
+pub fn create_routers<S>(
+    urls: Urls,
+    verifier: settings::Verifier,
+    issuer_trust_anchors: Vec<DerTrustAnchor>,
+    sessions: S,
+) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let allow_origins = verifier.allow_origins.clone();
-    let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
+    let application_state = Arc::new(create_application_state(
+        urls,
+        verifier,
+        issuer_trust_anchors,
+        sessions,
+    )?);
 
     let mut wallet_web = Router::new()
         .route("/:session_token", get(status::<S>))

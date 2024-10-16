@@ -1,5 +1,7 @@
 use indexmap::{IndexMap, IndexSet};
 
+use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
+
 use crate::{
     errors::Result,
     identifiers::AttributeIdentifier,
@@ -8,10 +10,7 @@ use crate::{
         mdocs::DocType,
     },
     unsigned::Entry,
-    utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
-        x509::Certificate,
-    },
+    utils::x509::Certificate,
     NameSpace,
 };
 
@@ -174,7 +173,7 @@ impl<I> ProposedDocument<I> {
     ) -> Result<Vec<Document>>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
     {
         let keys_and_challenges = proposed_documents
             .iter()
@@ -203,7 +202,7 @@ impl<I> ProposedDocument<I> {
     }
 }
 
-#[cfg(any(test, all(feature = "examples", feature = "mock", feature = "software_keys")))]
+#[cfg(any(test, all(feature = "examples", feature = "mock")))]
 mod examples {
     use crate::holder::Mdoc;
 
@@ -232,12 +231,13 @@ mod tests {
     use assert_matches::assert_matches;
     use coset::Header;
 
+    use wallet_common::keys::{examples::Examples, software_key_factory::SoftwareKeyFactory};
+
     use crate::{
         errors::Error,
-        examples::{Examples, EXAMPLE_NAMESPACE},
+        examples::EXAMPLE_NAMESPACE,
         holder::Mdoc,
         iso::disclosure::DeviceAuth,
-        software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{self, CoseError},
             serialization::TaggedBytes,

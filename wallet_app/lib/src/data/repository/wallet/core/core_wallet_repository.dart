@@ -81,6 +81,12 @@ class CoreWalletRepository implements WalletRepository {
   }
 
   @override
+  Future<WalletInstructionResult> continueChangePin(String pin) async {
+    if (!(await isRegistered())) throw UnsupportedError('Wallet not yet registered!');
+    return _walletCore.continueChangePin(pin);
+  }
+
+  @override
   Future<bool> containsPid() async {
     // The timeout here makes sure that we don't infinitely await in case the stream stays empty
     final cards = await _walletCore.observeCards().first.timeout(const Duration(seconds: 5));
