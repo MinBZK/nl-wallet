@@ -36,7 +36,7 @@ pub async fn decrypt_bytes_from_dir(
     let filename = filename(hmac_key, input_path, basename);
     if filename.exists() {
         let bytes = tokio::fs::read(filename).await?;
-        let decrypted = decrypt_bytes(decryption_key, bytes)?;
+        let decrypted = decrypt_bytes(decryption_key, &bytes)?;
         Ok(Some(decrypted))
     } else {
         Ok(None)
@@ -59,7 +59,7 @@ fn encrypt_bytes(key: &Key<Aes256Gcm>, bytes: &[u8]) -> Result<Vec<u8>, Error> {
     Ok(result)
 }
 
-fn decrypt_bytes(decryption_key: &Key<Aes256Gcm>, bytes: Vec<u8>) -> Result<Vec<u8>, Error> {
+fn decrypt_bytes(decryption_key: &Key<Aes256Gcm>, bytes: &[u8]) -> Result<Vec<u8>, Error> {
     let (nonce, ciphertext) = bytes.split_at(AES256GCM_NONCE_SIZE);
     let nonce = Nonce::<Aes256Gcm>::from_slice(nonce);
     let cipher = Aes256Gcm::new(decryption_key);

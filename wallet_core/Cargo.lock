@@ -1706,6 +1706,7 @@ dependencies = [
  "sha2",
  "strum 0.26.3",
  "tempfile",
+ "tests_integration",
  "thiserror",
  "tokio",
  "tower-http",

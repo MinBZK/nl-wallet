@@ -1101,7 +1101,7 @@ mod tests {
             )
             .await
             .is_ok()
-        )
+        );
     }
 
     #[tokio::test]
