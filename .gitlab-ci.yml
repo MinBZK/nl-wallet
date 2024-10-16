@@ -484,6 +484,31 @@ run-encrypt-gba-v-testdata-job-demo:
   extends: [.env-demo-k8s, .run-encrypt-gba-v-testdata-job]
   rules: !reference [.release-tag, rules]
 
+.deploy-gba-fetch-frontend:
+  needs:
+    - job: build-gba-fetch-image
+      artifacts: false
+  rules: !reference [.default-or-merge-request, rules]
+  when: manual
+  variables:
+    $GBA_FETCH_FRONTEND_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch-frontend:${CI_COMMIT_SHORT_SHA}
+  script:
+    - kubectl apply -f deploy/kubernetes/gba-fetch-frontend-ingress.yaml
+    - kubectl apply -f deploy/kubernetes/gba-fetch-frontend-service.yaml
+    - envsubst < deploy/kubernetes/${ENV}/gba-fetch-frontend-deployment.yaml | kubectl apply -f -
+
+deploy-gba-fetch-frontend-ont:
+  extends: [.env-ont-k8s, .deploy-gba-fetch-frontend]
+  rules: !reference [.default-or-merge-request, rules]
+  variables:
+    ENV: ont
+
+deploy-gba-fetch-frontend-demo:
+  extends: [.env-demo-k8s, .deploy-gba-fetch-frontend]
+  rules: !reference [.release-tag, rules]
+  variables:
+    ENV: demo
+
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
