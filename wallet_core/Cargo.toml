@@ -48,9 +48,9 @@ assert-json-diff = "2.0.2"
 askama = "0.12.1"
 assert_matches = "1"
 async-trait = "0.1.68"
-axum = { version = "0.7.7", default-features = false }
-axum-extra = "0.9.4"
-axum-server = "0.7.1"
+axum = { version = "0.7.5", default-features = false }
+axum-extra = "0.9.3"
+axum-server = "0.6.0"
 axum_csrf = "0.10.0"
 backtrace = "0.3.67"
 base64 = "0.22.1"
