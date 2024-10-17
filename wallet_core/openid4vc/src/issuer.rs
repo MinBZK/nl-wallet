@@ -929,7 +929,12 @@ impl WteDisclosure {
         expected_issuer: String,
         expected_nonce: Option<String>,
     ) -> Result<(), CredentialRequestError> {
-        let wte_claims = self.0.parse_and_verify(&issuer_public_key.into(), &validations())?;
+        // Enforce presence of exp, meaning it is also verified since `wte_validations.validate_exp = true` by default
+        // note: wte_validations.leeway is set to 1 minute
+        let mut wte_validations = validations();
+        wte_validations.set_required_spec_claims(&["exp"]);
+
+        let wte_claims = self.0.parse_and_verify(&issuer_public_key.into(), &wte_validations)?;
         let wte_pubkey = jwk_to_p256(&wte_claims.confirmation.jwk)?;
 
         let mut validations = validations();

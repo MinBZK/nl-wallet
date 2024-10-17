@@ -895,10 +895,13 @@ impl IssuanceState {
 
 #[cfg(any(test, feature = "test"))]
 pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> JwtCredential {
+    use chrono::{TimeDelta, Utc};
+    use indexmap::IndexMap;
     use wallet_common::{
         jwt::JwtCredentialClaims,
         keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
     };
+
     let wte_privkey = key_factory.generate_new().await.unwrap();
 
     let wte = JwtCredentialClaims::new_signed(
@@ -906,7 +909,14 @@ pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> Jw
         privkey,
         "iss".to_string(),
         None,
-        Default::default(),
+        IndexMap::from([(
+            "exp".to_string(),
+            Utc::now()
+                .checked_add_signed(TimeDelta::minutes(5))
+                .unwrap() // Adding 5 minutes won't overflow
+                .timestamp()
+                .into(),
+        )]),
     )
     .await
     .unwrap();
