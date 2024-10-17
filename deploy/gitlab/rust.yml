@@ -193,7 +193,7 @@ build-gba-encrypt-binary:
 build-gba-fetch-frontend-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl -release --package "gba_hc_converter" --bin gba_fetch_frontend
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin gba_fetch_frontend
   artifacts:
     paths:
       - wallet_core/target/x86_64-unknown-linux-musl/release/gba_fetch_frontend
