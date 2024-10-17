@@ -19,6 +19,7 @@ spec:
       labels:
         app: gba-fetch-frontend
         tier: vertrouwd
+        ingress-controller-frontoffice-policy: allow
         egress-frontoffice-policy: allow
     spec:
       imagePullSecrets:
