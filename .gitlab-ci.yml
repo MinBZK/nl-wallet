@@ -493,7 +493,7 @@ run-encrypt-gba-v-testdata-job-demo:
   variables:
     GBA_FETCH_FRONTEND_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch-frontend:${CI_COMMIT_SHORT_SHA}
   script:
-    - envsubst < deploy/kubernetes/gba-fetch-frontend-ingress.yaml | kubectl apply -f -
+    - envsubst '$GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME $K8S_NAMESPACE' < deploy/kubernetes/gba-fetch-frontend-ingress.yaml | kubectl apply -f -
     - kubectl apply -f deploy/kubernetes/gba-fetch-frontend-service.yaml
     - envsubst < deploy/kubernetes/${ENV}/gba-fetch-frontend-deployment.yaml | kubectl apply -f -
 
