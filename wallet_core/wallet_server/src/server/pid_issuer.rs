@@ -1,4 +1,5 @@
 use anyhow::Result;
+use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 
 use openid4vc::{issuer::AttributeService, server_state::SessionStore};
 
@@ -16,12 +17,14 @@ where
     let log_requests = settings.log_requests;
 
     let private_keys: IssuerKeyRing<_> = settings.issuer.private_keys.try_into()?;
+    let wte_privkey = VerifyingKey::from_public_key_der(&settings.issuer.wte_issuer_pubkey)?;
     let wallet_issuance_router = create_issuance_router(
         &settings.urls,
         private_keys,
         issuance_sessions,
         attr_service,
         settings.issuer.wallet_client_ids,
+        wte_privkey,
     )?;
 
     listen_wallet_only(

@@ -12,6 +12,7 @@ use crate::pid::{
     brp::client::HttpBrpClient,
 };
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Issuer {
     // Issuer private keys index per doctype
@@ -27,6 +28,9 @@ pub struct Issuer {
     pub digid: Digid,
 
     pub brp_server: BaseUrl,
+
+    #[serde_as(as = "Base64")]
+    pub wte_issuer_pubkey: Vec<u8>,
 }
 
 #[derive(Clone, Deserialize)]

@@ -623,7 +623,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 )
                 .await?;
 
-                Some((wte.jwt, wte_release))
+                Some(WteDisclosure::new(wte.jwt, wte_release))
             }
             None => None,
         };
@@ -894,19 +894,16 @@ impl IssuanceState {
 }
 
 #[cfg(any(test, feature = "test"))]
-pub async fn mock_wte(key_factory: &impl KeyFactory) -> JwtCredential {
+pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> JwtCredential {
     use wallet_common::{
         jwt::JwtCredentialClaims,
         keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
     };
-
-    // As a shortcut we use this private key both as the cnf in the WTE and as the issuer private key
-    // to sign the WTE with.
-    let privkey = key_factory.generate_new().await.unwrap();
+    let wte_privkey = key_factory.generate_new().await.unwrap();
 
     let wte = JwtCredentialClaims::new_signed(
-        &privkey.verifying_key().await.unwrap(),
-        &privkey,
+        &wte_privkey.verifying_key().await.unwrap(),
+        privkey,
         "iss".to_string(),
         None,
         Default::default(),
@@ -914,7 +911,7 @@ pub async fn mock_wte(key_factory: &impl KeyFactory) -> JwtCredential {
     .await
     .unwrap();
 
-    JwtCredential::new_unverified::<SoftwareEcdsaKey>(privkey.identifier().to_string(), wte)
+    JwtCredential::new_unverified::<SoftwareEcdsaKey>(wte_privkey.identifier().to_string(), wte)
 }
 
 #[cfg(test)]
@@ -935,7 +932,6 @@ mod tests {
         IssuerSigned,
     };
     use wallet_common::{
-        jwt::JwtCredentialClaims,
         keys::{factory::KeyFactory, software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory, EcdsaKey},
         nonempty::NonEmpty,
     };
@@ -1054,7 +1050,7 @@ mod tests {
         session_state: &IssuanceState,
         dpop_header: &str,
         access_token_header: &str,
-        attestations: &Option<(Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>)>,
+        attestations: &Option<WteDisclosure>,
         use_wte: bool,
     ) {
         assert_eq!(
@@ -1082,7 +1078,7 @@ mod tests {
     async fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
         let (cred_response, preview, ca_cert, _, key_factory) = create_credential_response().await;
         let wte = if use_wte {
-            Some(mock_wte(&key_factory).await)
+            Some(mock_wte(&key_factory, &SigningKey::random(&mut OsRng)).await)
         } else {
             None
         };

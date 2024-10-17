@@ -4,6 +4,7 @@ use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
+use rand_core::OsRng;
 use rstest::rstest;
 use url::Url;
 
@@ -35,7 +36,7 @@ use wallet_common::{
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
-fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
+fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
@@ -48,7 +49,7 @@ fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certific
     )
 }
 
-fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
+fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let ca = KeyPair::<SigningKey>::generate_issuer_mock_ca().unwrap();
 
     // Use the CA itself as issuance key
@@ -67,8 +68,9 @@ fn setup(
     attr_service: MockAttributeService,
     ca: KeyPair,
     issuance_keypair: KeyPair,
-) -> (MockIssuer, Certificate, BaseUrl) {
+) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();
+    let wte_issuer_privkey = SigningKey::random(&mut OsRng);
 
     let issuer = MockIssuer::new(
         MemorySessionStore::default(),
@@ -76,20 +78,25 @@ fn setup(
         SingleKeyRing(issuance_keypair),
         &server_url,
         vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+        *wte_issuer_privkey.verifying_key(),
     );
 
-    (issuer, ca.into(), server_url.join_base_url("issuance/"))
+    (
+        issuer,
+        ca.into(),
+        server_url.join_base_url("issuance/"),
+        wte_issuer_privkey,
+    )
 }
 
 #[rstest]
 #[tokio::test]
 async fn accept_issuance(
-    #[values(setup_mdoc, setup_jwt)] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
+    #[values(setup_mdoc, setup_jwt)] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey),
     #[values(1, 2)] attestation_count: usize,
     #[values(1, 2)] copy_count: u8,
-    #[values(true, false)] use_wte: bool,
 ) {
-    let (issuer, ca, server_url) = setup(attestation_count, copy_count);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup(attestation_count, copy_count);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, previews) = HttpIssuanceSession::start_issuance(
@@ -102,14 +109,10 @@ async fn accept_issuance(
     .unwrap();
 
     let key_factory = SoftwareKeyFactory::default();
-    let wte = if use_wte {
-        Some(mock_wte(&key_factory).await)
-    } else {
-        None
-    };
+    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     let issued_creds = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, wte, server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
         .await
         .unwrap();
 
@@ -140,7 +143,7 @@ async fn accept_issuance(
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, _) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, _previews) = HttpIssuanceSession::start_issuance(
@@ -159,6 +162,7 @@ async fn start_and_accept_err(
     message_client: MockOpenidMessageClient,
     server_url: BaseUrl,
     ca: Certificate,
+    wte_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
@@ -169,26 +173,24 @@ async fn start_and_accept_err(
     .await
     .unwrap();
 
+    let key_factory = SoftwareKeyFactory::default();
+    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
+
     session
-        .accept_issuance(
-            &[(&ca).try_into().unwrap()],
-            SoftwareKeyFactory::default(),
-            None,
-            server_url,
-        )
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
         .await
         .unwrap_err()
 }
 
 #[tokio::test]
 async fn wrong_access_token() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         wrong_access_token: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
@@ -197,13 +199,13 @@ async fn wrong_access_token() {
 
 #[tokio::test]
 async fn invalid_dpop() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         invalidate_dpop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
@@ -212,13 +214,14 @@ async fn invalid_dpop() {
 
 #[tokio::test]
 async fn invalid_pop() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         invalidate_pop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    dbg!(&result);
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)

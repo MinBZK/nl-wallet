@@ -73,9 +73,9 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::CborSerialization(_)
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
-                CredentialRequestError::IssuanceError(_) | CredentialRequestError::UseBatchIssuance => {
-                    CredentialErrorCode::InvalidRequest
-                }
+                CredentialRequestError::IssuanceError(_)
+                | CredentialRequestError::UseBatchIssuance
+                | CredentialRequestError::MissingWte => CredentialErrorCode::InvalidRequest,
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
                     CredentialErrorCode::InvalidToken
                 }

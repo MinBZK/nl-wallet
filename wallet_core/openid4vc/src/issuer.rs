@@ -17,7 +17,10 @@ use nl_wallet_mdoc::{
     IssuerSigned,
 };
 use wallet_common::{
-    jwt::{jwk_to_p256, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims},
+    jwt::{
+        jwk_to_p256, validations, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims,
+        NL_WALLET_CLIENT_ID,
+    },
     keys::EcdsaKey,
     nonempty::NonEmpty,
     urls::BaseUrl,
@@ -27,7 +30,7 @@ use wallet_common::{
 use crate::{
     credential::{
         CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
-        OPENID4VCI_VC_POP_JWT_TYPE,
+        WteDisclosure, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
@@ -118,6 +121,8 @@ pub enum CredentialRequestError {
     CredentialTypeMismatch,
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
+    #[error("missing WTE")]
+    MissingWte,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -238,6 +243,9 @@ pub struct IssuerData<K> {
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
+
+    /// Public key of the WTE issuer.
+    wte_issuer_pubkey: VerifyingKey,
 }
 
 impl<A, K, S> Drop for Issuer<A, K, S> {
@@ -259,6 +267,7 @@ where
         private_keys: K,
         server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
+        wte_issuer_pubkey: VerifyingKey,
     ) -> Self {
         let sessions = Arc::new(sessions);
 
@@ -267,6 +276,7 @@ where
             private_keys,
             credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_client_ids,
+            wte_issuer_pubkey,
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
@@ -630,6 +640,17 @@ impl Session<WaitingForResponse> {
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
+        credential_request
+            .attestations
+            .as_ref()
+            .ok_or(CredentialRequestError::MissingWte)?
+            .verify(
+                &issuer_data.wte_issuer_pubkey,
+                issuer_data.credential_issuer_identifier.to_string(),
+                NL_WALLET_CLIENT_ID.to_string(),
+                Some(self.state.data.c_nonce.clone()),
+            )?;
+
         // If we have exactly one credential on offer that matches the credential type that the client is
         // requesting, then we issue that credential.
         // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
@@ -702,6 +723,16 @@ impl Session<WaitingForResponse> {
             Some(&session_data.dpop_nonce),
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
+
+        credential_requests
+            .attestations
+            .ok_or(CredentialRequestError::MissingWte)?
+            .verify(
+                &issuer_data.wte_issuer_pubkey,
+                issuer_data.credential_issuer_identifier.to_string(),
+                NL_WALLET_CLIENT_ID.to_string(),
+                Some(self.state.data.c_nonce.clone()),
+            )?;
 
         let credential_responses = try_join_all(
             credential_requests
@@ -887,6 +918,30 @@ impl CredentialRequestProof {
         }
 
         Ok(verifying_key)
+    }
+}
+
+impl WteDisclosure {
+    fn verify(
+        &self,
+        issuer_public_key: &VerifyingKey,
+        expected_aud: String,
+        expected_issuer: String,
+        expected_nonce: Option<String>,
+    ) -> Result<(), CredentialRequestError> {
+        let wte_claims = self.0.parse_and_verify(&issuer_public_key.into(), &validations())?;
+        let wte_pubkey = jwk_to_p256(&wte_claims.confirmation.jwk)?;
+
+        let mut validations = validations();
+        validations.set_audience(&[&expected_aud]);
+        validations.set_issuer(&[&expected_issuer]);
+        let wte_disclosure_claims = self.1.parse_and_verify(&(&wte_pubkey).into(), &validations)?;
+
+        if wte_disclosure_claims.nonce != expected_nonce {
+            return Err(CredentialRequestError::IncorrectNonce);
+        }
+
+        Ok(())
     }
 }
 

@@ -23,7 +23,14 @@ pub struct CredentialRequests {
     pub poa: Option<Poa>,
 }
 
-pub type WteDisclosure = (Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>);
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WteDisclosure(pub(crate) Jwt<JwtCredentialClaims>, pub(crate) Jwt<JwtPopClaims>);
+
+impl WteDisclosure {
+    pub fn new(wte: Jwt<JwtCredentialClaims>, release: Jwt<JwtPopClaims>) -> Self {
+        Self(wte, release)
+    }
+}
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
 /// Sent JSON-encoded to `POST /credential`.

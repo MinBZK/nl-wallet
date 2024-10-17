@@ -95,6 +95,7 @@ fn fake_issuer_settings() -> Issuer {
             trust_anchors: Default::default(),
         },
         brp_server: url,
+        wte_issuer_pubkey: vec![],
     }
 }
 

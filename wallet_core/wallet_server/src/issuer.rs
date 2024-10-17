@@ -11,7 +11,7 @@ use axum_extra::{
     TypedHeader,
 };
 use nutype::nutype;
-use p256::ecdsa::SigningKey;
+use p256::ecdsa::{SigningKey, VerifyingKey};
 use serde::Serialize;
 
 use nl_wallet_mdoc::server_keys::{KeyPair, KeyRing};
@@ -69,6 +69,7 @@ pub fn create_issuance_router<A, K, S>(
     sessions: S,
     attr_service: A,
     wallet_client_ids: Vec<String>,
+    wte_issuer_pubkey: VerifyingKey,
 ) -> anyhow::Result<Router>
 where
     A: AttributeService + Send + Sync + 'static,
@@ -83,6 +84,7 @@ where
             private_keys,
             &urls.public_url,
             wallet_client_ids,
+            wte_issuer_pubkey,
         ),
     });
 
