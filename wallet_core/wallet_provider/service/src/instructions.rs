@@ -379,20 +379,18 @@ where
 /// of the header we do a number of cheaper checks to return early if the passed message is clearly not a PoA JWT
 /// payload.
 fn is_poa_message(message: &[u8]) -> bool {
-    let mut dot_pos = 0;
-
     // A JWT payload contains a single dot which is not located at the beginning of the string.
-    for (i, c) in message.iter().enumerate() {
-        if *c == b'.' {
-            if i == 0 {
-                return false; // a string whose first character is a dot is not a JWT
+    let predicate = |&x| x == b'.';
+    let dot_pos = match message.iter().position(predicate) {
+        None | Some(0) => return false, // a string without dot, or whose first character is a dot is not a JWT payload
+        Some(dot_pos) => {
+            if message.iter().skip(dot_pos).any(predicate) {
+                return false; // a string with more than one dot is not a JWT payload
             }
-            if dot_pos != 0 {
-                return false; // we already found a dot in an earlier iteration
-            }
-            dot_pos = i;
+
+            dot_pos
         }
-    }
+    };
 
     let first_part = &message[0..dot_pos];
     let Ok(decoded) = BASE64_URL_SAFE_NO_PAD.decode(first_part) else {
