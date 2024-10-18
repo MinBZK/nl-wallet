@@ -11,6 +11,8 @@ use crate::{
     utils,
 };
 
+use super::poa::PoaError;
+
 /// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
 /// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple
 /// keys and [`SoftwareKeyFactoryError::Signing`] when signing multiple.
@@ -56,7 +58,7 @@ pub enum SoftwareKeyFactoryError {
     #[error("ECDSA error: {0}")]
     Ecdsa(#[source] <SoftwareEcdsaKey as EcdsaKey>::Error),
     #[error("PoA error: {0}")]
-    Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    Poa(#[from] PoaError),
 }
 
 impl KeyFactory for SoftwareKeyFactory {
@@ -124,7 +126,7 @@ impl KeyFactory for SoftwareKeyFactory {
                 .await
                 .map_err(SoftwareKeyFactoryError::Ecdsa)?;
 
-            Ok((key, signature))
+            Ok::<_, SoftwareKeyFactoryError>((key, signature))
         }))
         .await?
         .into_iter()
@@ -148,13 +150,13 @@ impl KeyFactory for SoftwareKeyFactory {
                     let signatures = future::try_join_all(keys.into_iter().map(|key| async {
                         let signature = key.try_sign(&msg).await.map_err(SoftwareKeyFactoryError::Ecdsa)?;
 
-                        Ok(signature)
+                        Ok::<_, SoftwareKeyFactoryError>(signature)
                     }))
                     .await?
                     .into_iter()
                     .collect::<Vec<_>>();
 
-                    Ok(signatures)
+                    Ok::<_, SoftwareKeyFactoryError>(signatures)
                 })
                 .collect::<Vec<_>>(),
         )
@@ -164,9 +166,7 @@ impl KeyFactory for SoftwareKeyFactory {
     }
 
     async fn poa(&self, keys: Vec<&Self::Key>, aud: String, nonce: Option<String>) -> Result<Poa, Self::Error> {
-        let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud))
-            .await
-            .map_err(|e| SoftwareKeyFactoryError::Poa(Box::new(e)))?;
+        let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud)).await?;
 
         Ok(poa)
     }
