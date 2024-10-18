@@ -611,21 +611,17 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             credential_issuer_identifier.as_ref().to_string(),
         );
 
-        let wte_privkey = wte.as_ref().map(|wte| wte.private_key(&key_factory)).transpose()?;
-
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
-        let mut wte_disclosure = match wte {
+        let (mut wte_disclosure, wte_privkey) = match wte {
             Some(wte) => {
-                let wte_release = Jwt::<JwtPopClaims>::sign(
-                    &pop_claims,
-                    &Header::new(Algorithm::ES256),
-                    wte_privkey.as_ref().unwrap(), // We just constructed this iff wte is Some
-                )
-                .await?;
+                let wte_privkey = wte.private_key(&key_factory)?;
 
-                Some((wte.jwt, wte_release))
+                let wte_release =
+                    Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
+
+                (Some((wte.jwt, wte_release)), Some(wte_privkey))
             }
-            None => None,
+            None => (None, None),
         };
 
         // Ensure we include the WTE private key in the keys we need to prove association for.
