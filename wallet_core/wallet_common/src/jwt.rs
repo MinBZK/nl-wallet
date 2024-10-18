@@ -321,20 +321,19 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
 
 /// Claims of a [`JwtCredential`]: the body of the JWT.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialClaims {
+pub struct JwtCredentialClaims<T = IndexMap<String, serde_json::Value>> {
     #[serde(rename = "cnf")]
     pub confirmation: JwtCredentialConfirmation,
 
     #[serde(flatten)]
-    pub contents: JwtCredentialContents,
+    pub contents: JwtCredentialContents<T>,
 }
 
-impl JwtCredentialClaims {
-    pub fn new(
-        pubkey: &VerifyingKey,
-        iss: String,
-        attributes: IndexMap<String, serde_json::Value>,
-    ) -> Result<Self, JwkConversionError> {
+impl<T> JwtCredentialClaims<T>
+where
+    T: Serialize,
+{
+    pub fn new(pubkey: &VerifyingKey, iss: String, attributes: T) -> Result<Self, JwkConversionError> {
         let claims = Self {
             confirmation: JwtCredentialConfirmation {
                 jwk: jwk_from_p256(pubkey)?,
@@ -350,10 +349,10 @@ impl JwtCredentialClaims {
         issuer_privkey: &impl EcdsaKey,
         iss: String,
         typ: Option<String>,
-        attributes: IndexMap<String, serde_json::Value>,
-    ) -> Result<Jwt<JwtCredentialClaims>, JwtError> {
-        let jwt = Jwt::<JwtCredentialClaims>::sign(
-            &JwtCredentialClaims::new(holder_pubkey, iss, attributes)?,
+        attributes: T,
+    ) -> Result<Jwt<JwtCredentialClaims<T>>, JwtError> {
+        let jwt = Jwt::<JwtCredentialClaims<T>>::sign(
+            &JwtCredentialClaims::<T>::new(holder_pubkey, iss, attributes)?,
             &Header {
                 typ: typ.or(Some("jwt".to_string())),
                 ..Header::new(jsonwebtoken::Algorithm::ES256)
@@ -370,11 +369,11 @@ impl JwtCredentialClaims {
 /// key ([`Cnf`]): the attributes and metadata of the credential.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialContents {
+pub struct JwtCredentialContents<T = IndexMap<String, serde_json::Value>> {
     pub iss: String,
 
     #[serde(flatten)]
-    pub attributes: IndexMap<String, serde_json::Value>,
+    pub attributes: T,
 }
 
 /// Contains the holder public key of a [`JwtCredential`].
