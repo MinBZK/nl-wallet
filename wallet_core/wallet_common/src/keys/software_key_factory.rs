@@ -11,7 +11,7 @@ use crate::{
     utils,
 };
 
-use super::poa::PoaError;
+use super::poa::{PoaError, VecAtLeastTwo};
 
 /// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
 /// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple
@@ -165,7 +165,12 @@ impl KeyFactory for SoftwareKeyFactory {
         Ok(result)
     }
 
-    async fn poa(&self, keys: Vec<&Self::Key>, aud: String, nonce: Option<String>) -> Result<Poa, Self::Error> {
+    async fn poa(
+        &self,
+        keys: VecAtLeastTwo<&Self::Key>,
+        aud: String,
+        nonce: Option<String>,
+    ) -> Result<Poa, Self::Error> {
         let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud)).await?;
 
         Ok(poa)

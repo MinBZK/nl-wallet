@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use base64::prelude::*;
 use futures::future::{self};
+use itertools::Itertools;
 use p256::ecdsa::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use tracing::warn;
@@ -321,12 +322,13 @@ impl HandleInstruction for ConstructPoa {
     {
         let tx = wallet_user_repository.begin_transaction().await?;
         let mut keys = wallet_user_repository
-            .find_keys_by_identifiers(&tx, wallet_user.id, &self.key_identifiers)
+            .find_keys_by_identifiers(&tx, wallet_user.id, self.key_identifiers.as_ref())
             .await?;
         tx.commit().await?;
 
         let keys = self
             .key_identifiers
+            .as_ref()
             .iter()
             .map(|key_identifier| {
                 let wrapped_key = keys
@@ -339,8 +341,10 @@ impl HandleInstruction for ConstructPoa {
             })
             .collect::<Result<Vec<_>, InstructionError>>()?;
 
+        // Poa::new() needs a vec of references. We can unwrap because self.key_identifiers is a VecAtLeastTwo.
+        let keys = keys.iter().collect_vec().try_into().unwrap();
         let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
-        let poa = Poa::new(keys.iter().collect(), claims).await?;
+        let poa = Poa::new(keys, claims).await?;
 
         Ok(ConstructPoaResult { poa })
     }
@@ -645,7 +649,7 @@ mod tests {
             });
 
         let instruction = ConstructPoa {
-            key_identifiers: vec!["key1".to_string(), "key2".to_string()],
+            key_identifiers: vec!["key1".to_string(), "key2".to_string()].try_into().unwrap(),
             aud: "aud".to_string(),
             nonce: None,
         };

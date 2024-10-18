@@ -1,6 +1,9 @@
 use std::{collections::VecDeque, fmt::Debug};
 
-use futures::{future::try_join_all, TryFutureExt};
+use futures::{
+    future::{try_join_all, OptionFuture},
+    TryFutureExt,
+};
 use itertools::Itertools;
 use jsonwebtoken::{Algorithm, Header};
 use p256::{
@@ -27,7 +30,11 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     generator::TimeGenerator,
     jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims, NL_WALLET_CLIENT_ID},
-    keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
+    keys::{
+        factory::KeyFactory,
+        poa::{Poa, VecAtLeastTwo},
+        CredentialEcdsaKey,
+    },
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -632,16 +639,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec();
 
         // We need a minimum of two keys to associate for a PoA to be sensible.
-        let mut poa = if poa_keys.len() <= 1 {
-            None
-        } else {
-            Some(
-                key_factory
-                    .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
-                    .await
-                    .map_err(|e| IssuanceSessionError::Poa(Box::new(e)))?,
-            )
-        };
+        let poa = VecAtLeastTwo::try_new(poa_keys).ok().map(|poa_keys| async {
+            key_factory
+                .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
+                .await
+                .map_err(|e| IssuanceSessionError::Poa(Box::new(e)))
+        });
+        let mut poa = OptionFuture::from(poa).await.transpose()?;
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.

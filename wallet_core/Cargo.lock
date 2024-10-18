@@ -5700,6 +5700,7 @@ dependencies = [
  "futures",
  "hmac",
  "indexmap 2.2.6",
+ "itertools",
  "jsonwebtoken",
  "p256",
  "r2d2-cryptoki",

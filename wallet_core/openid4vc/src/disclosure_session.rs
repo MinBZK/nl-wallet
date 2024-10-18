@@ -712,7 +712,7 @@ mod tests {
     use wallet_common::{
         keys::{
             factory::KeyFactory,
-            poa::Poa,
+            poa::{Poa, VecAtLeastTwo},
             software::SoftwareEcdsaKey,
             software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
         },
@@ -1593,7 +1593,12 @@ mod tests {
                 unimplemented!()
             }
 
-            async fn poa(&self, _: Vec<&Self::Key>, _: String, _: Option<String>) -> Result<Poa, Self::Error> {
+            async fn poa(
+                &self,
+                _: VecAtLeastTwo<&Self::Key>,
+                _: String,
+                _: Option<String>,
+            ) -> Result<Poa, Self::Error> {
                 unimplemented!()
             }
         }

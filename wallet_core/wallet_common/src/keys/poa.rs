@@ -1,5 +1,6 @@
 use futures::future::try_join_all;
 use jsonwebtoken::{jwk::Jwk, Algorithm, Header};
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -13,8 +14,11 @@ use super::EcdsaKey;
 pub struct PoaPayload {
     #[serde(flatten)]
     pub payload: JwtPopClaims,
-    pub jwks: Vec<Jwk>,
+    pub jwks: VecAtLeastTwo<Jwk>,
 }
+
+#[nutype(derive(Debug, Clone, Serialize, Deserialize, TryFrom, AsRef), validate(predicate = |vec| vec.len() >= 2))]
+pub struct VecAtLeastTwo<T>(Vec<T>);
 
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
 pub type Poa = JsonJwt<PoaPayload>;
@@ -34,14 +38,10 @@ pub enum PoaError {
 }
 
 impl Poa {
-    pub async fn new<K: EcdsaKey>(keys: Vec<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
-        if keys.len() < 2 {
-            return Err(PoaError::InsufficientKeys(keys.len()));
-        }
-
+    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwo<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
         let payload = PoaPayload {
             payload,
-            jwks: try_join_all(keys.iter().map(|privkey| async {
+            jwks: try_join_all(keys.as_ref().iter().map(|privkey| async {
                 jwk_from_p256(
                     &privkey
                         .verifying_key()
@@ -50,17 +50,19 @@ impl Poa {
                 )
                 .map_err(PoaError::Jwk)
             }))
-            .await?,
+            .await?
+            .try_into()
+            .unwrap(), // our iterable is a VecAtLeastTwo
         };
         let header = Header {
             typ: Some(POA_JWT_TYP.to_string()),
             ..Header::new(Algorithm::ES256)
         };
 
-        let jwts: NonEmpty<_> = try_join_all(keys.iter().map(|key| Jwt::sign(&payload, &header, *key)))
+        let jwts: NonEmpty<_> = try_join_all(keys.as_ref().iter().map(|key| Jwt::sign(&payload, &header, *key)))
             .await?
             .try_into()
-            .unwrap(); // This came from `keys` which is `NonEmpty`.
+            .unwrap(); // our iterable is a `VecAtLeastTwo`
 
         // This unwrap() is safe because we correctly constructed the `jwts` above.
         Ok(jwts.try_into().unwrap())
@@ -85,9 +87,12 @@ mod tests {
         let iss = "iss".to_string();
         let aud = "aud".to_string();
 
-        let poa = Poa::new(vec![&key1, &key2], JwtPopClaims::new(None, iss.clone(), aud.clone()))
-            .await
-            .unwrap();
+        let poa = Poa::new(
+            vec![&key1, &key2].try_into().unwrap(),
+            JwtPopClaims::new(None, iss.clone(), aud.clone()),
+        )
+        .await
+        .unwrap();
 
         let jwts: Vec<Jwt<PoaPayload>> = poa.into();
 
