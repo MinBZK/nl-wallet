@@ -520,7 +520,7 @@ impl<T> TryFrom<NonEmpty<Vec<Jwt<T>>>> for JsonJwt<T> {
                         return Err(JwtError::UnexpectedNumberOfParts(split_jwt.len()));
                     }
                     if split_jwt[1] != payload {
-                        return Err(JwtError::DifferentPayloads(split_jwt[1].clone(), payload.clone()));
+                        return Err(JwtError::DifferentPayloads(split_jwt.remove(1), payload.clone()));
                     }
                     Ok(JsonJwtSignature {
                         signature: split_jwt.remove(2),
