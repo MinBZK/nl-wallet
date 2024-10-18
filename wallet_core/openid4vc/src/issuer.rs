@@ -21,7 +21,10 @@ use wallet_common::{
         jwk_to_p256, validations, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims,
         NL_WALLET_CLIENT_ID,
     },
-    keys::EcdsaKey,
+    keys::{
+        poa::{PoaError, PoaVerificationError},
+        EcdsaKey,
+    },
     nonempty::NonEmpty,
     urls::BaseUrl,
     utils::random_string,
@@ -123,6 +126,12 @@ pub enum CredentialRequestError {
     MissingCredentialRequestPoP,
     #[error("missing WTE")]
     MissingWte,
+    #[error("missing PoA")]
+    MissingPoa,
+    #[error("PoA error: {0}")]
+    Poa(#[from] PoaError),
+    #[error("error verifying PoA: {0}")]
+    PoaVerification(#[from] PoaVerificationError),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -640,12 +649,31 @@ impl Session<WaitingForResponse> {
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-        credential_request
+        // Verify the WTE disclosure
+        let wte_pubkey = credential_request
             .attestations
             .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?
             .verify(
                 &issuer_data.wte_issuer_pubkey,
+                issuer_data.credential_issuer_identifier.to_string(),
+                NL_WALLET_CLIENT_ID.to_string(),
+                Some(self.state.data.c_nonce.clone()),
+            )?;
+
+        // Verify that the public keys of the WTE disclosure and the PoP are associated with a valid PoA
+        let pop_pubkey = credential_request
+            .proof
+            .as_ref()
+            .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
+            .dangerous_unvalidated_cnf_key()?;
+        credential_request
+            .poa
+            .as_ref()
+            .ok_or(CredentialRequestError::MissingPoa)?
+            .clone()
+            .verify(
+                vec![pop_pubkey, wte_pubkey],
                 issuer_data.credential_issuer_identifier.to_string(),
                 NL_WALLET_CLIENT_ID.to_string(),
                 Some(self.state.data.c_nonce.clone()),
@@ -724,11 +752,38 @@ impl Session<WaitingForResponse> {
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-        credential_requests
+        // Verify the WTE disclosure
+        let wte_pubkey = credential_requests
             .attestations
+            .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?
             .verify(
                 &issuer_data.wte_issuer_pubkey,
+                issuer_data.credential_issuer_identifier.to_string(),
+                NL_WALLET_CLIENT_ID.to_string(),
+                Some(self.state.data.c_nonce.clone()),
+            )?;
+
+        // Verify that the public keys of the WTE disclosure and the PoPs are associated with a valid PoA
+        let poa_keys = credential_requests
+            .credential_requests
+            .as_ref()
+            .iter()
+            .map(|pop| {
+                pop.proof
+                    .as_ref()
+                    .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
+                    .dangerous_unvalidated_cnf_key()
+            })
+            .chain([Ok(wte_pubkey)])
+            .collect::<Result<Vec<_>, _>>()?;
+        credential_requests
+            .poa
+            .as_ref()
+            .ok_or(CredentialRequestError::MissingPoa)?
+            .clone()
+            .verify(
+                poa_keys,
                 issuer_data.credential_issuer_identifier.to_string(),
                 NL_WALLET_CLIENT_ID.to_string(),
                 Some(self.state.data.c_nonce.clone()),
@@ -877,17 +932,22 @@ impl CredentialResponse {
 }
 
 impl CredentialRequestProof {
+    pub fn dangerous_unvalidated_cnf_key(&self) -> Result<VerifyingKey, CredentialRequestError> {
+        let jwt = match self {
+            CredentialRequestProof::Jwt { jwt } => jwt,
+        };
+        let header = jsonwebtoken::decode_header(&jwt.0)?;
+
+        Ok(jwk_to_p256(&header.jwk.ok_or(CredentialRequestError::MissingJwk)?)?)
+    }
+
     pub fn verify(
         &self,
         nonce: &str,
         accepted_wallet_client_ids: &[impl ToString],
         credential_issuer_identifier: &BaseUrl,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        let jwt = match self {
-            CredentialRequestProof::Jwt { jwt } => jwt,
-        };
-        let header = jsonwebtoken::decode_header(&jwt.0)?;
-        let verifying_key = jwk_to_p256(&header.jwk.ok_or(CredentialRequestError::MissingJwk)?)?;
+        let verifying_key = self.dangerous_unvalidated_cnf_key()?;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims = HashSet::default();
@@ -896,7 +956,9 @@ impl CredentialRequestProof {
 
         // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
         let token_data = jsonwebtoken::decode::<JwtPopClaims>(
-            &jwt.0,
+            match self {
+                CredentialRequestProof::Jwt { jwt } => &jwt.0,
+            },
             &EcdsaDecodingKey::from(&verifying_key).0,
             &validation_options,
         )?;
@@ -928,7 +990,7 @@ impl WteDisclosure {
         expected_aud: String,
         expected_issuer: String,
         expected_nonce: Option<String>,
-    ) -> Result<(), CredentialRequestError> {
+    ) -> Result<VerifyingKey, CredentialRequestError> {
         // Enforce presence of exp, meaning it is also verified since `wte_validations.validate_exp = true` by default
         // note: wte_validations.leeway is set to 1 minute
         let mut wte_validations = validations();
@@ -946,7 +1008,7 @@ impl WteDisclosure {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
-        Ok(())
+        Ok(wte_pubkey)
     }
 }
 

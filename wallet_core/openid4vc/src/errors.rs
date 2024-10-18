@@ -75,7 +75,8 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance
-                | CredentialRequestError::MissingWte => CredentialErrorCode::InvalidRequest,
+                | CredentialRequestError::MissingWte
+                | CredentialRequestError::MissingPoa => CredentialErrorCode::InvalidRequest,
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
                     CredentialErrorCode::InvalidToken
                 }
@@ -84,7 +85,9 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::IncorrectNonce
                 | CredentialRequestError::JwtDecodingFailed(_)
                 | CredentialRequestError::JwkConversion(_)
-                | CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
+                | CredentialRequestError::MissingCredentialRequestPoP
+                | CredentialRequestError::Poa(_)
+                | CredentialRequestError::PoaVerification(_) => CredentialErrorCode::InvalidProof,
                 CredentialRequestError::CredentialTypeMismatch
                 | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
                 CredentialRequestError::UnsupportedCredentialFormat(_) => {
