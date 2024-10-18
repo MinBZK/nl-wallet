@@ -67,7 +67,7 @@ impl ValidateInstruction for Sign {
         {
             let user = &wallet_user.id;
             warn!("user {user} attempted to sign a PoA via the Sign instruction instead of ConstructPoa");
-            return Err(InstructionValidationError::InvalidMessage);
+            return Err(InstructionValidationError::PoaMessage);
         }
 
         Ok(())
@@ -727,6 +727,6 @@ mod tests {
         };
 
         let err = instruction.validate_instruction(&wallet_user).unwrap_err();
-        assert_matches!(err, InstructionValidationError::InvalidMessage);
+        assert_matches!(err, InstructionValidationError::PoaMessage);
     }
 }
