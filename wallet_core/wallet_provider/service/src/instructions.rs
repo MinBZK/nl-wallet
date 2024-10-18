@@ -388,7 +388,7 @@ fn is_poa_message(message: &[u8]) -> bool {
     let dot_pos = match message.iter().position(predicate) {
         None | Some(0) => return false, // a string without dot, or whose first character is a dot is not a JWT payload
         Some(dot_pos) => {
-            if message.iter().skip(dot_pos).any(predicate) {
+            if message.iter().skip(dot_pos + 1).any(predicate) {
                 return false; // a string with more than one dot is not a JWT payload
             }
 
