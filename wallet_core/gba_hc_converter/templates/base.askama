@@ -6,7 +6,7 @@
             name="viewport"
             content="width=device-width, initial-scale=1, minimum-scale=1"
         />
-        {% block title %}<title>NL Wallet demo</title>{% endblock %}
+        {% block title %}<title>GBA preloading for NL Wallet</title>{% endblock %}
         {% block styles %}{% endblock %}
         {% block scripts %}{% endblock %}
     </head>
