@@ -37,7 +37,6 @@ spec:
           volumeMounts:
             - name: preloaded-gba-v-data-volume
               mountPath: /resources/encrypted-gba-v-responses
-              readOnly: true
             - mountPath: /resources/remote/bsn_zoeken_template.xml
               name: zoek-xml-volume
               subPath: bsn_zoeken_template.xml
@@ -96,7 +95,6 @@ spec:
         - name: preloaded-gba-v-data-volume
           persistentVolumeClaim:
             claimName: preloaded-gba-v-data-pvc
-            readOnly: true
         - name: zoek-xml-volume
           configMap:
             name: nl-wallet-gba-hc-converter-zoek-xml
