@@ -49,11 +49,11 @@ async fn test_create_keys() {
         .collect::<Vec<_>>();
     persisted_keys.sort_by_key(|(key, _)| key.clone());
     let keys = persisted_keys
-        .into_iter()
-        .map(|(_, key)| key.into())
-        .collect::<Vec<Vec<u8>>>();
+        .iter()
+        .map(|(_, key)| key.wrapped_private_key())
+        .collect::<Vec<_>>();
 
-    let key1: Vec<u8> = key1.key.into();
-    let key2: Vec<u8> = key2.key.into();
+    let key1 = key1.key.wrapped_private_key();
+    let key2 = key2.key.wrapped_private_key();
     assert_eq!(vec![key1, key2], keys);
 }

@@ -160,8 +160,8 @@ pub enum InstructionValidationError {
     HsmError(#[from] HsmError),
     #[error("WTE already issued")]
     WteAlreadyIssued,
-    #[error("received instruction to sign invalid message")]
-    InvalidMessage,
+    #[error("received instruction to sign a PoA with the Sign instruction")]
+    PoaMessage,
 }
 
 impl From<PinPolicyEvaluation> for InstructionError {

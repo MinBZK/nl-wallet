@@ -17,10 +17,8 @@ impl WrappedKey {
     pub fn public_key(&self) -> &VerifyingKey {
         &self.public_key
     }
-}
 
-impl From<WrappedKey> for Vec<u8> {
-    fn from(value: WrappedKey) -> Self {
-        value.wrapped_private_key
+    pub fn wrapped_private_key(&self) -> &[u8] {
+        &self.wrapped_private_key
     }
 }

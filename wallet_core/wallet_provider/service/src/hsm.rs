@@ -431,7 +431,6 @@ impl Pkcs11Client for Pkcs11Hsm {
         wrapped_key: WrappedKey,
     ) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
-        let wrapped_key: Vec<u8> = wrapped_key.into();
 
         spawn::blocking(move || {
             let session = pool.get()?;
@@ -439,7 +438,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             let result = session.unwrap_key(
                 &Mechanism::AesKeyWrapPad,
                 unwrapping_key.0,
-                &wrapped_key,
+                wrapped_key.wrapped_private_key(),
                 &[
                     Attribute::KeyType(KeyType::EC),
                     Attribute::Token(false),

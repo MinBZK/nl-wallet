@@ -7,7 +7,10 @@ use crate::{
         signed::{ChallengeRequest, ChallengeResponse},
     },
     jwt::{Jwt, JwtCredentialClaims, JwtSubject},
-    keys::{poa::Poa, EphemeralEcdsaKey, SecureEcdsaKey},
+    keys::{
+        poa::{Poa, VecAtLeastTwo},
+        EphemeralEcdsaKey, SecureEcdsaKey,
+    },
 };
 
 use super::auth::WalletCertificate;
@@ -65,7 +68,7 @@ pub struct IssueWteResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConstructPoa {
-    pub key_identifiers: Vec<String>,
+    pub key_identifiers: VecAtLeastTwo<String>,
     pub aud: String,
     pub nonce: Option<String>,
 }

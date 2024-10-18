@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use futures::future::try_join_all;
 use jsonwebtoken::{jwk::Jwk, Algorithm, Header};
+use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 
@@ -16,8 +17,11 @@ use super::EcdsaKey;
 pub struct PoaPayload {
     #[serde(flatten)]
     pub payload: JwtPopClaims,
-    pub jwks: Vec<Jwk>,
+    pub jwks: VecAtLeastTwo<Jwk>,
 }
+
+#[nutype(derive(Debug, Clone, Serialize, Deserialize, TryFrom, AsRef), validate(predicate = |vec| vec.len() >= 2))]
+pub struct VecAtLeastTwo<T>(Vec<T>);
 
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
 pub type Poa = JsonJwt<PoaPayload>;
@@ -32,8 +36,6 @@ pub enum PoaError {
     Signing(#[from] JwtError),
     #[error("error obtaining verifying key from signing key: {0}")]
     VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error("cannot associate {0} keys, a minimum of 2 is required")]
-    InsufficientKeys(usize),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -57,14 +59,10 @@ pub enum PoaVerificationError {
 }
 
 impl Poa {
-    pub async fn new<K: EcdsaKey>(keys: Vec<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
-        if keys.len() < 2 {
-            return Err(PoaError::InsufficientKeys(keys.len()));
-        }
-
+    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwo<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
         let payload = PoaPayload {
             payload,
-            jwks: try_join_all(keys.iter().map(|privkey| async {
+            jwks: try_join_all(keys.as_ref().iter().map(|privkey| async {
                 jwk_from_p256(
                     &privkey
                         .verifying_key()
@@ -73,17 +71,19 @@ impl Poa {
                 )
                 .map_err(PoaError::Jwk)
             }))
-            .await?,
+            .await?
+            .try_into()
+            .unwrap(), // our iterable is a VecAtLeastTwo
         };
         let header = Header {
             typ: Some(POA_JWT_TYP.to_string()),
             ..Header::new(Algorithm::ES256)
         };
 
-        let jwts: NonEmpty<_> = try_join_all(keys.iter().map(|key| Jwt::sign(&payload, &header, *key)))
+        let jwts: NonEmpty<_> = try_join_all(keys.as_ref().iter().map(|key| Jwt::sign(&payload, &header, *key)))
             .await?
             .try_into()
-            .unwrap(); // This came from `keys` which is `NonEmpty`.
+            .unwrap(); // our iterable is a `VecAtLeastTwo`
 
         // This unwrap() is safe because we correctly constructed the `jwts` above.
         Ok(jwts.try_into().unwrap())
@@ -121,10 +121,10 @@ impl Poa {
             .first()
             .unwrap() // safe because of the length check on jwts above
             .dangerous_parse_unverified()?;
-        if jwts.len() != payload.jwks.len() {
+        if jwts.len() != payload.jwks.as_ref().len() {
             return Err(PoaVerificationError::UnexpectedAmountOfKeys {
                 expected: jwts.len(),
-                found: payload.jwks.len(),
+                found: payload.jwks.as_ref().len(),
             });
         }
         if payload.payload.nonce != expected_nonce {
@@ -135,7 +135,7 @@ impl Poa {
         let mut validations = validations();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(&[expected_iss]);
-        for (jwt, pubkey) in jwts.into_iter().zip(&payload.jwks) {
+        for (jwt, pubkey) in jwts.into_iter().zip(payload.jwks.as_ref()) {
             let pubkey = jwk_to_p256(pubkey)?;
             let (header, _) = jwt.parse_and_verify_with_header(&(&pubkey).into(), &validations)?;
             if header.typ != Some(POA_JWT_TYP.to_string()) {
@@ -145,7 +145,7 @@ impl Poa {
 
         // Check that all keys that must be associated are in the PoA. We use the JWK format for this
         // since it implements Hash, unlike `VerifyingKey`.
-        let associated_keys: HashSet<Jwk> = payload.jwks.into_iter().collect();
+        let associated_keys: HashSet<Jwk> = payload.jwks.into_inner().into_iter().collect();
         for key in expected_keys {
             let expected_key = jwk_from_p256(key)?;
             if !associated_keys.contains(&expected_key) {
@@ -183,7 +183,7 @@ mod tests {
         let nonce = Some("nonce".to_string());
 
         let poa = Poa::new(
-            vec![&key1, &key2],
+            vec![&key1, &key2].try_into().unwrap(),
             JwtPopClaims::new(nonce.clone(), iss.clone(), aud.clone()),
         )
         .await

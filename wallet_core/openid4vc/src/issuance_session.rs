@@ -1,6 +1,9 @@
 use std::{collections::VecDeque, fmt::Debug};
 
-use futures::{future::try_join_all, TryFutureExt};
+use futures::{
+    future::{try_join_all, OptionFuture},
+    TryFutureExt,
+};
 use itertools::Itertools;
 use jsonwebtoken::{Algorithm, Header};
 use p256::{
@@ -27,7 +30,11 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     generator::TimeGenerator,
     jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims, NL_WALLET_CLIENT_ID},
-    keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
+    keys::{
+        factory::KeyFactory,
+        poa::{Poa, VecAtLeastTwo},
+        CredentialEcdsaKey,
+    },
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -611,24 +618,18 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             credential_issuer_identifier.as_ref().to_string(),
         );
 
-        let wte_privkey = wte.as_ref().map(|wte| wte.private_key(&key_factory)).transpose()?;
-
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
-        let mut wte_disclosure = match wte {
+        let (mut wte_disclosure, wte_privkey) = match wte {
             Some(wte) => {
-                let wte_release = Jwt::<JwtPopClaims>::sign(
-                    &pop_claims,
-                    &Header::new(Algorithm::ES256),
-                    wte_privkey.as_ref().unwrap(), // We just constructed this iff wte is Some
-                )
-                .await?;
-
-                Some(WteDisclosure::new(wte.jwt, wte_release))
+                let wte_privkey = wte.private_key(&key_factory)?;
+                let wte_release =
+                    Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
+                (Some(WteDisclosure::new(wte.jwt, wte_release)), Some(wte_privkey))
             }
-            None => None,
+            None => (None, None),
         };
 
-        // Ensure we include the WTE private key in the keys we need to prove association of.
+        // Ensure we include the WTE private key in the keys we need to prove association for.
         let poa_keys = keys_and_proofs
             .iter()
             .map(|(key, _)| key)
@@ -636,16 +637,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec();
 
         // We need a minimum of two keys to associate for a PoA to be sensible.
-        let mut poa = if poa_keys.len() <= 1 {
-            None
-        } else {
-            Some(
-                key_factory
-                    .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
-                    .await
-                    .map_err(|e| IssuanceSessionError::Poa(Box::new(e)))?,
-            )
-        };
+        let poa = VecAtLeastTwo::try_new(poa_keys).ok().map(|poa_keys| async {
+            key_factory
+                .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
+                .await
+                .map_err(|e| IssuanceSessionError::Poa(Box::new(e)))
+        });
+        let mut poa = OptionFuture::from(poa).await.transpose()?;
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
@@ -663,7 +661,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                         credential_type,
                         proof: Some(response),
                         attestations: None, // We set this field below if necessary
-                        poa: None,          // same
+                        poa: None,          // We set this field below if necessary
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
                 }),

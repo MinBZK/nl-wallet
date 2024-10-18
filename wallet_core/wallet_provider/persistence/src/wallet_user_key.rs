@@ -29,7 +29,7 @@ where
                 wallet_user_id: Set(create.wallet_user_id),
                 identifier: Set(key_create.key_identifier),
                 public_key: Set(key_create.key.public_key().to_public_key_der()?.into_vec()),
-                encrypted_private_key: Set(key_create.key.into()),
+                encrypted_private_key: Set(key_create.key.wrapped_private_key().to_vec()),
             })
         })
         .collect::<Result<Vec<_>>>()?;

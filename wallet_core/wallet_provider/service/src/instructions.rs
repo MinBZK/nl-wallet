@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use base64::prelude::*;
 use futures::future::{self};
+use itertools::Itertools;
 use p256::ecdsa::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use tracing::warn;
@@ -66,7 +67,7 @@ impl ValidateInstruction for Sign {
         {
             let user = &wallet_user.id;
             warn!("user {user} attempted to sign a PoA via the Sign instruction instead of ConstructPoa");
-            return Err(InstructionValidationError::InvalidMessage);
+            return Err(InstructionValidationError::PoaMessage);
         }
 
         Ok(())
@@ -321,12 +322,13 @@ impl HandleInstruction for ConstructPoa {
     {
         let tx = wallet_user_repository.begin_transaction().await?;
         let mut keys = wallet_user_repository
-            .find_keys_by_identifiers(&tx, wallet_user.id, &self.key_identifiers)
+            .find_keys_by_identifiers(&tx, wallet_user.id, self.key_identifiers.as_ref())
             .await?;
         tx.commit().await?;
 
         let keys = self
             .key_identifiers
+            .as_ref()
             .iter()
             .map(|key_identifier| {
                 let wrapped_key = keys
@@ -339,8 +341,10 @@ impl HandleInstruction for ConstructPoa {
             })
             .collect::<Result<Vec<_>, InstructionError>>()?;
 
+        // Poa::new() needs a vec of references. We can unwrap because self.key_identifiers is a VecAtLeastTwo.
+        let keys = keys.iter().collect_vec().try_into().unwrap();
         let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
-        let poa = Poa::new(keys.iter().collect(), claims).await?;
+        let poa = Poa::new(keys, claims).await?;
 
         Ok(ConstructPoaResult { poa })
     }
@@ -379,20 +383,18 @@ where
 /// of the header we do a number of cheaper checks to return early if the passed message is clearly not a PoA JWT
 /// payload.
 fn is_poa_message(message: &[u8]) -> bool {
-    let mut dot_pos = 0;
-
     // A JWT payload contains a single dot which is not located at the beginning of the string.
-    for (i, c) in message.iter().enumerate() {
-        if *c == b'.' {
-            if i == 0 {
-                return false; // a string whose first character is a dot is not a JWT
+    let predicate = |&x| x == b'.';
+    let dot_pos = match message.iter().position(predicate) {
+        None | Some(0) => return false, // a string without dot, or whose first character is a dot is not a JWT payload
+        Some(dot_pos) => {
+            if message.iter().skip(dot_pos + 1).any(predicate) {
+                return false; // a string with more than one dot is not a JWT payload
             }
-            if dot_pos != 0 {
-                return false; // we already found a dot in an earlier iteration
-            }
-            dot_pos = i;
+
+            dot_pos
         }
-    }
+    };
 
     let first_part = &message[0..dot_pos];
     let Ok(decoded) = BASE64_URL_SAFE_NO_PAD.decode(first_part) else {
@@ -647,7 +649,7 @@ mod tests {
             });
 
         let instruction = ConstructPoa {
-            key_identifiers: vec!["key1".to_string(), "key2".to_string()],
+            key_identifiers: vec!["key1".to_string(), "key2".to_string()].try_into().unwrap(),
             aud: "aud".to_string(),
             nonce: None,
         };
@@ -725,6 +727,6 @@ mod tests {
         };
 
         let err = instruction.validate_instruction(&wallet_user).unwrap_err();
-        assert_matches!(err, InstructionValidationError::InvalidMessage);
+        assert_matches!(err, InstructionValidationError::PoaMessage);
     }
 }
