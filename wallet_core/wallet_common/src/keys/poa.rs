@@ -33,8 +33,6 @@ pub enum PoaError {
     Signing(#[from] JwtError),
     #[error("error obtaining verifying key from signing key: {0}")]
     VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error("cannot associate {0} keys, a minimum of 2 is required")]
-    InsufficientKeys(usize),
 }
 
 impl Poa {
