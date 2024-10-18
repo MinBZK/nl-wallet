@@ -58,6 +58,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
                             h2: context.textTheme.labelLarge,
                             h3: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                             h6: context.textTheme.labelMedium,
+                            a: context.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w400,
+                              decoration: TextDecoration.underline,
+                              color: context.colorScheme.primary,
+                            ),
                           ),
                         );
                       },
