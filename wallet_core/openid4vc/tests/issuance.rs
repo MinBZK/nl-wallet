@@ -1,5 +1,6 @@
 use std::{num::NonZeroU8, ops::Add};
 
+use assert_matches::assert_matches;
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
@@ -191,10 +192,10 @@ async fn wrong_access_token() {
     };
 
     let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
-    assert!(matches!(
+    assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
-    ));
+    );
 }
 
 #[tokio::test]
@@ -206,26 +207,55 @@ async fn invalid_dpop() {
     };
 
     let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
-    assert!(matches!(
+    assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
-    ));
+    );
 }
 
 #[tokio::test]
-async fn invalid_pop() {
+async fn invalid_poa() {
     let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
-        invalidate_pop: true,
+        invalidate_poa: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
     let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
-    dbg!(&result);
-    assert!(matches!(
+    assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
-    ));
+    );
+}
+
+#[tokio::test]
+async fn no_poa() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        strip_poa: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
+    );
+}
+
+#[tokio::test]
+async fn no_wte() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        strip_wte: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
+    );
 }
 
 // Helpers and mocks
@@ -245,6 +275,9 @@ struct MockOpenidMessageClient {
     wrong_access_token: bool,
     invalidate_dpop: bool,
     invalidate_pop: bool,
+    invalidate_poa: bool,
+    strip_poa: bool,
+    strip_wte: bool,
 }
 
 impl MockOpenidMessageClient {
@@ -254,6 +287,9 @@ impl MockOpenidMessageClient {
             wrong_access_token: false,
             invalidate_dpop: false,
             invalidate_pop: false,
+            invalidate_poa: false,
+            strip_poa: false,
+            strip_wte: false,
         }
     }
 }
@@ -285,6 +321,21 @@ impl MockOpenidMessageClient {
             };
             credential_request.proof = Some(invalidated_proof);
         }
+
+        if self.invalidate_poa {
+            let mut poa = credential_request.poa.unwrap();
+            poa.signatures.pop();
+            credential_request.poa = Some(poa);
+        }
+
+        if self.strip_poa {
+            credential_request.poa.take();
+        }
+
+        if self.strip_wte {
+            credential_request.attestations.take();
+        }
+
         credential_request
     }
 
@@ -296,6 +347,21 @@ impl MockOpenidMessageClient {
             requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
         }
+
+        if self.invalidate_poa {
+            let mut poa = credential_requests.poa.unwrap();
+            poa.signatures.pop();
+            credential_requests.poa = Some(poa);
+        }
+
+        if self.strip_poa {
+            credential_requests.poa.take();
+        }
+
+        if self.strip_wte {
+            credential_requests.attestations.take();
+        }
+
         credential_requests
     }
 }
