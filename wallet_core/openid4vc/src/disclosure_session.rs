@@ -1577,18 +1577,22 @@ mod tests {
                 // `VerifyingKey`, but for the purposes of this test, it doesn't matter that we don't do so here.
                 SoftwareEcdsaKey::new(identifier.into(), SigningKey::random(&mut OsRng))
             }
+
             async fn sign_multiple_with_existing_keys(
                 &self,
                 _: Vec<(Vec<u8>, Vec<&Self::Key>)>,
             ) -> Result<Vec<Vec<Signature>>, Self::Error> {
                 Err(SoftwareKeyFactoryError::Signing)
             }
+
             async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
                 unimplemented!()
             }
+
             async fn generate_new_multiple(&self, _: u64) -> Result<Vec<Self::Key>, Self::Error> {
                 unimplemented!()
             }
+
             async fn poa(&self, _: Vec<&Self::Key>, _: String, _: Option<String>) -> Result<Poa, Self::Error> {
                 unimplemented!()
             }
