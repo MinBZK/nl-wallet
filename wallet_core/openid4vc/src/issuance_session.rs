@@ -628,7 +628,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             None => None,
         };
 
-        // Ensure we include the WTE private key in the keys we need to prove association of.
+        // Ensure we include the WTE private key in the keys we need to prove association for.
         let poa_keys = keys_and_proofs
             .iter()
             .map(|(key, _)| key)
@@ -663,7 +663,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                         credential_type,
                         proof: Some(response),
                         attestations: None, // We set this field below if necessary
-                        poa: None,          // same
+                        poa: None,          // We set this field below if necessary
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
                 }),
