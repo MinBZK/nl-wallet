@@ -28,6 +28,7 @@ use nl_wallet_mdoc::{
     ATTR_RANDOM_LENGTH,
 };
 use wallet_common::{
+    account::messages::instructions::WteClaims,
     generator::TimeGenerator,
     jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims, NL_WALLET_CLIENT_ID},
     keys::{
@@ -281,7 +282,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        wte: Option<JwtCredential>,
+        wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
 
@@ -583,7 +584,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        wte: Option<JwtCredential>,
+        wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
@@ -892,9 +893,7 @@ impl IssuanceState {
 }
 
 #[cfg(any(test, feature = "test"))]
-pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> JwtCredential {
-    use chrono::{TimeDelta, Utc};
-    use indexmap::IndexMap;
+pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> JwtCredential<WteClaims> {
     use wallet_common::{
         jwt::JwtCredentialClaims,
         keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
@@ -907,14 +906,7 @@ pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> Jw
         privkey,
         "iss".to_string(),
         None,
-        IndexMap::from([(
-            "exp".to_string(),
-            Utc::now()
-                .checked_add_signed(TimeDelta::minutes(5))
-                .unwrap() // Adding 5 minutes won't overflow
-                .timestamp()
-                .into(),
-        )]),
+        WteClaims::new(),
     )
     .await
     .unwrap();

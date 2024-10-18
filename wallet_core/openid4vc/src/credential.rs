@@ -5,6 +5,7 @@ use serde_with::skip_serializing_none;
 
 use nl_wallet_mdoc::{holder::Mdoc, utils::serialization::CborBase64, IssuerSigned};
 use wallet_common::{
+    account::messages::instructions::WteClaims,
     jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims, JwtPopClaims},
     keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
     nonempty::NonEmpty,
@@ -24,10 +25,13 @@ pub struct CredentialRequests {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WteDisclosure(pub(crate) Jwt<JwtCredentialClaims>, pub(crate) Jwt<JwtPopClaims>);
+pub struct WteDisclosure(
+    pub(crate) Jwt<JwtCredentialClaims<WteClaims>>,
+    pub(crate) Jwt<JwtPopClaims>,
+);
 
 impl WteDisclosure {
-    pub fn new(wte: Jwt<JwtCredentialClaims>, release: Jwt<JwtPopClaims>) -> Self {
+    pub fn new(wte: Jwt<JwtCredentialClaims<WteClaims>>, release: Jwt<JwtPopClaims>) -> Self {
         Self(wte, release)
     }
 }

@@ -1,3 +1,4 @@
+use chrono::{serde::ts_seconds, DateTime, Utc};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
@@ -63,7 +64,19 @@ pub struct IssueWte {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IssueWteResult {
-    pub wte: Jwt<JwtCredentialClaims>,
+    pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct WteClaims {
+    #[serde(with = "ts_seconds")]
+    pub exp: DateTime<Utc>,
+}
+
+impl WteClaims {
+    pub fn new() -> Self {
+        Self { exp: Utc::now() }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

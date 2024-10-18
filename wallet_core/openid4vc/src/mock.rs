@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use indexmap::IndexSet;
 
-use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
+use wallet_common::{
+    account::messages::instructions::WteClaims,
+    keys::{factory::KeyFactory, CredentialEcdsaKey},
+};
 
 use nl_wallet_mdoc::holder::TrustAnchor;
 use wallet_common::urls::BaseUrl;
@@ -49,7 +52,7 @@ impl IssuanceSession for MockIssuanceSession {
         &self,
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
-        _: Option<JwtCredential>,
+        _: Option<JwtCredential<WteClaims>>,
         _: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         self.accept()

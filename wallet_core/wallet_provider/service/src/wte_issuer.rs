@@ -1,10 +1,9 @@
 use std::error::Error;
 
-use chrono::{TimeDelta, Utc};
-use indexmap::IndexMap;
 use p256::ecdsa::VerifyingKey;
 
 use wallet_common::{
+    account::messages::instructions::WteClaims,
     jwt::{Jwt, JwtCredentialClaims, JwtError},
     keys::SecureEcdsaKey,
 };
@@ -15,7 +14,7 @@ use crate::{hsm::HsmError, keys::WalletProviderEcdsaKey};
 pub trait WteIssuer {
     type Error: Error + Send + Sync + 'static;
 
-    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error>;
+    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -50,7 +49,7 @@ where
 {
     type Error = HsmWteIssuerError;
 
-    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error> {
+    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
         let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key().await?;
 
         let jwt = JwtCredentialClaims::new_signed(
@@ -58,14 +57,7 @@ where
             &self.private_key,
             self.iss.clone(),
             Some(WTE_JWT_TYP.to_string()),
-            IndexMap::from([(
-                "exp".to_string(),
-                Utc::now()
-                    .checked_add_signed(TimeDelta::minutes(5))
-                    .unwrap() // Adding 5 minutes won't overflow
-                    .timestamp()
-                    .into(),
-            )]),
+            WteClaims::new(),
         )
         .await?;
 
@@ -87,7 +79,10 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use wallet_common::jwt::{Jwt, JwtCredentialClaims};
+    use wallet_common::{
+        account::messages::instructions::WteClaims,
+        jwt::{Jwt, JwtCredentialClaims},
+    };
     use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
     use super::WteIssuer;
@@ -97,7 +92,7 @@ pub mod mock {
     impl WteIssuer for MockWteIssuer {
         type Error = Infallible;
 
-        async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error> {
+        async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             Ok((
                 WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
@@ -151,6 +146,6 @@ mod tests {
 
         // Check that the fields have the expected contents
         assert_eq!(wte_claims.contents.iss, iss.to_string());
-        assert!(wte_claims.contents.attributes["exp"].as_i64().unwrap() > Utc::now().timestamp());
+        assert!(wte_claims.contents.attributes.exp > Utc::now());
     }
 }
