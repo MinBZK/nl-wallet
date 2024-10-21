@@ -137,10 +137,8 @@ function generate_ssl_key_pair_with_san {
             -in "$1/$2.key" -out "$1/$2.key.der" -nocrypt
 }
 
-# Generate a private EC key and return the PEM body
-#
 # $1 name of the key
-function generate_wp_signing_key {
+function generate_ec_key {
     echo -e "${INFO}Generating EC private key${NC}"
     openssl ecparam \
             -genkey \
@@ -150,12 +148,44 @@ function generate_wp_signing_key {
     echo -e "${INFO}Generating private key from EC private key${NC}"
     openssl ec -in "${TARGET_DIR}/wallet_provider/$1.ec.key" -pubout -out "${TARGET_DIR}/wallet_provider/$1.pub.pem"
     openssl pkey -in "${TARGET_DIR}/wallet_provider/$1.pub.pem" -pubin -outform der -out "${TARGET_DIR}/wallet_provider/$1.pub.der"
+}
 
+# $1 name of the key
+function private_key_to_pem {
     openssl pkcs8 \
             -topk8 \
             -nocrypt \
             -in "${TARGET_DIR}/wallet_provider/$1.ec.key" \
             -out "${TARGET_DIR}/wallet_provider/$1.pem" > /dev/null
+}
+
+# Generate a private EC key and return the PEM body
+#
+# $1 name of the key
+function generate_wp_signing_key {
+    generate_ec_key "$1"
+
+    private_key_to_pem "$1"
+}
+
+# Generate a private EC key and a self-signed certificate
+#
+# $1 name of the key
+# $2 common name to use in the certificate
+function generate_wp_self_signed_certificate {
+    generate_ec_key "$1"
+
+    openssl req \
+            -new \
+            -subj "/CN=$2" \
+            -days 1825 \
+            -x509 \
+            -sha256 \
+            -outform der \
+            -key "${TARGET_DIR}/wallet_provider/$1.ec.key" \
+            -out "${TARGET_DIR}/wallet_provider/$1.crt" > /dev/null
+
+    private_key_to_pem "$1"
 }
 
 # Generate a random key (32 bytes)
@@ -230,4 +260,17 @@ function generate_mock_relying_party_key_pair {
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/mock_relying_party/$1.key.pem" -out "${TARGET_DIR}/mock_relying_party/$1.key.der" -nocrypt
+}
+
+function encrypt_gba_v_responses {
+    mkdir -p "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses"
+    for file in "${GBA_HC_CONVERTER_DIR}"/resources/gba-v-responses/*; do
+        if [ -f "$file" ]; then
+            cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+                --bin gba_encrypt -- \
+                --basename "$(basename "$file" .xml)" \
+                --output "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses" \
+                "$file"
+        fi
+    done
 }

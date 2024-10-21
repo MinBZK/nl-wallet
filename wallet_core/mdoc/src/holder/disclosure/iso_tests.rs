@@ -1,17 +1,17 @@
 use indexmap::IndexMap;
 
+use wallet_common::keys::{examples::Examples, software_key_factory::SoftwareKeyFactory};
+
 use crate::{
     errors::Result,
     examples::{
-        Example, Examples, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE,
-        EXAMPLE_NAMESPACE,
+        Example, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE,
     },
     iso::{
         device_retrieval::{DeviceRequest, ItemsRequest, ReaderAuthenticationBytes},
         disclosure::DeviceResponse,
         engagement::DeviceAuthenticationBytes,
     },
-    software_key_factory::SoftwareKeyFactory,
     test::{self, DebugCollapseBts},
     utils::serialization::{CborSeq, TaggedBytes},
     SessionTranscript,

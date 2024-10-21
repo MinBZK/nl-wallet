@@ -9,6 +9,7 @@ import '../../common/widget/numbered_list.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/text/body_text.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
@@ -57,7 +58,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
             context.l10n.walletPersonalizeDataIncorrectScreenDescription,
           ),
           const SizedBox(height: 24),
-          BodyText(
+          TitleText(
             context.l10n.walletPersonalizeDataIncorrectScreenHowToResolveTitle,
             style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
@@ -65,7 +66,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
             items: context.l10n.walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints.split('\n'),
           ),
           const SizedBox(height: 24),
-          BodyText(
+          TitleText(
             context.l10n.walletPersonalizeDataIncorrectScreenNotYourDataTitle,
             style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
           ),

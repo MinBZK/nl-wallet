@@ -1,6 +1,6 @@
 package navigator.screen
 
-enum class OnboardingScreen {
+enum class OnboardingNavigatorScreen {
     Introduction,
     IntroductionPrivacy,
     IntroductionConditions,

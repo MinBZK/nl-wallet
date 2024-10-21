@@ -4,7 +4,7 @@ use std::{
 };
 
 use futures::future::try_join_all;
-use jsonwebtoken::{Algorithm, Header, Validation};
+use jsonwebtoken::{Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     IssuerSigned,
 };
 use wallet_common::{
-    jwt::{EcdsaDecodingKey, Jwt},
+    jwt::{jwk_to_p256, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims},
     keys::EcdsaKey,
     nonempty::NonEmpty,
     urls::BaseUrl,
@@ -26,13 +26,10 @@ use wallet_common::{
 
 use crate::{
     credential::{
-        CredentialRequest, CredentialRequestProof, CredentialRequestProofJwtPayload, CredentialRequests,
-        CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
+        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
+        OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
-    jwt::{
-        jwk_from_p256, jwk_to_p256, JwkConversionError, JwtCredentialClaims, JwtCredentialCnf, JwtCredentialContents,
-    },
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     server_state::{
@@ -105,6 +102,8 @@ pub enum CredentialRequestError {
     JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
+    #[error("JWT error: {0}")]
+    Jwt(#[from] JwtError),
     #[error("failed to convert P256 public key to COSE key: {0}")]
     CoseKeyConversion(CryptoError),
     #[error("missing issuance private key for doctype {0}")]
@@ -143,7 +142,7 @@ pub struct Done {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum IssuanceData {
     Created(Created),
-    WaitingForResponse(WaitingForResponse),
+    WaitingForResponse(Box<WaitingForResponse>),
     Done(Done),
 }
 
@@ -559,7 +558,7 @@ impl TokenResponse {
 impl From<Session<WaitingForResponse>> for SessionState<IssuanceData> {
     fn from(value: Session<WaitingForResponse>) -> Self {
         SessionState {
-            data: IssuanceData::WaitingForResponse(value.state.data),
+            data: IssuanceData::WaitingForResponse(Box::new(value.state.data)),
             token: value.state.token,
             last_active: value.state.last_active,
         }
@@ -575,7 +574,7 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
-                data: session_data,
+                data: *session_data,
                 token: value.token,
                 last_active: value.last_active,
             },
@@ -819,31 +818,26 @@ impl CredentialResponse {
                     .map_err(CredentialRequestError::CredentialSigning)?;
 
                 Ok(CredentialResponse::MsoMdoc {
-                    credential: issuer_signed.into(),
+                    credential: Box::new(issuer_signed.into()),
                 })
             }
 
             CredentialPreview::Jwt { claims, jwt_typ, .. } => {
                 // Add the holder public key to the claims that are going to be signed
-                let jwk = jwk_from_p256(&holder_pubkey)?;
-                let claims = JwtCredentialClaims {
-                    cnf: JwtCredentialCnf { jwk },
-                    contents: JwtCredentialContents {
-                        iss: issuer_privkey
-                            .certificate()
-                            .common_names()
-                            .unwrap()
-                            .first()
-                            .unwrap()
-                            .to_string(),
-                        attributes: claims.attributes,
-                    },
-                };
-
-                let mut header = Header::new(Algorithm::ES256);
-                header.typ = jwt_typ.or(header.typ);
-
-                let credential = Jwt::sign(&claims, &header, issuer_privkey.private_key()).await.unwrap();
+                let credential = JwtCredentialClaims::new_signed(
+                    &holder_pubkey,
+                    issuer_privkey.private_key(),
+                    issuer_privkey
+                        .certificate()
+                        .common_names()
+                        .unwrap()
+                        .first()
+                        .unwrap()
+                        .to_string(),
+                    jwt_typ.or(Some("jwt".to_string())),
+                    claims.attributes,
+                )
+                .await?;
 
                 Ok(CredentialResponse::Jwt { credential })
             }
@@ -870,7 +864,7 @@ impl CredentialRequestProof {
         validation_options.set_audience(&[credential_issuer_identifier]);
 
         // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
-        let token_data = jsonwebtoken::decode::<CredentialRequestProofJwtPayload>(
+        let token_data = jsonwebtoken::decode::<JwtPopClaims>(
             &jwt.0,
             &EcdsaDecodingKey::from(&verifying_key).0,
             &validation_options,

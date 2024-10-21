@@ -6,6 +6,7 @@ import io.appium.java_client.android.AndroidDriver
 import io.github.ashwith.flutter.FlutterElement
 import io.github.ashwith.flutter.FlutterFinder
 import org.openqa.selenium.By
+import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.support.ui.ExpectedConditions
@@ -125,15 +126,20 @@ open class MobileActions {
 
                 // Switch to the web view context
                 androidDriver.context(androidDriver.contextHandles.first { it.contains(WEB_VIEW_CONTEXT_PREFIX) })
+
+                // Explicit timeout; waiting for the browser to be fully started and the viewport stabilized.
+                // This fixes the issue where the (Chrome) browser viewport flickers back and forth between
+                // the loaded web page and the browser startup screen shortly after browser startup.
+                Thread.sleep(BROWSER_STARTUP_TIMEOUT)
+
+                // Switch to the last window handle (a.k.a. tab)
+                if (androidDriver.windowHandles.isNotEmpty()) {
+                    androidDriver.switchTo().window(androidDriver.windowHandles.last())
+                }
             }
         } else {
             throw Exception("Platform $platform is not supported")
         }
-
-        // Explicit timeout; waiting for the browser to be fully started and the viewport stabilized.
-        // This fixes the issue where the (Chrome) browser viewport flickers back and forth between
-        // the loaded web page and the browser startup screen shortly after browser startup.
-        Thread.sleep(BROWSER_STARTUP_TIMEOUT)
     }
 
     protected fun switchToAppContext() {
@@ -149,6 +155,21 @@ open class MobileActions {
             throw Exception("Platform $platform is not supported")
         }
     }
+
+    protected fun getWebModalAnchor(): WebElement {
+        // Wait for the modal-anchor element to be displayed
+        Thread.sleep(MODAL_ANCHOR_DISPLAY_TIMEOUT)
+
+        // Locate shadow-host element
+        val startButton = driver.findElement(By.tagName("nl-wallet-button")) as WebElement
+
+        // Locate modal-anchor element inside the shadow-root of the shadow-host element
+        val jsExecutor = driver as JavascriptExecutor
+        val jsScript = "return arguments[0].querySelector('.modal-anchor')"
+        return jsExecutor.executeScript(jsScript, startButton.shadowRoot) as WebElement
+    }
+
+    protected fun navigateBack() = driver.navigate().back()
 
     private fun <T> performAction(frameSync: Boolean = true, action: () -> T): T {
         if (!frameSync) driver.executeScript("flutter:setFrameSync", false, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
@@ -166,6 +187,7 @@ open class MobileActions {
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 1200000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 1200000L
         private const val BROWSER_STARTUP_TIMEOUT = 1000L
+        private const val MODAL_ANCHOR_DISPLAY_TIMEOUT = 500L
 
         private const val FLUTTER_APP_CONTEXT = "FLUTTER"
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"

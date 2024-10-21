@@ -22,7 +22,8 @@ use crate::{
         MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
     },
     document::{DisclosureDocument, DisclosureType, DocumentMdocError, MissingDisclosureAttributes},
-    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
+    errors::ChangePinError,
+    instruction::{InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     storage::{EventStatus, Storage, StorageError, StoredMdocCopy, WalletEvent},
 };
 
@@ -71,6 +72,8 @@ pub enum DisclosureError {
     IncrementUsageCount(#[source] StorageError),
     #[error("could not store event in history database: {0}")]
     EventStorage(#[source] EventStorageError),
+    #[error("error finalizing pin change: {0}")]
+    ChangePin(#[from] ChangePinError),
 }
 
 impl DisclosureError {
@@ -107,7 +110,7 @@ impl From<MdocDisclosureError> for DisclosureError {
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
 where
     CR: ConfigurationRepository,
     MDS: MdocDisclosureSession<Self>,
@@ -317,6 +320,7 @@ where
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Accepting disclosure");
 
@@ -371,15 +375,16 @@ where
         let config = self.config_repository.config();
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
+
+        let remote_instruction = self
+            .new_instruction_client(
+                pin,
+                registration,
+                &config.account_server.base_url,
+                &instruction_result_public_key,
+            )
+            .await?;
+
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
         // Actually perform disclosure, casting any `InstructionError` that
@@ -456,7 +461,7 @@ where
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> MdocDataSource for Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
 {

@@ -1558,6 +1558,28 @@ class MockWalletRepository extends _i1.Mock implements _i22.WalletRepository {
       ) as _i9.Future<_i7.WalletInstructionResult>);
 
   @override
+  _i9.Future<_i7.WalletInstructionResult> continueChangePin(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #continueChangePin,
+          [pin],
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [pin],
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
   _i9.Future<void> lockWallet() => (super.noSuchMethod(
         Invocation.method(
           #lockWallet,
@@ -1919,6 +1941,28 @@ class MockTypedWalletCore extends _i1.Mock implements _i30.TypedWalletCore {
               oldPin,
               newPin,
             ],
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
+  _i9.Future<_i7.WalletInstructionResult> continueChangePin(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #continueChangePin,
+          [pin],
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [pin],
           ),
         )),
       ) as _i9.Future<_i7.WalletInstructionResult>);
@@ -3421,6 +3465,19 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
       ) as _i7.FlutterRustBridgeTaskConstMeta);
 
   @override
+  _i7.FlutterRustBridgeTaskConstMeta get kContinueChangePinConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kContinueChangePinConstMeta),
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_15(
+          this,
+          Invocation.getter(#kContinueChangePinConstMeta),
+        ),
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_15(
+          this,
+          Invocation.getter(#kContinueChangePinConstMeta),
+        ),
+      ) as _i7.FlutterRustBridgeTaskConstMeta);
+
+  @override
   _i7.FlutterRustBridgeTaskConstMeta get kHasRegistrationConstMeta => (super.noSuchMethod(
         Invocation.getter(#kHasRegistrationConstMeta),
         returnValue: _FakeFlutterRustBridgeTaskConstMeta_15(
@@ -3905,6 +3962,44 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
             {
               #oldPin: oldPin,
               #newPin: newPin,
+              #hint: hint,
+            },
+          ),
+        )),
+      ) as _i9.Future<_i7.WalletInstructionResult>);
+
+  @override
+  _i9.Future<_i7.WalletInstructionResult> continueChangePin({
+    required String? pin,
+    dynamic hint,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #continueChangePin,
+          [],
+          {
+            #pin: pin,
+            #hint: hint,
+          },
+        ),
+        returnValue: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [],
+            {
+              #pin: pin,
+              #hint: hint,
+            },
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i7.WalletInstructionResult>.value(_FakeWalletInstructionResult_7(
+          this,
+          Invocation.method(
+            #continueChangePin,
+            [],
+            {
+              #pin: pin,
               #hint: hint,
             },
           ),

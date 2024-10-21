@@ -8,7 +8,7 @@ import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
+import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
@@ -174,11 +174,33 @@ void main() {
         wrapper: walletAppWrapper(
           brightness: Brightness.dark,
           providers: [
-            RepositoryProvider<ContextMapper<Policy, String>>(create: (c) => PolicyBodyTextMapper()),
+            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
           ],
         ),
       );
       await screenMatchesGolden(tester, 'confirm_data_attributes.dark');
+    });
+
+    testGoldens('DisclosureConfirmDataAttributes - full page', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        surfaceSize: const Size(375, 1100 /* tall to fit all content */),
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureConfirmDataAttributes(
+            relyingParty: WalletMockData.organization,
+            requestedAttributes: {
+              WalletMockData.card: [WalletMockData.textDataAttribute],
+            },
+            requestPurpose: 'Sample reason'.untranslated,
+            policy: WalletMockData.policy,
+          ),
+        ),
+        brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
+        ],
+      );
+      await screenMatchesGolden(tester, 'confirm_data_attributes');
     });
 
     testGoldens('DisclosureSuccess Light', (tester) async {
@@ -539,12 +561,12 @@ void main() {
             RepositoryProvider<PinBloc>(create: (_) => MockPinBloc()),
             RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
             RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
-            RepositoryProvider<ContextMapper<Policy, String>>(create: (c) => PolicyBodyTextMapper()),
+            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
           ],
         );
 
         final l10n = await TestUtils.englishLocalizations;
-        await tester.tap(find.text(l10n.organizationApprovePageMoreInfoCta));
+        await tester.tap(find.text(l10n.organizationApprovePageMoreInfoLoginCta));
         await tester.pumpAndSettle();
         expect(find.byType(LoginDetailScreen), findsOneWidget);
       },
@@ -585,7 +607,7 @@ void main() {
             ),
           ),
           providers: [
-            RepositoryProvider<ContextMapper<Policy, String>>(create: (c) => PolicyBodyTextMapper()),
+            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
           ],
         );
 

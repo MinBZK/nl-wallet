@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/domain/model/policy/policy.dart';
+import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/common/widget/app_image.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 import 'package:wallet/src/feature/history/detail/widget/history_detail_common_builders.dart';
@@ -85,9 +85,10 @@ void main() {
       _SliverTestWrapper(
         sliverBuilder: (context) => HistoryDetailCommonBuilders.buildPolicySliver(
           context,
+          WalletMockData.disclosureEvent.relyingParty,
           WalletMockData.disclosureEvent.policy,
         ),
-      ).withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+      ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
     );
 
     final l10n = await TestUtils.englishLocalizations;

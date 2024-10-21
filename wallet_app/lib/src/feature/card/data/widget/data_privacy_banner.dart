@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../theme/wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
-import '../../../../util/extension/string_extension.dart';
+import '../../../common/widget/text/body_text.dart';
 
 class DataPrivacyBanner extends StatelessWidget {
   const DataPrivacyBanner({super.key});
@@ -11,18 +12,13 @@ class DataPrivacyBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: context.colorScheme.onSurface,
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.colorScheme.error, width: 1),
+        borderRadius: WalletTheme.kBorderRadius12,
       ),
       child: Row(
         children: [
           Expanded(
-            child: Text.rich(
-              context.l10n.cardDataScreenDataPrivacyBanner.toTextSpan(context),
-              style: context.textTheme.bodyLarge?.copyWith(
-                color: context.colorScheme.surface,
-              ),
-            ),
+            child: BodyText(context.l10n.cardDataScreenDataPrivacyBanner),
           ),
           const SizedBox(width: 20),
           SizedBox(
@@ -30,7 +26,8 @@ class DataPrivacyBanner extends StatelessWidget {
             width: 24,
             child: Icon(
               Icons.back_hand_outlined,
-              color: context.colorScheme.surface,
+              size: 24,
+              color: context.colorScheme.error,
             ),
           ),
         ],

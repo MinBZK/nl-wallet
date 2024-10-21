@@ -47,11 +47,12 @@ impl Wallet {
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
+impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
     CR: ConfigurationRepository,
     S: Storage,
     PEK: PlatformEcdsaKey,
+    WIC: Default,
 {
     pub(super) fn new(
         config_repository: CR,
@@ -74,6 +75,7 @@ where
             registration,
             documents_callback: None,
             recent_history_callback: None,
+            wte_issuance_client: WIC::default(),
         }
     }
 
@@ -102,6 +104,18 @@ where
 
         let result = storage.fetch_data::<RegistrationData>().await?;
         Ok(result)
+    }
+
+    /// Attempts to update the WalletRegistration from the database. Should be invoked after [`RegistrationData`] is
+    /// stored in the database.
+    pub(super) async fn update_registration_from_db(&mut self) -> Result<(), StorageError> {
+        let storage = self.storage.read().await;
+        if let Some(data) = storage.fetch_data::<RegistrationData>().await? {
+            if let Some(registration) = self.registration.as_mut() {
+                registration.data = data;
+            }
+        }
+        Ok(())
     }
 }
 

@@ -57,9 +57,9 @@ variables:
 
 .release-tag:
   before_script:
-    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^v//' || true)"
+    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+(-dev)?$' | sed -E 's/^v//' || true)"
   rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-dev)?$/
       variables:
         CACHE_POLICY: pull
 
@@ -159,7 +159,7 @@ verify-flutter-localizations:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:47633a21221bb295d5dda6772f813dbcd73f07f50f001ed2cd5636da0d18328d"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:c4dc70c9b139af4ec7f714b70bd52cb2eafa72680108390937c7ed39a840d347"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -423,6 +423,7 @@ deploy-pid-issuer-demo:
     - envsubst < deploy/kubernetes/${ENV}/gba-hc-converter-deployment.yaml | kubectl apply -f -
     - kubectl apply -f deploy/kubernetes/gba-hc-converter-network-policies.yaml
     - kubectl apply -f deploy/kubernetes/gba-hc-converter-service.yaml
+    - kubectl apply -f deploy/kubernetes/gba-hc-converter-volume.yaml
     - kubectl rollout status deployment/gba-hc-converter
 
 deploy-gba-hc-converter-ont:
@@ -437,20 +438,56 @@ deploy-gba-hc-converter-demo:
   variables:
     ENV: demo
 
-run-preload-gba-v-job:
-  extends: .env-demo-k8s
-  rules: !reference [.release-tag, rules]
+.deploy-preload-gba-v-pod:
+  needs:
+    - job: build-gba-fetch-image
+      artifacts: false
+  rules: !reference [.default-or-merge-request, rules]
   when: manual
+  variables:
+    GBA_FETCH_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch:${CI_COMMIT_SHORT_SHA}
   script:
-    - kubectl create configmap nl-wallet-gba-hc-converter-preload-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/preload.sh -o yaml | kubectl apply -f -
     - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
-    - envsubst < deploy/kubernetes/preload-gba-v-data-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=/preload-gba-v-data
+    - kubectl apply -f deploy/kubernetes/gba-hc-converter-volume.yaml
+    - envsubst < deploy/kubernetes/${ENV}/preload-gba-v-data-pod.yaml | kubectl apply -f -
+
+deploy-preload-gba-v-pod-ont:
+  extends: [.env-ont-k8s, .deploy-preload-gba-v-pod]
+  rules: !reference [.default-or-merge-request, rules]
+  variables:
+    ENV: ont
+
+deploy-preload-gba-v-pod-demo:
+  extends: [.env-demo-k8s, .deploy-preload-gba-v-pod]
+  rules: !reference [.release-tag, rules]
+  variables:
+    ENV: demo
+
+.run-encrypt-gba-v-testdata-job:
+  needs:
+    - job: build-gba-fetch-image
+      artifacts: false
+  rules: !reference [.default-or-merge-request, rules]
+  when: manual
+  variables:
+    GBA_FETCH_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch:${CI_COMMIT_SHORT_SHA}
+  script:
+    - kubectl create configmap nl-wallet-gba-hc-converter-encrypt-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/encrypt_all.sh -o yaml | kubectl apply -f -
+    - envsubst < deploy/kubernetes/encrypt-gba-v-testdata-job.yaml | kubectl apply -f -
+    - kubectl wait --for=condition=complete --timeout=300s job -l app=encrypt-gba-v-testdata
+
+run-encrypt-gba-v-testdata-job-ont:
+  extends: [.env-ont-k8s, .run-encrypt-gba-v-testdata-job]
+  rules: !reference [.default-or-merge-request, rules]
+
+run-encrypt-gba-v-testdata-job-demo:
+  extends: [.env-demo-k8s, .run-encrypt-gba-v-testdata-job]
+  rules: !reference [.release-tag, rules]
 
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:db128edcaef0b8f7945b6e563da3b101a5b4c3692b1bf38f2645bcaa7e715fa0"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:b1aa52bedfc8a8f0c0d1a298fc1413b241d2c177d41bded4d0561c30cec25724"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom

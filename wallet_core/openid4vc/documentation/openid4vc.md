@@ -1,6 +1,6 @@
 # Introduction to OpenID4VCI
 
-OpenID4VCI is a protocol for issuance of attestations. Its specification may be found [here](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html).
+OpenID4VCI is a protocol for issuance of attestations. The version of the specification implemented here may be found [here](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html).
 
 It aims to be generic over different attestation formats, such as the mdoc attestation format and [SD-JWT](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/). The standard therefore only defines protocols (although it includes a number of examples using the mdoc, SD-JWT and JSON-LD VC formats). By contrast, the [ISO mdoc](../../mdoc/documentation/mdoc.md) specifications (ISO 18013-5, 23220-3, 23220-4) define both an attestation format (COSE over `IssuerSigned`) and protocols to issue and verify them with.
 

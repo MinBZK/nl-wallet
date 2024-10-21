@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/organization.dart';
+import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -204,14 +205,20 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
+                Text.rich(
+                  context.l10n.disclosureConfirmDataAttributesSubtitleTerms.toTextSpan(context),
                   style: context.textTheme.displaySmall,
                   textAlign: TextAlign.start,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  context.read<ContextMapper<Policy, String>>().map(context, policy),
+                Text.rich(
+                  context
+                      .read<ContextMapper<OrganizationPolicy, String>>()
+                      .map(
+                        context,
+                        OrganizationPolicy(organization: relyingParty, policy: policy),
+                      )
+                      .toTextSpan(context),
                   style: context.textTheme.bodyLarge,
                   textAlign: TextAlign.start,
                 ),
@@ -221,7 +228,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           const SizedBox(height: 4),
           LinkButton(
             text: Text.rich(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta.toTextSpan(context)),
-            onPressed: () => PolicyScreen.show(context, policy),
+            onPressed: () => PolicyScreen.show(context, relyingParty, policy),
           ),
         ],
       ),

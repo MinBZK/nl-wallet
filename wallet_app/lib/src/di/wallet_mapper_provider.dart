@@ -15,6 +15,7 @@ import '../domain/model/document.dart';
 import '../domain/model/event/wallet_event.dart';
 import '../domain/model/organization.dart';
 import '../domain/model/pin/pin_validation_error.dart';
+import '../domain/model/policy/organization_policy.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/model/wallet_card.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
@@ -101,7 +102,7 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<core.RequestPolicy, Policy>>(
           create: (context) => RequestPolicyMapper(),
         ),
-        RepositoryProvider<ContextMapper<Policy, String>>(
+        RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
           create: (context) => PolicyBodyTextMapper(),
         ),
 

@@ -13,7 +13,7 @@ fn hw_keystore_test_hardware_signature() {
         .build()
         .unwrap();
 
-    rt.block_on(test::sign_and_verify_signature::<HardwareEcdsaKey>(payload, identifier))
+    rt.block_on(test::sign_and_verify_signature::<HardwareEcdsaKey>(payload, identifier));
 }
 
 // this is the starting point for the encryption key integration test performed from Android / iOS.
@@ -29,7 +29,7 @@ fn hw_keystore_test_hardware_encryption() {
 
     rt.block_on(test::encrypt_and_decrypt_message::<HardwareEncryptionKey>(
         payload, identifier,
-    ))
+    ));
 }
 
 #[cfg(target_os = "android")]
@@ -42,7 +42,7 @@ mod android {
         _env: JNIEnv,
         _: JClass,
     ) {
-        super::hw_keystore_test_hardware_signature()
+        super::hw_keystore_test_hardware_signature();
     }
 
     #[rustfmt::skip]
@@ -51,6 +51,6 @@ mod android {
         _env: JNIEnv,
         _: JClass,
     ) {
-        super::hw_keystore_test_hardware_encryption()
+        super::hw_keystore_test_hardware_encryption();
     }
 }

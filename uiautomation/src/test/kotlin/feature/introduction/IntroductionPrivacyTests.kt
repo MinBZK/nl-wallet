@@ -2,16 +2,16 @@ package feature.introduction
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.screen.OnboardingScreen
+import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import screen.common.PlaceholderScreen
 import screen.introduction.IntroductionConditionsScreen
 import screen.introduction.IntroductionPrivacyScreen
+import screen.privacy.PrivacyPolicyScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${IntroductionPrivacyTests.USE_CASE} App displays privacy statement [${IntroductionPrivacyTests.JIRA_ID}]")
@@ -26,7 +26,7 @@ class IntroductionPrivacyTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.IntroductionPrivacy)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.IntroductionPrivacy)
 
         privacyScreen = IntroductionPrivacyScreen()
     }
@@ -42,8 +42,8 @@ class IntroductionPrivacyTests : TestBase() {
     fun verifyPrivacyPolicyButton() {
         privacyScreen.clickPrivacyButton()
 
-        val placeholderScreen = PlaceholderScreen()
-        assertTrue(placeholderScreen.visible(), "placeholder screen is not visible")
+        val privacyPolicyScreen = PrivacyPolicyScreen()
+        assertTrue(privacyPolicyScreen.visible(), "privacy policy screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

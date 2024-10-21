@@ -29,7 +29,8 @@ use crate::{
     document,
     issuance::MockDigidSession,
     pin::key as pin_key,
-    storage::{KeyedData, MockStorage, RegistrationData, StorageState},
+    storage::{KeyedData, KeyedDataResult, MockStorage, RegistrationData, StorageState},
+    wte::tests::MockWteIssuanceClient,
     Document, HistoryEvent,
 };
 
@@ -72,6 +73,7 @@ pub type WalletWithMocks = Wallet<
     MockDigidSession,
     MockIssuanceSession,
     MockMdocDisclosureSession,
+    MockWteIssuanceClient,
 >;
 
 /// The account server key material, generated once for testing.
@@ -278,7 +280,7 @@ impl WalletWithMocks {
         wallet.storage.get_mut().state = StorageState::Opened;
         wallet.storage.get_mut().data.insert(
             <RegistrationData as KeyedData>::KEY,
-            serde_json::to_string(&registration_data).unwrap(),
+            KeyedDataResult::Data(serde_json::to_string(&registration_data).unwrap()),
         );
         wallet.registration = WalletRegistration {
             hw_privkey: Self::hw_privkey(),

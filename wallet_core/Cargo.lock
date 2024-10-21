@@ -195,7 +195,7 @@ dependencies = [
 
 [[package]]
 name = "apple_app_attest"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "assert_matches",
  "chrono",
@@ -382,12 +382,6 @@ dependencies = [
  "quote",
  "syn 2.0.68",
 ]
-
-[[package]]
-name = "async_once"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ce4f10ea3abcd6617873bae9f91d1c5332b4a778bd9ce34d0cd517474c1de82"
 
 [[package]]
 name = "atoi"
@@ -846,7 +840,7 @@ dependencies = [
 
 [[package]]
 name = "configuration_server"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "axum",
  "axum-server",
@@ -1331,7 +1325,7 @@ checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "entity"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "chrono",
  "sea-orm",
@@ -1365,7 +1359,7 @@ dependencies = [
 
 [[package]]
 name = "error_category"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "error_category_derive",
  "sentry",
@@ -1375,7 +1369,7 @@ dependencies = [
 
 [[package]]
 name = "error_category_derive"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "error_category",
  "proc-macro2",
@@ -1466,7 +1460,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "android_logger",
  "anyhow",
@@ -1491,7 +1485,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api_macros"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "quote",
  "syn 2.0.68",
@@ -1589,9 +1583,9 @@ dependencies = [
 
 [[package]]
 name = "futures-channel"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eac8f7d7865dcb88bd4373ab671c8cf4508703796caa2b1985a9ca867b3fcb78"
+checksum = "2dff15bf788c671c1934e366d07e30c1814a8ef514e1af724a602e8a2fbe1b10"
 dependencies = [
  "futures-core",
  "futures-sink",
@@ -1599,9 +1593,9 @@ dependencies = [
 
 [[package]]
 name = "futures-core"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfc6580bb841c5a68e9ef15c77ccc837b40a7504914d52e47b8b0e9bbda25a1d"
+checksum = "05f29059c0c2090612e8d742178b0580d2dc940c837851ad723096f87af6663e"
 
 [[package]]
 name = "futures-executor"
@@ -1627,15 +1621,15 @@ dependencies = [
 
 [[package]]
 name = "futures-io"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a44623e20b9681a318efdd71c299b6b222ed6f231972bfe2f224ebad6311f0c1"
+checksum = "9e5c1b78ca4aae1ac06c48a526a655760685149f0d465d21f37abfe57ce075c6"
 
 [[package]]
 name = "futures-macro"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
+checksum = "162ee34ebcb7c64a8abebc059ce0fee27c2262618d7b60ed8faf72fef13c3650"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1644,15 +1638,15 @@ dependencies = [
 
 [[package]]
 name = "futures-sink"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fb8e00e87438d937621c1c6269e53f536c14d3fbd6a042bb24879e57d474fb5"
+checksum = "e575fab7d1e0dcb8d0c7bcf9a63ee213816ab51902e6d244a95819acacf1d4f7"
 
 [[package]]
 name = "futures-task"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38d84fa142264698cdce1a9f9172cf383a0c82de1bddcf3092901442c4097004"
+checksum = "f90f7dce0722e95104fcb095585910c0977252f286e354b5e3bd38902cd99988"
 
 [[package]]
 name = "futures-timer"
@@ -1662,9 +1656,9 @@ checksum = "f288b0a4f20f9a56b5d1da57e2227c661b7b16168e2f72365f57b63326e29b24"
 
 [[package]]
 name = "futures-util"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d6401deb83407ab3da39eba7e33987a73c3df0c82b4bb5813ee871c19c41d48"
+checksum = "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -1680,27 +1674,39 @@ dependencies = [
 
 [[package]]
 name = "gba_hc_converter"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
+ "aes-gcm",
+ "anyhow",
  "assert-json-diff",
  "axum",
  "base64 0.22.1",
+ "clap",
+ "clio",
  "config",
+ "crypto-common",
  "csv",
  "ctor",
+ "hex",
+ "hmac",
  "http",
  "indexmap 2.2.6",
  "nutype",
  "pem",
  "quick-xml",
+ "rand_core",
  "regex",
  "reqwest",
+ "rpassword",
  "rstest",
  "sentry",
  "serde",
  "serde_json",
  "serde_with",
+ "sha2",
  "strum 0.26.3",
+ "tempfile",
+ "tests_integration",
  "thiserror",
  "tokio",
  "tower-http",
@@ -1906,6 +1912,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hex-literal"
@@ -2408,7 +2417,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "migration"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -2458,7 +2467,7 @@ dependencies = [
 
 [[package]]
 name = "mock_relying_party"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "accept-language",
  "anyhow",
@@ -2491,14 +2500,13 @@ dependencies = [
 
 [[package]]
 name = "mockall"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43766c2b5203b10de348ffe19f7e54564b64f3d6018ff7648d1e2d6d3a0f0a48"
+checksum = "d4c28b3fb6d753d28c20e826cd46ee611fda1cf3cde03a443a974043247c065a"
 dependencies = [
  "cfg-if",
  "downcast",
  "fragile",
- "lazy_static",
  "mockall_derive",
  "predicates",
  "predicates-tree",
@@ -2506,9 +2514,9 @@ dependencies = [
 
 [[package]]
 name = "mockall_derive"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af7cbce79ec385a1d4f54baa90a76401eb15d9cab93685f62e7e9f942aa00ae2"
+checksum = "341014e7f530314e9a1fdbc7400b244efea7122662c96bfa248c31da5bfb2020"
 dependencies = [
  "cfg-if",
  "proc-macro2",
@@ -2518,7 +2526,7 @@ dependencies = [
 
 [[package]]
 name = "nl_wallet_mdoc"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -2711,7 +2719,7 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "openid4vc"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "assert_matches",
  "axum",
@@ -3028,7 +3036,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "platform_support"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "error_category",
  "jni",
@@ -3440,6 +3448,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rpassword"
+version = "7.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80472be3c897911d0137b2d2b9055faf6eeac5b14e324073d83bc17b191d7e3f"
+dependencies = [
+ "libc",
+ "rtoolbox",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "rsa"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3487,6 +3506,16 @@ dependencies = [
  "rustc_version",
  "syn 2.0.68",
  "unicode-ident",
+]
+
+[[package]]
+name = "rtoolbox"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c247d24e63230cdb56463ae328478bd5eac8b8faa8c69461a77e8e323afac90e"
+dependencies = [
+ "libc",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -3890,6 +3919,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5484316556650182f03b43d4c746ce0e3e48074a21e2f51244b648b6542e1066"
 dependencies = [
  "httpdate",
+ "log",
  "reqwest",
  "rustls 0.22.4",
  "sentry-anyhow",
@@ -3948,6 +3978,7 @@ version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "161283cfe8e99c8f6f236a402b9ccf726b201f365988b5bb637ebca0abbd4a30"
 dependencies = [
+ "log",
  "once_cell",
  "rand",
  "sentry-types",
@@ -4683,7 +4714,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "tests_integration"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "assert_matches",
  "configuration_server",
@@ -5461,7 +5492,7 @@ dependencies = [
 
 [[package]]
 name = "wallet"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
@@ -5511,7 +5542,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_ca"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -5532,9 +5563,10 @@ dependencies = [
 
 [[package]]
 name = "wallet_common"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "aes-gcm",
+ "anyhow",
  "assert_matches",
  "axum",
  "base64 0.22.1",
@@ -5543,7 +5575,10 @@ dependencies = [
  "error_category",
  "etag",
  "futures",
+ "hex",
+ "hex-literal",
  "http",
+ "indexmap 2.2.6",
  "itertools",
  "jsonwebtoken",
  "mime",
@@ -5564,6 +5599,7 @@ dependencies = [
  "strum 0.26.3",
  "thiserror",
  "tokio",
+ "tower-http",
  "trait-variant",
  "url",
  "x509-parser",
@@ -5571,7 +5607,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "axum",
  "chrono",
@@ -5600,7 +5636,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_database_settings"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "config",
  "serde",
@@ -5609,7 +5645,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_domain"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "chrono",
  "dashmap",
@@ -5626,7 +5662,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_migrations"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -5636,7 +5672,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_persistence"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "chrono",
  "ctor",
@@ -5656,18 +5692,17 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_service"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
- "async_once",
  "chrono",
  "cryptoki",
  "der",
  "futures",
  "hmac",
+ "indexmap 2.2.6",
  "jsonwebtoken",
- "lazy_static",
  "p256",
  "r2d2-cryptoki",
  "rand",
@@ -5690,7 +5725,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5734,7 +5769,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server_migration"
-version = "0.2.1-dev"
+version = "0.2.2-dev"
 dependencies = [
  "sea-orm-migration",
  "tokio",

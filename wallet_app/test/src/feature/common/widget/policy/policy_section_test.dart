@@ -14,7 +14,7 @@ void main() {
       'light policy section',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const PolicySection(WalletMockData.policy),
+          PolicySection(relyingParty: WalletMockData.organization, policy: WalletMockData.policy),
           surfaceSize: kGoldenSize,
         );
         await screenMatchesGolden(tester, 'policy_section/light');
@@ -24,7 +24,7 @@ void main() {
       'dark policy section',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const PolicySection(WalletMockData.policy),
+          PolicySection(relyingParty: WalletMockData.organization, policy: WalletMockData.policy),
           brightness: Brightness.dark,
           surfaceSize: kGoldenSize,
         );
@@ -36,7 +36,7 @@ void main() {
   group('widgets', () {
     testWidgets('widget is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const PolicySection(WalletMockData.policy),
+        PolicySection(relyingParty: WalletMockData.organization, policy: WalletMockData.policy),
       );
 
       // Validate that the widget exists

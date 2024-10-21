@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/launch_util.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/config_version_text.dart';
 import '../common/widget/mock_indicator_text.dart';
@@ -56,12 +56,7 @@ class AboutScreen extends StatelessWidget {
         const Divider(height: 1),
         MenuRow(
           label: context.l10n.aboutScreenPrivacyCta,
-          onTap: () => PlaceholderScreen.showGeneric(context, secured: false),
-        ),
-        const Divider(height: 1),
-        MenuRow(
-          label: context.l10n.aboutScreenTermsCta,
-          onTap: () => PlaceholderScreen.showGeneric(context, secured: false),
+          onTap: () => Navigator.pushNamed(context, WalletRoutes.privacyPolicyRoute),
         ),
         const Divider(height: 1),
         const Padding(

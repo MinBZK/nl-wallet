@@ -2,14 +2,13 @@ package feature.introduction
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.screen.OnboardingScreen
+import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import screen.common.PlaceholderScreen
 import screen.introduction.IntroductionConditionsScreen
 import screen.security.PinScreen
 
@@ -26,7 +25,7 @@ class IntroductionConditionsTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.IntroductionConditions)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.IntroductionConditions)
 
         conditionsScreen = IntroductionConditionsScreen()
     }
@@ -37,14 +36,10 @@ class IntroductionConditionsTests : TestBase() {
         assertTrue(conditionsScreen.visible(), "expectations screen is not visible")
     }
 
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The App offers an entrance to the full terms & conditions, which is embedded in the app. [${JIRA_ID}]")
-    fun verifyConditionsButton() {
-        conditionsScreen.clickConditionsButton()
-
-        val placeholderScreen = PlaceholderScreen()
-        assertTrue(placeholderScreen.visible(), "placeholder screen is not visible")
-    }
+    /**
+     * 2. The App offers an entrance to the full terms & conditions, which is embedded in the app.
+     * >> This AC is under review by legal experts; meanwhile the implementation of the app has changed (removed the conditions button) until further notice.
+     */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The App offers an option to accept the terms and conditions, leading to setup pin. [${JIRA_ID}]")

@@ -2,6 +2,7 @@ use std::{collections::VecDeque, fmt::Debug};
 
 use futures::{future::try_join_all, TryFutureExt};
 use itertools::Itertools;
+use jsonwebtoken::{Algorithm, Header};
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     elliptic_curve::rand_core::OsRng,
@@ -18,21 +19,26 @@ use nl_wallet_mdoc::{
     holder::{IssuedAttributesMismatch, Mdoc, TrustAnchor},
     utils::{
         cose::CoseError,
-        keys::{KeyFactory, MdocEcdsaKey},
         serialization::{CborBase64, CborError, TaggedBytes},
         x509::CertificateError,
     },
     ATTR_RANDOM_LENGTH,
 };
-use wallet_common::{generator::TimeGenerator, jwt::JwtError, nonempty::NonEmpty, urls::BaseUrl};
+use wallet_common::{
+    generator::TimeGenerator,
+    jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError, JwtPopClaims},
+    keys::{factory::KeyFactory, CredentialEcdsaKey},
+    nonempty::NonEmpty,
+    urls::BaseUrl,
+};
 
 use crate::{
     credential::{
         CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
-        CredentialResponses, MdocCopies,
+        CredentialResponses, MdocCopies, WteDisclosure,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    jwt::{JwkConversionError, JwtCredential, JwtCredentialError},
+    jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
@@ -119,7 +125,7 @@ pub enum IssuanceSessionError {
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
-    MsoMdoc(Mdoc),
+    MsoMdoc(Box<Mdoc>),
     Jwt(JwtCredential),
 }
 
@@ -128,7 +134,7 @@ impl TryFrom<IssuedCredential> for Mdoc {
 
     fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
         match value {
-            IssuedCredential::MsoMdoc(mdoc) => Ok(mdoc),
+            IssuedCredential::MsoMdoc(mdoc) => Ok(*mdoc),
             _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
                 expected: Format::MsoMdoc,
                 found: (&value).into(),
@@ -261,10 +267,11 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     where
         Self: Sized;
 
-    async fn accept_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
+        wte: Option<JwtCredential>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
 
@@ -452,6 +459,7 @@ impl HttpVcMessageClient {
     }
 }
 
+#[cfg_attr(test, derive(Clone))]
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
@@ -561,10 +569,11 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok((issuance_client, credential_previews))
     }
 
-    async fn accept_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
+        wte: Option<JwtCredential>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
@@ -587,11 +596,33 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let keys_and_proofs = CredentialRequestProof::new_multiple(
             self.session_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
-            credential_issuer_identifier,
+            credential_issuer_identifier.clone(),
             types.len().try_into().unwrap(),
-            key_factory,
+            &key_factory,
         )
         .await?;
+
+        // This could be written better with `Option::map`, but `Option::map` does not support async closures
+        let mut wte_disclosure = match wte {
+            Some(wte) => {
+                let wte_pubkey = jwk_to_p256(&wte.jwt_claims().confirmation.jwk)?;
+                let wte_privkey = key_factory.generate_existing(&wte.private_key_id, wte_pubkey);
+
+                let wte_release = Jwt::<JwtPopClaims>::sign(
+                    &JwtPopClaims::new(
+                        Some(self.session_state.c_nonce.clone()),
+                        NL_WALLET_CLIENT_ID.to_string(),
+                        credential_issuer_identifier.as_ref().to_string(),
+                    ),
+                    &Header::new(Algorithm::ES256),
+                    &wte_privkey,
+                )
+                .await?;
+
+                Some((wte.jwt, wte_release))
+            }
+            None => None,
+        };
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
@@ -608,6 +639,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     let cred_request = CredentialRequest {
                         credential_type,
                         proof: Some(response),
+                        attestations: None, // We set this field below if necessary
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
                 }),
@@ -616,11 +648,19 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
-        // Unwrapping is safe because N > 0, see above.
-        let credential_requests = NonEmpty::new(credential_requests).unwrap();
-        let responses = match credential_requests.as_ref().len() {
-            1 => vec![self.request_credential(credential_requests.first()).await?],
-            _ => self.request_batch_credentials(credential_requests).await?,
+        // The following two unwraps are safe because N > 0, see above.
+        let mut credential_requests = credential_requests; // Make it mutable so we can pop() to avoid cloning
+        let responses = match credential_requests.len() {
+            1 => {
+                let mut credential_request = credential_requests.pop().unwrap();
+                credential_request.attestations = wte_disclosure.take();
+                vec![self.request_credential(&credential_request).await?]
+            }
+            _ => {
+                let credential_requests = NonEmpty::new(credential_requests).unwrap();
+                self.request_batch_credentials(credential_requests, wte_disclosure.take())
+                    .await?
+            }
         };
         let mut responses_and_pubkeys: VecDeque<_> = responses.into_iter().zip(pubkeys).collect();
 
@@ -683,6 +723,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn request_batch_credentials(
         &self,
         credential_requests: NonEmpty<Vec<CredentialRequest>>,
+        wte_disclosure: Option<WteDisclosure>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
         let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
             .await?
@@ -694,7 +735,10 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .message_client
             .request_credentials(
                 &url,
-                &CredentialRequests { credential_requests },
+                &CredentialRequests {
+                    credential_requests,
+                    attestations: wte_disclosure,
+                },
                 &dpop_header,
                 &access_token_header,
             )
@@ -715,7 +759,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
 impl CredentialResponse {
     /// Create a credential out of the credential response. Also verifies the credential.
-    fn into_credential<K: MdocEcdsaKey>(
+    fn into_credential<K: CredentialEcdsaKey>(
         self,
         key_id: String,
         verifying_key: &VerifyingKey,
@@ -724,8 +768,9 @@ impl CredentialResponse {
     ) -> Result<IssuedCredential, IssuanceSessionError> {
         match self {
             CredentialResponse::MsoMdoc {
-                credential: CborBase64(issuer_signed),
+                credential: issuer_signed,
             } => {
+                let CborBase64(issuer_signed) = *issuer_signed;
                 let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview else {
                     return Err(IssuanceSessionError::UnexpectedCredentialFormat {
                         expected: Format::MsoMdoc,
@@ -775,10 +820,11 @@ impl CredentialResponse {
                 mdoc.compare_unsigned(unsigned_mdoc)
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
-                Ok(IssuedCredential::MsoMdoc(mdoc))
+                Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
             CredentialResponse::Jwt { credential } => {
-                let (cred, cred_claims) = JwtCredential::new::<K>(key_id, credential, trust_anchors)?;
+                let (cred, cred_claims) =
+                    JwtCredential::new_verify_against_trust_anchors::<K>(key_id, credential, trust_anchors)?;
 
                 let CredentialPreview::Jwt {
                     claims: expected_claims,
@@ -795,9 +841,7 @@ impl CredentialResponse {
                     return Err(IssuanceSessionError::IssuerMismatch);
                 }
 
-                cred_claims
-                    .contents
-                    .compare_attributes(expected_claims)
+                compare_jwt_attributes(&cred_claims.contents, expected_claims)
                     .map_err(IssuanceSessionError::IssuedJwtAttributesMismatch)?;
 
                 Ok(IssuedCredential::Jwt(cred))
@@ -823,14 +867,38 @@ impl IssuanceState {
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+pub async fn mock_wte(key_factory: &impl KeyFactory) -> JwtCredential {
+    use wallet_common::{
+        jwt::JwtCredentialClaims,
+        keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
+    };
+
+    // As a shortcut we use this private key both as the cnf in the WTE and as the issuer private key
+    // to sign the WTE with.
+    let privkey = key_factory.generate_new().await.unwrap();
+
+    let wte = JwtCredentialClaims::new_signed(
+        &privkey.verifying_key().await.unwrap(),
+        &privkey,
+        "iss".to_string(),
+        None,
+        Default::default(),
+    )
+    .await
+    .unwrap();
+
+    JwtCredential::new_unverified::<SoftwareEcdsaKey>(privkey.identifier().to_string(), wte)
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use rstest::rstest;
     use serde_bytes::ByteBuf;
 
     use nl_wallet_mdoc::{
         server_keys::KeyPair,
-        software_key_factory::SoftwareKeyFactory,
         test::data,
         unsigned::UnsignedMdoc,
         utils::{
@@ -841,7 +909,8 @@ mod tests {
         IssuerSigned,
     };
     use wallet_common::{
-        keys::{software::SoftwareEcdsaKey, EcdsaKey},
+        jwt::JwtCredentialClaims,
+        keys::{factory::KeyFactory, software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory, EcdsaKey},
         nonempty::NonEmpty,
     };
 
@@ -860,7 +929,13 @@ mod tests {
         mock_msg_client
     }
 
-    async fn create_credential_response() -> (CredentialResponse, CredentialPreview, Certificate, VerifyingKey) {
+    async fn create_credential_response() -> (
+        CredentialResponse,
+        CredentialPreview,
+        Certificate,
+        VerifyingKey,
+        SoftwareKeyFactory,
+    ) {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = SoftwareKeyFactory::default();
@@ -877,10 +952,16 @@ mod tests {
             .await
             .unwrap();
         let credential_response = CredentialResponse::MsoMdoc {
-            credential: issuer_signed.into(),
+            credential: Box::new(issuer_signed.into()),
         };
 
-        (credential_response, preview, ca.certificate().clone(), mdoc_public_key)
+        (
+            credential_response,
+            preview,
+            ca.certificate().clone(),
+            mdoc_public_key,
+            key_factory,
+        )
     }
 
     #[tokio::test]
@@ -929,24 +1010,120 @@ mod tests {
         );
     }
 
+    /// Return a new session ready for `accept_issuance()`.
+    fn new_session_state(previews: Vec<CredentialPreview>) -> IssuanceState {
+        IssuanceState {
+            access_token: "access_token".to_string().into(),
+            c_nonce: "c_nonce".to_string(),
+            credential_previews: NonEmpty::new(previews).unwrap(),
+            issuer_url: "https://issuer.example.com".parse().unwrap(),
+            dpop_private_key: SigningKey::random(&mut OsRng),
+            dpop_nonce: Some("dpop_nonce".to_string()),
+        }
+    }
+
+    /// Check consistency and validity of the input of the /(batch_)credential endpoints.
+    fn check_credential_endpoint_input(
+        url: &Url,
+        session_state: &IssuanceState,
+        dpop_header: &str,
+        access_token_header: &str,
+        attestations: &Option<(Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>)>,
+        use_wte: bool,
+    ) {
+        assert_eq!(
+            access_token_header,
+            "DPoP ".to_string() + session_state.access_token.as_ref()
+        );
+
+        Dpop::from(dpop_header.to_string())
+            .verify_expecting_key(
+                session_state.dpop_private_key.verifying_key(),
+                url,
+                &Method::POST,
+                Some(&session_state.access_token),
+                session_state.dpop_nonce.as_deref(),
+            )
+            .unwrap();
+
+        if use_wte != attestations.is_some() {
+            panic!("unexpected WTE usage");
+        }
+    }
+
+    #[rstest]
     #[tokio::test]
-    async fn test_accept_issuance_wrong_response_count() {
-        let (cred_response, preview, ca_cert, _) = create_credential_response().await;
-        let trust_anchors = &[((&ca_cert).try_into().unwrap())];
+    async fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
+        let (cred_response, preview, ca_cert, _, key_factory) = create_credential_response().await;
+        let wte = if use_wte {
+            Some(mock_wte(&key_factory).await)
+        } else {
+            None
+        };
+        let session_state = new_session_state(if multiple_creds {
+            vec![preview.clone(), preview]
+        } else {
+            vec![preview]
+        });
 
         let mut mock_msg_client = mock_openid_message_client();
-        mock_msg_client
-            .expect_request_token()
-            .return_once(|_url, _token_request, _dpop_header| {
-                Ok((
-                    TokenResponseWithPreviews {
-                        token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        // return two previews
-                        credential_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(),
-                    },
-                    Some("dpop_nonce".to_string()),
-                ))
+
+        // The client must use `request_credentials()` (which uses `/batch_credentials`) iff more than one credential
+        // is being issued, and `request_credential()` instead (which uses `/credential`).
+        if multiple_creds {
+            mock_msg_client.expect_request_credentials().times(1).return_once({
+                let session_state = session_state.clone();
+                move |url, credential_requests, dpop_header, access_token_header| {
+                    check_credential_endpoint_input(
+                        url,
+                        &session_state,
+                        dpop_header,
+                        access_token_header,
+                        &credential_requests.attestations,
+                        use_wte,
+                    );
+                    Ok(CredentialResponses {
+                        credential_responses: vec![cred_response.clone(), cred_response],
+                    })
+                }
             });
+        } else {
+            mock_msg_client.expect_request_credential().times(1).return_once({
+                let session_state = session_state.clone();
+                move |url, credential_request, dpop_header, access_token_header| {
+                    check_credential_endpoint_input(
+                        url,
+                        &session_state,
+                        dpop_header,
+                        access_token_header,
+                        &credential_request.attestations,
+                        use_wte,
+                    );
+                    Ok(cred_response)
+                }
+            });
+        }
+
+        // _ is an error because our mock does not behave like an actual issuer should, but it doesn't matter
+        // because we are just inspecting what the client sent in this test with the expectation above.
+        let _ = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state,
+        }
+        .accept_issuance(
+            &[((&ca_cert).try_into().unwrap())],
+            key_factory,
+            wte,
+            "https://issuer.example.com".parse().unwrap(),
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_accept_issuance_wrong_response_count() {
+        let mut mock_msg_client = mock_openid_message_client();
+        let (cred_response, preview, ca_cert, _, _) = create_credential_response().await;
+
         mock_msg_client.expect_request_credentials().return_once(
             |_url, _credential_requests, _dpop_header, _access_token_header| {
                 Ok(CredentialResponses {
@@ -955,27 +1132,18 @@ mod tests {
             },
         );
 
-        let token_request = TokenRequest::new_mock();
-
-        let (client, previews) = HttpIssuanceSession::start_issuance(
-            mock_msg_client,
-            "https://example.com".parse().unwrap(),
-            token_request,
-            trust_anchors,
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(vec![preview.clone(), preview]),
+        }
+        .accept_issuance(
+            &[((&ca_cert).try_into().unwrap())],
+            SoftwareKeyFactory::default(),
+            None,
+            "https://issuer.example.com".parse().unwrap(),
         )
         .await
-        .unwrap();
-
-        assert_eq!(previews.len(), 2);
-
-        let error = client
-            .accept_issuance(
-                trust_anchors,
-                SoftwareKeyFactory::default(),
-                "https://example.com".parse().unwrap(),
-            )
-            .await
-            .unwrap_err();
+        .unwrap_err();
 
         assert_matches!(
             error,
@@ -985,7 +1153,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc() {
-        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         let _ = credential_response
             .into_credential::<SoftwareEcdsaKey>(
@@ -999,7 +1167,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_public_key_mismatch_error() {
-        let (credential_response, preview, ca_cert, _) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, _, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
         // public key than the one contained within the response should fail.
@@ -1018,13 +1186,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_attribute_random_length_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` from a response
         // that contains insufficient random data should fail.
         let credential_response = match credential_response {
             CredentialResponse::MsoMdoc { mut credential } => {
-                let CborBase64(ref mut credential_inner) = credential;
+                let CborBase64(ref mut credential_inner) = *credential;
                 let name_spaces = credential_inner.name_spaces.as_mut().unwrap();
 
                 name_spaces.modify_first_attributes(|attributes| {
@@ -1055,7 +1223,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
@@ -1088,7 +1256,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_mdoc_verification_error() {
-        let (credential_response, preview, _, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, _, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` that is
         // validated against incorrect trust anchors should fail.
@@ -1101,7 +1269,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail.

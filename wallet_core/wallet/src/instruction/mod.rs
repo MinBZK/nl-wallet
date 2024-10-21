@@ -10,8 +10,8 @@ use crate::{
 };
 
 pub use self::{
-    client::InstructionClient,
-    keys::{RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
+    client::{InstructionClient, InstructionClientFactory},
+    keys::{RemoteEcdsaKey, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
 };
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

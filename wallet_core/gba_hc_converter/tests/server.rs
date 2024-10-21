@@ -3,21 +3,23 @@ use std::{
     str::FromStr,
 };
 
+use assert_json_diff::{assert_json_matches, CompareMode, Config};
 use ctor::ctor;
 use http::StatusCode;
 use reqwest::Response;
+use serde_json::{json, Value};
 
 use gba_hc_converter::{
-    gba::{client::GbavClient, data::GbaResponse, error::Error},
+    gba::{client::GbavClient, error::Error},
     haal_centraal::{Bsn, Element, PersonQuery, PersonsResponse},
     server,
 };
-use serde_json::json;
+use tests_integration::common::wait_for_server;
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 use crate::common::read_file;
 
-mod common;
+pub mod common;
 
 #[ctor]
 fn init_logging() {
@@ -49,13 +51,14 @@ where
             .unwrap();
     });
 
+    wait_for_server(format!("http://localhost:{port}").parse().unwrap(), vec![]).await;
     port
 }
 
 async fn query_personen(port: u16) -> Response {
     let query = PersonQuery {
         r#type: String::from("RaadpleegMetBurgerservicenummer"),
-        bsn: vec![Bsn::try_new("12345678").unwrap()],
+        bsn: vec![Bsn::try_new("11122146").unwrap()],
         registration_municipality: None,
         fields: vec![],
     };
@@ -74,14 +77,14 @@ struct MockGbavClient {
 }
 
 impl GbavClient for MockGbavClient {
-    async fn vraag(&self, _bsn: &Bsn) -> Result<GbaResponse, Error> {
-        GbaResponse::new(&read_file(&self.xml_file))
+    async fn vraag(&self, _bsn: &Bsn) -> Result<Option<String>, Error> {
+        Ok(Some(read_file(&self.xml_file).await))
     }
 }
 
 struct ErrorGbavClient {}
 impl GbavClient for ErrorGbavClient {
-    async fn vraag(&self, _bsn: &Bsn) -> Result<GbaResponse, Error> {
+    async fn vraag(&self, _bsn: &Bsn) -> Result<Option<String>, Error> {
         Err(Error::MissingElement(Element::Nationality.code()))
     }
 }
@@ -110,15 +113,16 @@ async fn test_error_response() {
         "application/problem+json",
         response.headers().get("Content-Type").unwrap().to_str().unwrap()
     );
-    assert_eq!(
+
+    assert_json_matches!(
+        serde_json::from_str::<Value>(&response.text().await.unwrap()).unwrap(),
         json!({
             "type": "gba",
             "title": "GBA error",
             "status": 412,
             "detail": "GBA error: Element number 510 is mandatory but missing"
-        })
-        .to_string(),
-        response.text().await.unwrap()
+        }),
+        Config::new(CompareMode::Inclusive)
     );
 }
 
@@ -135,7 +139,8 @@ async fn test_received_error_response() {
         "application/problem+json",
         response.headers().get("Content-Type").unwrap().to_str().unwrap()
     );
-    assert_eq!(
+    assert_json_matches!(
+        serde_json::from_str::<Value>(&response.text().await.unwrap()).unwrap(),
         json!({
             "type": "gba",
             "title": "GBA error",
@@ -143,8 +148,7 @@ async fn test_received_error_response() {
             "detail":
                 "GBA error: Received error response: foutcode: X001, description: Interne fout., reference: \
                  a00d961b-dd58-4f1c-bd48-964a46d2708b"
-        })
-        .to_string(),
-        response.text().await.unwrap()
+        }),
+        Config::new(CompareMode::Inclusive)
     );
 }

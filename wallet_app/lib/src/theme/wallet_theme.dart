@@ -7,6 +7,8 @@ import 'light_wallet_theme.dart';
 class WalletTheme {
   const WalletTheme._();
 
+  static final kBorderRadius12 = BorderRadius.circular(12);
+
   static final ThemeData _baseTheme = ThemeData(
     useMaterial3: true,
     fontFamily: BaseWalletTheme.fontFamily,

@@ -15,13 +15,12 @@ use ring::{hmac, rand};
 use rstest::rstest;
 
 use nl_wallet_mdoc::{
-    examples::{Examples, IsoCertTimeGenerator},
+    examples::{example_items_requests, IsoCertTimeGenerator},
     holder::{
         mock::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocDataSource, StoredMdoc,
         TrustAnchor,
     },
     server_keys::KeyPair,
-    software_key_factory::SoftwareKeyFactory,
     test::{
         data::{addr_street, pid_full_name, pid_given_name},
         TestDocuments,
@@ -45,7 +44,13 @@ use openid4vc::{
     },
     ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
 };
-use wallet_common::{generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor, urls::BaseUrl};
+use wallet_common::{
+    generator::TimeGenerator,
+    jwt::Jwt,
+    keys::{examples::Examples, software_key_factory::SoftwareKeyFactory},
+    trust_anchor::OwnedTrustAnchor,
+    urls::BaseUrl,
+};
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -57,7 +62,7 @@ async fn disclosure_direct() {
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let iso_auth_request = IsoVpAuthorizationRequest::new(
-        &Examples::items_requests(),
+        &example_items_requests(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -131,7 +136,7 @@ async fn disclosure_using_message_client() {
     let trust_anchors = &[ca.certificate().try_into().unwrap()];
     let rp_keypair = ca
         .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
-            &Examples::items_requests(),
+            &example_items_requests(),
         )))
         .unwrap();
 
@@ -190,7 +195,7 @@ impl DirectMockVpMessageClient {
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = IsoVpAuthorizationRequest::new(
-            &Examples::items_requests(),
+            &example_items_requests(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),

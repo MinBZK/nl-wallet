@@ -9,14 +9,15 @@ pub use crate::{lock::LockCallback, storage::UnlockMethod};
 use crate::{
     account_provider::AccountProviderClient,
     config::ConfigurationRepository,
-    errors::StorageError,
-    instruction::{InstructionClient, InstructionError},
+    errors::{ChangePinError, StorageError},
+    instruction::InstructionError,
     storage::{Storage, UnlockData},
 };
 
 use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum WalletUnlockError {
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -28,14 +29,14 @@ pub enum WalletUnlockError {
     #[category(expected)]
     BiometricsUnlockingNotEnabled,
     #[error("error sending instruction to Wallet Provider: {0}")]
-    #[category(defer)]
     Instruction(#[from] InstructionError),
     #[error("could not write or read unlock method to or from database: {0}")]
-    #[category(defer)]
     UnlockMethodStorage(#[source] StorageError),
+    #[error("error finalizing pin change: {0}")]
+    ChangePin(#[from] ChangePinError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC> {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()
     }
@@ -101,6 +102,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Checking if registered");
 
@@ -112,15 +114,14 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         let config = self.config_repository.config();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
+        let remote_instruction = self
+            .new_instruction_client(
+                pin,
+                registration,
+                &config.account_server.base_url,
+                &instruction_result_public_key,
+            )
+            .await?;
 
         info!("Sending check pin instruction to Wallet Provider");
 
@@ -137,6 +138,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Unlocking wallet with pin");
 
@@ -161,9 +163,9 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Checking pin");
-
         self.send_check_pin_instruction(pin).await
     }
 
@@ -192,7 +194,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS> {
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Deref, sync::Arc};
+    use std::sync::Arc;
 
     use assert_matches::assert_matches;
     use http::StatusCode;
@@ -214,7 +216,11 @@ mod tests {
         utils,
     };
 
-    use crate::{account_provider::AccountProviderResponseError, pin::key::PinKey};
+    use crate::{
+        account_provider::AccountProviderResponseError,
+        pin::key::PinKey,
+        storage::{InstructionData, KeyedData},
+    };
 
     use super::{
         super::test::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
@@ -318,7 +324,7 @@ mod tests {
         {
             let is_locked_vec = is_locked_vec.lock();
 
-            assert_eq!(is_locked_vec.deref(), &vec![false, true, false]);
+            assert_eq!(*is_locked_vec, vec![false, true, false]);
         }
 
         // Clear the lock callback on the `Wallet.`
@@ -547,7 +553,7 @@ mod tests {
         wallet.lock();
 
         // Have the database return an error when fetching the sequence number.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.get_mut().set_keyed_data_error(InstructionData::KEY);
 
         // Unlocking the wallet should now result in an
         // `InstructionError::StoreInstructionSequenceNumber` error.

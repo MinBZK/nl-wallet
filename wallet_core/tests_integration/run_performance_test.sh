@@ -5,7 +5,7 @@ set -e
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 NUM="${1:-1}"
 
-cargo build --manifest-path "${SCRIPTS_DIR}/Cargo.toml" --release --bin performance_test --features performance_test,allow_http_return_url
+cargo build --manifest-path "${SCRIPTS_DIR}/Cargo.toml" --release --bin performance_test --features performance_test,allow_insecure_url
 
 pids=()
 for ((i=1; i <= NUM; i++)); do

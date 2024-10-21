@@ -1,8 +1,9 @@
 package feature.lock
 
 import helper.TestBase
+import navigator.MenuNavigator
 import navigator.OnboardingNavigator
-import navigator.screen.OnboardingScreen
+import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -29,9 +30,7 @@ class UserEntersPinTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.Dashboard)
-
-        DashboardScreen().clickMenuButton()
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickLogoutButton()
 
         pinScreen = PinScreen()

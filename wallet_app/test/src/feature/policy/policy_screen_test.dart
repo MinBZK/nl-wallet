@@ -14,6 +14,7 @@ void main() {
       return DeviceUtils.deviceBuilderWithPrimaryScrollController
         ..addScenario(
           widget: PolicyScreen(
+            relyingParty: WalletMockData.organization,
             policy: WalletMockData.policy,
             onReportIssuePressed: () {},
           ),
@@ -42,10 +43,11 @@ void main() {
       bool isCalled = false;
       await tester.pumpWidgetWithAppWrapper(
         PolicyScreen(
+          relyingParty: WalletMockData.organization,
           policy: WalletMockData.policy,
           onReportIssuePressed: () => isCalled = true,
         ),
-        surfaceSize: const Size(350, 1000), //Extra high so button is immediately visible
+        surfaceSize: const Size(350, 1200), //Extra high so button is immediately visible
       );
 
       final l10n = await TestUtils.englishLocalizations;

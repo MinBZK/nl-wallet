@@ -2,6 +2,7 @@
 pub mod api;
 
 /// Generated code for the Flutter bridge using `flutter_rust_bridge_codegen`.
+#[allow(clippy::pedantic)]
 #[rustfmt::skip]
 mod bridge_generated;
 

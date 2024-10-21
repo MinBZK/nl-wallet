@@ -7,24 +7,30 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-[[bin]]
-name = "gba_hc_converter"
-
 [lib]
 doctest = false
 
 [dependencies]
+aes-gcm = { workspace = true, features = ["std", "rand_core"] }
+anyhow.workspace = true
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
+clap = { workspace = true, features = ["derive"] }
+clio = { workspace = true, features = ["clap-parse"] }
 config = { workspace = true, features = ["toml"] }
+crypto-common.workspace = true
 csv.workspace = true
+hex = { workspace = true, features = ["serde"] }
+hmac.workspace = true
 http.workspace = true
 indexmap.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
 pem.workspace = true
 quick-xml = { workspace = true, features = ["async-tokio", "serialize", "overlapped-lists"] }
 regex.workspace = true
+rand_core.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
+rpassword.workspace = true
 sentry = { workspace = true, features = [
     "backtrace",
     "contexts",
@@ -39,6 +45,7 @@ sentry = { workspace = true, features = [
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
+sha2.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "fs", "net"] }
@@ -62,4 +69,7 @@ wallet_common = { path = "../wallet_common", features = ["axum", "sentry"] }
 assert-json-diff.workspace = true
 ctor.workspace = true
 rstest.workspace = true
+tempfile.workspace = true
 tokio = { workspace = true, features = ["macros"] }
+
+tests_integration = { path = "../tests_integration", features = ["test_common"] }

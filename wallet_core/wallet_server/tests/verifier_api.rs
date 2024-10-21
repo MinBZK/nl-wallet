@@ -24,7 +24,6 @@ use nl_wallet_mdoc::{
     examples::{Example, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
     holder::{mock::MockMdocDataSource, Mdoc, TrustAnchor},
     server_keys::KeyPair,
-    software_key_factory::SoftwareKeyFactory,
     unsigned::{Entry, UnsignedMdoc},
     utils::{
         issuer_auth::IssuerRegistration, mock_time::MockTimeGenerator, reader_auth::ReaderRegistration,
@@ -40,8 +39,13 @@ use openid4vc::{
     ErrorResponse,
 };
 use wallet_common::{
-    generator::TimeGenerator, http_error::HttpJsonErrorBody, keys::software::SoftwareEcdsaKey,
-    reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, urls::BaseUrl, utils,
+    generator::TimeGenerator,
+    http_error::HttpJsonErrorBody,
+    keys::{software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory},
+    reqwest::default_reqwest_client_builder,
+    trust_anchor::OwnedTrustAnchor,
+    urls::BaseUrl,
+    utils,
 };
 #[cfg(feature = "issuance")]
 use wallet_server::settings::{Digid, Issuer};
@@ -166,11 +170,14 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         },
         #[cfg(feature = "issuance")]
         issuer: fake_issuer_settings(),
+        issuer_trust_anchors: vec![issuer_trust_anchor],
         verifier: Verifier {
             usecases,
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
-            trust_anchors: vec![issuer_trust_anchor],
+            allow_origins: None,
         },
+        #[cfg(feature = "disclosure")]
+        reader_trust_anchors: vec![rp_ca.certificate().try_into().unwrap()],
         sentry: None,
     };
 
@@ -788,8 +795,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     let (mdoc_data_source, key_factory) = prepare_example_holder_mocks(
         &issuer_key_pair,
         &settings
-            .verifier
-            .trust_anchors
+            .issuer_trust_anchors
             .iter()
             .map(|anchor| (&anchor.owned_trust_anchor).into())
             .collect_vec(),
