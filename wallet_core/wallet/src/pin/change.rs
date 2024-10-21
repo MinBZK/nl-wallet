@@ -118,7 +118,7 @@ where
                         tracing::warn!("Network error during {operation_name}, aborting: {error:?}");
                         return Err(error.into());
                     } else {
-                        tracing::warn!("Network error during {operation_name}, trying again: {error:?}")
+                        tracing::warn!("Network error during {operation_name}, trying again: {error:?}");
                     }
                 }
                 Err(error) => {
