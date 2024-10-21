@@ -58,62 +58,62 @@ run-automation-tests-suite-appstart:
 
 run-automation-tests-suite-introduction:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-appstart } ]
+  needs: [{ job: run-automation-tests-suite-appstart }]
   variables: { TESTS: "suite.IntroductionTestSuite" }
 
 run-automation-tests-suite-security:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-introduction } ]
+  needs: [{ job: run-automation-tests-suite-introduction }]
   variables: { TESTS: "suite.SecurityTestSuite" }
 
 run-automation-tests-suite-confirm:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-security } ]
+  needs: [{ job: run-automation-tests-suite-security }]
   variables: { TESTS: "suite.ConfirmTestSuite" }
 
 run-automation-tests-suite-personalize:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-confirm } ]
+  needs: [{ job: run-automation-tests-suite-confirm }]
   variables: { TESTS: "suite.PersonalizeTestSuite" }
 
 run-automation-tests-suite-dashboard:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-personalize } ]
+  needs: [{ job: run-automation-tests-suite-personalize }]
   variables: { TESTS: "suite.DashboardTestSuite" }
 
 run-automation-tests-suite-card:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-dashboard } ]
+  needs: [{ job: run-automation-tests-suite-dashboard }]
   variables: { TESTS: "suite.CardTestSuite" }
 
 run-automation-tests-suite-menu:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-card } ]
+  needs: [{ job: run-automation-tests-suite-card }]
   variables: { TESTS: "suite.MenuTestSuite" }
 
 run-automation-tests-suite-history:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-menu } ]
+  needs: [{ job: run-automation-tests-suite-menu }]
   variables: { TESTS: "suite.HistoryTestSuite" }
 
 run-automation-tests-suite-settings:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-history } ]
+  needs: [{ job: run-automation-tests-suite-history }]
   variables: { TESTS: "suite.SettingsTestSuite" }
 
 run-automation-tests-suite-lock:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-settings } ]
+  needs: [{ job: run-automation-tests-suite-settings }]
   variables: { TESTS: "suite.LockTestSuite" }
 
 run-automation-tests-suite-web:
   extends: .run-automation-tests-default
-  needs: [ { job: run-automation-tests-suite-lock } ]
+  needs: [{ job: run-automation-tests-suite-lock }]
   variables: { TESTS: "suite.WebTestSuite" }
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
-  rules: !reference [ .default-branch, rules ]
+  rules: !reference [.default-branch, rules]
   needs:
     - job: upload-browserstack-android-app-ont
       artifacts: false
@@ -133,9 +133,9 @@ run-automation-smoke-test-ont:
   allow_failure: true # Only meant as a warning indicator.
 
 run-performance-test-ont:
-  rules: !reference [ .default-branch, rules ]
+  rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:32725b6bf4530f6b688827fb48ab086f0429ffd50a02ec40a202be97c47ebb8b"
   extends: .env-ont-k8s
   needs:
     - job: deploy-mock-relying-party-ont
@@ -151,14 +151,14 @@ run-performance-test-ont:
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
   script: |
-      cd ./wallet_core/
-      cargo build --release --bin performance_test --features performance_test,allow_insecure_url
-      export PT_START_DATE=$(date -u +%s)
-      bash ./tests_integration/run_performance_test.sh 100
-      export PT_END_DATE=$(date -u +%s)
-      export PT_DURATION=$(( PT_END_DATE - PT_START_DATE ))
-      echo "Load: 100"
-      echo "Duration: ${PT_DURATION} seconds"
+    cd ./wallet_core/
+    cargo build --release --bin performance_test --features performance_test,allow_insecure_url
+    export PT_START_DATE=$(date -u +%s)
+    bash ./tests_integration/run_performance_test.sh 100
+    export PT_END_DATE=$(date -u +%s)
+    export PT_DURATION=$(( PT_END_DATE - PT_START_DATE ))
+    echo "Load: 100"
+    echo "Duration: ${PT_DURATION} seconds"
   allow_failure: true
 
 # Warns when '.gitlab-ci.yaml' in '$CI_DEFAULT_BRANCH' & '$AUTOMATION_TESTS_BRANCH' branch are out-of-sync
