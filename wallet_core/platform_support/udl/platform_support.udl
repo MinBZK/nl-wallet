@@ -39,6 +39,65 @@ callback interface EncryptionKeyBridge {
     void delete(string identifier);
 };
 
+// attested_key module
+
+[Error]
+interface AttestedKeyError {
+    KeyError(string reason);
+    BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
+};
+
+// This error is only used for attestation, which on iOS can signal to the
+// caller that it should retain the identifier used for future retries.
+[Error]
+interface IdentifierAttestedKeyError {
+    KeyError(string reason, boolean retain_identifier);
+    BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
+};
+
+enum AttestedKeyType {
+    "Apple",
+    "Google",
+};
+
+[Enum]
+interface AttestationData {
+    Apple(sequence<u8> attestation_data);
+    Google(sequence<sequence<u8>> certificate_chain, sequence<u8> app_attestation_token);
+};
+
+callback interface AttestedKeyBridge {
+    // Simply returns the platform we are on. This method should not block.
+    // The error is only present for any "UnexpectedUniFFICallbackError".
+    [Throws=AttestedKeyError]
+    AttestedKeyType key_type();
+
+    // Generate an identifier for the attested key. On iOS this actually creates a key,
+    // while on Android this simply generates a unique random string.
+    [Throws=AttestedKeyError]
+    string generate_identifier();
+
+    // Actually perform key and app attestation, with a result that differs depending on the platform.
+    // Note the use of "IdentifierAttestedKeyError" to convey error data.
+    [Throws=IdentifierAttestedKeyError]
+    AttestationData attest(string identifier, sequence<u8> challenge);
+
+    // Sign an arbitrary payload. The result is a DER encoded ECDSA signature on Android,
+    // while on iOS this produces proprietary binary assertion data.
+    [Throws=AttestedKeyError]
+    sequence<u8> sign(string identifier, sequence<u8> payload);
+
+    // The public key in DER format. This will return an error on iOS, as retrieving
+    // the public key outside of the initial attestation is not supported.
+    [Throws=AttestedKeyError]
+    sequence<u8> public_key(string identifier);
+
+    // Delete the key with the specified identifier. This will return an error
+    // on iOS, since it does not support attested key deletion.
+    [Throws=AttestedKeyError]
+    void delete(string identifier);
+};
+
 // utils module
 
 [Error]
@@ -52,8 +111,15 @@ callback interface UtilitiesBridge {
     string get_storage_path();
 };
 
+// all modules
+
 namespace platform_support {
     // Initialization function, this MUST be called by native code
     // so that Rust is able to use the bridge callbacks
-    void init_platform_support(SigningKeyBridge signing_key, EncryptionKeyBridge encryption_key, UtilitiesBridge utils);
+    void init_platform_support(
+        SigningKeyBridge signing_key,
+        EncryptionKeyBridge encryption_key,
+        AttestedKeyBridge attested_key,
+        UtilitiesBridge utils
+    );
 };
