@@ -471,7 +471,7 @@ pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, Jw
 pub struct JsonJwt<T> {
     pub payload: String,
     #[serde_as(as = "OneOrMany<_, PreferOne>")]
-    pub signatures: Vec<JsonJwtSignature>,
+    pub signatures: Vec<JsonJwtSignature>, // can't use NonEmpty<> here because OneOrMany doesn't support it
     #[serde(skip, default)]
     _phantomdata: PhantomData<T>,
 }
@@ -479,10 +479,18 @@ pub struct JsonJwt<T> {
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonJwtSignature {
+    /// Base64-enoded JWS header, the same as the header of a normal JWS. `alg` is required.
     pub protected: String,
+
+    /// Unsigned JWS header (optional). May contain any of the fields of a normal JWS header, but none of them are
+    /// required. Unlike the `protected` header, this field is not included when signing the JWS.
+    /// (which is also why it is not Base64-encoded, unlike `protected` and the `payload` of [`JsonJwt<T>`]).
     #[serde(default)]
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub header: HashMap<String, serde_json::Value>,
+
+    /// Signature of the JWS. When (1) the `protected` of this struct, (2) the `payload` of [`JsonJwt<T>`]
+    /// and (3) this `signature` are concatenated with a `.` in between, then the result is a valid normal JWS.
     pub signature: String,
 }
 
