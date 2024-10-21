@@ -47,7 +47,7 @@ osv-scanner:
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:32725b6bf4530f6b688827fb48ab086f0429ffd50a02ec40a202be97c47ebb8b"
   before_script:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:

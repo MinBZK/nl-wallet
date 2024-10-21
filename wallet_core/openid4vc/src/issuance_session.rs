@@ -125,7 +125,7 @@ pub enum IssuanceSessionError {
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
-    MsoMdoc(Mdoc),
+    MsoMdoc(Box<Mdoc>),
     Jwt(JwtCredential),
 }
 
@@ -134,7 +134,7 @@ impl TryFrom<IssuedCredential> for Mdoc {
 
     fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
         match value {
-            IssuedCredential::MsoMdoc(mdoc) => Ok(mdoc),
+            IssuedCredential::MsoMdoc(mdoc) => Ok(*mdoc),
             _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
                 expected: Format::MsoMdoc,
                 found: (&value).into(),
@@ -768,8 +768,9 @@ impl CredentialResponse {
     ) -> Result<IssuedCredential, IssuanceSessionError> {
         match self {
             CredentialResponse::MsoMdoc {
-                credential: CborBase64(issuer_signed),
+                credential: issuer_signed,
             } => {
+                let CborBase64(issuer_signed) = *issuer_signed;
                 let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview else {
                     return Err(IssuanceSessionError::UnexpectedCredentialFormat {
                         expected: Format::MsoMdoc,
@@ -819,7 +820,7 @@ impl CredentialResponse {
                 mdoc.compare_unsigned(unsigned_mdoc)
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
-                Ok(IssuedCredential::MsoMdoc(mdoc))
+                Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
             CredentialResponse::Jwt { credential } => {
                 let (cred, cred_claims) =
@@ -951,7 +952,7 @@ mod tests {
             .await
             .unwrap();
         let credential_response = CredentialResponse::MsoMdoc {
-            credential: issuer_signed.into(),
+            credential: Box::new(issuer_signed.into()),
         };
 
         (
@@ -1191,7 +1192,7 @@ mod tests {
         // that contains insufficient random data should fail.
         let credential_response = match credential_response {
             CredentialResponse::MsoMdoc { mut credential } => {
-                let CborBase64(ref mut credential_inner) = credential;
+                let CborBase64(ref mut credential_inner) = *credential;
                 let name_spaces = credential_inner.name_spaces.as_mut().unwrap();
 
                 name_spaces.modify_first_attributes(|attributes| {
