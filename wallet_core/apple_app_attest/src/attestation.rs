@@ -4,7 +4,7 @@ use passkey_types::ctap2::Aaguid;
 use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};
 use sha2::{Digest, Sha256};
-use webpki::TrustAnchor;
+use webpki::types::TrustAnchor;
 
 use crate::{
     app_identifier::AppIdentifier,

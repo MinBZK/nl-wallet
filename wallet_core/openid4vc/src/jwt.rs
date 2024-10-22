@@ -98,7 +98,7 @@ impl JwtCredential {
             .ok_or(JwtCredentialError::UnknownIssuer(jwt_issuer.to_string()))?;
 
         // Now verify the JWT
-        jwt.verify_against_spki(trust_anchor.spki)?;
+        jwt.verify_against_spki(&trust_anchor.subject_public_key_info)?;
 
         let cred = Self {
             private_key_id,
