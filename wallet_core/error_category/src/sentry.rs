@@ -10,8 +10,18 @@ use crate::{Category, ErrorCategory};
 
 /// Create a sentry [`Event`] from an [`ErrorCategory`].
 /// A tag `category` with the string representation of the [`ErrorCategory`] is added to the event, so
+/// the `filter_and_scrub_sensitive_data` can act according to the category of the error.
+///
+/// For errors that fall into the category `unexpected` an error message is loggeg and a panic is raised.
+/// Unexpected errors should never occur in the wallet and point to a software error, this can happen when
+/// the wallet uses code that is meant for an external service, like the wallet_provider or the wallet_server.
+/// Otherwise the error classification is wrong.
 pub fn classify_mask_and_capture<T: ErrorCategory + Error + ?Sized>(error: &T) {
     let category = error.category();
+    if category == Category::Unexpected {
+        tracing::error!("unexpected error, this is a software error: {error}");
+        panic!("unexpected error, this is a software error");
+    }
     let mut event = event_from_error(error);
     event
         .tags
@@ -218,7 +228,6 @@ mod tests {
     #[case(Category::PersonalData, "pd")]
     #[case(Category::Critical, "critical")]
     #[case(Category::Expected, "expected")]
-    #[case(Category::Unexpected, "unexpected")]
     fn test_classify_mask_and_capture_enum(#[case] category: Category, #[case] expected_tag: String) {
         let error = ErrorEnum::Specific(SpecificError { category });
         let mut events = with_captured_events(|| {
@@ -239,11 +248,19 @@ mod tests {
         assert_eq!(category, Some(&expected_tag));
     }
 
+    #[test]
+    #[should_panic(expected = "unexpected error, this is a software error")]
+    fn test_classify_mask_and_capture_enum_unexpected() {
+        let error = ErrorEnum::Specific(SpecificError {
+            category: Category::Unexpected,
+        });
+        classify_mask_and_capture(&error);
+    }
+
     #[rstest]
     #[case(Category::PersonalData, "pd")]
     #[case(Category::Critical, "critical")]
     #[case(Category::Expected, "expected")]
-    #[case(Category::Unexpected, "unexpected")]
     fn test_classify_mask_and_capture_critical_struct(#[case] category: Category, #[case] expected_tag: String) {
         let error = SpecificError { category };
         let mut events = with_captured_events(|| {
@@ -261,5 +278,14 @@ mod tests {
         assert!(format!("{:?}", event).contains(ERROR_MSG));
         let category = event.tags.get("category");
         assert_eq!(category, Some(&expected_tag));
+    }
+
+    #[test]
+    #[should_panic(expected = "unexpected error, this is a software error")]
+    fn test_classify_mask_and_capture_critical_struct_unexpected() {
+        let error = SpecificError {
+            category: Category::Unexpected,
+        };
+        classify_mask_and_capture(&error);
     }
 }
