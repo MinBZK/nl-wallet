@@ -759,7 +759,7 @@ mod tests {
 
         // Construct a JsonJwt having one signature but which uses JsonJwtSignatures::General
         let JsonJwtSignatures::General { signatures } = json_jwt_two.signatures else {
-            panic!("")
+            panic!("expected the JsonJwtSignatures::General variant") // we actually already checked this above
         };
         let mut signatures = signatures.into_inner();
         signatures.pop();
