@@ -793,9 +793,11 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client
-                .expect_accept()
-                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
+            client.expect_accept().return_once(|| {
+                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
+                    .try_into()
+                    .unwrap()])
+            });
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -857,9 +859,11 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client
-                .expect_accept()
-                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
+            client.expect_accept().return_once(|| {
+                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
+                    .try_into()
+                    .unwrap()])
+            });
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -1047,9 +1051,11 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client
-                .expect_accept()
-                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
+            client.expect_accept().return_once(|| {
+                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
+                    .try_into()
+                    .unwrap()])
+            });
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));

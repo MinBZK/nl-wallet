@@ -25,7 +25,6 @@
 #    - kill $EMULATOR_PID && while $(kill -0 $EMULATOR_PID 2>/dev/null); do sleep 1; done
 #    - avdmanager delete avd --name $CI_JOB_NAME_SLUG
 
-
 ### Android building
 .build-android-app:
   extends: .ruby-cache
@@ -39,7 +38,7 @@
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:80ee37043a73ff9c36d07c59c72971bd1922fd70adbbb7f34e78134a76a1b272"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a18d15cc70eba96f4178776721d251e0edec9cba4d2730b4a64748a5e40435ed"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -207,12 +206,11 @@ build-android-app-production:
     SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
     SENTRY_URL: "https://sentry.io/"
 
-
 ### Android deploying
 .deploy-android-app:
   extends: [.env-ont-k8s, .ruby-cache]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:9a9c054e0734f2eda055beb55a818ce80185bc222abf01261d68973c97b086f7"
   environment:
     action: start
   variables:

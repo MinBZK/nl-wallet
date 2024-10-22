@@ -28,10 +28,13 @@ pub fn classify_mask_and_capture<T: ErrorCategory + Error + ?Sized>(error: &T) {
             let _uuid = sentry::capture_event(event);
         }
         Category::Unexpected => {
-            panic!(
+            // Log error for debug purposes
+            debug!(
                 "encountered unexpected error, which means that it should never occur in the Wallet: {}",
                 error
             );
+            // This is a programming error, so panic
+            panic!("encountered unexpected error, which means that it should never occur in the Wallet");
         }
     }
 }
@@ -172,10 +175,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "encountered unexpected error, which means that it should never occur in the Wallet: Some error: \
-                    My error message"
-    )]
+    #[should_panic(expected = "encountered unexpected error, which means that it should never occur in the Wallet")]
     fn test_classify_mask_and_capture_unexpected() {
         let error = ErrorEnum::Specific(SpecificError {
             category: Category::Unexpected,
