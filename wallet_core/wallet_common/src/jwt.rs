@@ -479,10 +479,10 @@ pub struct JsonJwt<T> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum JsonJwtSignatures {
-    Multiple {
+    General {
         signatures: NonEmpty<Vec<JsonJwtSignature>>,
     },
-    Single {
+    Flattened {
         #[serde(flatten)]
         signature: JsonJwtSignature,
     },
@@ -495,8 +495,8 @@ impl IntoIterator for JsonJwtSignatures {
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            JsonJwtSignatures::Multiple { signatures } => signatures.into_inner().into_iter(),
-            JsonJwtSignatures::Single { signature } => vec![signature].into_iter(),
+            JsonJwtSignatures::General { signatures } => signatures.into_inner().into_iter(),
+            JsonJwtSignatures::Flattened { signature } => vec![signature].into_iter(),
         }
     }
 }
@@ -504,10 +504,10 @@ impl IntoIterator for JsonJwtSignatures {
 impl From<NonEmpty<Vec<JsonJwtSignature>>> for JsonJwtSignatures {
     fn from(signatures: NonEmpty<Vec<JsonJwtSignature>>) -> Self {
         match signatures.as_ref().len() {
-            1 => Self::Single {
+            1 => Self::Flattened {
                 signature: signatures.into_inner().pop().unwrap(),
             },
-            _ => Self::Multiple { signatures },
+            _ => Self::General { signatures },
         }
     }
 }
@@ -743,29 +743,29 @@ mod tests {
             .unwrap();
 
         let json_jwt_one: JsonJwt<_> = NonEmpty::new(vec![jwt.clone()]).unwrap().try_into().unwrap();
-        assert_matches!(json_jwt_one.signatures, JsonJwtSignatures::Single { .. });
+        assert_matches!(json_jwt_one.signatures, JsonJwtSignatures::Flattened { .. });
         let serialized = serde_json::to_string(&json_jwt_one).unwrap();
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
-        assert_matches!(deserialized.signatures, JsonJwtSignatures::Single { .. });
+        assert_matches!(deserialized.signatures, JsonJwtSignatures::Flattened { .. });
 
         let json_jwt_two: JsonJwt<_> = NonEmpty::new(vec![jwt.clone(), jwt.clone()])
             .unwrap()
             .try_into()
             .unwrap();
-        assert_matches!(json_jwt_two.signatures, JsonJwtSignatures::Multiple { .. });
+        assert_matches!(json_jwt_two.signatures, JsonJwtSignatures::General { .. });
         let serialized = serde_json::to_string(&json_jwt_two).unwrap();
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
-        assert_matches!(deserialized.signatures, JsonJwtSignatures::Multiple { .. });
+        assert_matches!(deserialized.signatures, JsonJwtSignatures::General { .. });
 
-        // Construct a JsonJwt having one signature but which uses JsonJwtSignatures::Multiple
-        let JsonJwtSignatures::Multiple { signatures } = json_jwt_two.signatures else {
+        // Construct a JsonJwt having one signature but which uses JsonJwtSignatures::General
+        let JsonJwtSignatures::General { signatures } = json_jwt_two.signatures else {
             panic!("")
         };
         let mut signatures = signatures.into_inner();
         signatures.pop();
         let json_jwt_mixed = JsonJwt::<ToyMessage> {
             payload: json_jwt_two.payload,
-            signatures: JsonJwtSignatures::Multiple {
+            signatures: JsonJwtSignatures::General {
                 signatures: signatures.try_into().unwrap(),
             },
             _phantomdata: PhantomData,
@@ -774,6 +774,6 @@ mod tests {
         // We can (de)serialize such instances even though we don't produce them ourselves
         let serialized = serde_json::to_string(&json_jwt_mixed).unwrap();
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
-        assert_matches!(deserialized.signatures, JsonJwtSignatures::Multiple { .. });
+        assert_matches!(deserialized.signatures, JsonJwtSignatures::General { .. });
     }
 }
