@@ -106,12 +106,13 @@ where
         Ok(result)
     }
 
-    /// Attempts to update the WalletRegistration from the database. Should be invoked after [`RegistrationData`] is stored in the database.
+    /// Attempts to update the WalletRegistration from the database. Should be invoked after [`RegistrationData`] is
+    /// stored in the database.
     pub(super) async fn update_registration_from_db(&mut self) -> Result<(), StorageError> {
         let storage = self.storage.read().await;
         if let Some(data) = storage.fetch_data::<RegistrationData>().await? {
             if let Some(registration) = self.registration.as_mut() {
-                registration.data = data
+                registration.data = data;
             }
         }
         Ok(())
