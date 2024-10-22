@@ -13,6 +13,7 @@ use axum::{
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
 use http::{HeaderMap, StatusCode};
+use nutype::nutype;
 use serde::Deserialize;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
@@ -56,19 +57,13 @@ fn main() -> anyhow::Result<()> {
         .block_on(async { serve(settings).await })
 }
 
-#[derive(Debug)]
+#[nutype(derive(Debug, From, AsRef))]
 pub struct Error(anyhow::Error);
-
-impl From<anyhow::Error> for Error {
-    fn from(error: anyhow::Error) -> Self {
-        Self(error)
-    }
-}
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         warn!("error result: {:?}", self);
-        let result = IndexTemplate::from_error(self.0.to_string());
+        let result = IndexTemplate::from_error(self.as_ref().to_string());
         let mut response = askama_axum::into_response(&result);
         *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
         response
