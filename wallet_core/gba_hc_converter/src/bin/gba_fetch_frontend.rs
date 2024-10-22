@@ -118,6 +118,8 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
 }
 
 async fn check_auth(headers: HeaderMap, request: Request, next: Next) -> StdResult<Response, StatusCode> {
+    // This assumes an ingress/reverse proxy that uses mutual TLS and sets the `Cert-Serial` header with the value
+    // from the client certificate. This is an extra safeguard against using this endpoint directly.
     if !headers.get("Cert-Serial").is_some_and(|s| !s.is_empty()) {
         return Err(StatusCode::FORBIDDEN);
     }
