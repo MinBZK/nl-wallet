@@ -489,7 +489,6 @@ run-encrypt-gba-v-testdata-job-demo:
     - job: build-gba-fetch-frontend-image
       artifacts: false
   rules: !reference [.default-or-merge-request, rules]
-  when: manual
   variables:
     GBA_FETCH_FRONTEND_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch-frontend:${CI_COMMIT_SHORT_SHA}
   script:
