@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf, result::Result as StdResult, sync::Arc};
+use std::{default::Default, env, path::PathBuf, result::Result as StdResult, sync::Arc};
 
 use aes_gcm::Aes256Gcm;
 use anyhow::anyhow;
@@ -8,7 +8,7 @@ use axum::{
     middleware,
     middleware::Next,
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Form, Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
@@ -23,7 +23,7 @@ use gba_hc_converter::{
     fetch::askama_axum,
     gba::{
         client::{GbavClient, HttpGbavClient},
-        encryption::{encrypt_bytes_to_dir, HmacSha256},
+        encryption::{clear_files_in_dir, count_files_in_dir, encrypt_bytes_to_dir, HmacSha256},
     },
     haal_centraal::Bsn,
     settings::{PreloadedSettings, RunMode, Settings},
@@ -68,7 +68,9 @@ impl From<anyhow::Error> for Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         warn!("error result: {:?}", self);
-        let result = IndexTemplate::from_error(self.0.to_string());
+        let result = ResultTemplate {
+            msg: self.0.to_string(),
+        };
         let mut response = askama_axum::into_response(&result);
         *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
         response
@@ -111,6 +113,7 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
             "/",
             Router::new()
                 .route("/", get(index).post(fetch))
+                .route("/clear", post(clear))
                 .with_state(app_state)
                 .layer(CsrfLayer::new(csrf_config))
                 .layer(middleware::from_fn(check_auth))
@@ -130,59 +133,57 @@ async fn check_auth(headers: HeaderMap, request: Request, next: Next) -> StdResu
     Ok(response)
 }
 
-#[derive(Deserialize, Debug)]
-struct Payload {
+#[derive(Deserialize)]
+struct PreloadPayload {
     bsn: String,
+    repeat_bsn: String,
     authenticity_token: String,
 }
 
-#[derive(Template)]
+#[derive(Deserialize, Debug)]
+struct ClearPayload {
+    confirmation_text: String,
+    authenticity_token: String,
+}
+
+#[derive(Template, Default)]
 #[template(path = "index.askama", escape = "html", ext = "html")]
 struct IndexTemplate {
-    authenticity_token: Option<String>,
-    msg: Option<String>,
-    error: Option<String>,
+    authenticity_token: String,
+    preloaded_count: u64,
 }
 
-impl IndexTemplate {
-    fn new(authenticity_token: String) -> Self {
-        IndexTemplate {
-            authenticity_token: Some(authenticity_token),
-            error: None,
-            msg: None,
-        }
-    }
-
-    fn from_error(err: String) -> Self {
-        IndexTemplate {
-            authenticity_token: None,
-            error: Some(err),
-            msg: None,
-        }
-    }
-
-    fn from_msg(msg: String) -> Self {
-        IndexTemplate {
-            authenticity_token: None,
-            msg: Some(msg),
-            error: None,
-        }
-    }
+#[derive(Template, Default)]
+#[template(path = "result.askama", escape = "html", ext = "html")]
+struct ResultTemplate {
+    msg: String,
 }
 
-async fn index(token: CsrfToken) -> Result<Response> {
-    let result = IndexTemplate::new(token.authenticity_token().map_err(|err| anyhow!(err))?);
+async fn index(State(state): State<Arc<ApplicationState>>, token: CsrfToken) -> Result<Response> {
+    let path = &state.base_path.join(&state.preloaded_settings.xml_path);
+    let preloaded_count = count_files_in_dir(path).await.map_err(|err| anyhow!(err))?;
+
+    let result = IndexTemplate {
+        authenticity_token: token.authenticity_token().map_err(|err| anyhow!(err))?,
+        preloaded_count,
+    };
+
     Ok(askama_axum::into_response_with_csrf(token, &result))
 }
 
 async fn fetch(
     State(state): State<Arc<ApplicationState>>,
     token: CsrfToken,
-    Form(payload): Form<Payload>,
+    Form(payload): Form<PreloadPayload>,
 ) -> Result<Response> {
     token.verify(&payload.authenticity_token).map_err(|err| anyhow!(err))?;
 
+    if payload.bsn != payload.repeat_bsn {
+        return Err(anyhow!("BSN's do not match"))?;
+    }
+
     let bsn = Bsn::try_new(payload.bsn).map_err(|err| anyhow!(err))?;
+    let path = &state.base_path.join(&state.preloaded_settings.xml_path);
 
     let xml = state
         .http_client
@@ -195,13 +196,36 @@ async fn fetch(
         state.preloaded_settings.encryption_key.key::<Aes256Gcm>(),
         state.preloaded_settings.hmac_key.key::<HmacSha256>(),
         xml.as_bytes(),
-        &state.base_path.join(&state.preloaded_settings.xml_path),
+        path,
         bsn.as_ref(),
     )
     .await
     .map_err(|err| anyhow!(err))?;
 
-    let result = IndexTemplate::from_msg(String::from("Ok"));
+    let result = ResultTemplate {
+        msg: String::from("Successfully preloaded"),
+    };
+
+    Ok(askama_axum::into_response(&result))
+}
+
+async fn clear(
+    State(state): State<Arc<ApplicationState>>,
+    token: CsrfToken,
+    Form(payload): Form<ClearPayload>,
+) -> Result<Response> {
+    token.verify(&payload.authenticity_token).map_err(|err| anyhow!(err))?;
+
+    if payload.confirmation_text != "clear all data" {
+        return Err(anyhow!("Confirmation text is not correct"))?;
+    }
+
+    let path = &state.base_path.join(&state.preloaded_settings.xml_path);
+    let count = clear_files_in_dir(path).await.map_err(|err| anyhow!(err))?;
+
+    let result = ResultTemplate {
+        msg: format!("Successfully cleared {count} items"),
+    };
 
     Ok(askama_axum::into_response(&result))
 }

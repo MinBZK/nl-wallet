@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    future::Future,
+    path::{Path, PathBuf},
+};
 
 use aes_gcm::{
     aead::{Aead, Nonce},
@@ -7,6 +10,7 @@ use aes_gcm::{
 use hmac::{Hmac, Mac};
 use rand_core::OsRng;
 use sha2::Sha256;
+use tokio::fs::DirEntry;
 
 use crate::gba::error::Error;
 
@@ -41,6 +45,36 @@ pub async fn decrypt_bytes_from_dir(
     } else {
         Ok(None)
     }
+}
+
+pub async fn count_files_in_dir(path: &Path) -> Result<u64, Error> {
+    let count = iterate_encrypted_files(path, |_| async { Ok(()) }).await?;
+    Ok(count)
+}
+
+pub async fn clear_files_in_dir(path: &Path) -> Result<u64, Error> {
+    let count = iterate_encrypted_files(
+        path,
+        |entry| async move { Ok(tokio::fs::remove_file(entry.path()).await?) },
+    )
+    .await?;
+    Ok(count)
+}
+
+async fn iterate_encrypted_files<F, Fut, Out>(path: &Path, f: F) -> Result<u64, Error>
+where
+    F: Fn(DirEntry) -> Fut,
+    Fut: Future<Output = Result<Out, Error>>,
+{
+    let mut count = 0;
+    let mut entries = tokio::fs::read_dir(path).await?;
+    while let Some(entry) = entries.next_entry().await? {
+        if entry.file_type().await?.is_file() && entry.path().extension().is_some_and(|ext| ext == "aes") {
+            f(entry).await?;
+            count += 1;
+        }
+    }
+    Ok(count)
 }
 
 fn filename(hmac_key: &Key<HmacSha256>, path: &Path, name: &str) -> PathBuf {
