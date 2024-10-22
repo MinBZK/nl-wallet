@@ -1362,6 +1362,7 @@ name = "error_category"
 version = "0.2.2-dev"
 dependencies = [
  "error_category_derive",
+ "rstest",
  "sentry",
  "thiserror",
  "tracing",
@@ -1466,6 +1467,7 @@ dependencies = [
  "anyhow",
  "backtrace",
  "cstr",
+ "error_category",
  "flutter_api_macros",
  "flutter_rust_bridge",
  "itertools",
