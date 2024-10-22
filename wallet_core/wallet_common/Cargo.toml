@@ -26,8 +26,6 @@ software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 software_key_factory = ["software_keys"]
 # Enable helper code for integration tests
 integration_test = []
-# # Enable sentry feature
-# sentry = ["dep:sentry", "error_category/sentry"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -64,7 +62,6 @@ hex = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-# sentry = { workspace = true, optional = true, features = ["debug-logs"] }
 tower-http = { workspace = true, optional = true, features = ["cors"] }
 
 error_category.path = "../error_category"
@@ -78,5 +75,4 @@ hex-literal = { workspace = true }
 parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
-# sentry = { workspace = true, features = ["test"] }
 tokio = { workspace = true, features = ["macros"] }
