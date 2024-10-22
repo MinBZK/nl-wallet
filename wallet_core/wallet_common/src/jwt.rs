@@ -503,7 +503,7 @@ impl IntoIterator for JsonJwtSignatures {
 
 impl From<NonEmpty<Vec<JsonJwtSignature>>> for JsonJwtSignatures {
     fn from(signatures: NonEmpty<Vec<JsonJwtSignature>>) -> Self {
-        match signatures.as_ref().len() {
+        match signatures.len() {
             1 => Self::Flattened {
                 signature: signatures.into_inner().pop().unwrap(),
             },
