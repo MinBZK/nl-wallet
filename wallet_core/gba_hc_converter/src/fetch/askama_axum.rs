@@ -5,8 +5,6 @@ use axum::{
 };
 use axum_csrf::CsrfToken;
 
-// workaround for: https://github.com/djc/askama/issues/810#issuecomment-1494522435
-// from: https://github.com/djc/askama/blob/main/askama_axum/src/lib.rs
 pub fn into_response<T: Template>(t: &T) -> Response {
     into_response_optional_csrf(None, t)
 }
@@ -15,6 +13,8 @@ pub fn into_response_with_csrf<T: Template>(csrf_token: CsrfToken, t: &T) -> Res
     into_response_optional_csrf(Some(csrf_token), t)
 }
 
+// workaround for: https://github.com/djc/askama/issues/810#issuecomment-1494522435
+// inspired by: https://github.com/djc/askama/blob/main/askama_axum/src/lib.rs
 fn into_response_optional_csrf<T: Template>(csrf_token: Option<CsrfToken>, t: &T) -> Response {
     match t.render() {
         Ok(body) => {
