@@ -5,7 +5,11 @@ use std::{
 
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
-use webpki::{Error, TrustAnchor};
+use webpki::{
+    anchor_from_trusted_cert,
+    types::{CertificateDer, TrustAnchor},
+    Error,
+};
 use x509_parser::{error::X509Error, prelude::FromDer, x509::RelativeDistinguishedName};
 
 /// A version of [`TrustAnchor`] that can more easily be used as a field
@@ -42,7 +46,8 @@ impl Hash for DerTrustAnchor {
 impl DerTrustAnchor {
     pub fn from_der(der_bytes: Vec<u8>) -> Result<Self, Error> {
         let der = Self {
-            owned_trust_anchor: TrustAnchor::try_from_cert_der(&der_bytes).map(|anchor| (&anchor).into())?,
+            owned_trust_anchor: anchor_from_trusted_cert(&CertificateDer::from(der_bytes.as_slice()))
+                .map(|anchor| (&anchor).into())?,
             der_bytes,
         };
         Ok(der)
@@ -53,8 +58,8 @@ impl From<&TrustAnchor<'_>> for OwnedTrustAnchor {
     fn from(value: &TrustAnchor) -> Self {
         OwnedTrustAnchor {
             subject: value.subject.to_vec(),
-            spki: value.spki.to_vec(),
-            name_constraints: value.name_constraints.map(|nc| nc.to_vec()),
+            spki: value.subject_public_key_info.to_vec(),
+            name_constraints: value.name_constraints.as_ref().map(|nc| nc.to_vec()),
         }
     }
 }
@@ -62,15 +67,15 @@ impl From<&TrustAnchor<'_>> for OwnedTrustAnchor {
 impl<'a> From<&'a OwnedTrustAnchor> for TrustAnchor<'a> {
     fn from(value: &'a OwnedTrustAnchor) -> Self {
         TrustAnchor {
-            subject: &value.subject,
-            spki: &value.spki,
-            name_constraints: value.name_constraints.as_deref(),
+            subject: (&*value.subject).into(),
+            subject_public_key_info: (&*value.spki).into(),
+            name_constraints: value.name_constraints.as_deref().map(|nc| nc.into()),
         }
     }
 }
 
 pub fn trust_anchor_names(trust_anchor: &TrustAnchor) -> Result<Vec<String>, x509_parser::nom::Err<X509Error>> {
-    let (_, names) = RelativeDistinguishedName::from_der(trust_anchor.subject)?;
+    let (_, names) = RelativeDistinguishedName::from_der(trust_anchor.subject.as_ref())?;
 
     let names = names
         .iter()
