@@ -16,7 +16,6 @@ use nl_wallet_mdoc::{
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::{
     generator::{Generator, TimeGenerator},
-    sentry::Sentry,
     trust_anchor::DerTrustAnchor,
     urls::BaseUrl,
 };
@@ -77,8 +76,6 @@ pub struct Settings {
     /// application startup.
     #[cfg(feature = "disclosure")]
     pub reader_trust_anchors: Vec<DerTrustAnchor>,
-
-    pub sentry: Option<Sentry>,
 }
 
 #[derive(Clone, Deserialize)]

@@ -7,12 +7,12 @@ use wallet_server::{
     store::SessionStoreVariant,
 };
 
-// Cannot use #[tokio::main], see: https://docs.sentry.io/platforms/rust/#async-main-function
-fn main() -> Result<()> {
-    wallet_server_main("wallet_server.toml", "wallet_server", async_main)
+#[tokio::main]
+async fn main() -> Result<()> {
+    wallet_server_main("wallet_server.toml", "wallet_server", main_impl).await
 }
 
-async fn async_main(settings: Settings) -> Result<()> {
+async fn main_impl(settings: Settings) -> Result<()> {
     let storage_settings = &settings.storage;
     let disclosure_sessions = SessionStoreVariant::new(storage_settings.url.clone(), storage_settings.into()).await?;
     // Clone from `disclosure_sessions` so that database connection pool is reused when using PostgreSQL.

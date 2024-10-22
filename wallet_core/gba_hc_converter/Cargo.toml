@@ -31,17 +31,6 @@ regex.workspace = true
 rand_core.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 rpassword.workspace = true
-sentry = { workspace = true, features = [
-    "backtrace",
-    "contexts",
-    "debug-images",
-    "panic",
-    "anyhow",
-    "reqwest",
-    "rustls",
-    "tracing",
-    "log",
-] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
@@ -63,7 +52,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 trait-variant.workspace = true
 
-wallet_common = { path = "../wallet_common", features = ["axum", "sentry"] }
+wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 [dev-dependencies]
 assert-json-diff.workspace = true
