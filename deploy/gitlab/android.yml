@@ -25,7 +25,6 @@
 #    - kill $EMULATOR_PID && while $(kill -0 $EMULATOR_PID 2>/dev/null); do sleep 1; done
 #    - avdmanager delete avd --name $CI_JOB_NAME_SLUG
 
-
 ### Android building
 .build-android-app:
   extends: .ruby-cache
@@ -39,7 +38,7 @@
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:80ee37043a73ff9c36d07c59c72971bd1922fd70adbbb7f34e78134a76a1b272"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:3fadff30c42b92943320856d0bb2edeacecda75a9aa71eb7f29a550918edf887"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -206,7 +205,6 @@ build-android-app-production:
     SENTRY_ORG: "${SENTRY_ORG_PROD}"
     SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
     SENTRY_URL: "https://sentry.io/"
-
 
 ### Android deploying
 .deploy-android-app:

@@ -61,7 +61,7 @@ impl Expirable for MockSessionData {
     }
 
     fn expire(&mut self) {
-        self.is_expired = true
+        self.is_expired = true;
     }
 }
 

@@ -159,7 +159,7 @@ verify-flutter-localizations:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:47633a21221bb295d5dda6772f813dbcd73f07f50f001ed2cd5636da0d18328d"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:c4dc70c9b139af4ec7f714b70bd52cb2eafa72680108390937c7ed39a840d347"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -487,7 +487,7 @@ run-encrypt-gba-v-testdata-job-demo:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:db128edcaef0b8f7945b6e563da3b101a5b4c3692b1bf38f2645bcaa7e715fa0"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:b1aa52bedfc8a8f0c0d1a298fc1413b241d2c177d41bded4d0561c30cec25724"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom

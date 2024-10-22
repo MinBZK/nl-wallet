@@ -68,7 +68,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return (scrollController?.hasClients ?? false) ? scrollController!.position.pixels : 0;
   }
 
-  bool get showSkipSetupButton => kDebugMode && !Environment.isTest && Environment.mockRepositories;
+  bool get _showSkipSetupButton => kDebugMode && !Environment.isTest && Environment.mockRepositories;
 
   @override
   void initState() {
@@ -104,7 +104,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           appBar: WalletAppBar(
             leading: _buildBackButton(),
             automaticallyImplyLeading: false,
-            actions: [const HelpIconButton(), _buildSkipSetupButton()],
+            actions: [
+              const HelpIconButton(),
+              if (_showSkipSetupButton) _buildSkipSetupButton(),
+            ],
             title: FadeInAtOffset(
               scrollController: _currentScrollController,
               appearOffset: 38,
@@ -276,7 +279,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   Widget _buildSkipSetupButton() {
-    if (!showSkipSetupButton) return const SizedBox.shrink();
     return IconButton(
       onPressed: () async {
         final navigator = Navigator.of(context);
