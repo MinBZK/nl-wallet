@@ -2,7 +2,7 @@
   resource_group: automation-tests
   extends: .env-ont-k8s
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:1b0d6c2f6fe1e66d5f72e3d76648c973c9d0c0fa1bf57c3d94da30f6e8c97414"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk17@sha256:ce269f6e5875ceb41bfd69f0fe7bce4d6076387f9915dd85767c457f9a32a638"
   artifacts:
     when: always
     paths:
@@ -135,7 +135,7 @@ run-automation-smoke-test-ont:
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:32725b6bf4530f6b688827fb48ab086f0429ffd50a02ec40a202be97c47ebb8b"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
   extends: .env-ont-k8s
   needs:
     - job: deploy-mock-relying-party-ont
