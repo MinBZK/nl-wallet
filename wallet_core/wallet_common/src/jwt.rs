@@ -1,4 +1,4 @@
-use std::{collections::HashMap, marker::PhantomData, str::FromStr, sync::LazyLock};
+use std::{collections::HashMap, marker::PhantomData, num::NonZeroUsize, str::FromStr, sync::LazyLock};
 
 use base64::prelude::*;
 use chrono::{serde::ts_seconds, DateTime, Utc};
@@ -504,7 +504,7 @@ impl IntoIterator for JsonJwtSignatures {
 impl From<NonEmpty<Vec<JsonJwtSignature>>> for JsonJwtSignatures {
     fn from(signatures: NonEmpty<Vec<JsonJwtSignature>>) -> Self {
         match signatures.len() {
-            1 => Self::Flattened {
+            NonZeroUsize::MIN /* = 1 */ => Self::Flattened {
                 signature: signatures.into_inner().pop().unwrap(),
             },
             _ => Self::General { signatures },

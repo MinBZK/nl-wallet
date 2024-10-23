@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use serde::{de, Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
@@ -47,14 +49,9 @@ where
         Ok(NonEmpty(collection))
     }
 
-    pub fn len(&self) -> usize {
-        self.as_ref().into_iter().count()
-    }
-
-    // Required by clippy
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
+    pub fn len(&self) -> NonZeroUsize {
+        // We always have at least one element
+        self.as_ref().into_iter().count().try_into().unwrap()
     }
 
     // Convenience method to return a reference to the first entry, which will always return something.
@@ -212,7 +209,7 @@ mod tests {
         let non_empty = NonEmpty::try_from(vec![1, 2, 3]).unwrap();
 
         assert_eq!(*non_empty.first(), 1);
-        assert_eq!(non_empty.len(), 3);
+        assert_eq!(usize::from(non_empty.len()), 3);
         assert_eq!(non_empty.into_inner(), [1, 2, 3]);
     }
 }
