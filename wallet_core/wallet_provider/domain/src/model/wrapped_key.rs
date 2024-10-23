@@ -1,14 +1,24 @@
-#[derive(Debug, Clone)]
-pub struct WrappedKey(Vec<u8>);
+use p256::ecdsa::VerifyingKey;
 
-impl WrappedKey {
-    pub fn new(wrapped_key_bytes: Vec<u8>) -> Self {
-        Self(wrapped_key_bytes)
-    }
+#[derive(Debug, Clone)]
+pub struct WrappedKey {
+    wrapped_private_key: Vec<u8>,
+    public_key: VerifyingKey,
 }
 
-impl From<WrappedKey> for Vec<u8> {
-    fn from(value: WrappedKey) -> Self {
-        value.0
+impl WrappedKey {
+    pub fn new(wrapped_private_key: Vec<u8>, public_key: VerifyingKey) -> Self {
+        Self {
+            wrapped_private_key,
+            public_key,
+        }
+    }
+
+    pub fn public_key(&self) -> &VerifyingKey {
+        &self.public_key
+    }
+
+    pub fn wrapped_private_key(&self) -> &[u8] {
+        &self.wrapped_private_key
     }
 }

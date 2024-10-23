@@ -19,17 +19,19 @@ required-features = ["db_test"]
 # Implement InstructionResultSigningKey and related traits on SoftwareEcdsaKey
 software_keys = ["wallet_common/software_keys"]
 # Include mock implementations and constructors for testing
-mock = ["dep:anyhow", "dep:hmac", "wallet_provider_domain/mock"]
+mock = ["dep:anyhow", "dep:hmac", "dep:rand_core", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["software_keys", "mock", "dep:tracing-subscriber", "dep:wallet_provider_database_settings"]
 
 [dependencies]
 anyhow = { workspace = true, optional = true }
+base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 indexmap.workspace = true
+itertools.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 r2d2-cryptoki.workspace = true
@@ -49,6 +51,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 ] }
 uuid = { workspace = true, features = ["v4"] }
 
+rand_core = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true, features = ["std"] }
 
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
@@ -60,6 +63,7 @@ anyhow.workspace = true
 assert_matches.workspace = true
 hmac = { workspace = true, features = ["std"] }
 rand.workspace = true
+rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 

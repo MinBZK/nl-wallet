@@ -6,9 +6,12 @@ use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use crate::{
-    keys::{factory::KeyFactory, software::SoftwareEcdsaKey, EcdsaKey},
+    jwt::{JwtPopClaims, NL_WALLET_CLIENT_ID},
+    keys::{factory::KeyFactory, poa::Poa, software::SoftwareEcdsaKey, EcdsaKey},
     utils,
 };
+
+use super::poa::{PoaError, VecAtLeastTwo};
 
 /// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
 /// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple
@@ -54,6 +57,8 @@ pub enum SoftwareKeyFactoryError {
     Signing,
     #[error("ECDSA error: {0}")]
     Ecdsa(#[source] <SoftwareEcdsaKey as EcdsaKey>::Error),
+    #[error("PoA error: {0}")]
+    Poa(#[from] PoaError),
 }
 
 impl KeyFactory for SoftwareKeyFactory {
@@ -121,7 +126,7 @@ impl KeyFactory for SoftwareKeyFactory {
                 .await
                 .map_err(SoftwareKeyFactoryError::Ecdsa)?;
 
-            Ok((key, signature))
+            Ok::<_, SoftwareKeyFactoryError>((key, signature))
         }))
         .await?
         .into_iter()
@@ -145,18 +150,29 @@ impl KeyFactory for SoftwareKeyFactory {
                     let signatures = future::try_join_all(keys.into_iter().map(|key| async {
                         let signature = key.try_sign(&msg).await.map_err(SoftwareKeyFactoryError::Ecdsa)?;
 
-                        Ok(signature)
+                        Ok::<_, SoftwareKeyFactoryError>(signature)
                     }))
                     .await?
                     .into_iter()
                     .collect::<Vec<_>>();
 
-                    Ok(signatures)
+                    Ok::<_, SoftwareKeyFactoryError>(signatures)
                 })
                 .collect::<Vec<_>>(),
         )
         .await?;
 
         Ok(result)
+    }
+
+    async fn poa(
+        &self,
+        keys: VecAtLeastTwo<&Self::Key>,
+        aud: String,
+        nonce: Option<String>,
+    ) -> Result<Poa, Self::Error> {
+        let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud)).await?;
+
+        Ok(poa)
     }
 }
