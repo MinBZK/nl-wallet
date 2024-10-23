@@ -269,7 +269,7 @@ impl DisclosureState for Done {}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DisclosureData {
     Created(Created),
-    WaitingForResponse(WaitingForResponse),
+    WaitingForResponse(Box<WaitingForResponse>),
     Done(Done),
 }
 
@@ -335,7 +335,7 @@ impl TryFrom<SessionState<DisclosureData>> for Session<Created> {
 impl From<Session<WaitingForResponse>> for SessionState<DisclosureData> {
     fn from(value: Session<WaitingForResponse>) -> Self {
         SessionState {
-            data: DisclosureData::WaitingForResponse(value.state.data),
+            data: DisclosureData::WaitingForResponse(Box::new(value.state.data)),
             token: value.state.token,
             last_active: value.state.last_active,
         }
@@ -353,7 +353,7 @@ impl TryFrom<SessionState<DisclosureData>> for Session<WaitingForResponse> {
 
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
-                data: session_data,
+                data: *session_data,
                 token: value.token,
                 last_active: value.last_active,
             },

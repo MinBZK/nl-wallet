@@ -1,6 +1,9 @@
 use std::{collections::VecDeque, fmt::Debug};
 
-use futures::{future::try_join_all, TryFutureExt};
+use futures::{
+    future::{try_join_all, OptionFuture},
+    TryFutureExt,
+};
 use itertools::Itertools;
 use jsonwebtoken::{Algorithm, Header};
 use p256::{
@@ -26,8 +29,12 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
-    jwt::{jwk_to_p256, JwkConversionError, Jwt, JwtError, JwtPopClaims},
-    keys::{factory::KeyFactory, CredentialEcdsaKey},
+    jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims, NL_WALLET_CLIENT_ID},
+    keys::{
+        factory::KeyFactory,
+        poa::{Poa, VecAtLeastTwo},
+        CredentialEcdsaKey,
+    },
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -42,7 +49,7 @@ use crate::{
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
+    CredentialErrorCode, ErrorResponse, Format, TokenErrorCode,
 };
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -121,11 +128,14 @@ pub enum IssuanceSessionError {
     #[error("received zero credential copies")]
     #[category(critical)]
     NoCredentialCopies,
+    #[error("error constructing PoA: {0}")]
+    #[category(pd)]
+    Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
-    MsoMdoc(Mdoc),
+    MsoMdoc(Box<Mdoc>),
     Jwt(JwtCredential),
 }
 
@@ -134,7 +144,7 @@ impl TryFrom<IssuedCredential> for Mdoc {
 
     fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
         match value {
-            IssuedCredential::MsoMdoc(mdoc) => Ok(mdoc),
+            IssuedCredential::MsoMdoc(mdoc) => Ok(*mdoc),
             _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
                 expected: Format::MsoMdoc,
                 found: (&value).into(),
@@ -602,27 +612,40 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         )
         .await?;
 
+        let pop_claims = JwtPopClaims::new(
+            Some(self.session_state.c_nonce.clone()),
+            NL_WALLET_CLIENT_ID.to_string(),
+            credential_issuer_identifier.as_ref().to_string(),
+        );
+
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
-        let mut wte_disclosure = match wte {
+        let (mut wte_disclosure, wte_privkey) = match wte {
             Some(wte) => {
-                let wte_pubkey = jwk_to_p256(&wte.jwt_claims().confirmation.jwk)?;
-                let wte_privkey = key_factory.generate_existing(&wte.private_key_id, wte_pubkey);
+                let wte_privkey = wte.private_key(&key_factory)?;
 
-                let wte_release = Jwt::<JwtPopClaims>::sign(
-                    &JwtPopClaims::new(
-                        Some(self.session_state.c_nonce.clone()),
-                        NL_WALLET_CLIENT_ID.to_string(),
-                        credential_issuer_identifier.as_ref().to_string(),
-                    ),
-                    &Header::new(Algorithm::ES256),
-                    &wte_privkey,
-                )
-                .await?;
+                let wte_release =
+                    Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
 
-                Some((wte.jwt, wte_release))
+                (Some((wte.jwt, wte_release)), Some(wte_privkey))
             }
-            None => None,
+            None => (None, None),
         };
+
+        // Ensure we include the WTE private key in the keys we need to prove association for.
+        let poa_keys = keys_and_proofs
+            .iter()
+            .map(|(key, _)| key)
+            .chain(wte_privkey.as_ref())
+            .collect_vec();
+
+        // We need a minimum of two keys to associate for a PoA to be sensible.
+        let poa = VecAtLeastTwo::try_new(poa_keys).ok().map(|poa_keys| async {
+            key_factory
+                .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
+                .await
+                .map_err(|e| IssuanceSessionError::Poa(Box::new(e)))
+        });
+        let mut poa = OptionFuture::from(poa).await.transpose()?;
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
@@ -640,6 +663,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                         credential_type,
                         proof: Some(response),
                         attestations: None, // We set this field below if necessary
+                        poa: None,          // We set this field below if necessary
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
                 }),
@@ -654,11 +678,12 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             1 => {
                 let mut credential_request = credential_requests.pop().unwrap();
                 credential_request.attestations = wte_disclosure.take();
+                credential_request.poa = poa.take();
                 vec![self.request_credential(&credential_request).await?]
             }
             _ => {
                 let credential_requests = NonEmpty::new(credential_requests).unwrap();
-                self.request_batch_credentials(credential_requests, wte_disclosure.take())
+                self.request_batch_credentials(credential_requests, wte_disclosure.take(), poa.take())
                     .await?
             }
         };
@@ -724,6 +749,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         &self,
         credential_requests: NonEmpty<Vec<CredentialRequest>>,
         wte_disclosure: Option<WteDisclosure>,
+        poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
         let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
             .await?
@@ -738,6 +764,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 &CredentialRequests {
                     credential_requests,
                     attestations: wte_disclosure,
+                    poa,
                 },
                 &dpop_header,
                 &access_token_header,
@@ -768,8 +795,9 @@ impl CredentialResponse {
     ) -> Result<IssuedCredential, IssuanceSessionError> {
         match self {
             CredentialResponse::MsoMdoc {
-                credential: CborBase64(issuer_signed),
+                credential: issuer_signed,
             } => {
+                let CborBase64(issuer_signed) = *issuer_signed;
                 let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview else {
                     return Err(IssuanceSessionError::UnexpectedCredentialFormat {
                         expected: Format::MsoMdoc,
@@ -819,7 +847,7 @@ impl CredentialResponse {
                 mdoc.compare_unsigned(unsigned_mdoc)
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
-                Ok(IssuedCredential::MsoMdoc(mdoc))
+                Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
             CredentialResponse::Jwt { credential } => {
                 let (cred, cred_claims) =
@@ -951,7 +979,7 @@ mod tests {
             .await
             .unwrap();
         let credential_response = CredentialResponse::MsoMdoc {
-            credential: issuer_signed.into(),
+            credential: Box::new(issuer_signed.into()),
         };
 
         (
@@ -1191,7 +1219,7 @@ mod tests {
         // that contains insufficient random data should fail.
         let credential_response = match credential_response {
             CredentialResponse::MsoMdoc { mut credential } => {
-                let CborBase64(ref mut credential_inner) = credential;
+                let CborBase64(ref mut credential_inner) = *credential;
                 let name_spaces = credential_inner.name_spaces.as_mut().unwrap();
 
                 name_spaces.modify_first_attributes(|attributes| {

@@ -13,6 +13,7 @@ use axum::{
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
 use http::{HeaderMap, StatusCode};
+use nutype::nutype;
 use serde::Deserialize;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
@@ -56,20 +57,14 @@ fn main() -> anyhow::Result<()> {
         .block_on(async { serve(settings).await })
 }
 
-#[derive(Debug)]
+#[nutype(derive(Debug, From, AsRef))]
 pub struct Error(anyhow::Error);
-
-impl From<anyhow::Error> for Error {
-    fn from(error: anyhow::Error) -> Self {
-        Self(error)
-    }
-}
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         warn!("error result: {:?}", self);
         let result = ResultTemplate {
-            msg: self.0.to_string(),
+            msg: self.as_ref().to_string(),
         };
         let mut response = askama_axum::into_response(&result);
         *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
@@ -126,6 +121,8 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
 }
 
 async fn check_auth(headers: HeaderMap, request: Request, next: Next) -> StdResult<Response, StatusCode> {
+    // This assumes an ingress/reverse proxy that uses mutual TLS and sets the `Cert-Serial` header with the value
+    // from the client certificate. This is an extra safeguard against using this endpoint directly.
     if !headers.get("Cert-Serial").is_some_and(|s| !s.is_empty()) {
         return Err(StatusCode::FORBIDDEN);
     }

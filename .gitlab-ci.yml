@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:529d9b3c3ea0b58a71e522837230b6ed473f24b8ec91ea8bc311ea6fa3e7d806"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:5c5495f178c5b44b89b038f402b9062f6b9ba0b3f86f88e0ffeb81dd3ce27c02"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
@@ -115,7 +115,7 @@ variables:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:dcdcd8d8a94b782df098145fce3aeaed342a2272cf6eca2038c7f693a438d158"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:e91e97e25b1f9c9fdd25fe9df28880e54c7878bdf7ee61f879f605a9957c02e8"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -147,7 +147,7 @@ test-flutter-ui:
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:dcdcd8d8a94b782df098145fce3aeaed342a2272cf6eca2038c7f693a438d158"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:e91e97e25b1f9c9fdd25fe9df28880e54c7878bdf7ee61f879f605a9957c02e8"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -159,7 +159,7 @@ verify-flutter-localizations:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:47633a21221bb295d5dda6772f813dbcd73f07f50f001ed2cd5636da0d18328d"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:f106eae7f5fdd9489cfc548d67a6b61f761f112907c638b6436d21b763cbcb4d"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -173,7 +173,7 @@ test-codegen:
 build-wallet-web:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:e39c667e35c85a7ddb6af091ae79c64e5455e11495ca2d441e0e41e3a45248e8"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:bbb57ef5a98486308c6875efb0d765abc6674a3053c27e2bbc6b0bf516be27c7"
   variables:
     VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_ACC
   script:
@@ -489,7 +489,6 @@ run-encrypt-gba-v-testdata-job-demo:
     - job: build-gba-fetch-frontend-image
       artifacts: false
   rules: !reference [.default-or-merge-request, rules]
-  when: manual
   variables:
     GBA_FETCH_FRONTEND_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch-frontend:${CI_COMMIT_SHORT_SHA}
   script:
@@ -514,7 +513,7 @@ deploy-gba-fetch-frontend-demo:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:db128edcaef0b8f7945b6e563da3b101a5b4c3692b1bf38f2645bcaa7e715fa0"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:6eec67d53367780d54d1a66fdbaceab1dcf06dbd5be4d6c587ebc67b329cf545"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom

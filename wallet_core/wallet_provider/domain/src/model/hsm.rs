@@ -140,7 +140,7 @@ pub mod mock {
         async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey), Self::Error> {
             let key = SigningKey::random(&mut OsRng);
             let verifying_key = *key.verifying_key();
-            Ok((verifying_key, WrappedKey::new(key.to_bytes().to_vec())))
+            Ok((verifying_key, WrappedKey::new(key.to_bytes().to_vec(), verifying_key)))
         }
 
         async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey, Self::Error> {
@@ -151,8 +151,7 @@ pub mod mock {
         }
 
         async fn sign_wrapped(&self, wrapped_key: WrappedKey, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error> {
-            let wrapped_key: Vec<u8> = wrapped_key.into();
-            let key = SigningKey::from_slice(&wrapped_key).unwrap();
+            let key = SigningKey::from_slice(wrapped_key.wrapped_private_key()).unwrap();
             let signature = Signer::sign(&key, data.as_ref());
             Ok(signature)
         }

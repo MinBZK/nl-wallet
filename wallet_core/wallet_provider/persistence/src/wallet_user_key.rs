@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use p256::{
+    ecdsa::VerifyingKey,
+    pkcs8::{DecodePublicKey, EncodePublicKey},
+};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect, Set};
 
 use wallet_provider_domain::{
@@ -19,13 +23,16 @@ where
     let models = create
         .keys
         .into_iter()
-        .map(|key_create| wallet_user_key::ActiveModel {
-            id: Set(key_create.wallet_user_key_id),
-            wallet_user_id: Set(create.wallet_user_id),
-            identifier: Set(key_create.key_identifier),
-            encrypted_private_key: Set(key_create.key.into()),
+        .map(|key_create| {
+            Ok(wallet_user_key::ActiveModel {
+                id: Set(key_create.wallet_user_key_id),
+                wallet_user_id: Set(create.wallet_user_id),
+                identifier: Set(key_create.key_identifier),
+                public_key: Set(key_create.key.public_key().to_public_key_der()?.into_vec()),
+                encrypted_private_key: Set(key_create.key.wrapped_private_key().to_vec()),
+            })
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()?;
 
     wallet_user_key::Entity::insert_many(models)
         .exec(db.connection())
@@ -47,19 +54,22 @@ where
         .select_only()
         .column(wallet_user_key::Column::Identifier)
         .column(wallet_user_key::Column::EncryptedPrivateKey)
+        .column(wallet_user_key::Column::PublicKey)
         .filter(
             wallet_user_key::Column::WalletUserId
                 .eq(wallet_user_id)
                 .and(wallet_user_key::Column::Identifier.is_in(identifiers)),
         )
-        .into_tuple::<(String, Vec<u8>)>()
+        .into_tuple::<(String, Vec<u8>, Vec<u8>)>()
         .all(db.connection())
         .await
-        .map_err(|e| PersistenceError::Execution(e.into()))
-        .map(|result| {
-            result
-                .into_iter()
-                .map(|(id, key_data)| (id, WrappedKey::new(key_data)))
-                .collect()
+        .map_err(|e| PersistenceError::Execution(e.into()))?
+        .into_iter()
+        .map(|(id, key_data, public_key)| {
+            Ok((
+                id,
+                WrappedKey::new(key_data, VerifyingKey::from_public_key_der(&public_key)?),
+            ))
         })
+        .collect()
 }
