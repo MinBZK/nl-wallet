@@ -185,8 +185,8 @@ pub enum IssuedCredentialCopies {
 impl IssuedCredentialCopies {
     pub fn len(&self) -> usize {
         match self {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.as_ref().len(),
-            IssuedCredentialCopies::Jwt(jwts) => jwts.as_ref().len(),
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.len(),
+            IssuedCredentialCopies::Jwt(jwts) => jwts.len(),
         }
     }
 
@@ -756,7 +756,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
-        let expected_response_count = credential_requests.as_ref().len();
+        let expected_response_count = credential_requests.len().get();
         let responses = self
             .message_client
             .request_credentials(
