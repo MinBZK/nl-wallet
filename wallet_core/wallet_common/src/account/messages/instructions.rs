@@ -1,4 +1,4 @@
-use chrono::{serde::ts_seconds, DateTime, Utc};
+use chrono::{serde::ts_seconds, DateTime, Duration, Utc};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
@@ -75,7 +75,9 @@ pub struct WteClaims {
 
 impl WteClaims {
     pub fn new() -> Self {
-        Self { exp: Utc::now() }
+        Self {
+            exp: Utc::now() + Duration::minutes(5),
+        }
     }
 }
 
