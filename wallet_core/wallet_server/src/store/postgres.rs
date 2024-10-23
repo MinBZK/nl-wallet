@@ -12,11 +12,17 @@ use tracing::log::LevelFilter;
 use url::Url;
 
 use openid4vc::server_state::{
-    Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts, SessionToken,
+    Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
+    SessionToken, WteTracker,
 };
-use wallet_common::generator::{Generator, TimeGenerator};
+use wallet_common::{
+    account::messages::instructions::WteClaims,
+    generator::{Generator, TimeGenerator},
+    jwt::{Jwt, JwtCredentialClaims},
+    utils::sha256,
+};
 
-use crate::entity::session_state;
+use crate::entity::{session_state, used_wtes};
 
 use super::SessionDataType;
 
@@ -41,6 +47,16 @@ impl From<Progress> for SessionStatus {
     }
 }
 
+pub async fn new_connection(url: Url) -> Result<DatabaseConnection, DbErr> {
+    let mut connection_options = ConnectOptions::new(url);
+    connection_options
+        .connect_timeout(DB_CONNECT_TIMEOUT)
+        .sqlx_logging(true)
+        .sqlx_logging_level(LevelFilter::Trace);
+
+    Database::connect(connection_options).await
+}
+
 #[derive(Debug, Clone)]
 pub struct PostgresSessionStore<G = TimeGenerator> {
     pub timeouts: SessionStoreTimeouts,
@@ -49,28 +65,18 @@ pub struct PostgresSessionStore<G = TimeGenerator> {
 }
 
 impl<G> PostgresSessionStore<G> {
-    pub async fn try_new_with_time(url: Url, timeouts: SessionStoreTimeouts, time: G) -> Result<Self, DbErr> {
-        let mut connection_options = ConnectOptions::new(url);
-        connection_options
-            .connect_timeout(DB_CONNECT_TIMEOUT)
-            .sqlx_logging(true)
-            .sqlx_logging_level(LevelFilter::Trace);
-
-        let connection = Database::connect(connection_options).await?;
-
-        let session_store = Self {
+    pub fn new_with_time(connection: DatabaseConnection, timeouts: SessionStoreTimeouts, time: G) -> Self {
+        Self {
             timeouts,
             time,
             connection,
-        };
-
-        Ok(session_store)
+        }
     }
 }
 
 impl PostgresSessionStore {
-    pub async fn try_new(url: Url, timeouts: SessionStoreTimeouts) -> Result<Self, DbErr> {
-        Self::try_new_with_time(url, timeouts, TimeGenerator).await
+    pub fn new(connection: DatabaseConnection, timeouts: SessionStoreTimeouts) -> Self {
+        Self::new_with_time(connection, timeouts, TimeGenerator)
     }
 }
 
@@ -200,5 +206,61 @@ where
             .map_err(|e| SessionStoreError::Other(e.into()))?;
 
         Ok(())
+    }
+}
+
+pub struct PostgresWteTracker<G = TimeGenerator> {
+    time: G,
+    connection: DatabaseConnection,
+}
+
+impl<G> PostgresWteTracker<G> {
+    pub fn new_with_time(connection: DatabaseConnection, time: G) -> Self {
+        Self { time, connection }
+    }
+}
+
+impl PostgresWteTracker {
+    pub fn new(connection: DatabaseConnection) -> Self {
+        Self::new_with_time(connection, TimeGenerator)
+    }
+}
+
+impl<G> WteTracker for PostgresWteTracker<G>
+where
+    G: Generator<DateTime<Utc>> + Send + Sync,
+{
+    type Error = DbErr;
+
+    /// NOTE: this function assumes the wte has been verified. If not it may panic.
+    async fn previously_seen_wte(&self, wte: &Jwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
+        let shasum = sha256(wte.0.as_bytes());
+        let expires = wte.dangerous_parse_unverified().unwrap().1.contents.attributes.exp;
+
+        let query_result = used_wtes::Entity::insert(used_wtes::ActiveModel {
+            used_wte_hash: ActiveValue::set(shasum),
+            expires: ActiveValue::set(expires.into()),
+        })
+        .exec(&self.connection)
+        .await;
+
+        match query_result {
+            Ok(_) => Ok(false),
+            Err(err) if matches!(err.sql_err(), Some(SqlErr::UniqueConstraintViolation(_))) => Ok(true),
+            Err(err) => Err(err),
+        }
+    }
+
+    async fn cleanup(&self) -> Result<(), Self::Error> {
+        let now = self.time.generate();
+
+        match used_wtes::Entity::delete_many()
+            .filter(used_wtes::Column::Expires.lt(now))
+            .exec(&self.connection)
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
+        }
     }
 }

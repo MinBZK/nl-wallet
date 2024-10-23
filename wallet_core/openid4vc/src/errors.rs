@@ -72,10 +72,12 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::CborSerialization(_)
                 | CredentialRequestError::Jwt(_)
-                | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
+                | CredentialRequestError::JsonSerialization(_)
+                | CredentialRequestError::WteTracking(_) => CredentialErrorCode::ServerError,
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance
                 | CredentialRequestError::MissingWte
+                | CredentialRequestError::WteAlreadyUsed
                 | CredentialRequestError::MissingPoa => CredentialErrorCode::InvalidRequest,
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
                     CredentialErrorCode::InvalidToken

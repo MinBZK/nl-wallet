@@ -1,7 +1,10 @@
 use anyhow::Result;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 
-use openid4vc::{issuer::AttributeService, server_state::SessionStore};
+use openid4vc::{
+    issuer::AttributeService,
+    server_state::{MemoryWteTracker, SessionStore},
+};
 
 use super::*;
 use crate::{
@@ -25,6 +28,7 @@ where
         attr_service,
         settings.issuer.wallet_client_ids,
         wte_privkey,
+        MemoryWteTracker::new(),
     )?;
 
     listen_wallet_only(

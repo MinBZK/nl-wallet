@@ -692,7 +692,7 @@ async fn test_disclosure_expired_memory() {
 #[cfg(feature = "db_test")]
 #[tokio::test]
 async fn test_disclosure_expired_postgres() {
-    use wallet_server::store::postgres::PostgresSessionStore;
+    use wallet_server::store::postgres::{self, PostgresSessionStore};
 
     // Combine the generated settings with the storage settings from the configuration file.
     let (mut settings, _, _) = wallet_server_settings();
@@ -710,9 +710,11 @@ async fn test_disclosure_expired_postgres() {
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
     let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
-    let session_store = PostgresSessionStore::try_new_with_time(settings.storage.url.clone(), timeouts, time_generator)
-        .await
-        .unwrap();
+    let session_store = PostgresSessionStore::new_with_time(
+        postgres::new_connection(settings.storage.url.clone()).await.unwrap(),
+        timeouts,
+        time_generator,
+    );
 
     test_disclosure_expired(settings, session_store, mock_time.as_ref(), true).await;
 }

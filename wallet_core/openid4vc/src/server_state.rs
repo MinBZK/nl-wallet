@@ -1,7 +1,7 @@
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{convert::Infallible, future::Future, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
-use dashmap::{mapref::entry::Entry, DashMap};
+use dashmap::{mapref::entry::Entry, DashMap, DashSet};
 use nutype::nutype;
 use tokio::{
     task::JoinHandle,
@@ -10,7 +10,9 @@ use tokio::{
 use tracing::warn;
 
 use wallet_common::{
+    account::messages::instructions::WteClaims,
     generator::{Generator, TimeGenerator},
+    jwt::{Jwt, JwtCredentialClaims},
     utils::random_string,
 };
 
@@ -235,6 +237,93 @@ pub struct SessionToken(String);
 impl SessionToken {
     pub fn new_random() -> Self {
         random_string(32).into()
+    }
+}
+
+/// Allows detection of previously used WTEs, by keeping track of WTEs that have been used by wallets for as long as
+/// they are valid (after which they may be cleaned up with `cleanup()`).
+///
+/// NOTE: implementations of this trait may assume the WTE has been verified. Callers must therefore
+/// verify the WTE before calling `previously_seen_wte()`.
+#[trait_variant::make(Send)]
+pub trait WteTracker {
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    /// Return whether or not we have seen this WTE within its validity window.
+    async fn previously_seen_wte(&self, wte: &Jwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error>;
+
+    /// Cleanup expired WTEs from this tracker.
+    async fn cleanup(&self) -> Result<(), Self::Error>;
+
+    fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
+    where
+        Self: Send + Sync + 'static,
+    {
+        let mut interval = time::interval(interval);
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+
+        tokio::spawn(async move {
+            loop {
+                interval.tick().await;
+                if let Err(e) = self.cleanup().await {
+                    warn!("error during session cleanup: {e}");
+                }
+            }
+        })
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct MemoryWteTracker<G = TimeGenerator> {
+    seen_wtes: DashSet<String>,
+    time: G,
+}
+
+impl<G> MemoryWteTracker<G> {
+    pub fn new_with_time(time_generator: G) -> Self {
+        Self {
+            seen_wtes: DashSet::new(),
+            time: time_generator,
+        }
+    }
+}
+
+impl MemoryWteTracker {
+    pub fn new() -> Self {
+        Self::new_with_time(TimeGenerator)
+    }
+}
+
+impl<G> WteTracker for MemoryWteTracker<G>
+where
+    G: Generator<DateTime<Utc>> + Send + Sync,
+{
+    type Error = Infallible;
+
+    /// NOTE: this function assumes the wte has been verified. If not, then the `cleanup()` method may panic.
+    async fn previously_seen_wte(&self, wte: &Jwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
+        if self.seen_wtes.contains(&wte.0) {
+            Ok(true)
+        } else {
+            self.seen_wtes.insert(wte.0.clone());
+            Ok(false)
+        }
+    }
+
+    async fn cleanup(&self) -> Result<(), Self::Error> {
+        let now = self.time.generate();
+        self.seen_wtes.retain(|wte| {
+            Jwt::<JwtCredentialClaims<WteClaims>>::from(wte)
+                .dangerous_parse_unverified()
+                .unwrap() // See rustdoc of previously_seen_wte()
+                .1
+                .contents
+                .attributes
+                .exp
+                < now
+        });
+
+        Ok(())
     }
 }
 

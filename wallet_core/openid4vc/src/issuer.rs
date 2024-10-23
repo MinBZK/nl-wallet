@@ -39,7 +39,8 @@ use crate::{
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     server_state::{
-        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS,
+        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, WteTracker,
+        CLEANUP_INTERVAL_SECONDS,
     },
     token::{
         AccessToken, AuthorizationCode, CredentialPreview, TokenRequest, TokenRequestGrantType, TokenResponse,
@@ -126,6 +127,10 @@ pub enum CredentialRequestError {
     MissingCredentialRequestPoP,
     #[error("missing WTE")]
     MissingWte,
+    #[error("error checking WTE usage status: {0}")]
+    WteTracking(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("WTE has already been used")]
+    WteAlreadyUsed,
     #[error("missing PoA")]
     MissingPoa,
     #[error("PoA error: {0}")]
@@ -231,16 +236,17 @@ pub trait LocalAttributeService {
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
 
-pub struct Issuer<A, K, S> {
+pub struct Issuer<A, K, S, W> {
     sessions: Arc<S>,
     attr_service: A,
-    issuer_data: IssuerData<K>,
-    cleanup_task: JoinHandle<()>,
+    issuer_data: IssuerData<K, W>,
+    sessions_cleanup_task: JoinHandle<()>,
+    wte_cleanup_task: JoinHandle<()>,
     pub metadata: IssuerMetadata,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
-pub struct IssuerData<K> {
+pub struct IssuerData<K, W> {
     private_keys: K,
 
     /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
@@ -255,20 +261,24 @@ pub struct IssuerData<K> {
 
     /// Public key of the WTE issuer.
     wte_issuer_pubkey: VerifyingKey,
+
+    wte_tracker: Arc<W>,
 }
 
-impl<A, K, S> Drop for Issuer<A, K, S> {
+impl<A, K, S, W> Drop for Issuer<A, K, S, W> {
     fn drop(&mut self) {
-        // Stop the task at the next .await
-        self.cleanup_task.abort();
+        // Stop the tasks at the next .await
+        self.sessions_cleanup_task.abort();
+        self.wte_cleanup_task.abort();
     }
 }
 
-impl<A, K, S> Issuer<A, K, S>
+impl<A, K, S, W> Issuer<A, K, S, W>
 where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
+    W: WteTracker + Send + Sync + 'static,
 {
     pub fn new(
         sessions: S,
@@ -277,8 +287,10 @@ where
         server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
         wte_issuer_pubkey: VerifyingKey,
+        wte_tracker: W,
     ) -> Self {
         let sessions = Arc::new(sessions);
+        let wte_tracker = Arc::new(wte_tracker);
 
         let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
@@ -286,6 +298,7 @@ where
             credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_client_ids,
             wte_issuer_pubkey,
+            wte_tracker: Arc::clone(&wte_tracker),
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
@@ -296,7 +309,8 @@ where
             sessions: Arc::clone(&sessions),
             attr_service,
             issuer_data,
-            cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
+            sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
+            wte_cleanup_task: wte_tracker.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
             metadata: IssuerMetadata {
                 issuer_config: metadata::IssuerData {
                     credential_issuer: issuer_url.clone(),
@@ -326,11 +340,12 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
-impl<A, K, S> Issuer<A, K, S>
+impl<A, K, S, W> Issuer<A, K, S, W>
 where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<IssuanceData>,
+    W: WteTracker,
 {
     pub async fn process_token_request(
         &self,
@@ -607,7 +622,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl KeyRing>,
+        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_credential_inner(credential_request, access_token, dpop, issuer_data)
@@ -631,7 +646,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl KeyRing>,
+        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -649,17 +664,27 @@ impl Session<WaitingForResponse> {
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-        // Verify the WTE disclosure
-        let wte_pubkey = credential_request
+        let wte_disclosure = credential_request
             .attestations
             .as_ref()
-            .ok_or(CredentialRequestError::MissingWte)?
-            .verify(
-                &issuer_data.wte_issuer_pubkey,
-                issuer_data.credential_issuer_identifier.to_string(),
-                NL_WALLET_CLIENT_ID.to_string(),
-                Some(self.state.data.c_nonce.clone()),
-            )?;
+            .ok_or(CredentialRequestError::MissingWte)?;
+
+        let wte_pubkey = wte_disclosure.verify(
+            &issuer_data.wte_issuer_pubkey,
+            issuer_data.credential_issuer_identifier.to_string(),
+            NL_WALLET_CLIENT_ID.to_string(),
+            Some(self.state.data.c_nonce.clone()),
+        )?;
+
+        // Check that the WTE is fresh
+        if issuer_data
+            .wte_tracker
+            .previously_seen_wte(&wte_disclosure.0)
+            .await
+            .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
+        {
+            return Err(CredentialRequestError::WteAlreadyUsed);
+        }
 
         // Verify that the public keys of the WTE disclosure and the PoP are associated with a valid PoA
         let pop_pubkey = credential_request
@@ -710,7 +735,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl KeyRing>,
+        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data)
@@ -734,7 +759,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl KeyRing>,
+        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -752,17 +777,27 @@ impl Session<WaitingForResponse> {
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-        // Verify the WTE disclosure
-        let wte_pubkey = credential_requests
+        let wte_disclosure = credential_requests
             .attestations
             .as_ref()
-            .ok_or(CredentialRequestError::MissingWte)?
-            .verify(
-                &issuer_data.wte_issuer_pubkey,
-                issuer_data.credential_issuer_identifier.to_string(),
-                NL_WALLET_CLIENT_ID.to_string(),
-                Some(self.state.data.c_nonce.clone()),
-            )?;
+            .ok_or(CredentialRequestError::MissingWte)?;
+
+        let wte_pubkey = wte_disclosure.verify(
+            &issuer_data.wte_issuer_pubkey,
+            issuer_data.credential_issuer_identifier.to_string(),
+            NL_WALLET_CLIENT_ID.to_string(),
+            Some(self.state.data.c_nonce.clone()),
+        )?;
+
+        // Check that the WTE is fresh
+        if issuer_data
+            .wte_tracker
+            .previously_seen_wte(&wte_disclosure.0)
+            .await
+            .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
+        {
+            return Err(CredentialRequestError::WteAlreadyUsed);
+        }
 
         // Verify that the public keys of the WTE disclosure and the PoPs are associated with a valid PoA
         let poa_keys = credential_requests
@@ -860,7 +895,7 @@ impl CredentialRequest {
         &self,
         c_nonce: &str,
         preview: CredentialPreview,
-        issuer_data: &IssuerData<impl KeyRing>,
+        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let requested_type = self.credential_type();
         if requested_type != preview.credential_type() {
@@ -992,8 +1027,8 @@ impl WteDisclosure {
         expected_nonce: Option<String>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         // Enforce presence of exp, meaning it is also verified since `wte_validations.validate_exp = true` by default
-        // note: wte_validations.leeway is set to 1 minute
         let mut wte_validations = validations();
+        wte_validations.leeway = 0; // we expect the WTE issuer and ourselves to not have relative clock drift
         wte_validations.set_required_spec_claims(&["exp"]);
 
         let wte_claims = self.0.parse_and_verify(&issuer_public_key.into(), &wte_validations)?;

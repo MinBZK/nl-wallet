@@ -27,7 +27,7 @@ use openid4vc::{
     jwt::compare_jwt_attributes,
     metadata::IssuerMetadata,
     oidc,
-    server_state::{MemorySessionStore, SessionState},
+    server_state::{MemorySessionStore, MemoryWteTracker, SessionState},
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
@@ -38,7 +38,7 @@ use wallet_common::{
     urls::BaseUrl,
 };
 
-type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
+type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
 fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
@@ -83,6 +83,7 @@ fn setup(
         &server_url,
         vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
         *wte_issuer_privkey.verifying_key(),
+        MemoryWteTracker::new(),
     );
 
     (

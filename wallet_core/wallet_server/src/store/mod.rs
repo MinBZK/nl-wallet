@@ -5,12 +5,18 @@ cfg_if::cfg_if! {
     }
 }
 
+use postgres::PostgresWteTracker;
+use sea_orm::{DatabaseConnection, DbErr};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
 use openid4vc::server_state::{
-    Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
-    SessionToken,
+    Expirable, HasProgress, MemorySessionStore, MemoryWteTracker, SessionState, SessionStore, SessionStoreError,
+    SessionStoreTimeouts, SessionToken, WteTracker,
+};
+use wallet_common::{
+    account::messages::instructions::WteClaims,
+    jwt::{Jwt, JwtCredentialClaims},
 };
 
 pub trait SessionDataType {
@@ -43,29 +49,31 @@ pub enum SessionStoreVariant<T> {
     Memory(MemorySessionStore<T>),
 }
 
-impl<T> SessionStoreVariant<T> {
-    pub async fn new(url: Url, timeouts: SessionStoreTimeouts) -> Result<SessionStoreVariant<T>, anyhow::Error> {
+#[derive(Debug, Clone)]
+pub enum Database {
+    Postgres(DatabaseConnection),
+    Memory,
+}
+
+impl Database {
+    pub async fn try_new(url: Url) -> Result<Self, sea_orm::DbErr> {
         match url.scheme() {
             #[cfg(feature = "postgres")]
-            "postgres" => {
-                let store = PostgresSessionStore::try_new(url, timeouts).await?;
-                Ok(SessionStoreVariant::Postgres(store))
-            }
-            "memory" => Ok(SessionStoreVariant::Memory(MemorySessionStore::new(timeouts))),
+            "postgres" => Ok(Self::Postgres(postgres::new_connection(url).await?)),
+            "memory" => Ok(Self::Memory),
             e => unimplemented!("{}", e),
         }
     }
+}
 
-    /// Clone this [SessionStoreVariant] into a SessionStoreVariant with a different generic type, reusing the
-    /// underlying implementation. This function is provided so that the same connection pool is used for PostgreSQL
-    /// connections.
-    pub fn clone_into<R>(&self) -> SessionStoreVariant<R> {
-        match self {
+impl<T> SessionStoreVariant<T> {
+    pub fn new(database: Database, timeouts: SessionStoreTimeouts) -> SessionStoreVariant<T> {
+        match database {
             #[cfg(feature = "postgres")]
-            SessionStoreVariant::Postgres(store) => SessionStoreVariant::Postgres(store.clone()),
-            SessionStoreVariant::Memory(MemorySessionStore { timeouts, .. }) => {
-                SessionStoreVariant::Memory(MemorySessionStore::new(*timeouts))
+            Database::Postgres(connection) => {
+                SessionStoreVariant::Postgres(PostgresSessionStore::new(connection, timeouts))
             }
+            Database::Memory => SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
         }
     }
 }
@@ -97,6 +105,43 @@ where
                 <PostgresSessionStore as SessionStore<T>>::cleanup(postgres).await
             }
             SessionStoreVariant::Memory(memory) => memory.cleanup().await,
+        }
+    }
+}
+
+pub enum WteTrackerVariant {
+    #[cfg(feature = "postgres")]
+    Postgres(PostgresWteTracker),
+    Memory(MemoryWteTracker),
+}
+
+impl WteTrackerVariant {
+    pub fn new(connection: Database) -> Self {
+        match connection {
+            Database::Postgres(connection) => Self::Postgres(PostgresWteTracker::new(connection)),
+            Database::Memory => Self::Memory(MemoryWteTracker::new()),
+        }
+    }
+}
+
+impl WteTracker for WteTrackerVariant {
+    type Error = DbErr;
+
+    async fn previously_seen_wte(&self, wte: &Jwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
+        match self {
+            WteTrackerVariant::Postgres(postgres_wte_tracker) => postgres_wte_tracker.previously_seen_wte(wte).await,
+            WteTrackerVariant::Memory(memory_wte_tracker) => {
+                Ok(memory_wte_tracker.previously_seen_wte(wte).await.unwrap()) // this implementation is infallible
+            }
+        }
+    }
+
+    async fn cleanup(&self) -> Result<(), Self::Error> {
+        match self {
+            WteTrackerVariant::Postgres(postgres_wte_tracker) => postgres_wte_tracker.cleanup().await,
+            WteTrackerVariant::Memory(memory_wte_tracker) => {
+                Ok(memory_wte_tracker.cleanup().await.unwrap()) // this implementation is infallible
+            }
         }
     }
 }
