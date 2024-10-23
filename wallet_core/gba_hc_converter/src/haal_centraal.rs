@@ -102,7 +102,7 @@ fn csv_path(name: &str) -> PathBuf {
 
 #[nutype(
     validate(predicate = Bsn::validate),
-    derive(Deserialize, Serialize, Clone, Debug, Display, AsRef, PartialEq)
+    derive(Deserialize, Serialize, Clone, Debug, Display, AsRef)
 )]
 pub struct Bsn(String);
 

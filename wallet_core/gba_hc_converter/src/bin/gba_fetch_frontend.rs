@@ -17,7 +17,7 @@ use nutype::nutype;
 use serde::Deserialize;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
-use tracing::{debug, level_filters::LevelFilter, warn};
+use tracing::{debug, info, level_filters::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
 
 use gba_hc_converter::{
@@ -30,15 +30,9 @@ use gba_hc_converter::{
     settings::{PreloadedSettings, RunMode, Settings},
 };
 
-// Cannot use #[tokio::main], see: https://docs.sentry.io/platforms/rust/#async-main-function
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let settings = Settings::new()?;
-
-    // Retain [`ClientInitGuard`]
-    let _guard = settings
-        .sentry
-        .as_ref()
-        .map(|sentry| sentry.init(sentry::release_name!()));
 
     let builder = tracing_subscriber::fmt().with_env_filter(
         EnvFilter::builder()
@@ -51,10 +45,7 @@ fn main() -> anyhow::Result<()> {
         builder.init();
     }
 
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?
-        .block_on(async { serve(settings).await })
+    serve(settings).await
 }
 
 #[nutype(derive(Debug, From, AsRef))]
@@ -171,6 +162,7 @@ async fn index(State(state): State<Arc<ApplicationState>>, token: CsrfToken) -> 
 async fn fetch(
     State(state): State<Arc<ApplicationState>>,
     token: CsrfToken,
+    headers: HeaderMap,
     Form(payload): Form<PreloadPayload>,
 ) -> Result<Response> {
     token.verify(&payload.authenticity_token).map_err(|err| anyhow!(err))?;
@@ -181,6 +173,11 @@ async fn fetch(
 
     let bsn = Bsn::try_new(payload.bsn).map_err(|err| anyhow!(err))?;
     let path = &state.base_path.join(&state.preloaded_settings.xml_path);
+
+    info!(
+        "Preloading data using certificate having serial: {}",
+        certificate_serial_from_headers(&headers)?
+    );
 
     let xml = state
         .http_client
@@ -209,6 +206,7 @@ async fn fetch(
 async fn clear(
     State(state): State<Arc<ApplicationState>>,
     token: CsrfToken,
+    headers: HeaderMap,
     Form(payload): Form<ClearPayload>,
 ) -> Result<Response> {
     token.verify(&payload.authenticity_token).map_err(|err| anyhow!(err))?;
@@ -216,6 +214,11 @@ async fn clear(
     if payload.confirmation_text != "clear all data" {
         return Err(anyhow!("Confirmation text is not correct"))?;
     }
+
+    info!(
+        "Clearing all preloaded data using certificate having serial: {}",
+        certificate_serial_from_headers(&headers)?
+    );
 
     let path = &state.base_path.join(&state.preloaded_settings.xml_path);
     let count = clear_files_in_dir(path).await.map_err(|err| anyhow!(err))?;
@@ -225,4 +228,10 @@ async fn clear(
     };
 
     Ok(askama_axum::into_response(&result))
+}
+
+fn certificate_serial_from_headers(headers: &HeaderMap) -> Result<&str> {
+    headers.get("Cert-Serial").map_or(Ok("unknown"), |serial| {
+        Ok(serial.to_str().map_err(|err| anyhow!(err))?)
+    })
 }

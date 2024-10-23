@@ -11,6 +11,7 @@ use hmac::{Hmac, Mac};
 use rand_core::OsRng;
 use sha2::Sha256;
 use tokio::fs::DirEntry;
+use tracing::debug;
 
 use crate::gba::error::Error;
 
@@ -25,9 +26,9 @@ pub async fn encrypt_bytes_to_dir(
     output_path: &Path,
     basename: &str,
 ) -> Result<(), Error> {
+    debug!("encrypting bytes to dir");
     let ciphertext = encrypt_bytes(encryption_key, bytes)?;
     tokio::fs::write(filename(hmac_key, output_path, basename), ciphertext).await?;
-
     Ok(())
 }
 
@@ -41,8 +42,10 @@ pub async fn decrypt_bytes_from_dir(
     if filename.exists() {
         let bytes = tokio::fs::read(filename).await?;
         let decrypted = decrypt_bytes(decryption_key, &bytes)?;
+        debug!("decrypting bytes from dir");
         Ok(Some(decrypted))
     } else {
+        debug!("file to decrypt not found");
         Ok(None)
     }
 }

@@ -146,8 +146,10 @@ where
 
         if let Some(bytes) = decrypted {
             let xml = String::from_utf8(bytes)?;
+            info!("Using preloaded data");
             Ok(Some(xml))
         } else {
+            info!("No preloaded data found");
             self.client.vraag(bsn).await
         }
     }
