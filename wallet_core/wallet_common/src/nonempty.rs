@@ -209,7 +209,7 @@ mod tests {
         let non_empty = NonEmpty::try_from(vec![1, 2, 3]).unwrap();
 
         assert_eq!(*non_empty.first(), 1);
-        assert_eq!(usize::from(non_empty.len()), 3);
+        assert_eq!(non_empty.len().get(), 3);
         assert_eq!(non_empty.into_inner(), [1, 2, 3]);
     }
 }
