@@ -22,6 +22,7 @@ use wallet_common::{
     },
     generator::Generator,
     jwt::{EcdsaDecodingKey, Jwt, JwtError, JwtSubject},
+    keys::poa::PoaError,
     utils::{random_bytes, random_string},
 };
 use wallet_provider_domain::{
@@ -135,6 +136,10 @@ pub enum InstructionError {
     HsmError(#[from] HsmError),
     #[error("WTE issuance: {0}")]
     WteIssuance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("instruction referenced nonexisting key: {0}")]
+    NonexistingKey(String),
+    #[error("PoA construction error: {0}")]
+    Poa(#[from] PoaError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -155,6 +160,8 @@ pub enum InstructionValidationError {
     HsmError(#[from] HsmError),
     #[error("WTE already issued")]
     WteAlreadyIssued,
+    #[error("received instruction to sign a PoA with the Sign instruction")]
+    PoaMessage,
 }
 
 impl From<PinPolicyEvaluation> for InstructionError {

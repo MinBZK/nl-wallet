@@ -81,12 +81,13 @@ impl From<WalletProviderError> for AccountError {
                 InstructionError::IncorrectPin(data) => Self::IncorrectPin(data),
                 InstructionError::PinTimeout(data) => Self::PinTimeout(data),
                 InstructionError::AccountBlocked => Self::AccountBlocked,
-                InstructionError::Validation(_) => Self::InstructionValidation,
+                InstructionError::Validation(_) | InstructionError::NonexistingKey(_) => Self::InstructionValidation,
                 InstructionError::Signing(_)
                 | InstructionError::Storage(_)
                 | InstructionError::WalletCertificate(_)
                 | InstructionError::WteIssuance(_)
-                | InstructionError::HsmError(_) => Self::Unexpected,
+                | InstructionError::HsmError(_)
+                | InstructionError::Poa(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,
             WalletProviderError::Wte(_) => Self::Unexpected,

@@ -1,4 +1,3 @@
-use chrono::Utc;
 use futures::future::try_join_all;
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
@@ -7,7 +6,7 @@ use serde_with::skip_serializing_none;
 use nl_wallet_mdoc::{holder::Mdoc, utils::serialization::CborBase64, IssuerSigned};
 use wallet_common::{
     jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims, JwtPopClaims},
-    keys::{factory::KeyFactory, CredentialEcdsaKey},
+    keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -21,6 +20,7 @@ use crate::{issuance_session::IssuanceSessionError, token::CredentialPreview, Fo
 pub struct CredentialRequests {
     pub credential_requests: NonEmpty<Vec<CredentialRequest>>,
     pub attestations: Option<WteDisclosure>,
+    pub poa: Option<Poa>,
 }
 
 pub type WteDisclosure = (Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>);
@@ -35,6 +35,7 @@ pub struct CredentialRequest {
     pub credential_type: CredentialRequestType,
     pub proof: Option<CredentialRequestProof>,
     pub attestations: Option<WteDisclosure>,
+    pub poa: Option<Poa>,
 }
 
 impl CredentialRequest {
@@ -117,12 +118,11 @@ impl CredentialRequestProof {
             .await
             .map_err(|e| IssuanceSessionError::PrivateKeyGeneration(Box::new(e)))?;
 
-        let payload = JwtPopClaims {
-            nonce: Some(nonce),
-            iss: wallet_client_id,
-            aud: credential_issuer_identifier.as_ref().to_string(),
-            iat: Utc::now(),
-        };
+        let payload = JwtPopClaims::new(
+            Some(nonce),
+            wallet_client_id,
+            credential_issuer_identifier.as_ref().to_string(),
+        );
 
         let keys_and_jwt_payloads = try_join_all(keys.into_iter().map(|privkey| async {
             let header = jwk_jwt_header(OPENID4VCI_VC_POP_JWT_TYPE, &privkey).await?;
