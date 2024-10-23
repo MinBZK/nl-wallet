@@ -513,6 +513,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum_csrf"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1222c5f1302e23ff8f82deb58efc06f75ad1cc68bc789da46010a9cbcf92183c"
+dependencies = [
+ "async-trait",
+ "axum-core",
+ "base64ct",
+ "cookie",
+ "hmac",
+ "http",
+ "rand",
+ "sha2",
+ "thiserror",
+ "time",
+ "tower-layer",
+ "tower-service",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -889,6 +909,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
 dependencies = [
  "unicode-segmentation",
+]
+
+[[package]]
+name = "cookie"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
+dependencies = [
+ "aes-gcm",
+ "base64 0.22.1",
+ "hmac",
+ "percent-encoding",
+ "rand",
+ "sha2",
+ "subtle",
+ "time",
+ "version_check",
 ]
 
 [[package]]
@@ -1679,8 +1716,10 @@ version = "0.2.2-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
+ "askama",
  "assert-json-diff",
  "axum",
+ "axum_csrf",
  "base64 0.22.1",
  "clap",
  "clio",

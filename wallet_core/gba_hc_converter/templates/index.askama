@@ -1,0 +1,46 @@
+{% extends "base.askama" %}
+
+{% block content %}
+<main>
+    <section>
+        <h1>Enter BSN</h1>
+    </section>
+
+    <section>
+        <form method="POST" action="/">
+            <label for="bsn">BSN</label>
+            {% if let Some(token) = authenticity_token %}
+            <input type="hidden" name="authenticity_token" value="{{ token }}"/>
+            {% endif %}
+            <input type="text" id="bsn" name="bsn" autocomplete="off"
+                pattern="[0-9]{8,9}" required
+                {% if error.is_some() || msg.is_some() %} disabled {% endif %} />
+            <button type="submit" {% if error.is_some() || msg.is_some() %} disabled {% endif %}>Fetch</button>
+        </form>
+    </section>
+
+    {% match msg %}
+    {% when Some with (msg) %}
+    <section class="info">
+        <h2>Result:</h2>
+        <p>{{ msg }}</p>
+        <form method="GET" action="/">
+            <button type="submit">Restart</button>
+        </form>
+    </section>
+    {% when None %}
+    {% endmatch %}
+
+    {% match error %}
+    {% when Some with (error_msg) %}
+    <section class="error">
+        <h2>Error:</h2>
+        <p>{{ error_msg }}</p>
+        <form method="GET" action="/">
+            <button type="submit">Restart</button>
+        </form>
+    </section>
+    {% when None %}
+    {% endmatch %}
+</main>
+{% endblock %}

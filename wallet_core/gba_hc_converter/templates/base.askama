@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="nl">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, minimum-scale=1"
+        />
+        {% block title %}<title>GBA preloading for NL Wallet</title>{% endblock %}
+        {% block styles %}{% endblock %}
+        {% block scripts %}{% endblock %}
+    </head>
+    <body>
+    {% block content %}{% endblock %}
+    </body>
+</html>
