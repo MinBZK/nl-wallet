@@ -164,12 +164,13 @@ mod tests {
     use rstest::rstest;
 
     use crate::{
-        jwt::{validations, Jwt, JwtPopClaims},
+        jwt::{validations, JsonJwt, Jwt, JwtPopClaims},
         keys::{
             poa::{Poa, PoaPayload},
             software::SoftwareEcdsaKey,
             EcdsaKey,
         },
+        nonempty::NonEmpty,
     };
 
     use super::PoaVerificationError;
@@ -271,9 +272,12 @@ mod tests {
 
     #[tokio::test]
     async fn missing_signature() {
-        let (mut poa, key1, _, iss, aud, nonce) = poa_setup().await;
+        let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
 
-        poa.signatures.remove(0);
+        let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+        jwts.pop();
+        let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
+        let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
 
         assert_matches!(
             poa.verify(vec![key1], aud, iss, nonce).unwrap_err(),

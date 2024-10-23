@@ -67,6 +67,7 @@ test_common = [
     "dep:openid4vc",
     "dep:platform_support",
     "dep:uuid",
+    "dep:url",
     "dep:wallet",
     "dep:wallet_common",
     "dep:wallet_provider",

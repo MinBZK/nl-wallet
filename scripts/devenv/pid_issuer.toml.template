@@ -1,6 +1,7 @@
 # Example config
 
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/'
+issuer_trust_anchors = ["${PID_CA_CRT}"]
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'

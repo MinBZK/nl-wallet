@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-10-07T09:43:45+02:00",
+    "@@last_modified": "2024-10-08T17:36:20+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -22,7 +22,7 @@
     "activitySummarySharedWithOthers": "{nrOrganizations} other organizations",
     "activitySummaryToday": "Activities today",
     "appTitle": "NL Wallet",
-    "biometricSettingsScreenDescription": "This will open your NL Wallet faster. You'll use your {supportedBiometrics} instead of your PIN code.\nEnable {supportedBiometrics} and confirm with your PIN code.",
+    "biometricSettingsScreenDescription": "This will open your NL Wallet faster. You'll use your {supportedBiometrics} instead of your PIN.\nEnable {supportedBiometrics} and confirm with your PIN.",
     "@biometricSettingsScreenDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -50,7 +50,7 @@
             }
         }
     },
-    "biometricSettingsScreenSuccessDescription": "Your app is secured with your PIN code and {supportedBiometrics}.",
+    "biometricSettingsScreenSuccessDescription": "Your app is secured with your PIN and {supportedBiometrics}.",
     "@biometricSettingsScreenSuccessDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -59,7 +59,7 @@
             }
         }
     },
-    "biometricSettingsScreenSuccessTitle": "Success!",
+    "biometricSettingsScreenSuccessTitle": "Your NL Wallet is secured",
     "biometricSettingsScreenSuccessToSettingsCta": "To settings",
     "biometricSettingsScreenSwitchCta": "Unlock with {supportedBiometrics}",
     "@biometricSettingsScreenSwitchCta": {
@@ -166,14 +166,14 @@
     "cardValueGenderUnknown": "Unknown",
     "cardValueTrue": "Yes",
     "changeLanguageScreenTitle": "Select a language",
-    "changePinScreenConfirmNewPinTitle": "Repeat your new PIN code",
-    "changePinScreenEnterCurrentPinTitle": "First, enter your current PIN code",
-    "changePinScreenSelectNewPinTitle": "Choose a new 6-digit PIN code",
-    "changePinScreenSuccessDescription": "Your app is secured with your PIN code.",
-    "changePinScreenSuccessTitle": "Success",
+    "changePinScreenConfirmNewPinTitle": "Repeat your new PIN",
+    "changePinScreenEnterCurrentPinTitle": "First, enter your current PIN",
+    "changePinScreenSelectNewPinTitle": "Choose a new 6-digit PIN",
+    "changePinScreenSuccessDescription": "Your app is secured with your new PIN.",
+    "changePinScreenSuccessTitle": "Success!",
     "changePinScreenToOverviewCta": "To my overview",
     "changePinScreenToSettingsCta": "To settings",
-    "changePinScreenUpdatingDescription": "PIN code is being updated",
+    "changePinScreenUpdatingDescription": "PIN is being saved",
     "changePinScreenUpdatingTitle": "Please wait",
     "checkAgreementPageCancelCta": "No",
     "checkAgreementPageConfirmCta": "Yes, next",
@@ -311,8 +311,8 @@
     "disclosureConfirmDataAttributesSubtitleData": "{count, plural, one {Requested data} other {Requested data}}",
     "disclosureConfirmDataAttributesSubtitlePurpose": "Reason",
     "disclosureConfirmDataAttributesSubtitleTerms": "Agreements",
-    "disclosureConfirmPinPageForLoginTitle": "Agree with your PIN code",
-    "disclosureConfirmPinPageTitle": "Agree with your PIN code",
+    "disclosureConfirmPinPageForLoginTitle": "Agree with your PIN",
+    "disclosureConfirmPinPageTitle": "Agree with your PIN",
     "disclosureGenericErrorPageTitle": "Something went wrong",
     "disclosureLoadingSubtitle": "Your request is being retrieved",
     "disclosureLoadingTitle": "Please wait",
@@ -413,13 +413,13 @@
     "flashlightDisabledWCAGAnnouncement": "Flashlight turned off",
     "flashlightEnabledWCAGAnnouncement": "Flashlight turned on",
     "forgotPinScreenCta": "Delete Wallet",
-    "forgotPinScreenDescription": "When you forget your PIN code, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN code.",
-    "forgotPinScreenTitle": "Forgot PIN code?",
+    "forgotPinScreenDescription": "When you forget your PIN, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN.",
+    "forgotPinScreenTitle": "Forgot PIN?",
     "generalBottomBackCta": "Back",
     "generalCancelCta": "Cancel",
     "generalClose": "Close",
     "generalConfigVersionText": "App config:",
-    "generalConfirmWithPin": "Agree with your PIN code",
+    "generalConfirmWithPin": "Agree with your PIN",
     "generalDays": "{days, plural, one {{days} day} other {{days} days}}",
     "@generalDays": {
         "placeholders": {
@@ -588,7 +588,7 @@
     "historyDetailScreenTitleForIssuance": "Created {card} card",
     "historyDetailScreenTitleForLogin": "Logged in with {organization}",
     "historyOverviewScreenTitle": "Activities",
-    "introductionConditionsScreenBulletPoints": "You can stop at any time.\nYou keep your PIN code to yourself.\nYou decide who you share with.",
+    "introductionConditionsScreenBulletPoints": "You keep your PIN to yourself.\nYou decide who you share with.\nYou can stop at any time.",
     "introductionConditionsScreenHeadline": "Remember this",
     "introductionConditionsScreenNextCta": "Understood",
     "introductionNextPageCta": "Next",
@@ -598,7 +598,7 @@
     "introductionPage2Title": "Secure login",
     "introductionPage3Description": "If an organization needs your ZIP code, you simply share your ZIP code.",
     "introductionPage3Title": "Easy data sharing",
-    "introductionPrivacyScreenBulletPoints": "Your data is secure on this device.\nYour data is protected by your PIN code.",
+    "introductionPrivacyScreenBulletPoints": "Your data is secure on this device.\nYour data is protected by your PIN.",
     "introductionPrivacyScreenHeadline": "You have control over your privacy",
     "introductionPrivacyScreenNextCta": "Next",
     "introductionPrivacyScreenPrivacyCta": "Read the privacy statement",
@@ -629,7 +629,7 @@
     "issuanceCheckDataOfferingPagePositiveCta": "Yes, add",
     "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
-    "issuanceConfirmPinPageDescription": "By entering your PIN code you agree to exchange your data.",
+    "issuanceConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
     "issuanceConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
     "@issuanceConfirmPinPageErrorDescription": {
         "placeholders": {
@@ -639,8 +639,8 @@
             }
         }
     },
-    "issuanceConfirmPinPageErrorTitle": "Invalid PIN code",
-    "issuanceConfirmPinPageTitle": "Enter your PIN code",
+    "issuanceConfirmPinPageErrorTitle": "Invalid PIN",
+    "issuanceConfirmPinPageTitle": "Enter your PIN",
     "issuanceGenericErrorPageCloseCta": "Close",
     "issuanceGenericErrorPageDescription": "Something went wrong. Try again later.",
     "issuanceGenericErrorPageTitle": "Something went wrong",
@@ -714,8 +714,8 @@
     },
     "issuanceSuccessPageCloseCta": "To my overview",
     "issuanceSuccessPageTitle": "Success!",
-    "lockedOutDialogDescription": "Your have used face scan or fingerprint incorrectly too many times. Unlock with your PIN code",
-    "lockedOutDialogDescriptioniOSVariant": "Your have used Face ID or Touch ID incorrectly too many times. Unlock with your PIN code",
+    "lockedOutDialogDescription": "Too many failed attempts. Unlock with your PIN.",
+    "lockedOutDialogDescriptioniOSVariant": "Too many failed attempts. Unlock with your PIN.",
     "lockedOutDialogTitle": "Face scan or fingerprint failed",
     "lockedOutDialogTitleiOSVariant": "Face ID or Touch ID failed",
     "loginDetailScreenAgreementCta": "Read the terms and conditions",
@@ -736,8 +736,8 @@
     "menuScreenWCAGPageAnnouncement": "Menu in list {count} items",
     "mockDigidScreenAcceptCta": "login",
     "mockDigidScreenDeclineCta": "cancel",
-    "mockDigidScreenEnterPin": "Enter a random PIN code to continue",
-    "mockDigidScreenForgotPinCta": "Forgot PIN code",
+    "mockDigidScreenEnterPin": "Enter a random PIN to continue",
+    "mockDigidScreenForgotPinCta": "Forgot PIN",
     "mockDigidScreenHeaderSubtitle": "You are logging in at:",
     "mockDigidScreenHeaderTitle": "Login",
     "mockDigidScreenSignInOrganization": "National Office for Identity Data (RvIG)",
@@ -785,18 +785,18 @@
     "pageIndicatorSemanticsLabel": "Step {current} out of {total}",
     "pidAddressCardTitle": "Residential address",
     "pidIdCardTitle": "Personal data",
-    "pinBlockedScreenDescription": "You have entered your PIN code incorrectly too many times.\n\nDo you want to use the Wallet again? Then you have to start again. Clear the Wallet and choose a new PIN code.",
+    "pinBlockedScreenDescription": "You have entered your PIN incorrectly too many times.\n\nDo you want to use the Wallet again? Then you have to start again. Clear the Wallet and choose a new PIN.",
     "pinBlockedScreenHeadline": "Your app has been blocked",
     "pinBlockedScreenResetWalletCta": "Delete Wallet",
     "pinConfirmationErrorDialogDescription": "Try again.",
-    "pinConfirmationErrorDialogFatalCta": "Choose new PIN code",
-    "pinConfirmationErrorDialogFatalDescription": "Choose a new PIN code.",
-    "pinConfirmationErrorDialogFatalTitle": "This PIN code is different",
-    "pinConfirmationErrorDialogTitle": "This PIN code is different",
+    "pinConfirmationErrorDialogFatalCta": "Choose new PIN",
+    "pinConfirmationErrorDialogFatalDescription": "Choose a new PIN.",
+    "pinConfirmationErrorDialogFatalTitle": "This PIN is different",
+    "pinConfirmationErrorDialogTitle": "This PIN is different",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} digit left} other {{count} digits left}}",
     "pinErrorDialogCloseCta": "CLOSE",
-    "pinErrorDialogFinalRoundFinalAttempt": "You can try 1 more time. If the following PIN code is invalid, the app will be permanently blocked.",
-    "pinErrorDialogFinalRoundNonFinalAttempt": "You can try {count} more times. After {count} invalid PIN codes, the app will be permanently blocked.",
+    "pinErrorDialogFinalRoundFinalAttempt": "You have one more try. If the next PIN is wrong, the app will be permanently blocked.",
+    "pinErrorDialogFinalRoundNonFinalAttempt": "You can try {count} more times. After {count} wrong attempts, the app will be permanently blocked.",
     "@pinErrorDialogFinalRoundNonFinalAttempt": {
         "placeholders": {
             "count": {
@@ -805,9 +805,9 @@
             }
         }
     },
-    "pinErrorDialogForgotCodeCta": "FORGOT PIN CODE?",
-    "pinErrorDialogNonFinalRoundFinalAttempt": "You can try 1 more time. If the following PIN code is invalid, the app will be temporary blocked.",
-    "pinErrorDialogNonFinalRoundInitialAttempt": "PIN code incorrect, try again.",
+    "pinErrorDialogForgotCodeCta": "FORGOT PIN?",
+    "pinErrorDialogNonFinalRoundFinalAttempt": "You have one more try. If the next PIN is wrong, the app will be temporary blocked.",
+    "pinErrorDialogNonFinalRoundInitialAttempt": "Incorrect PIN. Please try again.",
     "pinErrorDialogNonFinalRoundNonFinalAttempt": "You can try {count} more times.",
     "@pinErrorDialogNonFinalRoundNonFinalAttempt": {
         "placeholders": {
@@ -817,18 +817,18 @@
             }
         }
     },
-    "pinErrorDialogRestartSetupWarning": "You can try 1 more time. If the following PIN code is invalid, the setup process will restart from the beginning.",
-    "pinErrorDialogTitle": "Wrong PIN code",
-    "pinFieldAnnouncementLabel": "{count, plural, one {Access PIN Code, {count} digit left} other {Access PIN Code, {count} digits left}}",
+    "pinErrorDialogRestartSetupWarning": "You have one more try. If the next PIN is wrong, the setup will start over.",
+    "pinErrorDialogTitle": "Wrong PIN",
+    "pinFieldAnnouncementLabel": "{count, plural, one {Access PIN, {count} digit left} other {Access PIN, {count} digits left}}",
     "pinKeyboardWCAGBackspaceLabel": "Delete",
     "pinKeyboardWCAGBackspaceLongPressHint": "Delete all",
     "pinKeyboardWCAGDigitKeyTapHint": "select",
-    "pinScreenForgotPinCta": "Forgot PIN code?",
-    "pinScreenHeader": "Open with your PIN code",
+    "pinScreenForgotPinCta": "Forgot PIN?",
+    "pinScreenHeader": "Open with your PIN",
     "pinTimeoutScreenClearWalletCta": "Delete wallet",
-    "pinTimeoutScreenForgotPinCta": "Forgot PIN code?",
+    "pinTimeoutScreenForgotPinCta": "Forgot PIN?",
     "pinTimeoutScreenHeadline": "Temporarily blocked",
-    "pinTimeoutScreenTimeoutCountdown": "You have entered your PIN code incorrectly too many times. Please try again in {timeLeft}.",
+    "pinTimeoutScreenTimeoutCountdown": "Too many wrong PIN attempts. Please try again in {timeLeft}.",
     "@pinTimeoutScreenTimeoutCountdown": {
         "placeholders": {
             "timeLeft": {
@@ -837,10 +837,10 @@
             }
         }
     },
-    "pinValidationErrorDialogAscendingOrDescendingDigitsError": "Do not use sequential numbers. Choose a different PIN code.",
-    "pinValidationErrorDialogDefaultError": "Choose another PIN code",
-    "pinValidationErrorDialogTitle": "This PIN code is too simple",
-    "pinValidationErrorDialogTooFewUniqueDigitsError": "Choose a PIN code with different digits.",
+    "pinValidationErrorDialogAscendingOrDescendingDigitsError": "Do not use sequential numbers. Choose a different PIN.",
+    "pinValidationErrorDialogDefaultError": "Choose another PIN",
+    "pinValidationErrorDialogTitle": "This PIN is too simple",
+    "pinValidationErrorDialogTooFewUniqueDigitsError": "Choose a PIN with different digits.",
     "placeholderScreenContractDescription": "The contract will be displayed here.",
     "placeholderScreenGenericDescription": "Do you have questions or need help? The NL Wallet team is ready to assist you during the trial. Speak to someone, they will help you further.",
     "placeholderScreenHeadline": "Sorry, this page is still under construction.",
@@ -932,13 +932,13 @@
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",
     "resetWalletDialogTitle": "Do you want to delete all data?",
-    "rootDetectedScreenDescription": "To protect your data, you can not use NL Wallet on this device. \n\nThis device is not in its original state, which makes it not secure.",
+    "rootDetectedScreenDescription": "To protect your data, you can not use NL Wallet on this device. \n\nThis device is not in its original state, which makes it not secure. See the help page for more information.",
     "rootDetectedScreenTitle": "Your device is not secure",
     "scanWithWalletDialogBody": "It looks like you have scanned a QR code with a different app. To be sure, scan the QR code with the NL Wallet.",
-    "scanWithWalletDialogScanCta": "Scan QR-code",
+    "scanWithWalletDialogScanCta": "Scan QR code",
     "scanWithWalletDialogTitle": "Scan the QR code with NL Wallet",
     "settingsScreenChangeLanguageCta": "Change language",
-    "settingsScreenChangePinCta": "Change PIN code",
+    "settingsScreenChangePinCta": "Change PIN",
     "settingsScreenClearDataCta": "Remove data",
     "settingsScreenSetupBiometricsCta": "Unlock with {supportedBiometrics}",
     "@settingsScreenSetupBiometricsCta": {
@@ -951,7 +951,7 @@
     },
     "settingsScreenSetupBiometricsNotSupportedSubtitle": "Not supported on this device",
     "settingsScreenTitle": "Settings",
-    "setupBiometricsPageDescription": "This will open your NL Wallet faster. You'll use your face or fingerprint instead of your PIN code.",
+    "setupBiometricsPageDescription": "This will open your NL Wallet faster. You'll use your face or fingerprint instead of your PIN.",
     "setupBiometricsPageEnableCta": "Enable",
     "setupBiometricsPageLocalizedReason": "Confirm setup",
     "setupBiometricsPageSkipCta": "Skip",
@@ -965,9 +965,9 @@
         }
     },
     "setupSecurityCompletedPageCreateWalletCta": "Next",
-    "setupSecurityCompletedPageDescription": "Your app is secured with your PIN code.",
+    "setupSecurityCompletedPageDescription": "Remember your PIN. You use it to open the app and share data.",
     "setupSecurityCompletedPageTitle": "Success!",
-    "setupSecurityCompletedPageWithBiometricsDescription": "Your app is secured with your PIN code and {supportedBiometrics}.",
+    "setupSecurityCompletedPageWithBiometricsDescription": "Remember your PIN. You use it to share data. {supportedBiometrics} only opens the app.",
     "@setupSecurityCompletedPageWithBiometricsDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -976,15 +976,15 @@
             }
         }
     },
-    "setupSecurityConfirmationPageTitle": "Repeat your PIN code",
+    "setupSecurityConfirmationPageTitle": "Repeat your PIN",
     "setupSecurityLoadingPageDescription": "Please wait...",
     "setupSecurityLoadingPageTitle": "Save",
-    "setupSecurityScreenWCAGPinChosenAnnouncement": "PIN code chosen. Repeat to confirm.",
-    "setupSecuritySelectPinPageTitle": "Choose a 6-digit PIN code",
+    "setupSecurityScreenWCAGPinChosenAnnouncement": "PIN chosen. Repeat to confirm.",
+    "setupSecuritySelectPinPageTitle": "Choose a 6-digit PIN",
     "sharedAttributesCardCta": "View",
     "sharedAttributesCardTitle": "{count} from {cardTitle}",
     "showDetailsCta": "View",
-    "signConfirmPinPageDescription": "By entering your PIN code you agree to exchange your data.",
+    "signConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
     "signConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
     "@signConfirmPinPageErrorDescription": {
         "placeholders": {
@@ -994,8 +994,8 @@
             }
         }
     },
-    "signConfirmPinPageErrorTitle": "Invalid PIN code",
-    "signConfirmPinPageTitle": "Enter your PIN code",
+    "signConfirmPinPageErrorTitle": "Invalid PIN",
+    "signConfirmPinPageTitle": "Enter your PIN",
     "signGenericErrorPageCloseCta": "Close",
     "signGenericErrorPageDescription": "Something went wrong. Please try again later.",
     "signGenericErrorPageTitle": "Something went wrong",
@@ -1021,7 +1021,7 @@
     "signSuccessPageHistoryCta": "Activities",
     "signSuccessPageTitle": "Success!",
     "unlockWithBiometricsReason": "Unlock the NL Wallet",
-    "walletPersonalizeCheckDataOfferingPageAcceptCta": "Yes, correct",
+    "walletPersonalizeCheckDataOfferingPageAcceptCta": "Add",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Address",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Born",
     "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
@@ -1046,10 +1046,10 @@
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
     "walletPersonalizeCheckDataOfferingPageGenderLabel": "Gender",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Name",
-    "walletPersonalizeCheckDataOfferingPageSubtitle": "Your data is retrieved using DigiD.",
-    "walletPersonalizeCheckDataOfferingPageTitle": "Is the following data correct?",
-    "walletPersonalizeConfirmPinPageTitle": "Agree with your PIN code",
-    "walletPersonalizeDataIncorrectScreenDescription": "If your data is incorrect, it can cause problems. Therefore, do not add data.",
+    "walletPersonalizeCheckDataOfferingPageSubtitle": "If your details are correct, you can add them as cards.",
+    "walletPersonalizeCheckDataOfferingPageTitle": "Do you want to add these details?",
+    "walletPersonalizeConfirmPinPageTitle": "Agree with your PIN",
+    "walletPersonalizeDataIncorrectScreenDescription": "If your data is incorrect, it can cause problems. Therefore, do not add these details.",
     "walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints": "Contact your municipality to have your data changed.\nWait for a message from your municipality confirming the update.\nLog in again with DigiD to retrieve the correct data.",
     "walletPersonalizeDataIncorrectScreenHowToResolveTitle": "How can I correct incorrect data?",
     "walletPersonalizeDataIncorrectScreenNotYourDataDescription": "Do not add the data and log in with your own DigiD.",
@@ -1062,14 +1062,14 @@
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Login again",
     "walletPersonalizeDigidErrorPageNoDigidCta": "Need help with DigiD?",
     "walletPersonalizeDigidErrorPageTitle": "Login failed",
-    "walletPersonalizeIntroPageDescription": "You create your wallet by adding your personal details once using the DigiD app.",
+    "walletPersonalizeIntroPageDescription": "Log in just once with your DigiD app to retrieve your personal cards.",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open the DigiD app",
     "walletPersonalizeIntroPageNoDigidCta": "No DigiD?",
-    "walletPersonalizeIntroPageTitle": "Retrieve your data once via DigiD",
-    "walletPersonalizeNoDigidPageDescription": "At the moment you can only create a Wallet with the DigiD app.\n\nDo you live in the Netherlands and do you have a Dutch identity document? Then you can apply for a DigiD.",
+    "walletPersonalizeIntroPageTitle": "Add cards via DigiD",
+    "walletPersonalizeNoDigidPageDescription": "Right now, you can only use the NL Wallet by getting your details through the DigiD app.\n\nDo you live in the Netherlands and do you have a Dutch identity document? Then you can apply for a DigiD.",
     "walletPersonalizeNoDigidPageHeadline": "No DigiD?",
     "walletPersonalizeNoDigidPageRequestDigidCta": "Request DigiD",
-    "walletPersonalizeScreenAwaitingUserAuthDescription": "That's how to retrieve your data",
+    "walletPersonalizeScreenAwaitingUserAuthDescription": "Here's how you can get your data",
     "walletPersonalizeScreenAwaitingUserAuthTitle": "Continue in your DigiD app",
     "walletPersonalizeScreenDigidLoadingStopCta": "Stop",
     "walletPersonalizeScreenErrorDescription": "Something went wrong, please try again.",
@@ -1087,12 +1087,12 @@
     "walletPersonalizeScreenProcessingDigiDResultTitle": "Please wait",
     "walletPersonalizeScreenStopDigidDialogNegativeCta": "Back",
     "walletPersonalizeScreenStopDigidDialogPositiveCta": "Stop login",
-    "walletPersonalizeScreenStopDigidDialogSubtitle": "Are you sure you want to stop?",
+    "walletPersonalizeScreenStopDigidDialogSubtitle": "If you stop, you'll need to start over.",
     "walletPersonalizeScreenStopDigidDialogTitle": "Stop DigiD login?",
     "walletPersonalizeSetupFailedScreenCta": "Try again",
-    "walletPersonalizeSetupFailedScreenDescription": "You have entered the invalid PIN code too many times. Select a new PIN code and try again.",
+    "walletPersonalizeSetupFailedScreenDescription": "Too many wrong PIN attempts. Set a new PIN and try again.",
     "walletPersonalizeSetupFailedScreenHeadline": "Setup failed",
     "walletPersonalizeSuccessPageContinueCta": "To my overview",
-    "walletPersonalizeSuccessPageDescription": "Your data is stored in the following cards. These are always available in your wallet overview.",
-    "walletPersonalizeSuccessPageTitle": "Success!"
+    "walletPersonalizeSuccessPageDescription": "You can share the data in these cards or use it to log in.",
+    "walletPersonalizeSuccessPageTitle": "Your NL Wallet is ready"
 }

@@ -15,7 +15,7 @@ use crate::pid::{
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Issuer {
-    // Issuer private keys index per doctype
+    /// Issuer private keys index per doctype
     pub private_keys: HashMap<String, KeyPair>,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,

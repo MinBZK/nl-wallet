@@ -6,7 +6,7 @@ use std::{
 
 use etag::EntityTag;
 use serde::{Deserialize, Serialize};
-use webpki::TrustAnchor;
+use webpki::types::TrustAnchor;
 
 use crate::{
     account::serialization::DerVerifyingKey, config::digid::DigidApp2AppConfiguration, trust_anchor::DerTrustAnchor,

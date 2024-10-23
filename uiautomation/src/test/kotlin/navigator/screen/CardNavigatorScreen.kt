@@ -1,6 +1,6 @@
 package navigator.screen
 
-enum class CardScreen {
+enum class CardNavigatorScreen {
     Dashboard,
     CardDetail,
     CardData,

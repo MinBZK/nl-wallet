@@ -15,7 +15,7 @@ fn hw_keystore_test_hardware_signature() {
         .build()
         .unwrap();
 
-    rt.block_on(test::sign_and_verify_signature::<HardwareEcdsaKey>(payload, identifier))
+    rt.block_on(test::sign_and_verify_signature::<HardwareEcdsaKey>(payload, identifier));
 }
 
 #[rustfmt::skip]
@@ -24,7 +24,7 @@ extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_signin
     _env: JNIEnv,
     _: JClass,
 ) {
-    hw_keystore_test_hardware_signature()
+    hw_keystore_test_hardware_signature();
 }
 
 // this is the starting point for the encryption key integration test performed from Android / iOS.
@@ -40,7 +40,7 @@ fn hw_keystore_test_hardware_encryption() {
 
     rt.block_on(test::encrypt_and_decrypt_message::<HardwareEncryptionKey>(
         payload, identifier,
-    ))
+    ));
 }
 
 #[rustfmt::skip]
@@ -49,5 +49,5 @@ extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_keystore_encryp
     _env: JNIEnv,
     _: JClass,
 ) {
-    hw_keystore_test_hardware_encryption()
+    hw_keystore_test_hardware_encryption();
 }

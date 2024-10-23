@@ -1,3 +1,5 @@
+## The Privacy Statement is currently only available in Dutch.
+
 <!-- # Privacyverklaring Publieke Wallet (eerste beproevingsperiode) -->
 <!-- title is set in wallet_app/lib/src/feature/privacy_policy/privacy_policy_screen.dart -->
 

@@ -13,7 +13,7 @@ use p256::{
     EncodedPoint,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::{formats::PreferOne, serde_as, skip_serializing_none, OneOrMany};
+use serde_with::{serde_as, skip_serializing_none};
 use x509_parser::{
     der_parser::{asn1_rs::BitString, Oid},
     prelude::FromDer,
@@ -474,23 +474,67 @@ pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, Jw
 
 /// The JWS JSON serialization, see <https://www.rfc-editor.org/rfc/rfc7515.html#section-7.2>,
 /// which allows for a single payload to be signed by multiple signatures.
-#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonJwt<T> {
     pub payload: String,
-    #[serde_as(as = "OneOrMany<_, PreferOne>")]
-    pub signatures: Vec<JsonJwtSignature>,
+    #[serde(flatten)]
+    pub signatures: JsonJwtSignatures,
     #[serde(skip, default)]
     _phantomdata: PhantomData<T>,
+}
+
+/// Contains the JWS signatures, supporting both the "general" and "flattened" syntaxes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum JsonJwtSignatures {
+    General {
+        signatures: NonEmpty<Vec<JsonJwtSignature>>,
+    },
+    Flattened {
+        #[serde(flatten)]
+        signature: JsonJwtSignature,
+    },
+}
+
+impl IntoIterator for JsonJwtSignatures {
+    type Item = JsonJwtSignature;
+
+    type IntoIter = std::vec::IntoIter<JsonJwtSignature>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            JsonJwtSignatures::General { signatures } => signatures.into_inner().into_iter(),
+            JsonJwtSignatures::Flattened { signature } => vec![signature].into_iter(),
+        }
+    }
+}
+
+impl From<NonEmpty<Vec<JsonJwtSignature>>> for JsonJwtSignatures {
+    fn from(signatures: NonEmpty<Vec<JsonJwtSignature>>) -> Self {
+        match signatures.len().get() {
+            1 => Self::Flattened {
+                signature: signatures.into_inner().pop().unwrap(),
+            },
+            _ => Self::General { signatures },
+        }
+    }
 }
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonJwtSignature {
+    /// Base64-enoded JWS header, the same as the header of a normal JWS. `alg` is required.
     pub protected: String,
+
+    /// Unsigned JWS header (optional). May contain any of the fields of a normal JWS header, but none of them are
+    /// required. Unlike the `protected` header, this field is not included when signing the JWS.
+    /// (which is also why it is not Base64-encoded, unlike `protected` and the `payload` of [`JsonJwt<T>`]).
     #[serde(default)]
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub header: HashMap<String, serde_json::Value>,
+
+    /// Signature of the JWS. When (1) the `protected` of this struct, (2) the `payload` of [`JsonJwt<T>`]
+    /// and (3) this `signature` are concatenated with a `.` in between, then the result is a valid normal JWS.
     pub signature: String,
 }
 
@@ -519,24 +563,28 @@ impl<T> TryFrom<NonEmpty<Vec<Jwt<T>>>> for JsonJwt<T> {
         }
         let payload = first.remove(1); // `remove` is like `get`, but also moves out of the vec, so we can avoid cloning
 
+        let signatures: NonEmpty<_> = split_jwts
+            .into_iter()
+            .map(|mut split_jwt| {
+                if split_jwt.len() != 3 {
+                    return Err(JwtError::UnexpectedNumberOfParts(split_jwt.len()));
+                }
+                if split_jwt[1] != payload {
+                    return Err(JwtError::DifferentPayloads(split_jwt.remove(1), payload.clone()));
+                }
+                Ok(JsonJwtSignature {
+                    signature: split_jwt.remove(2),
+                    protected: split_jwt.remove(0),
+                    header: HashMap::default(),
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .unwrap(); // our iterable `split_jwts` came from a `NonEmpty`
+
         let json_jwt = Self {
             payload: payload.clone(),
-            signatures: split_jwts
-                .into_iter()
-                .map(|mut split_jwt| {
-                    if split_jwt.len() != 3 {
-                        return Err(JwtError::UnexpectedNumberOfParts(split_jwt.len()));
-                    }
-                    if split_jwt[1] != payload {
-                        return Err(JwtError::DifferentPayloads(split_jwt.remove(1), payload.clone()));
-                    }
-                    Ok(JsonJwtSignature {
-                        signature: split_jwt.remove(2),
-                        protected: split_jwt.remove(0),
-                        header: HashMap::default(),
-                    })
-                })
-                .collect::<Result<Vec<_>, _>>()?,
+            signatures: signatures.into(),
             _phantomdata: PhantomData,
         };
 
@@ -548,6 +596,7 @@ impl<T> TryFrom<NonEmpty<Vec<Jwt<T>>>> for JsonJwt<T> {
 mod tests {
     use std::collections::HashMap;
 
+    use assert_matches::assert_matches;
     use futures::StreamExt;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -556,7 +605,7 @@ mod tests {
 
     use super::*;
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
     struct ToyMessage {
         number: u8,
         string: String,
@@ -691,5 +740,48 @@ mod tests {
                 .unwrap();
             })
             .await;
+    }
+
+    #[tokio::test]
+    async fn test_json_jwt_serialization() {
+        let private_key = SigningKey::random(&mut OsRng);
+
+        let jwt = Jwt::sign(&ToyMessage::default(), &header(), &private_key)
+            .await
+            .unwrap();
+
+        let json_jwt_one: JsonJwt<_> = NonEmpty::new(vec![jwt.clone()]).unwrap().try_into().unwrap();
+        assert_matches!(json_jwt_one.signatures, JsonJwtSignatures::Flattened { .. });
+        let serialized = serde_json::to_string(&json_jwt_one).unwrap();
+        let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
+        assert_matches!(deserialized.signatures, JsonJwtSignatures::Flattened { .. });
+
+        let json_jwt_two: JsonJwt<_> = NonEmpty::new(vec![jwt.clone(), jwt.clone()])
+            .unwrap()
+            .try_into()
+            .unwrap();
+        assert_matches!(json_jwt_two.signatures, JsonJwtSignatures::General { .. });
+        let serialized = serde_json::to_string(&json_jwt_two).unwrap();
+        let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
+        assert_matches!(deserialized.signatures, JsonJwtSignatures::General { .. });
+
+        // Construct a JsonJwt having one signature but which uses JsonJwtSignatures::General
+        let JsonJwtSignatures::General { signatures } = json_jwt_two.signatures else {
+            panic!("expected the JsonJwtSignatures::General variant") // we actually already checked this above
+        };
+        let mut signatures = signatures.into_inner();
+        signatures.pop();
+        let json_jwt_mixed = JsonJwt::<ToyMessage> {
+            payload: json_jwt_two.payload,
+            signatures: JsonJwtSignatures::General {
+                signatures: signatures.try_into().unwrap(),
+            },
+            _phantomdata: PhantomData,
+        };
+
+        // We can (de)serialize such instances even though we don't produce them ourselves
+        let serialized = serde_json::to_string(&json_jwt_mixed).unwrap();
+        let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
+        assert_matches!(deserialized.signatures, JsonJwtSignatures::General { .. });
     }
 }

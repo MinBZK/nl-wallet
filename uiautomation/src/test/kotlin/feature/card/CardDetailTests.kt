@@ -2,7 +2,7 @@ package feature.card
 
 import helper.TestBase
 import navigator.CardNavigator
-import navigator.screen.CardScreen
+import navigator.screen.CardNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -27,7 +27,7 @@ class CardDetailTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        CardNavigator().toScreen(CardScreen.CardDetail)
+        CardNavigator().toScreen(CardNavigatorScreen.CardDetail)
 
         cardDetailScreen = CardDetailScreen()
     }
@@ -47,7 +47,10 @@ class CardDetailTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The Card detail page shows: issuer name, empty history state. [${JIRA_ID}]")
     fun verifyDataAndHistoryState() {
-        assertTrue(cardDetailScreen.issuerAndHistoryStates(), "issuer and/or history state not not visible and/or correct")
+        assertTrue(
+            cardDetailScreen.issuerAndHistoryStates(),
+            "issuer and/or history state not not visible and/or correct"
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

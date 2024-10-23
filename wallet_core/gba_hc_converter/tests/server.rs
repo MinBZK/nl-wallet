@@ -1,18 +1,20 @@
-use assert_json_diff::{assert_json_matches, CompareMode, Config};
-use ctor::ctor;
-use http::StatusCode;
-use reqwest::Response;
 use std::{
     net::{IpAddr, TcpListener},
     str::FromStr,
 };
+
+use assert_json_diff::{assert_json_matches, CompareMode, Config};
+use ctor::ctor;
+use http::StatusCode;
+use reqwest::Response;
+use serde_json::{json, Value};
 
 use gba_hc_converter::{
     gba::{client::GbavClient, error::Error},
     haal_centraal::{Bsn, Element, PersonQuery, PersonsResponse},
     server,
 };
-use serde_json::{json, Value};
+use tests_integration::common::wait_for_server;
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 use crate::common::read_file;
@@ -49,6 +51,7 @@ where
             .unwrap();
     });
 
+    wait_for_server(format!("http://localhost:{port}").parse().unwrap(), vec![]).await;
     port
 }
 

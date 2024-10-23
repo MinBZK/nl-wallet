@@ -118,9 +118,9 @@ fn sentry_capture_error_impl_fn(
 ///
 /// - `expected`: This is an expected error and does not need to be reported.
 /// - `critical`: This is a critical error that must be reported.
-/// - `pd`: This is a critical error that must be reported, but the contents may contain privacy sensitive data.
+/// - `pd`: This is a critical error that must be reported, but the contents may contain privacy-sensitive data.
 /// - `defer`: Analysis of categorization is deferred to one of the fields of this variant.
-/// - `unexpected`: This is an unexpected error and should never be found by `categorize_and_report` and will cause a
+/// - `unexpected`: This is an unexpected error and should never be found by `sentry_capture_error` and will cause a
 ///   panic.
 ///
 /// The `category` attribute for enums can be set on the `enum` variants, or on the `enum` to set a default for variants

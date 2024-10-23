@@ -32,7 +32,10 @@ use openid4vc::{
     CredentialErrorCode,
 };
 use wallet_common::{
-    jwt::JwtCredentialContents, keys::software_key_factory::SoftwareKeyFactory, nonempty::NonEmpty, urls::BaseUrl,
+    jwt::{JsonJwt, Jwt, JwtCredentialContents},
+    keys::{poa::PoaPayload, software_key_factory::SoftwareKeyFactory},
+    nonempty::NonEmpty,
+    urls::BaseUrl,
 };
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
@@ -323,8 +326,11 @@ impl MockOpenidMessageClient {
         }
 
         if self.invalidate_poa {
-            let mut poa = credential_request.poa.unwrap();
-            poa.signatures.pop();
+            let poa = credential_request.poa.unwrap();
+            let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+            jwts.pop();
+            let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
+            let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
             credential_request.poa = Some(poa);
         }
 
@@ -349,8 +355,11 @@ impl MockOpenidMessageClient {
         }
 
         if self.invalidate_poa {
-            let mut poa = credential_requests.poa.unwrap();
-            poa.signatures.pop();
+            let poa = credential_requests.poa.unwrap();
+            let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+            jwts.pop();
+            let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
+            let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
             credential_requests.poa = Some(poa);
         }
 

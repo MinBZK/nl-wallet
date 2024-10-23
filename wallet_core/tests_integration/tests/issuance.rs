@@ -20,7 +20,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         wallet
             .set_documents_callback(Box::new(move |mut d| {
                 let mut documents = documents.lock().unwrap();
-                documents.append(&mut d)
+                documents.append(&mut d);
             }))
             .await
             .unwrap();

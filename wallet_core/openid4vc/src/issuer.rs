@@ -156,7 +156,7 @@ pub struct Done {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum IssuanceData {
     Created(Created),
-    WaitingForResponse(WaitingForResponse),
+    WaitingForResponse(Box<WaitingForResponse>),
     Done(Done),
 }
 
@@ -577,7 +577,7 @@ impl TokenResponse {
 impl From<Session<WaitingForResponse>> for SessionState<IssuanceData> {
     fn from(value: Session<WaitingForResponse>) -> Self {
         SessionState {
-            data: IssuanceData::WaitingForResponse(value.state.data),
+            data: IssuanceData::WaitingForResponse(Box::new(value.state.data)),
             token: value.state.token,
             last_active: value.state.last_active,
         }
@@ -593,7 +593,7 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
-                data: session_data,
+                data: *session_data,
                 token: value.token,
                 last_active: value.last_active,
             },
@@ -904,7 +904,7 @@ impl CredentialResponse {
                     .map_err(CredentialRequestError::CredentialSigning)?;
 
                 Ok(CredentialResponse::MsoMdoc {
-                    credential: issuer_signed.into(),
+                    credential: Box::new(issuer_signed.into()),
                 })
             }
 
