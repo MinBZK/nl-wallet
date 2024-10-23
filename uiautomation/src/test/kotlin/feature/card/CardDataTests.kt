@@ -2,7 +2,7 @@ package feature.card
 
 import helper.TestBase
 import navigator.CardNavigator
-import navigator.screen.CardScreen
+import navigator.screen.CardNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -28,7 +28,7 @@ class CardDataTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        CardNavigator().toScreen(CardScreen.CardData)
+        CardNavigator().toScreen(CardNavigatorScreen.CardData)
 
         cardDataScreen = CardDataScreen()
     }

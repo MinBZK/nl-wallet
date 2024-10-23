@@ -7,7 +7,7 @@ use p256::SecretKey;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, FromInto, IfIsHumanReadable};
 use tracing::{debug, warn};
-use webpki::TrustAnchor;
+use webpki::types::TrustAnchor;
 
 use wallet_common::generator::Generator;
 

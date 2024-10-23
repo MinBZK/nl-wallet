@@ -170,12 +170,14 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         },
         #[cfg(feature = "issuance")]
         issuer: fake_issuer_settings(),
+        issuer_trust_anchors: vec![issuer_trust_anchor],
         verifier: Verifier {
             usecases,
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
-            trust_anchors: vec![issuer_trust_anchor],
             allow_origins: None,
         },
+        #[cfg(feature = "disclosure")]
+        reader_trust_anchors: vec![rp_ca.certificate().try_into().unwrap()],
         sentry: None,
     };
 
@@ -793,8 +795,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     let (mdoc_data_source, key_factory) = prepare_example_holder_mocks(
         &issuer_key_pair,
         &settings
-            .verifier
-            .trust_anchors
+            .issuer_trust_anchors
             .iter()
             .map(|anchor| (&anchor.owned_trust_anchor).into())
             .collect_vec(),

@@ -15,7 +15,7 @@ doctest = false
 
 [dependencies]
 axum = { workspace = true, features = ["http1", "tokio", "tower-log", "tracing"] }
-axum-server = { workspace = true, features = ["tls-rustls"] }
+axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true

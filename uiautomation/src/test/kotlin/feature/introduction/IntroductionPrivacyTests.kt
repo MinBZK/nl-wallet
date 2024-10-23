@@ -2,7 +2,7 @@ package feature.introduction
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.screen.OnboardingScreen
+import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -26,7 +26,7 @@ class IntroductionPrivacyTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.IntroductionPrivacy)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.IntroductionPrivacy)
 
         privacyScreen = IntroductionPrivacyScreen()
     }

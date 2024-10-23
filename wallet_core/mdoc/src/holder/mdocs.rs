@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use webpki::TrustAnchor;
+use webpki::types::TrustAnchor;
 
 use error_category::ErrorCategory;
 use wallet_common::{

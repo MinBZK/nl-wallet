@@ -90,7 +90,7 @@ pub struct CredentialResponses {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
-    MsoMdoc { credential: CborBase64<IssuerSigned> },
+    MsoMdoc { credential: Box<CborBase64<IssuerSigned>> },
     Jwt { credential: Jwt<JwtCredentialClaims> },
 }
 

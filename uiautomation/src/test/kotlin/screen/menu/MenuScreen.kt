@@ -13,6 +13,7 @@ class MenuScreen : MobileActions() {
     private val aboutButton = find.byText(l10n.getString("menuScreenAboutCta"))
     private val logoutButton = find.byText(l10n.getString("menuScreenLockCta"))
     private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
+    private val browserTestButton = find.byText("Browser Test")
 
     fun visible() = isElementVisible(screen)
 
@@ -35,4 +36,9 @@ class MenuScreen : MobileActions() {
     fun clickLogoutButton() = clickElement(logoutButton)
 
     fun clickBottomBackButton() = clickElement(bottomBackButton)
+
+    fun clickBrowserTestButton() {
+        clickElement(browserTestButton)
+        switchToWebViewContext()
+    }
 }
