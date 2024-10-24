@@ -320,7 +320,7 @@ where
                 .contents
                 .attributes
                 .exp
-                < now
+                >= now
         });
 
         Ok(())
@@ -332,7 +332,13 @@ pub mod test {
     use std::fmt::Debug;
 
     use assert_matches::assert_matches;
+    use p256::ecdsa::SigningKey;
     use parking_lot::RwLock;
+    use rand_core::OsRng;
+
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+
+    use crate::issuance_session::mock_wte;
 
     use super::*;
 
@@ -546,6 +552,27 @@ pub mod test {
 
         assert!(session.is_none());
     }
+
+    pub async fn test_wte_tracker(wte_tracker: &impl WteTracker, mock_time: &RwLock<DateTime<Utc>>) {
+        let key_factory = SoftwareKeyFactory::new(Default::default());
+        let wte_signing_key = SigningKey::random(&mut OsRng);
+
+        let wte = mock_wte(&key_factory, &wte_signing_key).await.jwt;
+
+        // Checking our WTE for the first time means we haven't seen it before
+        assert!(!wte_tracker.previously_seen_wte(&wte).await.unwrap());
+
+        // Now we have seen it
+        assert!(wte_tracker.previously_seen_wte(&wte).await.unwrap());
+
+        // Advance time past the expiry of the WTE and run the cleanup job
+        let t2 = *mock_time.read() + Duration::from_secs(10 * 60);
+        *mock_time.write() = t2;
+        wte_tracker.cleanup().await.unwrap();
+
+        // The expired WTE has been removed by the cleanup job
+        assert!(!wte_tracker.previously_seen_wte(&wte).await.unwrap());
+    }
 }
 
 #[cfg(test)]
@@ -647,5 +674,13 @@ mod tests {
 
         test::test_session_store_cleanup_failed_deletion(&session_store, &session_store.timeouts, mock_time.as_ref())
             .await;
+    }
+
+    #[tokio::test]
+    async fn test_memory_wte_tracker() {
+        let time_generator = MockTimeGenerator::default();
+        let mock_time = Arc::clone(&time_generator.time);
+
+        test::test_wte_tracker(&MemoryWteTracker::new_with_time(time_generator), mock_time.as_ref()).await;
     }
 }

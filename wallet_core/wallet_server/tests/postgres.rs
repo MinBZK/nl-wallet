@@ -15,7 +15,7 @@ use wallet_common::utils;
 use wallet_server::{
     settings::{Settings, Storage},
     store::{
-        postgres::{self, PostgresSessionStore},
+        postgres::{self, PostgresSessionStore, PostgresWteTracker},
         SessionDataType,
     },
 };
@@ -115,6 +115,19 @@ async fn test_get_write() {
     let session_store = postgres_session_store().await;
 
     test::test_session_store_get_write::<MockSessionData>(&session_store).await;
+}
+
+#[tokio::test]
+async fn test_wte_tracker() {
+    let time_generator = MockTimeGenerator::default();
+    let mock_time = Arc::clone(&time_generator.time);
+
+    let wte_tracker = PostgresWteTracker::new_with_time(
+        postgres::new_connection(storage_settings().url).await.unwrap(),
+        time_generator,
+    );
+
+    test::test_wte_tracker(&wte_tracker, mock_time.as_ref()).await;
 }
 
 #[tokio::test]
