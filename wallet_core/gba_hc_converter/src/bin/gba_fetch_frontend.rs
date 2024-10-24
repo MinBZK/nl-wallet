@@ -42,6 +42,8 @@ async fn main() -> anyhow::Result<()> {
             .with_default_directive(LevelFilter::INFO.into())
             .from_env_lossy(),
     );
+
+    let settings = Settings::new()?;
     if settings.structured_logging {
         builder.json().init();
     } else {

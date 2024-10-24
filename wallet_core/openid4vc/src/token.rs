@@ -184,13 +184,14 @@ impl CredentialPreview {
         match self {
             CredentialPreview::MsoMdoc { issuer, .. } => {
                 // Verify the issuer certificates that the issuer presents for each credential to be issued.
-                // NB: this only proves the authenticity of the data inside the certificates (the [`IssuerRegistration`]s),
-                // but does not authenticate the issuer that presents them.
-                // Anyone that has ever seen these certificates (such as other wallets that received them during issuance)
-                // could present them here in the protocol without needing the corresponding issuer private key.
-                // This is not a problem, because at the end of the issuance protocol each mdoc is verified against the
-                // corresponding certificate in the credential preview, which implicitly authenticates the issuer because
-                // only it could have produced an mdoc against that certificate.
+                // NB: this only proves the authenticity of the data inside the certificates (the
+                // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
+                // Anyone that has ever seen these certificates (such as other wallets that received them during
+                // issuance) could present them here in the protocol without needing the corresponding
+                // issuer private key. This is not a problem, because at the end of the issuance
+                // protocol each mdoc is verified against the corresponding certificate in the
+                // credential preview, which implicitly authenticates the issuer because only it could
+                // have produced an mdoc against that certificate.
                 issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
             }
             CredentialPreview::Jwt { .. } => Ok(()),
