@@ -189,9 +189,6 @@ name = "anyhow"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
-dependencies = [
- "backtrace",
-]
 
 [[package]]
 name = "apple_app_attest"
@@ -869,7 +866,6 @@ dependencies = [
  "etag",
  "http",
  "mime",
- "sentry",
  "serde",
  "serde_with",
  "tokio",
@@ -1400,6 +1396,7 @@ name = "error_category"
 version = "0.2.2-dev"
 dependencies = [
  "error_category_derive",
+ "rstest",
  "sentry",
  "thiserror",
  "tracing",
@@ -1504,6 +1501,7 @@ dependencies = [
  "anyhow",
  "backtrace",
  "cstr",
+ "error_category",
  "flutter_api_macros",
  "flutter_rust_bridge",
  "itertools",
@@ -1739,7 +1737,6 @@ dependencies = [
  "reqwest",
  "rpassword",
  "rstest",
- "sentry",
  "serde",
  "serde_json",
  "serde_with",
@@ -2523,7 +2520,6 @@ dependencies = [
  "openid4vc",
  "reqwest",
  "rstest",
- "sentry",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -3958,31 +3954,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5484316556650182f03b43d4c746ce0e3e48074a21e2f51244b648b6542e1066"
 dependencies = [
  "httpdate",
- "log",
  "reqwest",
  "rustls 0.22.4",
- "sentry-anyhow",
  "sentry-backtrace",
  "sentry-contexts",
  "sentry-core",
  "sentry-debug-images",
- "sentry-log",
  "sentry-panic",
  "sentry-tracing",
  "tokio",
  "ureq",
  "webpki-roots 0.26.3",
-]
-
-[[package]]
-name = "sentry-anyhow"
-version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d672bfd1ed4e90978435f3c0704edb71a7a9d86403657839d518cd6aa278aff5"
-dependencies = [
- "anyhow",
- "sentry-backtrace",
- "sentry-core",
 ]
 
 [[package]]
@@ -4017,7 +3999,6 @@ version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "161283cfe8e99c8f6f236a402b9ccf726b201f365988b5bb637ebca0abbd4a30"
 dependencies = [
- "log",
  "once_cell",
  "rand",
  "sentry-types",
@@ -4033,16 +4014,6 @@ checksum = "8fc6b25e945fcaa5e97c43faee0267eebda9f18d4b09a251775d8fef1086238a"
 dependencies = [
  "findshlibs",
  "once_cell",
- "sentry-core",
-]
-
-[[package]]
-name = "sentry-log"
-version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75bbcc61886955045a1dd4bdb173412a80bb2571be3c5bfcf7eb8f55a442bbf5"
-dependencies = [
- "log",
  "sentry-core",
 ]
 
@@ -5636,7 +5607,6 @@ dependencies = [
  "ring 0.17.8",
  "rstest",
  "rustls-webpki 0.102.8",
- "sentry",
  "serde",
  "serde_json",
  "serde_with",
@@ -5661,7 +5631,6 @@ dependencies = [
  "nutype",
  "p256",
  "rand_core",
- "sentry",
  "serde",
  "serde_json",
  "serde_with",
@@ -5799,7 +5768,6 @@ dependencies = [
  "ring 0.17.8",
  "rstest",
  "sea-orm",
- "sentry",
  "serde",
  "serde_json",
  "serde_urlencoded",
