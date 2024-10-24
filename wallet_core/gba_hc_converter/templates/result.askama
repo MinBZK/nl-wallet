@@ -9,9 +9,7 @@
     <section class="info">
         <h2>Result</h2>
         <p><output id="result">{{ msg }}</output></p>
-        <form method="GET" action="/">
-            <button type="submit">Restart</button>
-        </form>
+        <a href="/">Go back</a>
     </section>
 </main>
 {% endblock %}
