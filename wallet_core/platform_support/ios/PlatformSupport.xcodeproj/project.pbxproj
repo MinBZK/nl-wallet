@@ -200,7 +200,7 @@
 				61B7755E29D724B10076A7F5 /* Bridge */,
 				61B7756129D724C60076A7F5 /* PlatformUtility */,
 			);
-			name = Utils;
+			path = Utils;
 			sourceTree = "<group>";
 		};
 		61B7755E29D724B10076A7F5 /* Bridge */ = {
@@ -209,7 +209,7 @@
 				61B7755F29D724C20076A7F5 /* Utilities.swift */,
 				6173AF8A29D72F64009C715F /* UtilitiesError+From.swift */,
 			);
-			name = Bridge;
+			path = Bridge;
 			sourceTree = "<group>";
 		};
 		61B7756129D724C60076A7F5 /* PlatformUtility */ = {
@@ -217,7 +217,7 @@
 			children = (
 				61B7756229D725060076A7F5 /* PlatformUtility.swift */,
 			);
-			name = PlatformUtility;
+			path = PlatformUtility;
 			sourceTree = "<group>";
 		};
 		61C1FFFD29B7726700F1D795 /* HWKeyStore */ = {
