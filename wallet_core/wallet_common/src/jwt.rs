@@ -45,6 +45,34 @@ impl<T, S: Into<String>> From<S> for Jwt<T> {
     }
 }
 
+/// A verified JWS, along with its header and payload.
+pub struct VerifiedJwt<T> {
+    header: Header,
+    payload: T,
+    jwt: Jwt<T>,
+}
+
+impl<T> VerifiedJwt<T>
+where
+    T: DeserializeOwned,
+{
+    pub fn try_new(jwt: Jwt<T>, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<Self> {
+        let (header, payload) = jwt.parse_and_verify_with_header(pubkey, validation_options)?;
+
+        Ok(Self { header, payload, jwt })
+    }
+
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+    pub fn payload(&self) -> &T {
+        &self.payload
+    }
+    pub fn jwt(&self) -> &Jwt<T> {
+        &self.jwt
+    }
+}
+
 pub type Result<T, E = JwtError> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

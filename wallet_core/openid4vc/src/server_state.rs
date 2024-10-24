@@ -1,7 +1,7 @@
 use std::{convert::Infallible, future::Future, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
-use dashmap::{mapref::entry::Entry, DashMap, DashSet};
+use dashmap::{mapref::entry::Entry, DashMap};
 use nutype::nutype;
 use tokio::{
     task::JoinHandle,
@@ -12,8 +12,8 @@ use tracing::warn;
 use wallet_common::{
     account::messages::instructions::WteClaims,
     generator::{Generator, TimeGenerator},
-    jwt::{Jwt, JwtCredentialClaims},
-    utils::random_string,
+    jwt::{JwtCredentialClaims, VerifiedJwt},
+    utils::{random_string, sha256},
 };
 
 /// The cleanup task that removes stale sessions runs every so often.
@@ -240,17 +240,15 @@ impl SessionToken {
     }
 }
 
-/// Allows detection of previously used WTEs, by keeping track of WTEs that have been used by wallets for as long as
-/// they are valid (after which they may be cleaned up with `cleanup()`).
-///
-/// NOTE: implementations of this trait may assume the WTE has been verified. Callers must therefore
-/// verify the WTE before calling `previously_seen_wte()`.
+/// Allows detection of previously used WTEs, by keeping track of WTEs that have been used by wallets within
+/// their valididy time window (after which they may be cleaned up with `cleanup()`).
 #[trait_variant::make(Send)]
 pub trait WteTracker {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    /// Return whether or not we have seen this WTE within its validity window.
-    async fn previously_seen_wte(&self, wte: &Jwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error>;
+    /// Return whether or not we have seen this WTE within its validity window, and track this WTE as seen.
+    async fn previously_seen_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>)
+        -> Result<bool, Self::Error>;
 
     /// Cleanup expired WTEs from this tracker.
     async fn cleanup(&self) -> Result<(), Self::Error>;
@@ -275,14 +273,14 @@ pub trait WteTracker {
 
 #[derive(Debug, Clone, Default)]
 pub struct MemoryWteTracker<G = TimeGenerator> {
-    seen_wtes: DashSet<String>,
+    seen_wtes: DashMap<Vec<u8>, DateTime<Utc>>,
     time: G,
 }
 
 impl<G> MemoryWteTracker<G> {
     pub fn new_with_time(time_generator: G) -> Self {
         Self {
-            seen_wtes: DashSet::new(),
+            seen_wtes: DashMap::new(),
             time: time_generator,
         }
     }
@@ -300,28 +298,22 @@ where
 {
     type Error = Infallible;
 
-    /// NOTE: this function assumes the wte has been verified. If not, then the `cleanup()` method may panic.
-    async fn previously_seen_wte(&self, wte: &Jwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
-        if self.seen_wtes.contains(&wte.0) {
+    async fn previously_seen_wte(
+        &self,
+        wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>,
+    ) -> Result<bool, Self::Error> {
+        let shasum = sha256(wte.jwt().0.as_bytes());
+        if self.seen_wtes.contains_key(&shasum) {
             Ok(true)
         } else {
-            self.seen_wtes.insert(wte.0.clone());
+            self.seen_wtes.insert(shasum, wte.payload().contents.attributes.exp);
             Ok(false)
         }
     }
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
         let now = self.time.generate();
-        self.seen_wtes.retain(|wte| {
-            Jwt::<JwtCredentialClaims<WteClaims>>::from(wte)
-                .dangerous_parse_unverified()
-                .unwrap() // See rustdoc of previously_seen_wte()
-                .1
-                .contents
-                .attributes
-                .exp
-                >= now
-        });
+        self.seen_wtes.retain(|_, exp| *exp >= now);
 
         Ok(())
     }
@@ -338,7 +330,7 @@ pub mod test {
 
     use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
 
-    use crate::issuance_session::mock_wte;
+    use crate::{credential::WteDisclosure, issuance_session::mock_wte};
 
     use super::*;
 
@@ -558,6 +550,13 @@ pub mod test {
         let wte_signing_key = SigningKey::random(&mut OsRng);
 
         let wte = mock_wte(&key_factory, &wte_signing_key).await.jwt;
+
+        let wte = VerifiedJwt::try_new(
+            wte,
+            &wte_signing_key.verifying_key().into(),
+            &WteDisclosure::validations(),
+        )
+        .unwrap();
 
         // Checking our WTE for the first time means we haven't seen it before
         assert!(!wte_tracker.previously_seen_wte(&wte).await.unwrap());

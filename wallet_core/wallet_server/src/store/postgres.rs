@@ -18,7 +18,7 @@ use openid4vc::server_state::{
 use wallet_common::{
     account::messages::instructions::WteClaims,
     generator::{Generator, TimeGenerator},
-    jwt::{Jwt, JwtCredentialClaims},
+    jwt::{JwtCredentialClaims, VerifiedJwt},
     utils::sha256,
 };
 
@@ -232,10 +232,12 @@ where
 {
     type Error = DbErr;
 
-    /// NOTE: this function assumes the wte has been verified. If not it may panic.
-    async fn previously_seen_wte(&self, wte: &Jwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
-        let shasum = sha256(wte.0.as_bytes());
-        let expires = wte.dangerous_parse_unverified().unwrap().1.contents.attributes.exp;
+    async fn previously_seen_wte(
+        &self,
+        wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>,
+    ) -> Result<bool, Self::Error> {
+        let shasum = sha256(wte.jwt().0.as_bytes());
+        let expires = wte.payload().contents.attributes.exp;
 
         let query_result = used_wtes::Entity::insert(used_wtes::ActiveModel {
             used_wte_hash: ActiveValue::set(shasum),

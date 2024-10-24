@@ -17,9 +17,10 @@ use nl_wallet_mdoc::{
     IssuerSigned,
 };
 use wallet_common::{
+    account::messages::instructions::WteClaims,
     jwt::{
         jwk_to_p256, validations, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims,
-        NL_WALLET_CLIENT_ID,
+        VerifiedJwt, NL_WALLET_CLIENT_ID,
     },
     keys::{
         poa::{PoaError, PoaVerificationError},
@@ -669,7 +670,7 @@ impl Session<WaitingForResponse> {
             .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?;
 
-        let wte_pubkey = wte_disclosure.verify(
+        let verified_wte = wte_disclosure.verify(
             &issuer_data.wte_issuer_pubkey,
             issuer_data.credential_issuer_identifier.to_string(),
             NL_WALLET_CLIENT_ID.to_string(),
@@ -679,7 +680,7 @@ impl Session<WaitingForResponse> {
         // Check that the WTE is fresh
         if issuer_data
             .wte_tracker
-            .previously_seen_wte(&wte_disclosure.0)
+            .previously_seen_wte(&verified_wte)
             .await
             .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
         {
@@ -698,7 +699,7 @@ impl Session<WaitingForResponse> {
             .ok_or(CredentialRequestError::MissingPoa)?
             .clone()
             .verify(
-                vec![pop_pubkey, wte_pubkey],
+                vec![pop_pubkey, jwk_to_p256(&verified_wte.payload().confirmation.jwk)?],
                 issuer_data.credential_issuer_identifier.to_string(),
                 NL_WALLET_CLIENT_ID.to_string(),
                 Some(self.state.data.c_nonce.clone()),
@@ -782,7 +783,7 @@ impl Session<WaitingForResponse> {
             .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?;
 
-        let wte_pubkey = wte_disclosure.verify(
+        let verified_wte = wte_disclosure.verify(
             &issuer_data.wte_issuer_pubkey,
             issuer_data.credential_issuer_identifier.to_string(),
             NL_WALLET_CLIENT_ID.to_string(),
@@ -792,7 +793,7 @@ impl Session<WaitingForResponse> {
         // Check that the WTE is fresh
         if issuer_data
             .wte_tracker
-            .previously_seen_wte(&wte_disclosure.0)
+            .previously_seen_wte(&verified_wte)
             .await
             .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
         {
@@ -810,7 +811,7 @@ impl Session<WaitingForResponse> {
                     .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
                     .dangerous_unvalidated_cnf_key()
             })
-            .chain([Ok(wte_pubkey)])
+            .chain([Ok(jwk_to_p256(&verified_wte.payload().confirmation.jwk)?)])
             .collect::<Result<Vec<_>, _>>()?;
         credential_requests
             .poa
@@ -1019,20 +1020,28 @@ impl CredentialRequestProof {
 }
 
 impl WteDisclosure {
+    /// Returns the JWS validations for WTE verification.
+    ///
+    /// NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
+    /// without leeway. There must be no clock drift between the WTE issuer and the caller.
+    pub fn validations() -> Validation {
+        // Enforce presence of exp, meaning it is also verified since `validations().validate_exp` is `true` by default
+        let mut validations = validations();
+        validations.leeway = 0;
+        validations.set_required_spec_claims(&["exp"]);
+
+        validations
+    }
+
     fn verify(
         &self,
         issuer_public_key: &VerifyingKey,
         expected_aud: String,
         expected_issuer: String,
         expected_nonce: Option<String>,
-    ) -> Result<VerifyingKey, CredentialRequestError> {
-        // Enforce presence of exp, meaning it is also verified since `wte_validations.validate_exp = true` by default
-        let mut wte_validations = validations();
-        wte_validations.leeway = 0; // we expect the WTE issuer and ourselves to not have relative clock drift
-        wte_validations.set_required_spec_claims(&["exp"]);
-
-        let wte_claims = self.0.parse_and_verify(&issuer_public_key.into(), &wte_validations)?;
-        let wte_pubkey = jwk_to_p256(&wte_claims.confirmation.jwk)?;
+    ) -> Result<VerifiedJwt<JwtCredentialClaims<WteClaims>>, CredentialRequestError> {
+        let verified_jwt = VerifiedJwt::try_new(self.0.clone(), &issuer_public_key.into(), &Self::validations())?;
+        let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
         let mut validations = validations();
         validations.set_audience(&[&expected_aud]);
@@ -1043,7 +1052,7 @@ impl WteDisclosure {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
-        Ok(wte_pubkey)
+        Ok(verified_jwt)
     }
 }
 
