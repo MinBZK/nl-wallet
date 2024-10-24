@@ -13,14 +13,14 @@ use crate::{Category, ErrorCategory};
 /// the `filter_and_scrub_sensitive_data` can act according to the category of the error.
 ///
 /// For errors that fall into the category `unexpected` an error message is loggeg and a panic is raised.
-/// Unexpected errors should never occur in the wallet and point to a software error, this can happen when
+/// Unexpected errors should never occur in the wallet and point to a programming error, this can happen when
 /// the wallet uses code that is meant for an external service, like the wallet_provider or the wallet_server.
 /// Otherwise the error classification is wrong.
 pub fn classify_mask_and_capture<T: ErrorCategory + Error + ?Sized>(error: &T) {
     let category = error.category();
     if category == Category::Unexpected {
-        tracing::error!("unexpected error, this is a software error: {error}");
-        panic!("unexpected error, this is a software error");
+        tracing::error!("unexpected error, this should never occur in the Wallet: {error}");
+        panic!("unexpected error, this should never occur in the Wallet");
     }
     let mut event = event_from_error(error);
     event
@@ -249,7 +249,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "unexpected error, this is a software error")]
+    #[should_panic(expected = "unexpected error, this should never occur in the Wallet")]
     fn test_classify_mask_and_capture_enum_unexpected() {
         let error = ErrorEnum::Specific(SpecificError {
             category: Category::Unexpected,
@@ -281,7 +281,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "unexpected error, this is a software error")]
+    #[should_panic(expected = "unexpected error, this should never occur in the Wallet")]
     fn test_classify_mask_and_capture_critical_struct_unexpected() {
         let error = SpecificError {
             category: Category::Unexpected,
