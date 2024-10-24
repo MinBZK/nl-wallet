@@ -1,7 +1,7 @@
 //! Holder software to store and disclose mdocs.
 
 use error_category::ErrorCategory;
-pub use webpki::TrustAnchor;
+pub use webpki::types::TrustAnchor;
 
 use crate::utils::{
     reader_auth,

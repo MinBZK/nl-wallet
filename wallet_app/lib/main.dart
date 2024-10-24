@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fimber/fimber.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -37,12 +39,23 @@ void main() async {
         ..dsn = Environment.sentryDsn
         ..environment = Environment.sentryEnvironment
         ..release = Environment.sentryRelease() // default applies when SENTRY_RELEASE not set
-        ..debug = kDebugMode,
+        ..debug = kDebugMode
+        ..beforeSend = beforeSend,
       appRunner: mainImpl,
     );
   } else {
     mainImpl();
   }
+}
+
+FutureOr<SentryEvent?> beforeSend(SentryEvent event, Hint hint) async {
+  // Strip all breadcrumbs and exception values from the event
+  return event.copyWith(
+    breadcrumbs: null,
+    exceptions: event.exceptions?.map((exception) {
+      return exception.copyWith(value: null);
+    }).toList(),
+  );
 }
 
 //ignore: avoid_void_async

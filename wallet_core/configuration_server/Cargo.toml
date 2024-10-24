@@ -15,26 +15,15 @@ doctest = false
 
 [dependencies]
 axum = { workspace = true, features = ["http1", "tokio", "tower-log", "tracing"] }
-axum-server = { workspace = true, features = ["tls-rustls"] }
+axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true
 mime.workspace = true
-sentry = { workspace = true, features = [
-    "backtrace",
-    "contexts",
-    "debug-images",
-    "panic",
-    "anyhow",
-    "reqwest",
-    "rustls",
-    "tracing",
-    "log",
-] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
 
-wallet_common = { path = "../wallet_common", features = ["sentry"] }
+wallet_common.path = "../wallet_common"

@@ -21,13 +21,10 @@ parking_lot.workspace = true
 sentry = { workspace = true, features = [
     "backtrace",
     "contexts",
-    "debug-images",
     "panic",
-    "anyhow",
+    "debug-images",
     "reqwest",
     "rustls",
-    "tracing",
-    "log",
 ] }
 sentry-panic.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -38,6 +35,7 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "fmt", "tracing-log", "parking_lot"] }
 url.workspace = true
 
+error_category.path = "../error_category"
 flutter_api_macros.path = "flutter_api_macros"
 wallet.path = "../wallet"
 

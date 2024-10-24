@@ -11,15 +11,12 @@ use coset::{
 use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
-use webpki::TrustAnchor;
+use webpki::types::TrustAnchor;
 
 use error_category::ErrorCategory;
 use wallet_common::{
     generator::Generator,
-    keys::{
-        EcdsaKey,
-        {factory::KeyFactory, CredentialEcdsaKey},
-    },
+    keys::{factory::KeyFactory, CredentialEcdsaKey, EcdsaKey},
 };
 
 use crate::utils::serialization::{cbor_deserialize, cbor_serialize, CborError};

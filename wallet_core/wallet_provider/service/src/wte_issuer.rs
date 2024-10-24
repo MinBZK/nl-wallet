@@ -84,6 +84,9 @@ where
 pub mod mock {
     use std::convert::Infallible;
 
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
     use wallet_common::jwt::{Jwt, JwtCredentialClaims};
     use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
@@ -95,7 +98,11 @@ pub mod mock {
         type Error = Infallible;
 
         async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error> {
-            Ok((WrappedKey::new(b"mock_key_bytes".to_vec()), "a.b.c".into()))
+            let privkey = SigningKey::random(&mut OsRng);
+            Ok((
+                WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+                "a.b.c".into(),
+            ))
         }
 
         async fn public_key(&self) -> Result<p256::ecdsa::VerifyingKey, Self::Error> {
@@ -106,16 +113,13 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use chrono::Utc;
-    use p256::ecdsa::signature::Verifier;
 
     use wallet_common::{
         jwt::{self, jwk_to_p256},
         keys::{software::SoftwareEcdsaKey, EcdsaKey},
     };
-    use wallet_provider_domain::model::hsm::{mock::MockPkcs11Client, WalletUserHsm};
+    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 
     use crate::hsm::HsmError;
 
@@ -140,18 +144,10 @@ mod tests {
             .parse_and_verify(&(&wte_verifying_key).into(), &jwt::validations())
             .unwrap();
 
-        // We want to check that the public key of `wte_privkey` equals the public key in the `wte_claims`,
-        // but the `hsm` API does not allow us to do that. So instead we check that we can sign things
-        // with it that validate against the public key in the `wte_claims`.
-        let sig = wte_issuer
-            .hsm
-            .sign_wrapped(wte_privkey, Arc::new(b"".to_vec()))
-            .await
-            .unwrap();
-        jwk_to_p256(&wte_claims.confirmation.jwk)
-            .unwrap()
-            .verify(b"", &sig)
-            .unwrap();
+        assert_eq!(
+            wte_privkey.public_key(),
+            &jwk_to_p256(&wte_claims.confirmation.jwk).unwrap()
+        );
 
         // Check that the fields have the expected contents
         assert_eq!(wte_claims.contents.iss, iss.to_string());

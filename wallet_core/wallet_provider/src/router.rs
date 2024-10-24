@@ -16,9 +16,9 @@ use wallet_common::{
         messages::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
             instructions::{
-                ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult,
-                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResultMessage, IssueWte,
-                IssueWteResult, Sign, SignResult,
+                ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, ConstructPoa, ConstructPoaResult,
+                GenerateKey, GenerateKeyResult, Instruction, InstructionAndResult, InstructionChallengeRequest,
+                InstructionResultMessage, IssueWte, IssueWteResult, Sign, SignResult,
             },
         },
         serialization::DerVerifyingKey,
@@ -69,6 +69,7 @@ pub fn router(router_state: RouterState) -> Router {
                 .route(&format!("/instructions/{}", GenerateKey::NAME), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
                 .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
+                .route(&format!("/instructions/{}", ConstructPoa::NAME), post(construct_poa))
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
@@ -229,6 +230,15 @@ async fn issue_wte(
     Json(payload): Json<Instruction<IssueWte>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<IssueWteResult>>)> {
     info!("Received issue WTE request, handling the IssueWte instruction");
+    let body = state.handle_instruction(payload).await?;
+    Ok((StatusCode::OK, body.into()))
+}
+
+async fn construct_poa(
+    State(state): State<Arc<RouterState>>,
+    Json(payload): Json<Instruction<ConstructPoa>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<ConstructPoaResult>>)> {
+    info!("Received new PoA request, handling the ConstructPoa instruction");
     let body = state.handle_instruction(payload).await?;
     Ok((StatusCode::OK, body.into()))
 }

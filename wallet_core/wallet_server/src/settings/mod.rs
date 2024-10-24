@@ -16,7 +16,6 @@ use nl_wallet_mdoc::{
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::{
     generator::{Generator, TimeGenerator},
-    sentry::Sentry,
     trust_anchor::DerTrustAnchor,
     urls::BaseUrl,
 };
@@ -77,8 +76,6 @@ pub struct Settings {
     /// application startup.
     #[cfg(feature = "disclosure")]
     pub reader_trust_anchors: Vec<DerTrustAnchor>,
-
-    pub sentry: Option<Sentry>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -220,7 +217,7 @@ impl Settings {
         let config_builder = config_builder
             .set_default(
                 "issuer.wallet_client_ids",
-                vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
+                vec![wallet_common::jwt::NL_WALLET_CLIENT_ID.to_string()],
             )?
             .set_default("issuer.brp_server", "http://localhost:3007/")?;
 

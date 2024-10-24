@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::utils;
 
 pub mod factory;
+pub mod poa;
 
 #[cfg(any(test, feature = "examples"))]
 pub mod examples;

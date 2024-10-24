@@ -28,12 +28,13 @@ The following categories exist (which you set using the `#[category(..)]`
 attribute):
 
   * `expected`: Expected errors, will not be sent to Sentry
-  * `critical`: Critical error, report to Sentry, with message(s)
+  * `critical`: Critical error, report to Sentry with message(s)
   * `pd`: Critical error with personal data, sent call stack without messages
   * `defer`: Analysis of categorization is deferred to one of the fields
     of this variant
   * `unexpected`: This is an unexpected error and should never be encountered
-    by `sentry_capture_error`. Causes a panic
+    by `sentry_capture_error`. Results in an error being logged. Is reported
+    to Sentry without message(s).
 
 ## Configuration
 
