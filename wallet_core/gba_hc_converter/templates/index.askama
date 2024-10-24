@@ -3,44 +3,55 @@
 {% block content %}
 <main>
     <section>
-        <h1>Enter BSN</h1>
+        <h1>GBA-V preloading for NL Wallet</h1>
+    </section>
+
+    <section class="info">
+        <fieldset>
+            <legend>Status</legend>
+
+            <label for="preloaded_count">Number of preloaded BSN's:</label>
+            <output id="preloaded_count">{{ preloaded_count }}</output>
+        </fieldset>
+
+        <br />
     </section>
 
     <section>
         <form method="POST" action="/">
-            <label for="bsn">BSN</label>
-            {% if let Some(token) = authenticity_token %}
-            <input type="hidden" name="authenticity_token" value="{{ token }}"/>
-            {% endif %}
-            <input type="text" id="bsn" name="bsn" autocomplete="off"
-                pattern="[0-9]{8,9}" required
-                {% if error.is_some() || msg.is_some() %} disabled {% endif %} />
-            <button type="submit" {% if error.is_some() || msg.is_some() %} disabled {% endif %}>Fetch</button>
+            <fieldset>
+                <legend>Preload data</legend>
+
+                <input type="hidden" name="authenticity_token" value="{{ authenticity_token }}"/>
+
+                <label for="bsn">Enter BSN:</label>
+                <input type="password" id="bsn" name="bsn" autocomplete="off"
+                    pattern="[0-9]{8,9}" required />
+
+                <label for="repeat_bsn">Repeat BSN</label>
+                <input type="password" id="repeat_bsn" name="repeat_bsn" autocomplete="off"
+                    pattern="[0-9]{8,9}" required />
+
+                <button type="submit">Preload</button>
+            </fieldset>
         </form>
+
+        <br />
     </section>
 
-    {% match msg %}
-    {% when Some with (msg) %}
-    <section class="info">
-        <h2>Result:</h2>
-        <p>{{ msg }}</p>
-        <form method="GET" action="/">
-            <button type="submit">Restart</button>
-        </form>
-    </section>
-    {% when None %}
-    {% endmatch %}
+    <section>
+            <form method="POST" action="/clear">
+                <fieldset>
+                    <legend>Clear data</legend>
 
-    {% match error %}
-    {% when Some with (error_msg) %}
-    <section class="error">
-        <h2>Error:</h2>
-        <p>{{ error_msg }}</p>
-        <form method="GET" action="/">
-            <button type="submit">Restart</button>
-        </form>
-    </section>
-    {% when None %}
-    {% endmatch %}
+                    <input type="hidden" name="authenticity_token" value="{{ authenticity_token }}"/>
+
+                    <label for="confirmation_text">Enter the text "clear all data" for confirmation:</label>
+                    <input type="text" id="confirmation_text" name="confirmation_text" autocomplete="off" required />
+
+                    <button type="submit">Clear all preloaded data</button>
+                </fieldset>
+            </form>
+        </section>
 </main>
 {% endblock %}
