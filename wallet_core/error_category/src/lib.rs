@@ -16,9 +16,9 @@ const PD: &str = "pd";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Category {
     Expected,     // Don't report to Sentry
-    Critical,     // Report Error to Sentry, with contents
-    PersonalData, // Report Error to Sentry, without contents
-    Unexpected,   // Should never occer at runtime, panic!
+    Critical,     // Report Error to Sentry with contents
+    PersonalData, // Report Error to Sentry without contents
+    Unexpected,   // Should never occur in the Wallet, log error and report to Sentry without contents
 }
 
 #[derive(Debug, thiserror::Error)]
