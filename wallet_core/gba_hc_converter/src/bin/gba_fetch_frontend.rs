@@ -4,7 +4,8 @@ use aes_gcm::Aes256Gcm;
 use anyhow::anyhow;
 use askama::Template;
 use axum::{
-    extract::{Request, State},
+    async_trait,
+    extract::{FromRequestParts, Request, State},
     middleware,
     middleware::Next,
     response::{IntoResponse, Response},
@@ -12,7 +13,7 @@ use axum::{
     Form, Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
-use http::{HeaderMap, StatusCode};
+use http::{request::Parts, HeaderValue, StatusCode};
 use nutype::nutype;
 use serde::Deserialize;
 use tokio::net::TcpListener;
@@ -29,6 +30,8 @@ use gba_hc_converter::{
     haal_centraal::Bsn,
     settings::{PreloadedSettings, RunMode, Settings},
 };
+
+const CERT_SERIAL_HEADER: &str = "Cert-Serial";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -111,11 +114,51 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn check_auth(headers: HeaderMap, request: Request, next: Next) -> StdResult<Response, StatusCode> {
+#[nutype(derive(Debug, Default), default = "unknown", validate(not_empty))]
+struct CertSerial(String);
+
+impl TryFrom<&HeaderValue> for CertSerial {
+    type Error = Error;
+
+    fn try_from(value: &HeaderValue) -> StdResult<Self, Self::Error> {
+        Ok(CertSerial::try_new(value.to_str().map_err(|err| anyhow!(err))?.to_string()).map_err(|err| anyhow!(err))?)
+    }
+}
+
+struct ExtractCertSerial(Option<CertSerial>);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for ExtractCertSerial
+where
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> StdResult<Self, Self::Rejection> {
+        parts
+            .headers
+            .get(CERT_SERIAL_HEADER)
+            .map(|header| {
+                header
+                    .to_str()
+                    .map_err(anyhow::Error::from)
+                    .and_then(|value| CertSerial::try_new(value).map_err(anyhow::Error::from))
+            })
+            .transpose()
+            .map(ExtractCertSerial)
+            .map_err(|err| (StatusCode::BAD_REQUEST, err.to_string()))
+    }
+}
+
+async fn check_auth(
+    ExtractCertSerial(cert_serial): ExtractCertSerial,
+    request: Request,
+    next: Next,
+) -> StdResult<Response, (StatusCode, &'static str)> {
     // This assumes an ingress/reverse proxy that uses mutual TLS and sets the `Cert-Serial` header with the value
     // from the client certificate. This is an extra safeguard against using this endpoint directly.
-    if !headers.get("Cert-Serial").is_some_and(|s| !s.is_empty()) {
-        return Err(StatusCode::FORBIDDEN);
+    if !cert_serial.is_some_and(|s| !s.into_inner().is_empty()) {
+        return Err((StatusCode::FORBIDDEN, "client certificate missing"));
     }
     let response = next.run(request).await;
     Ok(response)
@@ -162,21 +205,21 @@ async fn index(State(state): State<Arc<ApplicationState>>, token: CsrfToken) -> 
 async fn fetch(
     State(state): State<Arc<ApplicationState>>,
     token: CsrfToken,
-    headers: HeaderMap,
+    ExtractCertSerial(cert_serial): ExtractCertSerial,
     Form(payload): Form<PreloadPayload>,
 ) -> Result<Response> {
     token.verify(&payload.authenticity_token).map_err(|err| anyhow!(err))?;
 
     if payload.bsn != payload.repeat_bsn {
-        return Err(anyhow!("BSN's do not match"))?;
+        return Err(anyhow!("BSNs do not match"))?;
     }
 
     let bsn = Bsn::try_new(payload.bsn).map_err(|err| anyhow!(err))?;
     let path = &state.base_path.join(&state.preloaded_settings.xml_path);
 
     info!(
-        "Preloading data using certificate having serial: {}",
-        certificate_serial_from_headers(&headers)?
+        "Preloading data using certificate having serial: {:?}",
+        cert_serial.unwrap_or_default()
     );
 
     let xml = state
@@ -206,7 +249,7 @@ async fn fetch(
 async fn clear(
     State(state): State<Arc<ApplicationState>>,
     token: CsrfToken,
-    headers: HeaderMap,
+    ExtractCertSerial(cert_serial): ExtractCertSerial,
     Form(payload): Form<ClearPayload>,
 ) -> Result<Response> {
     token.verify(&payload.authenticity_token).map_err(|err| anyhow!(err))?;
@@ -216,8 +259,8 @@ async fn clear(
     }
 
     info!(
-        "Clearing all preloaded data using certificate having serial: {}",
-        certificate_serial_from_headers(&headers)?
+        "Clearing all preloaded data using certificate having serial: {:?}",
+        cert_serial.unwrap_or_default()
     );
 
     let path = &state.base_path.join(&state.preloaded_settings.xml_path);
@@ -228,10 +271,4 @@ async fn clear(
     };
 
     Ok(askama_axum::into_response(&result))
-}
-
-fn certificate_serial_from_headers(headers: &HeaderMap) -> Result<&str> {
-    headers.get("Cert-Serial").map_or(Ok("unknown"), |serial| {
-        Ok(serial.to_str().map_err(|err| anyhow!(err))?)
-    })
 }

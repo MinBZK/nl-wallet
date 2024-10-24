@@ -3,7 +3,7 @@
 {% block content %}
 <main>
     <section>
-        <h1>GBA preloading for NL Wallet</h1>
+        <h1>GBA-V preloading for NL Wallet</h1>
     </section>
 
     <section class="info">
