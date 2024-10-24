@@ -2,7 +2,7 @@ use assert_matches::assert_matches;
 use chrono::{DateTime, Utc};
 use const_decoder::{Decoder, Pem};
 use rstest::{fixture, rstest};
-use webpki::TrustAnchor;
+use webpki::{anchor_from_trusted_cert, types::CertificateDer};
 
 use apple_app_attest::{
     AppIdentifier, Attestation, AttestationEnvironment, AttestationError, AttestationValidationError,
@@ -16,7 +16,7 @@ const TEST_ATTESTATION: [u8; 5637] = Decoder::Base64.decode(include_bytes!("../a
 
 /// The parameters used to validate an attestation.
 struct AttestationParameters {
-    trust_anchor: TrustAnchor<'static>,
+    trust_anchor_der: CertificateDer<'static>,
     time: DateTime<Utc>,
     challenge: Vec<u8>,
     app_identifier: AppIdentifier,
@@ -26,14 +26,14 @@ struct AttestationParameters {
 /// The default [`AttestationParameters`] can be used to validate the sample attestation provided by Apple.
 impl Default for AttestationParameters {
     fn default() -> Self {
-        let trust_anchor = TrustAnchor::try_from_cert_der(&APPLE_ROOT_CA).unwrap();
+        let trust_anchor_der = CertificateDer::<'static>::from(APPLE_ROOT_CA.to_vec());
         let time = DateTime::parse_from_rfc3339("2024-04-18T12:00:00Z").unwrap().to_utc();
         let challenge = b"test_server_challenge".to_vec();
         let app_identifier = AppIdentifier::new("0352187391", "com.apple.example_app_attest");
         let environment = AttestationEnvironment::Production;
 
         Self {
-            trust_anchor,
+            trust_anchor_der,
             time,
             challenge,
             app_identifier,
@@ -116,7 +116,7 @@ fn test_attestation<F>(
 {
     let result = Attestation::parse_and_verify(
         attestation_data,
-        &[parameters.trust_anchor],
+        &[anchor_from_trusted_cert(&parameters.trust_anchor_der).unwrap()],
         parameters.time,
         &parameters.challenge,
         &parameters.app_identifier,

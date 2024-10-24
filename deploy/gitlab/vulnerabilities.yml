@@ -2,7 +2,7 @@ dependency-check:
   extends: .env-ont-k8s
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:5d7e35b93a365a2a13b9106852470ef5df50ca7713e8d3b5e9bd721e00bcc2e4"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:8d50280e3385c8439bba1e93baf5230cbcd3b01578c02b1f6ab18c4eace935f4"
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - (cd wallet_web; npm ci)

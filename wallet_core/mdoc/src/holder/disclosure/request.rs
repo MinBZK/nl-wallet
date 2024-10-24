@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
 use indexmap::IndexSet;
+use webpki::types::TrustAnchor;
+
 use wallet_common::generator::Generator;
-use webpki::TrustAnchor;
 
 use crate::{
     device_retrieval::{DeviceRequest, DocRequest, ReaderAuthenticationKeyed},

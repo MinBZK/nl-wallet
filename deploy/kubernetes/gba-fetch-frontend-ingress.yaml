@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nl-wallet-gba-fetch-vpn
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: 'on'
+    nginx.ingress.kubernetes.io/auth-tls-secret: $K8S_NAMESPACE/nl-wallet-gba-fetch-truststore
+    nginx.ingress.kubernetes.io/auth-tls-pass-certificate-to-upstream: 'false'
+    nginx.ingress.kubernetes.io/auth-tls-verify-depth: '1'
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Cert-Serial $ssl_client_serial;
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: $GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME
+      http:
+        paths:
+          - backend:
+              service:
+                name: gba-fetch-frontend
+                port:
+                  number: 3000
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - $GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME
+      secretName: wildcard-tls

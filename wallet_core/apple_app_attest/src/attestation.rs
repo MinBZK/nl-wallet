@@ -4,7 +4,7 @@ use passkey_types::ctap2::Aaguid;
 use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};
 use sha2::{Digest, Sha256};
-use webpki::TrustAnchor;
+use webpki::types::TrustAnchor;
 
 use crate::{
     app_identifier::AppIdentifier,
@@ -163,8 +163,8 @@ impl Attestation {
 
         let key_identifier = Sha256::digest(public_key.to_encoded_point(false));
 
-        // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s
-        //    RP ID hash.
+        // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s RP
+        //    ID hash.
 
         if attestation.auth_data.as_ref().rp_id_hash() != app_identifier.sha256_hash() {
             return Err(AttestationValidationError::RpIdMismatch)?;

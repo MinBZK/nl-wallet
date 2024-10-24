@@ -24,8 +24,8 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
-    jwt::{validations, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
-    keys::{CredentialEcdsaKey, CredentialKeyType},
+    jwt::{jwk_to_p256, validations, JwkConversionError, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
+    keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType},
     trust_anchor::trust_anchor_names,
 };
 
@@ -98,7 +98,7 @@ impl JwtCredential {
             .ok_or(JwtCredentialError::UnknownIssuer(jwt_issuer.to_string()))?;
 
         // Now verify the JWT
-        jwt.verify_against_spki(trust_anchor.spki)?;
+        jwt.verify_against_spki(&trust_anchor.subject_public_key_info)?;
 
         let cred = Self {
             private_key_id,
@@ -121,6 +121,10 @@ impl JwtCredential {
         // Unwrapping is safe here because this was checked in new()
         let (_, contents) = self.jwt.dangerous_parse_unverified().unwrap();
         contents
+    }
+
+    pub(crate) fn private_key<K>(&self, key_factory: &impl KeyFactory<Key = K>) -> Result<K, JwkConversionError> {
+        Ok(key_factory.generate_existing(&self.private_key_id, jwk_to_p256(&self.jwt_claims().confirmation.jwk)?))
     }
 }
 

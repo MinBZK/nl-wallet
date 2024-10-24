@@ -2,7 +2,10 @@ use std::error::Error;
 
 use p256::ecdsa::{Signature, VerifyingKey};
 
-use super::CredentialEcdsaKey;
+use super::{
+    poa::{Poa, VecAtLeastTwo},
+    CredentialEcdsaKey,
+};
 
 pub trait KeyFactory {
     type Key: CredentialEcdsaKey;
@@ -25,6 +28,15 @@ pub trait KeyFactory {
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
     ) -> Result<Vec<Vec<Signature>>, Self::Error>;
+
+    /// Construct a Proof of Association, with which the key factory asserts that all provided keys
+    /// are managed by this one key factory.
+    async fn poa(
+        &self,
+        keys: VecAtLeastTwo<&Self::Key>,
+        aud: String,
+        nonce: Option<String>,
+    ) -> Result<Poa, Self::Error>;
 }
 
 #[cfg(any(test, feature = "software_keys"))]

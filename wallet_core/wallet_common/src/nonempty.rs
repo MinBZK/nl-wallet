@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use serde::{de, Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
@@ -47,18 +49,21 @@ where
         Ok(NonEmpty(collection))
     }
 
+    pub fn len(&self) -> NonZeroUsize {
+        // We always have at least one element
+        self.as_ref().into_iter().count().try_into().unwrap()
+    }
+
     // Convenience method to return a reference to the first entry, which will always return something.
     pub fn first(&self) -> <&T as IntoIterator>::Item {
-        let Self(inner) = self;
-
-        inner.into_iter().next().unwrap()
+        self.as_ref().into_iter().next().unwrap()
     }
 }
 
 /// Implement [`AsRef`] for the inner type so the caller can get a reference.
 impl<T> AsRef<T> for NonEmpty<T> {
     fn as_ref(&self) -> &T {
-        let Self(ref inner) = self;
+        let Self(inner) = self;
 
         inner
     }
@@ -204,7 +209,7 @@ mod tests {
         let non_empty = NonEmpty::try_from(vec![1, 2, 3]).unwrap();
 
         assert_eq!(*non_empty.first(), 1);
-        assert_eq!(non_empty.as_ref().len(), 3);
+        assert_eq!(non_empty.len().get(), 3);
         assert_eq!(non_empty.into_inner(), [1, 2, 3]);
     }
 }

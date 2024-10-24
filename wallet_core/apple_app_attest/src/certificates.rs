@@ -1,11 +1,12 @@
-use std::sync::LazyLock;
+use std::{sync::LazyLock, time::Duration};
 
 use chrono::{DateTime, Utc};
 use nutype::nutype;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 use webpki::{
-    EndEntityCert, KeyUsage, Time, TrustAnchor, ECDSA_P256_SHA256, ECDSA_P256_SHA384, ECDSA_P384_SHA256,
-    ECDSA_P384_SHA384,
+    ring::{ECDSA_P256_SHA256, ECDSA_P256_SHA384, ECDSA_P384_SHA256, ECDSA_P384_SHA384},
+    types::{CertificateDer, TrustAnchor, UnixTime},
+    EndEntityCert, KeyUsage,
 };
 use x509_parser::{
     certificate::X509Certificate,
@@ -70,20 +71,25 @@ impl DerX509CertificateChain {
             .try_into()
             .map_err(|_| CertificateError::TimeBeforeUnixEpoch)?;
 
-        EndEntityCert::try_from(self.credential_certificate_der())
+        EndEntityCert::try_from(&CertificateDer::from(self.credential_certificate_der()))
             .map_err(CertificateError::ChainParsing)?
             .verify_for_usage(
                 &[
-                    &ECDSA_P256_SHA256,
-                    &ECDSA_P256_SHA384,
-                    &ECDSA_P384_SHA256,
-                    &ECDSA_P384_SHA384,
+                    ECDSA_P256_SHA256,
+                    ECDSA_P256_SHA384,
+                    ECDSA_P384_SHA256,
+                    ECDSA_P384_SHA384,
                 ],
                 trust_anchors,
-                &self.intermediate_certificates_der(),
-                Time::from_seconds_since_unix_epoch(timestamp),
+                self.intermediate_certificates_der()
+                    .into_iter()
+                    .map(CertificateDer::from)
+                    .collect::<Vec<_>>()
+                    .as_slice(),
+                UnixTime::since_unix_epoch(Duration::from_secs(timestamp)),
                 KeyUsage::client_auth(),
-                &[],
+                None,
+                None,
             )
             .map_err(CertificateError::ChainVerification)?;
 

@@ -4,7 +4,10 @@ use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     EncodedPoint, SecretKey,
 };
-use webpki::TrustAnchor;
+use webpki::{
+    anchor_from_trusted_cert,
+    types::{CertificateDer, TrustAnchor},
+};
 
 pub struct Examples;
 
@@ -29,7 +32,7 @@ impl Examples {
              f7129fa609c24299a5c787022100d088d8741f5d05b360ef6e85023e90df1d31dd1e6701a88efe9a7103021f986c"
         );
 
-        to_static_ref([TrustAnchor::try_from_cert_der(bts).unwrap()])
+        to_static_ref([anchor_from_trusted_cert(to_static_ref(CertificateDer::from(bts.as_slice()))).unwrap()])
     }
 
     /// CA cert for reader authentication
@@ -45,7 +48,7 @@ impl Examples {
              99930022077f46f00b4af3e014d253e0edcc9f146a75a6b1bdfe33e9fa72f30f0880d5237"
         );
 
-        to_static_ref([TrustAnchor::try_from_cert_der(bts).unwrap()])
+        to_static_ref([anchor_from_trusted_cert(to_static_ref(CertificateDer::from(bts.as_slice()))).unwrap()])
     }
 
     /// Reader ephemeral private key, for deriving MAC key

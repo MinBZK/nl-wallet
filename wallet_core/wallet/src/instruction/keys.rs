@@ -1,11 +1,16 @@
 use std::iter;
 
+use itertools::Itertools;
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign},
-    keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType, EcdsaKey, SecureEcdsaKey, WithIdentifier},
+    account::messages::instructions::{ConstructPoa, GenerateKey, GenerateKeyResult, Sign},
+    keys::{
+        factory::KeyFactory,
+        poa::{Poa, VecAtLeastTwo},
+        CredentialEcdsaKey, CredentialKeyType, EcdsaKey, SecureEcdsaKey, WithIdentifier,
+    },
     utils::random_string,
 };
 
@@ -123,6 +128,31 @@ where
             .collect();
 
         Ok(signatures)
+    }
+
+    async fn poa(
+        &self,
+        keys: VecAtLeastTwo<&Self::Key>,
+        aud: String,
+        nonce: Option<String>,
+    ) -> Result<Poa, Self::Error> {
+        let poa = self
+            .instruction_client
+            .send(ConstructPoa {
+                key_identifiers: keys
+                    .as_ref()
+                    .iter()
+                    .map(|key| key.identifier.clone())
+                    .collect_vec()
+                    .try_into()
+                    .unwrap(), // our iterable is a VecAtLeastTwo
+                aud,
+                nonce,
+            })
+            .await?
+            .poa;
+
+        Ok(poa)
     }
 }
 

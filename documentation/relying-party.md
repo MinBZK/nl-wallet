@@ -313,7 +313,7 @@ O = $ORGANIZATION_NAME
 CN = $COMMON_NAME
 
 [v3_req]
-extendedKeyUsage = clientAuth, serverAuth
+extendedKeyUsage = critical, 1.0.18013.5.1.6
 subjectAltName = @alt_names
 
 [alt_names]
