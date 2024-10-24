@@ -13,7 +13,7 @@ use axum::{
     Form, Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
-use http::{request::Parts, HeaderValue, StatusCode};
+use http::{request::Parts, StatusCode};
 use nutype::nutype;
 use serde::Deserialize;
 use tokio::net::TcpListener;
@@ -43,7 +43,6 @@ async fn main() -> anyhow::Result<()> {
             .from_env_lossy(),
     );
 
-    let settings = Settings::new()?;
     if settings.structured_logging {
         builder.json().init();
     } else {
@@ -118,14 +117,6 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
 
 #[nutype(derive(Debug, Default), default = "unknown", validate(not_empty))]
 struct CertSerial(String);
-
-impl TryFrom<&HeaderValue> for CertSerial {
-    type Error = Error;
-
-    fn try_from(value: &HeaderValue) -> StdResult<Self, Self::Error> {
-        Ok(CertSerial::try_new(value.to_str().map_err(|err| anyhow!(err))?.to_string()).map_err(|err| anyhow!(err))?)
-    }
-}
 
 struct ExtractCertSerial(Option<CertSerial>);
 
