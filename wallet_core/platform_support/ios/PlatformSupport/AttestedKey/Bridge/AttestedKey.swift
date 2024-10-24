@@ -14,23 +14,39 @@ extension AttestedKey: AttestedKeyBridge {
         .apple
     }
 
-    func generateIdentifier() throws -> String {
-        throw AttestedKeyError.KeyError(reason: "unimplemented")
+    func generateIdentifier() throws(AttestedKeyError) -> String {
+        do {
+            return try AppAttest.generateKey()
+        } catch {
+            throw AttestedKeyError.from(error)
+        }
     }
 
-    func attest(identifier: String, challenge: [UInt8]) throws -> AttestationData {
-        throw AttestedKeyError.KeyError(reason: "unimplemented")
+    func attest(identifier: String, challenge: [UInt8]) throws(IdentifierAttestedKeyError) -> AttestationData {
+        do {
+            let attestation = try AppAttest.attestKey(keyId: identifier, clientDataHash: Data(challenge))
+
+            return .apple(attestationData: Array(attestation))
+        } catch {
+            throw IdentifierAttestedKeyError.from(error)
+        }
     }
 
-    func sign(identifier: String, payload: [UInt8]) throws -> [UInt8] {
-        throw AttestedKeyError.KeyError(reason: "unimplemented")
+    func sign(identifier: String, payload: [UInt8]) throws(AttestedKeyError) -> [UInt8] {
+        do {
+            let assertion = try AppAttest.generateAssertion(keyId: identifier, clientData: Data(payload))
+
+            return Array(assertion)
+        } catch {
+            throw AttestedKeyError.from(error)
+        }
     }
 
-    func publicKey(identifier: String) throws -> [UInt8] {
+    func publicKey(identifier: String) throws(AttestedKeyError) -> [UInt8] {
         throw AttestedKeyError.KeyError(reason: "not supported on this platform")
     }
 
-    func delete(identifier: String) throws {
+    func delete(identifier: String) throws(AttestedKeyError) {
         throw AttestedKeyError.KeyError(reason: "not supported on this platform")
     }
 }
