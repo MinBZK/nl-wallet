@@ -129,36 +129,34 @@ can verify. For your convenience, we list the attributes for both doctypes here:
 
 ### What a PID_DOCTYPE looks like
 
-| Attribute          | Description                                             |
-|--------------------|---------------------------------------------------------|
-| given_name         | First names (voornamen)                                 |
-| family_name_prefix | Prefix (voorvoegsel)                                    |
-| family_name        | Surname (achternaam)                                    |
-| given_name_birth   | First names at birth (voornamen bij geboorte)           |
-| family_name_birth  | Birth name (geboortenaam)                               |
-| gender             | Gender (geslacht)                                       |
-| birth_date         | Birth date (geboortedatum)                              |
-| age_over_18        | Older than 18 (ouder dan 18)                            |
-| birth_place        | Place of birth (geboorteplaats) **\***                  |
-| birth_city         | City, town or village of birth (geboortestad)           |
-| birth_state        | State or province of birth (geboortestaat of -provincie)|
-| birth_country      | Country of birth (geboorteland)                         |
-| bsn                | Citizen service number (burgerservicenummer)            |
-| nationality        | Nationality (nationaliteit)                             |
+| Attribute             | Item         | Source        | Description                                              |
+|-----------------------|--------------|---------------|----------------------------------------------------------|
+| given_name            | 10210        | haal_centraal | First names (voornamen)                                  |
+| family_name           | 10230, 10240 | haal_centraal | Prefix (voorvoegsel) and surname (achternaam)            |
+| given_name_birth      |              | unimplemented | First names at birth (voornamen bij geboorte)            |
+| family_name_birth     |              | unimplemented | Birth name (geboortenaam)                                |
+| gender                |              | unimplemented | Gender (geslacht)                                        |
+| birth_date            | 10310        | haal_centraal | Birth date (geboortedatum)                               |
+| age_over_18           |              | derived       | Older than 18 (ouder dan 18)                             |
+| birth_place           |              | unimplemented | Place of birth (geboorteplaats) **\***                   |
+| birth_city            |              | unimplemented | City, town or village of birth (geboortestad)            |
+| birth_state           |              | unimplemented | State or province of birth (geboortestaat of -provincie) |
+| birth_country         |              | unimplemented | Country of birth (geboorteland)                          |
+| bsn                   | 10120        | haal_centraal | Citizen service number (burgerservicenummer)             |
 
 *\* birth_place is a combination of birth_country, birth_state and birth_city*
 
 ### What an ADDRESS_DOCTYPE looks like
 
-| Attribute             | Description                            |
-|-----------------------|----------------------------------------|
-| resident_address      | Address (adres) **\***                 |
-| resident_street       | Street name (straatnaam)               |
-| resident_house_number | House number (huisnummer)              |
-| resident_postal_code  | Postal code (postcode)                 |
-| resident_city         | City, town or village (woonplaats)     |
-| resident_state        | State or province (staat of provincie) |
-| resident_country      | Country (land)                         |
+| Attribute             | Item                | Source        | Description                                                           |
+|-----------------------|---------------------|---------------|-----------------------------------------------------------------------|
+| resident_address      |                     | unimplemented | Address (adres) **\***                                                |
+| resident_street       | 81115, 81110        | haal_centraal | Named public space (naam openbare ruimte) or street name (straatnaam) |
+| resident_house_number | 81120, 81130, 81140 | haal_centraal | House number (huisnummer)                                             |
+| resident_postal_code  | 81160               | haal_centraal | Postal code (postcode)                                                |
+| resident_city         | 81170               | haal_centraal | City, town or village (woonplaats)                                    |
+| resident_state        |                     | unimplemented | State or province (staat of provincie)                                |
+| resident_country      |                     | unimplemented | Country (land)                                                        |
 
 *\* resident_address is a combination of resident_ street, house_number, postal_code, city, state and country*
 
