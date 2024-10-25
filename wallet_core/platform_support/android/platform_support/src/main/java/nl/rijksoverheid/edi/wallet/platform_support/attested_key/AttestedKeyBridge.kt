@@ -16,23 +16,23 @@ class AttestedKeyBridge(context: Context) : RustAttestedKeyBridge {
 
     override fun keyType(): AttestedKeyType = AttestedKeyType.GOOGLE
 
-    override fun generateIdentifier(): String {
+    override suspend fun generateIdentifier(): String {
         throw MethodUnimplemented()
     }
     
-    override fun attest(identifier: String, challenge: List<UByte>): AttestationData {
+    override suspend fun attest(identifier: String, challenge: List<UByte>): AttestationData {
         throw MethodUnimplemented()
     }
     
-    override fun sign(identifier: String, payload: List<UByte>): List<UByte> {
+    override suspend fun sign(identifier: String, payload: List<UByte>): List<UByte> {
         throw MethodUnimplemented()
     }
     
-    override fun publicKey(identifier: String): List<UByte> {
+    override suspend fun publicKey(identifier: String): List<UByte> {
         throw MethodUnimplemented()
     }
     
-    override fun delete(identifier: String) {
+    override suspend fun delete(identifier: String) {
         throw MethodUnimplemented()
     }
 }

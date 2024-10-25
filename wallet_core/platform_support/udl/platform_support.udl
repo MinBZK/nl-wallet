@@ -74,32 +74,32 @@ interface AttestationData {
 /// iOS and Android. App attestation for Android is combined with key attestation.
 [Trait, WithForeign]
 interface AttestedKeyBridge {
-    /// Simply returns the platform we are on. This method should not block.
+    /// Simply returns the platform we are on.
     AttestedKeyType key_type();
 
     /// Generate an identifier for the attested key. On iOS this actually creates a key,
     /// while on Android this simply generates a unique random string.
-    [Throws=AttestedKeyError]
+    [Async, Throws=AttestedKeyError]
     string generate_identifier();
 
     /// Actually perform key and app attestation, with a result that differs depending on the platform.
     /// Note the use of "IdentifierAttestedKeyError" to convey error data.
-    [Throws=AttestedKeyError]
+    [Async, Throws=AttestedKeyError]
     AttestationData attest(string identifier, sequence<u8> challenge);
 
     /// Sign an arbitrary payload. The result is a DER encoded ECDSA signature on Android,
     /// while on iOS this produces proprietary binary assertion data.
-    [Throws=AttestedKeyError]
+    [Async, Throws=AttestedKeyError]
     sequence<u8> sign(string identifier, sequence<u8> payload);
 
     /// The public key in DER format. This will return an error on iOS, as retrieving
     /// the public key outside of the initial attestation is not supported.
-    [Throws=AttestedKeyError]
+    [Async, Throws=AttestedKeyError]
     sequence<u8> public_key(string identifier);
 
     /// Delete the key with the specified identifier. This will return an error
     /// on iOS, since it does not support attested key deletion.
-    [Throws=AttestedKeyError]
+    [Async, Throws=AttestedKeyError]
     void delete(string identifier);
 };
 

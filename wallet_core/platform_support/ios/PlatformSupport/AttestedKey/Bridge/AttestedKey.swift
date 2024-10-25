@@ -5,40 +5,51 @@
 //  Created by The Wallet Developers on 24/10/2024.
 //
 
+import CryptoKit
+import DeviceCheck
 import Foundation
 
-final class AttestedKey {}
+final class AttestedKey {
+    private static let appAttest = DCAppAttestService.shared
+}
 
 extension AttestedKey: AttestedKeyBridge {
     func keyType() -> AttestedKeyType {
         .apple
     }
 
-    func generateIdentifier() throws(AttestedKeyError) -> String {
+    func generateIdentifier() async throws(AttestedKeyError) -> String {
         do {
-            return try AppAttest.generateKey()
-        } catch {
+            return try await Self.appAttest.generateKey()
+        } catch let error as DCError {
             throw AttestedKeyError.from(error)
+        } catch {
+            fatalError(error.localizedDescription)
         }
     }
 
-    func attest(identifier: String, challenge: [UInt8]) throws(AttestedKeyError) -> AttestationData {
+    func attest(identifier: String, challenge: [UInt8]) async throws(AttestedKeyError) -> AttestationData {
         do {
-            let attestation = try AppAttest.attestKey(keyId: identifier, clientDataHash: Data(challenge))
+            let attestation = try await Self.appAttest.attestKey(identifier, clientDataHash: Data(challenge))
 
             return .apple(attestationData: Array(attestation))
-        } catch {
+        } catch let error as DCError {
             throw AttestedKeyError.from(error)
+        } catch {
+            fatalError(error.localizedDescription)
         }
     }
 
-    func sign(identifier: String, payload: [UInt8]) throws(AttestedKeyError) -> [UInt8] {
-        do {
-            let assertion = try AppAttest.generateAssertion(keyId: identifier, clientData: Data(payload))
+    func sign(identifier: String, payload: [UInt8]) async throws(AttestedKeyError) -> [UInt8] {
+        let clientDataHash = Data(SHA256.hash(data: Data(payload)))
 
+        do {
+            let assertion = try await Self.appAttest.generateAssertion(identifier, clientDataHash: clientDataHash)
             return Array(assertion)
-        } catch {
+        } catch let error as DCError {
             throw AttestedKeyError.from(error)
+        } catch {
+            fatalError(error.localizedDescription)
         }
     }
 

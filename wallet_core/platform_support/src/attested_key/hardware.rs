@@ -2,10 +2,7 @@ use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
 };
-use wallet_common::{
-    keys::{EcdsaKey, SecureEcdsaKey},
-    spawn,
-};
+use wallet_common::keys::{EcdsaKey, SecureEcdsaKey};
 
 use crate::bridge::attested_key::{
     get_attested_key_bridge, AttestationData, AttestedKeyBridge, AttestedKeyError, AttestedKeyType,
@@ -21,7 +18,6 @@ mod key {
     use std::{collections::HashSet, sync::LazyLock};
 
     use parking_lot::Mutex;
-    use wallet_common::spawn;
 
     use crate::bridge::attested_key::{AttestedKeyBridge, AttestedKeyError};
 
@@ -53,9 +49,7 @@ mod key {
         where
             E: From<AttestedKeyError>,
         {
-            let identifier = self.identifier.clone();
-
-            let signature = spawn::blocking(|| self.bridge.sign(identifier, payload)).await?;
+            let signature = self.bridge.sign(self.identifier.clone(), payload).await?;
 
             Ok(signature)
         }
@@ -64,9 +58,7 @@ mod key {
         where
             E: From<AttestedKeyError>,
         {
-            let identifier = self.identifier.clone();
-
-            let public_key = spawn::blocking(|| self.bridge.public_key(identifier)).await?;
+            let public_key = self.bridge.public_key(self.identifier.clone()).await?;
 
             Ok(public_key)
         }
@@ -75,9 +67,7 @@ mod key {
         where
             E: From<AttestedKeyError>,
         {
-            let identifier = self.identifier.clone();
-
-            spawn::blocking(|| self.bridge.delete(identifier)).await?;
+            self.bridge.delete(self.identifier.clone()).await?;
 
             Ok(())
 
@@ -160,7 +150,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
     type GoogleKey = GoogleHardwareAttestedKey;
 
     async fn generate_identifier(&self) -> Result<String, Self::Error> {
-        let identifier = spawn::blocking(|| self.bridge.generate_identifier()).await?;
+        let identifier = self.bridge.generate_identifier().await?;
 
         Ok(identifier)
     }
@@ -179,7 +169,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
             })?;
 
         // Perform key/app attestation and convert the resulting attestation data to the corresponding key type.
-        let attestation_data = spawn::blocking(|| self.bridge.attest(key_identifier, challenge)).await?;
+        let attestation_data = self.bridge.attest(key_identifier, challenge).await?;
 
         let key_with_attestation = KeyWithAttestation::new(inner_key, attestation_data);
 

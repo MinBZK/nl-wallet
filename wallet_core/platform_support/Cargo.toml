@@ -20,6 +20,7 @@ integration_test = ["wallet_common/integration_test", "tokio/fs", "tokio/io-util
 hardware_integration_test = ["integration_test", "dep:jni", "tokio/rt"]
 
 [dependencies]
+async-trait.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 parking_lot.workspace = true
 thiserror.workspace = true

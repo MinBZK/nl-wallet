@@ -64,6 +64,7 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.9.0'
     implementation "net.java.dev.jna:jna:5.14.0@aar" // Java Native Access
     implementation "androidx.startup:startup-runtime:1.1.1" // Auto initialization
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1"
 
     // Test dependencies
     testImplementation 'junit:junit:4.13.2'
