@@ -44,8 +44,7 @@ struct SecureEnclaveKey: ~Copyable {
     }
 
     private static func errorMessage(for status: OSStatus) -> String? {
-        guard #available(iOS 11.3, *),
-              let errorMessage = SecCopyErrorMessageString(status, nil) else {
+        guard let errorMessage = SecCopyErrorMessageString(status, nil) else {
             return nil
         }
 

@@ -14,8 +14,7 @@ extension AttestedKeyError {
         case .unsupported:
             return .AttestationNotSupported
         case let .generate(innerError), let .attest(innerError), let .assert(innerError):
-            guard #available(iOS 14, *),
-                  let dcError = innerError as? DCError,
+            guard let dcError = innerError as? DCError,
                   dcError.code == DCError.serverUnavailable else {
                 return .Other(reason: error.localizedDescription)
             }

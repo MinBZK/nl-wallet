@@ -13,10 +13,6 @@ enum AppAttest {
     private static let queue = DispatchQueue(label: String(describing: Self.self), qos: .userInitiated)
 
     static func generateKey() throws(AppAttestError) -> String {
-        guard #available(iOS 14, *) else {
-            throw AppAttestError.unsupported
-        }
-
         let appAttest = DCAppAttestService.shared
         guard appAttest.isSupported else {
             throw .unsupported
@@ -47,10 +43,6 @@ enum AppAttest {
     }
 
     static func attestKey(keyId: String, clientDataHash: Data) throws(AppAttestError) -> Data {
-        guard #available(iOS 14, *) else {
-            throw AppAttestError.unsupported
-        }
-
         let appAttest = DCAppAttestService.shared
         guard appAttest.isSupported else {
             throw .unsupported
@@ -81,10 +73,6 @@ enum AppAttest {
     }
 
     static func generateAssertion(keyId: String, clientData: Data) throws(AppAttestError) -> Data {
-        guard #available(iOS 14, *) else {
-            throw AppAttestError.unsupported
-        }
-
         let appAttest = DCAppAttestService.shared
         guard appAttest.isSupported else {
             throw .unsupported
