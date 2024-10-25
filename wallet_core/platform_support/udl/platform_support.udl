@@ -41,59 +41,61 @@ callback interface EncryptionKeyBridge {
 
 // attested_key module
 
+/// The error type used for all methods on AttestedKeyBridge.
 [Error]
 interface AttestedKeyError {
-    KeyError(string reason);
-    BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
+    /// Key and app attestation is not supported on this device.
+    AttestationNotSupported();
+    /// The method called on the bridge is not implemented for this platform.
+    MethodUnimplemented();
+    /// An Apple or Google server could not be reached. If this occurs during
+    /// attestation, the generated identifier should be retained for later retries.
+    ServerUnreachable(string details);
+    /// Any other error that can occur.
+    Other(string reason);
 };
 
-// This error is only used for attestation, which on iOS can signal to the
-// caller that it should retain the identifier used for future retries.
-[Error]
-interface IdentifierAttestedKeyError {
-    KeyError(string reason, boolean retain_identifier);
-    BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
-};
-
+/// Return type for `key_type()`.
 enum AttestedKeyType {
     "Apple",
     "Google",
 };
 
+/// Return type for `attest()`, contains attestation data specific to the platform.
 [Enum]
 interface AttestationData {
     Apple(sequence<u8> attestation_data);
     Google(sequence<sequence<u8>> certificate_chain, sequence<u8> app_attestation_token);
 };
 
+/// Combines a collection of methods that unify working with attested keys on both
+/// iOS and Android. App attestation for Android is combined with key attestation.
 callback interface AttestedKeyBridge {
-    // Simply returns the platform we are on. This method should not block.
-    // The error is only present for any "UnexpectedUniFFICallbackError".
-    [Throws=AttestedKeyError]
+    /// Simply returns the platform we are on. This method should not block.
     AttestedKeyType key_type();
 
-    // Generate an identifier for the attested key. On iOS this actually creates a key,
-    // while on Android this simply generates a unique random string.
+    /// Generate an identifier for the attested key. On iOS this actually creates a key,
+    /// while on Android this simply generates a unique random string.
     [Throws=AttestedKeyError]
     string generate_identifier();
 
-    // Actually perform key and app attestation, with a result that differs depending on the platform.
-    // Note the use of "IdentifierAttestedKeyError" to convey error data.
-    [Throws=IdentifierAttestedKeyError]
+    /// Actually perform key and app attestation, with a result that differs depending on the platform.
+    /// Note the use of "IdentifierAttestedKeyError" to convey error data.
+    [Throws=AttestedKeyError]
     AttestationData attest(string identifier, sequence<u8> challenge);
 
-    // Sign an arbitrary payload. The result is a DER encoded ECDSA signature on Android,
-    // while on iOS this produces proprietary binary assertion data.
+    /// Sign an arbitrary payload. The result is a DER encoded ECDSA signature on Android,
+    /// while on iOS this produces proprietary binary assertion data.
     [Throws=AttestedKeyError]
     sequence<u8> sign(string identifier, sequence<u8> payload);
 
-    // The public key in DER format. This will return an error on iOS, as retrieving
-    // the public key outside of the initial attestation is not supported.
+    /// The public key in DER format. This will return an error on iOS, as retrieving
+    /// the public key outside of the initial attestation is not supported.
     [Throws=AttestedKeyError]
     sequence<u8> public_key(string identifier);
 
-    // Delete the key with the specified identifier. This will return an error
-    // on iOS, since it does not support attested key deletion.
+    /// Delete the key with the specified identifier. This will return an error
+    /// on iOS, since it does not support attested key deletion.
     [Throws=AttestedKeyError]
     void delete(string identifier);
 };

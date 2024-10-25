@@ -9,7 +9,6 @@ use wallet_common::{
 
 use crate::bridge::attested_key::{
     get_attested_key_bridge, AttestationData, AttestedKeyBridge, AttestedKeyError, AttestedKeyType,
-    IdentifierAttestedKeyError,
 };
 
 use super::{
@@ -102,35 +101,23 @@ pub enum HardwareAttestedKeyError {
     Signature(#[from] p256::ecdsa::Error),
     #[error("could not decode DER public key: {0}")]
     PublicKey(#[from] p256::pkcs8::spki::Error),
-    #[error("could not perform attested key operation in native code: {0}")]
-    Key(String),
-    #[error("could not call function using UniFFI callback: {0}")]
-    Bridge(String),
+    #[error("could not perform attested key operation in platform code: {0}")]
+    Platform(AttestedKeyError),
 }
 
 impl From<AttestedKeyError> for HardwareAttestedKeyError {
     fn from(value: AttestedKeyError) -> Self {
-        match value {
-            AttestedKeyError::KeyError { reason } => Self::Key(reason),
-            AttestedKeyError::BridgingError { reason } => Self::Bridge(reason),
-        }
+        Self::Platform(value)
     }
 }
 
-impl From<IdentifierAttestedKeyError> for AttestationError<HardwareAttestedKeyError> {
-    fn from(value: IdentifierAttestedKeyError) -> Self {
-        match value {
-            IdentifierAttestedKeyError::KeyError {
-                reason,
-                retain_identifier,
-            } => Self {
-                error: HardwareAttestedKeyError::Key(reason),
-                retain_identifier,
-            },
-            IdentifierAttestedKeyError::BridgingError { reason } => Self {
-                error: HardwareAttestedKeyError::Bridge(reason),
-                retain_identifier: false,
-            },
+impl From<AttestedKeyError> for AttestationError<HardwareAttestedKeyError> {
+    fn from(value: AttestedKeyError) -> Self {
+        let retain_identifier = matches!(value, AttestedKeyError::ServerUnreachable { .. });
+
+        Self {
+            error: value.into(),
+            retain_identifier,
         }
     }
 }
@@ -209,7 +196,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
 
         // In order to have a single source of truth, ask the native implementation what the
         // platform type is, instead of having the Rust compiler determine it.
-        let key = match self.bridge.key_type()? {
+        let key = match self.bridge.key_type() {
             AttestedKeyType::Apple => AttestedKey::Apple(AppleHardwareAttestedKey(inner_key)),
             AttestedKeyType::Google => AttestedKey::Google(GoogleHardwareAttestedKey(inner_key)),
         };

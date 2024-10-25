@@ -21,7 +21,6 @@
 		61B02FB12CCA8DC400B775B6 /* AppAttest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B02FB02CCA8DC400B775B6 /* AppAttest.swift */; };
 		61B02FB52CCA8E0700B775B6 /* AppAttestError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B02FB42CCA8E0700B775B6 /* AppAttestError.swift */; };
 		61B02FB72CCAA59F00B775B6 /* AttestedKeyError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B02FB62CCAA59F00B775B6 /* AttestedKeyError+From.swift */; };
-		61B02FBB2CCAAFCC00B775B6 /* IdentifierAttestedKeyError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B02FBA2CCAAFCC00B775B6 /* IdentifierAttestedKeyError+From.swift */; };
 		61B7756029D724C20076A7F5 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B7755F29D724C20076A7F5 /* Utilities.swift */; };
 		61B7756329D725060076A7F5 /* PlatformUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B7756229D725060076A7F5 /* PlatformUtility.swift */; };
 		61C878A429E86E5A000AEC24 /* PlatformSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C878A329E86E5A000AEC24 /* PlatformSupport.swift */; };
@@ -96,7 +95,6 @@
 		61B02FB02CCA8DC400B775B6 /* AppAttest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAttest.swift; sourceTree = "<group>"; };
 		61B02FB42CCA8E0700B775B6 /* AppAttestError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAttestError.swift; sourceTree = "<group>"; };
 		61B02FB62CCAA59F00B775B6 /* AttestedKeyError+From.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttestedKeyError+From.swift"; sourceTree = "<group>"; };
-		61B02FBA2CCAAFCC00B775B6 /* IdentifierAttestedKeyError+From.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "IdentifierAttestedKeyError+From.swift"; sourceTree = "<group>"; };
 		61B7755F29D724C20076A7F5 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		61B7756229D725060076A7F5 /* PlatformUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformUtility.swift; sourceTree = "<group>"; };
 		61C878A329E86E5A000AEC24 /* PlatformSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformSupport.swift; sourceTree = "<group>"; };
@@ -198,7 +196,6 @@
 			children = (
 				616158D22CCA78D0009F81BF /* AttestedKey.swift */,
 				61B02FB62CCAA59F00B775B6 /* AttestedKeyError+From.swift */,
-				61B02FBA2CCAAFCC00B775B6 /* IdentifierAttestedKeyError+From.swift */,
 			);
 			path = Bridge;
 			sourceTree = "<group>";
@@ -480,7 +477,6 @@
 				61B02FB72CCAA59F00B775B6 /* AttestedKeyError+From.swift in Sources */,
 				616158D32CCA78D0009F81BF /* AttestedKey.swift in Sources */,
 				61D972A129E068C200924F93 /* EncryptionKey.swift in Sources */,
-				61B02FBB2CCAAFCC00B775B6 /* IdentifierAttestedKeyError+From.swift in Sources */,
 				61B02FB12CCA8DC400B775B6 /* AppAttest.swift in Sources */,
 				6179FBDF29ACF87B0064D2F5 /* KeyStoreError+From.swift in Sources */,
 				6179FBDD29ACF2470064D2F5 /* SecureEnclaveKeyError.swift in Sources */,

@@ -137,13 +137,13 @@ struct SecureEnclaveKey: ~Copyable {
     init(identifier: String) throws {
         self.identifier = identifier
 
-        self.privateKey = try Self.queue.sync(execute: {
+        self.privateKey = try Self.queue.sync {
             guard let privateKey = try Self.fetchKey(with: identifier) else {
                 return try Self.createKey(with: identifier)
             }
 
             return privateKey
-        })
+        }
     }
 
     // MARK: - Instance methods

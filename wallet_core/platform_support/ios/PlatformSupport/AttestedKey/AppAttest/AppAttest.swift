@@ -5,9 +5,9 @@
 //  Created by The Wallet Developers on 24/10/2024.
 //
 
-import Foundation
 import CryptoKit
 import DeviceCheck
+import Foundation
 
 enum AppAttest {
     private static let queue = DispatchQueue(label: String(describing: Self.self), qos: .userInitiated)
@@ -90,7 +90,7 @@ enum AppAttest {
             throw .unsupported
         }
 
-        let clientDataHash = Data(SHA256.hash(data: clientData));
+        let clientDataHash = Data(SHA256.hash(data: clientData))
 
         let result: Result<Data, AppAttestError> = self.queue.sync {
             let semaphore = DispatchSemaphore(value: 0)

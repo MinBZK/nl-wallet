@@ -9,7 +9,7 @@ pub mod hardware_test;
 
 // import generated Rust bindings
 use crate::bridge::{
-    attested_key::{AttestationData, AttestedKeyBridge, AttestedKeyError, AttestedKeyType, IdentifierAttestedKeyError},
+    attested_key::{AttestationData, AttestedKeyBridge, AttestedKeyError, AttestedKeyType},
     hw_keystore::{EncryptionKeyBridge, KeyStoreError, SigningKeyBridge},
     init_platform_support,
     utils::{UtilitiesBridge, UtilitiesError},

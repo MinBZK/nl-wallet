@@ -10,7 +10,7 @@ import Foundation
 final class AttestedKey {}
 
 extension AttestedKey: AttestedKeyBridge {
-    func keyType() throws -> AttestedKeyType {
+    func keyType() -> AttestedKeyType {
         .apple
     }
 
@@ -22,13 +22,13 @@ extension AttestedKey: AttestedKeyBridge {
         }
     }
 
-    func attest(identifier: String, challenge: [UInt8]) throws(IdentifierAttestedKeyError) -> AttestationData {
+    func attest(identifier: String, challenge: [UInt8]) throws(AttestedKeyError) -> AttestationData {
         do {
             let attestation = try AppAttest.attestKey(keyId: identifier, clientDataHash: Data(challenge))
 
             return .apple(attestationData: Array(attestation))
         } catch {
-            throw IdentifierAttestedKeyError.from(error)
+            throw AttestedKeyError.from(error)
         }
     }
 
@@ -42,11 +42,11 @@ extension AttestedKey: AttestedKeyBridge {
         }
     }
 
-    func publicKey(identifier: String) throws(AttestedKeyError) -> [UInt8] {
-        throw AttestedKeyError.KeyError(reason: "not supported on this platform")
+    func publicKey(identifier _: String) throws(AttestedKeyError) -> [UInt8] {
+        throw .MethodUnimplemented
     }
 
-    func delete(identifier: String) throws(AttestedKeyError) {
-        throw AttestedKeyError.KeyError(reason: "not supported on this platform")
+    func delete(identifier _: String) throws(AttestedKeyError) {
+        throw .MethodUnimplemented
     }
 }
