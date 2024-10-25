@@ -2,7 +2,7 @@ pub mod attested_key;
 pub mod hw_keystore;
 pub mod utils;
 
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use self::{
     attested_key::AttestedKeyBridge,
@@ -14,17 +14,17 @@ static PLATFORM_SUPPORT: OnceLock<PlatformSupport> = OnceLock::new();
 
 #[derive(Debug)]
 struct PlatformSupport {
-    signing_key: Box<dyn SigningKeyBridge>,
-    encryption_key: Box<dyn EncryptionKeyBridge>,
-    attested_key: Box<dyn AttestedKeyBridge>,
-    utils: Box<dyn UtilitiesBridge>,
+    signing_key: Arc<dyn SigningKeyBridge>,
+    encryption_key: Arc<dyn EncryptionKeyBridge>,
+    attested_key: Arc<dyn AttestedKeyBridge>,
+    utils: Arc<dyn UtilitiesBridge>,
 }
 
 pub fn init_platform_support(
-    signing_key: Box<dyn SigningKeyBridge>,
-    encryption_key: Box<dyn EncryptionKeyBridge>,
-    attested_key: Box<dyn AttestedKeyBridge>,
-    utils: Box<dyn UtilitiesBridge>,
+    signing_key: Arc<dyn SigningKeyBridge>,
+    encryption_key: Arc<dyn EncryptionKeyBridge>,
+    attested_key: Arc<dyn AttestedKeyBridge>,
+    utils: Arc<dyn UtilitiesBridge>,
 ) {
     let platform_support = PlatformSupport {
         signing_key,

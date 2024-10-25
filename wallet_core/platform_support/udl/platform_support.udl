@@ -11,7 +11,8 @@ interface KeyStoreError {
 // The identifier represents a string uniquely identifying a particular EC key pair.
 // These keys will lazily be created on first use.
 // Note that the namespace for the identifiers is completely separate from that of EncryptionKeyBridge.
-callback interface SigningKeyBridge {
+[Trait, WithForeign]
+interface SigningKeyBridge {
     [Throws=KeyStoreError]
     sequence<u8> public_key(string identifier); // The public key in DER encoding
 
@@ -28,7 +29,8 @@ callback interface SigningKeyBridge {
 // The actual implementations on Android and iOS are slightly different,
 // with Android using an actual AES key, while iOS uses ECIES for encryption and decryption.
 // Note that the namespace for the identifiers is completely separate from that of SigningKeyBridge.
-callback interface EncryptionKeyBridge {
+[Trait, WithForeign]
+interface EncryptionKeyBridge {
     [Throws=KeyStoreError]
     sequence<u8> encrypt(string identifier, sequence<u8> payload); // Returns encrypted payload
 
@@ -70,7 +72,8 @@ interface AttestationData {
 
 /// Combines a collection of methods that unify working with attested keys on both
 /// iOS and Android. App attestation for Android is combined with key attestation.
-callback interface AttestedKeyBridge {
+[Trait, WithForeign]
+interface AttestedKeyBridge {
     /// Simply returns the platform we are on. This method should not block.
     AttestedKeyType key_type();
 
@@ -108,7 +111,8 @@ interface UtilitiesError {
     BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
 };
 
-callback interface UtilitiesBridge {
+[Trait, WithForeign]
+interface UtilitiesBridge {
     [Throws=UtilitiesError]
     string get_storage_path();
 };
