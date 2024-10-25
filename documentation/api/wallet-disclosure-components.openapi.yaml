@@ -42,7 +42,6 @@ components:
           properties:
             given_name: boolean
             family_name: boolean
-            own_family_name: boolean
             given_name_birth: boolean
             family_name_birth: boolean
             gender: boolean
@@ -52,7 +51,6 @@ components:
             birth_city: boolean
             birth_state: boolean
             birth_country: boolean
-            has_spouse_or_partner: boolean
             bsn: boolean
           additionalProperties: false
         com.example.address:
