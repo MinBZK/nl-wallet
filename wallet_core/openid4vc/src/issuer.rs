@@ -4,6 +4,7 @@ use std::{
 };
 
 use futures::future::try_join_all;
+use itertools::Itertools;
 use jsonwebtoken::{Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
@@ -12,7 +13,7 @@ use tokio::task::JoinHandle;
 use tracing::info;
 
 use nl_wallet_mdoc::{
-    server_keys::{KeyPair, KeyRing},
+    server_keys::KeyRing,
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };
@@ -22,10 +23,7 @@ use wallet_common::{
         jwk_to_p256, validations, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims,
         VerifiedJwt, NL_WALLET_CLIENT_ID,
     },
-    keys::{
-        poa::{PoaError, PoaVerificationError},
-        EcdsaKey,
-    },
+    keys::poa::{PoaError, PoaVerificationError},
     nonempty::NonEmpty,
     urls::BaseUrl,
     utils::random_string,
@@ -656,6 +654,25 @@ impl Session<WaitingForResponse> {
             return Err(CredentialRequestError::Unauthorized);
         }
 
+        // If we have exactly one credential on offer that matches the credential type that the client is
+        // requesting, then we issue that credential.
+        // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
+        let requested_type = credential_request.credential_type();
+        let offered_creds: Vec<_> = session_data
+            .credential_previews
+            .iter()
+            .filter(|preview| preview.credential_type() == requested_type)
+            .collect();
+        let preview = match offered_creds.len() {
+            1 => Ok(*offered_creds.first().unwrap()),
+            0 => Err(CredentialRequestError::CredentialTypeNotOffered(
+                requested_type.map(str::to_string),
+            )),
+            // If we have more than one credential on offer of the specified doctype then it is not clear which one
+            // we should issue; abort
+            _ => Err(CredentialRequestError::UseBatchIssuance),
+        }?;
+
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
             &issuer_data.server_url.join("credential"),
@@ -689,45 +706,22 @@ impl Session<WaitingForResponse> {
         }
 
         // Verify that the public keys of the WTE disclosure and the PoP are associated with a valid PoA
-        let pop_pubkey = credential_request
-            .proof
-            .as_ref()
-            .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
-            .dangerous_unvalidated_cnf_key()?;
+        let holder_pubkey = credential_request
+            .verify(&session_data.c_nonce, preview.clone(), issuer_data)
+            .await?;
         credential_request
             .poa
             .as_ref()
             .ok_or(CredentialRequestError::MissingPoa)?
             .clone()
             .verify(
-                &[pop_pubkey, jwk_to_p256(&verified_wte.payload().confirmation.jwk)?],
+                &[holder_pubkey, jwk_to_p256(&verified_wte.payload().confirmation.jwk)?],
                 &issuer_identifier,
                 NL_WALLET_CLIENT_ID,
                 Some(&self.state.data.c_nonce),
             )?;
 
-        // If we have exactly one credential on offer that matches the credential type that the client is
-        // requesting, then we issue that credential.
-        // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
-        let requested_type = credential_request.credential_type();
-        let offered_creds: Vec<_> = session_data
-            .credential_previews
-            .iter()
-            .filter(|preview| preview.credential_type() == requested_type)
-            .collect();
-        let preview = match offered_creds.len() {
-            1 => Ok(*offered_creds.first().unwrap()),
-            0 => Err(CredentialRequestError::CredentialTypeNotOffered(
-                requested_type.map(str::to_string),
-            )),
-            // If we have more than one credential on offer of the specified doctype then it is not clear which one
-            // we should issue; abort
-            _ => Err(CredentialRequestError::UseBatchIssuance),
-        }?;
-
-        let credential_response = credential_request
-            .verify_and_sign_credential(&session_data.c_nonce, preview.clone(), issuer_data)
-            .await?;
+        let credential_response = CredentialResponse::new(preview.clone(), holder_pubkey, issuer_data).await?;
 
         Ok(credential_response)
     }
@@ -770,6 +764,27 @@ impl Session<WaitingForResponse> {
             return Err(CredentialRequestError::Unauthorized);
         }
 
+        let previews_and_holder_pubkeys = try_join_all(
+            credential_requests
+                .credential_requests
+                .as_ref()
+                .iter()
+                .zip(
+                    session_data
+                        .credential_previews
+                        .iter()
+                        .flat_map(|preview| itertools::repeat_n(preview.clone(), preview.copy_count().into())),
+                )
+                .map(|(cred_req, preview)| async move {
+                    let key = cred_req
+                        .verify(&session_data.c_nonce, preview.clone(), issuer_data)
+                        .await?;
+
+                    Ok::<_, CredentialRequestError>((preview, key))
+                }),
+        )
+        .await?;
+
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
             &issuer_data.server_url.join("batch_credential"),
@@ -803,18 +818,12 @@ impl Session<WaitingForResponse> {
         }
 
         // Verify that the public keys of the WTE disclosure and the PoPs are associated with a valid PoA
-        let poa_keys = credential_requests
-            .credential_requests
-            .as_ref()
+        let wte_key = jwk_to_p256(&verified_wte.payload().confirmation.jwk)?;
+        let poa_keys = previews_and_holder_pubkeys
             .iter()
-            .map(|pop| {
-                pop.proof
-                    .as_ref()
-                    .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
-                    .dangerous_unvalidated_cnf_key()
-            })
-            .chain([Ok(jwk_to_p256(&verified_wte.payload().confirmation.jwk)?)])
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|(_, key)| *key)
+            .chain([wte_key])
+            .collect_vec();
         credential_requests
             .poa
             .as_ref()
@@ -828,21 +837,9 @@ impl Session<WaitingForResponse> {
             )?;
 
         let credential_responses = try_join_all(
-            credential_requests
-                .credential_requests
-                .as_ref()
-                .iter()
-                .zip(
-                    session_data
-                        .credential_previews
-                        .iter()
-                        .flat_map(|preview| itertools::repeat_n(preview, preview.copy_count().into())),
-                )
-                .map(|(cred_req, preview)| async move {
-                    cred_req
-                        .verify_and_sign_credential(&session_data.c_nonce, preview.clone(), issuer_data)
-                        .await
-                }),
+            previews_and_holder_pubkeys
+                .into_iter()
+                .map(|(preview, key)| CredentialResponse::new(preview, key, issuer_data)),
         )
         .await?;
 
@@ -894,12 +891,12 @@ impl CredentialPreview {
 }
 
 impl CredentialRequest {
-    pub(crate) async fn verify_and_sign_credential(
+    pub(crate) async fn verify(
         &self,
         c_nonce: &str,
         preview: CredentialPreview,
         issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
-    ) -> Result<CredentialResponse, CredentialRequestError> {
+    ) -> Result<VerifyingKey, CredentialRequestError> {
         let requested_type = self.credential_type();
         if requested_type != preview.credential_type() {
             return Err(CredentialRequestError::CredentialTypeMismatch);
@@ -915,13 +912,7 @@ impl CredentialRequest {
                 &issuer_data.credential_issuer_identifier,
             )?;
 
-        let key_id = preview.issuer_key_identifier();
-        let issuer_privkey = issuer_data
-            .private_keys
-            .key_pair(key_id)
-            .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
-
-        CredentialResponse::new(preview, holder_pubkey, issuer_privkey).await
+        Ok(holder_pubkey)
     }
 }
 
@@ -929,8 +920,14 @@ impl CredentialResponse {
     async fn new(
         preview: CredentialPreview,
         holder_pubkey: VerifyingKey,
-        issuer_privkey: &KeyPair<impl EcdsaKey>,
+        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
+        let key_id = preview.issuer_key_identifier();
+        let issuer_privkey = issuer_data
+            .private_keys
+            .key_pair(key_id)
+            .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
+
         match preview {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
                 let cose_pubkey = (&holder_pubkey)
@@ -970,22 +967,17 @@ impl CredentialResponse {
 }
 
 impl CredentialRequestProof {
-    pub fn dangerous_unvalidated_cnf_key(&self) -> Result<VerifyingKey, CredentialRequestError> {
-        let jwt = match self {
-            CredentialRequestProof::Jwt { jwt } => jwt,
-        };
-        let header = jsonwebtoken::decode_header(&jwt.0)?;
-
-        Ok(jwk_to_p256(&header.jwk.ok_or(CredentialRequestError::MissingJwk)?)?)
-    }
-
     pub fn verify(
         &self,
         nonce: &str,
         accepted_wallet_client_ids: &[impl ToString],
         credential_issuer_identifier: &BaseUrl,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        let verifying_key = self.dangerous_unvalidated_cnf_key()?;
+        let jwt = match self {
+            CredentialRequestProof::Jwt { jwt } => jwt,
+        };
+        let header = jsonwebtoken::decode_header(&jwt.0)?;
+        let verifying_key = jwk_to_p256(&header.jwk.ok_or(CredentialRequestError::MissingJwk)?)?;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims = HashSet::default();
