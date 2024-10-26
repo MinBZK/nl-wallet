@@ -253,13 +253,13 @@ pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(se
     let storage_settings = &settings.storage;
     let public_url = settings.urls.public_url.clone();
 
-    let db = wallet_server::store::Database::try_new(storage_settings.url.clone())
+    let db_connection = wallet_server::store::DatabaseConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
 
-    let disclosure_sessions = SessionStoreVariant::new(db.clone(), storage_settings.into());
-    let issuance_sessions = SessionStoreVariant::new(db.clone(), storage_settings.into());
-    let wte_tracker = WteTrackerVariant::new(db);
+    let disclosure_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let issuance_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let wte_tracker = WteTrackerVariant::new(db_connection);
 
     tokio::spawn(async move {
         if let Err(error) = wallet_server::server::wallet_server::serve(

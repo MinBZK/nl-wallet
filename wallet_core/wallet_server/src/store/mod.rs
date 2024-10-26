@@ -6,7 +6,7 @@ cfg_if::cfg_if! {
 }
 
 use postgres::PostgresWteTracker;
-use sea_orm::{DatabaseConnection, DbErr};
+use sea_orm::DbErr;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
@@ -50,12 +50,12 @@ pub enum SessionStoreVariant<T> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Database {
-    Postgres(DatabaseConnection),
+pub enum DatabaseConnection {
+    Postgres(sea_orm::DatabaseConnection),
     Memory,
 }
 
-impl Database {
+impl DatabaseConnection {
     pub async fn try_new(url: Url) -> Result<Self, sea_orm::DbErr> {
         match url.scheme() {
             #[cfg(feature = "postgres")]
@@ -67,13 +67,13 @@ impl Database {
 }
 
 impl<T> SessionStoreVariant<T> {
-    pub fn new(database: Database, timeouts: SessionStoreTimeouts) -> SessionStoreVariant<T> {
+    pub fn new(database: DatabaseConnection, timeouts: SessionStoreTimeouts) -> SessionStoreVariant<T> {
         match database {
             #[cfg(feature = "postgres")]
-            Database::Postgres(connection) => {
+            DatabaseConnection::Postgres(connection) => {
                 SessionStoreVariant::Postgres(PostgresSessionStore::new(connection, timeouts))
             }
-            Database::Memory => SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
+            DatabaseConnection::Memory => SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
         }
     }
 }
@@ -116,10 +116,10 @@ pub enum WteTrackerVariant {
 }
 
 impl WteTrackerVariant {
-    pub fn new(connection: Database) -> Self {
+    pub fn new(connection: DatabaseConnection) -> Self {
         match connection {
-            Database::Postgres(connection) => Self::Postgres(PostgresWteTracker::new(connection)),
-            Database::Memory => Self::Memory(MemoryWteTracker::new()),
+            DatabaseConnection::Postgres(connection) => Self::Postgres(PostgresWteTracker::new(connection)),
+            DatabaseConnection::Memory => Self::Memory(MemoryWteTracker::new()),
         }
     }
 }

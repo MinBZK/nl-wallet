@@ -4,7 +4,7 @@ use wallet_server::{
     pid::attributes::BrpPidAttributeService,
     server::{self, wallet_server_main},
     settings::Settings,
-    store::{Database, SessionStoreVariant},
+    store::{DatabaseConnection, SessionStoreVariant},
 };
 
 // Cannot use #[tokio::main], see: https://docs.sentry.io/platforms/rust/#async-main-function
@@ -15,7 +15,7 @@ fn main() -> Result<()> {
 async fn async_main(settings: Settings) -> Result<()> {
     let storage_settings = &settings.storage;
     let sessions = SessionStoreVariant::new(
-        Database::try_new(storage_settings.url.clone()).await?,
+        DatabaseConnection::try_new(storage_settings.url.clone()).await?,
         storage_settings.into(),
     );
 

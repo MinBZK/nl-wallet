@@ -207,8 +207,8 @@ mod tests {
         let jwts: Vec<Jwt<PoaPayload>> = poa.clone().into();
 
         let mut validations = validations();
-        validations.set_audience(&[aud.clone()]);
-        validations.set_issuer(&[iss.clone()]);
+        validations.set_audience(&[&aud]);
+        validations.set_issuer(&[&iss]);
 
         // Manually verify the JWTs
         for (jwt, key) in jwts.into_iter().zip([key1, key2]) {
