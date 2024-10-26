@@ -218,6 +218,21 @@ async fn invalid_dpop() {
 }
 
 #[tokio::test]
+async fn invalid_pop() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        invalidate_pop: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert!(matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
+    ));
+}
+
+#[tokio::test]
 async fn invalid_poa() {
     let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
