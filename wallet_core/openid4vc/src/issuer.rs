@@ -670,11 +670,12 @@ impl Session<WaitingForResponse> {
             .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?;
 
+        let issuer_identifier = issuer_data.credential_issuer_identifier.to_string();
         let verified_wte = wte_disclosure.verify(
             &issuer_data.wte_issuer_pubkey,
-            issuer_data.credential_issuer_identifier.to_string(),
-            NL_WALLET_CLIENT_ID.to_string(),
-            Some(self.state.data.c_nonce.clone()),
+            &issuer_identifier,
+            NL_WALLET_CLIENT_ID,
+            Some(&self.state.data.c_nonce),
         )?;
 
         // Check that the WTE is fresh
@@ -699,10 +700,10 @@ impl Session<WaitingForResponse> {
             .ok_or(CredentialRequestError::MissingPoa)?
             .clone()
             .verify(
-                vec![pop_pubkey, jwk_to_p256(&verified_wte.payload().confirmation.jwk)?],
-                issuer_data.credential_issuer_identifier.to_string(),
-                NL_WALLET_CLIENT_ID.to_string(),
-                Some(self.state.data.c_nonce.clone()),
+                &[pop_pubkey, jwk_to_p256(&verified_wte.payload().confirmation.jwk)?],
+                &issuer_identifier,
+                NL_WALLET_CLIENT_ID,
+                Some(&self.state.data.c_nonce),
             )?;
 
         // If we have exactly one credential on offer that matches the credential type that the client is
@@ -783,11 +784,12 @@ impl Session<WaitingForResponse> {
             .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?;
 
+        let issuer_identifier = issuer_data.credential_issuer_identifier.to_string();
         let verified_wte = wte_disclosure.verify(
             &issuer_data.wte_issuer_pubkey,
-            issuer_data.credential_issuer_identifier.to_string(),
-            NL_WALLET_CLIENT_ID.to_string(),
-            Some(self.state.data.c_nonce.clone()),
+            &issuer_identifier,
+            NL_WALLET_CLIENT_ID,
+            Some(&self.state.data.c_nonce),
         )?;
 
         // Check that the WTE is fresh
@@ -819,10 +821,10 @@ impl Session<WaitingForResponse> {
             .ok_or(CredentialRequestError::MissingPoa)?
             .clone()
             .verify(
-                poa_keys,
-                issuer_data.credential_issuer_identifier.to_string(),
-                NL_WALLET_CLIENT_ID.to_string(),
-                Some(self.state.data.c_nonce.clone()),
+                &poa_keys,
+                &issuer_identifier,
+                NL_WALLET_CLIENT_ID,
+                Some(&self.state.data.c_nonce),
             )?;
 
         let credential_responses = try_join_all(
@@ -1036,19 +1038,19 @@ impl WteDisclosure {
     fn verify(
         &self,
         issuer_public_key: &VerifyingKey,
-        expected_aud: String,
-        expected_issuer: String,
-        expected_nonce: Option<String>,
+        expected_aud: &str,
+        expected_issuer: &str,
+        expected_nonce: Option<&str>,
     ) -> Result<VerifiedJwt<JwtCredentialClaims<WteClaims>>, CredentialRequestError> {
         let verified_jwt = VerifiedJwt::try_new(self.0.clone(), &issuer_public_key.into(), &Self::validations())?;
         let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
         let mut validations = validations();
-        validations.set_audience(&[&expected_aud]);
-        validations.set_issuer(&[&expected_issuer]);
+        validations.set_audience(&[expected_aud]);
+        validations.set_issuer(&[expected_issuer]);
         let wte_disclosure_claims = self.1.parse_and_verify(&(&wte_pubkey).into(), &validations)?;
 
-        if wte_disclosure_claims.nonce != expected_nonce {
+        if wte_disclosure_claims.nonce.as_deref() != expected_nonce {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 

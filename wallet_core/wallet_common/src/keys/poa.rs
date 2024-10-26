@@ -96,10 +96,10 @@ impl Poa {
     /// - the `aud`, `nonce` and `iss` fields in the payload have the expected values.
     pub fn verify(
         self,
-        expected_keys: Vec<VerifyingKey>,
-        expected_aud: String,
-        expected_iss: String,
-        expected_nonce: Option<String>,
+        expected_keys: &[VerifyingKey],
+        expected_aud: &str,
+        expected_iss: &str,
+        expected_nonce: Option<&str>,
     ) -> Result<(), PoaVerificationError> {
         let jwts: Vec<Jwt<_>> = self.into();
 
@@ -127,7 +127,7 @@ impl Poa {
                 found: payload.jwks.as_ref().len(),
             });
         }
-        if payload.payload.nonce != expected_nonce {
+        if payload.payload.nonce.as_deref() != expected_nonce {
             return Err(PoaVerificationError::IncorrectNonce);
         }
 
@@ -146,7 +146,7 @@ impl Poa {
         // Check that all keys that must be associated are in the PoA. We use the JWK format for this
         // since it implements Hash, unlike `VerifyingKey`.
         let associated_keys: HashSet<Jwk> = payload.jwks.into_inner().into_iter().collect();
-        for key in &expected_keys {
+        for key in expected_keys {
             let expected_key = jwk_from_p256(key)?;
             if !associated_keys.contains(&expected_key) {
                 return Err(PoaVerificationError::MissingKey(expected_key.into()));
@@ -216,31 +216,31 @@ mod tests {
         }
 
         poa.verify(
-            vec![key2, key1], // verify() is insensitive to the order of the keys
-            aud,
-            iss,
-            nonce,
+            &[key2, key1], // verify() is insensitive to the order of the keys
+            &aud,
+            &iss,
+            nonce.as_deref(),
         )
         .unwrap();
     }
 
     #[rstest]
-    #[case(Some("other_issuer".to_string()), None, None)]
-    #[case(None, Some("other_aud".to_string()), None)]
+    #[case(Some("other_issuer"), None, None)]
+    #[case(None, Some("other_aud"), None)]
     #[case(None, None, Some(None))]
     #[tokio::test]
     async fn incorrect_values(
-        #[case] verification_iss: Option<String>,
-        #[case] verification_aud: Option<String>,
-        #[case] verification_nonce: Option<Option<String>>,
+        #[case] verification_iss: Option<&str>,
+        #[case] verification_aud: Option<&str>,
+        #[case] verification_nonce: Option<Option<&str>>,
     ) {
         let (poa, key1, key2, iss, aud, nonce) = poa_setup().await;
 
         poa.verify(
-            vec![key1, key2],
-            verification_aud.unwrap_or(aud),
-            verification_iss.unwrap_or(iss),
-            verification_nonce.unwrap_or(nonce),
+            &[key1, key2],
+            verification_aud.unwrap_or(&aud),
+            verification_iss.unwrap_or(&iss),
+            verification_nonce.unwrap_or(nonce.as_deref()),
         )
         .unwrap_err();
     }
@@ -250,7 +250,7 @@ mod tests {
         let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
 
         assert_matches!(
-            poa.verify(vec![key1], aud, iss, nonce).unwrap_err(),
+            poa.verify(&[key1], &aud, &iss, nonce.as_deref()).unwrap_err(),
             PoaVerificationError::UnexpectedAmountOfSignatures { .. }
         );
     }
@@ -265,7 +265,8 @@ mod tests {
             .unwrap();
 
         assert_matches!(
-            poa.verify(vec![key1, key2, key3], aud, iss, nonce).unwrap_err(),
+            poa.verify(&[key1, key2, key3], &aud, &iss, nonce.as_deref())
+                .unwrap_err(),
             PoaVerificationError::UnexpectedAmountOfSignatures { .. }
         );
     }
@@ -280,7 +281,7 @@ mod tests {
         let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
 
         assert_matches!(
-            poa.verify(vec![key1], aud, iss, nonce).unwrap_err(),
+            poa.verify(&[key1], &aud, &iss, nonce.as_deref()).unwrap_err(),
             PoaVerificationError::UnexpectedAmountOfKeys { .. }
         );
     }
@@ -295,7 +296,8 @@ mod tests {
             .unwrap();
 
         assert_matches!(
-            poa.verify(vec![key1, other_key], aud, iss, nonce).unwrap_err(),
+            poa.verify(&[key1, other_key], &aud, &iss, nonce.as_deref())
+                .unwrap_err(),
             PoaVerificationError::MissingKey { .. }
         );
     }
@@ -305,7 +307,7 @@ mod tests {
         let (poa, _, _, iss, aud, nonce) = poa_setup().await;
 
         assert_matches!(
-            poa.verify(vec![], aud, iss, nonce).unwrap_err(),
+            poa.verify(&[], &aud, &iss, nonce.as_deref()).unwrap_err(),
             PoaVerificationError::NoKeys
         );
     }
