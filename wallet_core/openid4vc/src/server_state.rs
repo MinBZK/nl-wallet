@@ -328,7 +328,7 @@ pub mod test {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+    use wallet_common::{account::messages::instructions::WTE_EXPIRY, keys::software_key_factory::SoftwareKeyFactory};
 
     use crate::{credential::WteDisclosure, issuance_session::mock_wte};
 
@@ -565,7 +565,7 @@ pub mod test {
         assert!(wte_tracker.previously_seen_wte(&wte).await.unwrap());
 
         // Advance time past the expiry of the WTE and run the cleanup job
-        let t2 = *mock_time.read() + Duration::from_secs(10 * 60);
+        let t2 = *mock_time.read() + WTE_EXPIRY * 2;
         *mock_time.write() = t2;
         wte_tracker.cleanup().await.unwrap();
 

@@ -67,6 +67,8 @@ pub struct IssueWteResult {
     pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
 }
 
+pub static WTE_EXPIRY: Duration = Duration::minutes(5);
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct WteClaims {
     #[serde(with = "ts_seconds")]
@@ -76,7 +78,7 @@ pub struct WteClaims {
 impl WteClaims {
     pub fn new() -> Self {
         Self {
-            exp: Utc::now() + Duration::minutes(5),
+            exp: Utc::now() + WTE_EXPIRY,
         }
     }
 }
