@@ -18,6 +18,7 @@ final class UtilsTests: XCTestCase {
     }
 
     func testAllUtilities() {
-        XCTAssert(utils_test_get_storage_path())
+        // The Rust code will panic if this test fails.
+        utils_test_get_storage_path()
     }
 }
