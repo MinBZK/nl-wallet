@@ -7,8 +7,8 @@
 
 import Foundation
 
-import XCTest
 import PlatformSupport
+import XCTest
 
 final class UtilsTests: XCTestCase {
     static var platformSupport: PlatformSupport?
