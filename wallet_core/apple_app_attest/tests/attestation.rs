@@ -118,9 +118,7 @@ fn test_attestation<F>(
     );
 
     if should_succeed {
-        let (_, _, counter) = result.expect("attestation object should be valid");
-
-        assert_eq!(counter, 0);
+        let _ = result.expect("attestation object should be valid");
     } else {
         let error = result.expect_err("attestation object should not be valid");
 

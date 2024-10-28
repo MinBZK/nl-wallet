@@ -106,7 +106,7 @@ impl Attestation {
         challenge: &[u8],
         app_identifier: &AppIdentifier,
         environment: AttestationEnvironment,
-    ) -> Result<(Self, VerifyingKey, u32), AttestationError> {
+    ) -> Result<(Self, VerifyingKey), AttestationError> {
         let attestation: Self = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
 
         // The steps below are listed at:
@@ -207,6 +207,6 @@ impl Attestation {
             return Err(AttestationValidationError::KeyIdentifierMismatch)?;
         }
 
-        Ok((attestation, public_key, counter))
+        Ok((attestation, public_key))
     }
 }
