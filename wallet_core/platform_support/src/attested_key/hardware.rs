@@ -176,7 +176,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
         Ok(key_with_attestation)
     }
 
-    async fn attested_key(
+    fn attested_key(
         &self,
         key_identifier: String,
     ) -> Result<AttestedKey<Self::AppleKey, Self::GoogleKey>, Self::Error> {

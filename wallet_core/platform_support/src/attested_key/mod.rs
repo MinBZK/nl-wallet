@@ -50,10 +50,8 @@ pub trait AttestedKeyHolder {
         key_identifier: String,
         challenge: Vec<u8>,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>>;
-    async fn attested_key(
-        &self,
-        key_identifier: String,
-    ) -> Result<AttestedKey<Self::AppleKey, Self::GoogleKey>, Self::Error>;
+    fn attested_key(&self, key_identifier: String)
+        -> Result<AttestedKey<Self::AppleKey, Self::GoogleKey>, Self::Error>;
 }
 
 /// Trait for an Apple attested key. Note that [`SecureEcdsaKey`] is not
