@@ -38,11 +38,6 @@
                BlueprintName = "Integration Tests"
                ReferencedContainer = "container:PlatformSupport.xcodeproj">
             </BuildableReference>
-            <SkippedTests>
-               <Test
-                  Identifier = "SecureEnclaveKeyTests/testEncrytAndDecrypt()">
-               </Test>
-            </SkippedTests>
          </TestableReference>
       </Testables>
    </TestAction>
