@@ -624,9 +624,9 @@ the key matching your `usecase` certificate.
 
 We'll assume your `usecase` certificate is in the `DER` format and named
 `rp.crt`, your key is named `rp.key`, and finally you have two trust anchor (ca)
-certificates called `issuer_ta.crt` and `reader_ta.crt`. The `issuer_ta.crt` is
-the certificate of issuer certificates and the `reader_ta.crt` is the
-certificate of the issuer of reader certificates.
+certificates called `issuer_ta.crt` and `reader_ta.crt`. The `issuer_ta.crt`
+file contains the root certificate for issuer certificates and the
+`reader_ta.crt` file contains the root certificate for reader certificates.
 
 Finally, you'll have to come up with some name for your `usecase`; in the
 settings below, we assume the name `login-mijn-amsterdam`. Note that the name
@@ -700,9 +700,9 @@ api_key = "your_secret_key"
 
 ### Configuring Cross-Origin Resource Sharing (optional)
 
-Cross-Origin Resource Sharing (CORS) can be configured on the verification server for
-when the Relying Party website is hosted on a different URL than the
-verification server.
+Cross-Origin Resource Sharing (CORS) can be configured on the verification
+server for when the Relying Party application is hosted on a different URL than
+the verification server.
 
 To configure CORS, you need to add `allow_origins` to the `[verifier]` section
 with a list of all the Relying Party URLs. Replace `"https://example.com"` in
