@@ -623,7 +623,7 @@ and a so-called `trust-anchor` certificate. Additionally, you will still have
 the key matching your `usecase` certificate.
 
 We'll assume your `usecase` certificate is in the `DER` format and named
-`rp.crt` your key is named `rp.key`, and finally you have two trust anchor (ca)
+`rp.crt`, your key is named `rp.key`, and finally you have two trust anchor (ca)
 certificates called `issuer_ta.crt` and `reader_ta.crt`. The `issuer_ta.crt` is
 the certificate of issuer certificates and the `reader_ta.crt` is the
 certificate of the issuer of reader certificates.
@@ -700,12 +700,12 @@ api_key = "your_secret_key"
 
 ### Configuring Cross-Origin Resource Sharing (optional)
 
-Cross-Origin Resource Sharing can be configured on the verification server for
-when the Relying Party website is hosted on a different Url than the
+Cross-Origin Resource Sharing (CORS) can be configured on the verification server for
+when the Relying Party website is hosted on a different URL than the
 verification server.
 
 To configure CORS, you need to add `allow_origins` to the `[verifier]` section
-with a list of all the Relying Party urls. Replace `"https://example.com"` in
+with a list of all the Relying Party URLs. Replace `"https://example.com"` in
 the following snippet with a comma separated list of the required urls.
 
 ```toml
