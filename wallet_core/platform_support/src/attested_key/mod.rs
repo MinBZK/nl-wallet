@@ -18,12 +18,14 @@ where
 }
 
 /// Either a generic Apple or Google attested key.
+#[derive(Debug)]
 pub enum AttestedKey<A, G> {
     Apple(A),
     Google(G),
 }
 
 /// Either a generic Apple or Google attested key, including the platform specific attestation data.
+#[derive(Debug)]
 pub enum KeyWithAttestation<A, G> {
     Apple {
         key: A,

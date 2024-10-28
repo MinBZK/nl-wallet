@@ -1,3 +1,4 @@
+use derive_more::Debug;
 use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
@@ -17,13 +18,16 @@ use key::HardwareAttestedKey;
 mod key {
     use std::{collections::HashSet, sync::LazyLock};
 
+    use derive_more::Debug;
     use parking_lot::Mutex;
 
     use crate::bridge::attested_key::{AttestedKeyBridge, AttestedKeyError};
 
     static UNIQUE_IDENTIFIERS: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
+    #[derive(Debug)]
     pub(super) struct HardwareAttestedKey {
+        #[debug(skip)]
         bridge: &'static dyn AttestedKeyBridge,
         identifier: String,
     }
@@ -132,7 +136,9 @@ impl KeyWithAttestation<AppleHardwareAttestedKey, GoogleHardwareAttestedKey> {
 }
 
 /// The main type to implement [`AttestedKeyHolder`].
+#[derive(Debug)]
 pub struct HardwareAttestedKeyHolder {
+    #[debug(skip)]
     bridge: &'static dyn AttestedKeyBridge,
 }
 
@@ -195,6 +201,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
     }
 }
 
+#[derive(Debug)]
 pub struct AppleHardwareAttestedKey(HardwareAttestedKey);
 
 impl AppleAttestedKey for AppleHardwareAttestedKey {
@@ -205,6 +212,7 @@ impl AppleAttestedKey for AppleHardwareAttestedKey {
     }
 }
 
+#[derive(Debug)]
 pub struct GoogleHardwareAttestedKey(HardwareAttestedKey);
 
 impl GoogleAttestedKey for GoogleHardwareAttestedKey {

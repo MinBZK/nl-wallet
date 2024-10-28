@@ -21,6 +21,7 @@ hardware_integration_test = ["integration_test", "dep:jni", "tokio/rt"]
 
 [dependencies]
 async-trait.workspace = true
+derive_more = { workspace = true, features = ["debug"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 parking_lot.workspace = true
 thiserror.workspace = true
