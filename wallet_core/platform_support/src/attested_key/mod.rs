@@ -1,5 +1,8 @@
 pub mod hardware;
 
+#[cfg(feature = "hardware_integration_test")]
+pub mod test;
+
 use std::error::Error;
 
 use wallet_common::keys::SecureEcdsaKey;
