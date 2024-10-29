@@ -1,0 +1,37 @@
+{
+    "usecase": "xyz_bank",
+    "items_requests": [
+      {
+        "docType": "com.example.pid",
+        "nameSpaces": {
+          "com.example.pid": {
+            "given_name": true,
+            "family_name": true,
+            "own_family_name": true,
+            "given_name_birth": true,
+            "family_name_birth": true,
+            "gender": true,
+            "birth_date": true,
+            "age_over_18": true,
+            "birth_place": true,
+            "birth_city": true,
+            "birth_state": true,
+            "birth_country": true,
+            "has_spouse_or_partner": true,
+            "bsn": true
+          },
+          "com.example.address": {
+            "resident_address": true,
+            "resident_street": true,
+            "resident_house_number": true,
+            "resident_postal_code": true,
+            "resident_city": true,
+            "resident_state": true,
+            "resident_country": true
+          }
+        }
+      }
+    ],
+    "return_url_template": "${RELYING_PARTY_URL}xyz_bank/"
+  }
+  
