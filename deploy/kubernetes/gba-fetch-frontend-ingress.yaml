@@ -10,7 +10,12 @@ metadata:
     nginx.ingress.kubernetes.io/auth-tls-verify-depth: '1'
     nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_set_header Cert-Serial $ssl_client_serial;
-
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+      more_set_headers "Referrer-Policy: no-referrer";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-Frame-Options: deny";
+      more_set_headers "Permissions-Policy: camera=(), microphone=()";
+      more_set_headers "Content-Security-Policy: default-src 'none'; form-action 'self'; base-uri 'none'; frame-ancestors 'none';";
 spec:
   ingressClassName: nginx
   rules:

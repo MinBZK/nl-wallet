@@ -50,8 +50,10 @@ pub enum Element {
     Huisnummer = 1120,
     Huisletter = 1130,
     Huisnummertoevoeging = 1140,
+    // TODO: we currently request <ns0:item>81150</ns0:item>, but don't map here; remove or add here?
     Postcode = 1160,
     Woonplaats = 1170,
+    // TODO: we currently request <ns0:item>81210</ns0:item>, but don't map here; remove or add here?
     SoortVerbintenis = 1510,
     IndicatieNaamgebruik = 6110,
     RedenOpnameNationaliteit = 6310,

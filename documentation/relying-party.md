@@ -129,36 +129,34 @@ can verify. For your convenience, we list the attributes for both doctypes here:
 
 ### What a PID_DOCTYPE looks like
 
-| Attribute          | Description                                             |
-|--------------------|---------------------------------------------------------|
-| given_name         | First names (voornamen)                                 |
-| family_name_prefix | Prefix (voorvoegsel)                                    |
-| family_name        | Surname (achternaam)                                    |
-| given_name_birth   | First names at birth (voornamen bij geboorte)           |
-| family_name_birth  | Birth name (geboortenaam)                               |
-| gender             | Gender (geslacht)                                       |
-| birth_date         | Birth date (geboortedatum)                              |
-| age_over_18        | Older than 18 (ouder dan 18)                            |
-| birth_place        | Place of birth (geboorteplaats) **\***                  |
-| birth_city         | City, town or village of birth (geboortestad)           |
-| birth_state        | State or province of birth (geboortestaat of -provincie)|
-| birth_country      | Country of birth (geboorteland)                         |
-| bsn                | Citizen service number (burgerservicenummer)            |
-| nationality        | Nationality (nationaliteit)                             |
+| Attribute             | Item         | Source        | Description                                              |
+|-----------------------|--------------|---------------|----------------------------------------------------------|
+| given_name            | 10210        | haal_centraal | First names (voornamen)                                  |
+| family_name           | 10230, 10240 | haal_centraal | Prefix (voorvoegsel) and surname (achternaam)            |
+| given_name_birth      |              | unimplemented | First names at birth (voornamen bij geboorte)            |
+| family_name_birth     |              | unimplemented | Birth name (geboortenaam)                                |
+| gender                |              | unimplemented | Gender (geslacht)                                        |
+| birth_date            | 10310        | haal_centraal | Birth date (geboortedatum)                               |
+| age_over_18           |              | derived       | Older than 18 (ouder dan 18)                             |
+| birth_place           |              | unimplemented | Place of birth (geboorteplaats) **\***                   |
+| birth_city            |              | unimplemented | City, town or village of birth (geboortestad)            |
+| birth_state           |              | unimplemented | State or province of birth (geboortestaat of -provincie) |
+| birth_country         |              | unimplemented | Country of birth (geboorteland)                          |
+| bsn                   | 10120        | haal_centraal | Citizen service number (burgerservicenummer)             |
 
 *\* birth_place is a combination of birth_country, birth_state and birth_city*
 
 ### What an ADDRESS_DOCTYPE looks like
 
-| Attribute             | Description                            |
-|-----------------------|----------------------------------------|
-| resident_address      | Address (adres) **\***                 |
-| resident_street       | Street name (straatnaam)               |
-| resident_house_number | House number (huisnummer)              |
-| resident_postal_code  | Postal code (postcode)                 |
-| resident_city         | City, town or village (woonplaats)     |
-| resident_state        | State or province (staat of provincie) |
-| resident_country      | Country (land)                         |
+| Attribute             | Item                | Source        | Description                                                           |
+|-----------------------|---------------------|---------------|-----------------------------------------------------------------------|
+| resident_address      |                     | unimplemented | Address (adres) **\***                                                |
+| resident_street       | 81115, 81110        | haal_centraal | Named public space (naam openbare ruimte) or street name (straatnaam) |
+| resident_house_number | 81120, 81130, 81140 | haal_centraal | House number (huisnummer)                                             |
+| resident_postal_code  | 81160               | haal_centraal | Postal code (postcode)                                                |
+| resident_city         | 81170               | haal_centraal | City, town or village (woonplaats)                                    |
+| resident_state        |                     | unimplemented | State or province (staat of provincie)                                |
+| resident_country      |                     | unimplemented | Country (land)                                                        |
 
 *\* resident_address is a combination of resident_ street, house_number, postal_code, city, state and country*
 
@@ -625,8 +623,10 @@ and a so-called `trust-anchor` certificate. Additionally, you will still have
 the key matching your `usecase` certificate.
 
 We'll assume your `usecase` certificate is in the `DER` format and named
-`rp.crt`, your key is named `rp.key`, and finally you have a trust anchor (ca)
-certificate called `ta.crt`.
+`rp.crt`, your key is named `rp.key`, and finally you have two trust anchor (ca)
+certificates called `issuer_ta.crt` and `reader_ta.crt`. The `issuer_ta.crt`
+file contains the root certificate for issuer certificates and the
+`reader_ta.crt` file contains the root certificate for reader certificates.
 
 Finally, you'll have to come up with some name for your `usecase`; in the
 settings below, we assume the name `login-mijn-amsterdam`. Note that the name
@@ -636,7 +636,8 @@ is only used as an identifier, it can be freely chosen.
 export WAUSECASENAME="login-mijn-amsterdam"
 export WAUSECASECERT="$(cat rp.crt | openssl base64 -e -A)"
 export WAUSECASEKEY="$(cat rp.key | openssl base64 -e -A)"
-export WATRUSTANCHOR="$(cat ta.crt | openssl base64 -e -A)"
+export WAISSUERTRUSTANCHOR="$(cat issuer_ta.crt | openssl base64 -e -A)"
+export WAREADERTRUSTANCHOR="$(cat reader_ta.crt | openssl base64 -e -A)"
 ```
 
 ### Creating the configuration file
@@ -651,6 +652,12 @@ configuration file, issue the following command:
 cat <<EOF > "verification_server.toml"
 public_url = '$WAPUBLICURL'
 universal_link_base_url = '$WAULBASEURL'
+issuer_trust_anchors = [
+    "$WAISSUERTRUSTANCHOR",
+]
+reader_trust_anchors = [
+    "$WAREADERTRUSTANCHOR",
+]
 
 [storage]
 url = '$WASTORAGEURL'
@@ -664,9 +671,6 @@ ip = '0.0.0.0'
 port = 3006
 
 [verifier]
-trust_anchors = [
-    "$WATRUSTANCHOR",
-]
 ephemeral_id_secret = '$WAEPHEMERALIDSECRET'
 
 [verifier.usecases.$WAUSECASENAME]
@@ -694,6 +698,21 @@ the configuration file (choose a better key than `your_secret_key`):
 api_key = "your_secret_key"
 ```
 
+### Configuring Cross-Origin Resource Sharing (optional)
+
+Cross-Origin Resource Sharing (CORS) can be configured on the verification
+server for when the Relying Party application is hosted on a different URL than
+the verification server.
+
+To configure CORS, you need to add `allow_origins` to the `[verifier]` section
+with a list of all the Relying Party URLs. Replace `"https://example.com"` in
+the following snippet with a comma separated list of the required urls.
+
+```toml
+[verifier]
+allow_origins = ["https://example.com"]
+```
+
 ## Running the server for the first time
 
 In section [Obtaining the software](#obtaining-the-software) we have described
@@ -706,9 +725,38 @@ the binary and run it in the foreground as follows:
 ./verification_server
 ```
 
-You might not see output immediately, for that, we need to do some calls first.
+## Server logging
+
+Logging can be configured using the environment variable [`RUST_LOG`][17]. For
+example, to run the server with debug logging, use the following command.
+
+```shell
+RUST_LOG=debug ./verification_server
+```
+
+In addition the `verification_server.toml` contains the following options:
+
+```toml
+log_requests = false          # whether HTTP requests/responses should be logged
+structured_logging = false    # if `true` logging is done in JSON
+```
 
 ## Validating the configuration
+
+During startup, the `verification_server` performs some checks on the
+configuration to prevent common configuration problems. Most notably the
+following checks are performed:
+
+  * Verify all use-case certificates are valid
+  * Verify all use-case certificates are signed by any of the
+    `reader_trust_anchors`
+  * Verify all use-case certificates are reader-certificates, and contain the
+    necessary Extended Key Usages and the `reader_auth.json`
+  * Verify all use-case key-pairs are valid, i.e. the public and private keys
+    should belong together
+
+If this process discovers any configuration errors, the application will report
+an error and abort. For more insights into this process, enable debug logging.
 
 If all went well, the server is now running and ready to serve requests. To test
 the service, you can send session initiation requests and status requests to it.
@@ -1051,3 +1099,4 @@ TODO: Link to VV/OV SAD, which are still in draft and not published yet.
 [14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
 [15]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-private.openapi.yaml
 [16]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-public.openapi.yaml
+[17]: https://docs.rs/env_logger/latest/env_logger/#enabling-logging
