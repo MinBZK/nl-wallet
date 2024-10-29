@@ -78,7 +78,7 @@ pub struct Attestation {
     #[serde(rename = "attStmt")]
     pub attestation_statement: AttestationStatement,
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
-    pub auth_data: AuthenticatorDataWithSource,
+    pub auth_data: AuthenticatorDataWithSource<false>,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]

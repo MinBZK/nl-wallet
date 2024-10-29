@@ -68,7 +68,7 @@ pub struct Assertion {
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
     pub signature: DerSignature,
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
-    pub authenticator_data: AuthenticatorDataWithSource,
+    pub authenticator_data: AuthenticatorDataWithSource<true>,
 }
 
 impl Assertion {
