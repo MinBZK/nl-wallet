@@ -507,7 +507,7 @@ pub struct JsonJwt<T> {
     pub payload: String,
     #[serde(flatten)]
     pub signatures: JsonJwtSignatures,
-    #[serde(skip, default)]
+    #[serde(skip)]
     _phantomdata: PhantomData<T>,
 }
 
