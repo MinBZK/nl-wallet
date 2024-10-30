@@ -45,9 +45,9 @@ pub enum PoaVerificationError {
     #[error("no keys of which to verify association")]
     NoKeys,
     #[error("unexpected amount of signatures in PoA: expected {expected}, found {found}")]
-    UnexpectedAmountOfSignatures { expected: usize, found: usize },
+    UnexpectedSignatureCount { expected: usize, found: usize },
     #[error("unexpected amount of keys in PoA: expected {expected}, found {found}")]
-    UnexpectedAmountOfKeys { expected: usize, found: usize },
+    UnexpectedKeyCount { expected: usize, found: usize },
     #[error("incorrect nonce")]
     IncorrectNonce,
     #[error("error converting key from/to JWK: {0}")]
@@ -108,7 +108,7 @@ impl Poa {
         }
 
         if jwts.len() != expected_keys.len() {
-            return Err(PoaVerificationError::UnexpectedAmountOfSignatures {
+            return Err(PoaVerificationError::UnexpectedSignatureCount {
                 expected: expected_keys.len(),
                 found: jwts.len(),
             });
@@ -122,7 +122,7 @@ impl Poa {
             .unwrap() // safe because of the length check on jwts above
             .dangerous_parse_unverified()?;
         if jwts.len() != payload.jwks.as_ref().len() {
-            return Err(PoaVerificationError::UnexpectedAmountOfKeys {
+            return Err(PoaVerificationError::UnexpectedKeyCount {
                 expected: jwts.len(),
                 found: payload.jwks.as_ref().len(),
             });
@@ -251,7 +251,7 @@ mod tests {
 
         assert_matches!(
             poa.verify(&[key1], &aud, &iss, nonce.as_deref()).unwrap_err(),
-            PoaVerificationError::UnexpectedAmountOfSignatures { .. }
+            PoaVerificationError::UnexpectedSignatureCount { .. }
         );
     }
 
@@ -267,7 +267,7 @@ mod tests {
         assert_matches!(
             poa.verify(&[key1, key2, key3], &aud, &iss, nonce.as_deref())
                 .unwrap_err(),
-            PoaVerificationError::UnexpectedAmountOfSignatures { .. }
+            PoaVerificationError::UnexpectedSignatureCount { .. }
         );
     }
 
@@ -282,7 +282,7 @@ mod tests {
 
         assert_matches!(
             poa.verify(&[key1], &aud, &iss, nonce.as_deref()).unwrap_err(),
-            PoaVerificationError::UnexpectedAmountOfKeys { .. }
+            PoaVerificationError::UnexpectedKeyCount { .. }
         );
     }
 
