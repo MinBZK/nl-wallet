@@ -42,7 +42,7 @@ pub enum PoaError {
 pub enum PoaVerificationError {
     #[error("JWT verification error: {0}")]
     Jwt(#[from] JwtError),
-    #[error("no keys to of which to verify association")]
+    #[error("no keys of which to verify association")]
     NoKeys,
     #[error("unexpected amount of signatures in PoA: expected {expected}, found {found}")]
     UnexpectedAmountOfSignatures { expected: usize, found: usize },
