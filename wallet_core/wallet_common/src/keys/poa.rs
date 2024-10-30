@@ -42,8 +42,6 @@ pub enum PoaError {
 pub enum PoaVerificationError {
     #[error("JWT verification error: {0}")]
     Jwt(#[from] JwtError),
-    #[error("no keys of which to verify association")]
-    NoKeys,
     #[error("unexpected amount of signatures in PoA: expected {expected}, found {found}")]
     UnexpectedSignatureCount { expected: usize, found: usize },
     #[error("unexpected amount of keys in PoA: expected {expected}, found {found}")]
@@ -102,10 +100,6 @@ impl Poa {
         expected_nonce: &str,
     ) -> Result<(), PoaVerificationError> {
         let jwts: Vec<Jwt<_>> = self.into();
-
-        if expected_keys.is_empty() {
-            return Err(PoaVerificationError::NoKeys);
-        }
 
         if jwts.len() != expected_keys.len() {
             return Err(PoaVerificationError::UnexpectedSignatureCount {
@@ -297,16 +291,6 @@ mod tests {
         assert_matches!(
             &poa.verify(&[key1, other_key], &aud, &iss, &nonce).unwrap_err(),
             PoaVerificationError::MissingKey { .. }
-        );
-    }
-
-    #[tokio::test]
-    async fn no_keys() {
-        let (poa, _, _, iss, aud, nonce) = poa_setup().await;
-
-        assert_matches!(
-            &poa.verify(&[], &aud, &iss, &nonce).unwrap_err(),
-            PoaVerificationError::NoKeys
         );
     }
 }
