@@ -692,7 +692,7 @@ impl Session<WaitingForResponse> {
             &issuer_data.wte_issuer_pubkey,
             &issuer_identifier,
             NL_WALLET_CLIENT_ID,
-            Some(&self.state.data.c_nonce),
+            &self.state.data.c_nonce,
         )?;
 
         // Check that the WTE is fresh
@@ -718,7 +718,7 @@ impl Session<WaitingForResponse> {
                 &[holder_pubkey, jwk_to_p256(&verified_wte.payload().confirmation.jwk)?],
                 &issuer_identifier,
                 NL_WALLET_CLIENT_ID,
-                Some(&self.state.data.c_nonce),
+                &self.state.data.c_nonce,
             )?;
 
         let credential_response = CredentialResponse::new(preview.clone(), holder_pubkey, issuer_data).await?;
@@ -804,7 +804,7 @@ impl Session<WaitingForResponse> {
             &issuer_data.wte_issuer_pubkey,
             &issuer_identifier,
             NL_WALLET_CLIENT_ID,
-            Some(&self.state.data.c_nonce),
+            &self.state.data.c_nonce,
         )?;
 
         // Check that the WTE is fresh
@@ -833,7 +833,7 @@ impl Session<WaitingForResponse> {
                 &poa_keys,
                 &issuer_identifier,
                 NL_WALLET_CLIENT_ID,
-                Some(&self.state.data.c_nonce),
+                &self.state.data.c_nonce,
             )?;
 
         let credential_responses = try_join_all(
@@ -999,13 +999,7 @@ impl CredentialRequestProof {
                 found: token_data.header.typ,
             });
         }
-        if token_data
-            .claims
-            .nonce
-            .as_ref()
-            .ok_or(CredentialRequestError::IncorrectNonce)?
-            != nonce
-        {
+        if token_data.claims.nonce.as_deref() != Some(nonce) {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
@@ -1032,7 +1026,7 @@ impl WteDisclosure {
         issuer_public_key: &VerifyingKey,
         expected_aud: &str,
         expected_issuer: &str,
-        expected_nonce: Option<&str>,
+        expected_nonce: &str,
     ) -> Result<VerifiedJwt<JwtCredentialClaims<WteClaims>>, CredentialRequestError> {
         let verified_jwt = VerifiedJwt::try_new(self.0.clone(), &issuer_public_key.into(), &Self::validations())?;
         let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
@@ -1042,7 +1036,7 @@ impl WteDisclosure {
         validations.set_issuer(&[expected_issuer]);
         let wte_disclosure_claims = self.1.parse_and_verify(&(&wte_pubkey).into(), &validations)?;
 
-        if wte_disclosure_claims.nonce.as_deref() != expected_nonce {
+        if wte_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
