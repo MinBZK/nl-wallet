@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 
 use nl_wallet_mdoc::utils::x509::Certificate;
-use wallet_common::{reqwest::deserialize_certificates, urls::BaseUrl};
+use wallet_common::{account::serialization::DerVerifyingKey, reqwest::deserialize_certificates, urls::BaseUrl};
 
 use super::*;
 use crate::pid::{
@@ -29,8 +29,7 @@ pub struct Issuer {
 
     pub brp_server: BaseUrl,
 
-    #[serde_as(as = "Base64")]
-    pub wte_issuer_pubkey: Vec<u8>,
+    pub wte_issuer_pubkey: DerVerifyingKey,
 }
 
 #[derive(Clone, Deserialize)]
