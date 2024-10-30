@@ -110,11 +110,9 @@ impl Poa {
 
         // Some checks on the payload of the JWTs. Since the JWTs came from a `JsonJwt`, we know that the
         // payloads of all of them are equal to one another, so we can suffice with checking the first one.
-        // We may use dangerous_parse_unverified() here because we actually validate all JWTs below.
-        let (_, payload) = jwts
-            .first()
-            .unwrap() // safe because of the length check on jwts above
-            .dangerous_parse_unverified()?;
+        // We may use `unwrap()` because of the use of `NonEmpty` in `JsonJwtSignatures`, and we may use
+        // `dangerous_parse_unverified()` because we actually validate all JWTs below.
+        let (_, payload) = jwts.first().unwrap().dangerous_parse_unverified()?;
         if jwts.len() != payload.jwks.as_ref().len() {
             return Err(PoaVerificationError::UnexpectedKeyCount {
                 expected: jwts.len(),

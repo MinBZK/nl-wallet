@@ -512,6 +512,8 @@ pub struct JsonJwt<T> {
 }
 
 /// Contains the JWS signatures, supporting both the "general" and "flattened" syntaxes.
+///
+/// The "general" syntax uses `NonEmpty` so this type always contains at least one `JsonJwtSignature`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum JsonJwtSignatures {
