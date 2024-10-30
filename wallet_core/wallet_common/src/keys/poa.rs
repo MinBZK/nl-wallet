@@ -135,8 +135,8 @@ impl Poa {
         let mut validations = validations();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(&[expected_iss]);
-        for (jwt, pubkey) in jwts.into_iter().zip(payload.jwks.as_ref()) {
-            let pubkey = jwk_to_p256(pubkey)?;
+        for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_ref()) {
+            let pubkey = jwk_to_p256(jwk)?;
             let (header, _) = jwt.parse_and_verify_with_header(&(&pubkey).into(), &validations)?;
             if header.typ != Some(POA_JWT_TYP.to_string()) {
                 return Err(PoaVerificationError::IncorrectTyp(header.typ));
