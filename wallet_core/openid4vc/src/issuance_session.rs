@@ -28,7 +28,6 @@ use nl_wallet_mdoc::{
     ATTR_RANDOM_LENGTH,
 };
 use wallet_common::{
-    account::messages::instructions::WteClaims,
     generator::TimeGenerator,
     jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims, NL_WALLET_CLIENT_ID},
     keys::{
@@ -38,6 +37,7 @@ use wallet_common::{
     },
     nonempty::NonEmpty,
     urls::BaseUrl,
+    wte::WteClaims,
 };
 
 use crate::{

@@ -16,10 +16,10 @@ use openid4vc::server_state::{
     SessionToken, WteTracker,
 };
 use wallet_common::{
-    account::messages::instructions::WteClaims,
     generator::{Generator, TimeGenerator},
     jwt::{JwtCredentialClaims, VerifiedJwt},
     utils::sha256,
+    wte::WteClaims,
 };
 
 use crate::entity::{session_state, used_wtes};

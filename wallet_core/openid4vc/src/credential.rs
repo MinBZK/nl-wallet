@@ -5,11 +5,11 @@ use serde_with::skip_serializing_none;
 
 use nl_wallet_mdoc::{holder::Mdoc, utils::serialization::CborBase64, IssuerSigned};
 use wallet_common::{
-    account::messages::instructions::WteClaims,
     jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims, JwtPopClaims},
     keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
     nonempty::NonEmpty,
     urls::BaseUrl,
+    wte::WteClaims,
 };
 
 use crate::{issuance_session::IssuanceSessionError, token::CredentialPreview, Format};

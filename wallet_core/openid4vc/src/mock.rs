@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use indexmap::IndexSet;
 
 use wallet_common::{
-    account::messages::instructions::WteClaims,
     keys::{factory::KeyFactory, CredentialEcdsaKey},
+    wte::WteClaims,
 };
 
 use nl_wallet_mdoc::holder::TrustAnchor;

@@ -18,7 +18,6 @@ use nl_wallet_mdoc::{
     IssuerSigned,
 };
 use wallet_common::{
-    account::messages::instructions::WteClaims,
     jwt::{
         jwk_to_p256, validations, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims,
         VerifiedJwt, NL_WALLET_CLIENT_ID,
@@ -27,6 +26,7 @@ use wallet_common::{
     nonempty::NonEmpty,
     urls::BaseUrl,
     utils::random_string,
+    wte::WteClaims,
 };
 
 use crate::{

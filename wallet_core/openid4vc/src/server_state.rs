@@ -10,10 +10,10 @@ use tokio::{
 use tracing::warn;
 
 use wallet_common::{
-    account::messages::instructions::WteClaims,
     generator::{Generator, TimeGenerator},
     jwt::{JwtCredentialClaims, VerifiedJwt},
     utils::{random_string, sha256},
+    wte::WteClaims,
 };
 
 /// The cleanup task that removes stale sessions runs every so often.
@@ -328,7 +328,7 @@ pub mod test {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use wallet_common::{account::messages::instructions::WTE_EXPIRY, keys::software_key_factory::SoftwareKeyFactory};
+    use wallet_common::{keys::software_key_factory::SoftwareKeyFactory, wte::WTE_EXPIRY};
 
     use crate::{credential::WteDisclosure, issuance_session::mock_wte};
 

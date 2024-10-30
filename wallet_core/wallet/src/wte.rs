@@ -3,8 +3,9 @@ use p256::ecdsa::VerifyingKey;
 use openid4vc::jwt::JwtCredential;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::messages::instructions::{IssueWte, IssueWteResult, WteClaims},
+    account::messages::instructions::{IssueWte, IssueWteResult},
     utils::random_string,
+    wte::WteClaims,
 };
 
 use crate::{
@@ -63,9 +64,9 @@ pub(crate) mod tests {
     use openid4vc::jwt::JwtCredential;
     use platform_support::hw_keystore::PlatformEcdsaKey;
     use wallet_common::{
-        account::messages::instructions::WteClaims,
         keys::{software::SoftwareEcdsaKey, StoredByIdentifier},
         utils::random_string,
+        wte::WteClaims,
     };
 
     use crate::{

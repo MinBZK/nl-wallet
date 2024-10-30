@@ -3,9 +3,9 @@ use std::error::Error;
 use p256::ecdsa::VerifyingKey;
 
 use wallet_common::{
-    account::messages::instructions::WteClaims,
     jwt::{Jwt, JwtCredentialClaims, JwtError},
     keys::SecureEcdsaKey,
+    wte::WteClaims,
 };
 use wallet_provider_domain::model::{hsm::WalletUserHsm, wrapped_key::WrappedKey};
 
@@ -80,8 +80,8 @@ pub mod mock {
     use rand_core::OsRng;
 
     use wallet_common::{
-        account::messages::instructions::WteClaims,
         jwt::{Jwt, JwtCredentialClaims},
+        wte::WteClaims,
     };
     use wallet_provider_domain::model::wrapped_key::WrappedKey;
 

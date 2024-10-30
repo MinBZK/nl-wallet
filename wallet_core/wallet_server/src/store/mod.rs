@@ -15,8 +15,8 @@ use openid4vc::server_state::{
     SessionStoreTimeouts, SessionToken, WteTracker,
 };
 use wallet_common::{
-    account::messages::instructions::WteClaims,
     jwt::{JwtCredentialClaims, VerifiedJwt},
+    wte::WteClaims,
 };
 
 pub trait SessionDataType {
