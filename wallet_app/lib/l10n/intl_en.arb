@@ -1044,7 +1044,6 @@
     "walletPersonalizeCheckDataOfferingPageCitizenIdLabel": "Citizen service number (BSN)",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
-    "walletPersonalizeCheckDataOfferingPageGenderLabel": "Gender",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Name",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "If your details are correct, you can add them as cards.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Do you want to add these details?",

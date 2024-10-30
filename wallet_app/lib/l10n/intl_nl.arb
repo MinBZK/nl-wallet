@@ -1040,7 +1040,6 @@
     "walletPersonalizeCheckDataOfferingPageCitizenIdLabel": "Burger­service­nummer (BSN)",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "Nee",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
-    "walletPersonalizeCheckDataOfferingPageGenderLabel": "Geslacht",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Als je gegevens kloppen, kun je ze als kaarten toevoegen.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Wil je deze gegevens toevoegen?",
