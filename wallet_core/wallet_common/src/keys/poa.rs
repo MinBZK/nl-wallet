@@ -138,7 +138,7 @@ impl Poa {
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_ref()) {
             let pubkey = jwk_to_p256(jwk)?;
             let (header, _) = jwt.parse_and_verify_with_header(&(&pubkey).into(), &validations)?;
-            if header.typ != Some(POA_JWT_TYP.to_string()) {
+            if header.typ.as_deref() != Some(POA_JWT_TYP) {
                 return Err(PoaVerificationError::IncorrectTyp(header.typ));
             }
         }
