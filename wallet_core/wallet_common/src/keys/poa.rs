@@ -90,7 +90,8 @@ impl Poa {
     /// Verify the PoA, checking that:
     ///
     /// - all `expected_keys` are in the PoA (and no other keys). The keys may be passed in any order.
-    /// - all signatures are valid against all keys in the PoA.
+    /// - all signatures are valid against all keys in the PoA, and the order of the JWKs in the payload
+    ///   corresponds to the order of the signatures.
     /// - the `aud`, `nonce` and `iss` fields in the payload have the expected values.
     pub fn verify(
         self,
