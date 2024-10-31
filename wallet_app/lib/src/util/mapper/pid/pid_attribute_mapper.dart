@@ -57,12 +57,11 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
           value: StringValue(getGender(context, input)!),
           icon: getGenderIcon(input),
         ),
-      if (true)
-        UiAttribute.untranslated(
-          label: l10n.walletPersonalizeCheckDataOfferingPageCitizenIdLabel,
-          value: StringValue(getBsn(context, input)),
-          icon: Icons.badge_outlined,
-        ),
+      UiAttribute.untranslated(
+        label: l10n.walletPersonalizeCheckDataOfferingPageCitizenIdLabel,
+        value: StringValue(getBsn(context, input)),
+        icon: Icons.badge_outlined,
+      ),
       UiAttribute.untranslated(
         label: l10n.walletPersonalizeCheckDataOfferingPageAddressLabel,
         value: StringValue(getResidentialAddress(context, input)),
