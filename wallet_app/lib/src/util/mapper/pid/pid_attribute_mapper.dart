@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
+import '../../../domain/model/attribute/value/gender.dart';
 import '../../extension/build_context_extension.dart';
 import '../../formatter/attribute_value_formatter.dart';
 import '../context_mapper.dart';
@@ -39,26 +40,45 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
     //NOTE: on every locale change, and thus the correct localization is provided by default.
     return [
       UiAttribute.untranslated(
+        label: l10n.walletPersonalizeCheckDataOfferingPageNameLabel,
         value: StringValue(getFullName(context, input)),
         icon: Icons.portrait_outlined,
-        label: l10n.walletPersonalizeCheckDataOfferingPageNameLabel,
       ),
       UiAttribute.untranslated(
+        label: l10n.walletPersonalizeCheckDataOfferingPageBirthInfoLabel,
         value: StringValue(getBirthDetails(context, input)),
         icon: Icons.cake_outlined,
-        label: l10n.walletPersonalizeCheckDataOfferingPageBirthInfoLabel,
       ),
-      UiAttribute.untranslated(
-        label: l10n.walletPersonalizeCheckDataOfferingPageCitizenIdLabel,
-        value: StringValue(getBsn(context, input)),
-        icon: Icons.badge_outlined,
-      ),
+      // Gender is a temporary optional attribute due to the current 'autorisatiebesluit'.
+      // See https://SSSS/browse/PVW-3642 for more information.
+      if (getGender(context, input) != null)
+        UiAttribute.untranslated(
+          label: context.l10n.walletPersonalizeCheckDataOfferingPageGenderLabel,
+          value: StringValue(getGender(context, input)!),
+          icon: getGenderIcon(input),
+        ),
+      if (true)
+        UiAttribute.untranslated(
+          label: l10n.walletPersonalizeCheckDataOfferingPageCitizenIdLabel,
+          value: StringValue(getBsn(context, input)),
+          icon: Icons.badge_outlined,
+        ),
       UiAttribute.untranslated(
         label: l10n.walletPersonalizeCheckDataOfferingPageAddressLabel,
         value: StringValue(getResidentialAddress(context, input)),
         icon: Icons.cottage_outlined,
       ),
     ].nonNulls.toList();
+  }
+
+  IconData getGenderIcon(List<T> input) {
+    final gender = getGenderValue(input).value;
+    return switch (gender) {
+      Gender.unknown => Icons.question_mark_outlined,
+      Gender.male => Icons.male_outlined,
+      Gender.female => Icons.female_outlined,
+      Gender.notApplicable => Icons.sentiment_satisfied,
+    };
   }
 
   String getBirthDetails(BuildContext context, List<T> attributes) {
@@ -97,10 +117,10 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
 
   String? getBirthCountry(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCountryKey);
 
+  String? getGender(BuildContext context, List<T> attributes) => findByKey(context, attributes, genderKey);
+
   GenderValue getGenderValue(List<T> attributes) =>
       attributes.whereType<DataAttribute>().firstWhere((attribute) => attribute.key == genderKey).value as GenderValue;
-
-  String? getGender(BuildContext context, List<T> attributes) => findByKey(context, attributes, genderKey);
 
   String getBsn(BuildContext context, List<T> attributes) => findByKey(context, attributes, bsnKey)!;
 
