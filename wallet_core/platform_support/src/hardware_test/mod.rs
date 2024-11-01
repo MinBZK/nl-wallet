@@ -15,7 +15,7 @@ where
         if let Some(panic_message) = error.downcast_ref::<String>() {
             eprintln!("Rust panic: {}", panic_message);
         } else {
-            eprintln!("Unknown Rust panic occurred");
+            eprintln!("Rust panic of unknown type occurred");
         }
 
         process::abort();
