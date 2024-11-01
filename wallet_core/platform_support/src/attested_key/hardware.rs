@@ -3,6 +3,7 @@ use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
 };
+
 use wallet_common::keys::{EcdsaKey, SecureEcdsaKey};
 
 use crate::bridge::attested_key::{
