@@ -54,10 +54,14 @@ extension AttestedKey: AttestedKeyBridge {
     }
 
     func publicKey(identifier _: String) throws(AttestedKeyError) -> [UInt8] {
+        // Retrieving the public key is only supported as part of key attestation for iOS.
+        // This method is only implemented for Android and should not be called on this platform.
         throw .MethodUnimplemented
     }
 
     func delete(identifier _: String) throws(AttestedKeyError) {
+        // Deleting an attested key is not supported by iOS.
+        // This method is only implemented for Android and should not be called on this platform.
         throw .MethodUnimplemented
     }
 }
