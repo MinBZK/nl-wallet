@@ -16,6 +16,7 @@ impl<const IS_TRUNCATED: bool> TryFrom<Vec<u8>> for AuthenticatorDataWithSource<
             // extension while parsing. We then restore the flags to their initial state,
             // as the hash over this data must be calculated over the original.
             let flags = value[32];
+            // Unset any flag that signal extra data blocks after the main authenticator data.
             value[32] = flags & u8::from(!(Flags::AT | Flags::ED));
 
             let auth_data = AuthenticatorData::from_slice(&value)?;
