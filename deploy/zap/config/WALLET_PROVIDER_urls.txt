@@ -1,0 +1,8 @@
+${WALLET_PROVIDER_BASE_URL}api/v1/enroll
+${WALLET_PROVIDER_BASE_URL}api/v1/createwallet
+${WALLET_PROVIDER_BASE_URL}api/v1/instructions/challenge
+${WALLET_PROVIDER_BASE_URL}api/v1/instructions/generate_key
+${WALLET_PROVIDER_BASE_URL}api/v1/instructions/sign
+${WALLET_PROVIDER_BASE_URL}api/v1/instructions/change_pin_rollback
+${WALLET_PROVIDER_BASE_URL}api/v1/instructions/change_pin_commit
+${WALLET_PROVIDER_BASE_URL}api/v1/instructions/change_pin_start

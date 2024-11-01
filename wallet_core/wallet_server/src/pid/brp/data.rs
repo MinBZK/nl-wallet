@@ -24,7 +24,7 @@ pub struct BrpPerson {
     bsn: String,
 
     #[serde(rename = "geslacht")]
-    gender: BrpGender,
+    gender: Option<BrpGender>,
 
     #[serde(rename = "naam")]
     name: BrpName,
@@ -96,11 +96,10 @@ impl From<BrpPerson> for Vec<UnsignedMdoc> {
                             value: ciborium::Value::Bool(is_over_18),
                         }
                         .into(),
-                        unsigned::Entry {
+                        value.gender.map(|gender| unsigned::Entry {
                             name: String::from(PID_GENDER),
-                            value: value.gender.code.into(),
-                        }
-                        .into(),
+                            value: gender.code.into(),
+                        }),
                     ]
                     .into_iter()
                     .flatten()
