@@ -4,6 +4,7 @@ import 'package:local_auth/local_auth.dart';
 
 import '../../../../data/repository/biometric/biometric_repository.dart';
 import '../../../../data/store/active_locale_provider.dart';
+import '../../../../util/helper/local_authentication_helper.dart';
 import '../set_biometrics_usecase.dart';
 
 class SetBiometricsUseCaseImpl extends SetBiometricsUseCase {
@@ -20,9 +21,9 @@ class SetBiometricsUseCaseImpl extends SetBiometricsUseCase {
 
     if (enable && authenticateBeforeEnabling) {
       final l10n = lookupAppLocalizations(_localeProvider.activeLocale);
-      final authenticated = await _localAuthentication.authenticate(
-        localizedReason: l10n.setupBiometricsPageLocalizedReason,
-        options: const AuthenticationOptions(biometricOnly: true),
+      final authenticated = await LocalAuthenticationHelper.authenticate(
+        _localAuthentication,
+        l10n,
       );
       if (!authenticated) throw Exception('Failed to enable biometrics, failed to authenticate');
     }
