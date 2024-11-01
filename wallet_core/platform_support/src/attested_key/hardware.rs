@@ -50,31 +50,16 @@ mod key {
             })
         }
 
-        pub async fn sign<E>(&self, payload: Vec<u8>) -> Result<Vec<u8>, E>
-        where
-            E: From<AttestedKeyError>,
-        {
-            let signature = self.bridge.sign(self.identifier.clone(), payload).await?;
-
-            Ok(signature)
+        pub async fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, AttestedKeyError> {
+            self.bridge.sign(self.identifier.clone(), payload).await
         }
 
-        pub async fn public_key<E>(&self) -> Result<Vec<u8>, E>
-        where
-            E: From<AttestedKeyError>,
-        {
-            let public_key = self.bridge.public_key(self.identifier.clone()).await?;
-
-            Ok(public_key)
+        pub async fn public_key(&self) -> Result<Vec<u8>, AttestedKeyError> {
+            self.bridge.public_key(self.identifier.clone()).await
         }
 
-        pub async fn delete<E>(self) -> Result<(), E>
-        where
-            E: From<AttestedKeyError>,
-        {
-            self.bridge.delete(self.identifier.clone()).await?;
-
-            Ok(())
+        pub async fn delete(self) -> Result<(), AttestedKeyError> {
+            self.bridge.delete(self.identifier.clone()).await
 
             // Note that upon returning, the `Drop` implementation will be called and
             // the identifier will be removed from the static `UNIQUE_IDENTIFIERS`.
@@ -209,7 +194,9 @@ impl AppleAttestedKey for AppleHardwareAttestedKey {
     type Error = HardwareAttestedKeyError;
 
     async fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, Self::Error> {
-        self.0.sign(payload).await
+        let assertion = self.0.sign(payload).await?;
+
+        Ok(assertion)
     }
 }
 
@@ -218,7 +205,9 @@ pub struct GoogleHardwareAttestedKey(HardwareAttestedKey);
 
 impl GoogleAttestedKey for GoogleHardwareAttestedKey {
     async fn delete(self) -> Result<(), Self::Error> {
-        self.0.delete().await
+        self.0.delete().await?;
+
+        Ok(())
     }
 }
 
@@ -228,14 +217,14 @@ impl EcdsaKey for GoogleHardwareAttestedKey {
     type Error = HardwareAttestedKeyError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let public_key_bytes = self.0.public_key::<Self::Error>().await?;
+        let public_key_bytes = self.0.public_key().await?;
         let public_key = VerifyingKey::from_public_key_der(&public_key_bytes)?;
 
         Ok(public_key)
     }
 
     async fn try_sign(&self, payload: &[u8]) -> Result<Signature, Self::Error> {
-        let signature_bytes = self.0.sign::<Self::Error>(payload.to_vec()).await?;
+        let signature_bytes = self.0.sign(payload.to_vec()).await?;
         // Only for Android is the returned signature in DER format.
         let signature = Signature::from_der(&signature_bytes)?;
 
