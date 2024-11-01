@@ -6,9 +6,9 @@ use p256::{
 
 use wallet_common::keys::{EcdsaKey, SecureEcdsaKey};
 
-use crate::bridge::attested_key::{
-    get_attested_key_bridge, AttestationData, AttestedKeyBridge, AttestedKeyError, AttestedKeyType,
-};
+use crate::bridge::attested_key::{get_attested_key_bridge, AttestationData, AttestedKeyBridge, AttestedKeyType};
+
+pub use crate::bridge::attested_key::AttestedKeyError;
 
 use super::{
     AppleAttestedKey, AttestationError, AttestedKey, AttestedKeyHolder, GoogleAttestedKey, KeyWithAttestation,
@@ -97,7 +97,7 @@ pub enum HardwareAttestedKeyError {
     #[error("could not decode DER public key: {0}")]
     PublicKey(#[from] p256::pkcs8::spki::Error),
     #[error("could not perform attested key operation in platform code: {0}")]
-    Platform(AttestedKeyError),
+    Platform(#[source] AttestedKeyError),
 }
 
 impl From<AttestedKeyError> for HardwareAttestedKeyError {
