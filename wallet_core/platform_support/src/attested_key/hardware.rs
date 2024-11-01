@@ -94,11 +94,11 @@ impl From<AttestedKeyError> for HardwareAttestedKeyError {
 
 impl From<AttestedKeyError> for AttestationError<HardwareAttestedKeyError> {
     fn from(value: AttestedKeyError) -> Self {
-        let retain_identifier = matches!(value, AttestedKeyError::ServerUnreachable { .. });
+        let retryable = matches!(value, AttestedKeyError::ServerUnreachable { .. });
 
         Self {
             error: value.into(),
-            retain_identifier,
+            retryable,
         }
     }
 }
@@ -158,7 +158,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
         let inner_key =
             HardwareAttestedKey::new(self.bridge, key_identifier.clone()).ok_or_else(|| AttestationError {
                 error: HardwareAttestedKeyError::IdentifierInUse(key_identifier.clone()),
-                retain_identifier: false,
+                retryable: false,
             })?;
 
         // Perform key/app attestation and convert the resulting attestation data to the corresponding key type.

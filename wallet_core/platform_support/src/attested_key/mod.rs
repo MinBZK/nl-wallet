@@ -12,14 +12,14 @@ use wallet_common::keys::SecureEcdsaKey;
 /// Wrapper for errors encountered during attestation that includes a boolean to indicate
 /// that the caller should retain the identifier for future retries of the attestation.
 #[derive(Debug, thiserror::Error)]
-#[error("could not perform key/app attestation (retain_identifier: {retain_identifier}): {error}")]
+#[error("could not perform key/app attestation (retryable: {retryable}): {error}")]
 pub struct AttestationError<E>
 where
     E: Error,
 {
     #[source]
     pub error: E,
-    pub retain_identifier: bool,
+    pub retryable: bool,
 }
 
 /// Either a generic Apple or Google attested key.
