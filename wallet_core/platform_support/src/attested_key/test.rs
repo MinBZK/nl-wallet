@@ -83,7 +83,7 @@ where
             let assertion1 = key.sign(payload.clone()).await.expect("could not sign payload");
 
             Assertion::parse_and_verify(
-                &assertion1,
+                assertion1.as_ref(),
                 &client_data1,
                 &public_key,
                 &app_identifier,
@@ -112,7 +112,7 @@ where
             let assertion2 = key.sign(payload).await.expect("could not sign payload a second time");
 
             Assertion::parse_and_verify(
-                &assertion2,
+                assertion2.as_ref(),
                 &client_data2,
                 &public_key,
                 &app_identifier,

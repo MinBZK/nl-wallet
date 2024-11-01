@@ -11,7 +11,8 @@ use crate::bridge::attested_key::{get_attested_key_bridge, AttestationData, Atte
 pub use crate::bridge::attested_key::AttestedKeyError;
 
 use super::{
-    AppleAttestedKey, AttestationError, AttestedKey, AttestedKeyHolder, GoogleAttestedKey, KeyWithAttestation,
+    AppleAssertion, AppleAttestedKey, AttestationError, AttestedKey, AttestedKeyHolder, GoogleAttestedKey,
+    KeyWithAttestation,
 };
 
 use key::HardwareAttestedKey;
@@ -193,10 +194,10 @@ pub struct AppleHardwareAttestedKey(HardwareAttestedKey);
 impl AppleAttestedKey for AppleHardwareAttestedKey {
     type Error = HardwareAttestedKeyError;
 
-    async fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, Self::Error> {
+    async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error> {
         let assertion = self.0.sign(payload).await?;
 
-        Ok(assertion)
+        Ok(AppleAssertion(assertion))
     }
 }
 
