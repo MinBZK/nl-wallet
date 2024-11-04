@@ -101,6 +101,7 @@ dependency-check-images:
       "nl-verification-server"
       "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
+      "nl-rdo-max"
       )
     - mkdir -p trivy
   script:
