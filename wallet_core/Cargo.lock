@@ -5598,6 +5598,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "derive_more",
  "error_category",
  "etag",
  "futures",
