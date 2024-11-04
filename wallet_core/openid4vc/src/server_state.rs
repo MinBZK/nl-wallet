@@ -279,7 +279,7 @@ impl<G> MemoryWteTracker<G> {
 
 impl MemoryWteTracker {
     pub fn new() -> Self {
-        Self::new_with_time(TimeGenerator)
+        Self::default()
     }
 }
 
