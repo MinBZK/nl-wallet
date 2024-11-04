@@ -1,11 +1,11 @@
 use std::{
     collections::HashMap,
     convert::Infallible,
-    fmt::{self, Debug},
     sync::{Arc, LazyLock},
 };
 
 use aes_gcm::{aead::KeyInit, Aes256Gcm};
+use derive_more::Debug;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use parking_lot::Mutex;
 use rand_core::OsRng;
@@ -20,9 +20,10 @@ static SIGNING_KEYS: LazyLock<Mutex<HashMap<String, Arc<SigningKey>>>> = LazyLoc
 static ENCRYPTION_CIPHERS: LazyLock<Mutex<HashMap<String, Arc<Aes256Gcm>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SoftwareEcdsaKey {
     identifier: String,
+    #[debug(skip)]
     key: Arc<SigningKey>,
 }
 
@@ -42,14 +43,6 @@ impl SoftwareEcdsaKey {
     // `SoftwareEcdsaKey` with the specified identifier exists.
     pub fn identifier_exists(identifier: &str) -> bool {
         SIGNING_KEYS.lock().contains_key(identifier)
-    }
-}
-
-impl Debug for SoftwareEcdsaKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SoftwareEcdsaKey")
-            .field("identifier", &self.identifier)
-            .finish_non_exhaustive()
     }
 }
 
@@ -114,8 +107,10 @@ impl StoredByIdentifier for SoftwareEcdsaKey {
     }
 }
 
+#[derive(Debug)]
 pub struct SoftwareEncryptionKey {
     identifier: String,
+    #[debug(skip)]
     cipher: Arc<Aes256Gcm>,
 }
 
@@ -135,14 +130,6 @@ impl SoftwareEncryptionKey {
     // `SoftwareEncryptionKey` with the specified identifier exists.
     pub fn identifier_exists(identifier: &str) -> bool {
         ENCRYPTION_CIPHERS.lock().contains_key(identifier)
-    }
-}
-
-impl Debug for SoftwareEncryptionKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SoftwareEncryptionKey")
-            .field("identifier", &self.identifier)
-            .finish_non_exhaustive()
     }
 }
 

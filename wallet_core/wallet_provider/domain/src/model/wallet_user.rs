@@ -1,6 +1,5 @@
-use std::fmt::{Debug, Formatter};
-
 use chrono::{DateTime, Utc};
+use derive_more::Debug;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use uuid::Uuid;
@@ -11,6 +10,8 @@ use crate::model::{encrypted::Encrypted, wrapped_key::WrappedKey};
 
 pub type WalletId = String;
 
+#[derive(Debug)]
+#[debug("{wallet_id}")]
 pub struct WalletUser {
     pub id: Uuid,
     pub wallet_id: WalletId,
@@ -27,12 +28,6 @@ pub struct WalletUser {
 impl WalletUser {
     pub fn pin_change_in_progress(&self) -> bool {
         self.encrypted_previous_pin_pubkey.is_some()
-    }
-}
-
-impl Debug for WalletUser {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.wallet_id)
     }
 }
 

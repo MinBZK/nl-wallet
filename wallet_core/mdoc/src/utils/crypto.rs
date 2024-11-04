@@ -1,13 +1,12 @@
 //! Cryptographic utilities: SHA256, ECDSA, Diffie-Hellman, HKDF, and key conversion functions.
 
-use std::fmt::Debug;
-
 use aes_gcm::{
     aead::{Aead, Nonce},
     Aes256Gcm, Key, KeyInit,
 };
 use ciborium::value::Value;
 use coset::{iana, CoseKeyBuilder, Label};
+use derive_more::Debug;
 use p256::{ecdh, ecdsa::VerifyingKey, EncodedPoint, PublicKey, SecretKey};
 use ring::hmac;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -150,18 +149,11 @@ impl TryFrom<&Security> for PublicKey {
 }
 
 /// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SessionKey {
+    #[debug(skip)]
     key: ByteBuf,
     user: SessionKeyUser,
-}
-
-impl Debug for SessionKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SessionKey")
-            .field("user", &self.user)
-            .finish_non_exhaustive()
-    }
 }
 
 /// Identifies which agent uses the [`SessionKey`] to encrypt its messages.
