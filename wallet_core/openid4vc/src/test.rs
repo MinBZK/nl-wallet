@@ -36,7 +36,6 @@ pub const VERIFIER_URL: &str = "http://example.com/disclosure";
 /// exposing fields to its user to inspect and/or modify the behaviour.
 #[derive(Debug)]
 pub struct MockVerifierSession<F> {
-    pub session_type: SessionType,
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<DerTrustAnchor>,
@@ -98,7 +97,6 @@ where
         let items_requests = vec![ItemsRequest::new_example()].into();
 
         MockVerifierSession {
-            session_type,
             redirect_uri,
             trust_anchors,
             reader_registration,
