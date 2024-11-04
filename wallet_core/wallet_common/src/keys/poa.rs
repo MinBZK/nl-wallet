@@ -156,23 +156,24 @@ impl Poa {
     }
 }
 
-#[cfg(all(test, feature = "software_keys"))]
+#[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use p256::ecdsa::VerifyingKey;
+    use p256::ecdsa::{SigningKey, VerifyingKey};
+    use rand_core::OsRng;
     use rstest::rstest;
 
     use crate::{
         jwt::{validations, JsonJwt, Jwt, JwtPopClaims},
-        keys::{poa::PoaPayload, software::SoftwareEcdsaKey},
+        keys::poa::PoaPayload,
         nonempty::NonEmpty,
     };
 
-    use super::{EcdsaKey, Poa, PoaVerificationError};
+    use super::{Poa, PoaVerificationError};
 
     async fn poa_setup() -> (Poa, VerifyingKey, VerifyingKey, String, String, String) {
-        let key1 = SoftwareEcdsaKey::new_random("key1".to_string());
-        let key2 = SoftwareEcdsaKey::new_random("key2".to_string());
+        let key1 = SigningKey::random(&mut OsRng);
+        let key2 = SigningKey::random(&mut OsRng);
 
         let iss = "iss".to_string();
         let aud = "aud".to_string();
@@ -185,14 +186,7 @@ mod tests {
         .await
         .unwrap();
 
-        (
-            poa,
-            key1.verifying_key().await.unwrap(),
-            key2.verifying_key().await.unwrap(),
-            iss,
-            aud,
-            nonce,
-        )
+        (poa, *key1.verifying_key(), *key2.verifying_key(), iss, aud, nonce)
     }
 
     #[tokio::test]
@@ -254,10 +248,7 @@ mod tests {
     async fn too_many_keys() {
         let (poa, key1, key2, iss, aud, nonce) = poa_setup().await;
 
-        let key3 = SoftwareEcdsaKey::new_random("key3".to_string())
-            .verifying_key()
-            .await
-            .unwrap();
+        let key3 = *SigningKey::random(&mut OsRng).verifying_key();
 
         assert_matches!(
             &poa.verify(&[key1, key2, key3], &aud, &iss, &nonce).unwrap_err(),
@@ -284,10 +275,7 @@ mod tests {
     async fn missing_key() {
         let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
 
-        let other_key = SoftwareEcdsaKey::new_random("other_key".to_string())
-            .verifying_key()
-            .await
-            .unwrap();
+        let other_key = *SigningKey::random(&mut OsRng).verifying_key();
 
         assert_matches!(
             &poa.verify(&[key1, other_key], &aud, &iss, &nonce).unwrap_err(),
