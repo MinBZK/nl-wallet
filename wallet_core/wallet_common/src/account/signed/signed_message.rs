@@ -158,6 +158,20 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_signed_message() {
+        let key = SigningKey::random(&mut OsRng);
+        let signed_message = SignedMessage::sign(&ToyPayload::default(), SignedType::HW, &key)
+            .await
+            .unwrap();
+
+        let payload = signed_message
+            .parse_and_verify(SignedType::HW, key.verifying_key())
+            .expect("should parse and verify SignedMessage successfully");
+
+        assert_eq!(payload.string, "Some payload.");
+    }
+
+    #[tokio::test]
     async fn test_signed_message_error_type_mismatch() {
         let key = SigningKey::random(&mut OsRng);
         let signed_message = SignedMessage::sign(&ToyPayload::default(), SignedType::HW, &key)
@@ -176,6 +190,20 @@ mod tests {
                 received: SignedType::HW
             }
         );
+    }
+
+    #[tokio::test]
+    async fn test_subject_signed_message() {
+        let key = SigningKey::random(&mut OsRng);
+        let signed_message = SignedSubjectMessage::sign(ToyPayload::default(), SignedType::HW, &key)
+            .await
+            .unwrap();
+
+        let payload = signed_message
+            .parse_and_verify(SignedType::HW, key.verifying_key())
+            .expect("should parse and verify SignedSubjectMessage successfully");
+
+        assert_eq!(payload.string, "Some payload.");
     }
 
     #[tokio::test]
