@@ -16,7 +16,7 @@ pub enum HardwareKeyStoreError {
 
 /// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
-/// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
+/// Handles to private keys are requested through [`StoredByIdentifier::new_unique()`].
 pub trait PlatformEcdsaKey: StoredByIdentifier + SecureEcdsaKey {
     // from StoredByIdentifier: new_unique(), delete(), identifier()
     // from EcdsaKey: verifying_key(), try_sign(), sign()

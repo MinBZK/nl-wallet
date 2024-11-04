@@ -189,7 +189,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
 }
 
 /// This is the concrete type that implements [`AppleAttestedKey`]. It simply wraps
-/// a [`HardwareAttestedKey`] and forwards calls to send across to bridge to it.
+/// a `HardwareAttestedKey` and forwards calls to send across to bridge to it.
 #[derive(Debug)]
 pub struct AppleHardwareAttestedKey(HardwareAttestedKey);
 
@@ -204,7 +204,7 @@ impl AppleAttestedKey for AppleHardwareAttestedKey {
 }
 
 /// This is the concrete type that implements [`GoogleAttestedKey`]. It simply wraps
-/// a [`HardwareAttestedKey`] and forwards calls to send across to bridge to it.
+/// a `HardwareAttestedKey` and forwards calls to send across to bridge to it.
 #[derive(Debug)]
 pub struct GoogleHardwareAttestedKey(HardwareAttestedKey);
 
