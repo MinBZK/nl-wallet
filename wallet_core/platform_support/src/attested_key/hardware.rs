@@ -142,8 +142,8 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
     type AppleKey = AppleHardwareAttestedKey;
     type GoogleKey = GoogleHardwareAttestedKey;
 
-    async fn generate_identifier(&self) -> Result<String, Self::Error> {
-        let identifier = self.bridge.generate_identifier().await?;
+    async fn generate(&self) -> Result<String, Self::Error> {
+        let identifier = self.bridge.generate().await?;
 
         Ok(identifier)
     }

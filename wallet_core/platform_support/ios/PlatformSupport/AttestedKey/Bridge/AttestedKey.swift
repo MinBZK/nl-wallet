@@ -18,7 +18,7 @@ extension AttestedKey: AttestedKeyBridge {
         .apple
     }
 
-    func generateIdentifier() async throws(AttestedKeyError) -> String {
+    func generate() async throws(AttestedKeyError) -> String {
         do {
             return try await Self.appAttest.generateKey()
         } catch let error as DCError {

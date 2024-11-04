@@ -16,7 +16,7 @@ class AttestedKeyBridge(context: Context) : RustAttestedKeyBridge {
 
     override fun keyType(): AttestedKeyType = AttestedKeyType.GOOGLE
 
-    override suspend fun generateIdentifier(): String {
+    override suspend fun generate(): String {
         throw MethodUnimplemented()
     }
     

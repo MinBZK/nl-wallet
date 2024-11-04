@@ -51,7 +51,7 @@ pub trait AttestedKeyHolder {
     type AppleKey: AppleAttestedKey;
     type GoogleKey: GoogleAttestedKey;
 
-    async fn generate_identifier(&self) -> Result<String, Self::Error>;
+    async fn generate(&self) -> Result<String, Self::Error>;
     async fn attest(
         &self,
         key_identifier: String,

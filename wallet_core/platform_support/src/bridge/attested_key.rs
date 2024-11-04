@@ -40,7 +40,7 @@ pub enum AttestationData {
 #[async_trait]
 pub trait AttestedKeyBridge: Send + Sync + Debug {
     fn key_type(&self) -> AttestedKeyType;
-    async fn generate_identifier(&self) -> Result<String, AttestedKeyError>;
+    async fn generate(&self) -> Result<String, AttestedKeyError>;
     async fn attest(&self, identifier: String, challenge: Vec<u8>) -> Result<AttestationData, AttestedKeyError>;
     async fn sign(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, AttestedKeyError>;
 

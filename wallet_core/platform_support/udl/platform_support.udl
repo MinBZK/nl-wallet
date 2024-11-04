@@ -80,7 +80,7 @@ interface AttestedKeyBridge {
     /// Generate an identifier for the attested key. On iOS this actually creates a key,
     /// while on Android this simply generates a unique random string.
     [Async, Throws=AttestedKeyError]
-    string generate_identifier();
+    string generate();
 
     /// Actually perform key and app attestation, with a result that differs depending on the platform.
     /// Note the use of "IdentifierAttestedKeyError" to convey error data.

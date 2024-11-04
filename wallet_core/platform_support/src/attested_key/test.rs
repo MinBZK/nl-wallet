@@ -44,7 +44,7 @@ where
 {
     // Generate an identifier for the attested key, which on iOS also actually generates a key pair.
     let identifier = holder
-        .generate_identifier()
+        .generate()
         .await
         .expect("could not generate attested key identifier");
 
