@@ -1,9 +1,9 @@
 use std::{
     collections::hash_map::DefaultHasher,
-    fmt::Debug,
     hash::{Hash, Hasher},
 };
 
+use derive_more::Debug;
 use etag::EntityTag;
 use serde::{Deserialize, Serialize};
 use webpki::types::TrustAnchor;
@@ -61,13 +61,16 @@ impl Default for LockTimeoutConfiguration {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct AccountServerConfiguration {
     // The base URL for the Account Server API
     pub base_url: BaseUrl,
     // The known public key for the Wallet Provider
+    #[debug(skip)]
     pub certificate_public_key: DerVerifyingKey,
+    #[debug(skip)]
     pub instruction_result_public_key: DerVerifyingKey,
+    #[debug(skip)]
     pub wte_public_key: DerVerifyingKey,
 }
 
@@ -85,14 +88,6 @@ pub struct PidIssuanceConfiguration {
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct DisclosureConfiguration {
     pub rp_trust_anchors: Vec<DerTrustAnchor>,
-}
-
-impl Debug for AccountServerConfiguration {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AccountServerConfiguration")
-            .field("base_url", &self.base_url)
-            .finish_non_exhaustive()
-    }
 }
 
 impl PidIssuanceConfiguration {

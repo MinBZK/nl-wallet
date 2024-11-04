@@ -1,7 +1,8 @@
-use std::{fmt, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 
 use assert_matches::assert_matches;
 use chrono::Utc;
+use derive_more::Debug;
 use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
 use parking_lot::Mutex;
 use url::Url;
@@ -33,8 +34,8 @@ pub const VERIFIER_URL: &str = "http://example.com/disclosure";
 
 /// Contains the minimum logic to respond with the correct verifier messages in a disclosure session,
 /// exposing fields to its user to inspect and/or modify the behaviour.
+#[derive(Debug)]
 pub struct MockVerifierSession<F> {
-    pub session_type: SessionType,
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<DerTrustAnchor>,
@@ -47,26 +48,8 @@ pub struct MockVerifierSession<F> {
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
 
     key_pair: KeyPair,
+    #[debug(skip)]
     transform_auth_request: F,
-}
-
-impl<F> fmt::Debug for MockVerifierSession<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockVerifierSession")
-            .field("session_type", &self.session_type)
-            .field("redirect_uri", &self.redirect_uri)
-            .field("reader_registration", &self.reader_registration)
-            .field("trust_anchors", &self.trust_anchors)
-            .field("items_requests", &self.items_requests)
-            .field("nonce", &self.nonce)
-            .field("encryption_keypair", &self.encryption_keypair)
-            .field("request_uri_object", &self.request_uri_object)
-            .field("request_uri_override", &self.request_uri_override)
-            .field("response_uri", &self.response_uri)
-            .field("wallet_messages", &self.wallet_messages)
-            .field("key_pair", &self.key_pair)
-            .finish_non_exhaustive()
-    }
 }
 
 pub fn request_uri_object(mut request_uri: Url, session_type: SessionType, client_id: String) -> VpRequestUriObject {
@@ -114,7 +97,6 @@ where
         let items_requests = vec![ItemsRequest::new_example()].into();
 
         MockVerifierSession {
-            session_type,
             redirect_uri,
             trust_anchors,
             reader_registration,
@@ -167,16 +149,9 @@ where
 }
 
 /// Implements [`VpMessageClient`] by simply forwarding the requests to an instance of [`MockVerifierSession<F>`].
+#[derive(Debug)]
 pub struct MockVerifierVpMessageClient<F> {
     session: Arc<MockVerifierSession<F>>,
-}
-
-impl<F> fmt::Debug for MockVerifierVpMessageClient<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockVerifierVpMessageClient")
-            .field("session", &self.session)
-            .finish()
-    }
 }
 
 impl<F> VpMessageClient for MockVerifierVpMessageClient<F>
@@ -298,7 +273,9 @@ where
 
 /// An implementation of [`VpMessageClient`] that sends an error made by the response factory,
 /// allowing inspection of the messages that were sent.
+#[derive(Debug)]
 pub struct MockErrorFactoryVpMessageClient<F> {
+    #[debug(skip)]
     pub response_factory: F,
     pub wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
 }
@@ -309,14 +286,6 @@ impl<F> MockErrorFactoryVpMessageClient<F> {
             response_factory,
             wallet_messages,
         }
-    }
-}
-
-impl<F> fmt::Debug for MockErrorFactoryVpMessageClient<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockHttpClient")
-            .field("wallet_messages", &self.wallet_messages)
-            .finish()
     }
 }
 
