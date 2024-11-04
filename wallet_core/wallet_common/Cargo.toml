@@ -37,7 +37,7 @@ futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-jsonwebtoken.workspace = true
+jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
