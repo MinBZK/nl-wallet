@@ -5675,6 +5675,7 @@ version = "0.2.2"
 dependencies = [
  "chrono",
  "dashmap",
+ "derive_more",
  "futures",
  "hmac",
  "p256",

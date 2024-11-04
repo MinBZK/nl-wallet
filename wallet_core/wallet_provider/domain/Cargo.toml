@@ -17,6 +17,7 @@ mock = ["dashmap", "hmac", "rand", "sha2"]
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
 dashmap = { workspace = true, optional = true }
+derive_more = { workspace = true, features = ["debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hmac = { workspace = true, optional = true, features = ["std"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
