@@ -4,7 +4,11 @@ use error_category::{sentry_capture_error, ErrorCategory};
 use tracing::{info, instrument};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{account::messages::auth::Registration, jwt::JwtError, keys::StoredByIdentifier};
+use wallet_common::{
+    account::{messages::auth::Registration, signed::ChallengeResponse},
+    jwt::JwtError,
+    keys::StoredByIdentifier,
+};
 
 use crate::{
     account_provider::{AccountProviderClient, AccountProviderError},
@@ -137,7 +141,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
             .verifying_key()
             .await
             .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
-        let registration_message = Registration::new_signed(&hw_privkey, &pin_key, challenge)
+        let registration_message = ChallengeResponse::<Registration>::new_signed(&hw_privkey, &pin_key, challenge)
             .await
             .map_err(WalletRegistrationError::Signing)?;
 

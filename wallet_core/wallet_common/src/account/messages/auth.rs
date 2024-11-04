@@ -28,18 +28,18 @@ pub struct Registration {
     pub hw_pubkey: DerVerifyingKey,
 }
 
-impl Registration {
+impl ChallengeResponse<Registration> {
     pub async fn new_signed(
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
         challenge: Vec<u8>,
-    ) -> Result<ChallengeResponse<Registration>> {
+    ) -> Result<Self> {
         let (pin_pubkey, hw_pubkey) = try_join!(
             pin_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
             hw_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
         )?;
 
-        ChallengeResponse::sign(
+        Self::sign(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
                 hw_pubkey: hw_pubkey.into(),
@@ -94,7 +94,7 @@ mod tests {
         let challenge = b"challenge";
 
         // wallet calculates wallet provider registration message
-        let msg = Registration::new_signed(&hw_privkey, &pin_privkey, challenge.to_vec()).await?;
+        let msg = ChallengeResponse::<Registration>::new_signed(&hw_privkey, &pin_privkey, challenge.to_vec()).await?;
 
         let unverified = msg.dangerous_parse_unverified()?;
 

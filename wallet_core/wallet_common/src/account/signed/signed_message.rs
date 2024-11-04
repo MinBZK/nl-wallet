@@ -38,7 +38,7 @@ where
     where
         K: EcdsaKey,
     {
-        let signed = TypedRawValue::try_new(payload)?;
+        let signed = TypedRawValue::try_new(payload).map_err(Error::JsonParsing)?;
         let signature = signing_key
             .try_sign(signed.as_ref())
             .await
@@ -55,13 +55,15 @@ where
     }
 
     pub fn dangerous_parse_unverified(&self) -> Result<T> {
-        let value = self.signed.parse()?;
+        let value = self.signed.parse().map_err(Error::JsonParsing)?;
 
         Ok(value)
     }
 
     pub fn parse_and_verify(&self, r#type: SignedType, verifying_key: &VerifyingKey) -> Result<T> {
-        verifying_key.verify(self.signed.as_ref(), &self.signature.0)?;
+        verifying_key
+            .verify(self.signed.as_ref(), &self.signature.0)
+            .map_err(Error::Verification)?;
 
         if self.r#type != r#type {
             return Err(Error::TypeMismatch {

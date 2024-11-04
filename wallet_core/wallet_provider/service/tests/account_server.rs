@@ -3,9 +3,12 @@ use rand::rngs::OsRng;
 use uuid::Uuid;
 
 use wallet_common::{
-    account::messages::{
-        auth::{Registration, WalletCertificate, WalletCertificateClaims},
-        instructions::{CheckPin, InstructionChallengeRequest},
+    account::{
+        messages::{
+            auth::{Registration, WalletCertificate, WalletCertificateClaims},
+            instructions::{CheckPin, InstructionChallengeRequest},
+        },
+        signed::ChallengeResponse,
     },
     generator::Generator,
     keys::{software::SoftwareEcdsaKey, EcdsaKey},
@@ -56,7 +59,7 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
-    let registration_message = Registration::new_signed(hw_privkey, pin_privkey, challenge)
+    let registration_message = ChallengeResponse::<Registration>::new_signed(hw_privkey, pin_privkey, challenge)
         .await
         .expect("Could not sign new registration");
 
