@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
 use futures::future::try_join_all;
-use jsonwebtoken::{jwk::Jwk, Algorithm, Header};
+use jsonwebtoken::{
+    jwk::{self, Jwk},
+    Algorithm, Header,
+};
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
@@ -53,7 +56,7 @@ pub enum PoaVerificationError {
     #[error("typ field of PoA header had unexpected value: expected 'Some({POA_JWT_TYP})', found '{0:?}'")]
     IncorrectTyp(Option<String>),
     #[error("key missing in PoA: {0:?}")]
-    MissingKey(Box<Jwk>),
+    MissingKey(jwk::AlgorithmParameters),
 }
 
 impl Poa {
@@ -136,13 +139,16 @@ impl Poa {
             }
         }
 
-        // Check that all keys that must be associated are in the PoA. We use the JWK format for this
-        // since it implements Hash, unlike `VerifyingKey`.
-        let associated_keys: HashSet<Jwk> = payload.jwks.into_inner().into_iter().collect();
+        // Check that all keys that must be associated are in the PoA. We use `jwk::AlgorithmParameters` for this
+        // since it implements Hash, unlike `VerifyingKey`. When comparing if two keys are equal, this type takes
+        // exactly the right information into account (the EC curve identifier as well as the x and y coordinates),
+        // while discarding irrelevant other keys from the JWK (e.g. `kid`, `x5c` and friends, `use`, `alg`).
+        let associated_keys: HashSet<jwk::AlgorithmParameters> =
+            payload.jwks.into_inner().into_iter().map(|key| key.algorithm).collect();
         for key in expected_keys {
-            let expected_key = jwk_from_p256(key)?;
+            let expected_key = jwk_from_p256(key)?.algorithm;
             if !associated_keys.contains(&expected_key) {
-                return Err(PoaVerificationError::MissingKey(expected_key.into()));
+                return Err(PoaVerificationError::MissingKey(expected_key));
             }
         }
 
