@@ -164,15 +164,11 @@ mod tests {
 
     use crate::{
         jwt::{validations, JsonJwt, Jwt, JwtPopClaims},
-        keys::{
-            poa::{Poa, PoaPayload},
-            software::SoftwareEcdsaKey,
-            EcdsaKey,
-        },
+        keys::{poa::PoaPayload, software::SoftwareEcdsaKey},
         nonempty::NonEmpty,
     };
 
-    use super::PoaVerificationError;
+    use super::{EcdsaKey, Poa, PoaVerificationError};
 
     async fn poa_setup() -> (Poa, VerifyingKey, VerifyingKey, String, String, String) {
         let key1 = SoftwareEcdsaKey::new_random("key1".to_string());
