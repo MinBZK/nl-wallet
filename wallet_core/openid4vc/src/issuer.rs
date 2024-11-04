@@ -687,10 +687,10 @@ impl Session<WaitingForResponse> {
             .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?;
 
-        let issuer_identifier = issuer_data.credential_issuer_identifier.to_string();
+        let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
         let verified_wte = wte_disclosure.verify(
             &issuer_data.wte_issuer_pubkey,
-            &issuer_identifier,
+            issuer_identifier,
             NL_WALLET_CLIENT_ID,
             &self.state.data.c_nonce,
         )?;
@@ -716,7 +716,7 @@ impl Session<WaitingForResponse> {
             .clone()
             .verify(
                 &[holder_pubkey, jwk_to_p256(&verified_wte.payload().confirmation.jwk)?],
-                &issuer_identifier,
+                issuer_identifier,
                 NL_WALLET_CLIENT_ID,
                 &self.state.data.c_nonce,
             )?;
@@ -799,10 +799,10 @@ impl Session<WaitingForResponse> {
             .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?;
 
-        let issuer_identifier = issuer_data.credential_issuer_identifier.to_string();
+        let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
         let verified_wte = wte_disclosure.verify(
             &issuer_data.wte_issuer_pubkey,
-            &issuer_identifier,
+            issuer_identifier,
             NL_WALLET_CLIENT_ID,
             &self.state.data.c_nonce,
         )?;
@@ -831,7 +831,7 @@ impl Session<WaitingForResponse> {
             .clone()
             .verify(
                 &poa_keys,
-                &issuer_identifier,
+                issuer_identifier,
                 NL_WALLET_CLIENT_ID,
                 &self.state.data.c_nonce,
             )?;
