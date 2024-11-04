@@ -1,4 +1,4 @@
-use std::{convert::Infallible, future::Future, sync::Arc, time::Duration};
+use std::{convert::Infallible, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use dashmap::{mapref::entry::Entry, DashMap};
@@ -53,22 +53,14 @@ pub enum SessionStoreError {
     Other(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-// For this trait we cannot use the `trait_variant::make()` macro to add the `Send` trait to the return type
-// of the async methods, as the `start_cleanup_task()` default method itself needs that specific trait.
+#[trait_variant::make(Send)]
 pub trait SessionStore<T>
 where
     T: HasProgress + Expirable,
 {
-    fn get(
-        &self,
-        token: &SessionToken,
-    ) -> impl Future<Output = Result<Option<SessionState<T>>, SessionStoreError>> + Send;
-    fn write(
-        &self,
-        session: SessionState<T>,
-        is_new: bool,
-    ) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
-    fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
+    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError>;
+    async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError>;
+    async fn cleanup(&self) -> Result<(), SessionStoreError>;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
