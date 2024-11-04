@@ -26,6 +26,25 @@ function have() {
     fi
 }
 
+# Check if cargo-edit is installed
+# It is not sufficient to only have carge-set-version installed, and cargo-edit
+# is not installed as a binary, so as heuristic we check all the subcommands.
+function have_cargo_edit() {
+    local missing=()
+    for executable in add rm upgrade set-version; do
+        cargo --list --quiet | awk '{print $1}' | grep "$executable" &>/dev/null || missing+=("$executable")
+    done
+    if [ ${#missing[@]} -eq 0 ]; then
+        return 0
+    else
+        error "Missing to run this: cargo-edit (missing: ${missing[*]})"
+        error ""
+        error "Install with: cargo install cargo-edit"
+        error "          or: cargo binstall cargo-edit"
+        exit 1
+    fi
+}
+
 # Help output.
 function help() {
     local cmd=$0
@@ -68,6 +87,7 @@ function list() {
 # Get versions of our components as recorded in their respective project files.
 function get() {
     have cat cargo flutter jq
+    have_cargo_edit
 
     # Wallet core:
     echo "wallet_core: $(cd "$project_root/wallet_core" && cargo metadata --format-version=1 | jq -r '.packages[] | select(.name == "wallet") | .version')"
@@ -83,7 +103,9 @@ function get() {
 
 # Set versions of our components in their respective project files.
 function set() {
-    have cargo cargo-set-version flutter jq mv sed
+    have cargo flutter jq mv sed
+    have_cargo_edit
+
     local version="$1"
     if [[ "$version" =~ ^(v)?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
         local non_prefixed_version="${version#v}"
