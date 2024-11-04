@@ -239,8 +239,7 @@ pub trait WteTracker {
     type Error: std::error::Error + Send + Sync + 'static;
 
     /// Return whether or not we have seen this WTE within its validity window, and track this WTE as seen.
-    async fn previously_seen_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>)
-        -> Result<bool, Self::Error>;
+    async fn track_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error>;
 
     /// Cleanup expired WTEs from this tracker.
     async fn cleanup(&self) -> Result<(), Self::Error>;
@@ -290,10 +289,7 @@ where
 {
     type Error = Infallible;
 
-    async fn previously_seen_wte(
-        &self,
-        wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>,
-    ) -> Result<bool, Self::Error> {
+    async fn track_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
         let shasum = sha256(wte.jwt().0.as_bytes());
         if self.seen_wtes.contains_key(&shasum) {
             Ok(true)
@@ -551,10 +547,10 @@ pub mod test {
         .unwrap();
 
         // Checking our WTE for the first time means we haven't seen it before
-        assert!(!wte_tracker.previously_seen_wte(&wte).await.unwrap());
+        assert!(!wte_tracker.track_wte(&wte).await.unwrap());
 
         // Now we have seen it
-        assert!(wte_tracker.previously_seen_wte(&wte).await.unwrap());
+        assert!(wte_tracker.track_wte(&wte).await.unwrap());
 
         // Advance time past the expiry of the WTE and run the cleanup job
         let t2 = *mock_time.read() + WTE_EXPIRY * 2;
@@ -562,7 +558,7 @@ pub mod test {
         wte_tracker.cleanup().await.unwrap();
 
         // The expired WTE has been removed by the cleanup job
-        assert!(!wte_tracker.previously_seen_wte(&wte).await.unwrap());
+        assert!(!wte_tracker.track_wte(&wte).await.unwrap());
     }
 }
 

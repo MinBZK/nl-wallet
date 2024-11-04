@@ -698,7 +698,7 @@ impl Session<WaitingForResponse> {
         // Check that the WTE is fresh
         if issuer_data
             .wte_tracker
-            .previously_seen_wte(&verified_wte)
+            .track_wte(&verified_wte)
             .await
             .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
         {
@@ -810,7 +810,7 @@ impl Session<WaitingForResponse> {
         // Check that the WTE is fresh
         if issuer_data
             .wte_tracker
-            .previously_seen_wte(&verified_wte)
+            .track_wte(&verified_wte)
             .await
             .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
         {

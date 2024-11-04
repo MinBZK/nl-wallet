@@ -127,14 +127,11 @@ impl WteTrackerVariant {
 impl WteTracker for WteTrackerVariant {
     type Error = DbErr;
 
-    async fn previously_seen_wte(
-        &self,
-        wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>,
-    ) -> Result<bool, Self::Error> {
+    async fn track_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
         match self {
-            WteTrackerVariant::Postgres(postgres_wte_tracker) => postgres_wte_tracker.previously_seen_wte(wte).await,
+            WteTrackerVariant::Postgres(postgres_wte_tracker) => postgres_wte_tracker.track_wte(wte).await,
             WteTrackerVariant::Memory(memory_wte_tracker) => {
-                Ok(memory_wte_tracker.previously_seen_wte(wte).await.unwrap()) // this implementation is infallible
+                Ok(memory_wte_tracker.track_wte(wte).await.unwrap()) // this implementation is infallible
             }
         }
     }

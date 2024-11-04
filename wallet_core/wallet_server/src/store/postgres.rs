@@ -232,7 +232,7 @@ where
 {
     type Error = DbErr;
 
-    async fn previously_seen_wte(
+    async fn track_wte(
         &self,
         wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>,
     ) -> Result<bool, Self::Error> {
