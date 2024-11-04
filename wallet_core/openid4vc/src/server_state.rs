@@ -233,7 +233,7 @@ impl SessionToken {
 }
 
 /// Allows detection of previously used WTEs, by keeping track of WTEs that have been used by wallets within
-/// their valididy time window (after which they may be cleaned up with `cleanup()`).
+/// their validity time window (after which they may be cleaned up with `cleanup()`).
 #[trait_variant::make(Send)]
 pub trait WteTracker {
     type Error: std::error::Error + Send + Sync + 'static;
