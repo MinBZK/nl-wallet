@@ -2,6 +2,8 @@ pub mod hardware;
 
 use wallet_common::keys::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
 
+pub use crate::bridge::hw_keystore::KeyStoreError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
     #[error(transparent)]
@@ -12,18 +14,9 @@ pub enum HardwareKeyStoreError {
     SigningError(#[from] p256::ecdsa::Error),
 }
 
-// implementation of KeyStoreError from UDL
-#[derive(Debug, thiserror::Error)]
-pub enum KeyStoreError {
-    #[error("key error: {reason}")]
-    KeyError { reason: String },
-    #[error("bridging error: {reason}")]
-    BridgingError { reason: String },
-}
-
 /// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
-/// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
+/// Handles to private keys are requested through [`StoredByIdentifier::new_unique()`].
 pub trait PlatformEcdsaKey: StoredByIdentifier + SecureEcdsaKey {
     // from StoredByIdentifier: new_unique(), delete(), identifier()
     // from EcdsaKey: verifying_key(), try_sign(), sign()
