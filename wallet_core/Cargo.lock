@@ -199,6 +199,7 @@ dependencies = [
  "ciborium",
  "const-decoder",
  "coset",
+ "derive_more",
  "nutype",
  "p256",
  "passkey-types",
@@ -4740,6 +4741,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 name = "tests_integration"
 version = "0.2.2"
 dependencies = [
+ "apple_app_attest",
  "assert_matches",
  "configuration_server",
  "ctor",

@@ -71,6 +71,7 @@ impl AttestationEnvironment {
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct Attestation {
     #[serde(rename = "fmt")]
@@ -82,6 +83,7 @@ pub struct Attestation {
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "kebab-case")]
 pub enum AttestationFormat {
     #[default]
@@ -90,6 +92,7 @@ pub enum AttestationFormat {
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct AttestationStatement {
     #[serde_as(as = "TryFromInto<Vec<Vec<u8>>>")]

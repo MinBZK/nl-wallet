@@ -1,13 +1,10 @@
 use std::{convert::Infallible, sync::LazyLock};
 
 use assert_matches::assert_matches;
-use ciborium::Value;
-use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
-use passkey_types::ctap2::{AuthenticatorData, Flags};
+use p256::ecdsa::{SigningKey, VerifyingKey};
 use rand_core::OsRng;
 use rstest::{fixture, rstest};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use apple_app_attest::{AppIdentifier, Assertion, AssertionError, AssertionValidationError, ClientData};
 
@@ -80,37 +77,15 @@ impl AssertionParameters {
 #[once]
 fn assertion_data() -> Vec<u8> {
     let parameters = AssertionParameters::default();
-    let mut authenticator_data =
-        AuthenticatorData::new(parameters.app_identifier.as_ref(), Some(parameters.counter)).to_vec();
-
-    // Unfortunately Apple does not properly adhere to the Web Authentication specification,
-    // as the authenticator data present in the generated assertions simply has their
-    // "attested credential data" portion truncated, yet the "flags" still indicate that this
-    // data is present. We reproduce that here by overriding that particular bit in the "flags".
-    authenticator_data[32] |= u8::from(Flags::AT);
-
-    let nonce = Sha256::new()
-        .chain_update(&authenticator_data)
-        .chain_update(Sha256::digest(parameters.client_data.hash_data().unwrap().as_ref()))
-        .finalize();
-    let signature: Signature = parameters.private_key.try_sign(&nonce).unwrap();
-
-    let map = Value::Map(
-        [
-            (
-                Value::Text("signature".to_string()),
-                Value::Bytes(signature.to_der().as_bytes().to_vec()),
-            ),
-            (
-                Value::Text("authenticatorData".to_string()),
-                Value::Bytes(authenticator_data),
-            ),
-        ]
-        .to_vec(),
+    let assertion = Assertion::new_mock(
+        &parameters.private_key,
+        &parameters.app_identifier,
+        parameters.counter,
+        parameters.client_data.hash_data().unwrap().as_ref(),
     );
 
     let mut bytes = Vec::<u8>::new();
-    ciborium::into_writer(&map, &mut bytes).unwrap();
+    ciborium::into_writer(&assertion, &mut bytes).unwrap();
 
     bytes
 }

@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use nutype::nutype;
+use derive_more::derive::AsRef;
 use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};
@@ -48,7 +48,7 @@ pub trait ClientData {
     fn challenge(&self) -> impl AsRef<[u8]>;
 }
 
-#[nutype(derive(Debug, Clone, AsRef))]
+#[derive(Debug, Clone, AsRef)]
 pub struct DerSignature(Signature);
 
 impl TryFrom<Vec<u8>> for DerSignature {
@@ -57,12 +57,22 @@ impl TryFrom<Vec<u8>> for DerSignature {
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         let signature = Signature::from_der(&value)?;
 
-        Ok(DerSignature::new(signature))
+        Ok(DerSignature(signature))
+    }
+}
+
+#[cfg(feature = "serialize")]
+impl From<DerSignature> for Vec<u8> {
+    fn from(value: DerSignature) -> Self {
+        let DerSignature(signature) = value;
+
+        signature.to_der().as_bytes().to_vec()
     }
 }
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct Assertion {
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
@@ -136,5 +146,40 @@ impl Assertion {
         }
 
         Ok((assertion, counter))
+    }
+}
+
+#[cfg(feature = "mock")]
+mod mock {
+    use p256::ecdsa::{signature::Signer, SigningKey};
+    use passkey_types::ctap2::AuthenticatorData;
+    use sha2::{Digest, Sha256};
+
+    use crate::{app_identifier::AppIdentifier, auth_data::AuthenticatorDataWithSource};
+
+    use super::Assertion;
+
+    impl Assertion {
+        /// Generate a mock [`Assertion`] based on a private key and other parameters.
+        pub fn new_mock(
+            private_key: &SigningKey,
+            app_identifier: &AppIdentifier,
+            counter: u32,
+            client_data: &[u8],
+        ) -> Self {
+            let authenticator_data =
+                AuthenticatorDataWithSource::from(AuthenticatorData::new(app_identifier.as_ref(), Some(counter)));
+
+            let nonce = Sha256::new()
+                .chain_update(authenticator_data.source())
+                .chain_update(Sha256::digest(client_data))
+                .finalize();
+            let signature = super::DerSignature(private_key.try_sign(&nonce).unwrap());
+
+            Self {
+                signature,
+                authenticator_data,
+            }
+        }
     }
 }
