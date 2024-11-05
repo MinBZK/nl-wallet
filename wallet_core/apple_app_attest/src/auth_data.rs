@@ -32,6 +32,13 @@ impl<const IS_TRUNCATED: bool> TryFrom<Vec<u8>> for AuthenticatorDataWithSource<
     }
 }
 
+impl<const IS_TRUNCATED: bool> Clone for AuthenticatorDataWithSource<IS_TRUNCATED> {
+    fn clone(&self) -> Self {
+        // Guaranteed to succeed, since it was parsed once successfully before.
+        Self::try_from(self.0.clone()).unwrap()
+    }
+}
+
 impl<const IS_TRUNCATED: bool> AsRef<AuthenticatorData> for AuthenticatorDataWithSource<IS_TRUNCATED> {
     fn as_ref(&self) -> &AuthenticatorData {
         &self.1

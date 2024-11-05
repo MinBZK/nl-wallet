@@ -62,7 +62,7 @@ impl TryFrom<Vec<u8>> for DerSignature {
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Assertion {
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
