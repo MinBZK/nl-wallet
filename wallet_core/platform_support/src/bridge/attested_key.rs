@@ -17,13 +17,13 @@ pub enum AttestedKeyError {
     Other { reason: String },
 }
 
-/// Implementation of `AttestedKeyType`` from the UDL file.
+/// Implementation of `AttestedKeyType` from the UDL file.
 pub enum AttestedKeyType {
     Apple,
     Google,
 }
 
-/// Implementation of `AttestationData`` from the UDL file.
+/// Implementation of `AttestationData` from the UDL file.
 pub enum AttestationData {
     Apple {
         attestation_data: Vec<u8>,
