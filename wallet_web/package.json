@@ -52,5 +52,9 @@
     "vitest": "^2.0.3",
     "vue": "^3.2.25",
     "vue-tsc": "^2.0.16"
-  }
+  },
+  "bundleDependencies": [
+    "axios",
+    "vue"
+  ]
 }
