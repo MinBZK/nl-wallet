@@ -31,8 +31,8 @@ function have() {
 # is not installed as a binary, so as heuristic we check all the subcommands.
 function have_cargo_edit() {
     local missing=()
-    for executable in add rm upgrade set-version; do
-        cargo --list --quiet | awk '{print $1}' | grep "$executable" &>/dev/null || missing+=("$executable")
+    for executable in cargo-add cargo-rm cargo-upgrade cargo-set-version; do
+        which "$executable" &>/dev/null || missing+=("$executable")
     done
     if [ ${#missing[@]} -eq 0 ]; then
         return 0
