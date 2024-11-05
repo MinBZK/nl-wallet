@@ -128,8 +128,10 @@ pub trait AttestedKeyHolder {
         challenge: Vec<u8>,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>>;
 
-    /// This returns an instance of a key, once it has been attested. Only one instance can
-    /// exist within the process, an error is returned if a second one is created.
+    /// This returns an instance of a key. It is meant to be used after the key has been attested, but
+    /// this is not checked on instantiation. Using a key before attestation may result in an error.
+    ///
+    /// Only one instance can exist within the process, an error is returned if a second one is created.
     fn attested_key(&self, key_identifier: String)
         -> Result<AttestedKey<Self::AppleKey, Self::GoogleKey>, Self::Error>;
 }
