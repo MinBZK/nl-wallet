@@ -266,7 +266,7 @@ mod wte_tracker {
             let now = self.time.generate();
 
             match used_wtes::Entity::delete_many()
-                .filter(used_wtes::Column::Expires.lt(now))
+                .filter(used_wtes::Column::Expires.lte(now))
                 .exec(&self.connection)
                 .await
             {

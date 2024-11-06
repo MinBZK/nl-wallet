@@ -301,7 +301,7 @@ where
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
         let now = self.time.generate();
-        self.seen_wtes.retain(|_, exp| *exp >= now);
+        self.seen_wtes.retain(|_, exp| *exp > now);
 
         Ok(())
     }
