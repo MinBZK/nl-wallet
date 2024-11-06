@@ -688,7 +688,7 @@ impl Session<WaitingForResponse> {
             .ok_or(CredentialRequestError::MissingWte)?;
 
         let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
-        let verified_wte = wte_disclosure.verify(
+        let (verified_wte, wte_pubkey) = wte_disclosure.verify(
             &issuer_data.wte_issuer_pubkey,
             issuer_identifier,
             NL_WALLET_CLIENT_ID,
@@ -715,7 +715,7 @@ impl Session<WaitingForResponse> {
             .ok_or(CredentialRequestError::MissingPoa)?
             .clone()
             .verify(
-                &[holder_pubkey, jwk_to_p256(&verified_wte.payload().confirmation.jwk)?],
+                &[holder_pubkey, wte_pubkey],
                 issuer_identifier,
                 NL_WALLET_CLIENT_ID,
                 &self.state.data.c_nonce,
@@ -800,7 +800,7 @@ impl Session<WaitingForResponse> {
             .ok_or(CredentialRequestError::MissingWte)?;
 
         let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
-        let verified_wte = wte_disclosure.verify(
+        let (verified_wte, wte_pubkey) = wte_disclosure.verify(
             &issuer_data.wte_issuer_pubkey,
             issuer_identifier,
             NL_WALLET_CLIENT_ID,
@@ -818,11 +818,10 @@ impl Session<WaitingForResponse> {
         }
 
         // Verify that the public keys of the WTE disclosure and the PoPs are associated with a valid PoA
-        let wte_key = jwk_to_p256(&verified_wte.payload().confirmation.jwk)?;
         let poa_keys = previews_and_holder_pubkeys
             .iter()
             .map(|(_, key)| *key)
-            .chain([wte_key])
+            .chain([wte_pubkey])
             .collect_vec();
         credential_requests
             .poa
@@ -1027,7 +1026,7 @@ impl WteDisclosure {
         expected_aud: &str,
         expected_issuer: &str,
         expected_nonce: &str,
-    ) -> Result<VerifiedJwt<JwtCredentialClaims<WteClaims>>, CredentialRequestError> {
+    ) -> Result<(VerifiedJwt<JwtCredentialClaims<WteClaims>>, VerifyingKey), CredentialRequestError> {
         let verified_jwt = VerifiedJwt::try_new(self.0.clone(), issuer_public_key, &WTE_JWT_VALIDATIONS)?;
         let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
@@ -1040,7 +1039,7 @@ impl WteDisclosure {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
-        Ok(verified_jwt)
+        Ok((verified_jwt, wte_pubkey))
     }
 }
 
