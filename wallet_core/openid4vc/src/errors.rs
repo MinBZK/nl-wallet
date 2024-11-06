@@ -78,7 +78,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::UseBatchIssuance
                 | CredentialRequestError::MissingWte
                 | CredentialRequestError::WteAlreadyUsed
-                | CredentialRequestError::MissingPoa => CredentialErrorCode::InvalidRequest,
+                | CredentialRequestError::MissingPoa => CredentialErrorCode::InvalidCredentialRequest,
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
                     CredentialErrorCode::InvalidToken
                 }

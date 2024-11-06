@@ -213,7 +213,7 @@ async fn invalid_dpop() {
     let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
     assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
     );
 }
 
@@ -258,7 +258,7 @@ async fn no_poa() {
     let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
     assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
     );
 }
 
@@ -273,7 +273,7 @@ async fn no_wte() {
     let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
     assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
     );
 }
 
