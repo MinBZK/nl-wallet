@@ -9,13 +9,12 @@
     <section class="info">
         <fieldset>
             <legend>Status</legend>
-
-            <label for="preloaded_count">Number of preloaded BSN's:</label>
+            <label for="preloaded_count">Number of preloaded BSNs: </label>
             <output id="preloaded_count">{{ preloaded_count }}</output>
         </fieldset>
-
-        <br />
     </section>
+
+    <br />
 
     <section>
         <form method="POST" action="/">
@@ -24,20 +23,24 @@
 
                 <input type="hidden" name="authenticity_token" value="{{ authenticity_token }}"/>
 
-                <label for="bsn">Enter BSN:</label>
-                <input type="password" id="bsn" name="bsn" autocomplete="off"
-                    pattern="[0-9]{8,9}" required />
+                <p>
+                    <label for="bsn">Enter BSN: </label>
+                    <input type="password" id="bsn" name="bsn" autocomplete="off"
+                        pattern="[0-9]{8,9}" required />
+                </p>
 
-                <label for="repeat_bsn">Repeat BSN</label>
-                <input type="password" id="repeat_bsn" name="repeat_bsn" autocomplete="off"
-                    pattern="[0-9]{8,9}" required />
+                <p>
+                    <label for="repeat_bsn">Repeat BSN: </label>
+                    <input type="password" id="repeat_bsn" name="repeat_bsn" autocomplete="off"
+                        pattern="[0-9]{8,9}" required />
+                </p>
 
                 <button type="submit">Preload</button>
             </fieldset>
         </form>
-
-        <br />
     </section>
+
+    <br />
 
     <section>
             <form method="POST" action="/clear">
@@ -46,8 +49,10 @@
 
                     <input type="hidden" name="authenticity_token" value="{{ authenticity_token }}"/>
 
-                    <label for="confirmation_text">Enter the text "clear all data" for confirmation:</label>
-                    <input type="text" id="confirmation_text" name="confirmation_text" autocomplete="off" required />
+                    <p>
+                        <label for="confirmation_text">Enter the text "clear all data" for confirmation: </label>
+                        <input type="text" id="confirmation_text" name="confirmation_text" autocomplete="off" required />
+                    </p>
 
                     <button type="submit">Clear all preloaded data</button>
                 </fieldset>
