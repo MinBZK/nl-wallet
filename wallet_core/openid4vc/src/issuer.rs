@@ -259,7 +259,7 @@ pub struct IssuerData<K, W> {
     server_url: BaseUrl,
 
     /// Public key of the WTE issuer.
-    wte_issuer_pubkey: VerifyingKey,
+    wte_issuer_pubkey: EcdsaDecodingKey,
 
     wte_tracker: Arc<W>,
 }
@@ -296,7 +296,7 @@ where
             private_keys,
             credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_client_ids,
-            wte_issuer_pubkey,
+            wte_issuer_pubkey: (&wte_issuer_pubkey).into(),
             wte_tracker: Arc::clone(&wte_tracker),
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
@@ -1023,12 +1023,12 @@ pub static WTE_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
 impl WteDisclosure {
     fn verify(
         &self,
-        issuer_public_key: &VerifyingKey,
+        issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
         expected_issuer: &str,
         expected_nonce: &str,
     ) -> Result<VerifiedJwt<JwtCredentialClaims<WteClaims>>, CredentialRequestError> {
-        let verified_jwt = VerifiedJwt::try_new(self.0.clone(), &issuer_public_key.into(), &WTE_JWT_VALIDATIONS)?;
+        let verified_jwt = VerifiedJwt::try_new(self.0.clone(), issuer_public_key, &WTE_JWT_VALIDATIONS)?;
         let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
         let mut validations = validations();
