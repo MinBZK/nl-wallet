@@ -22,7 +22,7 @@ use wallet_common::{
         jwk_to_p256, validations, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims,
         VerifiedJwt, NL_WALLET_CLIENT_ID,
     },
-    keys::poa::{PoaError, PoaVerificationError},
+    keys::poa::{Poa, PoaError, PoaVerificationError},
     nonempty::NonEmpty,
     urls::BaseUrl,
     utils::random_string,
@@ -640,13 +640,13 @@ impl Session<WaitingForResponse> {
         (result, next)
     }
 
-    pub async fn process_credential_inner(
+    pub async fn check_credential_endpoint_access(
         &self,
-        credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
+        endpoint: &str,
         issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
-    ) -> Result<CredentialResponse, CredentialRequestError> {
+    ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
         // Check authorization of the request
@@ -657,12 +657,64 @@ impl Session<WaitingForResponse> {
         // Check that the DPoP is valid and its key matches the one from the Token Request
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            &issuer_data.server_url.join("credential"),
+            &issuer_data.server_url.join(endpoint),
             &Method::POST,
             Some(&access_token),
             Some(&session_data.dpop_nonce),
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
+
+        Ok(())
+    }
+
+    pub async fn verify_wte_and_poa(
+        &self,
+        attestations: Option<WteDisclosure>,
+        poa: Option<Poa>,
+        attestation_keys: impl Iterator<Item = VerifyingKey>,
+        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+    ) -> Result<(), CredentialRequestError> {
+        let wte_disclosure = attestations.ok_or(CredentialRequestError::MissingWte)?;
+
+        let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
+        let (verified_wte, wte_pubkey) = wte_disclosure.verify(
+            &issuer_data.wte_issuer_pubkey,
+            issuer_identifier,
+            NL_WALLET_CLIENT_ID,
+            &self.state.data.c_nonce,
+        )?;
+
+        // Check that the WTE is fresh
+        if issuer_data
+            .wte_tracker
+            .track_wte(&verified_wte)
+            .await
+            .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
+        {
+            return Err(CredentialRequestError::WteAlreadyUsed);
+        }
+
+        poa.ok_or(CredentialRequestError::MissingPoa)?.verify(
+            &attestation_keys.chain([wte_pubkey]).collect_vec(),
+            issuer_identifier,
+            NL_WALLET_CLIENT_ID,
+            &self.state.data.c_nonce,
+        )?;
+
+        Ok(())
+    }
+
+    pub async fn process_credential_inner(
+        &self,
+        credential_request: CredentialRequest,
+        access_token: AccessToken,
+        dpop: Dpop,
+        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+    ) -> Result<CredentialResponse, CredentialRequestError> {
+        let session_data = self.session_data();
+
+        self.check_credential_endpoint_access(access_token, dpop, "credential", issuer_data)
+            .await?;
 
         // If we have exactly one credential on offer that matches the credential type that the client is
         // requesting, then we issue that credential.
@@ -687,38 +739,13 @@ impl Session<WaitingForResponse> {
             .verify(&session_data.c_nonce, preview.credential_type(), issuer_data)
             .await?;
 
-        let wte_disclosure = credential_request
-            .attestations
-            .ok_or(CredentialRequestError::MissingWte)?;
-
-        let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
-        let (verified_wte, wte_pubkey) = wte_disclosure.verify(
-            &issuer_data.wte_issuer_pubkey,
-            issuer_identifier,
-            NL_WALLET_CLIENT_ID,
-            &self.state.data.c_nonce,
-        )?;
-
-        // Check that the WTE is fresh
-        if issuer_data
-            .wte_tracker
-            .track_wte(&verified_wte)
-            .await
-            .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
-        {
-            return Err(CredentialRequestError::WteAlreadyUsed);
-        }
-
-        // Verify that the public keys of the WTE disclosure and the PoP are associated with a valid PoA
-        credential_request
-            .poa
-            .ok_or(CredentialRequestError::MissingPoa)?
-            .verify(
-                &[holder_pubkey, wte_pubkey],
-                issuer_identifier,
-                NL_WALLET_CLIENT_ID,
-                &self.state.data.c_nonce,
-            )?;
+        self.verify_wte_and_poa(
+            credential_request.attestations,
+            credential_request.poa,
+            [holder_pubkey].into_iter(),
+            issuer_data,
+        )
+        .await?;
 
         let credential_response = CredentialResponse::new(preview.clone(), holder_pubkey, issuer_data).await?;
 
@@ -758,20 +785,8 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
-        // Check authorization of the request
-        if session_data.access_token != access_token {
-            return Err(CredentialRequestError::Unauthorized);
-        }
-
-        // Check that the DPoP is valid and its key matches the one from the Token Request
-        dpop.verify_expecting_key(
-            &session_data.dpop_public_key,
-            &issuer_data.server_url.join("batch_credential"),
-            &Method::POST,
-            Some(&access_token),
-            Some(&session_data.dpop_nonce),
-        )
-        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
+        self.check_credential_endpoint_access(access_token, dpop, "batch_credential", issuer_data)
+            .await?;
 
         let previews_and_holder_pubkeys = try_join_all(
             credential_requests
@@ -794,43 +809,13 @@ impl Session<WaitingForResponse> {
         )
         .await?;
 
-        let wte_disclosure = credential_requests
-            .attestations
-            .ok_or(CredentialRequestError::MissingWte)?;
-
-        let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
-        let (verified_wte, wte_pubkey) = wte_disclosure.verify(
-            &issuer_data.wte_issuer_pubkey,
-            issuer_identifier,
-            NL_WALLET_CLIENT_ID,
-            &self.state.data.c_nonce,
-        )?;
-
-        // Check that the WTE is fresh
-        if issuer_data
-            .wte_tracker
-            .track_wte(&verified_wte)
-            .await
-            .map_err(|err| CredentialRequestError::WteTracking(Box::new(err)))?
-        {
-            return Err(CredentialRequestError::WteAlreadyUsed);
-        }
-
-        // Verify that the public keys of the WTE disclosure and the PoPs are associated with a valid PoA
-        let poa_keys = previews_and_holder_pubkeys
-            .iter()
-            .map(|(_, key)| *key)
-            .chain([wte_pubkey])
-            .collect_vec();
-        credential_requests
-            .poa
-            .ok_or(CredentialRequestError::MissingPoa)?
-            .verify(
-                &poa_keys,
-                issuer_identifier,
-                NL_WALLET_CLIENT_ID,
-                &self.state.data.c_nonce,
-            )?;
+        self.verify_wte_and_poa(
+            credential_requests.attestations,
+            credential_requests.poa,
+            previews_and_holder_pubkeys.iter().map(|(_, key)| *key),
+            issuer_data,
+        )
+        .await?;
 
         let credential_responses = try_join_all(
             previews_and_holder_pubkeys
