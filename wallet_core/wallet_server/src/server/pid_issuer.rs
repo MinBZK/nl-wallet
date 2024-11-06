@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use openid4vc::{
     issuer::AttributeService,
-    server_state::{MemoryWteTracker, SessionStore},
+    server_state::{SessionStore, WteTracker},
 };
 
 use super::*;
@@ -11,10 +11,11 @@ use crate::{
     settings::Settings,
 };
 
-pub async fn serve<A, IS>(attr_service: A, settings: Settings, issuance_sessions: IS) -> Result<()>
+pub async fn serve<A, IS, W>(attr_service: A, settings: Settings, issuance_sessions: IS, wte_tracker: W) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
+    W: WteTracker + Send + Sync + 'static,
 {
     let log_requests = settings.log_requests;
 
@@ -26,7 +27,7 @@ where
         attr_service,
         settings.issuer.wallet_client_ids,
         settings.issuer.wte_issuer_pubkey.0,
-        MemoryWteTracker::new(),
+        wte_tracker,
     )?;
 
     listen_wallet_only(
