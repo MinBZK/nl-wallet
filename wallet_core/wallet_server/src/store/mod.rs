@@ -1,12 +1,10 @@
 cfg_if::cfg_if! {
     if #[cfg(feature = "postgres")] {
         pub mod postgres;
-        use postgres::PostgresSessionStore;
+        use postgres::{PostgresSessionStore, PostgresWteTracker};
     }
 }
 
-use postgres::PostgresWteTracker;
-use sea_orm::DbErr;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
@@ -49,14 +47,22 @@ pub enum SessionStoreVariant<T> {
     Memory(MemorySessionStore<T>),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum DatabaseError {
+    #[cfg(feature = "postgres")]
+    #[error("database error: {0}")]
+    DbError(#[from] sea_orm::DbErr),
+}
+
 #[derive(Debug, Clone)]
 pub enum DatabaseConnection {
+    #[cfg(feature = "postgres")]
     Postgres(sea_orm::DatabaseConnection),
     Memory,
 }
 
 impl DatabaseConnection {
-    pub async fn try_new(url: Url) -> Result<Self, sea_orm::DbErr> {
+    pub async fn try_new(url: Url) -> Result<Self, DatabaseError> {
         match url.scheme() {
             #[cfg(feature = "postgres")]
             "postgres" => Ok(Self::Postgres(postgres::new_connection(url).await?)),
@@ -118,6 +124,7 @@ pub enum WteTrackerVariant {
 impl WteTrackerVariant {
     pub fn new(connection: DatabaseConnection) -> Self {
         match connection {
+            #[cfg(feature = "postgres")]
             DatabaseConnection::Postgres(connection) => Self::Postgres(PostgresWteTracker::new(connection)),
             DatabaseConnection::Memory => Self::Memory(MemoryWteTracker::new()),
         }
@@ -125,11 +132,12 @@ impl WteTrackerVariant {
 }
 
 impl WteTracker for WteTrackerVariant {
-    type Error = DbErr;
+    type Error = DatabaseError;
 
     async fn track_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
         match self {
-            WteTrackerVariant::Postgres(postgres_wte_tracker) => postgres_wte_tracker.track_wte(wte).await,
+            #[cfg(feature = "postgres")]
+            WteTrackerVariant::Postgres(postgres_wte_tracker) => Ok(postgres_wte_tracker.track_wte(wte).await?),
             WteTrackerVariant::Memory(memory_wte_tracker) => {
                 Ok(memory_wte_tracker.track_wte(wte).await.unwrap()) // this implementation is infallible
             }
@@ -138,7 +146,8 @@ impl WteTracker for WteTrackerVariant {
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
         match self {
-            WteTrackerVariant::Postgres(postgres_wte_tracker) => postgres_wte_tracker.cleanup().await,
+            #[cfg(feature = "postgres")]
+            WteTrackerVariant::Postgres(postgres_wte_tracker) => Ok(postgres_wte_tracker.cleanup().await?),
             WteTrackerVariant::Memory(memory_wte_tracker) => {
                 memory_wte_tracker.cleanup().await.unwrap(); // this implementation is infallible
                 Ok(())
