@@ -15,7 +15,7 @@ chrono = { workspace = true, features = ["now"] }
 ciborium.workspace = true
 const-decoder.workspace = true
 coset.workspace = true
-derive_more.workspace = true
+derive_more = { workspace = true, features = ["as_ref"] }
 nutype.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
 passkey-types.workspace = true
