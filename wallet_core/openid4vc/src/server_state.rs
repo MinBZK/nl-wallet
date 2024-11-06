@@ -318,7 +318,7 @@ pub mod test {
 
     use wallet_common::{keys::software_key_factory::SoftwareKeyFactory, wte::WTE_EXPIRY};
 
-    use crate::{credential::WteDisclosure, issuance_session::mock_wte};
+    use crate::{issuance_session::mock_wte, issuer::WTE_JWT_VALIDATIONS};
 
     use super::*;
 
@@ -539,12 +539,7 @@ pub mod test {
 
         let wte = mock_wte(&key_factory, &wte_signing_key).await.jwt;
 
-        let wte = VerifiedJwt::try_new(
-            wte,
-            &wte_signing_key.verifying_key().into(),
-            &WteDisclosure::validations(),
-        )
-        .unwrap();
+        let wte = VerifiedJwt::try_new(wte, &wte_signing_key.verifying_key().into(), &WTE_JWT_VALIDATIONS).unwrap();
 
         // Checking our WTE for the first time means we haven't seen it before
         assert!(!wte_tracker.track_wte(&wte).await.unwrap());

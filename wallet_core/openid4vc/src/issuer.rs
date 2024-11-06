@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 
 use futures::future::try_join_all;
@@ -1007,20 +1007,20 @@ impl CredentialRequestProof {
     }
 }
 
+// Returns the JWS validations for WTE verification.
+//
+// NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
+// without leeway. There must be no clock drift between the WTE issuer and the caller.
+pub static WTE_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
+    // Enforce presence of exp, meaning it is also verified since `validations().validate_exp` is `true` by default
+    let mut validations = validations();
+    validations.leeway = 0;
+    validations.set_required_spec_claims(&["exp"]);
+
+    validations
+});
+
 impl WteDisclosure {
-    /// Returns the JWS validations for WTE verification.
-    ///
-    /// NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
-    /// without leeway. There must be no clock drift between the WTE issuer and the caller.
-    pub fn validations() -> Validation {
-        // Enforce presence of exp, meaning it is also verified since `validations().validate_exp` is `true` by default
-        let mut validations = validations();
-        validations.leeway = 0;
-        validations.set_required_spec_claims(&["exp"]);
-
-        validations
-    }
-
     fn verify(
         &self,
         issuer_public_key: &VerifyingKey,
@@ -1028,7 +1028,7 @@ impl WteDisclosure {
         expected_issuer: &str,
         expected_nonce: &str,
     ) -> Result<VerifiedJwt<JwtCredentialClaims<WteClaims>>, CredentialRequestError> {
-        let verified_jwt = VerifiedJwt::try_new(self.0.clone(), &issuer_public_key.into(), &Self::validations())?;
+        let verified_jwt = VerifiedJwt::try_new(self.0.clone(), &issuer_public_key.into(), &WTE_JWT_VALIDATIONS)?;
         let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
         let mut validations = validations();
