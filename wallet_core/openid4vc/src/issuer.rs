@@ -654,6 +654,16 @@ impl Session<WaitingForResponse> {
             return Err(CredentialRequestError::Unauthorized);
         }
 
+        // Check that the DPoP is valid and its key matches the one from the Token Request
+        dpop.verify_expecting_key(
+            &session_data.dpop_public_key,
+            &issuer_data.server_url.join("credential"),
+            &Method::POST,
+            Some(&access_token),
+            Some(&session_data.dpop_nonce),
+        )
+        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
+
         // If we have exactly one credential on offer that matches the credential type that the client is
         // requesting, then we issue that credential.
         // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
@@ -673,18 +683,12 @@ impl Session<WaitingForResponse> {
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
-        dpop.verify_expecting_key(
-            &session_data.dpop_public_key,
-            &issuer_data.server_url.join("credential"),
-            &Method::POST,
-            Some(&access_token),
-            Some(&session_data.dpop_nonce),
-        )
-        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
+        let holder_pubkey = credential_request
+            .verify(&session_data.c_nonce, preview.credential_type(), issuer_data)
+            .await?;
 
         let wte_disclosure = credential_request
             .attestations
-            .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?;
 
         let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
@@ -706,14 +710,9 @@ impl Session<WaitingForResponse> {
         }
 
         // Verify that the public keys of the WTE disclosure and the PoP are associated with a valid PoA
-        let holder_pubkey = credential_request
-            .verify(&session_data.c_nonce, preview.credential_type(), issuer_data)
-            .await?;
         credential_request
             .poa
-            .as_ref()
             .ok_or(CredentialRequestError::MissingPoa)?
-            .clone()
             .verify(
                 &[holder_pubkey, wte_pubkey],
                 issuer_identifier,
@@ -764,6 +763,16 @@ impl Session<WaitingForResponse> {
             return Err(CredentialRequestError::Unauthorized);
         }
 
+        // Check that the DPoP is valid and its key matches the one from the Token Request
+        dpop.verify_expecting_key(
+            &session_data.dpop_public_key,
+            &issuer_data.server_url.join("batch_credential"),
+            &Method::POST,
+            Some(&access_token),
+            Some(&session_data.dpop_nonce),
+        )
+        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
+
         let previews_and_holder_pubkeys = try_join_all(
             credential_requests
                 .credential_requests
@@ -785,18 +794,8 @@ impl Session<WaitingForResponse> {
         )
         .await?;
 
-        dpop.verify_expecting_key(
-            &session_data.dpop_public_key,
-            &issuer_data.server_url.join("batch_credential"),
-            &Method::POST,
-            Some(&access_token),
-            Some(&session_data.dpop_nonce),
-        )
-        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
-
         let wte_disclosure = credential_requests
             .attestations
-            .as_ref()
             .ok_or(CredentialRequestError::MissingWte)?;
 
         let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
@@ -825,9 +824,7 @@ impl Session<WaitingForResponse> {
             .collect_vec();
         credential_requests
             .poa
-            .as_ref()
             .ok_or(CredentialRequestError::MissingPoa)?
-            .clone()
             .verify(
                 &poa_keys,
                 issuer_identifier,
@@ -1020,13 +1017,13 @@ pub static WTE_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
 
 impl WteDisclosure {
     fn verify(
-        &self,
+        self,
         issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
         expected_issuer: &str,
         expected_nonce: &str,
     ) -> Result<(VerifiedJwt<JwtCredentialClaims<WteClaims>>, VerifyingKey), CredentialRequestError> {
-        let verified_jwt = VerifiedJwt::try_new(self.0.clone(), issuer_public_key, &WTE_JWT_VALIDATIONS)?;
+        let verified_jwt = VerifiedJwt::try_new(self.0, issuer_public_key, &WTE_JWT_VALIDATIONS)?;
         let wte_pubkey = jwk_to_p256(&verified_jwt.payload().confirmation.jwk)?;
 
         let mut validations = validations();
