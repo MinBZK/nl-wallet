@@ -966,9 +966,7 @@ impl CredentialRequestProof {
 
         // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
         let token_data = jsonwebtoken::decode::<JwtPopClaims>(
-            match self {
-                CredentialRequestProof::Jwt { jwt } => &jwt.0,
-            },
+            &jwt.0,
             &EcdsaDecodingKey::from(&verifying_key).0,
             &validation_options,
         )?;
