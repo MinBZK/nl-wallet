@@ -33,7 +33,10 @@ use openid4vc::{
 };
 use wallet_common::{
     jwt::{JsonJwt, Jwt, JwtCredentialContents},
-    keys::{poa::PoaPayload, software_key_factory::SoftwareKeyFactory},
+    keys::{
+        poa::{Poa, PoaPayload},
+        software_key_factory::SoftwareKeyFactory,
+    },
     nonempty::NonEmpty,
     urls::BaseUrl,
 };
@@ -342,12 +345,7 @@ impl MockOpenidMessageClient {
         }
 
         if self.invalidate_poa {
-            let poa = credential_request.poa.unwrap();
-            let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
-            jwts.pop();
-            let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
-            let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
-            credential_request.poa = Some(poa);
+            credential_request.poa = Some(Self::invalidate_poa(credential_request.poa.unwrap()));
         }
 
         if self.strip_poa {
@@ -371,12 +369,7 @@ impl MockOpenidMessageClient {
         }
 
         if self.invalidate_poa {
-            let poa = credential_requests.poa.unwrap();
-            let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
-            jwts.pop();
-            let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
-            let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
-            credential_requests.poa = Some(poa);
+            credential_requests.poa = Some(Self::invalidate_poa(credential_requests.poa.unwrap()));
         }
 
         if self.strip_poa {
@@ -388,6 +381,15 @@ impl MockOpenidMessageClient {
         }
 
         credential_requests
+    }
+
+    fn invalidate_poa(poa: Poa) -> Poa {
+        let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+        jwts.pop();
+        let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
+        let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
+
+        poa
     }
 }
 
