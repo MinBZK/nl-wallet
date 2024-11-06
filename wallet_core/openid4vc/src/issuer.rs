@@ -707,7 +707,7 @@ impl Session<WaitingForResponse> {
 
         // Verify that the public keys of the WTE disclosure and the PoP are associated with a valid PoA
         let holder_pubkey = credential_request
-            .verify(&session_data.c_nonce, preview.clone(), issuer_data)
+            .verify(&session_data.c_nonce, preview.credential_type(), issuer_data)
             .await?;
         credential_request
             .poa
@@ -777,7 +777,7 @@ impl Session<WaitingForResponse> {
                 )
                 .map(|(cred_req, preview)| async move {
                     let key = cred_req
-                        .verify(&session_data.c_nonce, preview.clone(), issuer_data)
+                        .verify(&session_data.c_nonce, preview.credential_type(), issuer_data)
                         .await?;
 
                     Ok::<_, CredentialRequestError>((preview, key))
@@ -893,11 +893,10 @@ impl CredentialRequest {
     pub(crate) async fn verify(
         &self,
         c_nonce: &str,
-        preview: CredentialPreview,
+        expected_credential_type: Option<&str>,
         issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        let requested_type = self.credential_type();
-        if requested_type != preview.credential_type() {
+        if self.credential_type() != expected_credential_type {
             return Err(CredentialRequestError::CredentialTypeMismatch);
         }
 
