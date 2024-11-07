@@ -219,7 +219,7 @@ where
 /// protocol messages the issuer enforces that the correct session ID is present, this means that only the party that
 /// sends the first HTTP request can send later HTTP requests for the session.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
-#[from(String, &'static str)]
+#[cfg_attr(test, from(String, &'static str))]
 pub struct SessionToken(String);
 
 impl SessionToken {
