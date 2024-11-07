@@ -38,14 +38,3 @@ pub trait KeyFactory {
         nonce: Option<String>,
     ) -> Result<Poa, Self::Error>;
 }
-
-#[cfg(any(test, feature = "software_keys"))]
-mod software {
-    use crate::keys::{software::SoftwareEcdsaKey, CredentialKeyType};
-
-    use super::CredentialEcdsaKey;
-
-    impl CredentialEcdsaKey for SoftwareEcdsaKey {
-        const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;
-    }
-}
