@@ -32,6 +32,6 @@
         }
       }
     ],
-    "return_url_template": "${RELYING_PARTY_URL}xyz_bank/"
+    "return_url_template": "${RELYING_PARTY_URL}/xyz_bank/"
   }
   

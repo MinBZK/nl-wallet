@@ -10,7 +10,7 @@ use axum_extra::{
     headers::{self, authorization::Credentials, Authorization, Header},
     TypedHeader,
 };
-use nutype::nutype;
+use derive_more::{AsRef, From};
 use p256::ecdsa::SigningKey;
 use serde::Serialize;
 
@@ -34,7 +34,7 @@ struct ApplicationState<A, K, S> {
     issuer: Issuer<A, K, S>,
 }
 
-#[nutype(derive(From, AsRef))]
+#[derive(From, AsRef)]
 pub struct IssuerKeyRing<K>(HashMap<String, KeyPair<K>>);
 
 impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {

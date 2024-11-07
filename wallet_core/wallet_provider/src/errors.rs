@@ -1,6 +1,6 @@
 use axum::response::{IntoResponse, Response};
+use derive_more::{AsRef, Display, From, FromStr};
 use http::StatusCode;
-use nutype::nutype;
 
 use wallet_common::{
     account::messages::errors::{AccountError, AccountErrorType},
@@ -13,7 +13,7 @@ use wallet_provider_service::{
 };
 
 // Make a newtype to circumvent the orphan rule.
-#[nutype(derive(Debug, Clone, From, AsRef, Display, FromStr))]
+#[derive(Debug, Clone, From, AsRef, Display, FromStr)]
 pub struct WalletProviderErrorType(AccountErrorType);
 
 #[derive(Debug, thiserror::Error)]
