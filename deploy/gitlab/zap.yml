@@ -19,6 +19,12 @@
       ALERT_COUNT=$(jq '[.site[].alerts[] | select(.riskdesc | contains("Informational") | not) | select(.riskdesc | contains("False Positive") | not)] | length' zapreports/${SUT}-zap.json)
       if [ "$ALERT_COUNT" -gt 0 ]; then exit 1; else echo "No critical alerts found"; fi
 
+.get-session-token:
+  script:
+    - |
+      envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload_temp.json
+      SESSION_TOKEN=$(curl -s -X POST -d @deploy/zap/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')      
+
 zap-scan-rp:
   extends: .zap-scan-common-setup
   needs:
@@ -27,7 +33,7 @@ zap-scan-rp:
   script:
     - !reference [.run-zap-scan, script]
   variables:
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
     SUT: "RELYING_PARTY"
 
 zap-scan-config-server:
@@ -47,7 +53,7 @@ zap-scan-wallet-provider:
     - envsubst < deploy/zap/config/WALLET_PROVIDER_urls.txt > /zap/WALLET_PROVIDER_urls.txt
     - !reference [.run-zap-scan, script]
   variables:
-    WALLET_PROVIDER_BASE_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${WALLET_PROVIDER_EXTERNAL_CONTEXT_PATH}/"
+    WALLET_PROVIDER_BASE_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${WALLET_PROVIDER_EXTERNAL_CONTEXT_PATH}"
     SUT: "WALLET_PROVIDER"
 
 zap-scan-pid-issuer:
@@ -59,7 +65,7 @@ zap-scan-pid-issuer:
     - envsubst < deploy/zap/config/PID_ISSUER_urls.txt > /zap/PID_ISSUER_urls.txt
     - !reference [.run-zap-scan, script]
   variables:
-    PID_ISSUER_BASE_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
+    PID_ISSUER_BASE_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}"
     SUT: "PID_ISSUER"
 
 zap-scan-internal-wallet-server:
@@ -68,10 +74,8 @@ zap-scan-internal-wallet-server:
     - job: deploy-mock-relying-party-ont
       artifacts: false
   script:
+    - !reference [.get-session-token, script]
     - |
-      envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload.json
-      SESSION_TOKEN=$(curl -s -X POST -d @test/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')      
-      RELEASE_TAG=$(cat release_tag.txt)
       yq e ".servers[0].url=\"${INTERNAL_WALLET_SERVER_URL}\"" -i documentation/api/wallet-disclosure-private.openapi.yaml
       sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/api/wallet-disclosure-private.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/api/wallet-disclosure-private.openapi.yaml
@@ -79,7 +83,7 @@ zap-scan-internal-wallet-server:
     - !reference [.run-zap-scan, script]
   variables:
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
     SUT: "INTERNAL_WALLET_SERVER"
 
 zap-scan-public-wallet-server:
@@ -88,10 +92,8 @@ zap-scan-public-wallet-server:
     - job: deploy-mock-relying-party-ont
       artifacts: false
   script:
+    - !reference [.get-session-token, script]
     - |
-      envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload.json
-      SESSION_TOKEN=$(curl -s -X POST -d @test/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')      
-      RELEASE_TAG=$(cat release_tag.txt)
       yq e ".servers[0].url=\"${PUBLIC_WALLET_SERVER_URL}\"" -i documentation/api/wallet-disclosure-public.openapi.yaml
       sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/api/wallet-disclosure-public.openapi.yaml
       sed -i "s|application/x-www-form-urlencoded|application/json|g" documentation/api/wallet-disclosure-public.openapi.yaml
@@ -101,5 +103,5 @@ zap-scan-public-wallet-server:
   variables:
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
     SUT: "PUBLIC_WALLET_SERVER"
