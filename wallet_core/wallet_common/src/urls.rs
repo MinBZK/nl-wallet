@@ -2,8 +2,6 @@ use cfg_if::cfg_if;
 use http::{header::InvalidHeaderValue, HeaderValue};
 use nutype::nutype;
 use serde::Deserialize;
-#[cfg(feature = "axum")]
-use tower_http::cors::AllowOrigin;
 use url::Url;
 
 #[nutype(
@@ -88,19 +86,25 @@ pub enum CorsOrigin {
 }
 
 #[cfg(feature = "axum")]
-impl From<CorsOrigin> for AllowOrigin {
-    fn from(value: CorsOrigin) -> Self {
-        match value {
-            CorsOrigin::Origins(allow_origins) => AllowOrigin::list(
-                allow_origins
-                    .into_iter()
-                    .map(|url| {
-                        url.try_into()
-                            .expect("cross_origin base_url should be parseable to header value")
-                    })
-                    .collect::<Vec<_>>(),
-            ),
-            CorsOrigin::Any => AllowOrigin::any(),
+mod axum {
+    use tower_http::cors::AllowOrigin;
+
+    use super::CorsOrigin;
+
+    impl From<CorsOrigin> for AllowOrigin {
+        fn from(value: CorsOrigin) -> Self {
+            match value {
+                CorsOrigin::Origins(allow_origins) => AllowOrigin::list(
+                    allow_origins
+                        .into_iter()
+                        .map(|url| {
+                            url.try_into()
+                                .expect("cross_origin base_url should be parseable to header value")
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+                CorsOrigin::Any => AllowOrigin::any(),
+            }
         }
     }
 }
