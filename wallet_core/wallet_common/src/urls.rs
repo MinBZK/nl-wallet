@@ -1,3 +1,4 @@
+use cfg_if::cfg_if;
 use http::{header::InvalidHeaderValue, HeaderValue};
 use nutype::nutype;
 use serde::Deserialize;
@@ -48,10 +49,13 @@ pub struct Origin(Url);
 
 impl Origin {
     fn is_valid(u: &Url) -> bool {
-        #[cfg(feature = "allow_insecure_url")]
-        let allowed_schemes = ["https", "http"];
-        #[cfg(not(feature = "allow_insecure_url"))]
-        let allowed_schemes = ["https"];
+        cfg_if! {
+            if #[cfg(feature = "allow_insecure_url")] {
+                let allowed_schemes = ["https", "http"];
+            } else {
+                let allowed_schemes = ["https"];
+            }
+        }
 
         (allowed_schemes.contains(&u.scheme()))
             && u.has_host()
