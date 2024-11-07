@@ -1,5 +1,27 @@
 #!/bin/bash
 
+# Mapping of binaries to installable packages in the form "<BINARY>:<INSTALLABLE>".
+have_installables=(
+    "cargo-set-version:cargo-edit"
+)
+
+# Echos the installable beloging to an `executable` ($1) when the executable is mapped
+# in `have_installables, otherwise it echos the executable.
+function find_installable() {
+    local installable=$1
+
+    for mapping in "${have_installables[@]}"; do
+        local KEY="${mapping%%:*}"
+        local VALUE="${mapping##*:}"
+
+        if [[ "$KEY" == "$installable" ]]; then
+            installable=("$VALUE")
+        fi
+    done
+
+    echo "$installable"
+}
+
 # Get the directory of the script.
 script_dir="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 
@@ -16,12 +38,12 @@ function error() {
 function have() {
     local missing=()
     for executable in "$@"; do
-        which "$executable" &>/dev/null || missing+=("$executable")
+        which "$executable" &>/dev/null || missing+=($(find_installable "$executable"))
     done
     if [ ${#missing[@]} -eq 0 ]; then
         return 0
     else
-        error "Missing required executable(s) to run this: ${missing[*]}"
+        error "Missing required tool(s) to run this: ${missing[*]}"
         exit 1
     fi
 }
