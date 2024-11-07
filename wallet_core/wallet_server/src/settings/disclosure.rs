@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use derive_more::{AsRef, Deref, From, IntoIterator};
+use derive_more::{AsRef, From, IntoIterator};
 use nutype::nutype;
 use ring::hmac;
 use serde::Deserialize;
@@ -22,7 +22,7 @@ pub struct Verifier {
     pub allow_origins: Option<CorsOrigin>,
 }
 
-#[derive(Clone, From, Deref, AsRef, IntoIterator, Deserialize)]
+#[derive(Clone, From, AsRef, IntoIterator, Deserialize)]
 pub struct VerifierUseCases(HashMap<String, VerifierUseCase>);
 
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
