@@ -9,7 +9,7 @@ use crate::utils;
 pub mod factory;
 pub mod poa;
 
-#[cfg(any(test, feature = "examples"))]
+#[cfg(feature = "examples")]
 pub mod examples;
 #[cfg(any(test, feature = "software_keys"))]
 pub mod software;
