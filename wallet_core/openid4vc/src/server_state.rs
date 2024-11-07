@@ -2,7 +2,8 @@ use std::{future::Future, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use dashmap::{mapref::entry::Entry, DashMap};
-use nutype::nutype;
+use derive_more::{AsRef, Display, From, Into};
+use serde::{Deserialize, Serialize};
 use tokio::{
     task::JoinHandle,
     time::{self, MissedTickBehavior},
@@ -217,19 +218,8 @@ where
 /// this to the holder in response to its first HTTPS request, so that it remains secret between them. Since in later
 /// protocol messages the issuer enforces that the correct session ID is present, this means that only the party that
 /// sends the first HTTP request can send later HTTP requests for the session.
-#[nutype(derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    AsRef,
-    From,
-    Into,
-    Display,
-    Serialize,
-    Deserialize
-))]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
+#[cfg_attr(test, from(String, &'static str))]
 pub struct SessionToken(String);
 
 impl SessionToken {

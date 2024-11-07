@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use nutype::nutype;
+use derive_more::AsRef;
 use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};
@@ -48,7 +48,7 @@ pub trait ClientData {
     fn challenge(&self) -> impl AsRef<[u8]>;
 }
 
-#[nutype(derive(Debug, Clone, AsRef))]
+#[derive(Debug, Clone, AsRef)]
 pub struct DerSignature(Signature);
 
 impl TryFrom<Vec<u8>> for DerSignature {
@@ -57,7 +57,7 @@ impl TryFrom<Vec<u8>> for DerSignature {
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         let signature = Signature::from_der(&value)?;
 
-        Ok(DerSignature::new(signature))
+        Ok(DerSignature(signature))
     }
 }
 
