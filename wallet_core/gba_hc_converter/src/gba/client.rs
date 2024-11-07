@@ -22,9 +22,8 @@ use crate::{
     settings::SymmetricKey,
 };
 
-#[trait_variant::make(GbavClient: Send)]
-pub trait GbavClientLocal {
-    #[allow(dead_code)]
+#[trait_variant::make(Send)]
+pub trait GbavClient {
     async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error>;
 }
 

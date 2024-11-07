@@ -71,6 +71,7 @@ base64.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
+derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 http.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }

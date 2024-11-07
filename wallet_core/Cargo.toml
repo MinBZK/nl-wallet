@@ -143,7 +143,7 @@ tower-http = { version = "0.5.2", default-features = false }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false }
 tracing-test = "0.2.5"
-trait-variant = "0.1.1"
+trait-variant = "0.1.2"
 trybuild = "1.0.96"
 uniffi = { version = "0.28.0", default-features = false }
 url = "2.4.0"

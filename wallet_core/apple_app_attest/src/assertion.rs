@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use derive_more::derive::AsRef;
+use derive_more::AsRef;
 use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
 use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};

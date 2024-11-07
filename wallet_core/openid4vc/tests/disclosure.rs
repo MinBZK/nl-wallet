@@ -761,7 +761,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
-        let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
+        let session_token = path_segments[path_segments.len() - 2].to_owned().into();
 
         let jws = self
             .verifier
@@ -785,7 +785,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
-        let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
+        let session_token = path_segments[path_segments.len() - 2].to_owned().into();
 
         let response = self
             .verifier

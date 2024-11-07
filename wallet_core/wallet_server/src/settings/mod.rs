@@ -277,6 +277,7 @@ impl Settings {
         let key_pairs: Vec<(String, KeyPair)> = self
             .verifier
             .usecases
+            .as_ref()
             .iter()
             .map(|(use_case_id, usecase)| (use_case_id.clone(), usecase.key_pair.clone()))
             .collect();
