@@ -147,6 +147,84 @@ mod axum {
             HttpJsonErrorBody::<T>::from(self).into_response()
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        use axum::{body, response::IntoResponse};
+        use http::StatusCode;
+        use serde_json::{json, Value};
+
+        use super::super::{tests::TestErrorType, HttpJsonError, HttpJsonErrorBody};
+
+        #[tokio::test]
+        async fn test_http_json_error_body_into_response() {
+            let error_body = HttpJsonErrorBody {
+                r#type: "foobar".to_string(),
+                title: Some("A foobar error.".to_string()),
+                status: Some(StatusCode::PAYMENT_REQUIRED),
+                detail: Some("Something happened.".to_string()),
+                instance: None,
+                extra: Default::default(),
+            };
+            let response = error_body.into_response();
+
+            assert_eq!(response.status(), StatusCode::PAYMENT_REQUIRED);
+            assert_eq!(
+                response.headers().get("Content-Type").unwrap(),
+                "application/problem+json"
+            );
+
+            let body = body::to_bytes(response.into_body(), 1024).await.unwrap();
+            let json = serde_json::from_slice::<Value>(&body).unwrap();
+            let expected_json = json!({
+                "type": "foobar",
+                "title": "A foobar error.",
+                "status": 402,
+                "detail": "Something happened.",
+            });
+
+            assert_eq!(json, expected_json);
+
+            let error_body = HttpJsonErrorBody {
+                r#type: "simple".to_string(),
+                title: None,
+                status: None,
+                detail: None,
+                instance: None,
+                extra: Default::default(),
+            };
+            let response = error_body.into_response();
+
+            assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        }
+
+        #[tokio::test]
+        async fn test_http_json_error_into_response() {
+            let error = HttpJsonError::new(
+                TestErrorType::Loop,
+                "Caught in a time vortex.".to_string(),
+                Default::default(),
+            );
+            let response = error.into_response();
+
+            assert_eq!(response.status(), StatusCode::LOOP_DETECTED);
+            assert_eq!(
+                response.headers().get("Content-Type").unwrap(),
+                "application/problem+json"
+            );
+
+            let body = body::to_bytes(response.into_body(), 1024).await.unwrap();
+            let json = serde_json::from_slice::<Value>(&body).unwrap();
+            let expected_json = json!({
+                "type": "loop",
+                "title": "Loop detected.",
+                "status": 508,
+                "detail": "Caught in a time vortex.",
+            });
+
+            assert_eq!(json, expected_json);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -158,7 +236,7 @@ mod tests {
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
     #[strum(serialize_all = "snake_case")]
-    enum TestErrorType {
+    pub(super) enum TestErrorType {
         Teapot,
         Loop,
     }
@@ -238,82 +316,5 @@ mod tests {
             serde_json::from_value::<HttpJsonErrorBody<String>>(json).expect("should deserialize HttpJsonErrorBody");
 
         assert_eq!(parsed_error_body.r#type, "some_type");
-    }
-
-    #[cfg(feature = "axum")]
-    #[tokio::test]
-    async fn test_http_json_error_body_into_response() {
-        use axum::{body, response::IntoResponse};
-
-        let error_body = HttpJsonErrorBody {
-            r#type: "foobar".to_string(),
-            title: Some("A foobar error.".to_string()),
-            status: Some(StatusCode::PAYMENT_REQUIRED),
-            detail: Some("Something happened.".to_string()),
-            instance: None,
-            extra: Default::default(),
-        };
-        let response = error_body.into_response();
-
-        assert_eq!(response.status(), StatusCode::PAYMENT_REQUIRED);
-        assert_eq!(
-            response.headers().get("Content-Type").unwrap(),
-            "application/problem+json"
-        );
-
-        let body = body::to_bytes(response.into_body(), 1024).await.unwrap();
-        let json = serde_json::from_slice::<Value>(&body).unwrap();
-        let expected_json = json!({
-            "type": "foobar",
-            "title": "A foobar error.",
-            "status": 402,
-            "detail": "Something happened.",
-        });
-
-        assert_eq!(json, expected_json);
-
-        let error_body = HttpJsonErrorBody {
-            r#type: "simple".to_string(),
-            title: None,
-            status: None,
-            detail: None,
-            instance: None,
-            extra: Default::default(),
-        };
-        let response = error_body.into_response();
-
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    }
-
-    #[cfg(feature = "axum")]
-    #[tokio::test]
-    async fn test_http_json_error_into_response() {
-        use axum::{body, response::IntoResponse};
-
-        use super::HttpJsonError;
-
-        let error = HttpJsonError::new(
-            TestErrorType::Loop,
-            "Caught in a time vortex.".to_string(),
-            Default::default(),
-        );
-        let response = error.into_response();
-
-        assert_eq!(response.status(), StatusCode::LOOP_DETECTED);
-        assert_eq!(
-            response.headers().get("Content-Type").unwrap(),
-            "application/problem+json"
-        );
-
-        let body = body::to_bytes(response.into_body(), 1024).await.unwrap();
-        let json = serde_json::from_slice::<Value>(&body).unwrap();
-        let expected_json = json!({
-            "type": "loop",
-            "title": "Loop detected.",
-            "status": 508,
-            "detail": "Caught in a time vortex.",
-        });
-
-        assert_eq!(json, expected_json);
     }
 }
