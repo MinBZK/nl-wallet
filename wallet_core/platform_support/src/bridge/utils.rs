@@ -1,12 +1,23 @@
 use std::fmt::Debug;
 
+use error_category::ErrorCategory;
+use uniffi::UnexpectedUniFFICallbackError;
+
 use super::get_platform_support;
 
-pub use crate::utils::UtilitiesError;
+// implementation of UtilitiesError from UDL
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)] // reason field might leak sensitive data
+pub enum UtilitiesError {
+    #[error("platform error: {reason}")]
+    PlatformError { reason: String },
+    #[error("bridging error: {reason}")]
+    BridgingError { reason: String },
+}
 
 // this is required to catch UnexpectedUniFFICallbackError
-impl From<uniffi::UnexpectedUniFFICallbackError> for UtilitiesError {
-    fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
+impl From<UnexpectedUniFFICallbackError> for UtilitiesError {
+    fn from(value: UnexpectedUniFFICallbackError) -> Self {
         Self::BridgingError { reason: value.reason }
     }
 }

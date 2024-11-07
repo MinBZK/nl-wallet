@@ -3,6 +3,7 @@
 use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
 
 use chrono::{DateTime, SecondsFormat, Utc};
+use derive_more::{AsRef, From};
 use itertools::Itertools;
 use josekit::{
     jwk::{
@@ -11,7 +12,6 @@ use josekit::{
     },
     JoseError,
 };
-use nutype::nutype;
 use ring::hmac;
 use serde::{Deserialize, Serialize};
 use serde_with::{hex::Hex, serde_as, skip_serializing_none};
@@ -223,7 +223,7 @@ pub struct RedirectUri {
 }
 
 /// Wrapper for [`EcKeyPair`] that can be serialized.
-#[nutype(derive(Debug, Clone, AsRef, From))]
+#[derive(Debug, Clone, AsRef, From)]
 struct EncryptionPrivateKey(EcKeyPair);
 
 // Ordinarily we might use DER encoding here instead of PEM, but `EcKeyPair::to_der_private_key()` does not encode
@@ -435,7 +435,7 @@ pub enum SessionTypeReturnUrl {
     Both,
 }
 
-#[nutype(derive(Debug, From, AsRef))]
+#[derive(Debug, From, AsRef)]
 pub struct UseCases(HashMap<String, UseCase>);
 
 #[derive(Debug)]

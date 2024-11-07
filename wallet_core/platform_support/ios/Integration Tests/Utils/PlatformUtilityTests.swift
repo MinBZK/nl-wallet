@@ -7,8 +7,8 @@
 
 import Foundation
 
-import XCTest
 @testable import PlatformSupport
+import XCTest
 
 final class PlatformUtilityTests: XCTestCase {
     func testUrlForAppSupportDirectory() throws {

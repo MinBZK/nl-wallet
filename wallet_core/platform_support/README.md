@@ -3,6 +3,14 @@ NL-Wallet Platform Support
 
 This crate allows native Android and iOS functionality to be called from the wallet core.
 
+# Rustdoc
+
+Documentation on the types in this crate can be generated and inspected using the following command:
+
+```bash
+cargo doc --open
+```
+
 # Components
 
 The functionality is split into multiple parts that are compiled in distinct steps and ultimately combined by the linker when building the app.
@@ -94,3 +102,5 @@ Integration test --> platform_support
       |                      | (uniffi)
       \--> PlatformSupport --/
 ```
+
+Note that the attested key integration tests for iOS can only be run on a real device.
