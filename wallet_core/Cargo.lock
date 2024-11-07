@@ -3084,6 +3084,10 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.2.2"
 dependencies = [
+ "apple_app_attest",
+ "async-trait",
+ "chrono",
+ "derive_more",
  "error_category",
  "jni",
  "p256",

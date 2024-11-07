@@ -1,12 +1,21 @@
 use std::fmt::Debug;
 
+use uniffi::UnexpectedUniFFICallbackError;
+
 use super::get_platform_support;
 
-pub use crate::hw_keystore::KeyStoreError;
+// implementation of KeyStoreError from UDL
+#[derive(Debug, thiserror::Error)]
+pub enum KeyStoreError {
+    #[error("key error: {reason}")]
+    KeyError { reason: String },
+    #[error("bridging error: {reason}")]
+    BridgingError { reason: String },
+}
 
 // this is required to catch UnexpectedUniFFICallbackError
-impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
-    fn from(value: uniffi::UnexpectedUniFFICallbackError) -> Self {
+impl From<UnexpectedUniFFICallbackError> for KeyStoreError {
+    fn from(value: UnexpectedUniFFICallbackError) -> Self {
         Self::BridgingError { reason: value.reason }
     }
 }

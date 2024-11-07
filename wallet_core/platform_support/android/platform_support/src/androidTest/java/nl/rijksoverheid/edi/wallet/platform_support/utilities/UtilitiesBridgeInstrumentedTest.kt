@@ -23,11 +23,12 @@ class UtilitiesBridgeInstrumentedTest {
         // Explicitly load platform_support since utilities_test_storage_path() is stripped from rust_core
         System.loadLibrary("platform_support")
 
-        assertTrue(utilities_test_storage_path())
+        // The Rust code will panic if this test fails.
+        utilities_test_storage_path()
     }
 
     companion object {
         @JvmStatic
-        external fun utilities_test_storage_path(): Boolean
+        external fun utilities_test_storage_path()
     }
 }

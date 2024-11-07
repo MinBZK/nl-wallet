@@ -24,6 +24,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_storage_path() {
-        assert!(test::get_and_verify_storage_path::<SoftwareUtilities>().await);
+        test::get_and_verify_storage_path::<SoftwareUtilities>().await;
     }
 }
