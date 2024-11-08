@@ -22,6 +22,8 @@ pub enum AssertionDecodingError {
     Cbor(#[source] ciborium::de::Error<std::io::Error>),
     #[error("could not get client data hash: {0}")]
     ClientDataHash(Box<dyn Error + Send + Sync>),
+    #[error("could not get client data challenge: {0}")]
+    ClientDataChallenge(Box<dyn Error + Send + Sync>),
     #[error("counter is not present in authenticator data")]
     CounterMissing,
 }
@@ -45,7 +47,7 @@ pub trait ClientData {
     type Error: Error + Send + Sync + 'static;
 
     fn hash_data(&self) -> Result<impl AsRef<[u8]>, Self::Error>;
-    fn challenge(&self) -> impl AsRef<[u8]>;
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error>;
 }
 
 #[derive(Debug, Clone, AsRef)]
@@ -141,7 +143,12 @@ impl Assertion {
 
         // 6. Verify that the embedded challenge in the client data matches the earlier challenge to the client.
 
-        if client_data.challenge().as_ref() != expected_challenge {
+        if client_data
+            .challenge()
+            .map_err(|error| AssertionDecodingError::ClientDataChallenge(Box::new(error)))?
+            .as_ref()
+            != expected_challenge
+        {
             return Err(AssertionValidationError::ChallengeMismatch)?;
         }
 

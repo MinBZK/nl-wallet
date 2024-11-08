@@ -27,8 +27,8 @@ impl ClientData for MockClientData {
         Ok(data)
     }
 
-    fn challenge(&self) -> impl AsRef<[u8]> {
-        &self.challenge
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
+        Ok(&self.challenge)
     }
 }
 

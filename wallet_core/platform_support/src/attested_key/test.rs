@@ -31,8 +31,8 @@ impl ClientData for SimpleClientData {
         Ok(&self.hash_data)
     }
 
-    fn challenge(&self) -> impl AsRef<[u8]> {
-        &self.challenge
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
+        Ok(&self.challenge)
     }
 }
 
@@ -88,7 +88,7 @@ where
                 &public_key,
                 &app_identifier,
                 0,
-                client_data1.challenge().as_ref(),
+                &client_data1.challenge,
             )
             .expect("could not verify first assertion");
 
@@ -117,7 +117,7 @@ where
                 &public_key,
                 &app_identifier,
                 1,
-                client_data2.challenge().as_ref(),
+                &client_data2.challenge,
             )
             .expect("could not verify second assertion");
         }
