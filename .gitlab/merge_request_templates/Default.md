@@ -11,7 +11,7 @@ As a developer I declare that:
         - verification date: {DD-MM-YYYY}
 - [ ] This MR implements all tests as specified in: (PVW-{XXXX} | CAP-{XXXX})
     - [ ] Approved by reviewer
-- [ ] The specifications are updated according to learnings during implementation, if applicable
+- [ ] The specifications are updated according to any potential insights that came to light during development
     - [ ] Approved by reviewer
 - [ ] All relevant documentation impacted by the changes in this MR is updated correctly
     - [ ] Approved by reviewer
