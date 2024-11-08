@@ -88,7 +88,7 @@ impl Assertion {
         public_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
         previous_counter: u32,
-        challenge: &[u8],
+        expected_challenge: &[u8],
     ) -> Result<(Self, u32), AssertionError> {
         let assertion: Self = ciborium::from_reader(bytes).map_err(AssertionDecodingError::Cbor)?;
 
@@ -141,7 +141,7 @@ impl Assertion {
 
         // 6. Verify that the embedded challenge in the client data matches the earlier challenge to the client.
 
-        if client_data.challenge().as_ref() != challenge {
+        if client_data.challenge().as_ref() != expected_challenge {
             return Err(AssertionValidationError::ChallengeMismatch)?;
         }
 
