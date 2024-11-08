@@ -13,5 +13,5 @@ There are a couple of documents here:
     wallet_server's disclosure functionality;
 
 You can "run" the last two OpenAPIv3 documents using Swagger and/or some
-facility in your favorite editor (like Postmain, or Redocly in Jetbrains editors
+facility in your favorite editor (like Postman, or Redocly in Jetbrains editors
 which comes as a part of the OpenAPI (Swagger) Editor Plugin).
