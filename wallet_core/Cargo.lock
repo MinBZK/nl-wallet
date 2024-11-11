@@ -5600,10 +5600,12 @@ version = "0.2.2"
 dependencies = [
  "aes-gcm",
  "anyhow",
+ "apple_app_attest",
  "assert_matches",
  "axum",
  "base64 0.22.1",
  "chrono",
+ "ciborium",
  "config",
  "derive_more",
  "error_category",

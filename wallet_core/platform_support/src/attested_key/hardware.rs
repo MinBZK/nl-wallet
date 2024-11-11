@@ -4,16 +4,16 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
-use wallet_common::keys::{EcdsaKey, SecureEcdsaKey};
+use wallet_common::{
+    apple::{AppleAssertion, AppleAttestedKey},
+    keys::{EcdsaKey, SecureEcdsaKey},
+};
 
 use crate::bridge::attested_key::{get_attested_key_bridge, AttestationData, AttestedKeyBridge, AttestedKeyType};
 
 pub use crate::bridge::attested_key::AttestedKeyError;
 
-use super::{
-    AppleAssertion, AppleAttestedKey, AttestationError, AttestedKey, AttestedKeyHolder, GoogleAttestedKey,
-    KeyWithAttestation,
-};
+use super::{AttestationError, AttestedKey, AttestedKeyHolder, GoogleAttestedKey, KeyWithAttestation};
 
 use key::HardwareAttestedKey;
 
@@ -199,7 +199,7 @@ impl AppleAttestedKey for AppleHardwareAttestedKey {
     async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error> {
         let assertion = self.0.sign(payload).await?;
 
-        Ok(AppleAssertion(assertion))
+        Ok(AppleAssertion::from(assertion))
     }
 }
 
