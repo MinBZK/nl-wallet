@@ -291,6 +291,8 @@ where
 
     async fn track_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
         let shasum = sha256(wte.jwt().0.as_bytes());
+
+        // We don't have to check for expiry of the WTE, because its type guarantees that it has already been verified.
         if self.seen_wtes.contains_key(&shasum) {
             Ok(true)
         } else {
