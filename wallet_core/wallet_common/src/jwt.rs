@@ -454,17 +454,24 @@ pub enum JwkConversionError {
 }
 
 pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
-    let point = value.to_encoded_point(false);
     let jwk = Jwk {
         common: Default::default(),
-        algorithm: jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
-            key_type: jwk::EllipticCurveKeyType::EC,
-            curve: jwk::EllipticCurve::P256,
-            x: BASE64_URL_SAFE_NO_PAD.encode(point.x().ok_or(JwkConversionError::MissingCoordinate)?),
-            y: BASE64_URL_SAFE_NO_PAD.encode(point.y().ok_or(JwkConversionError::MissingCoordinate)?),
-        }),
+        algorithm: jwk_alg_from_p256(value)?,
     };
+
     Ok(jwk)
+}
+
+pub fn jwk_alg_from_p256(value: &VerifyingKey) -> Result<jwk::AlgorithmParameters, JwkConversionError> {
+    let point = value.to_encoded_point(false);
+    let alg = jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
+        key_type: jwk::EllipticCurveKeyType::EC,
+        curve: jwk::EllipticCurve::P256,
+        x: BASE64_URL_SAFE_NO_PAD.encode(point.x().ok_or(JwkConversionError::MissingCoordinate)?),
+        y: BASE64_URL_SAFE_NO_PAD.encode(point.y().ok_or(JwkConversionError::MissingCoordinate)?),
+    });
+
+    Ok(alg)
 }
 
 pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {

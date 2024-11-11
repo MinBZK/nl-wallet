@@ -10,7 +10,10 @@ use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    jwt::{jwk_from_p256, jwk_to_p256, validations, JsonJwt, JwkConversionError, Jwt, JwtError, JwtPopClaims},
+    jwt::{
+        jwk_alg_from_p256, jwk_from_p256, jwk_to_p256, validations, JsonJwt, JwkConversionError, Jwt, JwtError,
+        JwtPopClaims,
+    },
     nonempty::NonEmpty,
 };
 
@@ -146,7 +149,7 @@ impl Poa {
         let associated_keys: HashSet<jwk::AlgorithmParameters> =
             payload.jwks.into_inner().into_iter().map(|key| key.algorithm).collect();
         for key in expected_keys {
-            let expected_key = jwk_from_p256(key)?.algorithm;
+            let expected_key = jwk_alg_from_p256(key)?;
             if !associated_keys.contains(&expected_key) {
                 return Err(PoaVerificationError::MissingKey(expected_key));
             }
