@@ -1,4 +1,4 @@
-use std::{num::NonZeroU8, time::Duration};
+use std::time::Duration;
 
 use derive_more::From;
 use indexmap::IndexSet;
@@ -18,7 +18,6 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
-    jwt::JwtCredentialContents,
     nonempty::NonEmpty,
     utils::{random_string, sha256},
 };
@@ -149,18 +148,12 @@ pub enum CredentialPreview {
         unsigned_mdoc: UnsignedMdoc,
         issuer: Certificate,
     },
-    Jwt {
-        jwt_typ: Option<String>,
-        claims: JwtCredentialContents,
-        copy_count: NonZeroU8,
-    },
 }
 
 impl From<&CredentialPreview> for Format {
     fn from(value: &CredentialPreview) -> Self {
         match value {
             CredentialPreview::MsoMdoc { .. } => Format::MsoMdoc,
-            CredentialPreview::Jwt { .. } => Format::Jwt,
         }
     }
 }
@@ -169,14 +162,12 @@ impl CredentialPreview {
     pub fn copy_count(&self) -> u8 {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
-            CredentialPreview::Jwt { copy_count, .. } => (*copy_count).into(),
         }
     }
 
     pub fn credential_type(&self) -> Option<&str> {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Some(&unsigned_mdoc.doc_type),
-            CredentialPreview::Jwt { .. } => None,
         }
     }
 
@@ -194,7 +185,6 @@ impl CredentialPreview {
                 // have produced an mdoc against that certificate.
                 issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
             }
-            CredentialPreview::Jwt { .. } => Ok(()),
         }
     }
 }
@@ -207,18 +197,13 @@ pub enum CredentialPreviewError {
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
-    #[error("unexpected credential format: expected MsoMdoc, found {0:?}")]
-    #[category(critical)]
-    UnexpectedFormat(Format),
 }
 
 impl TryFrom<CredentialPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
     type Error = CredentialPreviewError;
 
     fn try_from(value: CredentialPreview) -> Result<Self, Self::Error> {
-        let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = value else {
-            Err(CredentialPreviewError::UnexpectedFormat(Format::Jwt))?
-        };
+        let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = value;
         let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&issuer)? else {
             Err(CredentialPreviewError::NoIssuerRegistration)?
         };

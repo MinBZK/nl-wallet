@@ -27,7 +27,6 @@ use wallet_common::{
     generator::Generator,
     jwt::{jwk_to_p256, validations, JwkConversionError, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
     keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType},
-    trust_anchor::trust_anchor_names,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -73,42 +72,6 @@ where
             jwt,
         };
 
-        Ok((cred, claims))
-    }
-
-    pub fn new_verify_against_trust_anchors<K: CredentialEcdsaKey>(
-        private_key_id: String,
-        jwt: Jwt<JwtCredentialClaims<T>>,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<(Self, JwtCredentialClaims<T>), JwtCredentialError> {
-        // Get the `iss` field from the claims so we can find the trust anchor with which to verify the JWT.
-        // We have to read this from the JWT before we have verified it, but doing that for the purposes of
-        // deciding with which key to verify the JWT is common practice and not a security issue
-        // (someone messing with this field could at most change it to an issuer whose key they don't control,
-        // in which case they won't be able to produce a signature on the JWT that the code below will accept).
-        let (_, claims) = jwt.dangerous_parse_unverified()?;
-        let jwt_issuer = &claims.contents.iss;
-
-        // See if we have a trust anchor that has the JWT issuer as (one of) its subject(s)
-        let trust_anchor = trust_anchors
-            .iter()
-            .find_map(|anchor| {
-                trust_anchor_names(anchor)
-                    .map_err(JwtCredentialError::TrustAnchorNameParsing)
-                    .map(|names| names.iter().any(|name| name == jwt_issuer).then_some(anchor))
-                    .transpose()
-            })
-            .transpose()?
-            .ok_or(JwtCredentialError::UnknownIssuer(jwt_issuer.to_string()))?;
-
-        // Now verify the JWT
-        jwt.verify_against_spki(&trust_anchor.subject_public_key_info)?;
-
-        let cred = Self {
-            private_key_id,
-            key_type: K::KEY_TYPE,
-            jwt,
-        };
         Ok((cred, claims))
     }
 

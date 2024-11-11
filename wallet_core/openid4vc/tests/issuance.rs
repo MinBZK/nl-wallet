@@ -24,7 +24,6 @@ use openid4vc::{
         mock_wte, HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
     },
     issuer::{AttributeService, Created, IssuanceData, Issuer},
-    jwt::compare_jwt_attributes,
     metadata::IssuerMetadata,
     oidc,
     server_state::{MemorySessionStore, MemoryWteTracker, SessionState},
@@ -32,7 +31,7 @@ use openid4vc::{
     CredentialErrorCode,
 };
 use wallet_common::{
-    jwt::{JsonJwt, Jwt, JwtCredentialContents},
+    jwt::{JsonJwt, Jwt},
     keys::{
         poa::{Poa, PoaPayload},
         software_key_factory::SoftwareKeyFactory,
@@ -50,21 +49,6 @@ fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certific
     setup(
         MockAttributeService {
             previews: mock_mdoc_attributes(issuance_keypair.certificate(), attestation_count, copy_count),
-        },
-        ca,
-        issuance_keypair,
-    )
-}
-
-fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
-    let ca = KeyPair::<SigningKey>::generate_issuer_mock_ca().unwrap();
-
-    // Use the CA itself as issuance key
-    let issuance_keypair = KeyPair::new_from_signing_key(ca.private_key().clone(), ca.certificate().clone()).unwrap();
-
-    setup(
-        MockAttributeService {
-            previews: mock_jwt_attributes(issuance_keypair.certificate(), attestation_count, copy_count),
         },
         ca,
         issuance_keypair,
@@ -99,12 +83,8 @@ fn setup(
 
 #[rstest]
 #[tokio::test]
-async fn accept_issuance(
-    #[values(setup_mdoc, setup_jwt)] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey),
-    #[values(1, 2)] attestation_count: usize,
-    #[values(1, 2)] copy_count: u8,
-) {
-    let (issuer, ca, server_url, wte_issuer_privkey) = setup(attestation_count, copy_count);
+async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2)] copy_count: u8) {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(attestation_count, copy_count);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, previews) = HttpIssuanceSession::start_issuance(
@@ -135,17 +115,8 @@ async fn accept_issuance(
                 .first()
                 .compare_unsigned(match &preview {
                     CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
-                    _ => panic!("unexpected credential format"),
                 })
                 .unwrap(),
-            IssuedCredentialCopies::Jwt(jwts) => compare_jwt_attributes(
-                &jwts.first().jwt_claims().contents,
-                match &preview {
-                    CredentialPreview::Jwt { claims, .. } => claims,
-                    _ => panic!("unexpected credential format"),
-                },
-            )
-            .unwrap(),
         });
 }
 
@@ -499,21 +470,6 @@ fn mock_mdoc_attributes(issuer_cert: &Certificate, attestation_count: usize, cop
                 .unwrap(),
             },
             issuer: issuer_cert.clone(),
-        })
-        .collect()
-}
-
-fn mock_jwt_attributes(issuer: &Certificate, attestation_count: usize, copy_count: u8) -> Vec<CredentialPreview> {
-    let issuer = issuer.common_names().unwrap().first().unwrap().clone();
-
-    (0..attestation_count)
-        .map(|_| CredentialPreview::Jwt {
-            jwt_typ: None,
-            claims: JwtCredentialContents {
-                iss: issuer.clone(),
-                attributes: IndexMap::from([("foo".to_string(), "bar".to_string().into())]),
-            },
-            copy_count: NonZeroU8::new(copy_count).unwrap(),
         })
         .collect()
 }

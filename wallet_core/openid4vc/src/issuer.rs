@@ -866,7 +866,6 @@ impl CredentialPreview {
     fn issuer_key_identifier(&self) -> &str {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,
-            CredentialPreview::Jwt { claims, .. } => &claims.iss,
         }
     }
 }
@@ -921,26 +920,6 @@ impl CredentialResponse {
                 Ok(CredentialResponse::MsoMdoc {
                     credential: Box::new(issuer_signed.into()),
                 })
-            }
-
-            CredentialPreview::Jwt { claims, jwt_typ, .. } => {
-                // Add the holder public key to the claims that are going to be signed
-                let credential = JwtCredentialClaims::new_signed(
-                    &holder_pubkey,
-                    issuer_privkey.private_key(),
-                    issuer_privkey
-                        .certificate()
-                        .common_names()
-                        .unwrap()
-                        .first()
-                        .unwrap()
-                        .to_string(),
-                    jwt_typ.or(Some("jwt".to_string())),
-                    claims.attributes,
-                )
-                .await?;
-
-                Ok(CredentialResponse::Jwt { credential })
             }
         }
     }
