@@ -990,9 +990,13 @@ impl CredentialRequestProof {
 // NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
 // without leeway. There must be no clock drift between the WTE issuer and the caller.
 pub static WTE_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
-    // Enforce presence of exp, meaning it is also verified since `validations().validate_exp` is `true` by default
     let mut validations = validations();
     validations.leeway = 0;
+
+    // Enforce presence of exp, meaning it is also verified since `validations().validate_exp` is `true` by default.
+    // Note that the PID issuer and the issuer of the WTE (the WP) have a mutual trust relationship with each other
+    // in which they jointly ensure, through the WTE, that each wallet can obtain at most one PID. Therefore the PID
+    // issuer, which runs this code, trusts the WP to set `exp` to a reasonable value (the `WTE_EXPIRY` constant).
     validations.set_required_spec_claims(&["exp"]);
 
     validations
