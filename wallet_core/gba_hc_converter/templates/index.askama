@@ -1,0 +1,62 @@
+{% extends "base.askama" %}
+
+{% block content %}
+<main>
+    <section>
+        <h1>GBA-V preloading for NL Wallet</h1>
+    </section>
+
+    <section class="info">
+        <fieldset>
+            <legend>Status</legend>
+            <label for="preloaded_count">Number of preloaded BSNs: </label>
+            <output id="preloaded_count">{{ preloaded_count }}</output>
+        </fieldset>
+    </section>
+
+    <br />
+
+    <section>
+        <form method="POST" action="/">
+            <fieldset>
+                <legend>Preload data</legend>
+
+                <input type="hidden" name="authenticity_token" value="{{ authenticity_token }}"/>
+
+                <p>
+                    <label for="bsn">Enter BSN: </label>
+                    <input type="password" id="bsn" name="bsn" autocomplete="off"
+                        pattern="[0-9]{8,9}" required />
+                </p>
+
+                <p>
+                    <label for="repeat_bsn">Repeat BSN: </label>
+                    <input type="password" id="repeat_bsn" name="repeat_bsn" autocomplete="off"
+                        pattern="[0-9]{8,9}" required />
+                </p>
+
+                <button type="submit">Preload</button>
+            </fieldset>
+        </form>
+    </section>
+
+    <br />
+
+    <section>
+            <form method="POST" action="/clear">
+                <fieldset>
+                    <legend>Clear data</legend>
+
+                    <input type="hidden" name="authenticity_token" value="{{ authenticity_token }}"/>
+
+                    <p>
+                        <label for="confirmation_text">Enter the text "clear all data" for confirmation: </label>
+                        <input type="text" id="confirmation_text" name="confirmation_text" autocomplete="off" required />
+                    </p>
+
+                    <button type="submit">Clear all preloaded data</button>
+                </fieldset>
+            </form>
+        </section>
+</main>
+{% endblock %}

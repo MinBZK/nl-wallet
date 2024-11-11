@@ -155,7 +155,10 @@ mod tests {
     #[case(r#""*""#, CorsOrigin::Any)]
     #[case(r#"[]"#, origin_urls(vec![]))]
     #[case(r#"["https://example.com"]"#, origin_urls(vec!["https://example.com"]))]
-    #[case(r#"["https://example.com", "https://example.com:8443"]"#, origin_urls(vec!["https://example.com", "https://example.com:8443"]))]
+    #[case(
+        r#"["https://example.com", "https://example.com:8443"]"#,
+        origin_urls(vec!["https://example.com", "https://example.com:8443"]),
+    )]
     fn deserialize_origin(#[case] input: &str, #[case] expected: CorsOrigin) {
         let actual: CorsOrigin = serde_json::from_str(input).expect("json");
         assert_eq!(actual, expected);

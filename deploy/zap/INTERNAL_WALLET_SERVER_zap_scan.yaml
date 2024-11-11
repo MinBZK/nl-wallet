@@ -1,0 +1,139 @@
+---
+env:
+  contexts:
+  - name: "Default Context"
+    urls:
+    - "${INTERNAL_WALLET_SERVER_URL}"
+    includePaths:
+    - "${INTERNAL_WALLET_SERVER_URL}.*"
+    excludePaths: []
+    authentication:
+      parameters: {}
+      verification:
+        method: "response"
+        pollFrequency: 60
+        pollUnits: "requests"
+    sessionManagement:
+      method: "cookie"
+      parameters: {}
+    technology:
+      exclude: []
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+  vars: {}
+jobs:
+- alertFilters:
+# False positive analysis in pwv-3375 showed that this is not a vulnerability
+    - ruleId: "40025"
+      ruleName: "Proxy Disclosure (40025)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: [ ]
+  parameters:
+    deleteGlobalAlerts: false
+  name: "alertFilter"
+  type: "alertFilter"
+- parameters:
+    maxAlertsPerRule: 0
+    scanOnlyInScope: true
+    maxBodySizeInBytesToScan: 0
+    enableTags: false
+    disableAllRules: false
+  rules: []
+  name: "passiveScan-config"
+  type: "passiveScan-config"
+- parameters:
+    apiFile: "merged-internal-wallet-disclosure.openapi.yaml"
+    apiUrl: ""
+    targetUrl: ""
+    context: "Default Context"
+  name: "openapi"
+  type: "openapi"
+- parameters: {}
+  name: "passiveScan-wait"
+  type: "passiveScan-wait"
+- parameters: {}
+  policyDefinition:
+    rules: []
+  name: "activeScan"
+  type: "activeScan"
+- parameters:
+    template: "modern"
+    theme: "console"
+    reportDir: "${CI_PROJECT_DIR}/zapreports"
+    reportFile: ""
+    reportTitle: "INTERNAL_WALLET_SERVER ZAP Scanning Report"
+    reportDescription: ""
+    displayReport: false
+  risks:
+  - "low"
+  - "medium"
+  - "high"
+  confidences:
+  - "low"
+  - "medium"
+  - "high"
+  - "confirmed"
+  sections:
+  - "passingrules"
+  - "instancecount"
+  - "alertdetails"
+  - "alertcount"
+  - "params"
+  - "chart"
+  - "statistics"
+  sites: []
+  name: "report"
+  type: "report"
+- parameters:
+    template: "traditional-xml"
+    reportDir: "${CI_PROJECT_DIR}/zapreports"
+    reportFile: "INTERNAL_WALLET_SERVER-zap.xml"
+    reportTitle: "INTERNAL_WALLET_SERVER ZAP Scanning Report"
+    reportDescription: ""
+    displayReport: false
+  risks:
+  - "info"
+  - "low"
+  - "medium"
+  - "high"
+  confidences:
+  - "falsepositive"
+  - "low"
+  - "medium"
+  - "high"
+  - "confirmed"
+  sites: []
+  name: "report"
+  type: "report"
+- parameters:
+    template: "traditional-json"
+    reportDir: "${CI_PROJECT_DIR}/zapreports"
+    reportFile: "INTERNAL_WALLET_SERVER-zap.json"
+    reportTitle: "INTERNAL_WALLET_SERVER ZAP Scanning Report"
+    reportDescription: ""
+    displayReport: false
+  risks:
+    - "info"
+    - "low"
+    - "medium"
+    - "high"
+  confidences:
+    - "falsepositive"
+    - "low"
+    - "medium"
+    - "high"
+    - "confirmed"
+  sites: []
+  name: "report"
+  type: "report"

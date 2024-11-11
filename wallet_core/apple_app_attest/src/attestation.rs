@@ -78,7 +78,7 @@ pub struct Attestation {
     #[serde(rename = "attStmt")]
     pub attestation_statement: AttestationStatement,
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
-    pub auth_data: AuthenticatorDataWithSource,
+    pub auth_data: AuthenticatorDataWithSource<false>,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
@@ -106,7 +106,7 @@ impl Attestation {
         challenge: &[u8],
         app_identifier: &AppIdentifier,
         environment: AttestationEnvironment,
-    ) -> Result<(Self, VerifyingKey, u32), AttestationError> {
+    ) -> Result<(Self, VerifyingKey), AttestationError> {
         let attestation: Self = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
 
         // The steps below are listed at:
@@ -163,8 +163,8 @@ impl Attestation {
 
         let key_identifier = Sha256::digest(public_key.to_encoded_point(false));
 
-        // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s
-        //    RP ID hash.
+        // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s RP
+        //    ID hash.
 
         if attestation.auth_data.as_ref().rp_id_hash() != app_identifier.sha256_hash() {
             return Err(AttestationValidationError::RpIdMismatch)?;
@@ -207,6 +207,6 @@ impl Attestation {
             return Err(AttestationValidationError::KeyIdentifierMismatch)?;
         }
 
-        Ok((attestation, public_key, counter))
+        Ok((attestation, public_key))
     }
 }

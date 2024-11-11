@@ -6,8 +6,6 @@ pub mod jwt;
 pub mod keys;
 pub mod nonempty;
 pub mod reqwest;
-#[cfg(feature = "sentry")]
-pub mod sentry;
 pub mod spawn;
 pub mod trust_anchor;
 pub mod urls;

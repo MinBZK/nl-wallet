@@ -347,7 +347,7 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
     }
 }
 
-/// Claims of a [`JwtCredential`]: the body of the JWT.
+/// Claims of a `JwtCredential`: the body of the JWT.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct JwtCredentialClaims<T = IndexMap<String, serde_json::Value>> {
     #[serde(rename = "cnf")]
@@ -393,8 +393,8 @@ where
     }
 }
 
-/// Contents of a [`JwtCredential`], containing everything of the [`JwtCredentialClaims`] except the holder public
-/// key ([`Cnf`]): the attributes and metadata of the credential.
+/// Contents of a `JwtCredential`, containing everything of the [`JwtCredentialClaims`] except the holder public
+/// key (`Cnf`): the attributes and metadata of the credential.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct JwtCredentialContents<T = IndexMap<String, serde_json::Value>> {
@@ -404,8 +404,8 @@ pub struct JwtCredentialContents<T = IndexMap<String, serde_json::Value>> {
     pub attributes: T,
 }
 
-/// Contains the holder public key of a [`JwtCredential`].
-/// ("Cnf" stands for "confirmation", see https://datatracker.ietf.org/doc/html/rfc7800.)
+/// Contains the holder public key of a `JwtCredential`.
+/// ("Cnf" stands for "confirmation", see <https://datatracker.ietf.org/doc/html/rfc7800>.)
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct JwtCredentialConfirmation {
     pub jwk: Jwk,

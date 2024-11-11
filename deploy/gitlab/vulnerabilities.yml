@@ -16,7 +16,7 @@ dependency-check:
       --enableExperimental
       --format "HTML" --format "JSON" --format "XML"
       --scan "."
-      --suppression $CI_PROJECT_DIR/dependency_check_suppressions.xml
+      --suppression $CI_PROJECT_DIR/deploy/dependencies/dependency_check_suppressions.xml
       --nvdApiKey "$NVD_API_KEY"
       --failOnCVSS 0.1
   artifacts:
@@ -37,7 +37,9 @@ osv-scanner:
   image:
     name: "$HARBOR_REGISTRY/ghcr-io-proxy/google/osv-scanner:latest"
   script:
-    - /osv-scanner --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif || /osv-scanner --format table --recursive "$CI_PROJECT_DIR"
+    - |
+      /osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif \
+        || /osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format table --recursive "$CI_PROJECT_DIR"
   artifacts:
     when: always
     paths:
@@ -101,6 +103,7 @@ dependency-check-images:
       "nl-verification-server"
       "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
+      "nl-rdo-max"
       )
     - mkdir -p trivy
   script:

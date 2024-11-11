@@ -25,7 +25,7 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
-derive_more = { workspace = true, features = ["as_ref"] }
+derive_more = { workspace = true, features = ["as_ref", "debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
@@ -73,8 +73,4 @@ regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-wallet_common = { path = "../wallet_common", features = [
-    "examples",
-    "mock_secure_keys",
-    "software_key_factory",
-]}
+wallet_common = { path = "../wallet_common", features = ["examples", "mock_secure_keys", "software_key_factory"] }

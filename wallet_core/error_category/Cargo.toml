@@ -12,10 +12,11 @@ sentry = ["dep:sentry", "dep:tracing"]
 
 [dependencies]
 error_category_derive.path = "./error_category_derive"
+thiserror.workspace = true
 
 sentry = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
+rstest.workspace = true
 sentry = { workspace = true, features = ["test"] }
-thiserror.workspace = true

@@ -205,9 +205,10 @@ impl TryFrom<GbaResponse> for Vec<GbaPerson> {
 
         let person = GbaPerson {
             bsn: cat1.elementen.get_mandatory(Element::Bsn.code())?,
-            gender: GbaCode {
-                code: cat1.elementen.get_mandatory(Element::Geslacht.code())?,
-            },
+            gender: cat1
+                .elementen
+                .get_optional(Element::Geslacht.code())
+                .map(|code| GbaCode { code }),
             name: cat1.try_into()?,
             birth: cat1.try_into()?,
             nationalities: cat4s
@@ -411,7 +412,7 @@ pub struct GbaPerson {
     bsn: String,
 
     #[serde(rename = "geslacht")]
-    gender: GbaCode,
+    gender: Option<GbaCode>,
 
     #[serde(rename = "naam")]
     name: GbaName,

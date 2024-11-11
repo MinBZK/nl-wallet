@@ -101,10 +101,10 @@ impl<'de> Deserialize<'de> for Certificate {
                     .decode(String::deserialize(deserializer).map_err(serde::de::Error::custom)?)
                     .map_err(serde::de::Error::custom)?,
             );
-            Ok(Certificate::from_byte_buffer(buffer))
+            Ok(Certificate::from_byte_buffer(&buffer))
         } else {
             let buffer = ByteBuf::deserialize(deserializer)?;
-            Ok(Certificate::from_byte_buffer(buffer))
+            Ok(Certificate::from_byte_buffer(&buffer))
         }
     }
 }
@@ -147,14 +147,14 @@ impl TryInto<DerTrustAnchor> for &Certificate {
 
 impl<T: AsRef<[u8]>> From<T> for Certificate {
     fn from(value: T) -> Self {
-        Certificate::from_byte_buffer(ByteBuf::from(value.as_ref()))
+        Certificate::from_byte_buffer(&ByteBuf::from(value.as_ref()))
     }
 }
 
 const PEM_CERTIFICATE_HEADER: &str = "CERTIFICATE";
 
 impl Certificate {
-    fn from_byte_buffer(buffer: ByteBuf) -> Self {
+    fn from_byte_buffer(buffer: &ByteBuf) -> Self {
         Certificate(CertificateDer::from(buffer.to_vec()))
     }
 

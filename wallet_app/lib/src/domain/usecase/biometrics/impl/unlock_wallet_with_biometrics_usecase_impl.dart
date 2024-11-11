@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 import '../../../../data/repository/biometric/biometric_repository.dart';
 import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../../../../data/store/active_locale_provider.dart';
+import '../../../../util/helper/local_authentication_helper.dart';
 import '../biometric_authentication_result.dart';
 import '../unlock_wallet_with_biometrics_usecase.dart';
 
@@ -35,12 +36,11 @@ class UnlockWalletWithBiometricsUseCaseImpl extends UnlockWalletWithBiometricsUs
 
     try {
       final l10n = lookupAppLocalizations(_localeProvider.activeLocale);
-      final authenticated = await _localAuthentication.authenticate(
+      final authenticated = await LocalAuthenticationHelper.authenticate(
+        _localAuthentication,
+        l10n,
         localizedReason: l10n.unlockWithBiometricsReason,
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          useErrorDialogs: false, /* we never want to allow setup at this stage */
-        ),
+        useErrorDialogs: false, /* we never want to allow setup at this stage */
       );
       if (authenticated) {
         await _walletRepository.unlockWalletWithBiometrics();

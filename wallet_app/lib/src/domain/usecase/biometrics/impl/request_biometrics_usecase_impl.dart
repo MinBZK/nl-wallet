@@ -5,6 +5,7 @@ import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 
 import '../../../../data/store/active_locale_provider.dart';
+import '../../../../util/helper/local_authentication_helper.dart';
 import '../biometric_authentication_result.dart';
 import '../request_biometrics_usecase.dart';
 
@@ -19,9 +20,9 @@ class RequestBiometricsUsecaseImpl extends RequestBiometricsUsecase {
   Future<BiometricAuthenticationResult> invoke() async {
     final l10n = lookupAppLocalizations(_localeProvider.activeLocale);
     try {
-      final authenticated = await _localAuthentication.authenticate(
-        localizedReason: l10n.setupBiometricsPageLocalizedReason,
-        options: const AuthenticationOptions(biometricOnly: true, useErrorDialogs: true),
+      final authenticated = await LocalAuthenticationHelper.authenticate(
+        _localAuthentication,
+        l10n,
       );
       if (authenticated) return BiometricAuthenticationResult.success;
     } on PlatformException catch (e) {

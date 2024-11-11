@@ -18,12 +18,12 @@ things you must do. Roughly these are a couple of onboarding steps and the
 actual configuration of the "Ontvangende Voorziening" (which can be translated
 as "Receiving Facility", a facility that receives attributes to verify):
 
-  1. Determine which attributes you need to verify
-  2. Provide required relying party data
-  3. Request a certificate (per `usecase`, usually one)
-  4. Configure your OV (Ontvangende Voorziening)
-  5. Proof-of-function, test calls
-  6. Integrate the OV with your own application
+1. Determine which attributes you need to verify
+2. Provide required relying party data
+3. Request a certificate (per `usecase`, usually one)
+4. Configure your OV (Ontvangende Voorziening)
+5. Proof-of-function, test calls
+6. Integrate the OV with your own application
 
 We'll start with an overview of the system architecture, specifically its main
 components and where to find more information.
@@ -49,24 +49,23 @@ example calls.
 In the above diagram, we see the main components involved in a disclosure
 session. The main components are:
 
-  * [DigiD][1]: Digitale Identiteit, a digital identification system;
-  * [Pseudonym Service][2]: A service that pseudonimizes BSN numbers;
-  * [(BRP-V) Authentic Source][3]: A source of attributes, made accessible by
-    a so-called Verstrekkende Voorziening (VV);
-  * [VV][4]: Verstrekkende Voorziening, the party that issues attributes;
-  * [OV][4]: Ontvangende Voorziening, an application that runs on-premises or
-    in-cloud of a relying party that can verify attributes, which this document
-    is about;
-  * [Relying Party Application][4]: An app running on-premises or in-cloud of
-    the relying party that needs to do something with the result of a
-    verification of attributes;
-  * [Wallet App][5]: The wallet app running on a mobile device;
+- [DigiD][1]: Digitale Identiteit, a digital identification system;
+- [Pseudonym Service][2]: A service that pseudonimizes BSN numbers;
+- [(BRP-V) Authentic Source][3]: A source of attributes, made accessible by
+  a so-called Verstrekkende Voorziening (VV);
+- [VV][4]: Verstrekkende Voorziening, the party that issues attributes;
+- [OV][4]: Ontvangende Voorziening, an application that runs on-premises or
+  in-cloud of a relying party that can verify attributes, which this document
+  is about;
+- [Relying Party Application][4]: An app running on-premises or in-cloud of
+  the relying party that needs to do something with the result of a
+  verification of attributes;
+- [Wallet App][5]: The wallet app running on a mobile device;
 
 Missing from the above diagram, but worth mentioning:
 
-  * [Wallet Web][14] The frontend helper JavaScript/TypeScript library which
-    helps relying parties integrate their application with the Wallet platform.
-
+- [Wallet Web][14] The frontend helper JavaScript/TypeScript library which
+  helps relying parties integrate their application with the Wallet platform.
 
 For the purpose of this document, we won't go into all components mentioned
 above, in particular, "DigiD" and "Pseudonym Service" are out-of-scope with
@@ -107,8 +106,8 @@ Ultimately, as an RP (relying party, an entity that wants to verify attributes)
 you need to decide what attributes you want to verify, and communicate the
 purpose of the verification. So:
 
-  * Which attribute(s): `birth_date`, `age_over_18`, `gender`, etc
-  * What purpose: *describe why you need to verify the attribute(s)*
+- Which attribute(s): `birth_date`, `age_over_18`, `gender`, etc
+- What purpose: _describe why you need to verify the attribute(s)_
 
 Attributes in the wallet are grouped in things called attestations and the
 wallet app displays these attestations as cards. The attestations are stored in
@@ -129,38 +128,36 @@ can verify. For your convenience, we list the attributes for both doctypes here:
 
 ### What a PID_DOCTYPE looks like
 
-| Attribute          | Description                                             |
-|--------------------|---------------------------------------------------------|
-| given_name         | First names (voornamen)                                 |
-| family_name_prefix | Prefix (voorvoegsel)                                    |
-| family_name        | Surname (achternaam)                                    |
-| given_name_birth   | First names at birth (voornamen bij geboorte)           |
-| family_name_birth  | Birth name (geboortenaam)                               |
-| gender             | Gender (geslacht)                                       |
-| birth_date         | Birth date (geboortedatum)                              |
-| age_over_18        | Older than 18 (ouder dan 18)                            |
-| birth_place        | Place of birth (geboorteplaats) **\***                  |
-| birth_city         | City, town or village of birth (geboortestad)           |
-| birth_state        | State or province of birth (geboortestaat of -provincie)|
-| birth_country      | Country of birth (geboorteland)                         |
-| bsn                | Citizen service number (burgerservicenummer)            |
-| nationality        | Nationality (nationaliteit)                             |
+| Attribute           | Item         | Source        | Description                                              |
+| ------------------- | ------------ | ------------- | -------------------------------------------------------- |
+| `given_name`        | 10210        | haal_centraal | First names (voornamen)                                  |
+| `family_name`       | 10230, 10240 | haal_centraal | Prefix (voorvoegsel) and surname (achternaam)            |
+| `given_name_birth`  |              | unimplemented | First names at birth (voornamen bij geboorte)            |
+| `family_name_birth` |              | unimplemented | Birth name (geboortenaam)                                |
+| `gender`            |              | unimplemented | Gender (geslacht)                                        |
+| `birth_date`        | 10310        | haal_centraal | Birth date (geboortedatum)                               |
+| `age_over_18`       |              | derived       | Older than 18 (ouder dan 18)                             |
+| `birth_place`       |              | unimplemented | Place of birth (geboorteplaats) **\***                   |
+| `birth_city`        |              | unimplemented | City, town or village of birth (geboortestad)            |
+| `birth_state`       |              | unimplemented | State or province of birth (geboortestaat of -provincie) |
+| `birth_country`     |              | unimplemented | Country of birth (geboorteland)                          |
+| `bsn`               | 10120        | haal_centraal | Citizen service number (burgerservicenummer)             |
 
-*\* birth_place is a combination of birth_country, birth_state and birth_city*
+_\* `birth_place` is a combination of `birth_country`, `birth_state` and `birth_city_`
 
 ### What an ADDRESS_DOCTYPE looks like
 
-| Attribute             | Description                            |
-|-----------------------|----------------------------------------|
-| resident_address      | Address (adres) **\***                 |
-| resident_street       | Street name (straatnaam)               |
-| resident_house_number | House number (huisnummer)              |
-| resident_postal_code  | Postal code (postcode)                 |
-| resident_city         | City, town or village (woonplaats)     |
-| resident_state        | State or province (staat of provincie) |
-| resident_country      | Country (land)                         |
+| Attribute               | Item                | Source        | Description                                                           |
+| ----------------------- | ------------------- | ------------- | --------------------------------------------------------------------- |
+| `resident_address`      |                     | unimplemented | Address (adres) **\***                                                |
+| `resident_street`       | 81115, 81110        | haal_centraal | Named public space (naam openbare ruimte) or street name (straatnaam) |
+| `resident_house_number` | 81120, 81130, 81140 | haal_centraal | House number (huisnummer)                                             |
+| `resident_postal_code`  | 81160               | haal_centraal | Postal code (postcode)                                                |
+| `resident_city`         | 81170               | haal_centraal | City, town or village (woonplaats)                                    |
+| `resident_state`        |                     | unimplemented | State or province (staat of provincie)                                |
+| `resident_country`      |                     | unimplemented | Country (land)                                                        |
 
-*\* resident_address is a combination of resident_ street, house_number, postal_code, city, state and country*
+_\* `resident_address` is a combination of `resident_street`, `house_number`, `postal_code`, `city`, `state` and `country_`
 
 Collect the attributes you want to verify and describe the purpose, they are
 needed when we file the request later on.
@@ -173,24 +170,24 @@ present a view of the relying party in the wallet app GUI. What we need to know:
 
 **REQUIRED_DATA**
 
-| Attribute                       | Languages | Description                                                                       |
-|---------------------------------|-----------|-----------------------------------------------------------------------------------|
-| purpose_statement               | nl+en     | For what purpose are you attesting? Login? Age verification? etc.                 |
-| retention_policy                | -         | Do you have an intent to retain data? For how long?                               |
-| sharing_policy                  | -         | Do you have an intent to share data? With whom?                                   |
-| deletion_policy                 | -         | Do you allow users to request deletion of their data, yes/no?                     |
-| organization_display_name       | nl+en     | Name of the relying party as shown in the wallet app.                             |
-| organization_legal_name         | nl+en     | Legal name of the relying party.                                                  |
-| organization_description        | nl+en     | Short one-sentence description or mission statement of the relying party.         |
-| organization_web_url            | -         | The home URL of the relying party.                                                |
-| organization_city               | nl+en     | The home city of the relying party.                                               |
-| organization_category           | nl+en     | Bank, Municipality, Trading, Delivery Service, etc.                               |
-| organization_logo               | -         | A logo to display in the wallet app, preferably in SVG format.                    |
-| organization_country_code       | -         | Two-letter country code of relying party residence.                               |
-| organization_kvk                | -         | Chamber of commerce number of relying party.                                      |
-| organization_privacy_policy_url | -         | Link to relying party's privacy policy.                                           |
-| request_origin_base_url         | -         | What is the URL the user sees in the address bar when they start disclosure?      |
-| list_of_verifiable_attributes   | -         | List of attributes determined in previous section.                                |
+| Attribute                         | Languages | Description                                                                  |
+| --------------------------------- | --------- | ---------------------------------------------------------------------------- |
+| `purpose_statement`               | `nl+en`   | For what purpose are you attesting? Login? Age verification? etc.            |
+| `retention_policy`                | -         | Do you have an intent to retain data? For how long?                          |
+| `sharing_policy`                  | -         | Do you have an intent to share data? With whom?                              |
+| `deletion_policy`                 | -         | Do you allow users to request deletion of their data, yes/no?                |
+| `organization_display_name`       | `nl+en`   | Name of the relying party as shown in the wallet app.                        |
+| `organization_legal_name`         | `nl+en`   | Legal name of the relying party.                                             |
+| `organization_description`        | `nl+en`   | Short one-sentence description or mission statement of the relying party.    |
+| `organization_web_url`            | -         | The home URL of the relying party.                                           |
+| `organization_city`               | `nl+en`   | The home city of the relying party.                                          |
+| `organization_category`           | `nl+en`   | Bank, Municipality, Trading, Delivery Service, etc.                          |
+| `organization_logo`               | -         | A logo to display in the wallet app, preferably in SVG format.               |
+| `organization_country_code`       | -         | Two-letter country code of relying party residence.                          |
+| `organization_kvk`                | -         | Chamber of commerce number of relying party.                                 |
+| `organization_privacy_policy_url` | -         | Link to relying party's privacy policy.                                      |
+| `request_origin_base_url`         | -         | What is the URL the user sees in the address bar when they start disclosure? |
+| `list_of_verifiable_attributes`   | -         | List of attributes determined in previous section.                           |
 
 Collect answers to the above, they will be needed once we file the request later
 on.
@@ -250,8 +247,6 @@ answers (this is an example for the municipality of Amsterdam):
     "kvk": "1234-1234",
     "privacyPolicyUrl": "https://amsterdam.nl/privacy"
   },
-
-  "returnUrlPrefix": "${RP_RETURN_URL}",
   "requestOriginBaseUrl": "https://amsterdam.nl",
   "attributes": {
     "com.example.pid": {
@@ -313,7 +308,7 @@ O = $ORGANIZATION_NAME
 CN = $COMMON_NAME
 
 [v3_req]
-extendedKeyUsage = clientAuth, serverAuth
+extendedKeyUsage = critical, 1.0.18013.5.1.6
 subjectAltName = @alt_names
 
 [alt_names]
@@ -337,11 +332,11 @@ extension with OID 2.1.123.1.
 
 Alright, let's review what we've got so far:
 
-  * You've determined the names of the attributes you want to verify;
-  * You've written down a description of the purpose of verification;
-  * You've collected all the required data attributes requested previously;
-  * You've followed the certificate request steps and have an `rp.cfg` document;
-  * You've followed the certificate request steps and have an `rp.csr` document;
+- You've determined the names of the attributes you want to verify;
+- You've written down a description of the purpose of verification;
+- You've collected all the required data attributes requested previously;
+- You've followed the certificate request steps and have an `rp.cfg` document;
+- You've followed the certificate request steps and have an `rp.csr` document;
 
 Put all of the above in the following e-mail template, and attach your signing
 request (`rp.csr`), certificate configuration file (`rp.cfg`), and optionally
@@ -395,18 +390,18 @@ time being) and we will pick up the request from there.
 
 What you'll receive from us in reply to the above is:
 
-  1. A `DER` format certificate based on your certificate-request with an
-     X509v3 extension with OID 2.1.123.1 containing the aforementioned
-     `reader_auth.json` populated with your provided required data.
+1. A `DER` format certificate based on your certificate-request with an
+   X509v3 extension with OID 2.1.123.1 containing the aforementioned
+   `reader_auth.json` populated with your provided required data.
 
-  2. A so-called trust-anchor certificate, also in `DER` format which represents
-     the issuer(s) you as a relying party trust as a party that issues
-     attributes.
+2. A so-called trust-anchor certificate, also in `DER` format which represents
+   the issuer(s) you as a relying party trust as a party that issues
+   attributes.
 
-  3. A universal link base URL for one of our environments, which you need to
-     configure when setting up de `wallet_server` in verifier mode (covered in
-     the [Universal link base URL](#universal-link-base-url) section of the
-     installation chapter).
+3. A universal link base URL for one of our environments, which you need to
+   configure when setting up de `wallet_server` in verifier mode (covered in
+   the [Universal link base URL](#universal-link-base-url) section of the
+   installation chapter).
 
 # Wallet server installation
 
@@ -417,13 +412,13 @@ previously documented steps, you are ready to setup and configure your
 Currently, the `wallet_server` is configured by compile-time feature flags to
 fulfil different roles:
 
-  * `verification`: a.k.a. disclosure, i.e., for an "ontvangende voorziening",
-    an "OV", for "relying parties", which is what we're talking about in this
-    document;
-  * `issuance`: i.e., for a "verstrekkende voorziening", a "VV", for parties
-    that issue attestations that can be verified/used by the former. Note that
-    as of this writing (2024-08-08), we only have one issuer, the so-called
-    `pid_issuer`.
+- `verification`: a.k.a. disclosure, i.e., for an "ontvangende voorziening",
+  an "OV", for "relying parties", which is what we're talking about in this
+  document;
+- `issuance`: i.e., for a "verstrekkende voorziening", a "VV", for parties
+  that issue attestations that can be verified/used by the former. Note that
+  as of this writing (2024-08-08), we only have one issuer, the so-called
+  `pid_issuer`.
 
 The `wallet_server` for verification is more specifically called
 `verification_server`, which is also the name of the binary you will be running
@@ -625,8 +620,10 @@ and a so-called `trust-anchor` certificate. Additionally, you will still have
 the key matching your `usecase` certificate.
 
 We'll assume your `usecase` certificate is in the `DER` format and named
-`rp.crt`, your key is named `rp.key`, and finally you have a trust anchor (ca)
-certificate called `ta.crt`.
+`rp.crt`, your key is named `rp.key`, and finally you have two trust anchor (ca)
+certificates called `issuer_ta.crt` and `reader_ta.crt`. The `issuer_ta.crt`
+file contains the root certificate for issuer certificates and the
+`reader_ta.crt` file contains the root certificate for reader certificates.
 
 Finally, you'll have to come up with some name for your `usecase`; in the
 settings below, we assume the name `login-mijn-amsterdam`. Note that the name
@@ -636,7 +633,8 @@ is only used as an identifier, it can be freely chosen.
 export WAUSECASENAME="login-mijn-amsterdam"
 export WAUSECASECERT="$(cat rp.crt | openssl base64 -e -A)"
 export WAUSECASEKEY="$(cat rp.key | openssl base64 -e -A)"
-export WATRUSTANCHOR="$(cat ta.crt | openssl base64 -e -A)"
+export WAISSUERTRUSTANCHOR="$(cat issuer_ta.crt | openssl base64 -e -A)"
+export WAREADERTRUSTANCHOR="$(cat reader_ta.crt | openssl base64 -e -A)"
 ```
 
 ### Creating the configuration file
@@ -651,6 +649,12 @@ configuration file, issue the following command:
 cat <<EOF > "verification_server.toml"
 public_url = '$WAPUBLICURL'
 universal_link_base_url = '$WAULBASEURL'
+issuer_trust_anchors = [
+    "$WAISSUERTRUSTANCHOR",
+]
+reader_trust_anchors = [
+    "$WAREADERTRUSTANCHOR",
+]
 
 [storage]
 url = '$WASTORAGEURL'
@@ -664,9 +668,6 @@ ip = '0.0.0.0'
 port = 3006
 
 [verifier]
-trust_anchors = [
-    "$WATRUSTANCHOR",
-]
 ephemeral_id_secret = '$WAEPHEMERALIDSECRET'
 
 [verifier.usecases.$WAUSECASENAME]
@@ -694,6 +695,21 @@ the configuration file (choose a better key than `your_secret_key`):
 api_key = "your_secret_key"
 ```
 
+### Configuring Cross-Origin Resource Sharing (optional)
+
+Cross-Origin Resource Sharing (CORS) can be configured on the verification
+server for when the Relying Party application is hosted on a different URL than
+the verification server.
+
+To configure CORS, you need to add `allow_origins` to the `[verifier]` section
+with a list of all the Relying Party URLs. Replace `"https://example.com"` in
+the following snippet with a comma separated list of the required urls.
+
+```toml
+[verifier]
+allow_origins = ["https://example.com"]
+```
+
 ## Running the server for the first time
 
 In section [Obtaining the software](#obtaining-the-software) we have described
@@ -706,9 +722,38 @@ the binary and run it in the foreground as follows:
 ./verification_server
 ```
 
-You might not see output immediately, for that, we need to do some calls first.
+## Server logging
+
+Logging can be configured using the environment variable [`RUST_LOG`][17]. For
+example, to run the server with debug logging, use the following command.
+
+```shell
+RUST_LOG=debug ./verification_server
+```
+
+In addition the `verification_server.toml` contains the following options:
+
+```toml
+log_requests = false          # whether HTTP requests/responses should be logged
+structured_logging = false    # if `true` logging is done in JSON
+```
 
 ## Validating the configuration
+
+During startup, the `verification_server` performs some checks on the
+configuration to prevent common configuration problems. Most notably the
+following checks are performed:
+
+- Verify all use-case certificates are valid
+- Verify all use-case certificates are signed by any of the
+  `reader_trust_anchors`
+- Verify all use-case certificates are reader-certificates, and contain the
+  necessary Extended Key Usages and the `reader_auth.json`
+- Verify all use-case key-pairs are valid, i.e. the public and private keys
+  should belong together
+
+If this process discovers any configuration errors, the application will report
+an error and abort. For more insights into this process, enable debug logging.
 
 If all went well, the server is now running and ready to serve requests. To test
 the service, you can send session initiation requests and status requests to it.
@@ -755,18 +800,18 @@ disclosures](diagrams/disclosure.md)).
 
 Note the possible session states:
 
-  * `CREATED`: *session created*
-  * `WAITING_FOR_RESPONSE`: *waiting for user to scan or follow QR/UL*
-  * `DONE` *which has substates: `SUCCES`, `FAILED`, `CANCELED`, and `EXPIRED`*
+- `CREATED`: _session created_
+- `WAITING_FOR_RESPONSE`: _waiting for user to scan or follow QR/UL_
+- `DONE` _which has substates: `SUCCES`, `FAILED`, `CANCELED`, and `EXPIRED`_
 
 Note the "actors/components" we distinguish between:
 
-  * `user`: *user of the wallet_app, initiating an attribute disclosure session*
-  * `wallet_app`: *the wallet app, running on a users' mobile phone*
-  * `wallet_server`: *the wallet_server component of the OV*
-  * `rp_frontend`: *the (JavaScript/HTML/CSS) frontend of the relying party app*
-    *can be-or-use previously mentioned `wallet_web` JavaScript helper library*
-  * `rp_backend`: *the (server) backend of the relying party application*
+- `user`: _user of the wallet_app, initiating an attribute disclosure session_
+- `wallet_app`: _the wallet app, running on a users' mobile phone_
+- `wallet_server`: _the wallet_server component of the OV_
+- `rp_frontend`: _the (JavaScript/HTML/CSS) frontend of the relying party app_
+  _can be-or-use previously mentioned `wallet_web` JavaScript helper library_
+- `rp_backend`: _the (server) backend of the relying party application_
 
 In the diagram, the `user` is the small stick-figure at the top, the actor who
 initiates some task he/she wants to accomplish. the `wallet_app` is the blue box
@@ -778,57 +823,57 @@ Application").
 
 Overview of a flow for cross device attribute disclosure:
 
-  1. `user` initiates action (i.e., clicks a button on web page of relying party
-     in their desktop or mobile webbrowser);
-  2. `rp_frontend` receives action, asks `rp_backend` to initiate session;
-  3. `rp_backend` in turn calls `wallet_server` with a session initialization
-     request, receiving a `session_url`, an `engagement_url`, and a
-     `disclosed_attributes_url` as a response. The session initially has a
-     `CREATED` status;
-  4. `rp_backend` keeps `disclosed_attributes_url` for itself, and returns
-     `session_url` and `engagement_url` to `rp_frontend`;
-  5. `rp_frontend` encodes a QR/UL (QR Code, universal link) using the
-     `engagement_url` and displays this to the `user`;
+1. `user` initiates action (i.e., clicks a button on web page of relying party
+   in their desktop or mobile webbrowser);
+2. `rp_frontend` receives action, asks `rp_backend` to initiate session;
+3. `rp_backend` in turn calls `wallet_server` with a session initialization
+   request, receiving a `session_url`, an `engagement_url`, and a
+   `disclosed_attributes_url` as a response. The session initially has a
+   `CREATED` status;
+4. `rp_backend` keeps `disclosed_attributes_url` for itself, and returns
+   `session_url` and `engagement_url` to `rp_frontend`;
+5. `rp_frontend` encodes a QR/UL (QR Code, universal link) using the
+   `engagement_url` and displays this to the `user`;
 
 The `user` can now activate their `wallet_app` QR scanner and scan the QR or
 navigate to the universal link (UL). In parallel, `rp_frontend` will poll the
 `session_url` which will change status due to action (or inaction) by the
 `user`. So, assuming everything goes fine:
 
-  6. `rp_frontend` polls `session_url` for status. It will re-poll for a
-     configured time-limit when receiving a `CREATED` or `WAITING_FOR_RESPONSE`
-     status. The poll will terminate on `DONE`;
-  7. After `user` completes the scanning of the QR or followed the universal
-     link, `wallet_app` parses/extracts the QR/UL and starts a device engagement
-     session with `wallet_server`, which in turn returns the relying party
-     details and the requested attributes to the `wallet_app`;
-  8. The `wallet_app` shows the relying party details and the requested
-     attributes to the `user` and gives the `user` the option to consent or
-     abort;
+6. `rp_frontend` polls `session_url` for status. It will re-poll for a
+   configured time-limit when receiving a `CREATED` or `WAITING_FOR_RESPONSE`
+   status. The poll will terminate on `DONE`;
+7. After `user` completes the scanning of the QR or followed the universal
+   link, `wallet_app` parses/extracts the QR/UL and starts a device engagement
+   session with `wallet_server`, which in turn returns the relying party
+   details and the requested attributes to the `wallet_app`;
+8. The `wallet_app` shows the relying party details and the requested
+   attributes to the `user` and gives the `user` the option to consent or
+   abort;
 
 The `user` can abort, which will terminate the session with a `CANCELED` status.
 The `user` can also wait too long, which would result in an `EXPIRED` status.
 The `FAILED` status can occur when other, infrastructural and/or network-related
 problems are encountered. Assuming the `user` consented, let's continue:
 
-  9. `wallet_app` sends a device response containing the disclosed
-     attributes and proofs_of_possession to the `wallet_server`;
- 10. `wallet_server` validates if attributes are authentic and valid and if they
-     belong together and returns an indication of success back to the
-     `wallet_app`, which in turn confirms the success by displaying a dialog to
-     the `user`. `wallet_server` additionally updates the  status of the session
-     to `DONE` with the `SUCCESS` substate (assuming validation went fine);
- 11. The poll running on the `rp_frontend` will terminate due to the `DONE`
-     session state;
- 12. The `rp_frontend` returns the result of the session to the `rp_backend`;
- 13. The `rp_backend` checks the status of the session. On `DONE` with substate
-     `SUCCESS`, it will call the associated `disclosed_attributes_url` which it
-     kept around (saved) in step 4 to retrieve the disclosed attributes. When
-     substate is not `SUCCESS`, it will not retrieve the disclosed attributes
-     but invoke an error_handler of sorts (for example) which displays the error
-     condition;
- 14. `rp_backend` handles disclosed attributes, returns status to `rp_frontend`
-     (for example: user is authenticated, here have a token);
+9. `wallet_app` sends a device response containing the disclosed
+   attributes and proofs_of_possession to the `wallet_server`;
+10. `wallet_server` validates if attributes are authentic and valid and if they
+    belong together and returns an indication of success back to the
+    `wallet_app`, which in turn confirms the success by displaying a dialog to
+    the `user`. `wallet_server` additionally updates the status of the session
+    to `DONE` with the `SUCCESS` substate (assuming validation went fine);
+11. The poll running on the `rp_frontend` will terminate due to the `DONE`
+    session state;
+12. The `rp_frontend` returns the result of the session to the `rp_backend`;
+13. The `rp_backend` checks the status of the session. On `DONE` with substate
+    `SUCCESS`, it will call the associated `disclosed_attributes_url` which it
+    kept around (saved) in step 4 to retrieve the disclosed attributes. When
+    substate is not `SUCCESS`, it will not retrieve the disclosed attributes
+    but invoke an error_handler of sorts (for example) which displays the error
+    condition;
+14. `rp_backend` handles disclosed attributes, returns status to `rp_frontend`
+    (for example: user is authenticated, here have a token);
 
 ### Cross Device vs. Same Device
 
@@ -845,19 +890,19 @@ Below a list of things to know about the wallet platform and more specifically,
 what you need to keep in mind when you integrate the usage of the wallet for
 identification or verification of attributes with your application:
 
-* The wallet app presents attestations using the [OpenID4VP][10] protocol
+- The wallet app presents attestations using the [OpenID4VP][10] protocol
   standard using the [ISO/IEC 18013-5:2021][8] mdoc credential format;
-* Any disclosure session initiation request must include the reason why the
+- Any disclosure session initiation request must include the reason why the
   relying party is requesting the attributes;
-* A relying party **MUST NOT** track, in the broadest sense of the word;
-* A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG) [GDPR][12];
-* It is required to follow accessibility guidelines set forth in the [WCAG][13];
-* It is expected that you use the `wallet_web` frontend helper library;
-* The standard buttons for login and sharing should be used, but one can
+- A relying party **MUST NOT** track, in the broadest sense of the word;
+- A relying party needs to adhere to the EU-GDPR (Nederlands: EU-AVG) [GDPR][12];
+- It is required to follow accessibility guidelines set forth in the [WCAG][13];
+- It is expected that you use the `wallet_web` frontend helper library;
+- The standard buttons for login and sharing should be used, but one can
   use custom button text (within reason);
-* Button styling and call-to-action can be customized by relying party;
-* The text "NL Wallet" should always be visible in the call-to-action;
-* Logo of "NL Wallet" should be visible next to the call-to-action.
+- Button styling and call-to-action can be customized by relying party;
+- The text "NL Wallet" should always be visible in the call-to-action;
+- Logo of "NL Wallet" should be visible next to the call-to-action.
 
 ## Integration
 
@@ -877,15 +922,15 @@ Application" is shown, you see a four integration/call points: "Configure
 Verifier", "Initiate Disclosure Session", "Start Result Poll Loop" and "Retrieve
 OV Result":
 
-  * Configuration of the verifier, executed manually by you, a one-time initial
-    setup that stores a configuration about your app in the configuration
-    component of the OV;
-  * Initiation of a disclosure session, executed by your backend application;
-  * The status check loop, executed by your frontend application, where we check
-    for a status result, which indicates success or failure of the session.
-  * Result retrieval, executed by your backend, which is a final conditional
-    step dependent on a succesful completion status, which contains the
-    disclosed_attributes.
+- Configuration of the verifier, executed manually by you, a one-time initial
+  setup that stores a configuration about your app in the configuration
+  component of the OV;
+- Initiation of a disclosure session, executed by your backend application;
+- The status check loop, executed by your frontend application, where we check
+  for a status result, which indicates success or failure of the session.
+- Result retrieval, executed by your backend, which is a final conditional
+  step dependent on a succesful completion status, which contains the
+  disclosed_attributes.
 
 The above is described in more detail in the previous section [detailing an
 example disclosure flow](#what-a-disclosure-session-looks-like).
@@ -938,7 +983,7 @@ Example response:
 
 ```json
 {
-  "session_token":"387f8vMgeE1NunRPqn55Tha1761EC54i"
+  "session_token": "387f8vMgeE1NunRPqn55Tha1761EC54i"
 }
 ```
 
@@ -957,20 +1002,20 @@ Example responses:
 }
 ```
 
-*(note that in the above response you see a `ul` universal link value with the*
-*scheme `walletdebuginteraction://`. In acceptance and (pre)production*
-*environments, you see a universal link based on the `universal_link_base_url`*
-*setting in the `wallet_server` configuration file.)*
+_(note that in the above response you see a `ul` universal link value with the_
+_scheme `walletdebuginteraction://`. In acceptance and (pre)production_
+_environments, you see a universal link based on the `universal_link_base_url`_
+_setting in the `wallet_server` configuration file.)_
 
 ```json
 {
-  "status":"WAITING_FOR_RESPONSE"
+  "status": "WAITING_FOR_RESPONSE"
 }
 ```
 
 ```json
 {
-  "status":"DONE"
+  "status": "DONE"
 }
 ```
 
@@ -1051,3 +1096,4 @@ TODO: Link to VV/OV SAD, which are still in draft and not published yet.
 [14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
 [15]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-private.openapi.yaml
 [16]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-public.openapi.yaml
+[17]: https://docs.rs/env_logger/latest/env_logger/#enabling-logging

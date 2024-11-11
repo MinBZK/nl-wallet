@@ -144,8 +144,8 @@ async fn listen_wallet_only(wallet_server: Server, mut wallet_router: Router, lo
     Ok(())
 }
 
-/// Setup tracing, read settings and setup Sentry if configured, then run `app` on the tokio runtime.
-pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
+/// Setup tracing and read settings, then run `app`.
+pub async fn wallet_server_main<Fut: Future<Output = Result<()>>>(
     config_file: &str,
     env_prefix: &str,
     app: impl FnOnce(Settings) -> Fut,
@@ -170,14 +170,5 @@ pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
         return Err(error.into());
     }
 
-    // Retain [`ClientInitGuard`]
-    let _guard = settings
-        .sentry
-        .as_ref()
-        .map(|sentry| sentry.init(sentry::release_name!()));
-
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?
-        .block_on(async { app(settings).await })
+    app(settings).await
 }

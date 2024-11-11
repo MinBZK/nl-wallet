@@ -1,12 +1,13 @@
-use std::fmt::{Debug, Formatter};
-
+use derive_more::Debug;
 use p256::ecdsa::{Signature, SigningKey};
 
 use wallet_common::keys::{EcdsaKey, EcdsaKeySend};
 
 use crate::utils::x509::{Certificate, CertificateError};
 
+#[derive(Debug)]
 pub struct KeyPair<S = SigningKey> {
+    #[debug(skip)]
     private_key: S,
     certificate: Certificate,
 }
@@ -52,14 +53,6 @@ impl<S> KeyPair<S> {
 
     pub fn certificate(&self) -> &Certificate {
         &self.certificate
-    }
-}
-
-impl<S> Debug for KeyPair<S> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("KeyPair")
-            .field("certificate", &self.certificate)
-            .finish_non_exhaustive()
     }
 }
 

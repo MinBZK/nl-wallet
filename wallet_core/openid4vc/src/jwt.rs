@@ -112,7 +112,7 @@ where
         Ok((cred, claims))
     }
 
-    #[cfg(feature = "test")]
+    #[cfg(any(feature = "test", test))]
     pub fn new_unverified<K: CredentialEcdsaKey>(private_key_id: String, jwt: Jwt<JwtCredentialClaims<T>>) -> Self {
         Self {
             private_key_id,

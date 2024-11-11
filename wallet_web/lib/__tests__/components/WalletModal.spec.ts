@@ -3,12 +3,12 @@ import { getStatus } from "@/api/status"
 import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
 import WalletModal from "@/components/WalletModal.vue"
+import type { ErrorType } from "@/models/state"
+import { type AppUL } from "@/models/status"
 import { translations, translationsKey } from "@/util/translations"
 import { isMobileKey } from "@/util/useragent"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { type AppUL } from "../../models/status"
-import type { ErrorType } from "@/models/state"
 
 await import("../setup")
 

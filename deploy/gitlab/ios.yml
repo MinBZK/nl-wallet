@@ -3,7 +3,7 @@ test-ios:
   rules: !reference [.default-or-release-or-merge-request, rules]
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.2
   artifacts:
     when: always
     reports:
@@ -35,7 +35,7 @@ test-ios:
       artifacts: false
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.2
   artifacts:
     name: "wallet-ios"
     paths:
@@ -203,7 +203,7 @@ build-ios-app-production:
   extends: [.env-macos-runner, .ruby-cache-macos]
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.2
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   before_script:

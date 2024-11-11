@@ -1,5 +1,6 @@
-use std::{collections::VecDeque, fmt::Debug};
+use std::collections::VecDeque;
 
+use derive_more::Debug;
 use futures::{
     future::{try_join_all, OptionFuture},
     TryFutureExt,
@@ -186,8 +187,8 @@ pub enum IssuedCredentialCopies {
 impl IssuedCredentialCopies {
     pub fn len(&self) -> usize {
         match self {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.as_ref().len(),
-            IssuedCredentialCopies::Jwt(jwts) => jwts.as_ref().len(),
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.len(),
+            IssuedCredentialCopies::Jwt(jwts) => jwts.len(),
         }
     }
 
@@ -471,25 +472,15 @@ impl HttpVcMessageClient {
 }
 
 #[cfg_attr(test, derive(Clone))]
+#[derive(Debug)]
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
     credential_previews: NonEmpty<Vec<CredentialPreview>>,
     issuer_url: BaseUrl,
+    #[debug(skip)]
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
-}
-
-impl Debug for IssuanceState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("IssuanceState")
-            .field("access_token", &self.access_token)
-            .field("c_nonce", &self.c_nonce)
-            .field("credential_previews", &self.credential_previews)
-            .field("issuer_url", &self.issuer_url)
-            .field("dpop_nonce", &self.dpop_nonce)
-            .finish_non_exhaustive() // don't show dpop_private_key
-    }
 }
 
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
@@ -755,7 +746,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
-        let expected_response_count = credential_requests.as_ref().len();
+        let expected_response_count = credential_requests.len().get();
         let responses = self
             .message_client
             .request_credentials(

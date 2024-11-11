@@ -22,9 +22,8 @@ use crate::{
     settings::SymmetricKey,
 };
 
-#[trait_variant::make(GbavClient: Send)]
-pub trait GbavClientLocal {
-    #[allow(dead_code)]
+#[trait_variant::make(Send)]
+pub trait GbavClient {
     async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error>;
 }
 
@@ -146,8 +145,10 @@ where
 
         if let Some(bytes) = decrypted {
             let xml = String::from_utf8(bytes)?;
+            info!("Using preloaded data");
             Ok(Some(xml))
         } else {
+            info!("No preloaded data found");
             self.client.vraag(bsn).await
         }
     }

@@ -66,9 +66,8 @@ pub trait ConfigurationRepository {
     fn config(&self) -> Arc<WalletConfiguration>;
 }
 
-#[trait_variant::make(UpdateableConfigurationRepository: Send)]
-pub trait LocalUpdateableConfigurationRepository: ConfigurationRepository {
-    #[allow(dead_code)]
+#[trait_variant::make(Send)]
+pub trait UpdateableConfigurationRepository: ConfigurationRepository {
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError>;
 }
 

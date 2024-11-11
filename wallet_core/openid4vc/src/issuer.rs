@@ -222,8 +222,8 @@ pub struct Session<S: IssuanceState> {
 /// - The issuance server looks up the `SessionState<Created>` from its session store and feeds that to the future
 ///   implementation of this trait.
 /// - That implementation of this trait returns the attributes to be issued out of the `SessionState<Created>`.
-#[trait_variant::make(AttributeService: Send)]
-pub trait LocalAttributeService {
+#[trait_variant::make(Send)]
+pub trait AttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn attributes(

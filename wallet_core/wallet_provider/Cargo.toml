@@ -31,21 +31,11 @@ hsm_test = ["dep:rand_core", "dep:serial_test"]
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str"] }
 http.workspace = true
 nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
 rand_core = { workspace = true, optional = true }
-sentry = { workspace = true, features = [
-    "backtrace",
-    "contexts",
-    "debug-images",
-    "panic",
-    "anyhow",
-    "reqwest",
-    "rustls",
-    "tracing",
-    "log",
-] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono"] }
@@ -66,7 +56,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
-wallet_common = { path = "../wallet_common", features = ["axum", "sentry"] }
+wallet_common = { path = "../wallet_common", features = ["axum"] }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"
 wallet_provider_persistence.path = "persistence"

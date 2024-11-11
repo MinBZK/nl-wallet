@@ -8,8 +8,8 @@
 import Foundation
 import Security
 
-import XCTest
 @testable import PlatformSupport
+import XCTest
 
 final class SecureEnclaveKeyTests: XCTestCase {
     static let identifiers = ["key_identifier1", "key_identifier2"]

@@ -44,8 +44,7 @@ struct SecureEnclaveKey: ~Copyable {
     }
 
     private static func errorMessage(for status: OSStatus) -> String? {
-        guard #available(iOS 11.3, *),
-              let errorMessage = SecCopyErrorMessageString(status, nil) else {
+        guard let errorMessage = SecCopyErrorMessageString(status, nil) else {
             return nil
         }
 
@@ -137,13 +136,13 @@ struct SecureEnclaveKey: ~Copyable {
     init(identifier: String) throws {
         self.identifier = identifier
 
-        self.privateKey = try Self.queue.sync(execute: {
+        self.privateKey = try Self.queue.sync {
             guard let privateKey = try Self.fetchKey(with: identifier) else {
                 return try Self.createKey(with: identifier)
             }
 
             return privateKey
-        })
+        }
     }
 
     // MARK: - Instance methods

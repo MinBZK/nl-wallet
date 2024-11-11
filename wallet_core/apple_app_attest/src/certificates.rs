@@ -1,6 +1,7 @@
 use std::{sync::LazyLock, time::Duration};
 
 use chrono::{DateTime, Utc};
+use derive_more::AsRef;
 use nutype::nutype;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 use webpki::{
@@ -60,7 +61,7 @@ impl DerX509CertificateChain {
         let (_, cert) = X509Certificate::from_der(self.credential_certificate_der())
             .map_err(|error| CertificateError::CredentialParsing(error.into()))?;
 
-        let certificate = CredentialCertificate::new(cert);
+        let certificate = CredentialCertificate(cert);
 
         Ok(certificate)
     }
@@ -97,7 +98,7 @@ impl DerX509CertificateChain {
     }
 }
 
-#[nutype(derive(Debug, AsRef))]
+#[derive(Debug, AsRef)]
 pub struct CredentialCertificate<'a>(X509Certificate<'a>);
 
 impl<'a> CredentialCertificate<'a> {

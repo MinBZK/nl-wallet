@@ -189,19 +189,17 @@ name = "anyhow"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
-dependencies = [
- "backtrace",
-]
 
 [[package]]
 name = "apple_app_attest"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "assert_matches",
  "chrono",
  "ciborium",
  "const-decoder",
  "coset",
+ "derive_more",
  "nutype",
  "p256",
  "passkey-types",
@@ -509,6 +507,26 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower 0.4.13",
+ "tower-service",
+]
+
+[[package]]
+name = "axum_csrf"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1222c5f1302e23ff8f82deb58efc06f75ad1cc68bc789da46010a9cbcf92183c"
+dependencies = [
+ "async-trait",
+ "axum-core",
+ "base64ct",
+ "cookie",
+ "hmac",
+ "http",
+ "rand",
+ "sha2",
+ "thiserror",
+ "time",
+ "tower-layer",
  "tower-service",
 ]
 
@@ -841,7 +859,7 @@ dependencies = [
 
 [[package]]
 name = "configuration_server"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "axum",
  "axum-server",
@@ -849,7 +867,6 @@ dependencies = [
  "etag",
  "http",
  "mime",
- "sentry",
  "serde",
  "serde_with",
  "tokio",
@@ -889,6 +906,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
 dependencies = [
  "unicode-segmentation",
+]
+
+[[package]]
+name = "cookie"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
+dependencies = [
+ "aes-gcm",
+ "base64 0.22.1",
+ "hmac",
+ "percent-encoding",
+ "rand",
+ "sha2",
+ "subtle",
+ "time",
+ "version_check",
 ]
 
 [[package]]
@@ -1216,13 +1250,23 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.18"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f33878137e4dafd7fa914ad4e259e18a4e8e532b9617a2d0150262bf53abfce"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.79",
+ "unicode-xid",
 ]
 
 [[package]]
@@ -1326,7 +1370,7 @@ checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "entity"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "sea-orm",
@@ -1360,9 +1404,10 @@ dependencies = [
 
 [[package]]
 name = "error_category"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "error_category_derive",
+ "rstest",
  "sentry",
  "thiserror",
  "tracing",
@@ -1370,7 +1415,7 @@ dependencies = [
 
 [[package]]
 name = "error_category_derive"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "error_category",
  "proc-macro2",
@@ -1461,12 +1506,13 @@ dependencies = [
 
 [[package]]
 name = "flutter_api"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "android_logger",
  "anyhow",
  "backtrace",
  "cstr",
+ "error_category",
  "flutter_api_macros",
  "flutter_rust_bridge",
  "itertools",
@@ -1486,7 +1532,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api_macros"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "quote",
  "syn 2.0.79",
@@ -1675,12 +1721,14 @@ dependencies = [
 
 [[package]]
 name = "gba_hc_converter"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "aes-gcm",
  "anyhow",
+ "askama",
  "assert-json-diff",
  "axum",
+ "axum_csrf",
  "base64 0.22.1",
  "clap",
  "clio",
@@ -1700,7 +1748,6 @@ dependencies = [
  "reqwest",
  "rpassword",
  "rstest",
- "sentry",
  "serde",
  "serde_json",
  "serde_with",
@@ -2418,7 +2465,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "migration"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -2468,7 +2515,7 @@ dependencies = [
 
 [[package]]
 name = "mock_relying_party"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "accept-language",
  "anyhow",
@@ -2484,7 +2531,6 @@ dependencies = [
  "openid4vc",
  "reqwest",
  "rstest",
- "sentry",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -2527,7 +2573,7 @@ dependencies = [
 
 [[package]]
 name = "nl_wallet_mdoc"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -2720,7 +2766,7 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "openid4vc"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "assert_matches",
  "axum",
@@ -3037,8 +3083,12 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "platform_support"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
+ "apple_app_attest",
+ "async-trait",
+ "chrono",
+ "derive_more",
  "error_category",
  "jni",
  "p256",
@@ -3919,31 +3969,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5484316556650182f03b43d4c746ce0e3e48074a21e2f51244b648b6542e1066"
 dependencies = [
  "httpdate",
- "log",
  "reqwest",
  "rustls 0.22.4",
- "sentry-anyhow",
  "sentry-backtrace",
  "sentry-contexts",
  "sentry-core",
  "sentry-debug-images",
- "sentry-log",
  "sentry-panic",
  "sentry-tracing",
  "tokio",
  "ureq",
  "webpki-roots 0.26.3",
-]
-
-[[package]]
-name = "sentry-anyhow"
-version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d672bfd1ed4e90978435f3c0704edb71a7a9d86403657839d518cd6aa278aff5"
-dependencies = [
- "anyhow",
- "sentry-backtrace",
- "sentry-core",
 ]
 
 [[package]]
@@ -3978,7 +4014,6 @@ version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "161283cfe8e99c8f6f236a402b9ccf726b201f365988b5bb637ebca0abbd4a30"
 dependencies = [
- "log",
  "once_cell",
  "rand",
  "sentry-types",
@@ -3994,16 +4029,6 @@ checksum = "8fc6b25e945fcaa5e97c43faee0267eebda9f18d4b09a251775d8fef1086238a"
 dependencies = [
  "findshlibs",
  "once_cell",
- "sentry-core",
-]
-
-[[package]]
-name = "sentry-log"
-version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75bbcc61886955045a1dd4bdb173412a80bb2571be3c5bfcf7eb8f55a442bbf5"
-dependencies = [
- "log",
  "sentry-core",
 ]
 
@@ -4714,7 +4739,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "tests_integration"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "assert_matches",
  "configuration_server",
@@ -5498,13 +5523,14 @@ dependencies = [
 
 [[package]]
 name = "wallet"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "aes-gcm",
  "assert_matches",
  "base64 0.22.1",
  "chrono",
  "ciborium",
+ "derive_more",
  "dotenvy",
  "entity",
  "error_category",
@@ -5548,7 +5574,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_ca"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -5569,7 +5595,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_common"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -5578,6 +5604,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "derive_more",
  "error_category",
  "etag",
  "futures",
@@ -5597,7 +5624,6 @@ dependencies = [
  "ring 0.17.8",
  "rstest",
  "rustls-webpki 0.102.8",
- "sentry",
  "serde",
  "serde_json",
  "serde_with",
@@ -5613,16 +5639,16 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "axum",
  "chrono",
  "config",
+ "derive_more",
  "http",
  "nutype",
  "p256",
  "rand_core",
- "sentry",
  "serde",
  "serde_json",
  "serde_with",
@@ -5642,7 +5668,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_database_settings"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "config",
  "serde",
@@ -5651,10 +5677,11 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_domain"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dashmap",
+ "derive_more",
  "futures",
  "hmac",
  "p256",
@@ -5668,7 +5695,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_migrations"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -5678,7 +5705,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_persistence"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "ctor",
@@ -5698,7 +5725,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_service"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5734,7 +5761,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5745,6 +5772,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "config",
+ "derive_more",
  "futures",
  "http",
  "indexmap 2.2.6",
@@ -5760,7 +5788,6 @@ dependencies = [
  "ring 0.17.8",
  "rstest",
  "sea-orm",
- "sentry",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -5778,7 +5805,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server_migration"
-version = "0.2.2-dev"
+version = "0.2.2"
 dependencies = [
  "sea-orm-migration",
  "tokio",

@@ -6,12 +6,12 @@ use wallet_server::{
     store::{DatabaseConnection, SessionStoreVariant},
 };
 
-// Cannot use #[tokio::main], see: https://docs.sentry.io/platforms/rust/#async-main-function
-fn main() -> Result<()> {
-    wallet_server_main("verification_server.toml", "verification_server", async_main)
+#[tokio::main]
+async fn main() -> Result<()> {
+    wallet_server_main("verification_server.toml", "verification_server", main_impl).await
 }
 
-async fn async_main(settings: Settings) -> Result<()> {
+async fn main_impl(settings: Settings) -> Result<()> {
     let storage_settings = &settings.storage;
     let sessions = SessionStoreVariant::new(
         DatabaseConnection::try_new(storage_settings.url.clone()).await?,

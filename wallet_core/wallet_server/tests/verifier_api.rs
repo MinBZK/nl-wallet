@@ -179,7 +179,6 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         },
         #[cfg(feature = "disclosure")]
         reader_trust_anchors: vec![rp_ca.certificate().try_into().unwrap()],
-        sentry: None,
     };
 
     (settings, issuer_key_pair, rp_trust_anchor)

@@ -84,20 +84,16 @@ impl DisclosureType {
     /// `doc_type` of `PID_DOCTYPE`, with a `doc_attributes` map where `namespace` is `PID_DOCTYPE`
     /// also, with an entry vec of exactly one entry, where the `DataElementIdentifier` string is "bsn".
     pub fn from_proposed_attributes(proposed_attributes: &ProposedAttributes) -> Self {
-        if let Ok((doc_type, doc_attributes)) = proposed_attributes.iter().exactly_one() {
-            if doc_type == PID_DOCTYPE {
-                if let Ok((namespace, entries)) = doc_attributes.attributes.iter().exactly_one() {
-                    if namespace == PID_DOCTYPE {
-                        if let Ok(entry) = entries.iter().exactly_one() {
-                            if entry.name == "bsn" {
-                                return Self::Login;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Self::Regular
+        proposed_attributes
+            .iter()
+            .exactly_one()
+            .ok()
+            .and_then(|(doc_type, doc_attributes)| (doc_type == PID_DOCTYPE).then_some(doc_attributes))
+            .and_then(|doc_attributes| doc_attributes.attributes.iter().exactly_one().ok())
+            .and_then(|(namespace, entries)| (namespace == PID_DOCTYPE).then_some(entries))
+            .and_then(|entries| entries.iter().exactly_one().ok())
+            .and_then(|entry| (entry.name == "bsn").then_some(Self::Login))
+            .unwrap_or(Self::Regular)
     }
 
     pub fn is_login_flow(&self) -> bool {
