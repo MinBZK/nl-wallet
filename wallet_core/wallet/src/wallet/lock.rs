@@ -269,7 +269,7 @@ mod tests {
 
                 challenge_request
                     .request
-                    .parse_and_verify(SequenceNumberComparison::EqualTo(1), &hw_pubkey)
+                    .parse_and_verify_ecdsa(SequenceNumberComparison::EqualTo(1), &hw_pubkey)
                     .expect("challenge request should be valid");
 
                 Ok(challenge_response)
@@ -303,7 +303,7 @@ mod tests {
 
                 instruction
                     .instruction
-                    .parse_and_verify(
+                    .parse_and_verify_ecdsa(
                         &challenge,
                         SequenceNumberComparison::LargerThan(1),
                         &hw_pubkey,

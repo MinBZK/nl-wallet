@@ -244,7 +244,7 @@ mod tests {
                 assert_eq!(registration.challenge, challenge_expected);
 
                 registration_signed
-                    .parse_and_verify(
+                    .parse_and_verify_ecdsa(
                         &registration.challenge,
                         SequenceNumberComparison::EqualTo(0),
                         &registration.payload.hw_pubkey.0,

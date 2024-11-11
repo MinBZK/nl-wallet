@@ -1,17 +1,23 @@
+use apple_app_attest::AssertionError;
 use error_category::ErrorCategory;
 
-use crate::account::signed::SignedType;
+use crate::account::signed::SignatureType;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
 pub enum Error {
-    #[error("signed message did not verify: {0}")]
-    Verification(#[source] p256::ecdsa::Error),
+    #[error("message signature did not verify: {0}")]
+    SignatureVerification(#[source] p256::ecdsa::Error),
+    #[error("message assertion did not verify: {0}")]
+    AssertionVerification(#[source] AssertionError),
     #[error("incorrect signing type (expected: {expected:?}, received: {received:?})")]
     #[category(critical)]
-    TypeMismatch { expected: SignedType, received: SignedType },
+    TypeMismatch {
+        expected: SignatureType,
+        received: SignatureType,
+    },
     #[error("incorrect signing subject (expected: {expected}, received: {received})")]
     #[category(critical)]
     SubjectMismatch { expected: String, received: String },

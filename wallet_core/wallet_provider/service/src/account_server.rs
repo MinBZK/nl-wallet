@@ -283,7 +283,7 @@ impl AccountServer {
         debug!("Checking if challenge is signed with the provided hw and pin keys");
 
         registration_message
-            .parse_and_verify(challenge, SequenceNumberComparison::EqualTo(0), &hw_pubkey, &pin_pubkey)
+            .parse_and_verify_ecdsa(challenge, SequenceNumberComparison::EqualTo(0), &hw_pubkey, &pin_pubkey)
             .map_err(RegistrationError::MessageValidation)?;
 
         debug!("Starting database transaction");
@@ -346,7 +346,7 @@ impl AccountServer {
         .await?;
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
-        let request = challenge_request.request.parse_and_verify(
+        let request = challenge_request.request.parse_and_verify_ecdsa(
             SequenceNumberComparison::LargerThan(user.instruction_sequence_number),
             &user.hw_pubkey.0,
         )?;
@@ -728,7 +728,7 @@ impl AccountServer {
 
         let parsed = instruction
             .instruction
-            .parse_and_verify(
+            .parse_and_verify_ecdsa(
                 &challenge.bytes,
                 SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number),
                 &wallet_user.hw_pubkey.0,

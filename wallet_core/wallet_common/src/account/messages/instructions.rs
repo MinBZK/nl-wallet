@@ -169,7 +169,7 @@ where
         pin_privkey: &impl EphemeralEcdsaKey,
         certificate: WalletCertificate,
     ) -> Result<Self> {
-        let signed = ChallengeResponse::sign(
+        let signed = ChallengeResponse::sign_ecdsa(
             instruction,
             challenge,
             instruction_sequence_number,
@@ -194,7 +194,7 @@ impl InstructionChallengeRequest {
     where
         I: InstructionAndResult,
     {
-        let signed = ChallengeRequest::sign(instruction_sequence_number, I::NAME.to_string(), hw_privkey).await?;
+        let signed = ChallengeRequest::sign_ecdsa(instruction_sequence_number, I::NAME.to_string(), hw_privkey).await?;
 
         Ok(Self {
             request: signed,

@@ -39,7 +39,7 @@ impl ChallengeResponse<Registration> {
             hw_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
         )?;
 
-        Self::sign(
+        Self::sign_ecdsa(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
                 hw_pubkey: hw_pubkey.into(),
@@ -99,7 +99,7 @@ mod tests {
         let unverified = msg.dangerous_parse_unverified()?;
 
         // wallet provider takes the public keys from the message, and verifies the signatures
-        msg.parse_and_verify(
+        msg.parse_and_verify_ecdsa(
             challenge,
             SequenceNumberComparison::EqualTo(0),
             &unverified.payload.hw_pubkey.0,

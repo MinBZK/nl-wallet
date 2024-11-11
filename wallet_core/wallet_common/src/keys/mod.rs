@@ -141,7 +141,7 @@ pub enum CredentialKeyType {
 }
 
 #[cfg(any(test, feature = "mock_secure_keys"))]
-mod mock {
+mod mock_secure_keys {
     use aes_gcm::Aes256Gcm;
     use p256::ecdsa::SigningKey;
 

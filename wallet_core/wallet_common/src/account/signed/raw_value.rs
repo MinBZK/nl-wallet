@@ -7,13 +7,24 @@ use serde_json::value::RawValue;
 /// deserializes to is held using [`PhantomData`]. It is used to keep track of the JSON serialization of a data
 /// structure, which is necessary when signing JSON since JSON has no stable map order and can include arbitrary
 /// whitespace.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
 pub(super) struct TypedRawValue<T>(Box<RawValue>, PhantomData<T>);
 
+// Implement `Clone` manually, as there would be an unnecessary trait bound `T: Clone` if `Clone` were to be derived.
+impl<T> Clone for TypedRawValue<T> {
+    fn clone(&self) -> Self {
+        let Self(raw_value, _) = self;
+
+        Self(raw_value.clone(), PhantomData)
+    }
+}
+
 impl<T> AsRef<[u8]> for TypedRawValue<T> {
     fn as_ref(&self) -> &[u8] {
-        self.0.get().as_bytes()
+        let Self(raw_value, _) = self;
+
+        raw_value.get().as_bytes()
     }
 }
 
@@ -32,6 +43,8 @@ impl<T> TypedRawValue<T> {
     where
         T: DeserializeOwned,
     {
-        serde_json::from_str(self.0.get())
+        let Self(raw_value, _) = self;
+
+        serde_json::from_str(raw_value.get())
     }
 }
