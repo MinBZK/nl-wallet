@@ -72,10 +72,13 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::CborSerialization(_)
                 | CredentialRequestError::Jwt(_)
-                | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
-                CredentialRequestError::IssuanceError(_) | CredentialRequestError::UseBatchIssuance => {
-                    CredentialErrorCode::InvalidRequest
-                }
+                | CredentialRequestError::JsonSerialization(_)
+                | CredentialRequestError::WteTracking(_) => CredentialErrorCode::ServerError,
+                CredentialRequestError::IssuanceError(_)
+                | CredentialRequestError::UseBatchIssuance
+                | CredentialRequestError::MissingWte
+                | CredentialRequestError::WteAlreadyUsed
+                | CredentialRequestError::MissingPoa => CredentialErrorCode::InvalidCredentialRequest,
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
                     CredentialErrorCode::InvalidToken
                 }
@@ -84,7 +87,9 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::IncorrectNonce
                 | CredentialRequestError::JwtDecodingFailed(_)
                 | CredentialRequestError::JwkConversion(_)
-                | CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
+                | CredentialRequestError::MissingCredentialRequestPoP
+                | CredentialRequestError::Poa(_)
+                | CredentialRequestError::PoaVerification(_) => CredentialErrorCode::InvalidProof,
                 CredentialRequestError::CredentialTypeMismatch
                 | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
                 CredentialRequestError::UnsupportedCredentialFormat(_) => {

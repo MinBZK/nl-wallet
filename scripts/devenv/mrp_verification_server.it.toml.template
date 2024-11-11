@@ -1,3 +1,5 @@
+[issuer]
+wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
 
 [issuer.private_keys."com.example.pid"]
 private_key = "${PID_ISSUER_KEY}"

@@ -45,7 +45,7 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::{
     pid::mock::MockAttributesLookup,
     settings::{RequesterAuth, Server, Settings as WsSettings},
-    store::SessionStoreVariant,
+    store::{SessionStoreVariant, WteTrackerVariant},
 };
 
 use crate::logging::init_logging;
@@ -252,14 +252,24 @@ pub fn wallet_server_internal_url(auth: &RequesterAuth, public_url: &BaseUrl) ->
 pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(settings: WsSettings, attr_service: A) {
     let storage_settings = &settings.storage;
     let public_url = settings.urls.public_url.clone();
-    let disclosure_sessions = SessionStoreVariant::new(storage_settings.url.clone(), storage_settings.into())
+
+    let db_connection = wallet_server::store::DatabaseConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
-    let issuance_sessions = disclosure_sessions.clone_into();
+
+    let disclosure_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let issuance_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let wte_tracker = WteTrackerVariant::new(db_connection);
+
     tokio::spawn(async move {
-        if let Err(error) =
-            wallet_server::server::wallet_server::serve(attr_service, settings, disclosure_sessions, issuance_sessions)
-                .await
+        if let Err(error) = wallet_server::server::wallet_server::serve(
+            attr_service,
+            settings,
+            disclosure_sessions,
+            issuance_sessions,
+            wte_tracker,
+        )
+        .await
         {
             println!("Could not start wallet_server: {:?}", error);
 
