@@ -38,6 +38,7 @@ use wallet_common::{
     },
     nonempty::NonEmpty,
     urls::BaseUrl,
+    wte::WteClaims,
 };
 
 use crate::{
@@ -282,7 +283,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        wte: Option<JwtCredential>,
+        wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
 
@@ -574,7 +575,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        wte: Option<JwtCredential>,
+        wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
@@ -613,11 +614,9 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let (mut wte_disclosure, wte_privkey) = match wte {
             Some(wte) => {
                 let wte_privkey = wte.private_key(&key_factory)?;
-
                 let wte_release =
                     Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
-
-                (Some((wte.jwt, wte_release)), Some(wte_privkey))
+                (Some(WteDisclosure::new(wte.jwt, wte_release)), Some(wte_privkey))
             }
             None => (None, None),
         };
@@ -886,27 +885,25 @@ impl IssuanceState {
 }
 
 #[cfg(any(test, feature = "test"))]
-pub async fn mock_wte(key_factory: &impl KeyFactory) -> JwtCredential {
+pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> JwtCredential<WteClaims> {
     use wallet_common::{
         jwt::JwtCredentialClaims,
         keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
     };
 
-    // As a shortcut we use this private key both as the cnf in the WTE and as the issuer private key
-    // to sign the WTE with.
-    let privkey = key_factory.generate_new().await.unwrap();
+    let wte_privkey = key_factory.generate_new().await.unwrap();
 
     let wte = JwtCredentialClaims::new_signed(
-        &privkey.verifying_key().await.unwrap(),
-        &privkey,
+        &wte_privkey.verifying_key().await.unwrap(),
+        privkey,
         "iss".to_string(),
         None,
-        Default::default(),
+        WteClaims::new(),
     )
     .await
     .unwrap();
 
-    JwtCredential::new_unverified::<SoftwareEcdsaKey>(privkey.identifier().to_string(), wte)
+    JwtCredential::new_unverified::<SoftwareEcdsaKey>(wte_privkey.identifier().to_string(), wte)
 }
 
 #[cfg(test)]
@@ -927,7 +924,6 @@ mod tests {
         IssuerSigned,
     };
     use wallet_common::{
-        jwt::JwtCredentialClaims,
         keys::{factory::KeyFactory, software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory, EcdsaKey},
         nonempty::NonEmpty,
     };
@@ -1046,7 +1042,7 @@ mod tests {
         session_state: &IssuanceState,
         dpop_header: &str,
         access_token_header: &str,
-        attestations: &Option<(Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>)>,
+        attestations: &Option<WteDisclosure>,
         use_wte: bool,
     ) {
         assert_eq!(
@@ -1074,7 +1070,7 @@ mod tests {
     async fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
         let (cred_response, preview, ca_cert, _, key_factory) = create_credential_response().await;
         let wte = if use_wte {
-            Some(mock_wte(&key_factory).await)
+            Some(mock_wte(&key_factory, &SigningKey::random(&mut OsRng)).await)
         } else {
             None
         };

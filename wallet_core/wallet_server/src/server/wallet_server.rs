@@ -1,6 +1,10 @@
 use anyhow::Result;
 
-use openid4vc::{issuer::AttributeService, server_state::SessionStore, verifier::DisclosureData};
+use openid4vc::{
+    issuer::AttributeService,
+    server_state::{SessionStore, WteTracker},
+    verifier::DisclosureData,
+};
 
 use super::*;
 use crate::{
@@ -9,16 +13,18 @@ use crate::{
     verifier,
 };
 
-pub async fn serve<A, DS, IS>(
+pub async fn serve<A, DS, IS, W>(
     attr_service: A,
     settings: Settings,
     disclosure_sessions: DS,
     issuance_sessions: IS,
+    wte_tracker: W,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
+    W: WteTracker + Send + Sync + 'static,
 {
     let log_requests = settings.log_requests;
 
@@ -29,6 +35,8 @@ where
         issuance_sessions,
         attr_service,
         settings.issuer.wallet_client_ids,
+        settings.issuer.wte_issuer_pubkey.0,
+        wte_tracker,
     )?;
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.urls,

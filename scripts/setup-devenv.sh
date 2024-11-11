@@ -215,6 +215,13 @@ fi
 openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
         -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
 
+# Generate key for WTE signing
+generate_wp_signing_key wte_signing
+WP_WTE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wte_signing.pem"
+export WP_WTE_SIGNING_KEY_PATH
+WP_WTE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wte_signing.pub.der" ${BASE64})
+export WP_WTE_PUBLIC_KEY
+
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
 
@@ -304,12 +311,6 @@ WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signi
 export WP_CERTIFICATE_SIGNING_KEY_PATH
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
-
-generate_wp_signing_key wte_signing
-WP_WTE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wte_signing.pem"
-export WP_WTE_SIGNING_KEY_PATH
-WP_WTE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wte_signing.pub.der" ${BASE64})
-export WP_WTE_PUBLIC_KEY
 
 generate_wp_signing_key instruction_result_signing
 WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
