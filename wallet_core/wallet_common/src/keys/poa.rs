@@ -168,11 +168,10 @@ mod tests {
 
     use crate::{
         jwt::{validations, JsonJwt, Jwt, JwtPopClaims},
-        keys::poa::PoaPayload,
         nonempty::NonEmpty,
     };
 
-    use super::{Poa, PoaVerificationError};
+    use super::{Poa, PoaPayload, PoaVerificationError};
 
     async fn poa_setup() -> (Poa, VerifyingKey, VerifyingKey, String, String, String) {
         let key1 = SigningKey::random(&mut OsRng);
