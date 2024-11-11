@@ -15,7 +15,7 @@ pub mod examples;
 pub mod software;
 #[cfg(any(test, feature = "software_key_factory"))]
 pub mod software_key_factory;
-#[cfg(any(test, feature = "software_keys", feature = "integration_test"))]
+#[cfg(any(test, feature = "integration_test"))]
 pub mod test;
 
 #[trait_variant::make(EcdsaKeySend: Send)]
