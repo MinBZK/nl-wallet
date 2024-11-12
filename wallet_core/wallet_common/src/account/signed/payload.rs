@@ -459,8 +459,8 @@ mod tests {
         .expect("should sign ChallengeResponse successfully");
 
         // Verifying against an incorrect challenge should return a `Error::AssertionVerification`.
-        // Note that an `Error::ChallengeMismatch` is not returned, as the challenge is first checked when validating
-        // the Apple assertion.
+        // Note that an `Error::ChallengeMismatch` is not returned, as the challenge is first checked
+        // when validating the Apple assertion.
         let error = signed
             .parse_and_verify_apple(
                 b"wrong",
