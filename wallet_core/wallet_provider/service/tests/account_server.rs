@@ -125,9 +125,14 @@ async fn test_instruction_challenge() {
 
     let challenge1 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(1, &hw_privkey, certificate.clone())
-                .await
-                .unwrap(),
+            InstructionChallengeRequest::new_signed::<CheckPin>(
+                cert_data.wallet_id.clone(),
+                1,
+                &hw_privkey,
+                certificate.clone(),
+            )
+            .await
+            .unwrap(),
             &repos,
             &EpochGenerator,
             &hsm,
@@ -139,9 +144,14 @@ async fn test_instruction_challenge() {
 
     let challenge2 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(2, &hw_privkey, certificate)
-                .await
-                .unwrap(),
+            InstructionChallengeRequest::new_signed::<CheckPin>(
+                cert_data.wallet_id.clone(),
+                2,
+                &hw_privkey,
+                certificate,
+            )
+            .await
+            .unwrap(),
             &repos,
             &EpochGenerator,
             &hsm,

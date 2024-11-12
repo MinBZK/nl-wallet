@@ -27,6 +27,9 @@ pub enum Error {
     #[error("sequence number does not match")]
     #[category(critical)]
     SequenceNumberMismatch,
+    #[error("wallet id does not match")]
+    #[category(critical)]
+    WalletIdMismatch,
     #[error("JSON parsing error: {0}")]
     JsonParsing(#[source] serde_json::Error),
     #[error("message signing failed")] // Do not format original error to prevent potentially leaking key material

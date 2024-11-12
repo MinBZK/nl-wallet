@@ -31,22 +31,25 @@ impl SequenceNumberComparison {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChallengeRequestPayload {
+    pub wallet_id: String,
     pub sequence_number: u64,
     pub instruction_name: String,
 }
 
 impl ChallengeRequestPayload {
-    // TODO: Find a better solution for the challenge of a challenge request.
-    const CHALLENGE: &'static [u8] = b"CHALLENGE_REQUEST";
-
-    pub fn new(sequence_number: u64, instruction_name: String) -> Self {
+    pub fn new(wallet_id: String, sequence_number: u64, instruction_name: String) -> Self {
         ChallengeRequestPayload {
+            wallet_id,
             sequence_number,
             instruction_name,
         }
     }
 
-    pub fn verify(&self, sequence_number_comparison: SequenceNumberComparison) -> Result<()> {
+    pub fn verify(&self, wallet_id: &str, sequence_number_comparison: SequenceNumberComparison) -> Result<()> {
+        if wallet_id != self.wallet_id {
+            return Err(Error::WalletIdMismatch);
+        }
+
         if !sequence_number_comparison.verify(self.sequence_number) {
             return Err(Error::SequenceNumberMismatch);
         }
@@ -59,9 +62,20 @@ impl SubjectPayload for ChallengeRequestPayload {
     const SUBJECT: &'static str = "instruction_challenge_request";
 }
 
+// When signing and validating a `ChallengeRequest` using Apple assertions,
+// we need this type to contain a challenge. However, as this is the actual
+// message that requests a challenge from the Wallet Provider, we have a
+// bootstrap problem and cannot use a server generated random challenge. In
+// its place we use the `wallet_id` field to act as a predictable byte string.
+//
+// As the `wallet_id` is sent in `InstructionChallengeRequest` along with the
+// `ChallengeRequest`, this in itself does not provide any sort of replay
+// protection. This is not an issue, as `ChallengeResponse` does include a
+// server generated challenge and this is the message that includes the
+// actual instruction, to be performed by the Wallet Provider.
 impl ContainsChallenge for ChallengeRequestPayload {
     fn challenge(&self) -> Result<impl AsRef<[u8]>> {
-        Ok(Self::CHALLENGE)
+        Ok(self.wallet_id.as_bytes())
     }
 }
 
@@ -71,22 +85,32 @@ impl ContainsChallenge for ChallengeRequestPayload {
 pub struct ChallengeRequest(SignedSubjectMessage<ChallengeRequestPayload>);
 
 impl ChallengeRequest {
-    pub async fn sign_ecdsa<K>(sequence_number: u64, instruction_name: String, hardware_signing_key: &K) -> Result<Self>
+    pub async fn sign_ecdsa<K>(
+        wallet_id: String,
+        sequence_number: u64,
+        instruction_name: String,
+        hardware_signing_key: &K,
+    ) -> Result<Self>
     where
         K: SecureEcdsaKey,
     {
-        let challenge_request = ChallengeRequestPayload::new(sequence_number, instruction_name);
+        let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
         let signed =
             SignedSubjectMessage::sign_ecdsa(challenge_request, EcdsaSignatureType::Hw, hardware_signing_key).await?;
 
         Ok(Self(signed))
     }
 
-    pub async fn sign_apple<K>(sequence_number: u64, instruction_name: String, attested_key: &K) -> Result<Self>
+    pub async fn sign_apple<K>(
+        wallet_id: String,
+        sequence_number: u64,
+        instruction_name: String,
+        attested_key: &K,
+    ) -> Result<Self>
     where
         K: AppleAttestedKey,
     {
-        let challenge_request = ChallengeRequestPayload::new(sequence_number, instruction_name);
+        let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
         let signed = SignedSubjectMessage::sign_apple(challenge_request, attested_key).await?;
 
         Ok(Self(signed))
@@ -94,29 +118,28 @@ impl ChallengeRequest {
 
     pub fn parse_and_verify_ecdsa(
         &self,
+        wallet_id: &str,
         sequence_number_comparison: SequenceNumberComparison,
         verifying_key: &VerifyingKey,
     ) -> Result<ChallengeRequestPayload> {
         let request = self.0.parse_and_verify_ecdsa(EcdsaSignatureType::Hw, verifying_key)?;
-        request.verify(sequence_number_comparison)?;
+        request.verify(wallet_id, sequence_number_comparison)?;
 
         Ok(request)
     }
 
     pub fn parse_and_verify_apple(
         &self,
+        wallet_id: &str,
         sequence_number_comparison: SequenceNumberComparison,
         verifying_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
         previous_counter: u32,
     ) -> Result<(ChallengeRequestPayload, u32)> {
-        let (request, counter) = self.0.parse_and_verify_apple(
-            verifying_key,
-            app_identifier,
-            previous_counter,
-            ChallengeRequestPayload::CHALLENGE,
-        )?;
-        request.verify(sequence_number_comparison)?;
+        let (request, counter) =
+            self.0
+                .parse_and_verify_apple(verifying_key, app_identifier, previous_counter, wallet_id.as_bytes())?;
+        request.verify(wallet_id, sequence_number_comparison)?;
 
         Ok((request, counter))
     }
@@ -294,7 +317,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use crate::apple::MockAppleAttestedKey;
+    use crate::{apple::MockAppleAttestedKey, utils};
 
     use super::*;
 
@@ -320,17 +343,35 @@ mod tests {
 
     #[tokio::test]
     async fn test_ecdsa_challenge_request() {
+        let wallet_id = utils::random_string(32);
         let sequence_number = 42;
         let instruction_name = "jump";
         let hw_privkey = SigningKey::random(&mut OsRng);
 
-        let signed = ChallengeRequest::sign_ecdsa(sequence_number, instruction_name.to_string(), &hw_privkey)
-            .await
-            .expect("should sign SignedChallengeRequest successfully");
+        let signed = ChallengeRequest::sign_ecdsa(
+            wallet_id.clone(),
+            sequence_number,
+            instruction_name.to_string(),
+            &hw_privkey,
+        )
+        .await
+        .expect("should sign SignedChallengeRequest successfully");
+
+        // Verifying against an incorrect wallet_id should return a `Error::WalletIdMismatch`.
+        let error = signed
+            .parse_and_verify_ecdsa(
+                "incorrect",
+                SequenceNumberComparison::EqualTo(sequence_number),
+                hw_privkey.verifying_key(),
+            )
+            .expect_err("verifying SignedChallengeRequest should return an error");
+
+        assert_matches!(error, Error::WalletIdMismatch);
 
         // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
         let error = signed
             .parse_and_verify_ecdsa(
+                &wallet_id,
                 SequenceNumberComparison::LargerThan(sequence_number),
                 hw_privkey.verifying_key(),
             )
@@ -341,6 +382,7 @@ mod tests {
         // Verifying against the correct values should succeed.
         let request = signed
             .parse_and_verify_ecdsa(
+                &wallet_id,
                 SequenceNumberComparison::EqualTo(sequence_number),
                 hw_privkey.verifying_key(),
             )
@@ -352,17 +394,39 @@ mod tests {
 
     #[tokio::test]
     async fn test_apple_challenge_request() {
+        let wallet_id = utils::random_string(32);
         let sequence_number = 42;
         let instruction_name = "jump";
         let attested_key = create_mock_apple_attested_key();
 
-        let signed = ChallengeRequest::sign_apple(sequence_number, instruction_name.to_string(), &attested_key)
-            .await
-            .expect("should sign SignedChallengeRequest successfully");
+        let signed = ChallengeRequest::sign_apple(
+            wallet_id.clone(),
+            sequence_number,
+            instruction_name.to_string(),
+            &attested_key,
+        )
+        .await
+        .expect("should sign SignedChallengeRequest successfully");
+
+        // Verifying against an incorrect wallet_id should return a `Error::AssertionVerification`.
+        // Note that an `Error::WalletIdMismatch` is not returned, as the wallet id is first checked
+        // when validating the Apple assertion.
+        let error = signed
+            .parse_and_verify_apple(
+                "incorrect",
+                SequenceNumberComparison::EqualTo(sequence_number),
+                attested_key.signing_key.verifying_key(),
+                &attested_key.app_identifier,
+                0,
+            )
+            .expect_err("verifying SignedChallengeRequest should return an error");
+
+        assert_matches!(error, Error::AssertionVerification(_));
 
         // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
         let error = signed
             .parse_and_verify_apple(
+                &wallet_id,
                 SequenceNumberComparison::LargerThan(sequence_number),
                 attested_key.signing_key.verifying_key(),
                 &attested_key.app_identifier,
@@ -375,6 +439,7 @@ mod tests {
         // Verifying against the correct values should succeed.
         let (request, counter) = signed
             .parse_and_verify_apple(
+                &wallet_id,
                 SequenceNumberComparison::EqualTo(sequence_number),
                 attested_key.signing_key.verifying_key(),
                 &attested_key.app_identifier,

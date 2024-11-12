@@ -187,6 +187,7 @@ where
 
 impl InstructionChallengeRequest {
     pub async fn new_signed<I>(
+        wallet_id: String,
         instruction_sequence_number: u64,
         hw_privkey: &impl SecureEcdsaKey,
         certificate: WalletCertificate,
@@ -194,7 +195,9 @@ impl InstructionChallengeRequest {
     where
         I: InstructionAndResult,
     {
-        let signed = ChallengeRequest::sign_ecdsa(instruction_sequence_number, I::NAME.to_string(), hw_privkey).await?;
+        let signed =
+            ChallengeRequest::sign_ecdsa(wallet_id, instruction_sequence_number, I::NAME.to_string(), hw_privkey)
+                .await?;
 
         Ok(Self {
             request: signed,

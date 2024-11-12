@@ -47,6 +47,7 @@ pub trait ChangePinStorage {
 
     async fn change_pin(
         &self,
+        wallet_id: String,
         new_pin_salt: Vec<u8>,
         new_pin_certificate: WalletCertificate,
     ) -> Result<(), StorageError>;
@@ -146,7 +147,7 @@ where
         Ok(())
     }
 
-    pub async fn begin_change_pin(&self, old_pin: String, new_pin: String) -> ChangePinResult<()> {
+    pub async fn begin_change_pin(&self, wallet_id: String, old_pin: String, new_pin: String) -> ChangePinResult<()> {
         tracing::info!("Start change PIN transaction");
 
         tracing::info!("Ensure no PIN change is in progress");
@@ -165,7 +166,9 @@ where
         match self.client.start_new_pin(&old_pin, &new_pin, &new_pin_salt).await {
             Ok(new_pin_certificate) => {
                 self.storage.store_change_pin_state(State::Commit).await?;
-                self.storage.change_pin(new_pin_salt, new_pin_certificate).await?;
+                self.storage
+                    .change_pin(wallet_id, new_pin_salt, new_pin_certificate)
+                    .await?;
                 Ok(())
             }
             Err(error) if error.is_network_error() => {
@@ -253,12 +256,15 @@ mod test {
             .expect_store_change_pin_state()
             .with(eq(State::Commit))
             .returning(|_| Ok(()));
-        change_pin_storage.expect_change_pin().times(1).returning(|_, _| Ok(()));
+        change_pin_storage
+            .expect_change_pin()
+            .times(1)
+            .returning(|_, _, _| Ok(()));
 
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
         let actual = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
             .await;
 
         assert_matches!(actual, Ok(()));
@@ -289,7 +295,7 @@ mod test {
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
         let actual = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
             .await;
 
         assert_matches!(
@@ -324,7 +330,7 @@ mod test {
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
         let actual = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
             .await;
 
         assert_matches!(
@@ -346,7 +352,7 @@ mod test {
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
         let actual = change_pin_session
-            .begin_change_pin("000111".to_string(), "123789".to_string())
+            .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
             .await;
 
         assert_matches!(actual, Err(ChangePinError::ChangePinAlreadyInProgress));

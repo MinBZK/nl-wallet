@@ -174,6 +174,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
         // Save the registration data in storage.
         let data = RegistrationData {
+            wallet_id: cert_claims.wallet_id,
             pin_salt,
             wallet_certificate,
         };
