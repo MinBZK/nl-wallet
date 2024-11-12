@@ -78,7 +78,6 @@ zap-scan-internal-wallet-server:
     - |
       envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload.json
       SESSION_TOKEN=$(curl -s -X POST -d @test/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')      
-      RELEASE_TAG=$(cat release_tag.txt)
       yq e ".servers[0].url=\"${INTERNAL_WALLET_SERVER_URL}\"" -i documentation/api/wallet-disclosure-private.openapi.yaml
       sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/api/wallet-disclosure-private.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/api/wallet-disclosure-private.openapi.yaml
@@ -98,7 +97,6 @@ zap-scan-public-wallet-server:
     - |
       envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload.json
       SESSION_TOKEN=$(curl -s -X POST -d @test/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')      
-      RELEASE_TAG=$(cat release_tag.txt)
       yq e ".servers[0].url=\"${PUBLIC_WALLET_SERVER_URL}\"" -i documentation/api/wallet-disclosure-public.openapi.yaml
       sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/api/wallet-disclosure-public.openapi.yaml
       sed -i "s|application/x-www-form-urlencoded|application/json|g" documentation/api/wallet-disclosure-public.openapi.yaml
