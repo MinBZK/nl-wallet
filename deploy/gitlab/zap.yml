@@ -19,12 +19,11 @@
       zap.sh -cmd -autorun ${SUT}_zap_scan.yaml
       ALERT_COUNT=$(jq '[.site[].alerts[] | select(.riskdesc | contains("Informational") | not) | select(.riskdesc | contains("False Positive") | not)] | length' zapreports/${SUT}-zap.json)
       if [ "$ALERT_COUNT" -gt 0 ]; then
-        echo "Non informational alerts found: $ALERT_COUNT"
+        echo "ZAP SCAN FAILED, Non informational alerts found: $ALERT_COUNT"
         exit 1
       else
         echo "No non informational alerts found"
       fi
-      if [ "$ALERT_COUNT" -gt 0 ]; then exit 1; else echo "No critical alerts found"; fi
 
 .get-session-token:
   script:
