@@ -11,6 +11,7 @@ use crate::{
         poa::{Poa, VecAtLeastTwo},
         EphemeralEcdsaKey, SecureEcdsaKey,
     },
+    wte::WteClaims,
 };
 
 use super::auth::WalletCertificate;
@@ -63,7 +64,7 @@ pub struct IssueWte {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IssueWteResult {
-    pub wte: Jwt<JwtCredentialClaims>,
+    pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

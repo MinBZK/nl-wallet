@@ -9,13 +9,13 @@ use crate::utils;
 pub mod factory;
 pub mod poa;
 
-#[cfg(any(test, feature = "examples"))]
+#[cfg(feature = "examples")]
 pub mod examples;
 #[cfg(any(test, feature = "software_keys"))]
 pub mod software;
 #[cfg(any(test, feature = "software_key_factory"))]
 pub mod software_key_factory;
-#[cfg(any(test, feature = "software_keys", feature = "integration_test"))]
+#[cfg(any(test, feature = "integration_test"))]
 pub mod test;
 
 #[trait_variant::make(EcdsaKeySend: Send)]

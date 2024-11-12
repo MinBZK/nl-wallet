@@ -1,9 +1,11 @@
 use std::{num::NonZeroU8, ops::Add};
 
+use assert_matches::assert_matches;
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
+use rand_core::OsRng;
 use rstest::rstest;
 use url::Url;
 
@@ -25,17 +27,23 @@ use openid4vc::{
     jwt::compare_jwt_attributes,
     metadata::IssuerMetadata,
     oidc,
-    server_state::{MemorySessionStore, SessionState},
+    server_state::{MemorySessionStore, MemoryWteTracker, SessionState},
     token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
     CredentialErrorCode,
 };
 use wallet_common::{
-    jwt::JwtCredentialContents, keys::software_key_factory::SoftwareKeyFactory, nonempty::NonEmpty, urls::BaseUrl,
+    jwt::{JsonJwt, Jwt, JwtCredentialContents},
+    keys::{
+        poa::{Poa, PoaPayload},
+        software_key_factory::SoftwareKeyFactory,
+    },
+    nonempty::NonEmpty,
+    urls::BaseUrl,
 };
 
-type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
+type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
-fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
+fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
@@ -48,7 +56,7 @@ fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certific
     )
 }
 
-fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
+fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let ca = KeyPair::<SigningKey>::generate_issuer_mock_ca().unwrap();
 
     // Use the CA itself as issuance key
@@ -67,8 +75,9 @@ fn setup(
     attr_service: MockAttributeService,
     ca: KeyPair,
     issuance_keypair: KeyPair,
-) -> (MockIssuer, Certificate, BaseUrl) {
+) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();
+    let wte_issuer_privkey = SigningKey::random(&mut OsRng);
 
     let issuer = MockIssuer::new(
         MemorySessionStore::default(),
@@ -76,20 +85,26 @@ fn setup(
         SingleKeyRing(issuance_keypair),
         &server_url,
         vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+        *wte_issuer_privkey.verifying_key(),
+        MemoryWteTracker::new(),
     );
 
-    (issuer, ca.into(), server_url.join_base_url("issuance/"))
+    (
+        issuer,
+        ca.into(),
+        server_url.join_base_url("issuance/"),
+        wte_issuer_privkey,
+    )
 }
 
 #[rstest]
 #[tokio::test]
 async fn accept_issuance(
-    #[values(setup_mdoc, setup_jwt)] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
+    #[values(setup_mdoc, setup_jwt)] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey),
     #[values(1, 2)] attestation_count: usize,
     #[values(1, 2)] copy_count: u8,
-    #[values(true, false)] use_wte: bool,
 ) {
-    let (issuer, ca, server_url) = setup(attestation_count, copy_count);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup(attestation_count, copy_count);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, previews) = HttpIssuanceSession::start_issuance(
@@ -102,14 +117,10 @@ async fn accept_issuance(
     .unwrap();
 
     let key_factory = SoftwareKeyFactory::default();
-    let wte = if use_wte {
-        Some(mock_wte(&key_factory).await)
-    } else {
-        None
-    };
+    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     let issued_creds = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, wte, server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
         .await
         .unwrap();
 
@@ -140,7 +151,7 @@ async fn accept_issuance(
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, _) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, _previews) = HttpIssuanceSession::start_issuance(
@@ -159,6 +170,7 @@ async fn start_and_accept_err(
     message_client: MockOpenidMessageClient,
     server_url: BaseUrl,
     ca: Certificate,
+    wte_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
@@ -169,60 +181,103 @@ async fn start_and_accept_err(
     .await
     .unwrap();
 
+    let key_factory = SoftwareKeyFactory::default();
+    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
+
     session
-        .accept_issuance(
-            &[(&ca).try_into().unwrap()],
-            SoftwareKeyFactory::default(),
-            None,
-            server_url,
-        )
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
         .await
         .unwrap_err()
 }
 
 #[tokio::test]
 async fn wrong_access_token() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         wrong_access_token: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
-    assert!(matches!(
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
-    ));
+    );
 }
 
 #[tokio::test]
 async fn invalid_dpop() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         invalidate_dpop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
-    assert!(matches!(
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
-    ));
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+    );
 }
 
 #[tokio::test]
 async fn invalid_pop() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         invalidate_pop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
     ));
+}
+
+#[tokio::test]
+async fn invalid_poa() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        invalidate_poa: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
+    );
+}
+
+#[tokio::test]
+async fn no_poa() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        strip_poa: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+    );
+}
+
+#[tokio::test]
+async fn no_wte() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        strip_wte: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+    );
 }
 
 // Helpers and mocks
@@ -242,6 +297,9 @@ struct MockOpenidMessageClient {
     wrong_access_token: bool,
     invalidate_dpop: bool,
     invalidate_pop: bool,
+    invalidate_poa: bool,
+    strip_poa: bool,
+    strip_wte: bool,
 }
 
 impl MockOpenidMessageClient {
@@ -251,6 +309,9 @@ impl MockOpenidMessageClient {
             wrong_access_token: false,
             invalidate_dpop: false,
             invalidate_pop: false,
+            invalidate_poa: false,
+            strip_poa: false,
+            strip_wte: false,
         }
     }
 }
@@ -282,6 +343,19 @@ impl MockOpenidMessageClient {
             };
             credential_request.proof = Some(invalidated_proof);
         }
+
+        if self.invalidate_poa {
+            credential_request.poa = Some(Self::invalidate_poa(credential_request.poa.unwrap()));
+        }
+
+        if self.strip_poa {
+            credential_request.poa.take();
+        }
+
+        if self.strip_wte {
+            credential_request.attestations.take();
+        }
+
         credential_request
     }
 
@@ -293,7 +367,29 @@ impl MockOpenidMessageClient {
             requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
         }
+
+        if self.invalidate_poa {
+            credential_requests.poa = Some(Self::invalidate_poa(credential_requests.poa.unwrap()));
+        }
+
+        if self.strip_poa {
+            credential_requests.poa.take();
+        }
+
+        if self.strip_wte {
+            credential_requests.attestations.take();
+        }
+
         credential_requests
+    }
+
+    fn invalidate_poa(poa: Poa) -> Poa {
+        let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+        jwts.pop();
+        let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
+        let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
+
+        poa
     }
 }
 

@@ -5,6 +5,7 @@ use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::instructions::{IssueWte, IssueWteResult},
     utils::random_string,
+    wte::WteClaims,
 };
 
 use crate::{
@@ -19,7 +20,7 @@ pub trait WteIssuanceClient {
         &self,
         wte_issuer_pubkey: &VerifyingKey,
         remote_instruction: &InstructionClient<'_, S, PEK, APC>,
-    ) -> Result<JwtCredential, PidIssuanceError>
+    ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
     where
         S: Storage,
         PEK: PlatformEcdsaKey,
@@ -33,7 +34,7 @@ impl WteIssuanceClient for WpWteIssuanceClient {
         &self,
         wte_issuer_pubkey: &VerifyingKey,
         remote_instruction: &InstructionClient<'_, S, PEK, APC>,
-    ) -> Result<JwtCredential, PidIssuanceError>
+    ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
     where
         S: Storage,
         PEK: PlatformEcdsaKey,
@@ -65,6 +66,7 @@ pub(crate) mod tests {
     use wallet_common::{
         keys::{software::SoftwareEcdsaKey, StoredByIdentifier},
         utils::random_string,
+        wte::WteClaims,
     };
 
     use crate::{
@@ -81,7 +83,7 @@ pub(crate) mod tests {
             &self,
             _pubkey: &VerifyingKey,
             _remote_instruction: &InstructionClient<'_, S, PEK, APC>,
-        ) -> Result<JwtCredential, PidIssuanceError>
+        ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
         where
             S: Storage,
             PEK: PlatformEcdsaKey,

@@ -12,7 +12,10 @@ use rand_core::OsRng;
 
 use crate::keys::WithIdentifier;
 
-use super::{EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
+use super::{
+    CredentialEcdsaKey, CredentialKeyType, EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey,
+    StoredByIdentifier,
+};
 
 // Static for storing identifier to signing key mapping.
 static SIGNING_KEYS: LazyLock<Mutex<HashMap<String, Arc<SigningKey>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -65,6 +68,10 @@ impl WithIdentifier for SoftwareEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
+}
+
+impl CredentialEcdsaKey for SoftwareEcdsaKey {
+    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;
 }
 
 impl StoredByIdentifier for SoftwareEcdsaKey {
