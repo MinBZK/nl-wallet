@@ -209,11 +209,9 @@ async fn fetch(
 
     let bsn = Bsn::try_new(payload.bsn).map_err(|err| anyhow!(err))?;
     let path = &state.base_path.join(&state.preloaded_settings.xml_path);
+    let serial = cert_serial.unwrap_or_default();
 
-    info!(
-        "Preloading data using certificate having serial: {:?}",
-        cert_serial.unwrap_or_default()
-    );
+    info!("Preloading data using certificate having serial: {:?}", &serial);
 
     let xml = state
         .http_client
@@ -236,6 +234,11 @@ async fn fetch(
         msg: String::from("Successfully preloaded"),
     };
 
+    info!(
+        "Successfully preloaded data using certificate having serial: {:?}",
+        &serial
+    );
+
     Ok(askama_axum::into_response(&result))
 }
 
@@ -251,9 +254,11 @@ async fn clear(
         return Err(anyhow!("Confirmation text is not correct"))?;
     }
 
+    let serial = cert_serial.unwrap_or_default();
+
     info!(
         "Clearing all preloaded data using certificate having serial: {:?}",
-        cert_serial.unwrap_or_default()
+        &serial
     );
 
     let path = &state.base_path.join(&state.preloaded_settings.xml_path);
@@ -262,6 +267,8 @@ async fn clear(
     let result = ResultTemplate {
         msg: format!("Successfully cleared {count} items"),
     };
+
+    info!("Cleared {count} items using certificate having serial: {:?}", &serial);
 
     Ok(askama_axum::into_response(&result))
 }

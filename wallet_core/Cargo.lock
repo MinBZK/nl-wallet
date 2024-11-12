@@ -199,6 +199,7 @@ dependencies = [
  "ciborium",
  "const-decoder",
  "coset",
+ "derive_more",
  "nutype",
  "p256",
  "passkey-types",
@@ -1249,13 +1250,23 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.18"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f33878137e4dafd7fa914ad4e259e18a4e8e532b9617a2d0150262bf53abfce"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.79",
+ "unicode-xid",
 ]
 
 [[package]]
@@ -3074,6 +3085,10 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.2.2"
 dependencies = [
+ "apple_app_attest",
+ "async-trait",
+ "chrono",
+ "derive_more",
  "error_category",
  "jni",
  "p256",
@@ -5515,6 +5530,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "ciborium",
+ "derive_more",
  "dotenvy",
  "entity",
  "error_category",
@@ -5588,6 +5604,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "derive_more",
  "error_category",
  "etag",
  "futures",
@@ -5627,6 +5644,7 @@ dependencies = [
  "axum",
  "chrono",
  "config",
+ "derive_more",
  "http",
  "nutype",
  "p256",
@@ -5663,6 +5681,7 @@ version = "0.2.2"
 dependencies = [
  "chrono",
  "dashmap",
+ "derive_more",
  "futures",
  "hmac",
  "p256",
@@ -5753,6 +5772,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "config",
+ "derive_more",
  "futures",
  "http",
  "indexmap 2.2.6",

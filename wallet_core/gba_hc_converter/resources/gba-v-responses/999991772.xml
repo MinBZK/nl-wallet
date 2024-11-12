@@ -28,22 +28,6 @@
                         <ns2:nummer>310</ns2:nummer>
                         <ns2:waarde>20000324</ns2:waarde>
                       </ns2:item>
-                      <ns2:item>
-                        <ns2:nummer>320</ns2:nummer>
-                        <ns2:waarde>Luik</ns2:waarde>
-                      </ns2:item>
-                      <ns2:item>
-                        <ns2:nummer>330</ns2:nummer>
-                        <ns2:waarde>5010</ns2:waarde>
-                      </ns2:item>
-                      <ns2:item>
-                        <ns2:nummer>410</ns2:nummer>
-                        <ns2:waarde>V</ns2:waarde>
-                      </ns2:item>
-                      <ns2:item>
-                        <ns2:nummer>6110</ns2:nummer>
-                        <ns2:waarde>E</ns2:waarde>
-                      </ns2:item>
                     </ns2:elementen>
                   </ns2:item>
                 </ns2:categorievoorkomens>
@@ -72,10 +56,6 @@
                       <ns2:item>
                         <ns2:nummer>1170</ns2:nummer>
                         <ns2:waarde>Toetsoog</ns2:waarde>
-                      </ns2:item>
-                      <ns2:item>
-                        <ns2:nummer>7210</ns2:nummer>
-                        <ns2:waarde>T</ns2:waarde>
                       </ns2:item>
                     </ns2:elementen>
                   </ns2:item>

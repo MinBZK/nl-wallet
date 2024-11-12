@@ -1,0 +1,39 @@
+[[IgnoredVulns]]
+id = "RUSTSEC-2023-0071"
+ignoreUntil = 2025-02-01
+reason = "rsa is a dependency of sqlx-mysql which is not used"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2021-0145"
+ignoreUntil = 2025-01-01
+reason = "potential unaligned read, but only on Windows, so suppressing here"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0375"
+ignoreUntil = 2025-01-01
+reason = "atty is unmaintained but contains no vulnerabilities and is a transitive dependency of flutter_rust_bridge_codegen which should be updated first. There is an issue on the backlog, so suppressing for now."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0320"
+ignoreUntil = 2025-01-01
+reason = "serde_yaml is unmaintained but contains no vulnerabilities and should be reported to flutter_rust_bridge. There is an issue on the backlog, so suppressing for now."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0363"
+ignoreUntil = 2024-12-01
+reason = "should be fixed when sea-orm is upgraded to 1.1.1. Vulnerability is mitigated by using nginx in combination with small body sizes."
+
+[[IgnoredVulns]]
+id = "GHSA-xmrp-424f-vfpx"
+ignoreUntil = 2024-12-01
+reason = "same finding as RUSTSEC-2024-0363"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+ignoreUntil = 2024-12-01
+reason = "Unmaintained, but not vulnerable. Should be fixed when sea-orm is upgraded to 1.1.1"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0388"
+ignoreUntil = 2024-12-01
+reason = "Unmaintained, but not vulnerable. Should be fixed when sea-orm is upgraded to 1.1.1"

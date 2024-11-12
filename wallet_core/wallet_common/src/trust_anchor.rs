@@ -1,9 +1,7 @@
-use std::{
-    fmt::{Debug, Formatter},
-    hash::{Hash, Hasher},
-};
+use std::hash::{Hash, Hasher};
 
 use base64::prelude::*;
+use derive_more::Debug;
 use serde::{Deserialize, Serialize};
 use webpki::{
     anchor_from_trusted_cert,
@@ -25,16 +23,11 @@ pub struct OwnedTrustAnchor {
     name_constraints: Option<Vec<u8>>,
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DerTrustAnchor {
+    #[debug(skip)]
     pub owned_trust_anchor: OwnedTrustAnchor,
     pub der_bytes: Vec<u8>,
-}
-
-impl Debug for DerTrustAnchor {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.der_bytes.fmt(f)
-    }
 }
 
 impl Hash for DerTrustAnchor {

@@ -14,7 +14,10 @@ use openid4vc::server_state::{
 use wallet_common::utils;
 use wallet_server::{
     settings::{Settings, Storage},
-    store::{postgres::PostgresSessionStore, SessionDataType},
+    store::{
+        postgres::{self, PostgresSessionStore, PostgresWteTracker},
+        SessionDataType,
+    },
 };
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
@@ -85,9 +88,7 @@ async fn postgres_session_store() -> PostgresSessionStore {
     let storage_settings = storage_settings();
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
-    PostgresSessionStore::try_new(storage_settings.url, timeouts)
-        .await
-        .unwrap()
+    PostgresSessionStore::new(postgres::new_connection(storage_settings.url).await.unwrap(), timeouts)
 }
 
 type SessionStoreWithMockTime = (PostgresSessionStore<MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>);
@@ -99,9 +100,11 @@ async fn postgres_session_store_with_mock_time() -> SessionStoreWithMockTime {
     let storage_settings = storage_settings();
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
-    let session_store = PostgresSessionStore::try_new_with_time(storage_settings.url, timeouts, time_generator)
-        .await
-        .unwrap();
+    let session_store = PostgresSessionStore::new_with_time(
+        postgres::new_connection(storage_settings.url).await.unwrap(),
+        timeouts,
+        time_generator,
+    );
 
     (session_store, mock_time)
 }
@@ -112,6 +115,19 @@ async fn test_get_write() {
     let session_store = postgres_session_store().await;
 
     test::test_session_store_get_write::<MockSessionData>(&session_store).await;
+}
+
+#[tokio::test]
+async fn test_wte_tracker() {
+    let time_generator = MockTimeGenerator::default();
+    let mock_time = Arc::clone(&time_generator.time);
+
+    let wte_tracker = PostgresWteTracker::new_with_time(
+        postgres::new_connection(storage_settings().url).await.unwrap(),
+        time_generator,
+    );
+
+    test::test_wte_tracker(&wte_tracker, mock_time.as_ref()).await;
 }
 
 #[tokio::test]

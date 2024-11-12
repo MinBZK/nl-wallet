@@ -103,6 +103,9 @@ echo "WTE_PUBLIC_KEY=$(echo $CONFIG_JSON | jq -r '.account_server.wte_public_key
 echo "PID_ISSUER_URL=$(echo $CONFIG_JSON | jq -r '.pid_issuance.pid_issuer_url' )"
 echo "DIGID_URL=$(echo $CONFIG_JSON | jq -r '.pid_issuance.digid_url' )"
 echo "DIGID_CLIENT_ID=$(echo $CONFIG_JSON | jq -r '.pid_issuance.digid_client_id' )"
+echo "DIGID_APP2APP_ENV=$(echo $CONFIG_JSON | jq -r '.pid_issuance.digid_app2app.env' )"
+echo "DIGID_APP2APP_HOST=$(echo $CONFIG_JSON | jq -r '.pid_issuance.digid_app2app.host' )"
+echo "DIGID_APP2APP_UNIVERSAL_LINK=$(echo $CONFIG_JSON | jq -r '.pid_issuance.digid_app2app.universal_link' )"
 
 RP_TRUST_ANCHORS=($(echo $CONFIG_JSON | jq -r '.disclosure.rp_trust_anchors[]'))
 echo "RP_TRUST_ANCHORS=$(IFS="|" ; echo "${RP_TRUST_ANCHORS[*]}")"

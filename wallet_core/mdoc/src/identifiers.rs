@@ -1,3 +1,4 @@
+use derive_more::Debug;
 use indexmap::IndexSet;
 
 use crate::{
@@ -11,20 +12,12 @@ use crate::{
     Document,
 };
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[debug("{credential_type}/{namespace}/{attribute}")]
 pub struct AttributeIdentifier {
     pub credential_type: String,
     pub namespace: NameSpace,
     pub attribute: DataElementIdentifier,
-}
-
-impl std::fmt::Debug for AttributeIdentifier {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
-        fmt.write_fmt(format_args!(
-            "{}/{}/{}",
-            self.credential_type, self.namespace, self.attribute
-        ))
-    }
 }
 
 impl IssuerSigned {
@@ -125,7 +118,7 @@ mod examples {
 
 #[cfg(any(test, feature = "test"))]
 mod tests {
-    use super::*;
+    use super::AttributeIdentifier;
 
     #[derive(Debug, thiserror::Error, PartialEq, Eq)]
     pub enum AttributeIdParsingError {

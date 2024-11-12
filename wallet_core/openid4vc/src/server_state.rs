@@ -1,8 +1,9 @@
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{convert::Infallible, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use dashmap::{mapref::entry::Entry, DashMap};
-use nutype::nutype;
+use derive_more::{AsRef, Display, From, Into};
+use serde::{Deserialize, Serialize};
 use tokio::{
     task::JoinHandle,
     time::{self, MissedTickBehavior},
@@ -11,7 +12,9 @@ use tracing::warn;
 
 use wallet_common::{
     generator::{Generator, TimeGenerator},
-    utils::random_string,
+    jwt::{JwtCredentialClaims, VerifiedJwt},
+    utils::{random_string, sha256},
+    wte::WteClaims,
 };
 
 /// The cleanup task that removes stale sessions runs every so often.
@@ -51,22 +54,14 @@ pub enum SessionStoreError {
     Other(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-// For this trait we cannot use the `trait_variant::make()` macro to add the `Send` trait to the return type
-// of the async methods, as the `start_cleanup_task()` default method itself needs that specific trait.
+#[trait_variant::make(Send)]
 pub trait SessionStore<T>
 where
     T: HasProgress + Expirable,
 {
-    fn get(
-        &self,
-        token: &SessionToken,
-    ) -> impl Future<Output = Result<Option<SessionState<T>>, SessionStoreError>> + Send;
-    fn write(
-        &self,
-        session: SessionState<T>,
-        is_new: bool,
-    ) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
-    fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
+    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError>;
+    async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError>;
+    async fn cleanup(&self) -> Result<(), SessionStoreError>;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
@@ -217,19 +212,8 @@ where
 /// this to the holder in response to its first HTTPS request, so that it remains secret between them. Since in later
 /// protocol messages the issuer enforces that the correct session ID is present, this means that only the party that
 /// sends the first HTTP request can send later HTTP requests for the session.
-#[nutype(derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    AsRef,
-    From,
-    Into,
-    Display,
-    Serialize,
-    Deserialize
-))]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
+#[cfg_attr(test, from(String, &'static str))]
 pub struct SessionToken(String);
 
 impl SessionToken {
@@ -238,12 +222,95 @@ impl SessionToken {
     }
 }
 
+/// Allows detection of previously used WTEs, by keeping track of WTEs that have been used by wallets within
+/// their validity time window (after which they may be cleaned up with `cleanup()`).
+#[trait_variant::make(Send)]
+pub trait WteTracker {
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    /// Return whether or not we have seen this WTE within its validity window, and track this WTE as seen.
+    async fn track_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error>;
+
+    /// Cleanup expired WTEs from this tracker.
+    async fn cleanup(&self) -> Result<(), Self::Error>;
+
+    fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
+    where
+        Self: Send + Sync + 'static,
+    {
+        let mut interval = time::interval(interval);
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+
+        tokio::spawn(async move {
+            loop {
+                interval.tick().await;
+                if let Err(e) = self.cleanup().await {
+                    warn!("error during session cleanup: {e}");
+                }
+            }
+        })
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct MemoryWteTracker<G = TimeGenerator> {
+    seen_wtes: DashMap<Vec<u8>, DateTime<Utc>>,
+    time: G,
+}
+
+impl<G> MemoryWteTracker<G> {
+    pub fn new_with_time(time_generator: G) -> Self {
+        Self {
+            seen_wtes: DashMap::new(),
+            time: time_generator,
+        }
+    }
+}
+
+impl MemoryWteTracker {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<G> WteTracker for MemoryWteTracker<G>
+where
+    G: Generator<DateTime<Utc>> + Send + Sync,
+{
+    type Error = Infallible;
+
+    async fn track_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
+        let shasum = sha256(wte.jwt().0.as_bytes());
+
+        // We don't have to check for expiry of the WTE, because its type guarantees that it has already been verified.
+        if self.seen_wtes.contains_key(&shasum) {
+            Ok(true)
+        } else {
+            self.seen_wtes.insert(shasum, wte.payload().contents.attributes.exp);
+            Ok(false)
+        }
+    }
+
+    async fn cleanup(&self) -> Result<(), Self::Error> {
+        let now = self.time.generate();
+        self.seen_wtes.retain(|_, exp| *exp > now);
+
+        Ok(())
+    }
+}
+
 #[cfg(any(test, feature = "test"))]
 pub mod test {
     use std::fmt::Debug;
 
     use assert_matches::assert_matches;
+    use p256::ecdsa::SigningKey;
     use parking_lot::RwLock;
+    use rand_core::OsRng;
+
+    use wallet_common::{keys::software_key_factory::SoftwareKeyFactory, wte::WTE_EXPIRY};
+
+    use crate::{issuance_session::mock_wte, issuer::WTE_JWT_VALIDATIONS};
 
     use super::*;
 
@@ -457,6 +524,29 @@ pub mod test {
 
         assert!(session.is_none());
     }
+
+    pub async fn test_wte_tracker(wte_tracker: &impl WteTracker, mock_time: &RwLock<DateTime<Utc>>) {
+        let key_factory = SoftwareKeyFactory::new(Default::default());
+        let wte_signing_key = SigningKey::random(&mut OsRng);
+
+        let wte = mock_wte(&key_factory, &wte_signing_key).await.jwt;
+
+        let wte = VerifiedJwt::try_new(wte, &wte_signing_key.verifying_key().into(), &WTE_JWT_VALIDATIONS).unwrap();
+
+        // Checking our WTE for the first time means we haven't seen it before
+        assert!(!wte_tracker.track_wte(&wte).await.unwrap());
+
+        // Now we have seen it
+        assert!(wte_tracker.track_wte(&wte).await.unwrap());
+
+        // Advance time past the expiry of the WTE and run the cleanup job
+        let t2 = *mock_time.read() + WTE_EXPIRY * 2;
+        *mock_time.write() = t2;
+        wte_tracker.cleanup().await.unwrap();
+
+        // The expired WTE has been removed by the cleanup job
+        assert!(!wte_tracker.track_wte(&wte).await.unwrap());
+    }
 }
 
 #[cfg(test)]
@@ -558,5 +648,13 @@ mod tests {
 
         test::test_session_store_cleanup_failed_deletion(&session_store, &session_store.timeouts, mock_time.as_ref())
             .await;
+    }
+
+    #[tokio::test]
+    async fn test_memory_wte_tracker() {
+        let time_generator = MockTimeGenerator::default();
+        let mock_time = Arc::clone(&time_generator.time);
+
+        test::test_wte_tracker(&MemoryWteTracker::new_with_time(time_generator), mock_time.as_ref()).await;
     }
 }

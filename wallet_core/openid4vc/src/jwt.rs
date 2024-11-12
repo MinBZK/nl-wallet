@@ -8,6 +8,7 @@ use std::collections::HashSet;
 
 use base64::{prelude::*, DecodeError};
 use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::JoseError;
 use jsonwebtoken::{Algorithm, Header, Validation};
@@ -30,11 +31,11 @@ use wallet_common::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct JwtCredential {
+pub struct JwtCredential<T = IndexMap<String, serde_json::Value>> {
     pub(crate) private_key_id: String,
     pub(crate) key_type: CredentialKeyType,
 
-    pub jwt: Jwt<JwtCredentialClaims>,
+    pub jwt: Jwt<JwtCredentialClaims<T>>,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -55,12 +56,15 @@ pub enum JwtCredentialError {
     Jwt(#[from] JwtError),
 }
 
-impl JwtCredential {
+impl<T> JwtCredential<T>
+where
+    T: DeserializeOwned,
+{
     pub fn new<K: CredentialEcdsaKey>(
         private_key_id: String,
-        jwt: Jwt<JwtCredentialClaims>,
+        jwt: Jwt<JwtCredentialClaims<T>>,
         pubkey: &VerifyingKey,
-    ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
+    ) -> Result<(Self, JwtCredentialClaims<T>), JwtCredentialError> {
         let claims = jwt.parse_and_verify(&pubkey.into(), &validations())?;
 
         let cred = Self {
@@ -74,9 +78,9 @@ impl JwtCredential {
 
     pub fn new_verify_against_trust_anchors<K: CredentialEcdsaKey>(
         private_key_id: String,
-        jwt: Jwt<JwtCredentialClaims>,
+        jwt: Jwt<JwtCredentialClaims<T>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(Self, JwtCredentialClaims), JwtCredentialError> {
+    ) -> Result<(Self, JwtCredentialClaims<T>), JwtCredentialError> {
         // Get the `iss` field from the claims so we can find the trust anchor with which to verify the JWT.
         // We have to read this from the JWT before we have verified it, but doing that for the purposes of
         // deciding with which key to verify the JWT is common practice and not a security issue
@@ -108,8 +112,8 @@ impl JwtCredential {
         Ok((cred, claims))
     }
 
-    #[cfg(feature = "test")]
-    pub fn new_unverified<K: CredentialEcdsaKey>(private_key_id: String, jwt: Jwt<JwtCredentialClaims>) -> Self {
+    #[cfg(any(feature = "test", test))]
+    pub fn new_unverified<K: CredentialEcdsaKey>(private_key_id: String, jwt: Jwt<JwtCredentialClaims<T>>) -> Self {
         Self {
             private_key_id,
             key_type: K::KEY_TYPE,
@@ -117,7 +121,7 @@ impl JwtCredential {
         }
     }
 
-    pub fn jwt_claims(&self) -> JwtCredentialClaims {
+    pub fn jwt_claims(&self) -> JwtCredentialClaims<T> {
         // Unwrapping is safe here because this was checked in new()
         let (_, contents) = self.jwt.dangerous_parse_unverified().unwrap();
         contents
@@ -229,6 +233,7 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use indexmap::IndexMap;
     use serde_json::json;
 
     use wallet_common::{
@@ -302,7 +307,7 @@ mod tests {
                 .unwrap()
                 .to_string(),
             None,
-            Default::default(),
+            IndexMap::<String, serde_json::Value>::default(),
         )
         .await
         .unwrap();

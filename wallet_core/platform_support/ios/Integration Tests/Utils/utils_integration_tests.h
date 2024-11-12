@@ -8,6 +8,6 @@
 #ifndef utils_integration_tests_h
 #define utils_integration_tests_h
 
-bool utils_test_get_storage_path();
+void utils_test_get_storage_path();
 
 #endif /* utils_integration_tests_h */

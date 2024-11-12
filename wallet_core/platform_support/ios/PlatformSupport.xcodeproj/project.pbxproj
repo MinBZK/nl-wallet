@@ -11,12 +11,15 @@
 		6133004D29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6133004C29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift */; };
 		6150E5F129A8B7E60036E736 /* SigningKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5F029A8B7E60036E736 /* SigningKey.swift */; };
 		6150E5F429A8BA540036E736 /* SecureEnclaveKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5F329A8BA540036E736 /* SecureEnclaveKey.swift */; };
+		616158D32CCA78D0009F81BF /* AttestedKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 616158D22CCA78D0009F81BF /* AttestedKey.swift */; };
 		6173AF8B29D72F64009C715F /* UtilitiesError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6173AF8A29D72F64009C715F /* UtilitiesError+From.swift */; };
 		6173AF8F29D73164009C715F /* PlatformUtilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6173AF8E29D73164009C715F /* PlatformUtilityTests.swift */; };
 		6173AF9129D7326F009C715F /* UtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6173AF9029D7326F009C715F /* UtilsTests.swift */; };
 		61775ACC29D5C12A00582FAE /* platform_support.udl in Sources */ = {isa = PBXBuildFile; fileRef = 61775AC829D5C00F00582FAE /* platform_support.udl */; };
 		6179FBDD29ACF2470064D2F5 /* SecureEnclaveKeyError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6179FBDC29ACF2470064D2F5 /* SecureEnclaveKeyError.swift */; };
 		6179FBDF29ACF87B0064D2F5 /* KeyStoreError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6179FBDE29ACF87B0064D2F5 /* KeyStoreError+From.swift */; };
+		619CA2D82CCF947E009A10CF /* AttestedKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 619CA2D72CCF947E009A10CF /* AttestedKeyTests.swift */; };
+		61B02FB72CCAA59F00B775B6 /* AttestedKeyError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B02FB62CCAA59F00B775B6 /* AttestedKeyError+From.swift */; };
 		61B7756029D724C20076A7F5 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B7755F29D724C20076A7F5 /* Utilities.swift */; };
 		61B7756329D725060076A7F5 /* PlatformUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61B7756229D725060076A7F5 /* PlatformUtility.swift */; };
 		61C878A429E86E5A000AEC24 /* PlatformSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C878A329E86E5A000AEC24 /* PlatformSupport.swift */; };
@@ -79,6 +82,7 @@
 		6150E5E829A8B0140036E736 /* PlatformSupport-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "PlatformSupport-Bridging-Header.h"; sourceTree = "<group>"; };
 		6150E5F029A8B7E60036E736 /* SigningKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SigningKey.swift; sourceTree = "<group>"; };
 		6150E5F329A8BA540036E736 /* SecureEnclaveKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKey.swift; sourceTree = "<group>"; };
+		616158D22CCA78D0009F81BF /* AttestedKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttestedKey.swift; sourceTree = "<group>"; };
 		6173AF8A29D72F64009C715F /* UtilitiesError+From.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UtilitiesError+From.swift"; sourceTree = "<group>"; };
 		6173AF8E29D73164009C715F /* PlatformUtilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformUtilityTests.swift; sourceTree = "<group>"; };
 		6173AF9029D7326F009C715F /* UtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilsTests.swift; sourceTree = "<group>"; };
@@ -87,6 +91,9 @@
 		61775ACB29D5C0D200582FAE /* platform_support.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = platform_support.swift; path = ../../swift/platform_support.swift; sourceTree = "<group>"; };
 		6179FBDC29ACF2470064D2F5 /* SecureEnclaveKeyError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKeyError.swift; sourceTree = "<group>"; };
 		6179FBDE29ACF87B0064D2F5 /* KeyStoreError+From.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyStoreError+From.swift"; sourceTree = "<group>"; };
+		619CA2D62CCF93F6009A10CF /* attested_key_integration_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = attested_key_integration_tests.h; sourceTree = "<group>"; };
+		619CA2D72CCF947E009A10CF /* AttestedKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttestedKeyTests.swift; sourceTree = "<group>"; };
+		61B02FB62CCAA59F00B775B6 /* AttestedKeyError+From.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttestedKeyError+From.swift"; sourceTree = "<group>"; };
 		61B7755F29D724C20076A7F5 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		61B7756229D725060076A7F5 /* PlatformUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformUtility.swift; sourceTree = "<group>"; };
 		61C878A329E86E5A000AEC24 /* PlatformSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformSupport.swift; sourceTree = "<group>"; };
@@ -139,6 +146,7 @@
 		6133004329A8E350004D9CC7 /* Integration Tests */ = {
 			isa = PBXGroup;
 			children = (
+				619CA2D52CCF93E1009A10CF /* AttestedKey */,
 				6173AF8C29D73114009C715F /* HWKeyStore */,
 				61D7711E29A933F7000CDF5E /* Integration-Tests-Bridging-Header.h */,
 				6173AF8D29D73137009C715F /* Utils */,
@@ -174,6 +182,23 @@
 			path = SecureEnclaveKey;
 			sourceTree = "<group>";
 		};
+		616158D02CCA7884009F81BF /* AttestedKey */ = {
+			isa = PBXGroup;
+			children = (
+				616158D12CCA789A009F81BF /* Bridge */,
+			);
+			path = AttestedKey;
+			sourceTree = "<group>";
+		};
+		616158D12CCA789A009F81BF /* Bridge */ = {
+			isa = PBXGroup;
+			children = (
+				616158D22CCA78D0009F81BF /* AttestedKey.swift */,
+				61B02FB62CCAA59F00B775B6 /* AttestedKeyError+From.swift */,
+			);
+			path = Bridge;
+			sourceTree = "<group>";
+		};
 		6173AF8C29D73114009C715F /* HWKeyStore */ = {
 			isa = PBXGroup;
 			children = (
@@ -194,13 +219,22 @@
 			path = Utils;
 			sourceTree = "<group>";
 		};
+		619CA2D52CCF93E1009A10CF /* AttestedKey */ = {
+			isa = PBXGroup;
+			children = (
+				619CA2D62CCF93F6009A10CF /* attested_key_integration_tests.h */,
+				619CA2D72CCF947E009A10CF /* AttestedKeyTests.swift */,
+			);
+			path = AttestedKey;
+			sourceTree = "<group>";
+		};
 		61B7755B29D724990076A7F5 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
 				61B7755E29D724B10076A7F5 /* Bridge */,
 				61B7756129D724C60076A7F5 /* PlatformUtility */,
 			);
-			name = Utils;
+			path = Utils;
 			sourceTree = "<group>";
 		};
 		61B7755E29D724B10076A7F5 /* Bridge */ = {
@@ -209,7 +243,7 @@
 				61B7755F29D724C20076A7F5 /* Utilities.swift */,
 				6173AF8A29D72F64009C715F /* UtilitiesError+From.swift */,
 			);
-			name = Bridge;
+			path = Bridge;
 			sourceTree = "<group>";
 		};
 		61B7756129D724C60076A7F5 /* PlatformUtility */ = {
@@ -217,7 +251,7 @@
 			children = (
 				61B7756229D725060076A7F5 /* PlatformUtility.swift */,
 			);
-			name = PlatformUtility;
+			path = PlatformUtility;
 			sourceTree = "<group>";
 		};
 		61C1FFFD29B7726700F1D795 /* HWKeyStore */ = {
@@ -262,6 +296,7 @@
 		61F5336029A8AB4100624E46 /* PlatformSupport */ = {
 			isa = PBXGroup;
 			children = (
+				616158D02CCA7884009F81BF /* AttestedKey */,
 				61B7755B29D724990076A7F5 /* Utils */,
 				61C1FFFD29B7726700F1D795 /* HWKeyStore */,
 				6150E5E829A8B0140036E736 /* PlatformSupport-Bridging-Header.h */,
@@ -338,7 +373,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1420;
-				LastUpgradeCheck = 1520;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					6133004129A8E350004D9CC7 = {
 						CreatedOnToolsVersion = 14.2;
@@ -407,7 +442,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nunset SDKROOT && unset IPHONEOS_DEPLOYMENT_TARGET # fix for sqlx-macros/ring cross-compilation bug\n\nCARGO_FLAGS=\"--package platform_support\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../Cargo.toml\" --features hardware_integration_test --lib ${CARGO_FLAGS}\n";
+			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nCARGO_FLAGS=\"--package platform_support\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../Cargo.toml\" --features hardware_integration_test --lib ${CARGO_FLAGS}\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -420,6 +455,7 @@
 				61D577CE29A92A8800030578 /* HWKeyStoreTests.swift in Sources */,
 				6133004D29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift in Sources */,
 				6173AF9129D7326F009C715F /* UtilsTests.swift in Sources */,
+				619CA2D82CCF947E009A10CF /* AttestedKeyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -438,6 +474,8 @@
 			files = (
 				61775ACC29D5C12A00582FAE /* platform_support.udl in Sources */,
 				6150E5F129A8B7E60036E736 /* SigningKey.swift in Sources */,
+				61B02FB72CCAA59F00B775B6 /* AttestedKeyError+From.swift in Sources */,
+				616158D32CCA78D0009F81BF /* AttestedKey.swift in Sources */,
 				61D972A129E068C200924F93 /* EncryptionKey.swift in Sources */,
 				6179FBDF29ACF87B0064D2F5 /* KeyStoreError+From.swift in Sources */,
 				6179FBDD29ACF2470064D2F5 /* SecureEnclaveKeyError.swift in Sources */,
@@ -472,19 +510,22 @@
 				CARGO_TARGETS = "";
 				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
 				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../target/aarch64-apple-ios/debug/libplatform_support.a";
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../target/aarch64-apple-ios-sim/debug/libplatform_support.a";
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../target/x86_64-apple-ios/debug/libplatform_support.a";
-				PRODUCT_BUNDLE_IDENTIFIER = "nl.rijksoverheid.edi.wallet.hw-keystore.integration-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Integration Tests/Integration-Tests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -500,19 +541,22 @@
 				CARGO_TARGETS = "";
 				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
 				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../target/aarch64-apple-ios/release/libplatform_support.a";
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../target/aarch64-apple-ios-sim/release/libplatform_support.a";
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../target/x86_64-apple-ios/release/libplatform_support.a";
-				PRODUCT_BUNDLE_IDENTIFIER = "nl.rijksoverheid.edi.wallet.hw-keystore.integration-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Integration Tests/Integration-Tests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -525,6 +569,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -566,7 +611,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -583,6 +628,10 @@
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "PlatformSupport/PlatformSupport-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -596,19 +645,22 @@
 				CARGO_TARGETS = "";
 				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
 				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 1.0;
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../target/aarch64-apple-ios/release/libplatform_support.a";
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../target/aarch64-apple-ios-sim/release/libplatform_support.a";
 				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../target/x86_64-apple-ios/release/libplatform_support.a";
-				PRODUCT_BUNDLE_IDENTIFIER = "nl.rijksoverheid.edi.wallet.hw-keystore.integration-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "Integration Tests/Integration-Tests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -620,21 +672,27 @@
 		617E460A2A2F7D2900F33256 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Integration Tests Host App/Info.plist";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "nl.rijksoverheid.edi.wallet.integration-tests-host";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -644,21 +702,27 @@
 		61D577C929A8FD7C00030578 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Integration Tests Host App/Info.plist";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "nl.rijksoverheid.edi.wallet.integration-tests-host";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -668,21 +732,27 @@
 		61D577CA29A8FD7C00030578 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Integration Tests Host App/Info.plist";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "nl.rijksoverheid.edi.wallet.integration-tests-host";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -693,6 +763,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -740,7 +811,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -754,6 +825,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -795,7 +867,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -813,6 +885,10 @@
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "PlatformSupport/PlatformSupport-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -826,6 +902,10 @@
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "PlatformSupport/PlatformSupport-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

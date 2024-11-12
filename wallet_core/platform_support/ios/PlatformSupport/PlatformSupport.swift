@@ -12,13 +12,20 @@ public final class PlatformSupport {
 
     private let signingKey: SigningKey
     private let encryptionKey: EncryptionKey
+    private let attestedKey: AttestedKey
     private let utilities: Utilities
 
     private init() {
         self.signingKey = SigningKey()
         self.encryptionKey = EncryptionKey()
+        self.attestedKey = AttestedKey()
         self.utilities = Utilities()
 
-        initPlatformSupport(signingKey: self.signingKey, encryptionKey: self.encryptionKey, utils: self.utilities)
+        initPlatformSupport(
+            signingKey: self.signingKey,
+            encryptionKey: self.encryptionKey,
+            attestedKey: self.attestedKey,
+            utils: self.utilities
+        )
     }
 }

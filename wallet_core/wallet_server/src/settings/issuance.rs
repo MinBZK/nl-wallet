@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 
 use nl_wallet_mdoc::utils::x509::Certificate;
-use wallet_common::{reqwest::deserialize_certificates, urls::BaseUrl};
+use wallet_common::{account::serialization::DerVerifyingKey, reqwest::deserialize_certificates, urls::BaseUrl};
 
 use super::*;
 use crate::pid::{
@@ -12,6 +12,7 @@ use crate::pid::{
     brp::client::HttpBrpClient,
 };
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Issuer {
     /// Issuer private keys index per doctype
@@ -27,6 +28,8 @@ pub struct Issuer {
     pub digid: Digid,
 
     pub brp_server: BaseUrl,
+
+    pub wte_issuer_pubkey: DerVerifyingKey,
 }
 
 #[derive(Clone, Deserialize)]

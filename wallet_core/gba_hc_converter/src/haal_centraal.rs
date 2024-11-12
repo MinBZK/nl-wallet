@@ -50,10 +50,8 @@ pub enum Element {
     Huisnummer = 1120,
     Huisletter = 1130,
     Huisnummertoevoeging = 1140,
-    // TODO: we currently request <ns0:item>81150</ns0:item>, but don't map here; remove or add here?
     Postcode = 1160,
     Woonplaats = 1170,
-    // TODO: we currently request <ns0:item>81210</ns0:item>, but don't map here; remove or add here?
     SoortVerbintenis = 1510,
     IndicatieNaamgebruik = 6110,
     RedenOpnameNationaliteit = 6310,
@@ -207,9 +205,10 @@ impl TryFrom<GbaResponse> for Vec<GbaPerson> {
 
         let person = GbaPerson {
             bsn: cat1.elementen.get_mandatory(Element::Bsn.code())?,
-            gender: GbaCode {
-                code: cat1.elementen.get_mandatory(Element::Geslacht.code())?,
-            },
+            gender: cat1
+                .elementen
+                .get_optional(Element::Geslacht.code())
+                .map(|code| GbaCode { code }),
             name: cat1.try_into()?,
             birth: cat1.try_into()?,
             nationalities: cat4s
@@ -413,7 +412,7 @@ pub struct GbaPerson {
     bsn: String,
 
     #[serde(rename = "geslacht")]
-    gender: GbaCode,
+    gender: Option<GbaCode>,
 
     #[serde(rename = "naam")]
     name: GbaName,
