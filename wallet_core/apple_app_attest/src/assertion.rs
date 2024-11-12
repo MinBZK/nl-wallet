@@ -6,7 +6,7 @@ use serde::Deserialize;
 use serde_with::{serde_as, TryFromInto};
 use sha2::{Digest, Sha256};
 
-use crate::{app_identifier::AppIdentifier, auth_data::AuthenticatorDataWithSource};
+use crate::{app_identifier::AppIdentifier, auth_data::TruncatedAuthenticatorDataWithSource};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AssertionError {
@@ -80,7 +80,7 @@ pub struct Assertion {
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
     pub signature: DerSignature,
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
-    pub authenticator_data: AuthenticatorDataWithSource<true>,
+    pub authenticator_data: TruncatedAuthenticatorDataWithSource,
 }
 
 impl Assertion {

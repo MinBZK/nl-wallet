@@ -8,8 +8,8 @@ use webpki::types::TrustAnchor;
 
 use crate::{
     app_identifier::AppIdentifier,
-    auth_data::AuthenticatorDataWithSource,
     certificates::{CertificateError, DerX509CertificateChain},
+    FullAuthenticatorDataWithSource,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -79,7 +79,7 @@ pub struct Attestation {
     #[serde(rename = "attStmt")]
     pub attestation_statement: AttestationStatement,
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
-    pub auth_data: AuthenticatorDataWithSource<false>,
+    pub auth_data: FullAuthenticatorDataWithSource,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
