@@ -17,7 +17,7 @@ abstract class KeyBridge(val context: Context) {
     }
 
     /**
-     * Verifies that the device currently unlocked. Something we require
+     * Verifies that the device is currently unlocked. Something we require
      * before creating or fetching a key.
      *
      * Note: Ideally we configure the [KeyGenParameterSpec.Builder]
@@ -29,6 +29,26 @@ abstract class KeyBridge(val context: Context) {
     fun verifyDeviceUnlocked() {
         if (context.isDeviceLocked()) {
             throw IllegalStateException("Key interaction not allowed while device is locked")
+        }
+    }
+
+    /**
+     * Verifies that the keystore does not contain a key with [keyAlias].
+     */
+    @Throws(IllegalStateException::class)
+    fun verifyKeyDoesNotExist(keyAlias: String) {
+        if (keyExists(keyAlias)) {
+            throw IllegalStateException("A key already exists with alias: `$keyAlias`")
+        }
+    }
+
+    /**
+     * Verifies that the keystore does contain a key with [keyAlias].
+     */
+    @Throws(IllegalStateException::class)
+    fun verifyKeyExists(keyAlias: String) {
+        if (!keyExists(keyAlias)) {
+            throw IllegalStateException("Key not found for alias: `$keyAlias`")
         }
     }
 

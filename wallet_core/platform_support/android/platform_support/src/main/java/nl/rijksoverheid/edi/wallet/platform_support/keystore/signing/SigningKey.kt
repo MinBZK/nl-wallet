@@ -2,6 +2,7 @@
 package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import android.content.Context
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
@@ -23,7 +24,6 @@ import java.security.Signature
 import java.security.UnrecoverableKeyException
 import java.security.spec.ECGenParameterSpec
 
-
 @VisibleForTesting
 const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
 
@@ -35,11 +35,18 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
             NoSuchAlgorithmException::class,
             IllegalStateException::class
         )
-        fun createKey(context: Context, keyAlias: String) {
+        fun createKey(context: Context, keyAlias: String, challenge: List<UByte>? = null) {
             val spec = KeyGenParameterSpec.Builder(keyAlias, KeyProperties.PURPOSE_SIGN)
                 .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
                 .setDigests(KeyProperties.DIGEST_SHA256)
                 .setStrongBoxBackedCompat(context, true)
+                .also { spec ->
+                    challenge?.let {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            spec.setAttestationChallenge(it.toByteArray())
+                        }
+                    }
+                }
 
             KeyPairGenerator.getInstance(
                 KeyProperties.KEY_ALGORITHM_EC,
