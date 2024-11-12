@@ -7,7 +7,6 @@ class PersonalizePidPreviewScreen : MobileActions() {
     private val screen = find.byValueKey("personalizePidPreviewPage")
 
     private val birthText = find.byText("24 maart 2000")
-    private val genderText = find.byText("Vrouw")
     private val addressText = find.byText("Groenewoudsedijk 51, 3528BG Utrecht")
 
     private val acceptButton = find.byValueKey("acceptButton")
@@ -16,7 +15,7 @@ class PersonalizePidPreviewScreen : MobileActions() {
     fun visible() = isElementVisible(screen)
 
     fun humanReadablePidDataVisible() =
-        isElementVisible(birthText) && isElementVisible(genderText) && isElementVisible(addressText)
+        isElementVisible(birthText) && isElementVisible(addressText)
 
     fun confirmButtonsVisible() = isElementVisible(acceptButton) && isElementVisible(rejectButton)
 
