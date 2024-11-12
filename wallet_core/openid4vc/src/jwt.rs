@@ -239,7 +239,7 @@ mod tests {
     use wallet_common::{
         generator::TimeGenerator,
         jwt::JwtCredentialClaims,
-        keys::{software::SoftwareEcdsaKey, EcdsaKey, StoredByIdentifier},
+        keys::{software::SoftwareEcdsaKey, EcdsaKey},
     };
 
     use nl_wallet_mdoc::{server_keys::KeyPair, utils::x509::CertificateError};
@@ -292,7 +292,7 @@ mod tests {
     #[tokio::test]
     async fn test_jwt_credential() {
         let holder_key_id = "key";
-        let holder_keypair = SoftwareEcdsaKey::new_unique(holder_key_id).unwrap();
+        let holder_keypair = SoftwareEcdsaKey::new_random(holder_key_id.to_string());
         let issuer_keypair = KeyPair::generate_issuer_mock_ca().unwrap();
 
         // Produce a JWT with `JwtCredentialClaims` in it
