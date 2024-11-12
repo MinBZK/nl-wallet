@@ -1,7 +1,6 @@
 .zap-scan-common-setup:
   extends: .env-ont-k8s
-#  rules: !reference [ .default-branch, rules ]
-  when: manual
+  rules: !reference [ .default-branch, rules ]
   allow_failure: true
   image:
     name: "${HARBOR_REGISTRY}/logius-wallet/zap-yq-jq:latest"
@@ -33,9 +32,9 @@
 
 zap-scan-rp:
   extends: .zap-scan-common-setup
-#  needs:
-#    - job: deploy-mock-relying-party-ont
-#      artifacts: false
+  needs:
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
   script:
     - !reference [.run-zap-scan, script]
   variables:
@@ -52,9 +51,9 @@ zap-scan-config-server:
 
 zap-scan-wallet-provider:
   extends: .zap-scan-common-setup
-#  needs:
-#    - job: deploy-wallet-provider-ont
-#      artifacts: false
+  needs:
+    - job: deploy-wallet-provider-ont
+      artifacts: false
   script:
     - envsubst < deploy/zap/config/WALLET_PROVIDER_urls.txt > /zap/WALLET_PROVIDER_urls.txt
     - !reference [.run-zap-scan, script]
@@ -64,9 +63,9 @@ zap-scan-wallet-provider:
 
 zap-scan-pid-issuer:
   extends: .zap-scan-common-setup
-#  needs:
-#    - job: deploy-pid-issuer-ont
-#      artifacts: false
+  needs:
+    - job: deploy-pid-issuer-ont
+      artifacts: false
   script:
     - envsubst < deploy/zap/config/PID_ISSUER_urls.txt > /zap/PID_ISSUER_urls.txt
     - !reference [.run-zap-scan, script]
@@ -76,9 +75,9 @@ zap-scan-pid-issuer:
 
 zap-scan-internal-wallet-server:
   extends: .zap-scan-common-setup
-#  needs:
-#    - job: deploy-mock-relying-party-ont
-#      artifacts: false
+  needs:
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
   script:
     - !reference [.get-session-token, script]
     - |    
@@ -94,9 +93,9 @@ zap-scan-internal-wallet-server:
 
 zap-scan-public-wallet-server:
   extends: .zap-scan-common-setup
-#  needs:
-#    - job: deploy-mock-relying-party-ont
-#      artifacts: false
+  needs:
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
   script:
     - !reference [.get-session-token, script]
     - |   
