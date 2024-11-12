@@ -147,7 +147,12 @@ where
         Ok(())
     }
 
-    pub async fn begin_change_pin(&self, wallet_id: String, old_pin: String, new_pin: String) -> ChangePinResult<()> {
+    pub async fn begin_change_pin(
+        &self,
+        wallet_id: String,
+        old_pin: String,
+        new_pin: String,
+    ) -> ChangePinResult<(Vec<u8>, WalletCertificate)> {
         tracing::info!("Start change PIN transaction");
 
         tracing::info!("Ensure no PIN change is in progress");
@@ -167,9 +172,9 @@ where
             Ok(new_pin_certificate) => {
                 self.storage.store_change_pin_state(State::Commit).await?;
                 self.storage
-                    .change_pin(wallet_id, new_pin_salt, new_pin_certificate)
+                    .change_pin(wallet_id, new_pin_salt.clone(), new_pin_certificate.clone())
                     .await?;
-                Ok(())
+                Ok((new_pin_salt, new_pin_certificate))
             }
             Err(error) if error.is_network_error() => {
                 self.storage.store_change_pin_state(State::Rollback).await?;
@@ -263,11 +268,13 @@ mod test {
 
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
-        let actual = change_pin_session
+        let (new_pin_salt, new_wallet_certificate) = change_pin_session
             .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
-            .await;
+            .await
+            .expect("begin changing PIN should succeed");
 
-        assert_matches!(actual, Ok(()));
+        assert!(!new_pin_salt.is_empty());
+        assert_eq!(new_wallet_certificate.0, "thisisdefinitelyvalid");
     }
 
     #[tokio::test]

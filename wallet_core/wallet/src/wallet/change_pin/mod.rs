@@ -28,7 +28,7 @@ where
         info!("Checking if registered");
         let registration = self
             .registration
-            .as_ref()
+            .as_mut()
             .ok_or_else(|| ChangePinError::NotRegistered)?;
 
         info!("Checking if locked");
@@ -49,12 +49,12 @@ where
         );
 
         let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
-        session
+        let (new_pin_salt, new_wallet_certificate) = session
             .begin_change_pin(registration.data.wallet_id.clone(), old_pin, new_pin)
             .await?;
 
-        info!("Update PIN registration data on Wallet");
-        self.update_registration_from_db().await?;
+        registration.data.pin_salt = new_pin_salt;
+        registration.data.wallet_certificate = new_wallet_certificate;
 
         info!("PIN change started");
 
