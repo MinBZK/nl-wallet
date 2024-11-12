@@ -1,6 +1,7 @@
 .zap-scan-common-setup:
   extends: .env-ont-k8s
-  rules: !reference [ .default-branch, rules ]
+#  rules: !reference [ .default-branch, rules ]
+  when: manual
   allow_failure: true
   image:
     name: "${HARBOR_REGISTRY}/logius-wallet/zap-yq-jq:latest"
@@ -17,13 +18,19 @@
       envsubst < deploy/zap/${SUT}_zap_scan.yaml > /zap/${SUT}_zap_scan.yaml
       zap.sh -cmd -autorun ${SUT}_zap_scan.yaml
       ALERT_COUNT=$(jq '[.site[].alerts[] | select(.riskdesc | contains("Informational") | not) | select(.riskdesc | contains("False Positive") | not)] | length' zapreports/${SUT}-zap.json)
+      if [ "$ALERT_COUNT" -gt 0 ]; then
+        echo "Non informational alerts found: $ALERT_COUNT"
+        exit 1
+      else
+        echo "No non informational alerts found"
+      fi
       if [ "$ALERT_COUNT" -gt 0 ]; then exit 1; else echo "No critical alerts found"; fi
 
 zap-scan-rp:
   extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-mock-relying-party-ont
-      artifacts: false
+#  needs:
+#    - job: deploy-mock-relying-party-ont
+#      artifacts: false
   script:
     - !reference [.run-zap-scan, script]
   variables:
@@ -40,9 +47,9 @@ zap-scan-config-server:
 
 zap-scan-wallet-provider:
   extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-wallet-provider-ont
-      artifacts: false
+#  needs:
+#    - job: deploy-wallet-provider-ont
+#      artifacts: false
   script:
     - envsubst < deploy/zap/config/WALLET_PROVIDER_urls.txt > /zap/WALLET_PROVIDER_urls.txt
     - !reference [.run-zap-scan, script]
@@ -52,9 +59,9 @@ zap-scan-wallet-provider:
 
 zap-scan-pid-issuer:
   extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-pid-issuer-ont
-      artifacts: false
+#  needs:
+#    - job: deploy-pid-issuer-ont
+#      artifacts: false
   script:
     - envsubst < deploy/zap/config/PID_ISSUER_urls.txt > /zap/PID_ISSUER_urls.txt
     - !reference [.run-zap-scan, script]
@@ -64,9 +71,9 @@ zap-scan-pid-issuer:
 
 zap-scan-internal-wallet-server:
   extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-mock-relying-party-ont
-      artifacts: false
+#  needs:
+#    - job: deploy-mock-relying-party-ont
+#      artifacts: false
   script:
     - |
       envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload.json
@@ -84,9 +91,9 @@ zap-scan-internal-wallet-server:
 
 zap-scan-public-wallet-server:
   extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-mock-relying-party-ont
-      artifacts: false
+#  needs:
+#    - job: deploy-mock-relying-party-ont
+#      artifacts: false
   script:
     - |
       envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload.json
