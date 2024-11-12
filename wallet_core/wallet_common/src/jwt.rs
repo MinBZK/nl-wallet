@@ -2,7 +2,6 @@ use std::{collections::HashMap, marker::PhantomData, str::FromStr, sync::LazyLoc
 
 use base64::prelude::*;
 use chrono::{serde::ts_seconds, DateTime, Utc};
-use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::{
     jwk::{self, EllipticCurve, Jwk},
@@ -349,7 +348,7 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
 
 /// Claims of a `JwtCredential`: the body of the JWT.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialClaims<T = IndexMap<String, serde_json::Value>> {
+pub struct JwtCredentialClaims<T> {
     #[serde(rename = "cnf")]
     pub confirmation: JwtCredentialConfirmation,
 
@@ -397,7 +396,7 @@ where
 /// key (`Cnf`): the attributes and metadata of the credential.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialContents<T = IndexMap<String, serde_json::Value>> {
+pub struct JwtCredentialContents<T> {
     pub iss: String,
 
     #[serde(flatten)]

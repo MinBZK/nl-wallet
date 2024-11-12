@@ -8,7 +8,6 @@ use std::collections::HashSet;
 
 use base64::{prelude::*, DecodeError};
 use chrono::{DateTime, Utc};
-use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::JoseError;
 use jsonwebtoken::{Algorithm, Header, Validation};
@@ -18,19 +17,19 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::{
-    holder::{map_difference, IssuedAttributesMismatch, TrustAnchor},
+    holder::TrustAnchor,
     server_keys::KeyPair,
     utils::x509::{Certificate, CertificateError, CertificateUsage},
 };
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
-    jwt::{jwk_to_p256, validations, JwkConversionError, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
+    jwt::{jwk_to_p256, validations, JwkConversionError, Jwt, JwtCredentialClaims, JwtError},
     keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct JwtCredential<T = IndexMap<String, serde_json::Value>> {
+pub struct JwtCredential<T> {
     pub(crate) private_key_id: String,
     pub(crate) key_type: CredentialKeyType,
 
@@ -93,20 +92,6 @@ where
     pub(crate) fn private_key<K>(&self, key_factory: &impl KeyFactory<Key = K>) -> Result<K, JwkConversionError> {
         Ok(key_factory.generate_existing(&self.private_key_id, jwk_to_p256(&self.jwt_claims().confirmation.jwk)?))
     }
-}
-
-pub fn compare_jwt_attributes(
-    cred: &JwtCredentialContents,
-    other: &JwtCredentialContents,
-) -> Result<(), IssuedAttributesMismatch<String>> {
-    let missing = map_difference(&other.attributes, &cred.attributes);
-    let unexpected = map_difference(&cred.attributes, &other.attributes);
-
-    if !missing.is_empty() || !unexpected.is_empty() {
-        return Err(IssuedAttributesMismatch { missing, unexpected });
-    }
-
-    Ok(())
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
