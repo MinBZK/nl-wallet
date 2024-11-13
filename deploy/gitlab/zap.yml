@@ -80,7 +80,7 @@ zap-scan-internal-wallet-server:
       artifacts: false
   script:
     - !reference [.get-session-token, script]
-    - |    
+    - |
       yq e ".servers[0].url=\"${INTERNAL_WALLET_SERVER_URL}\"" -i documentation/api/wallet-disclosure-private.openapi.yaml
       sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/api/wallet-disclosure-private.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/api/wallet-disclosure-private.openapi.yaml
@@ -98,7 +98,7 @@ zap-scan-public-wallet-server:
       artifacts: false
   script:
     - !reference [.get-session-token, script]
-    - |   
+    - |
       yq e ".servers[0].url=\"${PUBLIC_WALLET_SERVER_URL}\"" -i documentation/api/wallet-disclosure-public.openapi.yaml
       sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/api/wallet-disclosure-public.openapi.yaml
       sed -i "s|application/x-www-form-urlencoded|application/json|g" documentation/api/wallet-disclosure-public.openapi.yaml
