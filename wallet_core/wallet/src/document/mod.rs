@@ -11,13 +11,18 @@ use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 #[cfg(feature = "snapshot_test")]
 use serde::Serialize;
 
-pub use mdoc::{AttributeValueType, DisclosureType, DocumentMdocError};
+pub use mdoc::AttributeValueType;
+pub use mdoc::DisclosureType;
+pub use mdoc::DocumentMdocError;
 
 #[cfg(test)]
-pub use mdoc::tests::{
-    create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
-    create_minimal_unsigned_pid_mdoc,
-};
+pub use mdoc::tests::create_full_unsigned_address_mdoc;
+#[cfg(test)]
+pub use mdoc::tests::create_full_unsigned_pid_mdoc;
+#[cfg(test)]
+pub use mdoc::tests::create_minimal_unsigned_address_mdoc;
+#[cfg(test)]
+pub use mdoc::tests::create_minimal_unsigned_pid_mdoc;
 
 pub const PID_DOCTYPE: &str = "com.example.pid";
 const ADDRESS_DOCTYPE: &str = "com.example.address";

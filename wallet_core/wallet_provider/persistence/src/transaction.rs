@@ -1,10 +1,14 @@
-use sea_orm::{DatabaseTransaction, TransactionTrait};
+use sea_orm::DatabaseTransaction;
+use sea_orm::TransactionTrait;
 use tokio::task;
 use tracing::error;
 
-use wallet_provider_domain::repository::{Committable, PersistenceError, TransactionStarter};
+use wallet_provider_domain::repository::Committable;
+use wallet_provider_domain::repository::PersistenceError;
+use wallet_provider_domain::repository::TransactionStarter;
 
-use crate::{database::Db, PersistenceConnection};
+use crate::database::Db;
+use crate::PersistenceConnection;
 
 /// This wraps a [`DatabaseTransaction`] in an [`Option`], which should always
 /// be present while the [`Transaction`] wrapper is alive. It will only ever be

@@ -2,18 +2,24 @@
 //! and methods to retrieve and parse them in tests.
 use std::sync::LazyLock;
 
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::DateTime;
+use chrono::TimeZone;
+use chrono::Utc;
 use ciborium::Value;
 use indexmap::IndexMap;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 use wallet_common::generator::Generator;
 
-use crate::{
-    utils::serialization::{cbor_deserialize, cbor_serialize},
-    verifier::ItemsRequests,
-    DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ItemsRequest, ReaderAuthenticationBytes,
-};
+use crate::utils::serialization::cbor_deserialize;
+use crate::utils::serialization::cbor_serialize;
+use crate::verifier::ItemsRequests;
+use crate::DeviceAuthenticationBytes;
+use crate::DeviceRequest;
+use crate::DeviceResponse;
+use crate::ItemsRequest;
+use crate::ReaderAuthenticationBytes;
 
 pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
 pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
@@ -206,10 +212,9 @@ pub fn example_items_requests() -> ItemsRequests {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use wallet_common::keys::{
-        examples::{Examples, EXAMPLE_KEY_IDENTIFIER},
-        software::SoftwareEcdsaKey,
-    };
+    use wallet_common::keys::examples::Examples;
+    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
 
     use crate::holder::Mdoc;
 

@@ -1,6 +1,7 @@
 use p256::ecdsa::VerifyingKey;
 
-use crate::{errors::Result, iso::disclosure::IssuerSigned};
+use crate::errors::Result;
+use crate::iso::disclosure::IssuerSigned;
 
 impl IssuerSigned {
     pub fn public_key(&self) -> Result<VerifyingKey> {

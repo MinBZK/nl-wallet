@@ -3,10 +3,9 @@
 use error_category::ErrorCategory;
 pub use webpki::types::TrustAnchor;
 
-use crate::utils::{
-    reader_auth,
-    x509::{Certificate, CertificateError},
-};
+use crate::utils::reader_auth;
+use crate::utils::x509::Certificate;
+use crate::utils::x509::CertificateError;
 
 pub mod disclosure;
 pub use disclosure::*;

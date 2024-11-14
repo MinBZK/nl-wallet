@@ -1,8 +1,10 @@
 use super::errors::Result;
 
-pub use self::payload::{
-    ChallengeRequest, ChallengeRequestPayload, ChallengeResponse, ChallengeResponsePayload, SequenceNumberComparison,
-};
+pub use self::payload::ChallengeRequest;
+pub use self::payload::ChallengeRequestPayload;
+pub use self::payload::ChallengeResponse;
+pub use self::payload::ChallengeResponsePayload;
+pub use self::payload::SequenceNumberComparison;
 
 mod payload;
 mod raw_value;

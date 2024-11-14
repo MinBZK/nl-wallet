@@ -1,33 +1,51 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
-use tracing::{error, info, instrument};
+use tracing::error;
+use tracing::info;
+use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use error_category::{sentry_capture_error, ErrorCategory};
-use nl_wallet_mdoc::{
-    holder::{MdocDataSource, ProposedAttributes, StoredMdoc},
-    utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
-};
-use openid4vc::{disclosure_session::VpClientError, verifier::SessionType};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
+use nl_wallet_mdoc::holder::MdocDataSource;
+use nl_wallet_mdoc::holder::ProposedAttributes;
+use nl_wallet_mdoc::holder::StoredMdoc;
+use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use openid4vc::disclosure_session::VpClientError;
+use openid4vc::verifier::SessionType;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::urls;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
-    disclosure::{
-        DisclosureUriError, DisclosureUriSource, MdocDisclosureError, MdocDisclosureMissingAttributes,
-        MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
-    },
-    document::{DisclosureDocument, DisclosureType, DocumentMdocError, MissingDisclosureAttributes},
-    errors::ChangePinError,
-    instruction::{InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{EventStatus, Storage, StorageError, StoredMdocCopy, WalletEvent},
-};
+use crate::account_provider::AccountProviderClient;
+use crate::config::ConfigurationRepository;
+use crate::config::UNIVERSAL_LINK_BASE_URL;
+use crate::disclosure::DisclosureUriError;
+use crate::disclosure::DisclosureUriSource;
+use crate::disclosure::MdocDisclosureError;
+use crate::disclosure::MdocDisclosureMissingAttributes;
+use crate::disclosure::MdocDisclosureProposal;
+use crate::disclosure::MdocDisclosureSession;
+use crate::disclosure::MdocDisclosureSessionState;
+use crate::document::DisclosureDocument;
+use crate::document::DisclosureType;
+use crate::document::DocumentMdocError;
+use crate::document::MissingDisclosureAttributes;
+use crate::errors::ChangePinError;
+use crate::instruction::InstructionError;
+use crate::instruction::RemoteEcdsaKeyError;
+use crate::instruction::RemoteEcdsaKeyFactory;
+use crate::storage::EventStatus;
+use crate::storage::Storage;
+use crate::storage::StorageError;
+use crate::storage::StoredMdocCopy;
+use crate::storage::WalletEvent;
 
-use super::{history::EventStorageError, Wallet};
+use super::history::EventStorageError;
+use super::Wallet;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposal {
@@ -504,7 +522,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{atomic::Ordering, Arc, LazyLock};
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
     use itertools::Itertools;
@@ -514,26 +534,29 @@ mod tests {
     use serial_test::serial;
     use uuid::uuid;
 
-    use nl_wallet_mdoc::{
-        holder::{Mdoc, ProposedDocumentAttributes},
-        unsigned::Entry,
-        DataElementValue,
-    };
-    use openid4vc::{
-        disclosure_session::VpMessageClientError, DisclosureErrorResponse, ErrorResponse, GetRequestErrorCode,
-        PostAuthResponseErrorCode,
-    };
+    use nl_wallet_mdoc::holder::Mdoc;
+    use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
+    use nl_wallet_mdoc::unsigned::Entry;
+    use nl_wallet_mdoc::DataElementValue;
+    use openid4vc::disclosure_session::VpMessageClientError;
+    use openid4vc::DisclosureErrorResponse;
+    use openid4vc::ErrorResponse;
+    use openid4vc::GetRequestErrorCode;
+    use openid4vc::PostAuthResponseErrorCode;
 
-    use crate::{
-        config::UNIVERSAL_LINK_BASE_URL,
-        disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
-        Attribute, AttributeValue, EventStatus, HistoryEvent,
-    };
+    use crate::config::UNIVERSAL_LINK_BASE_URL;
+    use crate::disclosure::MockMdocDisclosureMissingAttributes;
+    use crate::disclosure::MockMdocDisclosureProposal;
+    use crate::disclosure::MockMdocDisclosureSession;
+    use crate::Attribute;
+    use crate::AttributeValue;
+    use crate::EventStatus;
+    use crate::HistoryEvent;
 
-    use super::{
-        super::test::{self, WalletWithMocks, ISSUER_KEY},
-        *,
-    };
+    use super::super::test::WalletWithMocks;
+    use super::super::test::ISSUER_KEY;
+    use super::super::test::{self};
+    use super::*;
 
     static DISCLOSURE_URI: LazyLock<Url> =
         LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));

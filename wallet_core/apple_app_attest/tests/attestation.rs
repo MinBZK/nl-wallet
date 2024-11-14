@@ -1,12 +1,16 @@
 use assert_matches::assert_matches;
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use const_decoder::Decoder;
-use rstest::{fixture, rstest};
+use rstest::fixture;
+use rstest::rstest;
 
-use apple_app_attest::{
-    AppIdentifier, Attestation, AttestationEnvironment, AttestationError, AttestationValidationError,
-    APPLE_TRUST_ANCHORS,
-};
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::Attestation;
+use apple_app_attest::AttestationEnvironment;
+use apple_app_attest::AttestationError;
+use apple_app_attest::AttestationValidationError;
+use apple_app_attest::APPLE_TRUST_ANCHORS;
 
 // Source: https://developer.apple.com/documentation/devicecheck/attestation-object-validation-guide
 const TEST_ATTESTATION: [u8; 5637] = Decoder::Base64.decode(include_bytes!("../assets/test_attestation_object.b64"));

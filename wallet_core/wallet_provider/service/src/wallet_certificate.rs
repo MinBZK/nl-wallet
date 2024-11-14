@@ -1,26 +1,26 @@
 use std::sync::Arc;
 
-use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
 
-use wallet_common::{
-    account::{
-        messages::auth::{WalletCertificate, WalletCertificateClaims},
-        serialization::DerVerifyingKey,
-    },
-    jwt::{EcdsaDecodingKey, Jwt},
-};
-use wallet_provider_domain::{
-    model::{
-        encrypted::Encrypted,
-        encrypter::Decrypter,
-        hsm::Hsm,
-        wallet_user::{WalletUser, WalletUserQueryResult},
-    },
-    repository::{Committable, TransactionStarter, WalletUserRepository},
-};
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::account::messages::auth::WalletCertificateClaims;
+use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::jwt::Jwt;
+use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::encrypter::Decrypter;
+use wallet_provider_domain::model::hsm::Hsm;
+use wallet_provider_domain::model::wallet_user::WalletUser;
+use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::repository::Committable;
+use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletUserRepository;
 
-use crate::{account_server::WalletCertificateError, hsm::HsmError, keys::WalletCertificateSigningKey};
+use crate::account_server::WalletCertificateError;
+use crate::hsm::HsmError;
+use crate::keys::WalletCertificateSigningKey;
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
@@ -201,14 +201,15 @@ where
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use hmac::digest::crypto_common::rand_core::OsRng;
-    use p256::ecdsa::{SigningKey, VerifyingKey};
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
 
-    use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
-    use wallet_provider_domain::model::{
-        encrypted::Encrypted,
-        encrypter::Encrypter,
-        hsm::{mock::MockPkcs11Client, Hsm},
-    };
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_provider_domain::model::encrypted::Encrypted;
+    use wallet_provider_domain::model::encrypter::Encrypter;
+    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
+    use wallet_provider_domain::model::hsm::Hsm;
 
     use crate::hsm::HsmError;
 
@@ -272,19 +273,21 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use hmac::digest::crypto_common::rand_core::OsRng;
-    use p256::ecdsa::{SigningKey, VerifyingKey};
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use tokio::sync::OnceCell;
 
     use wallet_common::jwt::EcdsaDecodingKey;
-    use wallet_provider_domain::model::{encrypter::Encrypter, hsm::mock::MockPkcs11Client};
+    use wallet_provider_domain::model::encrypter::Encrypter;
+    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
-    use crate::{
-        hsm::HsmError,
-        wallet_certificate::{
-            mock, new_wallet_certificate, sign_pin_pubkey, verify_pin_pubkey, verify_wallet_certificate,
-        },
-    };
+    use crate::hsm::HsmError;
+    use crate::wallet_certificate::mock;
+    use crate::wallet_certificate::new_wallet_certificate;
+    use crate::wallet_certificate::sign_pin_pubkey;
+    use crate::wallet_certificate::verify_pin_pubkey;
+    use crate::wallet_certificate::verify_wallet_certificate;
 
     static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
 

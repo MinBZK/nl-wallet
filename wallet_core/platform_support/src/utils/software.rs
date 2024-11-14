@@ -1,8 +1,10 @@
-use std::{env, path::PathBuf};
+use std::env;
+use std::path::PathBuf;
 
 use tokio::task;
 
-use super::{PlatformUtilities, UtilitiesError};
+use super::PlatformUtilities;
+use super::UtilitiesError;
 
 pub struct SoftwareUtilities;
 
@@ -20,7 +22,8 @@ impl PlatformUtilities for SoftwareUtilities {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::test, *};
+    use super::super::test;
+    use super::*;
 
     #[tokio::test]
     async fn test_storage_path() {

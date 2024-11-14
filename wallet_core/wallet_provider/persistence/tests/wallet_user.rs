@@ -1,16 +1,18 @@
 use p256::ecdsa::VerifyingKey;
 use uuid::Uuid;
 
-use wallet_common::{generator::Generator, utils::random_string};
-use wallet_provider_domain::{model::encrypted::Encrypted, repository::Committable, EpochGenerator};
-use wallet_provider_persistence::{
-    database::Db,
-    entity::wallet_user,
-    transaction,
-    wallet_user::{
-        clear_instruction_challenge, commit_pin_change, register_unsuccessful_pin_entry, rollback_pin_change,
-    },
-};
+use wallet_common::generator::Generator;
+use wallet_common::utils::random_string;
+use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::repository::Committable;
+use wallet_provider_domain::EpochGenerator;
+use wallet_provider_persistence::database::Db;
+use wallet_provider_persistence::entity::wallet_user;
+use wallet_provider_persistence::transaction;
+use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
+use wallet_provider_persistence::wallet_user::commit_pin_change;
+use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
+use wallet_provider_persistence::wallet_user::rollback_pin_change;
 
 use crate::common::encrypted_pin_key;
 

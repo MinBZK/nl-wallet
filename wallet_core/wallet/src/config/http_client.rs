@@ -1,16 +1,19 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
-use http::{header, HeaderValue, StatusCode};
+use http::header;
+use http::HeaderValue;
+use http::StatusCode;
 use parking_lot::Mutex;
 use reqwest::Certificate;
 use tokio::fs;
 
-use wallet_common::{
-    config::wallet_config::WalletConfiguration,
-    jwt::{validations, EcdsaDecodingKey, Jwt},
-    reqwest::tls_pinned_client_builder,
-    urls::BaseUrl,
-};
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::jwt::validations;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::jwt::Jwt;
+use wallet_common::reqwest::tls_pinned_client_builder;
+use wallet_common::urls::BaseUrl;
 
 use crate::config::ConfigurationError;
 

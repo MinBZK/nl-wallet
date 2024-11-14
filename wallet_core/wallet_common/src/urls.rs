@@ -1,5 +1,6 @@
 use cfg_if::cfg_if;
-use http::{header::InvalidHeaderValue, HeaderValue};
+use http::header::InvalidHeaderValue;
+use http::HeaderValue;
 use nutype::nutype;
 use serde::Deserialize;
 use url::Url;

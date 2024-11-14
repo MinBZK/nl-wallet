@@ -2,7 +2,8 @@ use std::collections::HashSet;
 
 use crate::holder::Mdoc;
 
-use super::{MdocDataSource, StoredMdoc};
+use super::MdocDataSource;
+use super::StoredMdoc;
 
 /// A type that implements `MdocDataSource` and simply returns
 /// the [`Mdoc`] contained in `DeviceResponse::example()`, if its

@@ -1,8 +1,9 @@
-use crate::{
-    gba::client::{FileGbavClient, HttpGbavClient, NoopGbavClient},
-    server,
-    settings::{RunMode, Settings},
-};
+use crate::gba::client::FileGbavClient;
+use crate::gba::client::HttpGbavClient;
+use crate::gba::client::NoopGbavClient;
+use crate::server;
+use crate::settings::RunMode;
+use crate::settings::Settings;
 
 pub async fn serve_from_settings(settings: Settings) -> Result<(), Box<dyn std::error::Error>> {
     match settings.run_mode {

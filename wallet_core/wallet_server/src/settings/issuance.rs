@@ -4,13 +4,14 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 
 use nl_wallet_mdoc::utils::x509::Certificate;
-use wallet_common::{account::serialization::DerVerifyingKey, reqwest::deserialize_certificates, urls::BaseUrl};
+use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_common::reqwest::deserialize_certificates;
+use wallet_common::urls::BaseUrl;
 
 use super::*;
-use crate::pid::{
-    attributes::{BrpPidAttributeService, Error as BrpError},
-    brp::client::HttpBrpClient,
-};
+use crate::pid::attributes::BrpPidAttributeService;
+use crate::pid::attributes::Error as BrpError;
+use crate::pid::brp::client::HttpBrpClient;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]

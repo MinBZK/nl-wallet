@@ -1,29 +1,35 @@
-use std::{num::NonZeroU8, time::Duration};
+use std::num::NonZeroU8;
+use std::time::Duration;
 
 use derive_more::From;
 use indexmap::IndexSet;
 
-use serde::{Deserialize, Serialize};
-use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::formats::SpaceSeparator;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use serde_with::DurationSeconds;
+use serde_with::StringWithSeparator;
 use url::Url;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    unsigned::UnsignedMdoc,
-    utils::{
-        issuer_auth::IssuerRegistration,
-        x509::{Certificate, CertificateError, CertificateType, CertificateUsage},
-    },
-};
-use wallet_common::{
-    generator::TimeGenerator,
-    jwt::JwtCredentialContents,
-    nonempty::NonEmpty,
-    utils::{random_string, sha256},
-};
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::CertificateType;
+use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::jwt::JwtCredentialContents;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::utils::random_string;
+use wallet_common::utils::sha256;
 
-use crate::{authorization::AuthorizationDetails, server_state::SessionToken, Format};
+use crate::authorization::AuthorizationDetails;
+use crate::server_state::SessionToken;
+use crate::Format;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -240,7 +246,9 @@ mod tests {
     use indexmap::IndexSet;
     use serde_json::json;
 
-    use crate::token::{TokenRequest, TokenRequestGrantType, TokenResponse};
+    use crate::token::TokenRequest;
+    use crate::token::TokenRequestGrantType;
+    use crate::token::TokenResponse;
 
     #[test]
     fn token_request_serialization() {

@@ -1,6 +1,8 @@
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
 use url::Url;
 
 pub mod issuer_auth;

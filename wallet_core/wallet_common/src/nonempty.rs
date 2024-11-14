@@ -1,6 +1,8 @@
 use std::num::NonZeroUsize;
 
-use serde::{de, Deserialize, Serialize};
+use serde::de;
+use serde::Deserialize;
+use serde::Serialize;
 
 #[derive(Debug, thiserror::Error)]
 pub enum NonEmptyError {

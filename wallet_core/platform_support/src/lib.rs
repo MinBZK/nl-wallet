@@ -8,11 +8,15 @@ pub mod utils;
 pub mod hardware_test;
 
 // import generated Rust bindings
-use crate::bridge::{
-    attested_key::{AttestationData, AttestedKeyBridge, AttestedKeyError, AttestedKeyType},
-    hw_keystore::{EncryptionKeyBridge, KeyStoreError, SigningKeyBridge},
-    init_platform_support,
-    utils::{UtilitiesBridge, UtilitiesError},
-};
+use crate::bridge::attested_key::AttestationData;
+use crate::bridge::attested_key::AttestedKeyBridge;
+use crate::bridge::attested_key::AttestedKeyError;
+use crate::bridge::attested_key::AttestedKeyType;
+use crate::bridge::hw_keystore::EncryptionKeyBridge;
+use crate::bridge::hw_keystore::KeyStoreError;
+use crate::bridge::hw_keystore::SigningKeyBridge;
+use crate::bridge::init_platform_support;
+use crate::bridge::utils::UtilitiesBridge;
+use crate::bridge::utils::UtilitiesError;
 
 uniffi::include_scaffolding!("platform_support");

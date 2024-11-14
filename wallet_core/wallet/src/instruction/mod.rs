@@ -2,17 +2,18 @@ mod client;
 mod keys;
 
 use error_category::ErrorCategory;
-use wallet_common::{account::messages::errors::AccountError, jwt::JwtError};
+use wallet_common::account::messages::errors::AccountError;
+use wallet_common::jwt::JwtError;
 
-use crate::{
-    account_provider::{AccountProviderError, AccountProviderResponseError},
-    storage::StorageError,
-};
+use crate::account_provider::AccountProviderError;
+use crate::account_provider::AccountProviderResponseError;
+use crate::storage::StorageError;
 
-pub use self::{
-    client::{InstructionClient, InstructionClientFactory},
-    keys::{RemoteEcdsaKey, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-};
+pub use self::client::InstructionClient;
+pub use self::client::InstructionClientFactory;
+pub use self::keys::RemoteEcdsaKey;
+pub use self::keys::RemoteEcdsaKeyError;
+pub use self::keys::RemoteEcdsaKeyFactory;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]

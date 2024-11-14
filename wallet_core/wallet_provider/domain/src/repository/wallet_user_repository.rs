@@ -1,15 +1,18 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 
-use crate::model::{
-    encrypted::Encrypted,
-    wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeys, WalletUserQueryResult},
-    wrapped_key::WrappedKey,
-};
+use crate::model::encrypted::Encrypted;
+use crate::model::wallet_user::InstructionChallenge;
+use crate::model::wallet_user::WalletUserCreate;
+use crate::model::wallet_user::WalletUserKeys;
+use crate::model::wallet_user::WalletUserQueryResult;
+use crate::model::wrapped_key::WrappedKey;
 
-use super::{errors::PersistenceError, transaction::Committable};
+use super::errors::PersistenceError;
+use super::transaction::Committable;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
@@ -80,7 +83,8 @@ pub mod mock {
 
     use crate::model::wallet_user;
 
-    use super::{super::transaction::mock::MockTransaction, *};
+    use super::super::transaction::mock::MockTransaction;
+    use super::*;
 
     pub struct MockWalletUserRepository;
 

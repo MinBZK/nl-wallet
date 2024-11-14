@@ -1,13 +1,21 @@
-use std::{convert::Infallible, fmt::Debug, mem};
+use std::convert::Infallible;
+use std::fmt::Debug;
+use std::mem;
 
-use apple_app_attest::{
-    AppIdentifier, Assertion, Attestation, AttestationEnvironment, ClientData, APPLE_TRUST_ANCHORS,
-};
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::Assertion;
+use apple_app_attest::Attestation;
+use apple_app_attest::AttestationEnvironment;
+use apple_app_attest::ClientData;
+use apple_app_attest::APPLE_TRUST_ANCHORS;
 use chrono::Utc;
 
 use wallet_common::utils;
 
-use super::{AppleAttestedKey, AttestedKey, AttestedKeyHolder, KeyWithAttestation};
+use super::AppleAttestedKey;
+use super::AttestedKey;
+use super::AttestedKeyHolder;
+use super::KeyWithAttestation;
 
 /// This simply wraps a [`Vec<u8>`] as hash data and a generated challenge.
 struct SimpleClientData {

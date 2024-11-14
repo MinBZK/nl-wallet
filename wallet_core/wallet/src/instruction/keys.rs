@@ -1,22 +1,31 @@
 use std::iter;
 
 use itertools::Itertools;
-use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
+use p256::ecdsa::signature;
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    account::messages::instructions::{ConstructPoa, GenerateKey, GenerateKeyResult, Sign},
-    keys::{
-        factory::KeyFactory,
-        poa::{Poa, VecAtLeastTwo},
-        CredentialEcdsaKey, CredentialKeyType, EcdsaKey, SecureEcdsaKey, WithIdentifier,
-    },
-    utils::random_string,
-};
+use wallet_common::account::messages::instructions::ConstructPoa;
+use wallet_common::account::messages::instructions::GenerateKey;
+use wallet_common::account::messages::instructions::GenerateKeyResult;
+use wallet_common::account::messages::instructions::Sign;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::VecAtLeastTwo;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::CredentialKeyType;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::WithIdentifier;
+use wallet_common::utils::random_string;
 
-use crate::{account_provider::AccountProviderClient, storage::Storage};
+use crate::account_provider::AccountProviderClient;
+use crate::storage::Storage;
 
-use super::{InstructionClient, InstructionError};
+use super::InstructionClient;
+use super::InstructionError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RemoteEcdsaKeyError {

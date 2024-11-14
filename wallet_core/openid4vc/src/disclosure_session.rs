@@ -4,37 +4,51 @@ use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
 use mime::Mime;
-use reqwest::{header::ACCEPT, Method, Response};
+use reqwest::header::ACCEPT;
+use reqwest::Method;
+use reqwest::Response;
 use serde::de::DeserializeOwned;
-use tracing::{info, warn};
+use tracing::info;
+use tracing::warn;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    disclosure::DeviceResponse,
-    engagement::SessionTranscript,
-    holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
-    identifiers::AttributeIdentifier,
-    utils::{
-        reader_auth::{ReaderRegistration, ValidationError},
-        x509::{Certificate, CertificateError, CertificateType},
-    },
-};
-use wallet_common::{
-    jwt::Jwt,
-    keys::{factory::KeyFactory, CredentialEcdsaKey},
-    urls::BaseUrl,
-    utils::random_string,
-};
+use nl_wallet_mdoc::disclosure::DeviceResponse;
+use nl_wallet_mdoc::engagement::SessionTranscript;
+use nl_wallet_mdoc::holder::DisclosureRequestMatch;
+use nl_wallet_mdoc::holder::MdocDataSource;
+use nl_wallet_mdoc::holder::ProposedAttributes;
+use nl_wallet_mdoc::holder::ProposedDocument;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::identifiers::AttributeIdentifier;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::utils::reader_auth::ValidationError;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::CertificateType;
+use wallet_common::jwt::Jwt;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils::random_string;
 
-use crate::{
-    openid4vp::{
-        AuthRequestValidationError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod,
-        VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
-    },
-    verifier::{SessionType, VerifierUrlParameters, VpToken},
-    AuthorizationErrorCode, DisclosureErrorResponse, ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode,
-    VpAuthorizationErrorCode,
-};
+use crate::openid4vp::AuthRequestValidationError;
+use crate::openid4vp::AuthResponseError;
+use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::RequestUriMethod;
+use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpAuthorizationResponse;
+use crate::openid4vp::VpRequestUriObject;
+use crate::openid4vp::VpResponse;
+use crate::openid4vp::WalletRequest;
+use crate::verifier::SessionType;
+use crate::verifier::VerifierUrlParameters;
+use crate::verifier::VpToken;
+use crate::AuthorizationErrorCode;
+use crate::DisclosureErrorResponse;
+use crate::ErrorResponse;
+use crate::GetRequestErrorCode;
+use crate::PostAuthResponseErrorCode;
+use crate::VpAuthorizationErrorCode;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -697,11 +711,15 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::identity, sync::Arc};
+    use std::convert::identity;
+    use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use indexmap::{IndexMap, IndexSet};
-    use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+    use indexmap::IndexMap;
+    use indexmap::IndexSet;
+    use p256::ecdsa::Signature;
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use parking_lot::Mutex;
     use rand_core::OsRng;
     use reqwest::StatusCode;
@@ -709,47 +727,62 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
-    use wallet_common::{
-        keys::{
-            factory::KeyFactory,
-            poa::{Poa, VecAtLeastTwo},
-            software::SoftwareEcdsaKey,
-            software_key_factory::{SoftwareKeyFactory, SoftwareKeyFactoryError},
-        },
-        utils::random_string,
-    };
+    use wallet_common::keys::factory::KeyFactory;
+    use wallet_common::keys::poa::Poa;
+    use wallet_common::keys::poa::VecAtLeastTwo;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactoryError;
+    use wallet_common::utils::random_string;
 
-    use nl_wallet_mdoc::{
-        examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-        holder::{mock::MdocDataSourceError, HolderError, ProposedDocument},
-        identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-        utils::{
-            cose::ClonePayload,
-            reader_auth::{ReaderRegistration, ValidationError},
-            serialization::{cbor_deserialize, cbor_serialize, CborBase64, CborSeq, TaggedBytes},
-            x509::CertificateError,
-        },
-        DeviceAuth, DeviceAuthenticationKeyed, ItemsRequest, MobileSecurityObject, SessionTranscript,
-    };
+    use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
+    use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
+    use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
+    use nl_wallet_mdoc::holder::mock::MdocDataSourceError;
+    use nl_wallet_mdoc::holder::HolderError;
+    use nl_wallet_mdoc::holder::ProposedDocument;
+    use nl_wallet_mdoc::identifiers::AttributeIdentifier;
+    use nl_wallet_mdoc::identifiers::AttributeIdentifierHolder;
+    use nl_wallet_mdoc::utils::cose::ClonePayload;
+    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+    use nl_wallet_mdoc::utils::reader_auth::ValidationError;
+    use nl_wallet_mdoc::utils::serialization::cbor_deserialize;
+    use nl_wallet_mdoc::utils::serialization::cbor_serialize;
+    use nl_wallet_mdoc::utils::serialization::CborBase64;
+    use nl_wallet_mdoc::utils::serialization::CborSeq;
+    use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+    use nl_wallet_mdoc::utils::x509::CertificateError;
+    use nl_wallet_mdoc::DeviceAuth;
+    use nl_wallet_mdoc::DeviceAuthenticationKeyed;
+    use nl_wallet_mdoc::ItemsRequest;
+    use nl_wallet_mdoc::MobileSecurityObject;
+    use nl_wallet_mdoc::SessionTranscript;
 
-    use crate::{
-        jwt::JwtX5cError,
-        openid4vp::{
-            AuthRequestValidationError, VerifiablePresentation, VpAuthorizationResponse, VpClientMetadata, VpJwks,
-            VpRequestUriObject,
-        },
-        test::{
-            disclosure_session_start, iso_auth_request, test_disclosure_session_start_error_http_client,
-            test_disclosure_session_terminate, MockErrorFactoryVpMessageClient, ReaderCertificateKind, WalletMessage,
-            VERIFIER_URL,
-        },
-        verifier::SessionType,
-    };
+    use crate::jwt::JwtX5cError;
+    use crate::openid4vp::AuthRequestValidationError;
+    use crate::openid4vp::VerifiablePresentation;
+    use crate::openid4vp::VpAuthorizationResponse;
+    use crate::openid4vp::VpClientMetadata;
+    use crate::openid4vp::VpJwks;
+    use crate::openid4vp::VpRequestUriObject;
+    use crate::test::disclosure_session_start;
+    use crate::test::iso_auth_request;
+    use crate::test::test_disclosure_session_start_error_http_client;
+    use crate::test::test_disclosure_session_terminate;
+    use crate::test::MockErrorFactoryVpMessageClient;
+    use crate::test::ReaderCertificateKind;
+    use crate::test::WalletMessage;
+    use crate::test::VERIFIER_URL;
+    use crate::verifier::SessionType;
 
-    use super::{
-        CommonDisclosureData, DisclosureError, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession,
-        DisclosureUriSource, VpClientError, VpMessageClientError,
-    };
+    use super::CommonDisclosureData;
+    use super::DisclosureError;
+    use super::DisclosureMissingAttributes;
+    use super::DisclosureProposal;
+    use super::DisclosureSession;
+    use super::DisclosureUriSource;
+    use super::VpClientError;
+    use super::VpMessageClientError;
 
     // This is the full happy path test of `DisclosureSession`.
     #[tokio::test]

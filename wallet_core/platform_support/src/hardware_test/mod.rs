@@ -2,10 +2,9 @@ pub mod attested_key;
 pub mod hw_keystore;
 pub mod utils;
 
-use std::{
-    panic::{self, UnwindSafe},
-    process,
-};
+use std::panic::UnwindSafe;
+use std::panic::{self};
+use std::process;
 
 fn print_panic<F>(task: F)
 where

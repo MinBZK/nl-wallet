@@ -1,17 +1,17 @@
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 use derive_more::Debug;
 use etag::EntityTag;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use webpki::types::TrustAnchor;
 
-use crate::{
-    account::serialization::DerVerifyingKey, config::digid::DigidApp2AppConfiguration, trust_anchor::DerTrustAnchor,
-    urls::BaseUrl,
-};
+use crate::account::serialization::DerVerifyingKey;
+use crate::config::digid::DigidApp2AppConfiguration;
+use crate::trust_anchor::DerTrustAnchor;
+use crate::urls::BaseUrl;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct WalletConfiguration {

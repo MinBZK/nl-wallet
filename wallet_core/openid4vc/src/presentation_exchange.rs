@@ -5,18 +5,21 @@
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
 use std::sync::LazyLock;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
+use indexmap::IndexSet;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{verifier::ItemsRequests, Document, ItemsRequest};
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use nl_wallet_mdoc::Document;
+use nl_wallet_mdoc::ItemsRequest;
 use wallet_common::utils::random_string;
 
-use crate::{
-    openid4vp::{FormatAlg, VpFormat},
-    Format,
-};
+use crate::openid4vp::FormatAlg;
+use crate::openid4vp::VpFormat;
+use crate::Format;
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -233,9 +236,14 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use nl_wallet_mdoc::{examples::example_items_requests, verifier::ItemsRequests};
+    use nl_wallet_mdoc::examples::example_items_requests;
+    use nl_wallet_mdoc::verifier::ItemsRequests;
 
-    use super::{FormatAlg, LimitDisclosure, PresentationDefinition, VpFormat, FIELD_PATH_REGEX};
+    use super::FormatAlg;
+    use super::LimitDisclosure;
+    use super::PresentationDefinition;
+    use super::VpFormat;
+    use super::FIELD_PATH_REGEX;
 
     #[rstest]
     #[case("$['namespace']['attribute_name']", true)]

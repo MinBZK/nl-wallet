@@ -1,7 +1,9 @@
-use std::{num::NonZeroU8, ops::Add};
+use std::num::NonZeroU8;
+use std::ops::Add;
 
 use assert_matches::assert_matches;
-use chrono::{Days, Utc};
+use chrono::Days;
+use chrono::Utc;
 use ciborium::Value;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
@@ -9,37 +11,48 @@ use rand_core::OsRng;
 use rstest::rstest;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    server_keys::{test::SingleKeyRing, KeyPair},
-    unsigned::{Entry, UnsignedMdoc},
-    utils::{issuer_auth::IssuerRegistration, x509::Certificate},
-    Tdate,
-};
-use openid4vc::{
-    credential::{
-        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
-    },
-    dpop::Dpop,
-    issuance_session::{
-        mock_wte, HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
-    },
-    issuer::{AttributeService, Created, IssuanceData, Issuer},
-    jwt::compare_jwt_attributes,
-    metadata::IssuerMetadata,
-    oidc,
-    server_state::{MemorySessionStore, MemoryWteTracker, SessionState},
-    token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode,
-};
-use wallet_common::{
-    jwt::{JsonJwt, Jwt, JwtCredentialContents},
-    keys::{
-        poa::{Poa, PoaPayload},
-        software_key_factory::SoftwareKeyFactory,
-    },
-    nonempty::NonEmpty,
-    urls::BaseUrl,
-};
+use nl_wallet_mdoc::server_keys::test::SingleKeyRing;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::unsigned::Entry;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::Tdate;
+use openid4vc::credential::CredentialRequest;
+use openid4vc::credential::CredentialRequestProof;
+use openid4vc::credential::CredentialRequests;
+use openid4vc::credential::CredentialResponse;
+use openid4vc::credential::CredentialResponses;
+use openid4vc::dpop::Dpop;
+use openid4vc::issuance_session::mock_wte;
+use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::issuance_session::IssuedCredentialCopies;
+use openid4vc::issuance_session::VcMessageClient;
+use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::Created;
+use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::Issuer;
+use openid4vc::jwt::compare_jwt_attributes;
+use openid4vc::metadata::IssuerMetadata;
+use openid4vc::oidc;
+use openid4vc::server_state::MemorySessionStore;
+use openid4vc::server_state::MemoryWteTracker;
+use openid4vc::server_state::SessionState;
+use openid4vc::token::AccessToken;
+use openid4vc::token::CredentialPreview;
+use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenResponseWithPreviews;
+use openid4vc::CredentialErrorCode;
+use wallet_common::jwt::JsonJwt;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtCredentialContents;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::PoaPayload;
+use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 

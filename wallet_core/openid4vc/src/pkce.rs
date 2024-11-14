@@ -1,6 +1,7 @@
 use base64::prelude::*;
 
-use wallet_common::utils::{random_string, sha256};
+use wallet_common::utils::random_string;
+use wallet_common::utils::sha256;
 
 /// The maximum length for a PKCE verifier is 128 characters.
 const CODE_VERIFIER_LENGTH: usize = 128;

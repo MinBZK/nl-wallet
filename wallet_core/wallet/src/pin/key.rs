@@ -16,21 +16,24 @@
 //! - The [`PinKey<'a>`] struct, which contains the salt and the PIN, and has methods to compute signatures and the
 //!   public key (by first converting the user's PIN and salt to an ECDSA private key).
 
-use p256::{
-    ecdsa::{Signature, SigningKey, VerifyingKey},
-    elliptic_curve::{
-        bigint::{Limb, NonZero, U384},
-        ops::Reduce,
-        Curve,
-    },
-    NistP256, Scalar, SecretKey, U256,
-};
+use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve::bigint::Limb;
+use p256::elliptic_curve::bigint::NonZero;
+use p256::elliptic_curve::bigint::U384;
+use p256::elliptic_curve::ops::Reduce;
+use p256::elliptic_curve::Curve;
+use p256::NistP256;
+use p256::Scalar;
+use p256::SecretKey;
+use p256::U256;
 use ring::error::Unspecified as UnspecifiedRingError;
 
-use wallet_common::{
-    keys::{EcdsaKey, EphemeralEcdsaKey},
-    utils::{hkdf, random_bytes},
-};
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::EphemeralEcdsaKey;
+use wallet_common::utils::hkdf;
+use wallet_common::utils::random_bytes;
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
 pub fn new_pin_salt() -> Vec<u8> {
@@ -149,10 +152,11 @@ fn u384_to_u256(x: &U384) -> U256 {
 mod tests {
     use super::*;
 
-    use p256::{
-        ecdsa::signature::Verifier,
-        elliptic_curve::bigint::{ArrayEncoding, Random, RandomMod, Wrapping},
-    };
+    use p256::ecdsa::signature::Verifier;
+    use p256::elliptic_curve::bigint::ArrayEncoding;
+    use p256::elliptic_curve::bigint::Random;
+    use p256::elliptic_curve::bigint::RandomMod;
+    use p256::elliptic_curve::bigint::Wrapping;
     use rand_core::OsRng;
 
     #[test]
