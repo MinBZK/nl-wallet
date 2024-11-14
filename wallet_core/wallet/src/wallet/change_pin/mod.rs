@@ -14,6 +14,8 @@ use crate::{
     Wallet,
 };
 
+const CHANGE_PIN_RETRIES: u8 = 3;
+
 impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
     CR: ConfigurationRepository,
@@ -55,7 +57,7 @@ where
             &instruction_result_public_key,
         );
 
-        let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
+        let session = ChangePinSession::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);
         let (new_pin_salt, new_wallet_certificate) = session
             .begin_change_pin(
                 &certificate_public_key,
@@ -97,7 +99,7 @@ where
             &instruction_result_public_key,
         );
 
-        let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
+        let session = ChangePinSession::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);
 
         session.continue_change_pin(pin).await?;
 

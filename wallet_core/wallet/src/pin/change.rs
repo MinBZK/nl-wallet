@@ -309,6 +309,8 @@ mod test {
         },
     };
 
+    const CHANGE_PIN_RETRIES: u8 = 2;
+
     async fn create_wallet_certificate() -> (WalletCertificate, EcdsaDecodingKey, VerifyingKey, String) {
         let certificate_signing_key = SigningKey::random(&mut OsRng);
         let hw_privkey = SigningKey::random(&mut OsRng);
@@ -357,7 +359,7 @@ mod test {
             .return_once(|_| Ok(()));
         change_pin_storage.expect_change_pin().return_once(|_, _, _| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let (new_pin_salt, new_wallet_certificate) = change_pin_session
             .begin_change_pin(
@@ -398,7 +400,7 @@ mod test {
             .with(eq(State::Rollback))
             .returning(|_| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session
             .begin_change_pin(
@@ -441,7 +443,7 @@ mod test {
             .times(1)
             .returning(|| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session
             .begin_change_pin(
@@ -471,7 +473,7 @@ mod test {
             .times(1)
             .returning(|| Ok(Some(State::Begin)));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session
             .begin_change_pin(
@@ -530,7 +532,7 @@ mod test {
             setup_change_pin_certificate_sanity_check_test().await;
         let other_certificate_public_key = SigningKey::random(&mut OsRng).verifying_key().into();
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         // Validation with a different certificate public key should fail.
         let error = change_pin_session
@@ -553,7 +555,7 @@ mod test {
             setup_change_pin_certificate_sanity_check_test().await;
         let other_hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         // Validation with a different hardware public key should fail.
         let error = change_pin_session
@@ -575,7 +577,7 @@ mod test {
         let (change_pin_client, change_pin_storage, other_certificate_public_key, hw_pubkey, _) =
             setup_change_pin_certificate_sanity_check_test().await;
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         // Validation with a different wallet ID should fail.
         let error = change_pin_session
@@ -607,7 +609,7 @@ mod test {
             .times(1)
             .returning(|| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -628,7 +630,7 @@ mod test {
             .times(1)
             .returning(|| Ok(Some(State::Commit)));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -661,7 +663,7 @@ mod test {
             .times(1)
             .returning(|| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -682,7 +684,7 @@ mod test {
             .times(1)
             .returning(|| Ok(Some(State::Commit)));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -710,7 +712,7 @@ mod test {
             .times(1)
             .returning(|| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -731,7 +733,7 @@ mod test {
             .times(1)
             .returning(|| Ok(Some(State::Rollback)));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -767,7 +769,7 @@ mod test {
             .times(1)
             .returning(|| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -788,7 +790,7 @@ mod test {
             .times(1)
             .returning(|| Ok(Some(State::Rollback)));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -816,7 +818,7 @@ mod test {
             .times(1)
             .returning(|| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -837,7 +839,7 @@ mod test {
             .times(1)
             .returning(|| Ok(Some(State::Begin)));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -873,7 +875,7 @@ mod test {
             .times(1)
             .returning(|| Ok(()));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -894,7 +896,7 @@ mod test {
             .times(1)
             .returning(|| Ok(Some(State::Begin)));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
@@ -914,7 +916,7 @@ mod test {
             .times(1)
             .returning(|| Ok(None));
 
-        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, CHANGE_PIN_RETRIES);
 
         let actual = change_pin_session.continue_change_pin("123789".to_string()).await;
 
