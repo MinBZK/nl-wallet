@@ -1,9 +1,9 @@
-use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
 
-use crate::{
-    errors::Result,
-    iso::disclosure::{DeviceResponse, DeviceResponseVersion},
-};
+use crate::errors::Result;
+use crate::iso::disclosure::DeviceResponse;
+use crate::iso::disclosure::DeviceResponseVersion;
 
 use super::proposed_document::ProposedDocument;
 

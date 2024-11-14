@@ -6,27 +6,38 @@
 
 use std::collections::HashSet;
 
-use base64::{prelude::*, DecodeError};
-use chrono::{DateTime, Utc};
+use base64::prelude::*;
+use base64::DecodeError;
+use chrono::DateTime;
+use chrono::Utc;
 use itertools::Itertools;
 use josekit::JoseError;
-use jsonwebtoken::{Algorithm, Header, Validation};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
+use jsonwebtoken::Validation;
 
 use p256::ecdsa::VerifyingKey;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    server_keys::KeyPair,
-    utils::x509::{Certificate, CertificateError, CertificateUsage},
-};
-use wallet_common::{
-    account::serialization::DerVerifyingKey,
-    generator::Generator,
-    jwt::{jwk_to_p256, validations, JwkConversionError, Jwt, JwtCredentialClaims, JwtError},
-    keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType},
-};
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_common::generator::Generator;
+use wallet_common::jwt::jwk_to_p256;
+use wallet_common::jwt::validations;
+use wallet_common::jwt::JwkConversionError;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtError;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::CredentialKeyType;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential<T> {
@@ -184,15 +195,18 @@ mod tests {
     use indexmap::IndexMap;
     use serde_json::json;
 
-    use wallet_common::{
-        generator::TimeGenerator,
-        jwt::JwtCredentialClaims,
-        keys::{software::SoftwareEcdsaKey, EcdsaKey, StoredByIdentifier},
-    };
+    use wallet_common::generator::TimeGenerator;
+    use wallet_common::jwt::JwtCredentialClaims;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_common::keys::StoredByIdentifier;
 
-    use nl_wallet_mdoc::{server_keys::KeyPair, utils::x509::CertificateError};
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::utils::x509::CertificateError;
 
-    use crate::jwt::{sign_with_certificate, JwtCredential, JwtX5cError};
+    use crate::jwt::sign_with_certificate;
+    use crate::jwt::JwtCredential;
+    use crate::jwt::JwtX5cError;
 
     use super::verify_against_trust_anchors;
 

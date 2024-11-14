@@ -1,16 +1,17 @@
 use tracing::info;
 
-use error_category::{sentry_capture_error, ErrorCategory};
-use nl_wallet_mdoc::utils::{
-    cose::CoseError,
-    issuer_auth::IssuerRegistration,
-    x509::{CertificateError, MdocCertificateExtension},
-};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
+use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 
-use crate::{
-    document::{Document, DocumentPersistence},
-    storage::{Storage, StorageError, StoredMdocCopy},
-};
+use crate::document::Document;
+use crate::document::DocumentPersistence;
+use crate::storage::Storage;
+use crate::storage::StorageError;
+use crate::storage::StoredMdocCopy;
 
 use super::Wallet;
 
@@ -96,10 +97,9 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    use super::{
-        super::test::{self, WalletWithMocks},
-        *,
-    };
+    use super::super::test::WalletWithMocks;
+    use super::super::test::{self};
+    use super::*;
 
     // Tests both setting and clearing the documents callback on an unregistered `Wallet`.
     #[tokio::test]

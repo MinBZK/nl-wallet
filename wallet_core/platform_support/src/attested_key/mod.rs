@@ -66,7 +66,8 @@ pub mod test;
 
 use std::error::Error;
 
-use derive_more::derive::{AsRef, Into};
+use derive_more::derive::AsRef;
+use derive_more::derive::Into;
 
 use wallet_common::keys::SecureEcdsaKey;
 

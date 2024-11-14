@@ -1,12 +1,17 @@
 use std::error::Error;
 
 use derive_more::AsRef;
-use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
-use serde_with::{serde_as, TryFromInto};
-use sha2::{Digest, Sha256};
+use serde_with::serde_as;
+use serde_with::TryFromInto;
+use sha2::Digest;
+use sha2::Sha256;
 
-use crate::{app_identifier::AppIdentifier, auth_data::AuthenticatorDataWithSource};
+use crate::app_identifier::AppIdentifier;
+use crate::auth_data::AuthenticatorDataWithSource;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AssertionError {

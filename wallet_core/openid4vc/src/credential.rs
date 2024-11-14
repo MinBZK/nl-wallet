@@ -1,18 +1,26 @@
 use futures::future::try_join_all;
 use nutype::nutype;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use nl_wallet_mdoc::{holder::Mdoc, utils::serialization::CborBase64, IssuerSigned};
-use wallet_common::{
-    jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims, JwtPopClaims},
-    keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
-    nonempty::NonEmpty,
-    urls::BaseUrl,
-    wte::WteClaims,
-};
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::utils::serialization::CborBase64;
+use nl_wallet_mdoc::IssuerSigned;
+use wallet_common::jwt::jwk_jwt_header;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
+use wallet_common::wte::WteClaims;
 
-use crate::{issuance_session::IssuanceSessionError, token::CredentialPreview, Format};
+use crate::issuance_session::IssuanceSessionError;
+use crate::token::CredentialPreview;
+use crate::Format;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
 /// Sent JSON-encoded to `POST /batch_credential`.

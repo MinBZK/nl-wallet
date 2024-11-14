@@ -3,21 +3,22 @@
 //! The main citizens of this module are [`DeviceResponse`], which is what the holder sends to the verifier during
 //! verification, and [`IssuerSigned`], which contains the entire issuer-signed mdoc and the disclosed attributes.
 
-use coset::{CoseMac0, CoseSign1};
+use coset::CoseMac0;
+use coset::CoseSign1;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_bytes::ByteBuf;
-use serde_repr::{Deserialize_repr, Serialize_repr};
+use serde_repr::Deserialize_repr;
+use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
-use crate::{
-    iso::mdocs::*,
-    utils::{
-        cose::MdocCose,
-        serialization::{NullCborValue, RequiredValue, TaggedBytes},
-    },
-};
+use crate::iso::mdocs::*;
+use crate::utils::cose::MdocCose;
+use crate::utils::serialization::NullCborValue;
+use crate::utils::serialization::RequiredValue;
+use crate::utils::serialization::TaggedBytes;
 
 /// A disclosure of a holder, containing multiple [`Document`]s, containing some or all of their attributes.
 #[skip_serializing_none]

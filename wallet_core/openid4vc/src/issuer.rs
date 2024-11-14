@@ -1,52 +1,70 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::{Arc, LazyLock},
-};
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::sync::Arc;
+use std::sync::LazyLock;
 
 use futures::future::try_join_all;
 use itertools::Itertools;
-use jsonwebtoken::{Algorithm, Validation};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use nl_wallet_mdoc::{
-    server_keys::KeyRing,
-    utils::{crypto::CryptoError, serialization::CborError},
-    IssuerSigned,
-};
-use wallet_common::{
-    jwt::{
-        jwk_to_p256, validations, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims,
-        VerifiedJwt, NL_WALLET_CLIENT_ID,
-    },
-    keys::poa::{Poa, PoaError, PoaVerificationError},
-    nonempty::NonEmpty,
-    urls::BaseUrl,
-    utils::random_string,
-    wte::WteClaims,
-};
+use nl_wallet_mdoc::server_keys::KeyRing;
+use nl_wallet_mdoc::utils::crypto::CryptoError;
+use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::IssuerSigned;
+use wallet_common::jwt::jwk_to_p256;
+use wallet_common::jwt::validations;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::jwt::JwkConversionError;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtError;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::jwt::VerifiedJwt;
+use wallet_common::jwt::NL_WALLET_CLIENT_ID;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::PoaError;
+use wallet_common::keys::poa::PoaVerificationError;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils::random_string;
+use wallet_common::wte::WteClaims;
 
-use crate::{
-    credential::{
-        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
-        WteDisclosure, OPENID4VCI_VC_POP_JWT_TYPE,
-    },
-    dpop::{Dpop, DpopError},
-    metadata::{self, CredentialResponseEncryption, IssuerMetadata},
-    oidc,
-    server_state::{
-        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, WteTracker,
-        CLEANUP_INTERVAL_SECONDS,
-    },
-    token::{
-        AccessToken, AuthorizationCode, CredentialPreview, TokenRequest, TokenRequestGrantType, TokenResponse,
-        TokenResponseWithPreviews, TokenType,
-    },
-    Format,
-};
+use crate::credential::CredentialRequest;
+use crate::credential::CredentialRequestProof;
+use crate::credential::CredentialRequests;
+use crate::credential::CredentialResponse;
+use crate::credential::CredentialResponses;
+use crate::credential::WteDisclosure;
+use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
+use crate::dpop::Dpop;
+use crate::dpop::DpopError;
+use crate::metadata::CredentialResponseEncryption;
+use crate::metadata::IssuerMetadata;
+use crate::metadata::{self};
+use crate::oidc;
+use crate::server_state::Expirable;
+use crate::server_state::HasProgress;
+use crate::server_state::Progress;
+use crate::server_state::SessionState;
+use crate::server_state::SessionStore;
+use crate::server_state::SessionStoreError;
+use crate::server_state::WteTracker;
+use crate::server_state::CLEANUP_INTERVAL_SECONDS;
+use crate::token::AccessToken;
+use crate::token::AuthorizationCode;
+use crate::token::CredentialPreview;
+use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
+use crate::token::TokenResponse;
+use crate::token::TokenResponseWithPreviews;
+use crate::token::TokenType;
+use crate::Format;
 
 // Errors are structured as follow in this module: the handler for a token request on the one hand, and the handlers for
 // the other endpoints on the other hand, have specific error types. (There is also a general error type included by

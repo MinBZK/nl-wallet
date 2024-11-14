@@ -1,4 +1,5 @@
-use crate::utils::{hardware::HardwareUtilities, test};
+use crate::utils::hardware::HardwareUtilities;
+use crate::utils::test;
 
 // this is the starting point for the integration test performed from Android / iOS.
 #[no_mangle]
@@ -15,7 +16,8 @@ extern "C" fn utils_test_get_storage_path() {
 
 #[cfg(target_os = "android")]
 mod android {
-    use jni::{objects::JClass, JNIEnv};
+    use jni::objects::JClass;
+    use jni::JNIEnv;
 
     #[rustfmt::skip]
     #[no_mangle]

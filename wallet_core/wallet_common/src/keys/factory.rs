@@ -1,11 +1,11 @@
 use std::error::Error;
 
-use p256::ecdsa::{Signature, VerifyingKey};
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 
-use super::{
-    poa::{Poa, VecAtLeastTwo},
-    CredentialEcdsaKey,
-};
+use super::poa::Poa;
+use super::poa::VecAtLeastTwo;
+use super::CredentialEcdsaKey;
 
 pub trait KeyFactory {
     type Key: CredentialEcdsaKey;
@@ -41,7 +41,8 @@ pub trait KeyFactory {
 
 #[cfg(any(test, feature = "software_keys"))]
 mod software {
-    use crate::keys::{software::SoftwareEcdsaKey, CredentialKeyType};
+    use crate::keys::software::SoftwareEcdsaKey;
+    use crate::keys::CredentialKeyType;
 
     use super::CredentialEcdsaKey;
 

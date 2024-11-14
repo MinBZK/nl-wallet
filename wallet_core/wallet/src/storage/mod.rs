@@ -11,24 +11,30 @@ mod mock_storage;
 #[cfg(test)]
 pub use mock_storage::KeyedDataResult;
 
-use std::{array::TryFromSliceError, collections::HashSet, io};
+use std::array::TryFromSliceError;
+use std::collections::HashSet;
+use std::io;
 
 use sea_orm::DbErr;
 use uuid::Uuid;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::Mdoc,
-    utils::{serialization::CborError, x509::Certificate},
-};
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::utils::x509::Certificate;
 use openid4vc::credential::MdocCopies;
 
-pub use self::{
-    data::{ChangePinData, InstructionData, KeyedData, RegistrationData, UnlockData, UnlockMethod},
-    database_storage::DatabaseStorage,
-    event_log::{EventDocuments, EventStatus, WalletEvent},
-    key_file::KeyFileError,
-};
+pub use self::data::ChangePinData;
+pub use self::data::InstructionData;
+pub use self::data::KeyedData;
+pub use self::data::RegistrationData;
+pub use self::data::UnlockData;
+pub use self::data::UnlockMethod;
+pub use self::database_storage::DatabaseStorage;
+pub use self::event_log::EventDocuments;
+pub use self::event_log::EventStatus;
+pub use self::event_log::WalletEvent;
+pub use self::key_file::KeyFileError;
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock_storage::MockStorage;

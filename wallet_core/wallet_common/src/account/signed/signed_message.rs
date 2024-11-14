@@ -1,17 +1,17 @@
 use std::borrow::Cow;
 
-use p256::ecdsa::{signature::Verifier, VerifyingKey};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::VerifyingKey;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::keys::EcdsaKey;
 
-use super::{
-    super::{
-        errors::{Error, Result},
-        serialization::DerSignature,
-    },
-    raw_value::TypedRawValue,
-};
+use super::super::errors::Error;
+use super::super::errors::Result;
+use super::super::serialization::DerSignature;
+use super::raw_value::TypedRawValue;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

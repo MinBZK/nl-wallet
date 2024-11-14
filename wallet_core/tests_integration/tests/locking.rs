@@ -5,7 +5,8 @@ use serial_test::serial;
 use tokio::time::sleep;
 
 use tests_integration::common::*;
-use wallet::errors::{InstructionError, WalletUnlockError};
+use wallet::errors::InstructionError;
+use wallet::errors::WalletUnlockError;
 
 #[tokio::test]
 #[serial]

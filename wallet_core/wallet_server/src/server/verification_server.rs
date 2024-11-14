@@ -1,9 +1,11 @@
 use anyhow::Result;
 
-use openid4vc::{server_state::SessionStore, verifier::DisclosureData};
+use openid4vc::server_state::SessionStore;
+use openid4vc::verifier::DisclosureData;
 
 use super::*;
-use crate::{settings::Settings, verifier};
+use crate::settings::Settings;
+use crate::verifier;
 
 pub async fn serve<S>(settings: Settings, disclosure_sessions: S) -> Result<()>
 where

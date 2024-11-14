@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
-use p256::ecdsa::{Signature, VerifyingKey};
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 
-use wallet_common::keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier};
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::WithIdentifier;
 use wallet_provider_domain::model::hsm::Hsm;
 
-use crate::hsm::{HsmError, Pkcs11Hsm};
+use crate::hsm::HsmError;
+use crate::hsm::Pkcs11Hsm;
 
 pub trait WalletCertificateSigningKey: SecureEcdsaKey + WithIdentifier {}
 pub trait InstructionResultSigningKey: SecureEcdsaKey + WithIdentifier {}
@@ -89,7 +93,8 @@ impl SecureEcdsaKey for WalletProviderEcdsaKey {}
 pub mod mock {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::keys::{InstructionResultSigningKey, WalletCertificateSigningKey};
+    use crate::keys::InstructionResultSigningKey;
+    use crate::keys::WalletCertificateSigningKey;
 
     impl WalletCertificateSigningKey for SoftwareEcdsaKey {}
     impl InstructionResultSigningKey for SoftwareEcdsaKey {}

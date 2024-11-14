@@ -3,7 +3,9 @@ use std::error::Error;
 use tokio::net::TcpListener;
 use tracing::debug;
 
-use super::{router, router_state::RouterState, settings::Settings};
+use super::router;
+use super::router_state::RouterState;
+use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind((settings.webserver.ip, settings.webserver.port)).await?;

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use parking_lot::RwLock;
 
 use wallet_common::generator::Generator;

@@ -4,27 +4,31 @@
 //! This data structure does not directly contain the attributes ([`IssuerSignedItem`]) but instead only their digests,
 //! to enable selective disclosure.
 
-use std::{fmt::Debug, result::Result};
+use std::fmt::Debug;
+use std::result::Result;
 
-use chrono::{DateTime, ParseError, Utc};
-use ciborium::{tag, value::Value};
+use chrono::DateTime;
+use chrono::ParseError;
+use chrono::Utc;
+use ciborium::tag;
+use ciborium::value::Value;
 use indexmap::IndexMap;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 
 use wallet_common::utils::random_bytes;
 
-use crate::{
-    unsigned::{Entry, UnsignedAttributes},
-    utils::{
-        cose::CoseKey,
-        crypto::{cbor_digest, CryptoError},
-        serialization::{CborError, TaggedBytes},
-    },
-};
+use crate::unsigned::Entry;
+use crate::unsigned::UnsignedAttributes;
+use crate::utils::cose::CoseKey;
+use crate::utils::crypto::cbor_digest;
+use crate::utils::crypto::CryptoError;
+use crate::utils::serialization::CborError;
+use crate::utils::serialization::TaggedBytes;
 
 /// Name of a namespace within an mdoc.
 pub type NameSpace = String;

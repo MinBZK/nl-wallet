@@ -1,13 +1,16 @@
 use anyhow::Result;
-use chrono::{Duration, Utc};
-use clap::{Parser, Subcommand};
+use chrono::Duration;
+use chrono::Utc;
+use clap::Parser;
+use clap::Subcommand;
 use clio::CachedInput;
 
-use nl_wallet_mdoc::{
-    server_keys::KeyPair,
-    utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateConfiguration},
-};
-use wallet_ca::{read_key_pair, write_key_pair};
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
+use wallet_ca::read_key_pair;
+use wallet_ca::write_key_pair;
 
 /// Generate private keys and certificates
 ///

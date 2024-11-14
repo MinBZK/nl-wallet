@@ -1,25 +1,21 @@
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    account::{
-        errors::Error as AccountError,
-        messages::{
-            auth::WalletCertificate,
-            instructions::{ChangePinCommit, ChangePinRollback, ChangePinStart},
-        },
-    },
-    keys::EcdsaKey,
-};
+use wallet_common::account::errors::Error as AccountError;
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::account::messages::instructions::ChangePinCommit;
+use wallet_common::account::messages::instructions::ChangePinRollback;
+use wallet_common::account::messages::instructions::ChangePinStart;
+use wallet_common::keys::EcdsaKey;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    errors::{AccountProviderError, AccountProviderResponseError},
-    instruction::{InstructionClient, InstructionClientFactory, InstructionError},
-    pin::{
-        change::{ChangePinClient, ChangePinClientError},
-        key::PinKey,
-    },
-    storage::Storage,
-};
+use crate::account_provider::AccountProviderClient;
+use crate::errors::AccountProviderError;
+use crate::errors::AccountProviderResponseError;
+use crate::instruction::InstructionClient;
+use crate::instruction::InstructionClientFactory;
+use crate::instruction::InstructionError;
+use crate::pin::change::ChangePinClient;
+use crate::pin::change::ChangePinClientError;
+use crate::pin::key::PinKey;
+use crate::storage::Storage;
 
 impl ChangePinClientError for InstructionError {
     fn is_network_error(&self) -> bool {

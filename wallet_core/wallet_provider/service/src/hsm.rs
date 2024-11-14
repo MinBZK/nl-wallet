@@ -1,29 +1,40 @@
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
-use cryptoki::{
-    context::{CInitializeArgs, Pkcs11},
-    mechanism::{aead::GcmParams, Mechanism},
-    object::{Attribute, AttributeType, KeyType, ObjectClass, ObjectHandle},
-    types::AuthPin,
-};
-use der::{asn1::OctetString, Decode, Encode};
-use p256::{
-    ecdsa::{Signature, VerifyingKey},
-    pkcs8::AssociatedOid,
-    NistP256,
-};
-use r2d2_cryptoki::{Pool, SessionManager, SessionType};
+use cryptoki::context::CInitializeArgs;
+use cryptoki::context::Pkcs11;
+use cryptoki::mechanism::aead::GcmParams;
+use cryptoki::mechanism::Mechanism;
+use cryptoki::object::Attribute;
+use cryptoki::object::AttributeType;
+use cryptoki::object::KeyType;
+use cryptoki::object::ObjectClass;
+use cryptoki::object::ObjectHandle;
+use cryptoki::types::AuthPin;
+use der::asn1::OctetString;
+use der::Decode;
+use der::Encode;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::AssociatedOid;
+use p256::NistP256;
+use r2d2_cryptoki::Pool;
+use r2d2_cryptoki::SessionManager;
+use r2d2_cryptoki::SessionType;
 use sec1::EcParameters;
 
-use wallet_common::{spawn, utils::sha256};
-use wallet_provider_domain::model::{
-    encrypted::{Encrypted, InitializationVector},
-    encrypter::{Decrypter, Encrypter},
-    hsm,
-    hsm::{Hsm, WalletUserHsm},
-    wallet_user::WalletId,
-    wrapped_key::WrappedKey,
-};
+use wallet_common::spawn;
+use wallet_common::utils::sha256;
+use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::encrypted::InitializationVector;
+use wallet_provider_domain::model::encrypter::Decrypter;
+use wallet_provider_domain::model::encrypter::Encrypter;
+use wallet_provider_domain::model::hsm;
+use wallet_provider_domain::model::hsm::Hsm;
+use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wallet_user::WalletId;
+use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HsmError {

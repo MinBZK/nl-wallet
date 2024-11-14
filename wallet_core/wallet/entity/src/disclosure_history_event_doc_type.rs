@@ -1,6 +1,7 @@
 use sea_orm::entity::prelude::*;
 
-use crate::{disclosure_history_event, history_doc_type};
+use crate::disclosure_history_event;
+use crate::history_doc_type;
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "disclosure_history_event_doc_type")]

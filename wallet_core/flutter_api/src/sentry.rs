@@ -1,7 +1,11 @@
 pub use std::borrow::Cow;
-use std::{sync::Arc, sync::OnceLock};
+use std::sync::Arc;
+use std::sync::OnceLock;
 
-pub use sentry::{init, release_name, ClientInitGuard, ClientOptions};
+pub use sentry::init;
+pub use sentry::release_name;
+pub use sentry::ClientInitGuard;
+pub use sentry::ClientOptions;
 
 pub use error_category::sentry::filter_and_scrub_sensitive_data;
 

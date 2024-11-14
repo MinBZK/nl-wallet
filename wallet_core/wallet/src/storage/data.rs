@@ -1,5 +1,8 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
 use wallet_common::account::messages::auth::WalletCertificate;
 

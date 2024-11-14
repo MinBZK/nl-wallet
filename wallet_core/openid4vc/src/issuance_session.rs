@@ -1,58 +1,70 @@
 use std::collections::VecDeque;
 
 use derive_more::Debug;
-use futures::{
-    future::{try_join_all, OptionFuture},
-    TryFutureExt,
-};
+use futures::future::try_join_all;
+use futures::future::OptionFuture;
+use futures::TryFutureExt;
 use itertools::Itertools;
-use jsonwebtoken::{Algorithm, Header};
-use p256::{
-    ecdsa::{SigningKey, VerifyingKey},
-    elliptic_curve::rand_core::OsRng,
-};
-use reqwest::{
-    header::{ToStrError, AUTHORIZATION},
-    Method,
-};
-use serde::{de::DeserializeOwned, Serialize};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve::rand_core::OsRng;
+use reqwest::header::ToStrError;
+use reqwest::header::AUTHORIZATION;
+use reqwest::Method;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use url::Url;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::{IssuedAttributesMismatch, Mdoc, TrustAnchor},
-    utils::{
-        cose::CoseError,
-        serialization::{CborBase64, CborError, TaggedBytes},
-        x509::CertificateError,
-    },
-    ATTR_RANDOM_LENGTH,
-};
-use wallet_common::{
-    generator::TimeGenerator,
-    jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims, NL_WALLET_CLIENT_ID},
-    keys::{
-        factory::KeyFactory,
-        poa::{Poa, VecAtLeastTwo},
-        CredentialEcdsaKey,
-    },
-    nonempty::NonEmpty,
-    urls::BaseUrl,
-    wte::WteClaims,
-};
+use nl_wallet_mdoc::holder::IssuedAttributesMismatch;
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::serialization::CborBase64;
+use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::ATTR_RANDOM_LENGTH;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::jwt::JwkConversionError;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtError;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::jwt::NL_WALLET_CLIENT_ID;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::VecAtLeastTwo;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
+use wallet_common::wte::WteClaims;
 
-use crate::{
-    credential::{
-        CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
-        CredentialResponses, MdocCopies, WteDisclosure,
-    },
-    dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    jwt::{JwtCredential, JwtCredentialError},
-    metadata::IssuerMetadata,
-    oidc,
-    token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorResponse, Format, TokenErrorCode,
-};
+use crate::credential::CredentialCopies;
+use crate::credential::CredentialRequest;
+use crate::credential::CredentialRequestProof;
+use crate::credential::CredentialRequests;
+use crate::credential::CredentialResponse;
+use crate::credential::CredentialResponses;
+use crate::credential::MdocCopies;
+use crate::credential::WteDisclosure;
+use crate::dpop::Dpop;
+use crate::dpop::DpopError;
+use crate::dpop::DPOP_HEADER_NAME;
+use crate::dpop::DPOP_NONCE_HEADER_NAME;
+use crate::jwt::JwtCredential;
+use crate::jwt::JwtCredentialError;
+use crate::metadata::IssuerMetadata;
+use crate::oidc;
+use crate::token::AccessToken;
+use crate::token::CredentialPreview;
+use crate::token::TokenRequest;
+use crate::token::TokenResponseWithPreviews;
+use crate::CredentialErrorCode;
+use crate::ErrorResponse;
+use crate::Format;
+use crate::TokenErrorCode;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -822,10 +834,10 @@ impl IssuanceState {
 
 #[cfg(any(test, feature = "test"))]
 pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> JwtCredential<WteClaims> {
-    use wallet_common::{
-        jwt::JwtCredentialClaims,
-        keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
-    };
+    use wallet_common::jwt::JwtCredentialClaims;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_common::keys::WithIdentifier;
 
     let wte_privkey = key_factory.generate_new().await.unwrap();
 
@@ -848,21 +860,19 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use nl_wallet_mdoc::{
-        server_keys::KeyPair,
-        test::data,
-        unsigned::UnsignedMdoc,
-        utils::{
-            issuer_auth::IssuerRegistration,
-            serialization::{CborBase64, TaggedBytes},
-            x509::Certificate,
-        },
-        IssuerSigned,
-    };
-    use wallet_common::{
-        keys::{factory::KeyFactory, software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory, EcdsaKey},
-        nonempty::NonEmpty,
-    };
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::test::data;
+    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+    use nl_wallet_mdoc::utils::serialization::CborBase64;
+    use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+    use nl_wallet_mdoc::utils::x509::Certificate;
+    use nl_wallet_mdoc::IssuerSigned;
+    use wallet_common::keys::factory::KeyFactory;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_common::nonempty::NonEmpty;
 
     use crate::token::TokenResponse;
 

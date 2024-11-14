@@ -1,17 +1,23 @@
-use std::{collections::HashMap, iter};
+use std::collections::HashMap;
+use std::iter;
 
 use futures::future;
-use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use crate::{
-    jwt::{JwtPopClaims, NL_WALLET_CLIENT_ID},
-    keys::{factory::KeyFactory, poa::Poa, software::SoftwareEcdsaKey, EcdsaKey},
-    utils,
-};
+use crate::jwt::JwtPopClaims;
+use crate::jwt::NL_WALLET_CLIENT_ID;
+use crate::keys::factory::KeyFactory;
+use crate::keys::poa::Poa;
+use crate::keys::software::SoftwareEcdsaKey;
+use crate::keys::EcdsaKey;
+use crate::utils;
 
-use super::poa::{PoaError, VecAtLeastTwo};
+use super::poa::PoaError;
+use super::poa::VecAtLeastTwo;
 
 /// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
 /// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple
@@ -38,7 +44,8 @@ impl Default for SoftwareKeyFactory {
         let keys = HashMap::from([
             #[cfg(any(test, feature = "examples"))]
             {
-                use super::examples::{Examples, EXAMPLE_KEY_IDENTIFIER};
+                use super::examples::Examples;
+                use super::examples::EXAMPLE_KEY_IDENTIFIER;
 
                 (EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())
             },

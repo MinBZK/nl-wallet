@@ -2,7 +2,8 @@ use p256::pkcs8;
 
 use error_category::ErrorCategory;
 
-use crate::{account::signed::SignedType, jwt::JwtError};
+use crate::account::signed::SignedType;
+use crate::jwt::JwtError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

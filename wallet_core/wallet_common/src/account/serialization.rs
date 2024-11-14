@@ -1,21 +1,28 @@
-use std::{
-    fmt::{Debug, Display, Formatter},
-    hash::{Hash, Hasher},
-};
+use std::fmt::Debug;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 use base64::prelude::*;
 use config::ValueKind;
-use p256::{
-    ecdsa::{Signature, SigningKey, VerifyingKey},
-    pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey},
-    SecretKey,
-};
-use serde::{de, ser, Deserialize, Serialize};
-use serde_with::{
-    base64::{Base64, Standard},
-    formats::Padded,
-    DeserializeAs, SerializeAs,
-};
+use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePrivateKey;
+use p256::pkcs8::DecodePublicKey;
+use p256::pkcs8::EncodePrivateKey;
+use p256::pkcs8::EncodePublicKey;
+use p256::SecretKey;
+use serde::de;
+use serde::ser;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::base64::Standard;
+use serde_with::formats::Padded;
+use serde_with::DeserializeAs;
+use serde_with::SerializeAs;
 
 /// ECDSA signature that (de)serializes from/to base64-encoded DER.
 #[derive(Debug, Clone)]
@@ -161,7 +168,8 @@ mod tests {
     use config::Config;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-    use serde::{Deserialize, Serialize};
+    use serde::Deserialize;
+    use serde::Serialize;
 
     #[test]
     fn test_from_der_veriyfing_key_to_valuekind() {

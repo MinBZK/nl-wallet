@@ -1,5 +1,6 @@
 use anyhow::Result;
-use mock_relying_party::{server, settings::Settings};
+use mock_relying_party::server;
+use mock_relying_party::settings::Settings;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 

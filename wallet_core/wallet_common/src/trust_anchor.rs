@@ -1,14 +1,17 @@
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
+use std::hash::Hasher;
 
 use base64::prelude::*;
 use derive_more::Debug;
-use serde::{Deserialize, Serialize};
-use webpki::{
-    anchor_from_trusted_cert,
-    types::{CertificateDer, TrustAnchor},
-    Error,
-};
-use x509_parser::{error::X509Error, prelude::FromDer, x509::RelativeDistinguishedName};
+use serde::Deserialize;
+use serde::Serialize;
+use webpki::anchor_from_trusted_cert;
+use webpki::types::CertificateDer;
+use webpki::types::TrustAnchor;
+use webpki::Error;
+use x509_parser::error::X509Error;
+use x509_parser::prelude::FromDer;
+use x509_parser::x509::RelativeDistinguishedName;
 
 /// A version of [`TrustAnchor`] that can more easily be used as a field
 /// in another struct, as it does not require a liftetime annotation.

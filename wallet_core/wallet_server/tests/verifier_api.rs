@@ -1,58 +1,85 @@
-use std::{
-    collections::HashMap,
-    net::{IpAddr, TcpListener},
-    process,
-    str::FromStr,
-    sync::{Arc, LazyLock},
-    time::Duration,
-};
+use std::collections::HashMap;
+use std::net::IpAddr;
+use std::net::TcpListener;
+use std::process;
+use std::str::FromStr;
+use std::sync::Arc;
+use std::sync::LazyLock;
+use std::time::Duration;
 
 use assert_matches::assert_matches;
-use chrono::{DateTime, Days, Utc};
+use chrono::DateTime;
+use chrono::Days;
+use chrono::Utc;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::EncodePrivateKey;
 use parking_lot::RwLock;
 use rand_core::OsRng;
-use reqwest::{Client, Response};
+use reqwest::Client;
+use reqwest::Response;
 use rstest::rstest;
 use tokio::time;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    examples::{Example, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-    holder::{mock::MockMdocDataSource, Mdoc, TrustAnchor},
-    server_keys::KeyPair,
-    unsigned::{Entry, UnsignedMdoc},
-    utils::{
-        issuer_auth::IssuerRegistration, mock_time::MockTimeGenerator, reader_auth::ReaderRegistration,
-        serialization::TaggedBytes,
-    },
-    verifier::DisclosedAttributes,
-    DeviceResponse, IssuerSigned, ItemsRequest,
-};
-use openid4vc::{
-    disclosure_session::{DisclosureSession, DisclosureUriSource, HttpVpMessageClient},
-    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS},
-    verifier::{DisclosureData, SessionType, SessionTypeReturnUrl, StatusResponse, VerifierUrlParameters},
-    ErrorResponse,
-};
-use wallet_common::{
-    generator::TimeGenerator,
-    http_error::HttpJsonErrorBody,
-    keys::{software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory},
-    reqwest::default_reqwest_client_builder,
-    trust_anchor::OwnedTrustAnchor,
-    urls::BaseUrl,
-    utils,
-};
+use nl_wallet_mdoc::examples::Example;
+use nl_wallet_mdoc::examples::EXAMPLE_ATTR_NAME;
+use nl_wallet_mdoc::examples::EXAMPLE_ATTR_VALUE;
+use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
+use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
+use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::unsigned::Entry;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use nl_wallet_mdoc::DeviceResponse;
+use nl_wallet_mdoc::IssuerSigned;
+use nl_wallet_mdoc::ItemsRequest;
+use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::server_state::MemorySessionStore;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc::server_state::SessionToken;
+use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
+use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::StatusResponse;
+use openid4vc::verifier::VerifierUrlParameters;
+use openid4vc::ErrorResponse;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::http_error::HttpJsonErrorBody;
+use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+use wallet_common::reqwest::default_reqwest_client_builder;
+use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils;
+use wallet_server::settings::Authentication;
 #[cfg(feature = "issuance")]
-use wallet_server::settings::{Digid, Issuer};
-use wallet_server::{
-    settings::{Authentication, RequesterAuth, Server, Settings, Storage, Urls, Verifier, VerifierUseCase},
-    verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams},
-};
+use wallet_server::settings::Digid;
+#[cfg(feature = "issuance")]
+use wallet_server::settings::Issuer;
+use wallet_server::settings::RequesterAuth;
+use wallet_server::settings::Server;
+use wallet_server::settings::Settings;
+use wallet_server::settings::Storage;
+use wallet_server::settings::Urls;
+use wallet_server::settings::Verifier;
+use wallet_server::settings::VerifierUseCase;
+use wallet_server::verifier::StartDisclosureRequest;
+use wallet_server::verifier::StartDisclosureResponse;
+use wallet_server::verifier::StatusParams;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -691,7 +718,8 @@ async fn test_disclosure_expired_memory() {
 #[cfg(feature = "db_test")]
 #[tokio::test]
 async fn test_disclosure_expired_postgres() {
-    use wallet_server::store::postgres::{self, PostgresSessionStore};
+    use wallet_server::store::postgres::PostgresSessionStore;
+    use wallet_server::store::postgres::{self};
 
     // Combine the generated settings with the storage settings from the configuration file.
     let (mut settings, _, _) = wallet_server_settings();

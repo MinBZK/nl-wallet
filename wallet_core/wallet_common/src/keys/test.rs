@@ -2,7 +2,9 @@ use std::mem;
 
 use p256::ecdsa::signature::Verifier;
 
-use super::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
+use super::SecureEcdsaKey;
+use super::SecureEncryptionKey;
+use super::StoredByIdentifier;
 
 // This utility function is used both by the Rust unit tests for the "software_keys" feature
 // and by integration test performed in platform_support from Android / iOS.

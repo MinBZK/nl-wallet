@@ -1,17 +1,19 @@
 use std::sync::Arc;
 
-use p256::ecdsa::{signature::Verifier, SigningKey};
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use serial_test::serial;
 
-use wallet_common::utils::{random_bytes, random_string};
+use wallet_common::utils::random_bytes;
+use wallet_common::utils::random_string;
 use wallet_provider::settings::Settings;
-use wallet_provider_domain::model::{
-    encrypted::Encrypted,
-    encrypter::{Decrypter, Encrypter},
-    hsm::{Hsm, WalletUserHsm},
-    wallet_user::WalletId,
-};
+use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::encrypter::Decrypter;
+use wallet_provider_domain::model::encrypter::Encrypter;
+use wallet_provider_domain::model::hsm::Hsm;
+use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 
 fn setup_hsm() -> (Pkcs11Hsm, Settings) {

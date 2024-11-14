@@ -1,18 +1,19 @@
 use std::future::Future;
-use tokio::sync::{RwLock, RwLockWriteGuard};
+use tokio::sync::RwLock;
+use tokio::sync::RwLockWriteGuard;
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    account::messages::instructions::{Instruction, InstructionAndResult, InstructionChallengeRequest},
-    jwt::EcdsaDecodingKey,
-    urls::BaseUrl,
-};
+use wallet_common::account::messages::instructions::Instruction;
+use wallet_common::account::messages::instructions::InstructionAndResult;
+use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::urls::BaseUrl;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    pin::key::PinKey,
-    storage::{InstructionData, RegistrationData, Storage},
-};
+use crate::account_provider::AccountProviderClient;
+use crate::pin::key::PinKey;
+use crate::storage::InstructionData;
+use crate::storage::RegistrationData;
+use crate::storage::Storage;
 
 use super::InstructionError;
 

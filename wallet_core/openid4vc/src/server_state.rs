@@ -1,21 +1,29 @@
-use std::{convert::Infallible, sync::Arc, time::Duration};
+use std::convert::Infallible;
+use std::sync::Arc;
+use std::time::Duration;
 
-use chrono::{DateTime, Utc};
-use dashmap::{mapref::entry::Entry, DashMap};
-use derive_more::{AsRef, Display, From, Into};
-use serde::{Deserialize, Serialize};
-use tokio::{
-    task::JoinHandle,
-    time::{self, MissedTickBehavior},
-};
+use chrono::DateTime;
+use chrono::Utc;
+use dashmap::mapref::entry::Entry;
+use dashmap::DashMap;
+use derive_more::AsRef;
+use derive_more::Display;
+use derive_more::From;
+use derive_more::Into;
+use serde::Deserialize;
+use serde::Serialize;
+use tokio::task::JoinHandle;
+use tokio::time::MissedTickBehavior;
+use tokio::time::{self};
 use tracing::warn;
 
-use wallet_common::{
-    generator::{Generator, TimeGenerator},
-    jwt::{JwtCredentialClaims, VerifiedJwt},
-    utils::{random_string, sha256},
-    wte::WteClaims,
-};
+use wallet_common::generator::Generator;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::VerifiedJwt;
+use wallet_common::utils::random_string;
+use wallet_common::utils::sha256;
+use wallet_common::wte::WteClaims;
 
 /// The cleanup task that removes stale sessions runs every so often.
 pub const CLEANUP_INTERVAL_SECONDS: Duration = Duration::from_secs(120);
@@ -308,9 +316,11 @@ pub mod test {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use wallet_common::{keys::software_key_factory::SoftwareKeyFactory, wte::WTE_EXPIRY};
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+    use wallet_common::wte::WTE_EXPIRY;
 
-    use crate::{issuance_session::mock_wte, issuer::WTE_JWT_VALIDATIONS};
+    use crate::issuance_session::mock_wte;
+    use crate::issuer::WTE_JWT_VALIDATIONS;
 
     use super::*;
 
