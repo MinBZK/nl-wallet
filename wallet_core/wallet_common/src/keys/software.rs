@@ -15,6 +15,8 @@ use rand_core::OsRng;
 
 use crate::keys::WithIdentifier;
 
+use super::CredentialEcdsaKey;
+use super::CredentialKeyType;
 use super::EcdsaKey;
 use super::EncryptionKey;
 use super::SecureEcdsaKey;
@@ -72,6 +74,10 @@ impl WithIdentifier for SoftwareEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
+}
+
+impl CredentialEcdsaKey for SoftwareEcdsaKey {
+    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;
 }
 
 impl StoredByIdentifier for SoftwareEcdsaKey {

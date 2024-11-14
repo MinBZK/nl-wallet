@@ -42,7 +42,7 @@ impl SoftwareKeyFactory {
 impl Default for SoftwareKeyFactory {
     fn default() -> Self {
         let keys = HashMap::from([
-            #[cfg(any(test, feature = "examples"))]
+            #[cfg(feature = "examples")]
             {
                 use super::examples::Examples;
                 use super::examples::EXAMPLE_KEY_IDENTIFIER;

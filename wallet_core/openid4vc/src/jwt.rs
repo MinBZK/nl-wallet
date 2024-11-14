@@ -15,7 +15,6 @@ use josekit::JoseError;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
-
 use p256::ecdsa::VerifyingKey;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -199,7 +198,6 @@ mod tests {
     use wallet_common::jwt::JwtCredentialClaims;
     use wallet_common::keys::software::SoftwareEcdsaKey;
     use wallet_common::keys::EcdsaKey;
-    use wallet_common::keys::StoredByIdentifier;
 
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -254,7 +252,7 @@ mod tests {
     #[tokio::test]
     async fn test_jwt_credential() {
         let holder_key_id = "key";
-        let holder_keypair = SoftwareEcdsaKey::new_unique(holder_key_id).unwrap();
+        let holder_keypair = SoftwareEcdsaKey::new_random(holder_key_id.to_string());
         let issuer_keypair = KeyPair::generate_issuer_mock_ca().unwrap();
 
         // Produce a JWT with `JwtCredentialClaims` in it

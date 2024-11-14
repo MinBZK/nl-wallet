@@ -25,9 +25,9 @@ allow_insecure_url = []
 # Include mock implementations for testing
 mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/mock", "wallet_common/software_keys"]
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "dep:parking_lot"]
+test = ["wallet_common/software_key_factory", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
-integration = ["mock", "test", "dep:ciborium", "wallet_common/software_key_factory"]
+integration = ["mock", "test", "dep:ciborium"]
 
 [dependencies]
 base64.workspace = true

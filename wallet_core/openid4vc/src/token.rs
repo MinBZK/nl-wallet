@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use derive_more::From;
 use indexmap::IndexSet;
-
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::formats::SpaceSeparator;
@@ -21,6 +20,7 @@ use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use wallet_common::generator::TimeGenerator;
+
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::utils::random_string;
 use wallet_common::utils::sha256;
