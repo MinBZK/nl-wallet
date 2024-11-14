@@ -1,9 +1,13 @@
-use std::future::Future;
+use std::{error::Error, future::Future};
 
+use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 
 use error_category::ErrorCategory;
-use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::{
+    account::messages::auth::WalletCertificate,
+    jwt::{EcdsaDecodingKey, JwtError},
+};
 
 use crate::{
     errors::{InstructionError, PinValidationError, StorageError},
@@ -74,6 +78,21 @@ pub enum ChangePinError {
     Instruction(#[from] InstructionError),
     #[error("storage error: {0}")]
     Storage(#[from] StorageError),
+    #[error("could not get hardware public key: {0}")]
+    #[category(pd)]
+    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
+    #[error("could not validate new registration certificate received from Wallet Provider: {0}")]
+    CertificateValidation(#[source] JwtError),
+    #[error(
+        "public key in new registration certificate received from Wallet Provider does not match hardware public key"
+    )]
+    #[category(critical)]
+    PublicKeyMismatch,
+    #[error(
+        "wallet ID in new registration certificate received from Wallet Provider does not match current wallet ID"
+    )]
+    #[category(critical)]
+    WalletIdMismatch,
 }
 
 pub type ChangePinResult<T> = Result<T, ChangePinError>;
@@ -91,6 +110,28 @@ impl<'a, C, S> ChangePinSession<'a, C, S> {
             storage,
             retries,
         }
+    }
+
+    // Perform the same sanity checks as during registration, with the addition of checking the received wallet_id.
+    pub fn validate_certificate(
+        certificate: &WalletCertificate,
+        certificate_public_key: &EcdsaDecodingKey,
+        hw_pubkey: &VerifyingKey,
+        wallet_id: &str,
+    ) -> ChangePinResult<()> {
+        let cert_claims = certificate
+            .parse_and_verify_with_sub(certificate_public_key)
+            .map_err(ChangePinError::CertificateValidation)?;
+
+        if &cert_claims.hw_pubkey.0 != hw_pubkey {
+            return Err(ChangePinError::PublicKeyMismatch);
+        }
+
+        if cert_claims.wallet_id != wallet_id {
+            return Err(ChangePinError::WalletIdMismatch);
+        }
+
+        Ok(())
     }
 }
 
@@ -149,6 +190,8 @@ where
 
     pub async fn begin_change_pin(
         &self,
+        certificate_public_key: &EcdsaDecodingKey,
+        hw_pubkey: &VerifyingKey,
         wallet_id: String,
         old_pin: String,
         new_pin: String,
@@ -168,7 +211,25 @@ where
 
         self.storage.store_change_pin_state(State::Begin).await?;
 
-        match self.client.start_new_pin(&old_pin, &new_pin, &new_pin_salt).await {
+        let start_result = self
+            .client
+            .start_new_pin(&old_pin, &new_pin, &new_pin_salt)
+            .await
+            .map_err(|error| {
+                let is_network_error = error.is_network_error();
+
+                // Initiate a rollback if the error is detected to be a network error.
+                (error.into(), is_network_error)
+            })
+            .and_then(|new_pin_certificate| {
+                // If the received certificate does not validate, initiate a rollback of the PIN change.
+                Self::validate_certificate(&new_pin_certificate, certificate_public_key, hw_pubkey, &wallet_id)
+                    .map_err(|error| (error, true))?;
+
+                Ok(new_pin_certificate)
+            });
+
+        match start_result {
             Ok(new_pin_certificate) => {
                 self.storage.store_change_pin_state(State::Commit).await?;
                 self.storage
@@ -176,13 +237,13 @@ where
                     .await?;
                 Ok((new_pin_salt, new_pin_certificate))
             }
-            Err(error) if error.is_network_error() => {
+            Err((error, true)) => {
                 self.storage.store_change_pin_state(State::Rollback).await?;
-                Err(error.into())
+                Err(error)
             }
-            Err(error) => {
+            Err((error, false)) => {
                 self.storage.clear_change_pin_state().await?;
-                Err(error.into())
+                Err(error)
             }
         }
     }
@@ -230,7 +291,14 @@ mod test {
     use assert_matches::assert_matches;
     use mockall::predicate::eq;
 
-    use wallet_common::account::messages::auth::WalletCertificate;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
+    use wallet_common::{
+        account::messages::auth::{WalletCertificate, WalletCertificateClaims},
+        jwt::Jwt,
+        utils,
+    };
 
     use super::*;
 
@@ -241,44 +309,75 @@ mod test {
         },
     };
 
+    async fn create_wallet_certificate() -> (WalletCertificate, EcdsaDecodingKey, VerifyingKey, String) {
+        let certificate_signing_key = SigningKey::random(&mut OsRng);
+        let hw_privkey = SigningKey::random(&mut OsRng);
+        let certificate_public_key = certificate_signing_key.verifying_key().into();
+        let hw_pubkey = *hw_privkey.verifying_key();
+        let wallet_id = utils::random_string(32);
+
+        let certificate_claims = WalletCertificateClaims {
+            wallet_id: wallet_id.clone(),
+            hw_pubkey: hw_pubkey.into(),
+            // The hash does not need to be value for testing.
+            pin_pubkey_hash: utils::random_bytes(32),
+            version: 0,
+            iss: "pin_change_unit_test".to_string(),
+            iat: jsonwebtoken::get_current_timestamp(),
+        };
+
+        let certificate = Jwt::sign_with_sub(&certificate_claims, &certificate_signing_key)
+            .await
+            .unwrap();
+
+        (certificate, certificate_public_key, hw_pubkey, wallet_id)
+    }
+
     #[tokio::test]
     async fn begin_change_pin_success() {
+        let (certificate, certificate_public_key, hw_pubkey, wallet_id) = create_wallet_certificate().await;
+        let returned_certificate = certificate.clone();
+
         let mut change_pin_client = MockChangePinClient::new();
         change_pin_client
             .expect_start_new_pin()
-            .returning(|_, _, _| Ok(WalletCertificate::from("thisisdefinitelyvalid")));
+            .return_once(|_, _, _| Ok(returned_certificate));
 
         let mut change_pin_storage = MockChangePinStorage::new();
         change_pin_storage
             .expect_get_change_pin_state()
-            .times(1)
-            .returning(|| Ok(None));
+            .return_once(|| Ok(None));
         change_pin_storage
             .expect_store_change_pin_state()
             .with(eq(State::Begin))
-            .returning(|_| Ok(()));
+            .return_once(|_| Ok(()));
         change_pin_storage
             .expect_store_change_pin_state()
             .with(eq(State::Commit))
-            .returning(|_| Ok(()));
-        change_pin_storage
-            .expect_change_pin()
-            .times(1)
-            .returning(|_, _, _| Ok(()));
+            .return_once(|_| Ok(()));
+        change_pin_storage.expect_change_pin().return_once(|_, _, _| Ok(()));
 
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
         let (new_pin_salt, new_wallet_certificate) = change_pin_session
-            .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
+            .begin_change_pin(
+                &certificate_public_key,
+                &hw_pubkey,
+                wallet_id,
+                "000111".to_string(),
+                "123789".to_string(),
+            )
             .await
             .expect("begin changing PIN should succeed");
 
         assert!(!new_pin_salt.is_empty());
-        assert_eq!(new_wallet_certificate.0, "thisisdefinitelyvalid");
+        assert_eq!(new_wallet_certificate.0, certificate.0);
     }
 
     #[tokio::test]
     async fn begin_change_pin_network_error() {
+        let (_, certificate_public_key, hw_pubkey, wallet_id) = create_wallet_certificate().await;
+
         let mut change_pin_client = MockChangePinClient::new();
         // return a network error
         change_pin_client
@@ -302,7 +401,13 @@ mod test {
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
         let actual = change_pin_session
-            .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
+            .begin_change_pin(
+                &certificate_public_key,
+                &hw_pubkey,
+                wallet_id,
+                "000111".to_string(),
+                "123789".to_string(),
+            )
             .await;
 
         assert_matches!(
@@ -314,7 +419,9 @@ mod test {
     }
 
     #[tokio::test]
-    async fn begin_change_pin_error() {
+    async fn begin_change_pin_instruction_error() {
+        let (_, certificate_public_key, hw_pubkey, wallet_id) = create_wallet_certificate().await;
+
         let mut change_pin_client = MockChangePinClient::new();
         change_pin_client
             .expect_start_new_pin()
@@ -337,7 +444,13 @@ mod test {
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
         let actual = change_pin_session
-            .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
+            .begin_change_pin(
+                &certificate_public_key,
+                &hw_pubkey,
+                wallet_id,
+                "000111".to_string(),
+                "123789".to_string(),
+            )
             .await;
 
         assert_matches!(
@@ -348,6 +461,8 @@ mod test {
 
     #[tokio::test]
     async fn begin_change_pin_error_already_in_progress() {
+        let (_, certificate_public_key, hw_pubkey, wallet_id) = create_wallet_certificate().await;
+
         let change_pin_client = MockChangePinClient::new();
 
         let mut change_pin_storage = MockChangePinStorage::new();
@@ -359,10 +474,122 @@ mod test {
         let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
 
         let actual = change_pin_session
-            .begin_change_pin("wallet_123".to_string(), "000111".to_string(), "123789".to_string())
+            .begin_change_pin(
+                &certificate_public_key,
+                &hw_pubkey,
+                wallet_id,
+                "000111".to_string(),
+                "123789".to_string(),
+            )
             .await;
 
         assert_matches!(actual, Err(ChangePinError::ChangePinAlreadyInProgress));
+    }
+
+    async fn setup_change_pin_certificate_sanity_check_test() -> (
+        MockChangePinClient,
+        MockChangePinStorage,
+        EcdsaDecodingKey,
+        VerifyingKey,
+        String,
+    ) {
+        let (certificate, certificate_public_key, hw_pubkey, wallet_id) = create_wallet_certificate().await;
+        let returned_certificate = certificate.clone();
+
+        let mut change_pin_client = MockChangePinClient::new();
+        change_pin_client
+            .expect_start_new_pin()
+            .return_once(|_, _, _| Ok(returned_certificate));
+
+        let mut change_pin_storage = MockChangePinStorage::new();
+        change_pin_storage
+            .expect_get_change_pin_state()
+            .times(1)
+            .returning(|| Ok(None));
+        change_pin_storage
+            .expect_store_change_pin_state()
+            .with(eq(State::Begin))
+            .returning(|_| Ok(()));
+        change_pin_storage
+            .expect_store_change_pin_state()
+            .with(eq(State::Rollback))
+            .returning(|_| Ok(()));
+
+        (
+            change_pin_client,
+            change_pin_storage,
+            certificate_public_key,
+            hw_pubkey,
+            wallet_id,
+        )
+    }
+
+    #[tokio::test]
+    async fn begin_change_pin_certificate_validation_error() {
+        let (change_pin_client, change_pin_storage, _, hw_pubkey, wallet_id) =
+            setup_change_pin_certificate_sanity_check_test().await;
+        let other_certificate_public_key = SigningKey::random(&mut OsRng).verifying_key().into();
+
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+
+        // Validation with a different certificate public key should fail.
+        let error = change_pin_session
+            .begin_change_pin(
+                &other_certificate_public_key,
+                &hw_pubkey,
+                wallet_id,
+                "000111".to_string(),
+                "123789".to_string(),
+            )
+            .await
+            .expect_err("begin changing PIN should fail");
+
+        assert_matches!(error, ChangePinError::CertificateValidation(_));
+    }
+
+    #[tokio::test]
+    async fn begin_change_pin_public_key_mismatch_error() {
+        let (change_pin_client, change_pin_storage, other_certificate_public_key, _, wallet_id) =
+            setup_change_pin_certificate_sanity_check_test().await;
+        let other_hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+
+        // Validation with a different hardware public key should fail.
+        let error = change_pin_session
+            .begin_change_pin(
+                &other_certificate_public_key,
+                &other_hw_pubkey,
+                wallet_id,
+                "000111".to_string(),
+                "123789".to_string(),
+            )
+            .await
+            .expect_err("begin changing PIN should fail");
+
+        assert_matches!(error, ChangePinError::PublicKeyMismatch);
+    }
+
+    #[tokio::test]
+    async fn begin_change_pin_wallet_id_mismatch_error() {
+        let (change_pin_client, change_pin_storage, other_certificate_public_key, hw_pubkey, _) =
+            setup_change_pin_certificate_sanity_check_test().await;
+
+        let change_pin_session = ChangePinSession::new(&change_pin_client, &change_pin_storage, 2);
+
+        // Validation with a different wallet ID should fail.
+        let error = change_pin_session
+            .begin_change_pin(
+                &other_certificate_public_key,
+                &hw_pubkey,
+                "other_wallet_id".to_string(),
+                "000111".to_string(),
+                "123789".to_string(),
+            )
+            .await
+            .expect_err("begin changing PIN should fail");
+
+        assert_matches!(error, ChangePinError::WalletIdMismatch);
     }
 
     #[tokio::test]

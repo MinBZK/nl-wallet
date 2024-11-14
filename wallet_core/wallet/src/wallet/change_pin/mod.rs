@@ -36,21 +36,34 @@ where
             return Err(ChangePinError::Locked);
         }
 
-        let config = self.config_repository.config();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        let config = &self.config_repository.config().account_server;
+        let instruction_result_public_key = config.instruction_result_public_key.clone().into();
+        let certificate_public_key = config.certificate_public_key.clone().into();
+
+        let hw_pubkey = registration
+            .hw_privkey
+            .verifying_key()
+            .await
+            .map_err(|e| ChangePinError::HardwarePublicKey(e.into()))?;
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            &config.account_server.base_url,
+            &config.base_url,
             &instruction_result_public_key,
         );
 
         let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
         let (new_pin_salt, new_wallet_certificate) = session
-            .begin_change_pin(registration.data.wallet_id.clone(), old_pin, new_pin)
+            .begin_change_pin(
+                &certificate_public_key,
+                &hw_pubkey,
+                registration.data.wallet_id.clone(),
+                old_pin,
+                new_pin,
+            )
             .await?;
 
         registration.data.pin_salt = new_pin_salt;
@@ -99,10 +112,7 @@ mod tests {
     use assert_matches::assert_matches;
     use serde::{de::DeserializeOwned, Serialize};
     use wallet_common::{
-        account::messages::{
-            auth::WalletCertificate,
-            instructions::{ChangePinCommit, ChangePinStart, Instruction, InstructionResultClaims},
-        },
+        account::messages::instructions::{ChangePinCommit, ChangePinStart, Instruction, InstructionResultClaims},
         jwt::Jwt,
         utils,
     };
@@ -127,7 +137,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_begin_change_pin() {
+    async fn test_wallet_begin_and_continue_change_pin() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet
@@ -136,7 +146,7 @@ mod tests {
             .times(2)
             .returning(|_, _| Ok(utils::random_bytes(32)));
 
-        let wp_result = create_wp_result(WalletCertificate::from("thisisdefinitelyvalid")).await;
+        let wp_result = create_wp_result(wallet.valid_certificate().await).await;
 
         wallet
             .account_provider_client
