@@ -1,6 +1,9 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::DateTime;
+use chrono::Duration;
+use chrono::Utc;
 
-use wallet_provider_domain::model::pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator};
+use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
+use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 
 pub struct PinPolicy {
     rounds: u8,
@@ -113,10 +116,12 @@ impl PinPolicyEvaluator for PinPolicy {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use chrono::{Duration, Utc};
+    use chrono::Duration;
+    use chrono::Utc;
     use rstest::rstest;
 
-    use wallet_provider_domain::model::pin_policy::{PinPolicyEvaluation, PinPolicyEvaluator};
+    use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
+    use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 
     use crate::pin_policy::PinPolicy;
 

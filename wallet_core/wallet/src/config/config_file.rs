@@ -1,4 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 use tokio::fs;
 
@@ -40,10 +41,9 @@ fn path_for_config_file(storage_path: &Path) -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{
-        config_file::{get_config_file, update_config_file},
-        default_configuration,
-    };
+    use crate::config::config_file::get_config_file;
+    use crate::config::config_file::update_config_file;
+    use crate::config::default_configuration;
 
     #[tokio::test]
     async fn should_read_and_update_config() {

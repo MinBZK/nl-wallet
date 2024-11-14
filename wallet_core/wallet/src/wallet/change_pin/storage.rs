@@ -2,11 +2,12 @@ use tokio::sync::RwLock;
 
 use wallet_common::account::messages::auth::WalletCertificate;
 
-use crate::{
-    errors::StorageError,
-    pin::change::{ChangePinStorage, State},
-    storage::{ChangePinData, RegistrationData, Storage},
-};
+use crate::errors::StorageError;
+use crate::pin::change::ChangePinStorage;
+use crate::pin::change::State;
+use crate::storage::ChangePinData;
+use crate::storage::RegistrationData;
+use crate::storage::Storage;
 
 impl<S> ChangePinStorage for RwLock<S>
 where
@@ -48,10 +49,10 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::{
-        pin::change::{ChangePinStorage, State},
-        storage::{MockStorage, StorageState},
-    };
+    use crate::pin::change::ChangePinStorage;
+    use crate::pin::change::State;
+    use crate::storage::MockStorage;
+    use crate::storage::StorageState;
 
     use super::*;
 

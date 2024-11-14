@@ -2,14 +2,16 @@ use std::error::Error;
 
 use p256::ecdsa::VerifyingKey;
 
-use wallet_common::{
-    jwt::{Jwt, JwtCredentialClaims, JwtError},
-    keys::SecureEcdsaKey,
-    wte::WteClaims,
-};
-use wallet_provider_domain::model::{hsm::WalletUserHsm, wrapped_key::WrappedKey};
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtError;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::wte::WteClaims;
+use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
-use crate::{hsm::HsmError, keys::WalletProviderEcdsaKey};
+use crate::hsm::HsmError;
+use crate::keys::WalletProviderEcdsaKey;
 
 pub trait WteIssuer {
     type Error: Error + Send + Sync + 'static;
@@ -79,10 +81,9 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use wallet_common::{
-        jwt::{Jwt, JwtCredentialClaims},
-        wte::WteClaims,
-    };
+    use wallet_common::jwt::Jwt;
+    use wallet_common::jwt::JwtCredentialClaims;
+    use wallet_common::wte::WteClaims;
     use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
     use super::WteIssuer;
@@ -110,15 +111,16 @@ pub mod mock {
 mod tests {
     use chrono::Utc;
 
-    use wallet_common::{
-        jwt::{self, jwk_to_p256},
-        keys::{software::SoftwareEcdsaKey, EcdsaKey},
-    };
+    use wallet_common::jwt::jwk_to_p256;
+    use wallet_common::jwt::{self};
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::EcdsaKey;
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 
     use crate::hsm::HsmError;
 
-    use super::{HsmWteIssuer, WteIssuer};
+    use super::HsmWteIssuer;
+    use super::WteIssuer;
 
     #[tokio::test]
     async fn it_works() {

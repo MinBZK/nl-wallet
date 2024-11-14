@@ -1,6 +1,9 @@
-use tracing::{info, instrument, warn};
+use tracing::info;
+use tracing::instrument;
+use tracing::warn;
 
-use error_category::{sentry_capture_error, ErrorCategory};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
 use wallet_common::keys::StoredByIdentifier;
 
 use crate::storage::Storage;
@@ -78,16 +81,14 @@ mod tests {
     use openid4vc::mock::MockIssuanceSession;
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::{disclosure::MockMdocDisclosureSession, storage::StorageState};
+    use crate::disclosure::MockMdocDisclosureSession;
+    use crate::storage::StorageState;
 
-    use super::{
-        super::{
-            issuance::PidIssuanceSession,
-            registration,
-            test::{self, WalletWithMocks},
-        },
-        *,
-    };
+    use super::super::issuance::PidIssuanceSession;
+    use super::super::registration;
+    use super::super::test::WalletWithMocks;
+    use super::super::test::{self};
+    use super::*;
 
     #[tokio::test]
     async fn test_wallet_reset() {

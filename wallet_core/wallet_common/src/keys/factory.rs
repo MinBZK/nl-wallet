@@ -1,11 +1,11 @@
 use std::error::Error;
 
-use p256::ecdsa::{Signature, VerifyingKey};
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 
-use super::{
-    poa::{Poa, VecAtLeastTwo},
-    CredentialEcdsaKey,
-};
+use super::poa::Poa;
+use super::poa::VecAtLeastTwo;
+use super::CredentialEcdsaKey;
 
 pub trait KeyFactory {
     type Key: CredentialEcdsaKey;

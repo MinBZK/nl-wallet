@@ -1,12 +1,12 @@
 use std::error::Error;
 
-use sentry::{
-    parse_type_from_debug,
-    protocol::{Event, Exception},
-    Level,
-};
+use sentry::parse_type_from_debug;
+use sentry::protocol::Event;
+use sentry::protocol::Exception;
+use sentry::Level;
 
-use crate::{Category, ErrorCategory};
+use crate::Category;
+use crate::ErrorCategory;
 
 /// Create a sentry [`Event`] from an [`ErrorCategory`].
 /// A tag `category` with the string representation of the [`ErrorCategory`] is added to the event, so
@@ -193,7 +193,8 @@ fn exception_from_error<E: Error + ?Sized>(err: &E) -> Exception {
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-    use sentry::{test::with_captured_events, Level};
+    use sentry::test::with_captured_events;
+    use sentry::Level;
     use thiserror::Error;
 
     use super::*;

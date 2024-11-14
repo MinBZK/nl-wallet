@@ -1,6 +1,9 @@
 use proc_macro::TokenStream;
-use quote::{quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned, ItemFn};
+use quote::quote;
+use quote::quote_spanned;
+use syn::parse_macro_input;
+use syn::spanned::Spanned;
+use syn::ItemFn;
 
 /// Converts the body of a function to an asynchronous task and executes it on the flutter_api's tokio runtime.
 /// This macro can only be applied in the `flutter_api` crate, because it generates code using `crate::async_runtime`.

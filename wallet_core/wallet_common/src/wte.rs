@@ -1,5 +1,9 @@
-use chrono::{serde::ts_seconds, DateTime, Duration, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::serde::ts_seconds;
+use chrono::DateTime;
+use chrono::Duration;
+use chrono::Utc;
+use serde::Deserialize;
+use serde::Serialize;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WteClaims {

@@ -1,12 +1,13 @@
 #[cfg(feature = "sentry")]
 pub mod sentry;
 
-use std::{
-    fmt::{self, Display, Formatter},
-    str::FromStr,
-};
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::{self};
+use std::str::FromStr;
 
-pub use error_category_derive::{sentry_capture_error, ErrorCategory};
+pub use error_category_derive::sentry_capture_error;
+pub use error_category_derive::ErrorCategory;
 
 const CRITICAL: &str = "critical";
 const EXPECTED: &str = "expected";

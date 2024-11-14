@@ -1,29 +1,33 @@
-use chrono::{DateTime, Utc};
-use p256::{
-    ecdsa::VerifyingKey,
-    pkcs8::{DecodePublicKey, EncodePublicKey},
-};
-use sea_orm::{
-    sea_query::{Expr, IntoIden, OnConflict, Query, SimpleExpr},
-    ActiveModelTrait,
-    ActiveValue::Set,
-    ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter,
-};
+use chrono::DateTime;
+use chrono::Utc;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
+use p256::pkcs8::EncodePublicKey;
+use sea_orm::sea_query::Expr;
+use sea_orm::sea_query::IntoIden;
+use sea_orm::sea_query::OnConflict;
+use sea_orm::sea_query::Query;
+use sea_orm::sea_query::SimpleExpr;
+use sea_orm::ActiveModelTrait;
+use sea_orm::ActiveValue::Set;
+use sea_orm::ColumnTrait;
+use sea_orm::ConnectionTrait;
+use sea_orm::EntityTrait;
+use sea_orm::QueryFilter;
 use uuid::Uuid;
 
 use wallet_common::account::serialization::DerVerifyingKey;
-use wallet_provider_domain::{
-    model::{
-        encrypted::{Encrypted, InitializationVector},
-        wallet_user::{InstructionChallenge, WalletUser, WalletUserCreate, WalletUserQueryResult},
-    },
-    repository::PersistenceError,
-};
+use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::encrypted::InitializationVector;
+use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::WalletUser;
+use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::repository::PersistenceError;
 
-use crate::{
-    entity::{wallet_user, wallet_user_instruction_challenge},
-    PersistenceConnection,
-};
+use crate::entity::wallet_user;
+use crate::entity::wallet_user_instruction_challenge;
+use crate::PersistenceConnection;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 

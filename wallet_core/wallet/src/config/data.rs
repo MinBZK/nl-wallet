@@ -1,17 +1,20 @@
-use std::{str::FromStr, sync::LazyLock, time::Duration};
+use std::str::FromStr;
+use std::sync::LazyLock;
+use std::time::Duration;
 
 use base64::prelude::*;
-use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
 use reqwest::Certificate;
 
-use wallet_common::{
-    config::wallet_config::{
-        AccountServerConfiguration, DisclosureConfiguration, LockTimeoutConfiguration, PidIssuanceConfiguration,
-        WalletConfiguration,
-    },
-    trust_anchor::DerTrustAnchor,
-    urls::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
-};
+use wallet_common::config::wallet_config::AccountServerConfiguration;
+use wallet_common::config::wallet_config::DisclosureConfiguration;
+use wallet_common::config::wallet_config::LockTimeoutConfiguration;
+use wallet_common::config::wallet_config::PidIssuanceConfiguration;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::urls::BaseUrl;
+use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 
 // Each of these values can be overridden from environment variables at compile time
 // when the `env_config` feature is enabled. Additionally, environment variables can

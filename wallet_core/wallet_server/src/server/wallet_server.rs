@@ -1,17 +1,15 @@
 use anyhow::Result;
 
-use openid4vc::{
-    issuer::AttributeService,
-    server_state::{SessionStore, WteTracker},
-    verifier::DisclosureData,
-};
+use openid4vc::issuer::AttributeService;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::WteTracker;
+use openid4vc::verifier::DisclosureData;
 
 use super::*;
-use crate::{
-    issuer::{create_issuance_router, IssuerKeyRing},
-    settings::Settings,
-    verifier,
-};
+use crate::issuer::create_issuance_router;
+use crate::issuer::IssuerKeyRing;
+use crate::settings::Settings;
+use crate::verifier;
 
 pub async fn serve<A, DS, IS, W>(
     attr_service: A,

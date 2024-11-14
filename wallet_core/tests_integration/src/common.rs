@@ -1,17 +1,21 @@
-use std::{
-    any::Any,
-    io,
-    net::{IpAddr, TcpListener},
-    process,
-    str::FromStr,
-    time::Duration,
-};
+use std::any::Any;
+use std::io;
+use std::net::IpAddr;
+use std::net::TcpListener;
+use std::process;
+use std::str::FromStr;
+use std::time::Duration;
 
 use ctor::ctor;
 use indexmap::IndexMap;
-use jsonwebtoken::{Algorithm, EncodingKey, Header};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::EncodingKey;
+use jsonwebtoken::Header;
 use reqwest::Certificate;
-use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
+use sea_orm::Database;
+use sea_orm::DatabaseConnection;
+use sea_orm::EntityTrait;
+use sea_orm::PaginatorTrait;
 use tokio::time;
 use url::Url;
 use uuid::Uuid;
@@ -19,34 +23,39 @@ use uuid::Uuid;
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::utils::x509;
-use openid4vc::{
-    disclosure_session::{DisclosureSession, HttpVpMessageClient},
-    issuance_session::HttpIssuanceSession,
-    issuer::{AttributeService, Created},
-    oidc,
-    server_state::SessionState,
-    token::{CredentialPreview, TokenRequest},
-};
-use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
-use wallet::{
-    mock::{default_configuration, MockDigidSession, MockStorage},
-    wallet_deps::{
-        ConfigServerConfiguration, HttpAccountProviderClient, HttpConfigurationRepository,
-        UpdateableConfigurationRepository,
-    },
-    Wallet,
-};
-use wallet_common::{
-    config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey, nonempty::NonEmpty,
-    reqwest::trusted_reqwest_client_builder, urls::BaseUrl, utils,
-};
+use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::Created;
+use openid4vc::oidc;
+use openid4vc::server_state::SessionState;
+use openid4vc::token::CredentialPreview;
+use openid4vc::token::TokenRequest;
+use platform_support::utils::software::SoftwareUtilities;
+use platform_support::utils::PlatformUtilities;
+use wallet::mock::default_configuration;
+use wallet::mock::MockDigidSession;
+use wallet::mock::MockStorage;
+use wallet::wallet_deps::ConfigServerConfiguration;
+use wallet::wallet_deps::HttpAccountProviderClient;
+use wallet::wallet_deps::HttpConfigurationRepository;
+use wallet::wallet_deps::UpdateableConfigurationRepository;
+use wallet::Wallet;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::reqwest::trusted_reqwest_client_builder;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
-use wallet_server::{
-    pid::mock::MockAttributesLookup,
-    settings::{RequesterAuth, Server, Settings as WsSettings},
-    store::{SessionStoreVariant, WteTrackerVariant},
-};
+use wallet_server::pid::mock::MockAttributesLookup;
+use wallet_server::settings::RequesterAuth;
+use wallet_server::settings::Server;
+use wallet_server::settings::Settings as WsSettings;
+use wallet_server::store::SessionStoreVariant;
+use wallet_server::store::WteTrackerVariant;
 
 use crate::logging::init_logging;
 

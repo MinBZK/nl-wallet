@@ -1,8 +1,11 @@
 use std::env;
 
 use assert_matches::assert_matches;
-use jsonwebtoken::{Algorithm, EncodingKey, Header};
-use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::EncodingKey;
+use jsonwebtoken::Header;
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
 use regex::Regex;
 use reqwest::header::HeaderValue;
@@ -10,14 +13,13 @@ use serial_test::serial;
 use tokio::fs;
 
 use tests_integration::common::*;
-use wallet::{
-    errors::ConfigurationError,
-    mock::default_configuration,
-    wallet_deps::{
-        ConfigServerConfiguration, ConfigurationRepository, ConfigurationUpdateState, HttpConfigurationRepository,
-        UpdateableConfigurationRepository,
-    },
-};
+use wallet::errors::ConfigurationError;
+use wallet::mock::default_configuration;
+use wallet::wallet_deps::ConfigServerConfiguration;
+use wallet::wallet_deps::ConfigurationRepository;
+use wallet::wallet_deps::ConfigurationUpdateState;
+use wallet::wallet_deps::HttpConfigurationRepository;
+use wallet::wallet_deps::UpdateableConfigurationRepository;
 use wallet_common::jwt::JwtError;
 
 #[tokio::test]

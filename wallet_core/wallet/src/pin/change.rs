@@ -1,15 +1,16 @@
 use std::future::Future;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 use error_category::ErrorCategory;
 use wallet_common::account::messages::auth::WalletCertificate;
 
-use crate::{
-    errors::{InstructionError, PinValidationError, StorageError},
-    pin::key::{self as pin_key},
-    validate_pin,
-};
+use crate::errors::InstructionError;
+use crate::errors::PinValidationError;
+use crate::errors::StorageError;
+use crate::pin::key::{self as pin_key};
+use crate::validate_pin;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
@@ -226,12 +227,12 @@ mod test {
 
     use super::*;
 
-    use crate::{
-        errors::InstructionError,
-        pin::change::{
-            mock::ChangePinClientTestError, ChangePinError, MockChangePinClient, MockChangePinStorage, State,
-        },
-    };
+    use crate::errors::InstructionError;
+    use crate::pin::change::mock::ChangePinClientTestError;
+    use crate::pin::change::ChangePinError;
+    use crate::pin::change::MockChangePinClient;
+    use crate::pin::change::MockChangePinStorage;
+    use crate::pin::change::State;
 
     #[tokio::test]
     async fn begin_change_pin_success() {

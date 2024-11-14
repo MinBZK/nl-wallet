@@ -1,20 +1,25 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::collections::HashSet;
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
+use chrono::Utc;
 use indexmap::IndexMap;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{utils::x509::Certificate, DocType};
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::DocType;
 use openid4vc::credential::MdocCopies;
 
 use crate::storage::event_log::WalletEventModel;
 
-use super::{
-    data::{KeyedData, RegistrationData},
-    event_log::WalletEvent,
-    Storage, StorageResult, StorageState, StoredMdocCopy,
-};
+use super::data::KeyedData;
+use super::data::RegistrationData;
+use super::event_log::WalletEvent;
+use super::Storage;
+use super::StorageResult;
+use super::StorageState;
+use super::StoredMdocCopy;
 
 #[derive(Debug)]
 pub enum KeyedDataResult {
@@ -245,12 +250,13 @@ impl Storage for MockStorage {
 
 #[cfg(test)]
 mod tests {
-    use serde::{Deserialize, Serialize};
+    use serde::Deserialize;
+    use serde::Serialize;
 
-    use crate::storage::{
-        database_storage::tests::{test_history_by_doc_type, test_history_ordering},
-        KeyedData, Storage,
-    };
+    use crate::storage::database_storage::tests::test_history_by_doc_type;
+    use crate::storage::database_storage::tests::test_history_ordering;
+    use crate::storage::KeyedData;
+    use crate::storage::Storage;
 
     use super::MockStorage;
 

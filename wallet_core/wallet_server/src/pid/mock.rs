@@ -1,15 +1,20 @@
 /// Mock implementations of the two traits abstracting other components
-use std::{collections::HashMap, num::NonZeroU8, ops::Add};
+use std::collections::HashMap;
+/// Mock implementations of the two traits abstracting other components
+use std::num::NonZeroU8;
+/// Mock implementations of the two traits abstracting other components
+use std::ops::Add;
 
-use chrono::{Days, NaiveDate, Utc};
+use chrono::Days;
+use chrono::NaiveDate;
+use chrono::Utc;
 use ciborium::Value;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-use nl_wallet_mdoc::{
-    unsigned::{Entry, UnsignedMdoc},
-    Tdate,
-};
+use nl_wallet_mdoc::unsigned::Entry;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::Tdate;
 
 use crate::pid::constants::*;
 
@@ -25,7 +30,10 @@ enum Gender {
 
 impl From<Gender> for Value {
     fn from(value: Gender) -> Value {
-        use Gender::{Female, Male, NotApplicable, Unknown};
+        use Gender::Female;
+        use Gender::Male;
+        use Gender::NotApplicable;
+        use Gender::Unknown;
         let value = match value {
             Unknown => 0,
             Male => 1,

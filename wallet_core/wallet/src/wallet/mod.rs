@@ -17,35 +17,39 @@ mod test;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use openid4vc::{
-    disclosure_session::{DisclosureSession, HttpVpMessageClient},
-    issuance_session::HttpIssuanceSession,
-};
-use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
+use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::issuance_session::HttpIssuanceSession;
+use platform_support::hw_keystore::hardware::HardwareEcdsaKey;
+use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 
-use crate::{
-    account_provider::HttpAccountProviderClient,
-    config::UpdatingFileHttpConfigurationRepository,
-    issuance::HttpDigidSession,
-    lock::WalletLock,
-    storage::{DatabaseStorage, RegistrationData},
-    wte::WpWteIssuanceClient,
-};
+use crate::account_provider::HttpAccountProviderClient;
+use crate::config::UpdatingFileHttpConfigurationRepository;
+use crate::issuance::HttpDigidSession;
+use crate::lock::WalletLock;
+use crate::storage::DatabaseStorage;
+use crate::storage::RegistrationData;
+use crate::wte::WpWteIssuanceClient;
 
-pub use self::{
-    config::ConfigCallback,
-    disclosure::{DisclosureError, DisclosureProposal},
-    documents::DocumentsCallback,
-    history::{
-        EventConversionError, EventStatus, EventStorageError, HistoryError, HistoryEvent, RecentHistoryCallback,
-    },
-    init::WalletInitError,
-    issuance::PidIssuanceError,
-    lock::{LockCallback, UnlockMethod, WalletUnlockError},
-    registration::WalletRegistrationError,
-    reset::ResetError,
-    uri::{UriIdentificationError, UriType},
-};
+pub use self::config::ConfigCallback;
+pub use self::disclosure::DisclosureError;
+pub use self::disclosure::DisclosureProposal;
+pub use self::documents::DocumentsCallback;
+pub use self::history::EventConversionError;
+pub use self::history::EventStatus;
+pub use self::history::EventStorageError;
+pub use self::history::HistoryError;
+pub use self::history::HistoryEvent;
+pub use self::history::RecentHistoryCallback;
+pub use self::init::WalletInitError;
+pub use self::issuance::PidIssuanceError;
+pub use self::lock::LockCallback;
+pub use self::lock::UnlockMethod;
+pub use self::lock::WalletUnlockError;
+pub use self::registration::WalletRegistrationError;
+pub use self::reset::ResetError;
+pub use self::uri::UriIdentificationError;
+pub use self::uri::UriType;
 
 use self::issuance::PidIssuanceSession;
 

@@ -1,6 +1,8 @@
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::Database;
+use sea_orm::DatabaseConnection;
 use tracing::log::LevelFilter;
-use wallet_provider_database_settings::{ConnectionOptions, ConnectionString};
+use wallet_provider_database_settings::ConnectionOptions;
+use wallet_provider_database_settings::ConnectionString;
 
 use wallet_provider_domain::repository::PersistenceError;
 

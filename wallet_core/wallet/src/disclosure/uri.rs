@@ -36,7 +36,8 @@ mod tests {
     use rstest::rstest;
     use url::Url;
 
-    use super::{DisclosureUriError, VpDisclosureUriData};
+    use super::DisclosureUriError;
+    use super::VpDisclosureUriData;
 
     #[rstest]
     #[case("scheme://host.name/some/path?foo=bar", "scheme://host.name/some/path", "foo=bar")]

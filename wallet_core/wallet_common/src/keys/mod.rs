@@ -1,8 +1,12 @@
 use std::error::Error;
 
-use aes_gcm::{aead::Aead, Aes256Gcm, Nonce};
-use p256::ecdsa::{Signature, VerifyingKey};
-use serde::{Deserialize, Serialize};
+use aes_gcm::aead::Aead;
+use aes_gcm::Aes256Gcm;
+use aes_gcm::Nonce;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::utils;
 
@@ -145,7 +149,9 @@ mod mock {
     use aes_gcm::Aes256Gcm;
     use p256::ecdsa::SigningKey;
 
-    use super::{EphemeralEcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
+    use super::EphemeralEcdsaKey;
+    use super::SecureEcdsaKey;
+    use super::SecureEncryptionKey;
 
     impl EphemeralEcdsaKey for SigningKey {}
     impl SecureEcdsaKey for SigningKey {}
