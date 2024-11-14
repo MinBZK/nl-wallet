@@ -1,5 +1,6 @@
 use coset::CoseError;
-use passkey_types::ctap2::{AuthenticatorData, Flags};
+use passkey_types::ctap2::AuthenticatorData;
+use passkey_types::ctap2::Flags;
 
 pub type FullAuthenticatorDataWithSource = AuthenticatorDataWithSource<false>;
 pub type TruncatedAuthenticatorDataWithSource = AuthenticatorDataWithSource<true>;

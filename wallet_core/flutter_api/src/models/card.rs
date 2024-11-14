@@ -1,6 +1,10 @@
-use wallet::{
-    self, Attribute, AttributeValue, Document, DocumentAttributes, DocumentPersistence, GenderAttributeValue,
-};
+use wallet::Attribute;
+use wallet::AttributeValue;
+use wallet::Document;
+use wallet::DocumentAttributes;
+use wallet::DocumentPersistence;
+use wallet::GenderAttributeValue;
+use wallet::{self};
 
 use super::disclosure::Organization;
 

@@ -1,18 +1,22 @@
 use apple_app_attest::AppIdentifier;
 use p256::ecdsa::VerifyingKey;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
-use crate::{
-    apple::AppleAttestedKey,
-    keys::{EphemeralEcdsaKey, SecureEcdsaKey},
-};
+use crate::apple::AppleAttestedKey;
+use crate::keys::EphemeralEcdsaKey;
+use crate::keys::SecureEcdsaKey;
 
-use super::{
-    super::errors::{Error, Result},
-    signed_message::{SignedMessage, SignedSubjectMessage, SubjectPayload},
-    ContainsChallenge, EcdsaSignatureType,
-};
+use super::super::errors::Error;
+use super::super::errors::Result;
+use super::signed_message::SignedMessage;
+use super::signed_message::SignedSubjectMessage;
+use super::signed_message::SubjectPayload;
+use super::ContainsChallenge;
+use super::EcdsaSignatureType;
 
 #[derive(Debug, Clone, Copy)]
 pub enum SequenceNumberComparison {
@@ -317,7 +321,8 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use crate::{apple::MockAppleAttestedKey, utils};
+    use crate::apple::MockAppleAttestedKey;
+    use crate::utils;
 
     use super::*;
 

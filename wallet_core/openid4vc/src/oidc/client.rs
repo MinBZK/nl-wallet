@@ -1,25 +1,43 @@
 use base64::prelude::*;
-pub use biscuit::{
-    errors::Error as BiscuitError, jwa, jwa::SignatureAlgorithm, jwk::JWKSet, ClaimsSet, CompactJson, CompactPart,
-    Empty, ValidationOptions, JWT,
-};
+pub use biscuit::errors::Error as BiscuitError;
+pub use biscuit::jwa;
+pub use biscuit::jwa::SignatureAlgorithm;
+pub use biscuit::jwk::JWKSet;
+pub use biscuit::ClaimsSet;
+pub use biscuit::CompactJson;
+pub use biscuit::CompactPart;
+pub use biscuit::Empty;
+pub use biscuit::ValidationOptions;
+pub use biscuit::JWT;
 use futures::TryFutureExt;
-pub use josekit::{
-    jwe::{alg, enc, JweContentEncryption, JweDecrypter},
-    JoseError,
-};
+pub use josekit::jwe::alg;
+pub use josekit::jwe::enc;
+pub use josekit::jwe::JweContentEncryption;
+pub use josekit::jwe::JweDecrypter;
+pub use josekit::JoseError;
 use reqwest::header;
 use url::Url;
 
 use error_category::ErrorCategory;
-use wallet_common::{reqwest::trusted_reqwest_client_builder, urls::BaseUrl, utils};
+use wallet_common::reqwest::trusted_reqwest_client_builder;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils;
 
-use crate::{
-    authorization::{AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge, ResponseType},
-    pkce::{PkcePair, S256PkcePair},
-    token::{AccessToken, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse},
-    AuthBearerErrorCode, AuthorizationErrorCode, ErrorResponse, TokenErrorCode,
-};
+use crate::authorization::AuthorizationRequest;
+use crate::authorization::AuthorizationResponse;
+use crate::authorization::PkceCodeChallenge;
+use crate::authorization::ResponseType;
+use crate::pkce::PkcePair;
+use crate::pkce::S256PkcePair;
+use crate::token::AccessToken;
+use crate::token::AuthorizationCode;
+use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
+use crate::token::TokenResponse;
+use crate::AuthBearerErrorCode;
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::TokenErrorCode;
 
 use super::Config;
 
@@ -303,14 +321,16 @@ mod tests {
     use url::Url;
     use wallet_common::urls::BaseUrl;
 
-    use crate::{
-        oidc::tests::start_discovery_server,
-        pkce::{MockPkcePair, S256PkcePair},
-        token::TokenRequestGrantType,
-        AuthorizationErrorCode,
-    };
+    use crate::oidc::tests::start_discovery_server;
+    use crate::pkce::MockPkcePair;
+    use crate::pkce::S256PkcePair;
+    use crate::token::TokenRequestGrantType;
+    use crate::AuthorizationErrorCode;
 
-    use super::{Config, HttpOidcClient, OidcClient, OidcError};
+    use super::Config;
+    use super::HttpOidcClient;
+    use super::OidcClient;
+    use super::OidcError;
 
     // These constants are used by multiple tests.
     const ISSUER_URL: &str = "http://example.com";

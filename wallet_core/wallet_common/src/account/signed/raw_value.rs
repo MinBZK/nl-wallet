@@ -1,6 +1,8 @@
 use std::marker::PhantomData;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_json::value::RawValue;
 
 /// Wraps a [`RawValue`], which internally holds a string slice. Next to this, the type it serializes from and

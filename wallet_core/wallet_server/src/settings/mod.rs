@@ -1,24 +1,34 @@
-use std::{env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
+use std::env;
+use std::net::IpAddr;
+use std::num::NonZeroU64;
+use std::path::PathBuf;
+use std::time::Duration;
 
-use chrono::{DateTime, Utc};
-use config::{Config, ConfigError, Environment, File};
+use chrono::DateTime;
+use chrono::Utc;
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::DecodePrivateKey;
 #[cfg(feature = "integration_test")]
 use p256::pkcs8::EncodePrivateKey;
-use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use serde::Deserialize;
-use serde_with::{base64::Base64, serde_as};
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    utils::x509::{Certificate, CertificateError, CertificateType, CertificateUsage},
-};
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::CertificateType;
+use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
-use wallet_common::{
-    generator::{Generator, TimeGenerator},
-    trust_anchor::DerTrustAnchor,
-    urls::BaseUrl,
-};
+use wallet_common::generator::Generator;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::urls::BaseUrl;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {

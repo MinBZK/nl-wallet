@@ -1,4 +1,5 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use derive_more::Debug;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
@@ -6,7 +7,8 @@ use uuid::Uuid;
 
 use wallet_common::account::serialization::DerVerifyingKey;
 
-use crate::model::{encrypted::Encrypted, wrapped_key::WrappedKey};
+use crate::model::encrypted::Encrypted;
+use crate::model::wrapped_key::WrappedKey;
 
 pub type WalletId = String;
 
@@ -71,12 +73,12 @@ pub mod mock {
     use p256::ecdsa::VerifyingKey;
     use uuid::uuid;
 
-    use wallet_common::{account::serialization::DerVerifyingKey, utils::random_bytes};
+    use wallet_common::account::serialization::DerVerifyingKey;
+    use wallet_common::utils::random_bytes;
 
-    use crate::model::{
-        encrypted::{Encrypted, InitializationVector},
-        wallet_user::WalletUser,
-    };
+    use crate::model::encrypted::Encrypted;
+    use crate::model::encrypted::InitializationVector;
+    use crate::model::wallet_user::WalletUser;
 
     pub fn wallet_user_1() -> WalletUser {
         WalletUser {

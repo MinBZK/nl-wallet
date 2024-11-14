@@ -1,16 +1,18 @@
-use futures::{try_join, TryFutureExt};
-use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as};
+use futures::try_join;
+use futures::TryFutureExt;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
-use crate::{
-    account::{
-        errors::{Error, Result},
-        serialization::DerVerifyingKey,
-        signed::ChallengeResponse,
-    },
-    jwt::{Jwt, JwtSubject},
-    keys::{EphemeralEcdsaKey, SecureEcdsaKey},
-};
+use crate::account::errors::Error;
+use crate::account::errors::Result;
+use crate::account::serialization::DerVerifyingKey;
+use crate::account::signed::ChallengeResponse;
+use crate::jwt::Jwt;
+use crate::jwt::JwtSubject;
+use crate::keys::EphemeralEcdsaKey;
+use crate::keys::SecureEcdsaKey;
 
 // Registration challenge response
 #[serde_as]

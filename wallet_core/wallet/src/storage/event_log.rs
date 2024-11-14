@@ -1,15 +1,23 @@
-use chrono::{DateTime, Utc};
-use indexmap::{IndexMap, IndexSet};
-use serde::{Deserialize, Serialize};
+use chrono::DateTime;
+use chrono::Utc;
+use indexmap::IndexMap;
+use indexmap::IndexSet;
+use serde::Deserialize;
+use serde::Serialize;
 use uuid::Uuid;
 
-pub use entity::{disclosure_history_event, issuance_history_event};
-use nl_wallet_mdoc::{
-    holder::{Mdoc, ProposedAttributes, ProposedDocumentAttributes},
-    unsigned::Entry,
-    utils::{cose::CoseError, x509::Certificate},
-    DataElementIdentifier, DataElementValue, DocType, NameSpace,
-};
+pub use entity::disclosure_history_event;
+pub use entity::issuance_history_event;
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::holder::ProposedAttributes;
+use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
+use nl_wallet_mdoc::unsigned::Entry;
+use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::DataElementIdentifier;
+use nl_wallet_mdoc::DataElementValue;
+use nl_wallet_mdoc::DocType;
+use nl_wallet_mdoc::NameSpace;
 
 use crate::document::DisclosureType;
 
@@ -267,10 +275,10 @@ impl From<ProposedAttributes> for EventDocuments {
 mod test {
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 
-    use crate::document::{
-        create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
-        create_minimal_unsigned_pid_mdoc,
-    };
+    use crate::document::create_full_unsigned_address_mdoc;
+    use crate::document::create_full_unsigned_pid_mdoc;
+    use crate::document::create_minimal_unsigned_address_mdoc;
+    use crate::document::create_minimal_unsigned_pid_mdoc;
 
     use super::*;
 

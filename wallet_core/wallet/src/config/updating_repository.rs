@@ -1,19 +1,25 @@
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
 use parking_lot::Mutex;
-use tokio::{
-    task::JoinHandle,
-    time::{self, MissedTickBehavior},
-};
-use tracing::{error, info};
+use tokio::task::JoinHandle;
+use tokio::time::MissedTickBehavior;
+use tokio::time::{self};
+use tracing::error;
+use tracing::info;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
-use super::{
-    ConfigCallback, ConfigServerConfiguration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
-    FileStorageConfigurationRepository, ObservableConfigurationRepository, UpdateableConfigurationRepository,
-    UpdatingFileHttpConfigurationRepository,
-};
+use super::ConfigCallback;
+use super::ConfigServerConfiguration;
+use super::ConfigurationError;
+use super::ConfigurationRepository;
+use super::ConfigurationUpdateState;
+use super::FileStorageConfigurationRepository;
+use super::ObservableConfigurationRepository;
+use super::UpdateableConfigurationRepository;
+use super::UpdatingFileHttpConfigurationRepository;
 
 pub struct UpdatingConfigurationRepository<T> {
     wrapped: Arc<T>,
@@ -120,23 +126,24 @@ impl<T> Drop for UpdatingConfigurationRepository<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        sync::{
-            atomic::{AtomicU64, Ordering},
-            Arc,
-        },
-        time::Duration,
-    };
+    use std::sync::atomic::AtomicU64;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
+    use std::time::Duration;
 
     use parking_lot::RwLock;
-    use tokio::{sync::Notify, time};
+    use tokio::sync::Notify;
+    use tokio::time;
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
-    use crate::config::{
-        default_configuration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
-        ObservableConfigurationRepository, UpdateableConfigurationRepository, UpdatingConfigurationRepository,
-    };
+    use crate::config::default_configuration;
+    use crate::config::ConfigurationError;
+    use crate::config::ConfigurationRepository;
+    use crate::config::ConfigurationUpdateState;
+    use crate::config::ObservableConfigurationRepository;
+    use crate::config::UpdateableConfigurationRepository;
+    use crate::config::UpdatingConfigurationRepository;
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
 

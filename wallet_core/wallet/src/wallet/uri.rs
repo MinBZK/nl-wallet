@@ -1,14 +1,15 @@
-use tracing::{info, instrument};
+use tracing::info;
+use tracing::instrument;
 use url::Url;
 
-use error_category::{sentry_capture_error, ErrorCategory};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
 use wallet_common::urls;
 
-use crate::{
-    config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
-    issuance::DigidSession,
-    wallet::PidIssuanceSession,
-};
+use crate::config::ConfigurationRepository;
+use crate::config::UNIVERSAL_LINK_BASE_URL;
+use crate::issuance::DigidSession;
+use crate::wallet::PidIssuanceSession;
 
 use super::Wallet;
 
@@ -63,9 +64,12 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::{config::UNIVERSAL_LINK_BASE_URL, issuance::MockDigidSession, wallet::PidIssuanceSession};
+    use crate::config::UNIVERSAL_LINK_BASE_URL;
+    use crate::issuance::MockDigidSession;
+    use crate::wallet::PidIssuanceSession;
 
-    use super::{super::test::WalletWithMocks, *};
+    use super::super::test::WalletWithMocks;
+    use super::*;
 
     #[tokio::test]
     async fn test_wallet_identify_redirect_uri() {

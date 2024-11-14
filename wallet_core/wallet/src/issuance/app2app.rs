@@ -1,24 +1,28 @@
 use std::sync::LazyLock;
 
-use http::{header::LOCATION, StatusCode};
+use http::header::LOCATION;
+use http::StatusCode;
 use regex::Regex;
-use reqwest::{redirect::Policy, Client, Response};
-use serde::{Deserialize, Serialize};
+use reqwest::redirect::Policy;
+use reqwest::Client;
+use reqwest::Response;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::serde_as;
-use tracing::{info, warn};
+use tracing::info;
+use tracing::warn;
 use url::Url;
 
-use openid4vc::{
-    oidc::{HttpOidcClient, OidcClient},
-    token::TokenRequest,
-};
-use wallet_common::{
-    config::wallet_config::PidIssuanceConfiguration,
-    reqwest::trusted_reqwest_client_builder,
-    urls::{self, BaseUrl},
-};
+use openid4vc::oidc::HttpOidcClient;
+use openid4vc::oidc::OidcClient;
+use openid4vc::token::TokenRequest;
+use wallet_common::config::wallet_config::PidIssuanceConfiguration;
+use wallet_common::reqwest::trusted_reqwest_client_builder;
+use wallet_common::urls::BaseUrl;
+use wallet_common::urls::{self};
 
-use super::{DigidSession, DigidSessionError};
+use super::DigidSession;
+use super::DigidSessionError;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 
 #[derive(Debug, Serialize)]
@@ -238,15 +242,17 @@ impl<OIC> HttpDigidSession<OIC> {
 }
 
 mod json_base64 {
-    use serde::{
-        de::{self, DeserializeOwned},
-        ser, Deserializer, Serialize, Serializer,
-    };
-    use serde_with::{
-        base64::{Base64, Standard},
-        formats::Padded,
-        DeserializeAs, SerializeAs,
-    };
+    use serde::de::DeserializeOwned;
+    use serde::de::{self};
+    use serde::ser;
+    use serde::Deserializer;
+    use serde::Serialize;
+    use serde::Serializer;
+    use serde_with::base64::Base64;
+    use serde_with::base64::Standard;
+    use serde_with::formats::Padded;
+    use serde_with::DeserializeAs;
+    use serde_with::SerializeAs;
 
     pub fn serialize<S: Serializer, T: Serialize>(input: T, serializer: S) -> Result<S::Ok, S::Error> {
         Base64::<Standard, Padded>::serialize_as(&serde_json::to_vec(&input).map_err(ser::Error::custom)?, serializer)
@@ -266,16 +272,17 @@ mod test {
     use serde::de::Error;
     use serde_json::json;
     use serial_test::serial;
-    use wiremock::{
-        http::HeaderValue,
-        matchers::{method, path, query_param},
-        Mock, MockServer, ResponseTemplate,
-    };
+    use wiremock::http::HeaderValue;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
+    use wiremock::matchers::query_param;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
 
-    use openid4vc::{
-        oidc::{MockOidcClient, OidcError},
-        token::TokenRequestGrantType,
-    };
+    use openid4vc::oidc::MockOidcClient;
+    use openid4vc::oidc::OidcError;
+    use openid4vc::token::TokenRequestGrantType;
     use wallet_common::config::digid::DigidApp2AppConfiguration;
 
     use super::*;

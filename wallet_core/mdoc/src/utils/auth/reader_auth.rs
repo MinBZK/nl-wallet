@@ -1,17 +1,20 @@
-use indexmap::{IndexMap, IndexSet};
-use serde::{Deserialize, Serialize};
+use indexmap::IndexMap;
+use indexmap::IndexSet;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
 use error_category::ErrorCategory;
 
-use crate::{
-    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    utils::x509::{CertificateType, MdocCertificateExtension},
-    ItemsRequest,
-};
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
+use crate::utils::x509::CertificateType;
+use crate::utils::x509::MdocCertificateExtension;
+use crate::ItemsRequest;
 
-use super::{LocalizedStrings, Organization};
+use super::LocalizedStrings;
+use super::Organization;
 
 /// oid: 2.1.123.1
 /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
@@ -202,7 +205,8 @@ mod tests {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
 
-    use crate::{DeviceRequest, ItemsRequest};
+    use crate::DeviceRequest;
+    use crate::ItemsRequest;
 
     use super::*;
 

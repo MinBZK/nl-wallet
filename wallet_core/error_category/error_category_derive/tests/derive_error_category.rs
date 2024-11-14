@@ -2,7 +2,8 @@
 
 use rstest::rstest;
 
-use error_category::{Category, ErrorCategory};
+use error_category::Category;
+use error_category::ErrorCategory;
 
 #[derive(ErrorCategory)]
 enum ChildError {

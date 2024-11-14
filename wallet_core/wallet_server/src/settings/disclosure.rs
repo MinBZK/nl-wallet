@@ -1,12 +1,17 @@
 use std::collections::HashMap;
 
-use derive_more::{AsRef, From, IntoIterator};
+use derive_more::AsRef;
+use derive_more::From;
+use derive_more::IntoIterator;
 use nutype::nutype;
 use ring::hmac;
 use serde::Deserialize;
-use serde_with::{hex::Hex, serde_as};
+use serde_with::hex::Hex;
+use serde_with::serde_as;
 
-use openid4vc::verifier::{SessionTypeReturnUrl, UseCase, UseCases};
+use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::UseCase;
+use openid4vc::verifier::UseCases;
 use wallet_common::urls::CorsOrigin;
 
 use super::*;

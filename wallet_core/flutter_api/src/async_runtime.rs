@@ -1,6 +1,7 @@
 use std::sync::OnceLock;
 
-use tokio::runtime::{Builder, Runtime};
+use tokio::runtime::Builder;
+use tokio::runtime::Runtime;
 
 static ASYNC_RUNTIME: OnceLock<Runtime> = OnceLock::new();
 

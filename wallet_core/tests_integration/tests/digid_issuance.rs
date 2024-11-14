@@ -1,21 +1,21 @@
-use openid4vc::{
-    credential::MdocCopies,
-    issuance_session::{HttpIssuanceSession, HttpVcMessageClient, IssuanceSession},
-    oidc::HttpOidcClient,
-};
+use openid4vc::credential::MdocCopies;
+use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuance_session::HttpVcMessageClient;
+use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::oidc::HttpOidcClient;
 
 use nl_wallet_mdoc::holder::TrustAnchor;
-use tests_integration::{common::*, fake_digid::fake_digid_auth};
-use wallet::{
-    mock::default_configuration,
-    wallet_common::WalletConfiguration,
-    wallet_deps::{DigidSession, HttpDigidSession},
-};
-use wallet_common::{
-    keys::software_key_factory::SoftwareKeyFactory,
-    urls::{self, DEFAULT_UNIVERSAL_LINK_BASE},
-};
-use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
+use tests_integration::common::*;
+use tests_integration::fake_digid::fake_digid_auth;
+use wallet::mock::default_configuration;
+use wallet::wallet_common::WalletConfiguration;
+use wallet::wallet_deps::DigidSession;
+use wallet::wallet_deps::HttpDigidSession;
+use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use wallet_common::urls::{self};
+use wallet_server::pid::attributes::BrpPidAttributeService;
+use wallet_server::pid::brp::client::HttpBrpClient;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
 /// (Haal-Centraal). This test depends on part of the internal API of the DigiD bridge, so it may break when nl-rdo-max

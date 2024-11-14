@@ -1,19 +1,20 @@
-use std::{error::Error, future::Future};
+use std::error::Error;
+use std::future::Future;
 
 use p256::ecdsa::VerifyingKey;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 use error_category::ErrorCategory;
-use wallet_common::{
-    account::messages::auth::WalletCertificate,
-    jwt::{EcdsaDecodingKey, JwtError},
-};
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::jwt::JwtError;
 
-use crate::{
-    errors::{InstructionError, PinValidationError, StorageError},
-    pin::key::{self as pin_key},
-    validate_pin,
-};
+use crate::errors::InstructionError;
+use crate::errors::PinValidationError;
+use crate::errors::StorageError;
+use crate::pin::key::{self as pin_key};
+use crate::validate_pin;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
@@ -290,24 +291,22 @@ pub mod mock {
 mod test {
     use assert_matches::assert_matches;
     use mockall::predicate::eq;
-
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use wallet_common::{
-        account::messages::auth::{WalletCertificate, WalletCertificateClaims},
-        jwt::Jwt,
-        utils,
-    };
+    use wallet_common::account::messages::auth::WalletCertificate;
+    use wallet_common::account::messages::auth::WalletCertificateClaims;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::utils;
 
     use super::*;
 
-    use crate::{
-        errors::InstructionError,
-        pin::change::{
-            mock::ChangePinClientTestError, ChangePinError, MockChangePinClient, MockChangePinStorage, State,
-        },
-    };
+    use crate::errors::InstructionError;
+    use crate::pin::change::mock::ChangePinClientTestError;
+    use crate::pin::change::ChangePinError;
+    use crate::pin::change::MockChangePinClient;
+    use crate::pin::change::MockChangePinStorage;
+    use crate::pin::change::State;
 
     const CHANGE_PIN_RETRIES: u8 = 2;
 

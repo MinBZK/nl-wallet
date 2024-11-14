@@ -1,6 +1,10 @@
 use indexmap::IndexSet;
-use serde::{Deserialize, Serialize};
-use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, StringWithSeparator};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::formats::SpaceSeparator;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use serde_with::StringWithSeparator;
 use url::Url;
 
 /// See
@@ -124,7 +128,8 @@ pub struct AuthorizationResponse {
 mod tests {
     use serde_json::json;
 
-    use crate::authorization::{AuthorizationDetails, AuthorizationDetailsFormatData};
+    use crate::authorization::AuthorizationDetails;
+    use crate::authorization::AuthorizationDetailsFormatData;
 
     #[test]
     fn authorization_details_serialization() {

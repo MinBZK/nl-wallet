@@ -1,23 +1,27 @@
 use std::borrow::Cow;
 
-use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
 
-use apple_app_attest::{AppIdentifier, Assertion, ClientData};
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::Assertion;
+use apple_app_attest::ClientData;
 
-use crate::{
-    apple::{AppleAssertion, AppleAttestedKey},
-    keys::EcdsaKey,
-};
+use crate::apple::AppleAssertion;
+use crate::apple::AppleAttestedKey;
+use crate::keys::EcdsaKey;
 
-use super::{
-    super::{
-        errors::{Error, Result},
-        serialization::DerSignature,
-    },
-    raw_value::TypedRawValue,
-    ContainsChallenge, EcdsaSignatureType, SignatureType,
-};
+use super::super::errors::Error;
+use super::super::errors::Result;
+use super::super::serialization::DerSignature;
+use super::raw_value::TypedRawValue;
+use super::ContainsChallenge;
+use super::EcdsaSignatureType;
+use super::SignatureType;
 
 /// Wraps both a type and a reference to the JSON data it was parsed from.
 /// This is used internally in order to implement [`ClientData`] without
@@ -338,7 +342,8 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
 
-    use crate::{apple::MockAppleAttestedKey, utils};
+    use crate::apple::MockAppleAttestedKey;
+    use crate::utils;
 
     use super::*;
 

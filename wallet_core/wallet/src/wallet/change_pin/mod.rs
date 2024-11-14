@@ -5,14 +5,13 @@ use tracing::info;
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    config::ConfigurationRepository,
-    instruction::InstructionClientFactory,
-    pin::change::{ChangePinError, ChangePinSession},
-    storage::Storage,
-    Wallet,
-};
+use crate::account_provider::AccountProviderClient;
+use crate::config::ConfigurationRepository;
+use crate::instruction::InstructionClientFactory;
+use crate::pin::change::ChangePinError;
+use crate::pin::change::ChangePinSession;
+use crate::storage::Storage;
+use crate::Wallet;
 
 const CHANGE_PIN_RETRIES: u8 = 3;
 
@@ -112,17 +111,20 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use serde::{de::DeserializeOwned, Serialize};
-    use wallet_common::{
-        account::messages::instructions::{ChangePinCommit, ChangePinStart, Instruction, InstructionResultClaims},
-        jwt::Jwt,
-        utils,
-    };
+    use serde::de::DeserializeOwned;
+    use serde::Serialize;
 
-    use crate::{
-        pin::change::{ChangePinStorage, State},
-        wallet::test::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
-    };
+    use wallet_common::account::messages::instructions::ChangePinCommit;
+    use wallet_common::account::messages::instructions::ChangePinStart;
+    use wallet_common::account::messages::instructions::Instruction;
+    use wallet_common::account::messages::instructions::InstructionResultClaims;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::utils;
+
+    use crate::pin::change::ChangePinStorage;
+    use crate::pin::change::State;
+    use crate::wallet::test::WalletWithMocks;
+    use crate::wallet::test::ACCOUNT_SERVER_KEYS;
 
     async fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
     where

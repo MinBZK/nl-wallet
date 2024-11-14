@@ -4,22 +4,31 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::{ProposedAttributes, ProposedDocumentAttributes},
-    identifiers::AttributeIdentifier,
-    unsigned::{Entry, UnsignedMdoc},
-    utils::{
-        issuer_auth::IssuerRegistration,
-        x509::{CertificateError, MdocCertificateExtension},
-    },
-    DataElementIdentifier, DataElementValue, NameSpace,
-};
+use nl_wallet_mdoc::holder::ProposedAttributes;
+use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
+use nl_wallet_mdoc::identifiers::AttributeIdentifier;
+use nl_wallet_mdoc::unsigned::Entry;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use nl_wallet_mdoc::DataElementIdentifier;
+use nl_wallet_mdoc::DataElementValue;
+use nl_wallet_mdoc::NameSpace;
 
-use super::{
-    mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
-    Attribute, AttributeValue, DisclosureDocument, Document, DocumentAttributes, DocumentPersistence,
-    GenderAttributeValue, MissingDisclosureAttributes, PID_DOCTYPE,
-};
+use super::mapping::AttributeMapping;
+use super::mapping::DataElementValueMapping;
+use super::mapping::MappingDocType;
+use super::mapping::MDOC_DOCUMENT_MAPPING;
+use super::Attribute;
+use super::AttributeValue;
+use super::DisclosureDocument;
+use super::Document;
+use super::DocumentAttributes;
+use super::DocumentPersistence;
+use super::GenderAttributeValue;
+use super::MissingDisclosureAttributes;
+use super::PID_DOCTYPE;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -360,18 +369,22 @@ impl DisclosureDocument {
 
 #[cfg(test)]
 pub mod tests {
-    use std::{collections::HashMap, mem, num::NonZeroU8, sync::LazyLock};
+    use std::collections::HashMap;
+    use std::mem;
+    use std::num::NonZeroU8;
+    use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use chrono::{Days, Utc};
+    use chrono::Days;
+    use chrono::Utc;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::{server_keys::KeyPair, Tdate};
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::Tdate;
 
-    use super::{
-        super::{ADDRESS_DOCTYPE, PID_DOCTYPE},
-        *,
-    };
+    use super::super::ADDRESS_DOCTYPE;
+    use super::super::PID_DOCTYPE;
+    use super::*;
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();

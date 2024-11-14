@@ -1,24 +1,28 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use parking_lot::RwLock;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use serial_test::{parallel, serial};
+use serial_test::parallel;
+use serial_test::serial;
 
 use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
-use openid4vc::server_state::{
-    test::{self, RandomData},
-    Expirable, HasProgress, Progress, SessionStoreTimeouts,
-};
+use openid4vc::server_state::test::RandomData;
+use openid4vc::server_state::test::{self};
+use openid4vc::server_state::Expirable;
+use openid4vc::server_state::HasProgress;
+use openid4vc::server_state::Progress;
+use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::utils;
-use wallet_server::{
-    settings::{Settings, Storage},
-    store::{
-        postgres::{self, PostgresSessionStore, PostgresWteTracker},
-        SessionDataType,
-    },
-};
+use wallet_server::settings::Settings;
+use wallet_server::settings::Storage;
+use wallet_server::store::postgres::PostgresSessionStore;
+use wallet_server::store::postgres::PostgresWteTracker;
+use wallet_server::store::postgres::{self};
+use wallet_server::store::SessionDataType;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

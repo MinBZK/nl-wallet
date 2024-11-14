@@ -1,16 +1,14 @@
 use derive_more::Debug;
 use indexmap::IndexSet;
 
-use crate::{
-    holder::Mdoc,
-    iso::{
-        device_retrieval::{DeviceRequest, ItemsRequest},
-        disclosure::IssuerSigned,
-        mdocs::{DataElementIdentifier, NameSpace},
-    },
-    utils::serialization::TaggedBytes,
-    Document,
-};
+use crate::holder::Mdoc;
+use crate::iso::device_retrieval::DeviceRequest;
+use crate::iso::device_retrieval::ItemsRequest;
+use crate::iso::disclosure::IssuerSigned;
+use crate::iso::mdocs::DataElementIdentifier;
+use crate::iso::mdocs::NameSpace;
+use crate::utils::serialization::TaggedBytes;
+use crate::Document;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 #[debug("{credential_type}/{namespace}/{attribute}")]
@@ -96,7 +94,8 @@ impl AttributeIdentifierHolder for ItemsRequest {
 mod examples {
     use indexmap::IndexSet;
 
-    use crate::examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE};
+    use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::examples::EXAMPLE_NAMESPACE;
 
     use super::AttributeIdentifier;
 

@@ -1,26 +1,33 @@
-use http::{header, HeaderMap, HeaderValue, StatusCode};
-use reqwest::{Client, Request};
-use serde::{de::DeserializeOwned, Serialize};
+use http::header;
+use http::HeaderMap;
+use http::HeaderValue;
+use http::StatusCode;
+use reqwest::Client;
+use reqwest::Request;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use url::Url;
 
-use wallet_common::{
-    account::{
-        messages::{
-            auth::{Certificate, Challenge, Registration, WalletCertificate},
-            errors::{AccountError, AccountErrorType},
-            instructions::{
-                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResult,
-                InstructionResultMessage,
-            },
-        },
-        signed::ChallengeResponse,
-    },
-    http_error::HttpJsonErrorBody,
-    reqwest::{default_reqwest_client_builder, parse_content_type},
-    urls::BaseUrl,
-};
+use wallet_common::account::messages::auth::Certificate;
+use wallet_common::account::messages::auth::Challenge;
+use wallet_common::account::messages::auth::Registration;
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::account::messages::errors::AccountError;
+use wallet_common::account::messages::errors::AccountErrorType;
+use wallet_common::account::messages::instructions::Instruction;
+use wallet_common::account::messages::instructions::InstructionAndResult;
+use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::account::messages::instructions::InstructionResult;
+use wallet_common::account::messages::instructions::InstructionResultMessage;
+use wallet_common::account::signed::ChallengeResponse;
+use wallet_common::http_error::HttpJsonErrorBody;
+use wallet_common::reqwest::default_reqwest_client_builder;
+use wallet_common::reqwest::parse_content_type;
+use wallet_common::urls::BaseUrl;
 
-use super::{AccountProviderClient, AccountProviderError, AccountProviderResponseError};
+use super::AccountProviderClient;
+use super::AccountProviderError;
+use super::AccountProviderResponseError;
 
 pub struct HttpAccountProviderClient {
     http_client: Client,
@@ -172,12 +179,15 @@ mod tests {
     use assert_matches::assert_matches;
     use http::HeaderValue;
     use reqwest::StatusCode;
-    use serde::{Deserialize, Serialize};
-    use serde_json::{json, Value};
-    use wiremock::{
-        matchers::{method, path},
-        Mock, MockServer, ResponseTemplate,
-    };
+    use serde::Deserialize;
+    use serde::Serialize;
+    use serde_json::json;
+    use serde_json::Value;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
 
     use wallet_common::urls::BaseUrl;
 

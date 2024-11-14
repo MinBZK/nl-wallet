@@ -1,15 +1,19 @@
-use std::{error::Error, net::SocketAddr};
+use std::error::Error;
+use std::net::SocketAddr;
 
-use axum::{
-    extract::State,
-    response::{IntoResponse, Response},
-    routing::get,
-    Router,
-};
+use axum::extract::State;
+use axum::response::IntoResponse;
+use axum::response::Response;
+use axum::routing::get;
+use axum::Router;
 use axum_server::tls_rustls::RustlsConfig;
 use etag::EntityTag;
-use http::{header, HeaderMap, HeaderValue, StatusCode};
-use tracing::{debug, info};
+use http::header;
+use http::HeaderMap;
+use http::HeaderValue;
+use http::StatusCode;
+use tracing::debug;
+use tracing::info;
 
 use super::settings::Settings;
 

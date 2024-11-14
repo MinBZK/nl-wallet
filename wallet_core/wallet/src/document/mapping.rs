@@ -1,8 +1,13 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::collections::HashMap;
+use std::sync::LazyLock;
 
 use indexmap::IndexMap;
 
-use super::{mdoc::AttributeValueType, AttributeKey, AttributeLabels, ADDRESS_DOCTYPE, PID_DOCTYPE};
+use super::mdoc::AttributeValueType;
+use super::AttributeKey;
+use super::AttributeLabels;
+use super::ADDRESS_DOCTYPE;
+use super::PID_DOCTYPE;
 
 #[derive(Debug, Clone)]
 pub(super) struct DataElementValueMapping {

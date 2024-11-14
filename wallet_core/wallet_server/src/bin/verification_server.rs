@@ -1,10 +1,10 @@
 use anyhow::Result;
 
-use wallet_server::{
-    server::{self, wallet_server_main},
-    settings::Settings,
-    store::{DatabaseConnection, SessionStoreVariant},
-};
+use wallet_server::server::wallet_server_main;
+use wallet_server::server::{self};
+use wallet_server::settings::Settings;
+use wallet_server::store::DatabaseConnection;
+use wallet_server::store::SessionStoreVariant;
 
 #[tokio::main]
 async fn main() -> Result<()> {

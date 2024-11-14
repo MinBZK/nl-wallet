@@ -1,12 +1,17 @@
 use std::error::Error;
 
 use derive_more::AsRef;
-use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
-use serde_with::{serde_as, TryFromInto};
-use sha2::{Digest, Sha256};
+use serde_with::serde_as;
+use serde_with::TryFromInto;
+use sha2::Digest;
+use sha2::Sha256;
 
-use crate::{app_identifier::AppIdentifier, auth_data::TruncatedAuthenticatorDataWithSource};
+use crate::app_identifier::AppIdentifier;
+use crate::auth_data::TruncatedAuthenticatorDataWithSource;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AssertionError {
@@ -158,11 +163,14 @@ impl Assertion {
 
 #[cfg(feature = "mock")]
 mod mock {
-    use p256::ecdsa::{signature::Signer, SigningKey};
+    use p256::ecdsa::signature::Signer;
+    use p256::ecdsa::SigningKey;
     use passkey_types::ctap2::AuthenticatorData;
-    use sha2::{Digest, Sha256};
+    use sha2::Digest;
+    use sha2::Sha256;
 
-    use crate::{app_identifier::AppIdentifier, auth_data::AuthenticatorDataWithSource};
+    use crate::app_identifier::AppIdentifier;
+    use crate::auth_data::AuthenticatorDataWithSource;
 
     use super::Assertion;
 

@@ -14,20 +14,25 @@ cfg_if::cfg_if! {
 #[cfg(all(feature = "disclosure", feature = "issuance"))]
 pub mod wallet_server;
 
-use std::{future::Future, io};
+use std::future::Future;
+use std::io;
 
 use anyhow::Result;
-use axum::{routing::get, Router};
-use http::{header, HeaderValue};
+use axum::routing::get;
+use axum::Router;
+use http::header;
+use http::HeaderValue;
 use tokio::net::TcpListener;
-use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
-use tracing::{debug, error, level_filters::LevelFilter};
+use tower_http::set_header::SetResponseHeaderLayer;
+use tower_http::trace::TraceLayer;
+use tracing::debug;
+use tracing::error;
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use crate::{
-    log_requests::log_request_response,
-    settings::{Server, Settings},
-};
+use crate::log_requests::log_request_response;
+use crate::settings::Server;
+use crate::settings::Settings;
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))

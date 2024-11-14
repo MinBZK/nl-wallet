@@ -1,9 +1,10 @@
-use rand::{
-    distributions::{Alphanumeric, DistString},
-    Rng,
-};
-use ring::{error::Unspecified as UnspecifiedRingError, hkdf};
-use sha2::{Digest, Sha256};
+use rand::distributions::Alphanumeric;
+use rand::distributions::DistString;
+use rand::Rng;
+use ring::error::Unspecified as UnspecifiedRingError;
+use ring::hkdf;
+use sha2::Digest;
+use sha2::Sha256;
 
 pub fn random_bytes(len: usize) -> Vec<u8> {
     let mut output = vec![0u8; len];

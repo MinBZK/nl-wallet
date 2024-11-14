@@ -1,23 +1,26 @@
-use chrono::{DateTime, Utc};
-use tracing::{info, instrument};
+use chrono::DateTime;
+use chrono::Utc;
+use tracing::info;
+use tracing::instrument;
 
-use error_category::{sentry_capture_error, ErrorCategory};
-use nl_wallet_mdoc::{
-    holder::ProposedDocumentAttributes,
-    utils::{
-        issuer_auth::IssuerRegistration,
-        reader_auth::ReaderRegistration,
-        x509::{CertificateError, MdocCertificateExtension},
-    },
-};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
+use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 
+use crate::document::DisclosureType;
+use crate::document::DocumentMdocError;
+use crate::errors::StorageError;
+use crate::storage::EventDocuments;
 pub use crate::storage::EventStatus;
-use crate::{
-    document::{DisclosureType, DocumentMdocError},
-    errors::StorageError,
-    storage::{EventDocuments, Storage, WalletEvent},
-    DisclosureDocument, Document, DocumentPersistence,
-};
+use crate::storage::Storage;
+use crate::storage::WalletEvent;
+use crate::DisclosureDocument;
+use crate::Document;
+use crate::DocumentPersistence;
 
 use super::Wallet;
 
@@ -256,18 +259,22 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    use chrono::{Duration, TimeZone, Utc};
-    use nl_wallet_mdoc::{server_keys::KeyPair, utils::reader_auth::ReaderRegistration};
+    use chrono::Duration;
+    use chrono::TimeZone;
+    use chrono::Utc;
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 
     use super::Wallet;
 
-    use crate::{
-        storage::WalletEvent,
-        wallet::test::{self, WalletWithMocks, ISSUER_KEY},
-        HistoryEvent,
-    };
+    use crate::storage::WalletEvent;
+    use crate::wallet::test::WalletWithMocks;
+    use crate::wallet::test::ISSUER_KEY;
+    use crate::wallet::test::{self};
+    use crate::HistoryEvent;
 
-    use super::{EventStorageError, HistoryError};
+    use super::EventStorageError;
+    use super::HistoryError;
 
     const PID_DOCTYPE: &str = "com.example.pid";
     const ADDRESS_DOCTYPE: &str = "com.example.address";
