@@ -3,41 +3,47 @@ use std::sync::Arc;
 use base64::prelude::*;
 use futures::future::{self};
 use itertools::Itertools;
-use p256::ecdsa::{Signature, VerifyingKey};
-use serde::{Deserialize, Serialize};
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use serde::Deserialize;
+use serde::Serialize;
 use tracing::warn;
 use uuid::Uuid;
 
-use wallet_common::{
-    account::{
-        messages::instructions::{
-            ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, ConstructPoa, ConstructPoaResult,
-            GenerateKey, GenerateKeyResult, IssueWte, IssueWteResult, Sign, SignResult,
-        },
-        serialization::{DerSignature, DerVerifyingKey},
-    },
-    generator::Generator,
-    jwt::{JwtPopClaims, NL_WALLET_CLIENT_ID},
-    keys::{
-        poa::{Poa, POA_JWT_TYP},
-        EcdsaKey,
-    },
-};
-use wallet_provider_domain::{
-    model::{
-        encrypter::Encrypter,
-        hsm::WalletUserHsm,
-        wallet_user::{WalletUser, WalletUserKey, WalletUserKeys},
-        wrapped_key::WrappedKey,
-    },
-    repository::{Committable, TransactionStarter, WalletUserRepository},
-};
+use wallet_common::account::messages::instructions::ChangePinCommit;
+use wallet_common::account::messages::instructions::ChangePinRollback;
+use wallet_common::account::messages::instructions::ChangePinStart;
+use wallet_common::account::messages::instructions::CheckPin;
+use wallet_common::account::messages::instructions::ConstructPoa;
+use wallet_common::account::messages::instructions::ConstructPoaResult;
+use wallet_common::account::messages::instructions::GenerateKey;
+use wallet_common::account::messages::instructions::GenerateKeyResult;
+use wallet_common::account::messages::instructions::IssueWte;
+use wallet_common::account::messages::instructions::IssueWteResult;
+use wallet_common::account::messages::instructions::Sign;
+use wallet_common::account::messages::instructions::SignResult;
+use wallet_common::account::serialization::DerSignature;
+use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_common::generator::Generator;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::jwt::NL_WALLET_CLIENT_ID;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::POA_JWT_TYP;
+use wallet_common::keys::EcdsaKey;
+use wallet_provider_domain::model::encrypter::Encrypter;
+use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wallet_user::WalletUser;
+use wallet_provider_domain::model::wallet_user::WalletUserKey;
+use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wrapped_key::WrappedKey;
+use wallet_provider_domain::repository::Committable;
+use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletUserRepository;
 
-use crate::{
-    account_server::{InstructionError, InstructionValidationError},
-    hsm::HsmError,
-    wte_issuer::WteIssuer,
-};
+use crate::account_server::InstructionError;
+use crate::account_server::InstructionValidationError;
+use crate::hsm::HsmError;
+use crate::wte_issuer::WteIssuer;
 
 pub trait ValidateInstruction {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -421,32 +427,34 @@ mod tests {
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
-    use p256::ecdsa::{signature::Verifier, SigningKey};
+    use p256::ecdsa::signature::Verifier;
+    use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
     use rstest::rstest;
 
-    use wallet_common::{
-        account::messages::instructions::{CheckPin, ConstructPoa, GenerateKey, IssueWte, Sign},
-        jwt::{validations, Jwt},
-        keys::poa::PoaPayload,
-        utils::{random_bytes, random_string},
-    };
-    use wallet_provider_domain::{
-        model::{
-            hsm::mock::MockPkcs11Client,
-            wallet_user::{self, WalletUser},
-            wrapped_key::WrappedKey,
-        },
-        repository::MockTransaction,
-        FixedUuidGenerator,
-    };
+    use wallet_common::account::messages::instructions::CheckPin;
+    use wallet_common::account::messages::instructions::ConstructPoa;
+    use wallet_common::account::messages::instructions::GenerateKey;
+    use wallet_common::account::messages::instructions::IssueWte;
+    use wallet_common::account::messages::instructions::Sign;
+    use wallet_common::jwt::validations;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::keys::poa::PoaPayload;
+    use wallet_common::utils::random_bytes;
+    use wallet_common::utils::random_string;
+    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
+    use wallet_provider_domain::model::wallet_user::WalletUser;
+    use wallet_provider_domain::model::wallet_user::{self};
+    use wallet_provider_domain::model::wrapped_key::WrappedKey;
+    use wallet_provider_domain::repository::MockTransaction;
+    use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
 
-    use crate::{
-        account_server::InstructionValidationError,
-        instructions::{is_poa_message, HandleInstruction, ValidateInstruction},
-        wte_issuer::mock::MockWteIssuer,
-    };
+    use crate::account_server::InstructionValidationError;
+    use crate::instructions::is_poa_message;
+    use crate::instructions::HandleInstruction;
+    use crate::instructions::ValidateInstruction;
+    use crate::wte_issuer::mock::MockWteIssuer;
 
     #[tokio::test]
     async fn should_handle_checkpin() {

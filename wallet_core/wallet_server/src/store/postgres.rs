@@ -1,20 +1,36 @@
 use std::time::Duration;
 
-use chrono::{DateTime, Utc};
-use sea_orm::{
-    sea_query::{Expr, OnConflict},
-    ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter, SqlErr,
-    TransactionTrait,
-};
-use serde::{de::DeserializeOwned, Serialize};
-use strum::{Display, EnumString};
+use chrono::DateTime;
+use chrono::Utc;
+use sea_orm::sea_query::Expr;
+use sea_orm::sea_query::OnConflict;
+use sea_orm::ActiveValue;
+use sea_orm::ColumnTrait;
+use sea_orm::ConnectOptions;
+use sea_orm::Database;
+use sea_orm::DatabaseConnection;
+use sea_orm::DbErr;
+use sea_orm::EntityTrait;
+use sea_orm::QueryFilter;
+use sea_orm::SqlErr;
+use sea_orm::TransactionTrait;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use strum::Display;
+use strum::EnumString;
 use tracing::log::LevelFilter;
 use url::Url;
 
-use openid4vc::server_state::{
-    Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts, SessionToken,
-};
-use wallet_common::generator::{Generator, TimeGenerator};
+use openid4vc::server_state::Expirable;
+use openid4vc::server_state::HasProgress;
+use openid4vc::server_state::Progress;
+use openid4vc::server_state::SessionState;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionStoreError;
+use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc::server_state::SessionToken;
+use wallet_common::generator::Generator;
+use wallet_common::generator::TimeGenerator;
 
 use crate::entity::session_state;
 
@@ -208,15 +224,22 @@ pub use wte_tracker::PostgresWteTracker;
 
 #[cfg(feature = "issuance")]
 mod wte_tracker {
-    use chrono::{DateTime, Utc};
-    use sea_orm::{ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, SqlErr};
+    use chrono::DateTime;
+    use chrono::Utc;
+    use sea_orm::ActiveValue;
+    use sea_orm::ColumnTrait;
+    use sea_orm::DatabaseConnection;
+    use sea_orm::DbErr;
+    use sea_orm::EntityTrait;
+    use sea_orm::QueryFilter;
+    use sea_orm::SqlErr;
 
-    use wallet_common::{
-        generator::{Generator, TimeGenerator},
-        jwt::{JwtCredentialClaims, VerifiedJwt},
-        utils::sha256,
-        wte::WteClaims,
-    };
+    use wallet_common::generator::Generator;
+    use wallet_common::generator::TimeGenerator;
+    use wallet_common::jwt::JwtCredentialClaims;
+    use wallet_common::jwt::VerifiedJwt;
+    use wallet_common::utils::sha256;
+    use wallet_common::wte::WteClaims;
 
     use crate::entity::used_wtes;
     use openid4vc::server_state::WteTracker;

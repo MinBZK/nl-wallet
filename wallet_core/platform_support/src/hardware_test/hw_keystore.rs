@@ -1,6 +1,7 @@
 use wallet_common::keys::test;
 
-use crate::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
+use crate::hw_keystore::hardware::HardwareEcdsaKey;
+use crate::hw_keystore::hardware::HardwareEncryptionKey;
 
 // this is the starting point for the ECDSA key integration test performed from Android / iOS.
 #[no_mangle]
@@ -38,7 +39,8 @@ extern "C" fn hw_keystore_test_hardware_encryption() {
 
 #[cfg(target_os = "android")]
 mod android {
-    use jni::{objects::JClass, JNIEnv};
+    use jni::objects::JClass;
+    use jni::JNIEnv;
 
     #[rustfmt::skip]
     #[no_mangle]

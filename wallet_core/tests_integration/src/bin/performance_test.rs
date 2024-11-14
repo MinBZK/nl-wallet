@@ -6,22 +6,27 @@ use url::Url;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::ItemsRequest;
-use openid4vc::{
-    disclosure_session::{DisclosureSession, HttpVpMessageClient},
-    issuance_session::HttpIssuanceSession,
-    verifier::{SessionType, StatusResponse},
-};
-use tests_integration::{fake_digid::fake_digid_auth, logging::init_logging};
-use wallet::{
-    mock::{default_configuration, MockStorage},
-    wallet_deps::{
-        ConfigServerConfiguration, ConfigurationRepository, HttpAccountProviderClient, HttpConfigurationRepository,
-        HttpDigidSession, UpdateableConfigurationRepository,
-    },
-    DisclosureUriSource, Wallet,
-};
+use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::StatusResponse;
+use tests_integration::fake_digid::fake_digid_auth;
+use tests_integration::logging::init_logging;
+use wallet::mock::default_configuration;
+use wallet::mock::MockStorage;
+use wallet::wallet_deps::ConfigServerConfiguration;
+use wallet::wallet_deps::ConfigurationRepository;
+use wallet::wallet_deps::HttpAccountProviderClient;
+use wallet::wallet_deps::HttpConfigurationRepository;
+use wallet::wallet_deps::HttpDigidSession;
+use wallet::wallet_deps::UpdateableConfigurationRepository;
+use wallet::DisclosureUriSource;
+use wallet::Wallet;
 use wallet_common::keys::software::SoftwareEcdsaKey;
-use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams};
+use wallet_server::verifier::StartDisclosureRequest;
+use wallet_server::verifier::StartDisclosureResponse;
+use wallet_server::verifier::StatusParams;
 
 #[ctor]
 fn init() {

@@ -1,16 +1,18 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use passkey_types::ctap2::Aaguid;
 use serde::Deserialize;
-use serde_with::{serde_as, TryFromInto};
-use sha2::{Digest, Sha256};
+use serde_with::serde_as;
+use serde_with::TryFromInto;
+use sha2::Digest;
+use sha2::Sha256;
 use webpki::types::TrustAnchor;
 
-use crate::{
-    app_identifier::AppIdentifier,
-    auth_data::AuthenticatorDataWithSource,
-    certificates::{CertificateError, DerX509CertificateChain},
-};
+use crate::app_identifier::AppIdentifier;
+use crate::auth_data::AuthenticatorDataWithSource;
+use crate::certificates::CertificateError;
+use crate::certificates::DerX509CertificateChain;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationError {

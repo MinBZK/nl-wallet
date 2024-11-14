@@ -1,10 +1,34 @@
-use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{
-    parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::Comma, AttrStyle, Attribute, Block, Data,
-    DataEnum, DataStruct, DeriveInput, Error, Field, Fields, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, Meta,
-    MetaList, Path, Result, Signature, Variant, Visibility,
-};
+use proc_macro2::Span;
+use proc_macro2::TokenStream;
+use quote::quote;
+use quote::ToTokens;
+use syn::parse_macro_input;
+use syn::punctuated::Punctuated;
+use syn::spanned::Spanned;
+use syn::token::Comma;
+use syn::AttrStyle;
+use syn::Attribute;
+use syn::Block;
+use syn::Data;
+use syn::DataEnum;
+use syn::DataStruct;
+use syn::DeriveInput;
+use syn::Error;
+use syn::Field;
+use syn::Fields;
+use syn::Ident;
+use syn::ImplItem;
+use syn::ImplItemFn;
+use syn::Item;
+use syn::ItemFn;
+use syn::ItemImpl;
+use syn::Meta;
+use syn::MetaList;
+use syn::Path;
+use syn::Result;
+use syn::Signature;
+use syn::Variant;
+use syn::Visibility;
 
 const CATEGORY: &str = "category";
 

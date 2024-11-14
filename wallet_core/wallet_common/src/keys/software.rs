@@ -1,21 +1,27 @@
-use std::{
-    collections::HashMap,
-    convert::Infallible,
-    sync::{Arc, LazyLock},
-};
+use std::collections::HashMap;
+use std::convert::Infallible;
+use std::sync::Arc;
+use std::sync::LazyLock;
 
-use aes_gcm::{aead::KeyInit, Aes256Gcm};
+use aes_gcm::aead::KeyInit;
+use aes_gcm::Aes256Gcm;
 use derive_more::Debug;
-use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+use p256::ecdsa::signature::Signer;
+use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use crate::keys::WithIdentifier;
 
-use super::{
-    CredentialEcdsaKey, CredentialKeyType, EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey,
-    StoredByIdentifier,
-};
+use super::CredentialEcdsaKey;
+use super::CredentialKeyType;
+use super::EcdsaKey;
+use super::EncryptionKey;
+use super::SecureEcdsaKey;
+use super::SecureEncryptionKey;
+use super::StoredByIdentifier;
 
 // Static for storing identifier to signing key mapping.
 static SIGNING_KEYS: LazyLock<Mutex<HashMap<String, Arc<SigningKey>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -202,10 +208,9 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
 
 #[cfg(test)]
 mod tests {
-    use crate::keys::{
-        software::{SoftwareEcdsaKey, SoftwareEncryptionKey},
-        test,
-    };
+    use crate::keys::software::SoftwareEcdsaKey;
+    use crate::keys::software::SoftwareEncryptionKey;
+    use crate::keys::test;
 
     #[tokio::test]
     async fn test_software_signature() {

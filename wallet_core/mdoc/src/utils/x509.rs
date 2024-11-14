@@ -1,34 +1,45 @@
-use std::{borrow::Cow, time::Duration};
+use std::borrow::Cow;
+use std::time::Duration;
 
 use base64::prelude::*;
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use indexmap::IndexMap;
-use p256::{
-    ecdsa::VerifyingKey,
-    elliptic_curve::pkcs8::DecodePublicKey,
-    pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader},
-};
-use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
+use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve::pkcs8::DecodePublicKey;
+use p256::pkcs8::der::asn1::Utf8StringRef;
+use p256::pkcs8::der::Decode;
+use p256::pkcs8::der::SliceReader;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use serde_bytes::ByteBuf;
-use webpki::{
-    anchor_from_trusted_cert,
-    ring::ECDSA_P256_SHA256,
-    types::{CertificateDer, TrustAnchor, UnixTime},
-    EndEntityCert,
-};
-use x509_parser::{
-    der_parser::Oid,
-    extensions::GeneralName,
-    nom::{self, AsBytes},
-    pem,
-    prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
-    x509::X509Name,
-};
+use webpki::anchor_from_trusted_cert;
+use webpki::ring::ECDSA_P256_SHA256;
+use webpki::types::CertificateDer;
+use webpki::types::TrustAnchor;
+use webpki::types::UnixTime;
+use webpki::EndEntityCert;
+use x509_parser::der_parser::Oid;
+use x509_parser::extensions::GeneralName;
+use x509_parser::nom::AsBytes;
+use x509_parser::nom::{self};
+use x509_parser::pem;
+use x509_parser::prelude::ExtendedKeyUsage;
+use x509_parser::prelude::FromDer;
+use x509_parser::prelude::PEMError;
+use x509_parser::prelude::X509Certificate;
+use x509_parser::prelude::X509Error;
+use x509_parser::x509::X509Name;
 
 use error_category::ErrorCategory;
-use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
+use wallet_common::generator::Generator;
+use wallet_common::trust_anchor::DerTrustAnchor;
 
-use super::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
+use super::issuer_auth::IssuerRegistration;
+use super::reader_auth::ReaderRegistration;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 #[category(pd)]
@@ -400,20 +411,25 @@ pub struct CertificateConfiguration {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
-    use chrono::{DateTime, Duration, Utc};
+    use chrono::DateTime;
+    use chrono::Duration;
+    use chrono::Utc;
     use p256::pkcs8::ObjectIdentifier;
-    use time::{macros::datetime, OffsetDateTime};
+    use time::macros::datetime;
+    use time::OffsetDateTime;
     use webpki::types::TrustAnchor;
 
     use wallet_common::generator::TimeGenerator;
     use x509_parser::certificate::X509Certificate;
 
-    use crate::{
-        server_keys::KeyPair,
-        utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateType},
-    };
+    use crate::server_keys::KeyPair;
+    use crate::utils::issuer_auth::IssuerRegistration;
+    use crate::utils::reader_auth::ReaderRegistration;
+    use crate::utils::x509::CertificateType;
 
-    use super::{CertificateConfiguration, CertificateError, CertificateUsage};
+    use super::CertificateConfiguration;
+    use super::CertificateError;
+    use super::CertificateUsage;
 
     #[test]
     fn mdoc_eku_encoding_works() {

@@ -1,23 +1,28 @@
 use indexmap::IndexMap;
 
-use wallet_common::keys::{examples::Examples, software_key_factory::SoftwareKeyFactory};
+use wallet_common::keys::examples::Examples;
+use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
 
-use crate::{
-    errors::Result,
-    examples::{
-        Example, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE,
-    },
-    iso::{
-        device_retrieval::{DeviceRequest, ItemsRequest, ReaderAuthenticationBytes},
-        disclosure::DeviceResponse,
-        engagement::DeviceAuthenticationBytes,
-    },
-    test::{self, DebugCollapseBts},
-    utils::serialization::{CborSeq, TaggedBytes},
-    SessionTranscript,
-};
+use crate::errors::Result;
+use crate::examples::Example;
+use crate::examples::IsoCertTimeGenerator;
+use crate::examples::EXAMPLE_ATTR_NAME;
+use crate::examples::EXAMPLE_ATTR_VALUE;
+use crate::examples::EXAMPLE_DOC_TYPE;
+use crate::examples::EXAMPLE_NAMESPACE;
+use crate::iso::device_retrieval::DeviceRequest;
+use crate::iso::device_retrieval::ItemsRequest;
+use crate::iso::device_retrieval::ReaderAuthenticationBytes;
+use crate::iso::disclosure::DeviceResponse;
+use crate::iso::engagement::DeviceAuthenticationBytes;
+use crate::test::DebugCollapseBts;
+use crate::test::{self};
+use crate::utils::serialization::CborSeq;
+use crate::utils::serialization::TaggedBytes;
+use crate::SessionTranscript;
 
-use super::{mock::MockMdocDataSource, DisclosureRequestMatch};
+use super::mock::MockMdocDataSource;
+use super::DisclosureRequestMatch;
 
 /// This function uses the `MockMdocDataSource` to provide the mdoc from the example
 /// `DeviceResponse` in the standard. This is used to match against a `DeviceRequest`

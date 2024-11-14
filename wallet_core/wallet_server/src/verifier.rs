@@ -1,32 +1,52 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, Query, State},
-    routing::{delete, get, post},
-    Form, Json, Router,
-};
-use http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri};
-use serde::{Deserialize, Serialize};
+use axum::extract::Path;
+use axum::extract::Query;
+use axum::extract::State;
+use axum::routing::delete;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Form;
+use axum::Json;
+use axum::Router;
+use http::header;
+use http::HeaderMap;
+use http::HeaderValue;
+use http::Method;
+use http::StatusCode;
+use http::Uri;
+use serde::Deserialize;
+use serde::Serialize;
 use tower_http::cors::CorsLayer;
-use tracing::{info, warn};
+use tracing::info;
+use tracing::warn;
 
-use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests};
-use openid4vc::{
-    disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
-    openid4vp::{VpResponse, WalletRequest},
-    return_url::ReturnUrlTemplate,
-    server_state::{SessionStore, SessionToken},
-    verifier::{DisclosureData, SessionType, StatusResponse, Verifier, WalletAuthResponse},
-    DisclosureErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
-};
-use wallet_common::{
-    generator::TimeGenerator,
-    http_error::HttpJsonError,
-    trust_anchor::DerTrustAnchor,
-    urls::{self, BaseUrl, CorsOrigin},
-};
+use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
+use openid4vc::openid4vp::VpResponse;
+use openid4vc::openid4vp::WalletRequest;
+use openid4vc::return_url::ReturnUrlTemplate;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionToken;
+use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::StatusResponse;
+use openid4vc::verifier::Verifier;
+use openid4vc::verifier::WalletAuthResponse;
+use openid4vc::DisclosureErrorResponse;
+use openid4vc::GetRequestErrorCode;
+use openid4vc::PostAuthResponseErrorCode;
+use openid4vc::VerificationErrorCode;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::http_error::HttpJsonError;
+use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::urls::BaseUrl;
+use wallet_common::urls::CorsOrigin;
+use wallet_common::urls::{self};
 
-use crate::settings::{self, Urls};
+use crate::settings::Urls;
+use crate::settings::{self};
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,

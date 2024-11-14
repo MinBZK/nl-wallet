@@ -1,13 +1,18 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use reqwest::Certificate;
 
-use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey, urls::BaseUrl};
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::urls::BaseUrl;
 
-use super::{
-    config_file, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState, HttpConfigurationRepository,
-    UpdateableConfigurationRepository,
-};
+use super::config_file;
+use super::ConfigurationError;
+use super::ConfigurationRepository;
+use super::ConfigurationUpdateState;
+use super::HttpConfigurationRepository;
+use super::UpdateableConfigurationRepository;
 
 pub struct FileStorageConfigurationRepository<T> {
     wrapped: T,
@@ -89,12 +94,16 @@ mod tests {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey};
+    use wallet_common::config::wallet_config::WalletConfiguration;
+    use wallet_common::jwt::EcdsaDecodingKey;
 
-    use crate::config::{
-        config_file, default_configuration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
-        FileStorageConfigurationRepository, UpdateableConfigurationRepository,
-    };
+    use crate::config::config_file;
+    use crate::config::default_configuration;
+    use crate::config::ConfigurationError;
+    use crate::config::ConfigurationRepository;
+    use crate::config::ConfigurationUpdateState;
+    use crate::config::FileStorageConfigurationRepository;
+    use crate::config::UpdateableConfigurationRepository;
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
 

@@ -1,13 +1,15 @@
-use std::{env, fs, path::PathBuf};
+use std::env;
+use std::fs;
+use std::path::PathBuf;
 
-use aes_gcm::{Aes256Gcm, KeyInit};
+use aes_gcm::Aes256Gcm;
+use aes_gcm::KeyInit;
 use rand_core::OsRng;
 use tempfile::TempDir;
 
-use gba_hc_converter::{
-    gba::encryption::{encrypt_bytes_to_dir, HmacSha256},
-    settings::SymmetricKey,
-};
+use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
+use gba_hc_converter::gba::encryption::HmacSha256;
+use gba_hc_converter::settings::SymmetricKey;
 
 fn manifest_path() -> PathBuf {
     env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap()

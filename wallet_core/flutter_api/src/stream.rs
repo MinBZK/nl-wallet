@@ -1,4 +1,6 @@
-use flutter_rust_bridge::{rust2dart::IntoIntoDart, IntoDart, StreamSink};
+use flutter_rust_bridge::rust2dart::IntoIntoDart;
+use flutter_rust_bridge::IntoDart;
+use flutter_rust_bridge::StreamSink;
 
 pub struct ClosingStreamSink<T>(StreamSink<T>)
 where

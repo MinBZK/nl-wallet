@@ -1,20 +1,25 @@
 use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use wallet_common::{
-    http_error::{HttpJsonError, HttpJsonErrorType},
-    urls::BaseUrl,
-};
+use wallet_common::http_error::HttpJsonError;
+use wallet_common::http_error::HttpJsonErrorType;
+use wallet_common::urls::BaseUrl;
 
-use crate::{
-    issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
-    verifier::{
-        CancelSessionError, DisclosedAttributesError, GetAuthRequestError, NewSessionError, PostAuthResponseError,
-        SessionError, SessionStatus, SessionStatusError, WithRedirectUri,
-    },
-};
+use crate::issuer::CredentialRequestError;
+use crate::issuer::IssuanceError;
+use crate::issuer::TokenRequestError;
+use crate::verifier::CancelSessionError;
+use crate::verifier::DisclosedAttributesError;
+use crate::verifier::GetAuthRequestError;
+use crate::verifier::NewSessionError;
+use crate::verifier::PostAuthResponseError;
+use crate::verifier::SessionError;
+use crate::verifier::SessionStatus;
+use crate::verifier::SessionStatusError;
+use crate::verifier::WithRedirectUri;
 
 /// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
 #[skip_serializing_none]
@@ -473,14 +478,15 @@ pub enum AuthorizationErrorCode {
 mod axum {
     use std::fmt::Debug;
 
-    use axum::{
-        response::{IntoResponse, Response},
-        Json,
-    };
+    use axum::response::IntoResponse;
+    use axum::response::Response;
+    use axum::Json;
     use serde::Serialize;
     use tracing::warn;
 
-    use super::{DisclosureErrorResponse, ErrorResponse, ErrorStatusCode};
+    use super::DisclosureErrorResponse;
+    use super::ErrorResponse;
+    use super::ErrorStatusCode;
 
     impl<T> IntoResponse for ErrorResponse<T>
     where

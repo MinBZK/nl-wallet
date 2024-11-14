@@ -1,14 +1,19 @@
-use std::{fs, io, path::Path};
+use std::fs;
+use std::io;
+use std::path::Path;
 
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
+use anyhow::Result;
 use clio::CachedInput;
-use p256::{
-    ecdsa::SigningKey,
-    pkcs8::{DecodePrivateKey, EncodePrivateKey},
-};
-use pem::{EncodeConfig, LineEnding, Pem};
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::DecodePrivateKey;
+use p256::pkcs8::EncodePrivateKey;
+use pem::EncodeConfig;
+use pem::LineEnding;
+use pem::Pem;
 
-use nl_wallet_mdoc::{server_keys::KeyPair, utils::x509::Certificate};
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::x509::Certificate;
 
 fn read_certificate(input: CachedInput) -> Result<Certificate> {
     let input_string = io::read_to_string(input)?;

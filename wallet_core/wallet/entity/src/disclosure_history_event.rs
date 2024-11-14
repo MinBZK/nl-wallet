@@ -1,7 +1,9 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use sea_orm::entity::prelude::*;
 
-use crate::{disclosure_history_event_doc_type, history_doc_type};
+use crate::disclosure_history_event_doc_type;
+use crate::history_doc_type;
 
 #[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Text")]

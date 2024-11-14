@@ -5,13 +5,18 @@ cfg_if::cfg_if! {
     }
 }
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use url::Url;
 
-use openid4vc::server_state::{
-    Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
-    SessionToken,
-};
+use openid4vc::server_state::Expirable;
+use openid4vc::server_state::HasProgress;
+use openid4vc::server_state::MemorySessionStore;
+use openid4vc::server_state::SessionState;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionStoreError;
+use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc::server_state::SessionToken;
 
 pub trait SessionDataType {
     const TYPE: &'static str;
@@ -116,13 +121,14 @@ pub use wte_tracker::WteTrackerVariant;
 
 #[cfg(feature = "issuance")]
 mod wte_tracker {
-    use openid4vc::server_state::{MemoryWteTracker, WteTracker};
-    use wallet_common::{
-        jwt::{JwtCredentialClaims, VerifiedJwt},
-        wte::WteClaims,
-    };
+    use openid4vc::server_state::MemoryWteTracker;
+    use openid4vc::server_state::WteTracker;
+    use wallet_common::jwt::JwtCredentialClaims;
+    use wallet_common::jwt::VerifiedJwt;
+    use wallet_common::wte::WteClaims;
 
-    use super::{DatabaseConnection, DatabaseError};
+    use super::DatabaseConnection;
+    use super::DatabaseError;
 
     #[cfg(feature = "postgres")]
     use super::postgres::PostgresWteTracker;

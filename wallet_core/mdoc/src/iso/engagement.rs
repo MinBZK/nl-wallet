@@ -5,22 +5,27 @@
 //! NB. "Device authentication" is not to be confused with the [`DeviceAuth`] data structure in the
 //! [`disclosure`](super::disclosure) module (which contains the holder's signature over [`DeviceAuthentication`]
 //! defined here).
-use std::{borrow::Cow, fmt::Debug};
+use std::borrow::Cow;
+use std::fmt::Debug;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_bytes::ByteBuf;
-use serde_repr::{Deserialize_repr, Serialize_repr};
+use serde_repr::Deserialize_repr;
+use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
 
-use wallet_common::{urls::BaseUrl, utils::sha256};
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils::sha256;
 
-use crate::{
-    iso::disclosure::*,
-    utils::{
-        cose::CoseKey,
-        serialization::{cbor_serialize, CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
-    },
-};
+use crate::iso::disclosure::*;
+use crate::utils::cose::CoseKey;
+use crate::utils::serialization::cbor_serialize;
+use crate::utils::serialization::CborIntMap;
+use crate::utils::serialization::CborSeq;
+use crate::utils::serialization::DeviceAuthenticationString;
+use crate::utils::serialization::RequiredValue;
+use crate::utils::serialization::TaggedBytes;
 
 /// The data structure that the holder signs with the mdoc private key when disclosing attributes out of that mdoc.
 /// Contains a.o. transcript of the session so far, acting as the challenge in a challenge-response mechanism,
@@ -202,10 +207,10 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        examples::{Example, EXAMPLE_DOC_TYPE},
-        utils::serialization::{self, TaggedBytes},
-    };
+    use crate::examples::Example;
+    use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::utils::serialization::TaggedBytes;
+    use crate::utils::serialization::{self};
 
     use super::*;
 

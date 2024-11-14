@@ -1,8 +1,8 @@
 use askama::Template;
-use axum::{
-    http::{self, StatusCode},
-    response::{IntoResponse, Response},
-};
+use axum::http::StatusCode;
+use axum::http::{self};
+use axum::response::IntoResponse;
+use axum::response::Response;
 use axum_csrf::CsrfToken;
 
 pub fn into_response<T: Template>(t: &T) -> Response {

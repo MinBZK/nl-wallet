@@ -1,5 +1,6 @@
 use coset::CoseError;
-use passkey_types::ctap2::{AuthenticatorData, Flags};
+use passkey_types::ctap2::AuthenticatorData;
+use passkey_types::ctap2::Flags;
 
 #[derive(Debug)]
 pub struct AuthenticatorDataWithSource<const IS_TRUNCATED: bool>(Vec<u8>, AuthenticatorData);

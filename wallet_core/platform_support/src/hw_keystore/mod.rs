@@ -1,6 +1,8 @@
 pub mod hardware;
 
-use wallet_common::keys::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::SecureEncryptionKey;
+use wallet_common::keys::StoredByIdentifier;
 
 pub use crate::bridge::hw_keystore::KeyStoreError;
 
@@ -29,9 +31,11 @@ pub trait PlatformEncryptionKey: StoredByIdentifier + SecureEncryptionKey {
 
 #[cfg(feature = "software")]
 mod software {
-    use wallet_common::keys::software::{SoftwareEcdsaKey, SoftwareEncryptionKey};
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::software::SoftwareEncryptionKey;
 
-    use super::{PlatformEcdsaKey, PlatformEncryptionKey};
+    use super::PlatformEcdsaKey;
+    use super::PlatformEncryptionKey;
 
     impl PlatformEcdsaKey for SoftwareEcdsaKey {}
 

@@ -1,34 +1,42 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::Json,
-    routing::{get, post},
-    Router,
-};
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::Json;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Router;
 use serde::Serialize;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
-use wallet_common::{
-    account::{
-        messages::{
-            auth::{Certificate, Challenge, Registration, WalletCertificate},
-            instructions::{
-                ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, ConstructPoa, ConstructPoaResult,
-                GenerateKey, GenerateKeyResult, Instruction, InstructionAndResult, InstructionChallengeRequest,
-                InstructionResultMessage, IssueWte, IssueWteResult, Sign, SignResult,
-            },
-        },
-        serialization::DerVerifyingKey,
-        signed::ChallengeResponse,
-    },
-    keys::EcdsaKey,
-};
+use wallet_common::account::messages::auth::Certificate;
+use wallet_common::account::messages::auth::Challenge;
+use wallet_common::account::messages::auth::Registration;
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::account::messages::instructions::ChangePinCommit;
+use wallet_common::account::messages::instructions::ChangePinRollback;
+use wallet_common::account::messages::instructions::ChangePinStart;
+use wallet_common::account::messages::instructions::CheckPin;
+use wallet_common::account::messages::instructions::ConstructPoa;
+use wallet_common::account::messages::instructions::ConstructPoaResult;
+use wallet_common::account::messages::instructions::GenerateKey;
+use wallet_common::account::messages::instructions::GenerateKeyResult;
+use wallet_common::account::messages::instructions::Instruction;
+use wallet_common::account::messages::instructions::InstructionAndResult;
+use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::account::messages::instructions::InstructionResultMessage;
+use wallet_common::account::messages::instructions::IssueWte;
+use wallet_common::account::messages::instructions::IssueWteResult;
+use wallet_common::account::messages::instructions::Sign;
+use wallet_common::account::messages::instructions::SignResult;
+use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_common::account::signed::ChallengeResponse;
+use wallet_common::keys::EcdsaKey;
 use wallet_provider_service::wte_issuer::WteIssuer;
 
-use crate::{errors::WalletProviderError, router_state::RouterState};
+use crate::errors::WalletProviderError;
+use crate::router_state::RouterState;
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
 /// a [`StatusCode`] and JSON body, all top-level errors should be convertible

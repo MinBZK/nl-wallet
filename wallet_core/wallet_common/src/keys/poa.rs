@@ -1,21 +1,25 @@
 use std::collections::HashSet;
 
 use futures::future::try_join_all;
-use jsonwebtoken::{
-    jwk::{self, Jwk},
-    Algorithm, Header,
-};
+use jsonwebtoken::jwk::Jwk;
+use jsonwebtoken::jwk::{self};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::{
-    jwt::{
-        jwk_alg_from_p256, jwk_from_p256, jwk_to_p256, validations, JsonJwt, JwkConversionError, Jwt, JwtError,
-        JwtPopClaims,
-    },
-    nonempty::NonEmpty,
-};
+use crate::jwt::jwk_alg_from_p256;
+use crate::jwt::jwk_from_p256;
+use crate::jwt::jwk_to_p256;
+use crate::jwt::validations;
+use crate::jwt::JsonJwt;
+use crate::jwt::JwkConversionError;
+use crate::jwt::Jwt;
+use crate::jwt::JwtError;
+use crate::jwt::JwtPopClaims;
+use crate::nonempty::NonEmpty;
 
 use super::EcdsaKey;
 
@@ -162,16 +166,20 @@ impl Poa {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use p256::ecdsa::{SigningKey, VerifyingKey};
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
     use rstest::rstest;
 
-    use crate::{
-        jwt::{validations, JsonJwt, Jwt, JwtPopClaims},
-        nonempty::NonEmpty,
-    };
+    use crate::jwt::validations;
+    use crate::jwt::JsonJwt;
+    use crate::jwt::Jwt;
+    use crate::jwt::JwtPopClaims;
+    use crate::nonempty::NonEmpty;
 
-    use super::{Poa, PoaPayload, PoaVerificationError};
+    use super::Poa;
+    use super::PoaPayload;
+    use super::PoaVerificationError;
 
     async fn poa_setup() -> (Poa, VerifyingKey, VerifyingKey, String, String, String) {
         let key1 = SigningKey::random(&mut OsRng);

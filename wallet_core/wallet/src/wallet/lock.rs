@@ -1,18 +1,21 @@
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use tracing::{info, instrument};
+use tracing::info;
+use tracing::instrument;
 
-use error_category::{sentry_capture_error, ErrorCategory};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
 use wallet_common::account::messages::instructions::CheckPin;
 
-pub use crate::{lock::LockCallback, storage::UnlockMethod};
+pub use crate::lock::LockCallback;
+pub use crate::storage::UnlockMethod;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    config::ConfigurationRepository,
-    errors::{ChangePinError, StorageError},
-    instruction::InstructionError,
-    storage::{Storage, UnlockData},
-};
+use crate::account_provider::AccountProviderClient;
+use crate::config::ConfigurationRepository;
+use crate::errors::ChangePinError;
+use crate::errors::StorageError;
+use crate::instruction::InstructionError;
+use crate::storage::Storage;
+use crate::storage::UnlockData;
 
 use super::Wallet;
 
@@ -203,29 +206,25 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use parking_lot::Mutex;
     use rand_core::OsRng;
-    use wallet_common::{
-        account::{
-            messages::{
-                errors::{AccountError, IncorrectPinData, PinTimeoutData},
-                instructions::{CheckPin, Instruction, InstructionResultClaims},
-            },
-            signed::SequenceNumberComparison,
-        },
-        jwt::Jwt,
-        keys::EcdsaKey,
-        utils,
-    };
+    use wallet_common::account::messages::errors::AccountError;
+    use wallet_common::account::messages::errors::IncorrectPinData;
+    use wallet_common::account::messages::errors::PinTimeoutData;
+    use wallet_common::account::messages::instructions::CheckPin;
+    use wallet_common::account::messages::instructions::Instruction;
+    use wallet_common::account::messages::instructions::InstructionResultClaims;
+    use wallet_common::account::signed::SequenceNumberComparison;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_common::utils;
 
-    use crate::{
-        account_provider::AccountProviderResponseError,
-        pin::key::PinKey,
-        storage::{InstructionData, KeyedData},
-    };
+    use crate::account_provider::AccountProviderResponseError;
+    use crate::pin::key::PinKey;
+    use crate::storage::InstructionData;
+    use crate::storage::KeyedData;
 
-    use super::{
-        super::test::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
-        *,
-    };
+    use super::super::test::WalletWithMocks;
+    use super::super::test::ACCOUNT_SERVER_KEYS;
+    use super::*;
 
     const PIN: &str = "051097";
 

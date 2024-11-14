@@ -1,11 +1,12 @@
 use anyhow::Result;
 
-use wallet_server::{
-    pid::attributes::BrpPidAttributeService,
-    server::{self, wallet_server_main},
-    settings::Settings,
-    store::{DatabaseConnection, SessionStoreVariant, WteTrackerVariant},
-};
+use wallet_server::pid::attributes::BrpPidAttributeService;
+use wallet_server::server::wallet_server_main;
+use wallet_server::server::{self};
+use wallet_server::settings::Settings;
+use wallet_server::store::DatabaseConnection;
+use wallet_server::store::SessionStoreVariant;
+use wallet_server::store::WteTrackerVariant;
 
 #[tokio::main]
 async fn main() -> Result<()> {

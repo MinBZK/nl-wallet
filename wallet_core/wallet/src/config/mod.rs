@@ -12,14 +12,16 @@ use std::sync::Arc;
 use url::ParseError;
 
 use error_category::ErrorCategory;
-use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError};
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::jwt::JwtError;
 
-pub use self::{
-    data::{default_configuration, init_universal_link_base_url, ConfigServerConfiguration, UNIVERSAL_LINK_BASE_URL},
-    file_repository::FileStorageConfigurationRepository,
-    http_repository::HttpConfigurationRepository,
-    updating_repository::UpdatingConfigurationRepository,
-};
+pub use self::data::default_configuration;
+pub use self::data::init_universal_link_base_url;
+pub use self::data::ConfigServerConfiguration;
+pub use self::data::UNIVERSAL_LINK_BASE_URL;
+pub use self::file_repository::FileStorageConfigurationRepository;
+pub use self::http_repository::HttpConfigurationRepository;
+pub use self::updating_repository::UpdatingConfigurationRepository;
 
 pub type UpdatingFileHttpConfigurationRepository =
     UpdatingConfigurationRepository<FileStorageConfigurationRepository<HttpConfigurationRepository>>;

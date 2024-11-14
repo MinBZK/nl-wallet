@@ -2,11 +2,16 @@ use std::num::NonZeroU8;
 
 use indexmap::IndexMap;
 use nutype::nutype;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::{
-    utils::serialization::TaggedBytes, Attributes, DataElementIdentifier, DataElementValue, DocType, NameSpace, Tdate,
-};
+use crate::utils::serialization::TaggedBytes;
+use crate::Attributes;
+use crate::DataElementIdentifier;
+use crate::DataElementValue;
+use crate::DocType;
+use crate::NameSpace;
+use crate::Tdate;
 
 #[nutype(
     derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, Serialize, Deserialize),

@@ -1,53 +1,60 @@
-use std::{
-    env,
-    path::PathBuf,
-    result::Result as StdResult,
-    sync::{Arc, LazyLock},
-};
+use std::env;
+use std::path::PathBuf;
+use std::result::Result as StdResult;
+use std::sync::Arc;
+use std::sync::LazyLock;
 
 use askama::Template;
-use axum::{
-    async_trait,
-    extract::{FromRequestParts, Path, Query, Request, State},
-    handler::HandlerWithoutStateExt,
-    http::{Method, StatusCode},
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
-    routing::{get, post},
-    Json, Router,
-};
+use axum::async_trait;
+use axum::extract::FromRequestParts;
+use axum::extract::Path;
+use axum::extract::Query;
+use axum::extract::Request;
+use axum::extract::State;
+use axum::handler::HandlerWithoutStateExt;
+use axum::http::Method;
+use axum::http::StatusCode;
+use axum::middleware::Next;
+use axum::middleware::{self};
+use axum::response::IntoResponse;
+use axum::response::Response;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Json;
+use axum::Router;
 use base64::prelude::*;
-use http::{
-    header::{ACCEPT_LANGUAGE, CACHE_CONTROL},
-    request::Parts,
-    HeaderMap, HeaderValue,
-};
+use http::header::ACCEPT_LANGUAGE;
+use http::header::CACHE_CONTROL;
+use http::request::Parts;
+use http::HeaderMap;
+use http::HeaderValue;
 use indexmap::IndexMap;
 use nutype::nutype;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
-use tower_http::{
-    cors::{Any, CorsLayer},
-    services::ServeDir,
-    trace::TraceLayer,
-};
+use tower_http::cors::Any;
+use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
 
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
-use wallet_common::{
-    urls::{BaseUrl, CorsOrigin},
-    utils::sha256,
-};
+use wallet_common::urls::BaseUrl;
+use wallet_common::urls::CorsOrigin;
+use wallet_common::utils::sha256;
 
-use crate::{
-    askama_axum,
-    client::WalletServerClient,
-    settings::{ReturnUrlMode, Settings, Usecase, WalletWeb},
-    translations::{Words, TRANSLATIONS},
-};
+use crate::askama_axum;
+use crate::client::WalletServerClient;
+use crate::settings::ReturnUrlMode;
+use crate::settings::Settings;
+use crate::settings::Usecase;
+use crate::settings::WalletWeb;
+use crate::translations::Words;
+use crate::translations::TRANSLATIONS;
 
 #[nutype(derive(Debug, From, AsRef))]
 pub struct Error(anyhow::Error);

@@ -1,20 +1,25 @@
-use std::{
-    env,
-    net::IpAddr,
-    path::{Path, PathBuf},
-};
+use std::env;
+use std::net::IpAddr;
+use std::path::Path;
+use std::path::PathBuf;
 
-use config::{Config, ConfigError, Environment, File};
-use crypto_common::{Key, KeySizeUser};
-use serde::{de, Deserialize};
-use serde_with::{base64::Base64, serde_as};
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
+use crypto_common::Key;
+use crypto_common::KeySizeUser;
+use serde::de;
+use serde::Deserialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
-use wallet_common::{reqwest::deserialize_certificate, urls::BaseUrl};
+use wallet_common::reqwest::deserialize_certificate;
+use wallet_common::urls::BaseUrl;
 
-use crate::gba::{
-    self,
-    client::{FileGbavClient, HttpGbavClient},
-};
+use crate::gba::client::FileGbavClient;
+use crate::gba::client::HttpGbavClient;
+use crate::gba::{self};
 
 #[derive(Deserialize)]
 pub struct Settings {

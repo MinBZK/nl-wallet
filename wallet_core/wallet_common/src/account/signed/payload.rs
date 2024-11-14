@@ -1,13 +1,19 @@
 use p256::ecdsa::VerifyingKey;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
-use crate::keys::{EphemeralEcdsaKey, SecureEcdsaKey};
+use crate::keys::EphemeralEcdsaKey;
+use crate::keys::SecureEcdsaKey;
 
-use super::{
-    super::errors::{Error, Result},
-    signed_message::{SignedMessage, SignedSubjectMessage, SignedType, SubjectPayload},
-};
+use super::super::errors::Error;
+use super::super::errors::Result;
+use super::signed_message::SignedMessage;
+use super::signed_message::SignedSubjectMessage;
+use super::signed_message::SignedType;
+use super::signed_message::SubjectPayload;
 
 #[derive(Debug, Clone, Copy)]
 pub enum SequenceNumberComparison {

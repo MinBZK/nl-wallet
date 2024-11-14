@@ -1,11 +1,17 @@
-use axum::{
-    body::{self, Body, Bytes},
-    extract::Request,
-    middleware::Next,
-    response::{IntoResponse, Response},
-};
+use axum::body::Body;
+use axum::body::Bytes;
+use axum::body::{self};
+use axum::extract::Request;
+use axum::middleware::Next;
+use axum::response::IntoResponse;
+use axum::response::Response;
 use base64::prelude::*;
-use http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, Version};
+use http::HeaderMap;
+use http::HeaderValue;
+use http::Method;
+use http::StatusCode;
+use http::Uri;
+use http::Version;
 
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use wallet_common::http_error::APPLICATION_PROBLEM_JSON;

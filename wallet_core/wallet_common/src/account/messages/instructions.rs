@@ -1,18 +1,20 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::{
-    account::{
-        errors::Result,
-        serialization::{DerSignature, DerVerifyingKey},
-        signed::{ChallengeRequest, ChallengeResponse},
-    },
-    jwt::{Jwt, JwtCredentialClaims, JwtSubject},
-    keys::{
-        poa::{Poa, VecAtLeastTwo},
-        EphemeralEcdsaKey, SecureEcdsaKey,
-    },
-    wte::WteClaims,
-};
+use crate::account::errors::Result;
+use crate::account::serialization::DerSignature;
+use crate::account::serialization::DerVerifyingKey;
+use crate::account::signed::ChallengeRequest;
+use crate::account::signed::ChallengeResponse;
+use crate::jwt::Jwt;
+use crate::jwt::JwtCredentialClaims;
+use crate::jwt::JwtSubject;
+use crate::keys::poa::Poa;
+use crate::keys::poa::VecAtLeastTwo;
+use crate::keys::EphemeralEcdsaKey;
+use crate::keys::SecureEcdsaKey;
+use crate::wte::WteClaims;
 
 use super::auth::WalletCertificate;
 

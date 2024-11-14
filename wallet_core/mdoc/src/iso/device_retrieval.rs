@@ -1,21 +1,23 @@
 //! Data structures with which a verifier requests attributes from a holder.
 
-use std::{borrow::Cow, fmt::Debug};
+use std::borrow::Cow;
+use std::fmt::Debug;
 
 use ciborium::value::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use crate::{
-    iso::{engagement::*, mdocs::*},
-    utils::{
-        cose::MdocCose,
-        serialization::{CborSeq, ReaderAuthenticationString, RequiredValue, TaggedBytes},
-    },
-};
+use crate::iso::engagement::*;
+use crate::iso::mdocs::*;
+use crate::utils::cose::MdocCose;
+use crate::utils::serialization::CborSeq;
+use crate::utils::serialization::ReaderAuthenticationString;
+use crate::utils::serialization::RequiredValue;
+use crate::utils::serialization::TaggedBytes;
 
 /// Sent by the RP to the holder to request the disclosure of attributes out of one or more mdocs.
 /// For each mdoc out of which attributes are requested, a [`DocRequest`] is included.
@@ -102,7 +104,9 @@ mod examples {
 
     use indexmap::IndexMap;
 
-    use crate::examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE};
+    use crate::examples::EXAMPLE_ATTRIBUTES;
+    use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::examples::EXAMPLE_NAMESPACE;
 
     use super::ItemsRequest;
 

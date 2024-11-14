@@ -1,19 +1,26 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
-use uuid::{self, Uuid};
+use uuid::Uuid;
+use uuid::{self};
 
-use wallet_provider_domain::{
-    model::{
-        encrypted::Encrypted,
-        wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeys, WalletUserQueryResult},
-        wrapped_key::WrappedKey,
-    },
-    repository::{PersistenceError, TransactionStarter, WalletUserRepository},
-};
+use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::model::wrapped_key::WrappedKey;
+use wallet_provider_domain::repository::PersistenceError;
+use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletUserRepository;
 
-use crate::{database::Db, transaction, transaction::Transaction, wallet_user, wallet_user_key};
+use crate::database::Db;
+use crate::transaction;
+use crate::transaction::Transaction;
+use crate::wallet_user;
+use crate::wallet_user_key;
 
 pub struct Repositories(Db);
 
@@ -154,25 +161,31 @@ impl WalletUserRepository for Repositories {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use std::{collections::HashMap, time::Duration};
+    use std::collections::HashMap;
+    use std::time::Duration;
 
-    use chrono::{DateTime, Utc};
+    use chrono::DateTime;
+    use chrono::Utc;
     use mockall;
-    use p256::ecdsa::{SigningKey, VerifyingKey};
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
-    use uuid::{uuid, Uuid};
+    use uuid::uuid;
+    use uuid::Uuid;
 
     use wallet_common::account::serialization::DerVerifyingKey;
-    use wallet_provider_domain::{
-        model::{
-            encrypted::Encrypted,
-            wallet_user::{InstructionChallenge, WalletUser, WalletUserCreate, WalletUserKeys, WalletUserQueryResult},
-            wrapped_key::WrappedKey,
-        },
-        repository::{
-            MockTransaction, MockTransactionStarter, PersistenceError, TransactionStarter, WalletUserRepository,
-        },
-    };
+    use wallet_provider_domain::model::encrypted::Encrypted;
+    use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+    use wallet_provider_domain::model::wallet_user::WalletUser;
+    use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+    use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+    use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+    use wallet_provider_domain::model::wrapped_key::WrappedKey;
+    use wallet_provider_domain::repository::MockTransaction;
+    use wallet_provider_domain::repository::MockTransactionStarter;
+    use wallet_provider_domain::repository::PersistenceError;
+    use wallet_provider_domain::repository::TransactionStarter;
+    use wallet_provider_domain::repository::WalletUserRepository;
 
     mockall::mock! {
         pub TransactionalWalletUserRepository {}

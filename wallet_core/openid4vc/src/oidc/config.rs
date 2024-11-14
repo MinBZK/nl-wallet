@@ -1,8 +1,10 @@
 //! OpenID discovery, loosely based on https://crates.io/crates/openid.
 
-use biscuit::{jwk::JWKSet, Empty};
+use biscuit::jwk::JWKSet;
+use biscuit::Empty;
 use indexmap::IndexSet;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 use wallet_common::urls::BaseUrl;
@@ -121,10 +123,11 @@ const fn bool_value<const B: bool>() -> bool {
 pub mod tests {
     use serde_json::json;
     use wallet_common::urls::BaseUrl;
-    use wiremock::{
-        matchers::{method, path},
-        Mock, MockServer, ResponseTemplate,
-    };
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
 
     use super::Config;
 

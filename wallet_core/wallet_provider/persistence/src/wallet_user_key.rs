@@ -1,17 +1,21 @@
 use std::collections::HashMap;
 
-use p256::{
-    ecdsa::VerifyingKey,
-    pkcs8::{DecodePublicKey, EncodePublicKey},
-};
-use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect, Set};
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
+use p256::pkcs8::EncodePublicKey;
+use sea_orm::ColumnTrait;
+use sea_orm::ConnectionTrait;
+use sea_orm::EntityTrait;
+use sea_orm::QueryFilter;
+use sea_orm::QuerySelect;
+use sea_orm::Set;
 
-use wallet_provider_domain::{
-    model::{wallet_user::WalletUserKeys, wrapped_key::WrappedKey},
-    repository::PersistenceError,
-};
+use wallet_provider_domain::model::wallet_user::WalletUserKeys;
+use wallet_provider_domain::model::wrapped_key::WrappedKey;
+use wallet_provider_domain::repository::PersistenceError;
 
-use crate::{entity::wallet_user_key, PersistenceConnection};
+use crate::entity::wallet_user_key;
+use crate::PersistenceConnection;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 

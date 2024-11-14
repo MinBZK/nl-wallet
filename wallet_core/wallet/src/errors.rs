@@ -4,24 +4,35 @@ pub mod reqwest {
 }
 
 pub mod openid4vc {
-    pub use openid4vc::{
-        disclosure_session::{VpClientError, VpMessageClientError, VpMessageClientErrorType},
-        issuance_session::IssuanceSessionError,
-        oidc::OidcError,
-    };
+    pub use openid4vc::disclosure_session::VpClientError;
+    pub use openid4vc::disclosure_session::VpMessageClientError;
+    pub use openid4vc::disclosure_session::VpMessageClientErrorType;
+    pub use openid4vc::issuance_session::IssuanceSessionError;
+    pub use openid4vc::oidc::OidcError;
 }
 
-pub use crate::{
-    account_provider::{AccountProviderError, AccountProviderResponseError},
-    config::{ConfigurationError, FileStorageError},
-    disclosure::DisclosureUriError,
-    document::{AttributeValueType, DocumentMdocError},
-    instruction::{InstructionError, RemoteEcdsaKeyError},
-    issuance::DigidSessionError,
-    pin::{change::ChangePinError, key::PinKeyError, validation::PinValidationError},
-    storage::{KeyFileError, StorageError},
-    wallet::{
-        DisclosureError, EventConversionError, EventStorageError, HistoryError, PidIssuanceError, ResetError,
-        UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
-    },
-};
+pub use crate::account_provider::AccountProviderError;
+pub use crate::account_provider::AccountProviderResponseError;
+pub use crate::config::ConfigurationError;
+pub use crate::config::FileStorageError;
+pub use crate::disclosure::DisclosureUriError;
+pub use crate::document::AttributeValueType;
+pub use crate::document::DocumentMdocError;
+pub use crate::instruction::InstructionError;
+pub use crate::instruction::RemoteEcdsaKeyError;
+pub use crate::issuance::DigidSessionError;
+pub use crate::pin::change::ChangePinError;
+pub use crate::pin::key::PinKeyError;
+pub use crate::pin::validation::PinValidationError;
+pub use crate::storage::KeyFileError;
+pub use crate::storage::StorageError;
+pub use crate::wallet::DisclosureError;
+pub use crate::wallet::EventConversionError;
+pub use crate::wallet::EventStorageError;
+pub use crate::wallet::HistoryError;
+pub use crate::wallet::PidIssuanceError;
+pub use crate::wallet::ResetError;
+pub use crate::wallet::UriIdentificationError;
+pub use crate::wallet::WalletInitError;
+pub use crate::wallet::WalletRegistrationError;
+pub use crate::wallet::WalletUnlockError;

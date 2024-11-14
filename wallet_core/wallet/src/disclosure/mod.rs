@@ -3,26 +3,29 @@ mod uri;
 use url::Url;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{
-    holder::{MdocDataSource, ProposedAttributes, TrustAnchor},
-    identifiers::AttributeIdentifier,
-    utils::{reader_auth::ReaderRegistration, x509::Certificate},
-};
-use openid4vc::{
-    disclosure_session::{DisclosureError, HttpVpMessageClient, VpClientError},
-    verifier::SessionType,
-};
-use wallet_common::{
-    keys::{factory::KeyFactory, CredentialEcdsaKey},
-    reqwest::default_reqwest_client_builder,
-};
+use nl_wallet_mdoc::holder::MdocDataSource;
+use nl_wallet_mdoc::holder::ProposedAttributes;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::identifiers::AttributeIdentifier;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use openid4vc::disclosure_session::DisclosureError;
+use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::disclosure_session::VpClientError;
+use openid4vc::verifier::SessionType;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 
-pub use self::uri::{DisclosureUriError, VpDisclosureUriData};
+pub use self::uri::DisclosureUriError;
+pub use self::uri::VpDisclosureUriData;
 
 #[cfg(any(test, feature = "mock"))]
-pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
+pub use self::mock::MockMdocDisclosureProposal;
+#[cfg(any(test, feature = "mock"))]
+pub use self::mock::MockMdocDisclosureSession;
 
 pub type DisclosureResult<T, E> = std::result::Result<T, DisclosureError<E>>;
 
@@ -174,10 +177,11 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
-    use std::sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc, LazyLock,
-    };
+    use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::AtomicUsize;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
+    use std::sync::LazyLock;
 
     use parking_lot::Mutex;
 

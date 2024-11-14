@@ -1,14 +1,16 @@
 use url::Url;
 
-use wallet::{
-    errors::DisclosureError, mdoc::ReaderRegistration, openid4vc::SessionType, DisclosureDocument, DisclosureProposal,
-    MissingDisclosureAttributes,
-};
+use wallet::errors::DisclosureError;
+use wallet::mdoc::ReaderRegistration;
+use wallet::openid4vc::SessionType;
+use wallet::DisclosureDocument;
+use wallet::DisclosureProposal;
+use wallet::MissingDisclosureAttributes;
 
-use super::{
-    card::{into_card_attributes, CardAttribute, LocalizedString},
-    instruction::WalletInstructionError,
-};
+use super::card::into_card_attributes;
+use super::card::CardAttribute;
+use super::card::LocalizedString;
+use super::instruction::WalletInstructionError;
 
 #[derive(Clone)]
 pub enum Image {

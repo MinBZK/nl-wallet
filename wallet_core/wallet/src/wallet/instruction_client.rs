@@ -1,12 +1,16 @@
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{jwt::EcdsaDecodingKey, urls::BaseUrl};
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::urls::BaseUrl;
 
-use crate::{
-    account_provider::AccountProviderClient, config::ConfigurationRepository, errors::ChangePinError,
-    instruction::InstructionClient, pin::change::ChangePinStorage, storage::Storage,
-};
+use crate::account_provider::AccountProviderClient;
+use crate::config::ConfigurationRepository;
+use crate::errors::ChangePinError;
+use crate::instruction::InstructionClient;
+use crate::pin::change::ChangePinStorage;
+use crate::storage::Storage;
 
-use super::{Wallet, WalletRegistration};
+use super::Wallet;
+use super::WalletRegistration;
 
 impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
