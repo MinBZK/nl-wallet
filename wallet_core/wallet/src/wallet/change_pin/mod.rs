@@ -48,7 +48,9 @@ where
         );
 
         let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
-        session.begin_change_pin(old_pin, new_pin).await?;
+        session
+            .begin_change_pin(registration.data.wallet_id.clone(), old_pin, new_pin)
+            .await?;
 
         info!("Update PIN registration data on Wallet");
         self.update_registration_from_db().await?;

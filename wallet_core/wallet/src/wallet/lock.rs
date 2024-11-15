@@ -254,6 +254,7 @@ mod tests {
         let challenge_response = challenge.clone();
         let registration = wallet.registration.as_ref().unwrap();
         let wallet_cert = registration.data.wallet_certificate.clone();
+        let wallet_id = registration.data.wallet_id.clone();
         let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
 
         wallet
@@ -268,7 +269,7 @@ mod tests {
 
                 challenge_request
                     .request
-                    .parse_and_verify(SequenceNumberComparison::EqualTo(1), &hw_pubkey)
+                    .parse_and_verify_ecdsa(&wallet_id, SequenceNumberComparison::EqualTo(1), &hw_pubkey)
                     .expect("challenge request should be valid");
 
                 Ok(challenge_response)
@@ -302,7 +303,7 @@ mod tests {
 
                 instruction
                     .instruction
-                    .parse_and_verify(
+                    .parse_and_verify_ecdsa(
                         &challenge,
                         SequenceNumberComparison::LargerThan(1),
                         &hw_pubkey,

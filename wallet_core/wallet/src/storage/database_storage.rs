@@ -756,6 +756,7 @@ pub(crate) mod tests {
     async fn test_database_keyed_storage() {
         let registration = RegistrationData {
             pin_salt: vec![1, 2, 3, 4],
+            wallet_id: "wallet_123".to_string(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
         };
 
@@ -800,6 +801,7 @@ pub(crate) mod tests {
         let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
             pin_salt: new_salt,
+            wallet_id: registration.wallet_id.clone(),
             wallet_certificate: registration.wallet_certificate.clone(),
         };
         storage

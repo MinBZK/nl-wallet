@@ -83,6 +83,7 @@ where
         let challenge_request = self
             .with_sequence_number(storage, |seq_num| {
                 InstructionChallengeRequest::new_signed::<I>(
+                    self.registration.wallet_id.clone(),
                     seq_num,
                     self.hw_privkey,
                     self.registration.wallet_certificate.clone(),

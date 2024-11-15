@@ -20,6 +20,8 @@ examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
+# Include MockAppleAttestedKey for generating Apple assertions in tests.
+mock_apple_attested_key = ["apple_app_attest/mock", "dep:ciborium", "dep:rand_core"]
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
 software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Include LocalEcdsaKey type and LocalKeyFactory implementation of KeyFactory for testing
@@ -33,7 +35,7 @@ base64.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
 config.workspace = true
-derive_more = { workspace = true, features = ["debug"] }
+derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
@@ -59,6 +61,7 @@ url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
 
 anyhow = { workspace = true, optional = true }
+ciborium = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
 hex = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
@@ -66,15 +69,19 @@ parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = ["cors"] }
 
+apple_app_attest.path = "../apple_app_attest"
 error_category.path = "../error_category"
 
 [dev-dependencies]
 anyhow = { workspace = true }
 assert_matches.workspace = true
 aes-gcm = { workspace = true, features = ["std"] }
+ciborium.workspace = true
 hex = { workspace = true }
 hex-literal = { workspace = true }
 parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
+
+apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }

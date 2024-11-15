@@ -297,7 +297,7 @@ impl AccountServer {
         debug!("Checking if challenge is signed with the provided hw and pin keys");
 
         registration_message
-            .parse_and_verify(challenge, SequenceNumberComparison::EqualTo(0), &hw_pubkey, &pin_pubkey)
+            .parse_and_verify_ecdsa(challenge, SequenceNumberComparison::EqualTo(0), &hw_pubkey, &pin_pubkey)
             .map_err(RegistrationError::MessageValidation)?;
 
         debug!("Starting database transaction");
@@ -360,7 +360,8 @@ impl AccountServer {
         .await?;
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
-        let request = challenge_request.request.parse_and_verify(
+        let request = challenge_request.request.parse_and_verify_ecdsa(
+            &claims.wallet_id,
             SequenceNumberComparison::LargerThan(user.instruction_sequence_number),
             &user.hw_pubkey.0,
         )?;
@@ -742,7 +743,7 @@ impl AccountServer {
 
         let parsed = instruction
             .instruction
-            .parse_and_verify(
+            .parse_and_verify_ecdsa(
                 &challenge.bytes,
                 SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number),
                 &wallet_user.hw_pubkey.0,
@@ -838,7 +839,7 @@ mod tests {
             .await
             .expect("Could not get registration challenge");
 
-        let registration_message = Registration::new_signed(hw_privkey, pin_privkey, challenge)
+        let registration_message = ChallengeResponse::<Registration>::new_signed(hw_privkey, pin_privkey, challenge)
             .await
             .expect("Could not sign new registration");
 
@@ -903,6 +904,7 @@ mod tests {
         account_server
             .instruction_challenge(
                 InstructionChallengeRequest::new_signed::<I>(
+                    wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id,
                     instruction_sequence_number,
                     hw_privkey,
                     wallet_certificate,
@@ -1096,9 +1098,14 @@ mod tests {
     async fn valid_instruction_challenge_should_verify() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(1, &setup.hw_privkey, cert.clone())
-            .await
-            .unwrap();
+        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(
+            cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+            1,
+            &setup.hw_privkey,
+            cert.clone(),
+        )
+        .await
+        .unwrap();
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)
@@ -1131,9 +1138,14 @@ mod tests {
     async fn wrong_instruction_challenge_should_not_verify() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(1, &setup.hw_privkey, cert.clone())
-            .await
-            .unwrap();
+        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(
+            cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+            1,
+            &setup.hw_privkey,
+            cert.clone(),
+        )
+        .await
+        .unwrap();
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)
@@ -1182,9 +1194,14 @@ mod tests {
     async fn expired_instruction_challenge_should_not_verify() {
         let (setup, account_server, cert, repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(1, &setup.hw_privkey, cert.clone())
-            .await
-            .unwrap();
+        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(
+            cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+            1,
+            &setup.hw_privkey,
+            cert.clone(),
+        )
+        .await
+        .unwrap();
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)

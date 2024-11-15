@@ -285,10 +285,14 @@ impl WalletWithMocks {
     pub async fn new_registered_and_unlocked() -> Self {
         let mut wallet = Self::new_unregistered().await;
 
+        let wallet_certificate = Self::valid_certificate().await;
+        let wallet_id = wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id;
+
         // Generate registration data.
         let registration_data = RegistrationData {
             pin_salt: pin_key::new_pin_salt(),
-            wallet_certificate: Self::valid_certificate().await,
+            wallet_id,
+            wallet_certificate,
         };
 
         // Store the registration in `Storage`, populate the field

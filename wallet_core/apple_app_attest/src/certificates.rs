@@ -54,6 +54,13 @@ pub enum CertificateError {
 )]
 pub struct DerX509CertificateChain(Vec<Vec<u8>>);
 
+#[cfg(feature = "serialize")]
+impl From<DerX509CertificateChain> for Vec<Vec<u8>> {
+    fn from(value: DerX509CertificateChain) -> Self {
+        value.into_inner()
+    }
+}
+
 impl DerX509CertificateChain {
     fn credential_certificate_der(&self) -> &[u8] {
         // This is guaranteed to succeed by the type's validation predicate.

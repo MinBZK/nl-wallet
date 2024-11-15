@@ -7,6 +7,7 @@ use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::account::messages::instructions::CheckPin;
 use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::generator::Generator;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
@@ -55,7 +56,7 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
-    let registration_message = Registration::new_signed(hw_privkey, pin_privkey, challenge)
+    let registration_message = ChallengeResponse::<Registration>::new_signed(hw_privkey, pin_privkey, challenge)
         .await
         .expect("Could not sign new registration");
 
@@ -121,9 +122,14 @@ async fn test_instruction_challenge() {
 
     let challenge1 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(1, &hw_privkey, certificate.clone())
-                .await
-                .unwrap(),
+            InstructionChallengeRequest::new_signed::<CheckPin>(
+                cert_data.wallet_id.clone(),
+                1,
+                &hw_privkey,
+                certificate.clone(),
+            )
+            .await
+            .unwrap(),
             &repos,
             &EpochGenerator,
             &hsm,
@@ -135,9 +141,14 @@ async fn test_instruction_challenge() {
 
     let challenge2 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(2, &hw_privkey, certificate)
-                .await
-                .unwrap(),
+            InstructionChallengeRequest::new_signed::<CheckPin>(
+                cert_data.wallet_id.clone(),
+                2,
+                &hw_privkey,
+                certificate,
+            )
+            .await
+            .unwrap(),
             &repos,
             &EpochGenerator,
             &hsm,

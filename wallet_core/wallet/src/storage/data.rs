@@ -17,6 +17,7 @@ pub trait KeyedData: Serialize + DeserializeOwned {
 pub struct RegistrationData {
     #[serde_as(as = "Base64")]
     pub pin_salt: Vec<u8>,
+    pub wallet_id: String,
     pub wallet_certificate: WalletCertificate,
 }
 
