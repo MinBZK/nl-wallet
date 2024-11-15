@@ -3087,7 +3087,6 @@ version = "0.2.2"
 dependencies = [
  "apple_app_attest",
  "async-trait",
- "chrono",
  "derive_more",
  "error_category",
  "jni",

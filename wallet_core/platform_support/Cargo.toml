@@ -17,7 +17,7 @@ software = ["wallet_common/software_keys", "dep:tokio"]
 # Enable helper code for integration tests
 integration_test = ["wallet_common/integration_test", "tokio/fs", "tokio/io-util"]
 # Enable helper code for iOS and Android integration tests
-hardware_integration_test = ["integration_test", "dep:apple_app_attest", "dep:chrono", "dep:jni", "tokio/rt"]
+hardware_integration_test = ["integration_test", "dep:apple_app_attest", "dep:jni", "tokio/rt"]
 
 [dependencies]
 async-trait.workspace = true
@@ -27,7 +27,6 @@ parking_lot.workspace = true
 thiserror.workspace = true
 uniffi.workspace = true
 
-chrono = { workspace = true, optional = true, features = ["now"] }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 
 error_category.path = "../error_category"

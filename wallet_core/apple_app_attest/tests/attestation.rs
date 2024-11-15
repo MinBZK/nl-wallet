@@ -112,7 +112,7 @@ fn test_attestation<F>(
 ) where
     F: FnOnce(AttestationError),
 {
-    let result = Attestation::parse_and_verify(
+    let result = Attestation::parse_and_verify_with_time(
         attestation_data,
         &APPLE_TRUST_ANCHORS,
         parameters.time,

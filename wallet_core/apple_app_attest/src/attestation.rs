@@ -107,6 +107,16 @@ impl Attestation {
     pub fn parse_and_verify(
         bytes: &[u8],
         trust_anchors: &[TrustAnchor],
+        challenge: &[u8],
+        app_identifier: &AppIdentifier,
+        environment: AttestationEnvironment,
+    ) -> Result<(Self, VerifyingKey), AttestationError> {
+        Self::parse_and_verify_with_time(bytes, trust_anchors, Utc::now(), challenge, app_identifier, environment)
+    }
+
+    pub fn parse_and_verify_with_time(
+        bytes: &[u8],
+        trust_anchors: &[TrustAnchor],
         time: DateTime<Utc>,
         challenge: &[u8],
         app_identifier: &AppIdentifier,

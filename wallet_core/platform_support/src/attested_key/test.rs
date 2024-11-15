@@ -8,7 +8,6 @@ use apple_app_attest::Attestation;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::ClientData;
 use apple_app_attest::APPLE_TRUST_ANCHORS;
-use chrono::Utc;
 
 use wallet_common::utils;
 
@@ -78,7 +77,6 @@ where
             let (_, public_key) = Attestation::parse_and_verify(
                 &attestation_data,
                 &APPLE_TRUST_ANCHORS,
-                Utc::now(),
                 &challenge,
                 &app_identifier,
                 AttestationEnvironment::Development, // Assume that tests use the AppAttest sandbox
