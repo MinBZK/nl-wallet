@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 
 use wallet_common::keys::examples::Examples;
-use wallet_common::keys::local_key_factory::LocalKeyFactory;
+use wallet_common::keys::local::LocalKeyFactory;
 
 use crate::errors::Result;
 use crate::examples::Example;
@@ -34,7 +34,7 @@ async fn create_example_device_response(
 ) -> Result<DeviceResponse> {
     let request_match = DisclosureRequestMatch::new(
         device_request.items_requests(),
-        &MockMdocDataSource::default(),
+        &MockMdocDataSource::new_with_example(),
         session_transcript,
     )
     .await

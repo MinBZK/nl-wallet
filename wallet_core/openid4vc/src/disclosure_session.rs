@@ -728,11 +728,11 @@ mod tests {
     use serde_json::json;
 
     use wallet_common::keys::factory::KeyFactory;
+    use wallet_common::keys::local::LocalEcdsaKey;
+    use wallet_common::keys::local::LocalKeyFactory;
+    use wallet_common::keys::local::LocalKeyFactoryError;
     use wallet_common::keys::poa::Poa;
     use wallet_common::keys::poa::VecAtLeastTwo;
-    use wallet_common::keys::software::SoftwareEcdsaKey;
-    use wallet_common::keys::local_key_factory::LocalKeyFactory;
-    use wallet_common::keys::local_key_factory::LocalKeyFactoryError;
     use wallet_common::utils::random_string;
 
     use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
@@ -1602,13 +1602,13 @@ mod tests {
         /// A mock key factory that just returns errors.
         struct MockKeyFactory;
         impl KeyFactory for MockKeyFactory {
-            type Key = SoftwareEcdsaKey;
+            type Key = LocalEcdsaKey;
             type Error = LocalKeyFactoryError;
 
             fn generate_existing<I: Into<String>>(&self, identifier: I, _: VerifyingKey) -> Self::Key {
                 // Normally this method is expected to return a key whose public key equals the specified
                 // `VerifyingKey`, but for the purposes of this test, it doesn't matter that we don't do so here.
-                SoftwareEcdsaKey::new(identifier.into(), SigningKey::random(&mut OsRng))
+                LocalEcdsaKey::new(identifier.into(), SigningKey::random(&mut OsRng))
             }
 
             async fn sign_multiple_with_existing_keys(

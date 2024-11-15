@@ -316,7 +316,7 @@ pub mod test {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use wallet_common::keys::local_key_factory::LocalKeyFactory;
+    use wallet_common::keys::local::LocalKeyFactory;
     use wallet_common::wte::WTE_EXPIRY;
 
     use crate::issuance_session::mock_wte;
@@ -536,7 +536,7 @@ pub mod test {
     }
 
     pub async fn test_wte_tracker(wte_tracker: &impl WteTracker, mock_time: &RwLock<DateTime<Utc>>) {
-        let key_factory = LocalKeyFactory::new(Default::default());
+        let key_factory = LocalKeyFactory::default();
         let wte_signing_key = SigningKey::random(&mut OsRng);
 
         let wte = mock_wte(&key_factory, &wte_signing_key).await.jwt;

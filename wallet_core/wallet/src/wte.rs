@@ -61,7 +61,7 @@ pub(crate) mod tests {
 
     use openid4vc::jwt::JwtCredential;
     use platform_support::hw_keystore::PlatformEcdsaKey;
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::local::LocalEcdsaKey;
     use wallet_common::utils::random_string;
     use wallet_common::wte::WteClaims;
 
@@ -86,8 +86,8 @@ pub(crate) mod tests {
             APC: AccountProviderClient,
         {
             let key_id = random_string(32);
-            SoftwareEcdsaKey::new_random(key_id.clone());
-            let cred = JwtCredential::new_unverified::<SoftwareEcdsaKey>(key_id, "header.body.signature".into());
+            LocalEcdsaKey::new_random(key_id.clone());
+            let cred = JwtCredential::new_unverified::<LocalEcdsaKey>(key_id, "header.body.signature".into());
 
             Ok(cred)
         }

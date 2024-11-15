@@ -15,8 +15,6 @@ use rand_core::OsRng;
 
 use crate::keys::WithIdentifier;
 
-use super::CredentialEcdsaKey;
-use super::CredentialKeyType;
 use super::EcdsaKey;
 use super::EncryptionKey;
 use super::SecureEcdsaKey;
@@ -37,17 +35,6 @@ pub struct SoftwareEcdsaKey {
 }
 
 impl SoftwareEcdsaKey {
-    pub fn new(identifier: String, key: SigningKey) -> Self {
-        SoftwareEcdsaKey {
-            identifier,
-            key: key.into(),
-        }
-    }
-
-    pub fn new_random(identifier: String) -> Self {
-        Self::new(identifier, SigningKey::random(&mut OsRng))
-    }
-
     // Peek into the static hashmap to see if an instance of
     // `SoftwareEcdsaKey` with the specified identifier exists.
     pub fn identifier_exists(identifier: &str) -> bool {
@@ -74,10 +61,6 @@ impl WithIdentifier for SoftwareEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
-}
-
-impl CredentialEcdsaKey for SoftwareEcdsaKey {
-    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Software;
 }
 
 impl StoredByIdentifier for SoftwareEcdsaKey {
@@ -128,15 +111,11 @@ pub struct SoftwareEncryptionKey {
 }
 
 impl SoftwareEncryptionKey {
-    pub fn new(identifier: String, cipher: Aes256Gcm) -> Self {
-        SoftwareEncryptionKey {
-            identifier,
-            cipher: cipher.into(),
-        }
-    }
-
     pub fn new_random(identifier: String) -> Self {
-        Self::new(identifier, Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)))
+        Self {
+            identifier,
+            cipher: Arc::new(Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng))),
+        }
     }
 
     // Peek into the static hashmap to see if an instance of

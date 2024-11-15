@@ -264,7 +264,7 @@ where
     };
 
     // Set up the mock data source.
-    let mdoc_data_source = transform_mdoc(MockMdocDataSource::default());
+    let mdoc_data_source = transform_mdoc(MockMdocDataSource::new_with_example());
 
     // Starting disclosure and return the result.
     let result = DisclosureSession::start(

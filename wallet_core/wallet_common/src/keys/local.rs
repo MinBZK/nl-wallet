@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::iter;
 
+use derive_more::Debug;
 use futures::future;
+use p256::ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -10,14 +12,71 @@ use rand_core::OsRng;
 
 use crate::jwt::JwtPopClaims;
 use crate::jwt::NL_WALLET_CLIENT_ID;
-use crate::keys::factory::KeyFactory;
-use crate::keys::poa::Poa;
-use crate::keys::software::SoftwareEcdsaKey;
-use crate::keys::EcdsaKey;
 use crate::utils;
 
+use super::factory::KeyFactory;
+use super::poa::Poa;
 use super::poa::PoaError;
 use super::poa::VecAtLeastTwo;
+use super::CredentialEcdsaKey;
+use super::CredentialKeyType;
+use super::EcdsaKey;
+use super::SecureEcdsaKey;
+use super::WithIdentifier;
+
+#[derive(Debug, thiserror::Error)]
+pub enum LocalKeyFactoryError {
+    #[error("key generation error")]
+    Generating,
+    #[error("signing error")]
+    Signing,
+    #[error("ECDSA error: {0}")]
+    Ecdsa(#[source] <LocalEcdsaKey as EcdsaKey>::Error),
+    #[error("PoA error: {0}")]
+    Poa(#[from] PoaError),
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalEcdsaKey {
+    identifier: String,
+    #[debug(skip)]
+    key: SigningKey,
+}
+
+impl LocalEcdsaKey {
+    pub fn new(identifier: String, key: SigningKey) -> Self {
+        Self { identifier, key }
+    }
+
+    pub fn new_random(identifier: String) -> Self {
+        Self::new(identifier, SigningKey::random(&mut OsRng))
+    }
+}
+
+impl EcdsaKey for LocalEcdsaKey {
+    type Error = p256::ecdsa::Error;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        let key = self.key.verifying_key();
+
+        Ok(*key)
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        Signer::try_sign(&self.key, msg)
+    }
+}
+impl SecureEcdsaKey for LocalEcdsaKey {}
+
+impl WithIdentifier for LocalEcdsaKey {
+    fn identifier(&self) -> &str {
+        &self.identifier
+    }
+}
+
+impl CredentialEcdsaKey for LocalEcdsaKey {
+    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Local;
+}
 
 /// The [`LocalKeyFactory`] type implements [`KeyFactory`] and has the option
 /// of returning [`LocalKeyFactoryError::Generating`] when generating multiple
@@ -30,9 +89,15 @@ pub struct LocalKeyFactory {
 }
 
 impl LocalKeyFactory {
-    pub fn new(signing_keys: HashMap<String, SigningKey>) -> Self {
+    pub fn new(keys: Vec<LocalEcdsaKey>) -> Self {
+        let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
+
+        Self::new_signing_keys(signing_keys)
+    }
+
+    fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
-            signing_keys: signing_keys.into(),
+            signing_keys: Mutex::new(signing_keys),
             has_generating_error: false,
             has_multi_key_signing_error: false,
         }
@@ -51,24 +116,12 @@ impl Default for LocalKeyFactory {
             },
         ]);
 
-        Self::new(keys)
+        Self::new_signing_keys(keys)
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum LocalKeyFactoryError {
-    #[error("key generation error")]
-    Generating,
-    #[error("signing error")]
-    Signing,
-    #[error("ECDSA error: {0}")]
-    Ecdsa(#[source] <SoftwareEcdsaKey as EcdsaKey>::Error),
-    #[error("PoA error: {0}")]
-    Poa(#[from] PoaError),
-}
-
 impl KeyFactory for LocalKeyFactory {
-    type Key = SoftwareEcdsaKey;
+    type Key = LocalEcdsaKey;
     type Error = LocalKeyFactoryError;
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
@@ -89,7 +142,7 @@ impl KeyFactory for LocalKeyFactory {
 
         let keys = identifiers_and_signing_keys
             .into_iter()
-            .map(|(identifer, signing_key)| SoftwareEcdsaKey::new(identifer, signing_key))
+            .map(|(identifer, signing_key)| LocalEcdsaKey::new(identifer, signing_key))
             .collect();
 
         Ok(keys)
@@ -112,7 +165,7 @@ impl KeyFactory for LocalKeyFactory {
             "called generate_existing() with incorrect public_key"
         );
 
-        SoftwareEcdsaKey::new(identifier, signing_key)
+        LocalEcdsaKey::new(identifier, signing_key)
     }
 
     async fn sign_with_new_keys(

@@ -647,7 +647,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use crate::keys::local_key_factory::LocalKeyFactory;
+    use crate::keys::local::LocalKeyFactory;
 
     use super::*;
 

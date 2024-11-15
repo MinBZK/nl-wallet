@@ -11,7 +11,7 @@ use wallet::mock::default_configuration;
 use wallet::wallet_common::WalletConfiguration;
 use wallet::wallet_deps::DigidSession;
 use wallet::wallet_deps::HttpDigidSession;
-use wallet_common::keys::local_key_factory::LocalKeyFactory;
+use wallet_common::keys::local::LocalKeyFactory;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use wallet_common::urls::{self};
 use wallet_server::pid::attributes::BrpPidAttributeService;

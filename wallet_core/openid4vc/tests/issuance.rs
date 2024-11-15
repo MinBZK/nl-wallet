@@ -46,7 +46,7 @@ use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
 use wallet_common::jwt::JsonJwt;
 use wallet_common::jwt::Jwt;
-use wallet_common::keys::local_key_factory::LocalKeyFactory;
+use wallet_common::keys::local::LocalKeyFactory;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::PoaPayload;
 use wallet_common::nonempty::NonEmpty;

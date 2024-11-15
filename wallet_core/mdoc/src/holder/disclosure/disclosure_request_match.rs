@@ -197,7 +197,7 @@ mod tests {
     use futures::future;
     use rstest::rstest;
 
-    use wallet_common::keys::local_key_factory::LocalKeyFactory;
+    use wallet_common::keys::local::LocalKeyFactory;
 
     use crate::holder::mock::MockMdocDataSource;
     use crate::iso::mdocs::Attributes;

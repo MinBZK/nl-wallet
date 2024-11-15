@@ -64,7 +64,7 @@ use openid4vc::VpAuthorizationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::examples::Examples;
-use wallet_common::keys::local_key_factory::LocalKeyFactory;
+use wallet_common::keys::local::LocalKeyFactory;
 use wallet_common::trust_anchor::OwnedTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
@@ -111,7 +111,7 @@ async fn disclosure_direct() {
 
 /// The wallet side: verify the Authorization Request, compute the disclosure, and encrypt it into a JWE.
 async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors: &[TrustAnchor<'_>]) -> String {
-    let mdocs = IsoMockMdocDataSource::default();
+    let mdocs = IsoMockMdocDataSource::new_with_example();
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
@@ -157,7 +157,7 @@ async fn disclosure_using_message_client() {
         .unwrap();
 
     // Initialize the "wallet"
-    let mdocs = IsoMockMdocDataSource::default();
+    let mdocs = IsoMockMdocDataSource::new_with_example();
     let key_factory = &LocalKeyFactory::default();
 
     // Start a session at the "RP"
@@ -694,13 +694,7 @@ async fn start_disclosure_session(
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: &OwnedTrustAnchor,
-) -> Result<
-    (
-        DisclosureSession<VerifierMockVpMessageClient, String>,
-        LocalKeyFactory,
-    ),
-    VpClientError,
-> {
+) -> Result<(DisclosureSession<VerifierMockVpMessageClient, String>, LocalKeyFactory), VpClientError> {
     let key_factory = LocalKeyFactory::default();
 
     // Populate the wallet with the specified test documents

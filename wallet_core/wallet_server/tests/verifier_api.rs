@@ -17,6 +17,7 @@ use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
 use parking_lot::RwLock;
+#[cfg(feature = "issuance")]
 use rand_core::OsRng;
 use reqwest::Client;
 use reqwest::Response;
@@ -59,8 +60,9 @@ use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_common::keys::local_key_factory::LocalKeyFactory;
-use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::keys::local::LocalEcdsaKey;
+use wallet_common::keys::local::LocalKeyFactory;
+use wallet_common::keys::EcdsaKey;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::trust_anchor::OwnedTrustAnchor;
 use wallet_common::urls::BaseUrl;
@@ -787,22 +789,17 @@ async fn prepare_example_holder_mocks(
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = utils::random_string(16);
-    let mdoc_private_key = SigningKey::random(&mut OsRng);
-    let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
+    let mdoc_private_key = LocalEcdsaKey::new_random(mdoc_private_key_id.clone());
+    let mdoc_public_key = (&mdoc_private_key.verifying_key().await.unwrap()).try_into().unwrap();
     let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, issuer_key_pair)
         .await
         .unwrap();
-    let mdoc = Mdoc::new::<SoftwareEcdsaKey>(
-        mdoc_private_key_id.clone(),
-        issuer_signed,
-        &TimeGenerator,
-        issuer_trust_anchors,
-    )
-    .unwrap();
+    let mdoc =
+        Mdoc::new::<LocalEcdsaKey>(mdoc_private_key_id, issuer_signed, &TimeGenerator, issuer_trust_anchors).unwrap();
 
     // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.
     let mdoc_data_source = MockMdocDataSource::new(vec![mdoc]);
-    let key_factory = LocalKeyFactory::new(HashMap::from([(mdoc_private_key_id, mdoc_private_key)]));
+    let key_factory = LocalKeyFactory::new(vec![mdoc_private_key]);
 
     (mdoc_data_source, key_factory)
 }
@@ -969,7 +966,7 @@ async fn test_disclosed_attributes_failed_session() {
         HttpVpMessageClient::from(client.clone()),
         &request_uri_query,
         DisclosureUriSource::QrCode,
-        &MockMdocDataSource::default(),
+        &MockMdocDataSource::new_with_example(),
         &[rp_trust_anchor].iter().map(Into::into).collect_vec(),
     )
     .await

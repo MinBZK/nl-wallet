@@ -202,7 +202,7 @@ impl<I> ProposedDocument<I> {
     }
 }
 
-#[cfg(any(test, all(feature = "examples", feature = "mock")))]
+#[cfg(any(test, feature = "mock_example_constructors"))]
 mod examples {
     use crate::holder::Mdoc;
 
@@ -232,7 +232,7 @@ mod tests {
     use coset::Header;
 
     use wallet_common::keys::examples::Examples;
-    use wallet_common::keys::local_key_factory::LocalKeyFactory;
+    use wallet_common::keys::local::LocalKeyFactory;
 
     use crate::errors::Error;
     use crate::examples::EXAMPLE_NAMESPACE;
