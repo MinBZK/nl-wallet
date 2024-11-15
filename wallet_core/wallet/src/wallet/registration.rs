@@ -8,6 +8,7 @@ use tracing::instrument;
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::messages::auth::Registration;
+use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::jwt::JwtError;
 use wallet_common::keys::StoredByIdentifier;
 
@@ -144,7 +145,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
             .verifying_key()
             .await
             .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
-        let registration_message = Registration::new_signed(&hw_privkey, &pin_key, challenge)
+        let registration_message = ChallengeResponse::<Registration>::new_signed(&hw_privkey, &pin_key, challenge)
             .await
             .map_err(WalletRegistrationError::Signing)?;
 
@@ -177,6 +178,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
         // Save the registration data in storage.
         let data = RegistrationData {
+            wallet_id: cert_claims.wallet_id,
             pin_salt,
             wallet_certificate,
         };
@@ -250,7 +252,7 @@ mod tests {
                 assert_eq!(registration.challenge, challenge_expected);
 
                 registration_signed
-                    .parse_and_verify(
+                    .parse_and_verify_ecdsa(
                         &registration.challenge,
                         SequenceNumberComparison::EqualTo(0),
                         &registration.payload.hw_pubkey.0,

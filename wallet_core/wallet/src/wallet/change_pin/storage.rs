@@ -33,12 +33,14 @@ where
 
     async fn change_pin(
         &self,
+        wallet_id: String,
         new_pin_salt: Vec<u8>,
         new_pin_certificate: WalletCertificate,
     ) -> Result<(), StorageError> {
         let mut storage = self.write().await;
         let data = RegistrationData {
             pin_salt: new_pin_salt,
+            wallet_id,
             wallet_certificate: new_pin_certificate,
         };
         storage.upsert_data(&data).await
@@ -78,7 +80,9 @@ mod tests {
 
         let wallet_certificate = WalletCertificate::from("thisisdefinitelyvalid");
         assert_matches!(
-            change_pin_storage.change_pin(vec![1, 2, 3], wallet_certificate).await,
+            change_pin_storage
+                .change_pin("wallet_123".to_string(), vec![1, 2, 3], wallet_certificate)
+                .await,
             Ok(())
         );
 

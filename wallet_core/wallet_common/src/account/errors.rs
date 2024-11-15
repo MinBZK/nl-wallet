@@ -1,21 +1,23 @@
-use p256::pkcs8;
-
+use apple_app_attest::AssertionError;
 use error_category::ErrorCategory;
 
-use crate::account::signed::SignedType;
-use crate::jwt::JwtError;
+use crate::account::signed::SignatureType;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
 pub enum Error {
-    #[error("key deserialization error: {0}")]
-    #[category(critical)]
-    KeyDeserialization(#[from] pkcs8::Error),
+    #[error("message signature did not verify: {0}")]
+    SignatureVerification(#[source] p256::ecdsa::Error),
+    #[error("message assertion did not verify: {0}")]
+    AssertionVerification(#[source] AssertionError),
     #[error("incorrect signing type (expected: {expected:?}, received: {received:?})")]
     #[category(critical)]
-    TypeMismatch { expected: SignedType, received: SignedType },
+    TypeMismatch {
+        expected: SignatureType,
+        received: SignatureType,
+    },
     #[error("incorrect signing subject (expected: {expected}, received: {received})")]
     #[category(critical)]
     SubjectMismatch { expected: String, received: String },
@@ -25,15 +27,13 @@ pub enum Error {
     #[error("sequence number does not match")]
     #[category(critical)]
     SequenceNumberMismatch,
+    #[error("wallet id does not match")]
+    #[category(critical)]
+    WalletIdMismatch,
     #[error("JSON parsing error: {0}")]
-    JsonParsing(#[from] serde_json::Error),
-    #[error("signing error: {0}")]
-    Ecdsa(#[from] p256::ecdsa::Error),
+    JsonParsing(#[source] serde_json::Error),
+    #[error("message signing failed")] // Do not format original error to prevent potentially leaking key material
+    Signing(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("verifying key error: {0}")]
     VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync>),
-    #[error("message signing failed")] // Do not format original error to prevent potentially leaking key material
-    Signing(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error(transparent)]
-    #[category(defer)]
-    Jwt(#[from] JwtError),
 }

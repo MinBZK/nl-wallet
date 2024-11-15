@@ -10,9 +10,9 @@ use sha2::Sha256;
 use webpki::types::TrustAnchor;
 
 use crate::app_identifier::AppIdentifier;
-use crate::auth_data::AuthenticatorDataWithSource;
 use crate::certificates::CertificateError;
 use crate::certificates::DerX509CertificateChain;
+use crate::FullAuthenticatorDataWithSource;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationError {
@@ -72,7 +72,8 @@ impl AttestationEnvironment {
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct Attestation {
     #[serde(rename = "fmt")]
@@ -80,10 +81,11 @@ pub struct Attestation {
     #[serde(rename = "attStmt")]
     pub attestation_statement: AttestationStatement,
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
-    pub auth_data: AuthenticatorDataWithSource<false>,
+    pub auth_data: FullAuthenticatorDataWithSource,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "kebab-case")]
 pub enum AttestationFormat {
     #[default]
@@ -92,6 +94,7 @@ pub enum AttestationFormat {
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct AttestationStatement {
     #[serde_as(as = "TryFromInto<Vec<Vec<u8>>>")]

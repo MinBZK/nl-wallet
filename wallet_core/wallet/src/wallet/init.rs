@@ -192,6 +192,7 @@ mod tests {
             StorageState::Unopened,
             Some(RegistrationData {
                 pin_salt: pin_salt.clone(),
+                wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),
         ))
@@ -227,6 +228,7 @@ mod tests {
                 StorageState::Unopened,
                 Some(RegistrationData {
                     pin_salt: pin_key::new_pin_salt(),
+                    wallet_id: "wallet_123".to_string(),
                     wallet_certificate: "thisisjwt".to_string().into(),
                 }),
             ))

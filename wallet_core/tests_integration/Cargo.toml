@@ -198,6 +198,7 @@ dotenvy = { workspace = true, optional = true }
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
 # * db_test
+apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 wallet_provider_service.path = "../wallet_provider/service"
 wallet_server = { path = "../wallet_server", features = ["issuance"] }
