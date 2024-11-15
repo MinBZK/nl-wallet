@@ -86,16 +86,6 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
         }
     }
 
-    fun validate(payload: List<UByte>, signature: List<UByte>) {
-        val publicKey = keyStore.getCertificate(keyAlias).publicKey
-
-        return Signature.getInstance(SIGNATURE_ALGORITHM).run {
-            initVerify(publicKey)
-            update(payload.toByteArray())
-            verify(signature.toByteArray())
-        }
-    }
-
     override val keyInfo: KeyInfo
         get() {
             val privateKey = keyStore.getKey(keyAlias, null)

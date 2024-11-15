@@ -63,7 +63,6 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         }
     }
 
-
     override suspend fun publicKey(identifier: String): List<UByte> = longRunning {
         try {
             getKey(identifier.keyAlias()).publicKey()
