@@ -731,8 +731,8 @@ mod tests {
     use wallet_common::keys::poa::Poa;
     use wallet_common::keys::poa::VecAtLeastTwo;
     use wallet_common::keys::software::SoftwareEcdsaKey;
-    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
-    use wallet_common::keys::software_key_factory::SoftwareKeyFactoryError;
+    use wallet_common::keys::local_key_factory::LocalKeyFactory;
+    use wallet_common::keys::local_key_factory::LocalKeyFactoryError;
     use wallet_common::utils::random_string;
 
     use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
@@ -835,7 +835,7 @@ mod tests {
             .collect();
 
         let redirect_uri = proposal
-            .disclose(&SoftwareKeyFactory::default())
+            .disclose(&LocalKeyFactory::default())
             .await
             .expect("Could not disclose DisclosureSession");
 
@@ -1603,7 +1603,7 @@ mod tests {
         struct MockKeyFactory;
         impl KeyFactory for MockKeyFactory {
             type Key = SoftwareEcdsaKey;
-            type Error = SoftwareKeyFactoryError;
+            type Error = LocalKeyFactoryError;
 
             fn generate_existing<I: Into<String>>(&self, identifier: I, _: VerifyingKey) -> Self::Key {
                 // Normally this method is expected to return a key whose public key equals the specified
@@ -1615,7 +1615,7 @@ mod tests {
                 &self,
                 _: Vec<(Vec<u8>, Vec<&Self::Key>)>,
             ) -> Result<Vec<Vec<Signature>>, Self::Error> {
-                Err(SoftwareKeyFactoryError::Signing)
+                Err(LocalKeyFactoryError::Signing)
             }
 
             async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
@@ -1663,7 +1663,7 @@ mod tests {
             .unwrap();
 
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &SoftwareKeyFactory::default(), false).await,
+            try_disclose(proposal_session, wallet_messages, &LocalKeyFactory::default(), false).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::AuthResponseEncryption(_)
@@ -1686,7 +1686,7 @@ mod tests {
         });
 
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &SoftwareKeyFactory::default(), true).await,
+            try_disclose(proposal_session, wallet_messages, &LocalKeyFactory::default(), true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
@@ -1709,7 +1709,7 @@ mod tests {
 
         // No data should have been shared in this case
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &SoftwareKeyFactory::default(), true).await,
+            try_disclose(proposal_session, wallet_messages, &LocalKeyFactory::default(), true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))

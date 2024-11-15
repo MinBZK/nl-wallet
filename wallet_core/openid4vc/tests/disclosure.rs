@@ -64,7 +64,7 @@ use openid4vc::VpAuthorizationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::examples::Examples;
-use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+use wallet_common::keys::local_key_factory::LocalKeyFactory;
 use wallet_common::trust_anchor::OwnedTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
@@ -137,7 +137,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     let to_disclose = candidates.into_values().map(|mut docs| docs.pop().unwrap()).collect();
 
     // Compute the disclosure.
-    let key_factory = SoftwareKeyFactory::default();
+    let key_factory = LocalKeyFactory::default();
     let device_response = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
         .await
         .unwrap();
@@ -158,7 +158,7 @@ async fn disclosure_using_message_client() {
 
     // Initialize the "wallet"
     let mdocs = IsoMockMdocDataSource::default();
-    let key_factory = &SoftwareKeyFactory::default();
+    let key_factory = &LocalKeyFactory::default();
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair);
@@ -697,11 +697,11 @@ async fn start_disclosure_session(
 ) -> Result<
     (
         DisclosureSession<VerifierMockVpMessageClient, String>,
-        SoftwareKeyFactory,
+        LocalKeyFactory,
     ),
     VpClientError,
 > {
-    let key_factory = SoftwareKeyFactory::default();
+    let key_factory = LocalKeyFactory::default();
 
     // Populate the wallet with the specified test documents
     let mdocs = future::join_all(

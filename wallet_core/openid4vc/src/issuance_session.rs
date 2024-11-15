@@ -870,7 +870,7 @@ mod tests {
     use nl_wallet_mdoc::IssuerSigned;
     use wallet_common::keys::factory::KeyFactory;
     use wallet_common::keys::software::SoftwareEcdsaKey;
-    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+    use wallet_common::keys::local_key_factory::LocalKeyFactory;
     use wallet_common::keys::EcdsaKey;
     use wallet_common::nonempty::NonEmpty;
 
@@ -894,11 +894,11 @@ mod tests {
         CredentialPreview,
         Certificate,
         VerifyingKey,
-        SoftwareKeyFactory,
+        LocalKeyFactory,
     ) {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-        let key_factory = SoftwareKeyFactory::default();
+        let key_factory = LocalKeyFactory::default();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
         let preview = CredentialPreview::MsoMdoc {
@@ -1098,7 +1098,7 @@ mod tests {
         }
         .accept_issuance(
             &[((&ca_cert).try_into().unwrap())],
-            SoftwareKeyFactory::default(),
+            LocalKeyFactory::default(),
             None,
             "https://issuer.example.com".parse().unwrap(),
         )

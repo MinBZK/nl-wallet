@@ -22,8 +22,8 @@ examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 mock_secure_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
 software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
-# Include SoftwareEcdsaKey implementation of KeyFactory
-software_key_factory = ["software_keys"]
+# Include LocalKeyFactory implementation of KeyFactory for testing
+local_key_factory = ["software_keys"]
 # Enable helper code for integration tests
 integration_test = []
 

@@ -59,8 +59,8 @@ use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
+use wallet_common::keys::local_key_factory::LocalKeyFactory;
 use wallet_common::keys::software::SoftwareEcdsaKey;
-use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::trust_anchor::OwnedTrustAnchor;
 use wallet_common::urls::BaseUrl;
@@ -753,7 +753,7 @@ async fn test_disclosure_expired_postgres() {
 async fn prepare_example_holder_mocks(
     issuer_key_pair: &KeyPair<SigningKey>,
     issuer_trust_anchors: &[TrustAnchor<'_>],
-) -> (MockMdocDataSource, SoftwareKeyFactory) {
+) -> (MockMdocDataSource, LocalKeyFactory) {
     // Extract the the attributes from the example DeviceResponse in the ISO specs.
     let example_document = DeviceResponse::example().documents.unwrap().into_iter().next().unwrap();
     let example_attributes = example_document
@@ -802,7 +802,7 @@ async fn prepare_example_holder_mocks(
 
     // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.
     let mdoc_data_source = MockMdocDataSource::new(vec![mdoc]);
-    let key_factory = SoftwareKeyFactory::new(HashMap::from([(mdoc_private_key_id, mdoc_private_key)]));
+    let key_factory = LocalKeyFactory::new(HashMap::from([(mdoc_private_key_id, mdoc_private_key)]));
 
     (mdoc_data_source, key_factory)
 }
@@ -980,7 +980,7 @@ async fn test_disclosed_attributes_failed_session() {
     };
 
     proposal
-        .disclose(&SoftwareKeyFactory::default())
+        .disclose(&LocalKeyFactory::default())
         .await
         .expect_err("disclosing attributes should result in an error");
 

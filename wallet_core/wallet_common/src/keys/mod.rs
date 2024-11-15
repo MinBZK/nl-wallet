@@ -15,10 +15,10 @@ pub mod poa;
 
 #[cfg(feature = "examples")]
 pub mod examples;
+#[cfg(any(test, feature = "local_key_factory"))]
+pub mod local_key_factory;
 #[cfg(any(test, feature = "software_keys"))]
 pub mod software;
-#[cfg(any(test, feature = "software_key_factory"))]
-pub mod software_key_factory;
 #[cfg(any(test, feature = "integration_test"))]
 pub mod test;
 

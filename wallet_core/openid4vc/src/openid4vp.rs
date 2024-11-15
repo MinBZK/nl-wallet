@@ -765,7 +765,7 @@ mod tests {
     use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
     use wallet_common::keys::software::SoftwareEcdsaKey;
-    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+    use wallet_common::keys::local_key_factory::LocalKeyFactory;
 
     use nl_wallet_mdoc::examples::example_items_requests;
     use nl_wallet_mdoc::examples::Example;
@@ -1043,7 +1043,7 @@ mod tests {
         let keys_and_challenges = vec![(key, challenge.as_ref())];
 
         // Sign the challenge using the mdoc key
-        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &SoftwareKeyFactory::default())
+        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &LocalKeyFactory::default())
             .await
             .unwrap()
             .first()

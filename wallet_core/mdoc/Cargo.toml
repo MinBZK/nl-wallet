@@ -73,4 +73,4 @@ regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-wallet_common = { path = "../wallet_common", features = ["examples", "mock_secure_keys", "software_key_factory"] }
+wallet_common = { path = "../wallet_common", features = ["examples", "mock_secure_keys", "local_key_factory"] }

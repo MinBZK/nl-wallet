@@ -232,7 +232,7 @@ mod tests {
     use coset::Header;
 
     use wallet_common::keys::examples::Examples;
-    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+    use wallet_common::keys::local_key_factory::LocalKeyFactory;
 
     use crate::errors::Error;
     use crate::examples::EXAMPLE_NAMESPACE;
@@ -386,7 +386,7 @@ mod tests {
         .await
         .unwrap();
 
-        let mut documents = ProposedDocument::sign_multiple(&SoftwareKeyFactory::default(), vec![proposed_document])
+        let mut documents = ProposedDocument::sign_multiple(&LocalKeyFactory::default(), vec![proposed_document])
             .await
             .expect("Could not sign ProposedDocument");
 
@@ -407,7 +407,7 @@ mod tests {
         // Set up a `KeyFactory` that returns keys that fail at signing.
         let proposed_document = ProposedDocument::new_example();
         let key_factory = {
-            let mut key_factory = SoftwareKeyFactory::default();
+            let mut key_factory = LocalKeyFactory::default();
             key_factory.has_multi_key_signing_error = true;
 
             key_factory

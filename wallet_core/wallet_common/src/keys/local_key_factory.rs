@@ -19,17 +19,17 @@ use crate::utils;
 use super::poa::PoaError;
 use super::poa::VecAtLeastTwo;
 
-/// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
-/// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple
-/// keys and [`SoftwareKeyFactoryError::Signing`] when signing multiple.
+/// The [`LocalKeyFactory`] type implements [`KeyFactory`] and has the option
+/// of returning [`LocalKeyFactoryError::Generating`] when generating multiple
+/// keys and [`LocalKeyFactoryError::Signing`] when signing multiple.
 #[derive(Debug)]
-pub struct SoftwareKeyFactory {
+pub struct LocalKeyFactory {
     signing_keys: Mutex<HashMap<String, SigningKey>>,
     pub has_generating_error: bool,
     pub has_multi_key_signing_error: bool,
 }
 
-impl SoftwareKeyFactory {
+impl LocalKeyFactory {
     pub fn new(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
             signing_keys: signing_keys.into(),
@@ -39,7 +39,7 @@ impl SoftwareKeyFactory {
     }
 }
 
-impl Default for SoftwareKeyFactory {
+impl Default for LocalKeyFactory {
     fn default() -> Self {
         let keys = HashMap::from([
             #[cfg(feature = "examples")]
@@ -56,8 +56,7 @@ impl Default for SoftwareKeyFactory {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("SoftwareKeyFactoryError")]
-pub enum SoftwareKeyFactoryError {
+pub enum LocalKeyFactoryError {
     #[error("key generation error")]
     Generating,
     #[error("signing error")]
@@ -68,13 +67,13 @@ pub enum SoftwareKeyFactoryError {
     Poa(#[from] PoaError),
 }
 
-impl KeyFactory for SoftwareKeyFactory {
+impl KeyFactory for LocalKeyFactory {
     type Key = SoftwareEcdsaKey;
-    type Error = SoftwareKeyFactoryError;
+    type Error = LocalKeyFactoryError;
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
         if self.has_generating_error {
-            return Err(SoftwareKeyFactoryError::Generating);
+            return Err(LocalKeyFactoryError::Generating);
         }
 
         let identifiers_and_signing_keys =
@@ -124,16 +123,16 @@ impl KeyFactory for SoftwareKeyFactory {
         let keys = self.generate_new_multiple(number_of_keys).await?;
 
         if self.has_multi_key_signing_error {
-            return Err(SoftwareKeyFactoryError::Signing);
+            return Err(LocalKeyFactoryError::Signing);
         }
 
         let signatures_by_identifier = future::try_join_all(keys.into_iter().map(|key| async {
             let signature = key
                 .try_sign(msg.as_slice())
                 .await
-                .map_err(SoftwareKeyFactoryError::Ecdsa)?;
+                .map_err(LocalKeyFactoryError::Ecdsa)?;
 
-            Ok::<_, SoftwareKeyFactoryError>((key, signature))
+            Ok::<_, LocalKeyFactoryError>((key, signature))
         }))
         .await?
         .into_iter()
@@ -147,7 +146,7 @@ impl KeyFactory for SoftwareKeyFactory {
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
     ) -> Result<Vec<Vec<Signature>>, Self::Error> {
         if self.has_multi_key_signing_error {
-            return Err(SoftwareKeyFactoryError::Signing);
+            return Err(LocalKeyFactoryError::Signing);
         }
 
         let result = future::try_join_all(
@@ -155,15 +154,15 @@ impl KeyFactory for SoftwareKeyFactory {
                 .into_iter()
                 .map(|(msg, keys)| async move {
                     let signatures = future::try_join_all(keys.into_iter().map(|key| async {
-                        let signature = key.try_sign(&msg).await.map_err(SoftwareKeyFactoryError::Ecdsa)?;
+                        let signature = key.try_sign(&msg).await.map_err(LocalKeyFactoryError::Ecdsa)?;
 
-                        Ok::<_, SoftwareKeyFactoryError>(signature)
+                        Ok::<_, LocalKeyFactoryError>(signature)
                     }))
                     .await?
                     .into_iter()
                     .collect::<Vec<_>>();
 
-                    Ok::<_, SoftwareKeyFactoryError>(signatures)
+                    Ok::<_, LocalKeyFactoryError>(signatures)
                 })
                 .collect::<Vec<_>>(),
         )

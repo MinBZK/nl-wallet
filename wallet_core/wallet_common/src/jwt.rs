@@ -647,7 +647,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use crate::keys::software_key_factory::SoftwareKeyFactory;
+    use crate::keys::local_key_factory::LocalKeyFactory;
 
     use super::*;
 
@@ -751,7 +751,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_sign_jwts() {
-        bulk_jwt_sign(&SoftwareKeyFactory::default()).await;
+        bulk_jwt_sign(&LocalKeyFactory::default()).await;
     }
 
     pub async fn bulk_jwt_sign<K: CredentialEcdsaKey>(key_factory: &impl KeyFactory<Key = K>) {

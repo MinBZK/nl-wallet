@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 
 use wallet_common::keys::examples::Examples;
-use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+use wallet_common::keys::local_key_factory::LocalKeyFactory;
 
 use crate::errors::Result;
 use crate::examples::Example;
@@ -46,10 +46,9 @@ async fn create_example_device_response(
         _ => panic!("should have found a valid candidate in DeviceRequest"),
     };
 
-    let device_response =
-        DeviceResponse::from_proposed_documents(vec![proposed_document], &SoftwareKeyFactory::default())
-            .await
-            .unwrap();
+    let device_response = DeviceResponse::from_proposed_documents(vec![proposed_document], &LocalKeyFactory::default())
+        .await
+        .unwrap();
 
     Ok(device_response)
 }
