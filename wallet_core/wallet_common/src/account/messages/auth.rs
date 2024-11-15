@@ -138,7 +138,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_apple_registration() {
-        let app_identifier = AppIdentifier::new("1234567890", "com.example.app");
+        let app_identifier = AppIdentifier::new_mock();
         let attested_key = MockAppleAttestedKey::new(app_identifier.clone());
         let attestation_data = utils::random_bytes(32);
         let pin_signing_key = SigningKey::random(&mut OsRng);

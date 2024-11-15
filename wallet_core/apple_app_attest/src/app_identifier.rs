@@ -52,3 +52,14 @@ impl AsRef<str> for AppIdentifier {
         &self.identifier
     }
 }
+
+#[cfg(feature = "mock")]
+mod mock {
+    use super::AppIdentifier;
+
+    impl AppIdentifier {
+        pub fn new_mock() -> Self {
+            AppIdentifier::new("1234567890", "com.example.app")
+        }
+    }
+}

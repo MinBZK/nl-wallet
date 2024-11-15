@@ -60,7 +60,7 @@ impl Default for AssertionParameters {
             message: "This is a message.".to_string(),
             challenge: challenge.clone(),
         };
-        let app_identifier = AppIdentifier::new("1234567890", "com.example.app");
+        let app_identifier = AppIdentifier::new_mock();
         let counter = 1337;
 
         Self {
