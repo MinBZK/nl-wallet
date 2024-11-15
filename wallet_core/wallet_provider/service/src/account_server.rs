@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
+use wallet_common::account::messages::auth::RegistrationAttestation;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::errors::IncorrectPinData;
 use wallet_common::account::messages::errors::PinTimeoutData;
@@ -24,6 +25,7 @@ use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionChallengeRequest;
 use wallet_common::account::messages::instructions::InstructionResult;
 use wallet_common::account::messages::instructions::InstructionResultClaims;
+use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::account::signed::ChallengeResponsePayload;
 use wallet_common::account::signed::SequenceNumberComparison;
@@ -291,8 +293,14 @@ impl AccountServer {
         let wallet_id =
             Self::verify_registration_challenge(&self.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
 
-        let hw_pubkey = unverified.payload.hw_pubkey.0;
-        let pin_pubkey = unverified.payload.pin_pubkey.0;
+        let hw_pubkey = match unverified.payload.attestation {
+            RegistrationAttestation::None {
+                hw_pubkey: DerVerifyingKey(hw_pubkey),
+            } => hw_pubkey,
+            RegistrationAttestation::Apple { .. } => todo!(),
+        };
+
+        let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
 
         debug!("Checking if challenge is signed with the provided hw and pin keys");
 
@@ -840,9 +848,10 @@ mod tests {
             .await
             .expect("Could not get registration challenge");
 
-        let registration_message = ChallengeResponse::<Registration>::new_signed(hw_privkey, pin_privkey, challenge)
-            .await
-            .expect("Could not sign new registration");
+        let registration_message =
+            ChallengeResponse::<Registration>::new_unattested(hw_privkey, pin_privkey, challenge)
+                .await
+                .expect("Could not sign new registration");
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo

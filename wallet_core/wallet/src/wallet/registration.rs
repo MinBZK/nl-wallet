@@ -145,7 +145,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
             .verifying_key()
             .await
             .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
-        let registration_message = ChallengeResponse::<Registration>::new_signed(&hw_privkey, &pin_key, challenge)
+        let registration_message = ChallengeResponse::<Registration>::new_unattested(&hw_privkey, &pin_key, challenge)
             .await
             .map_err(WalletRegistrationError::Signing)?;
 
@@ -200,6 +200,8 @@ mod tests {
     use http::StatusCode;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use wallet_common::account::messages::auth::RegistrationAttestation;
+    use wallet_common::account::serialization::DerVerifyingKey;
     use wallet_common::account::signed::SequenceNumberComparison;
     use wallet_common::jwt::Jwt;
     use wallet_common::utils;
@@ -251,11 +253,18 @@ mod tests {
 
                 assert_eq!(registration.challenge, challenge_expected);
 
+                let RegistrationAttestation::None {
+                    hw_pubkey: DerVerifyingKey(hw_pubkey),
+                } = &registration.payload.attestation
+                else {
+                    panic!("registration message should contain unattested public key");
+                };
+
                 registration_signed
                     .parse_and_verify_ecdsa(
                         &registration.challenge,
                         SequenceNumberComparison::EqualTo(0),
-                        &registration.payload.hw_pubkey.0,
+                        hw_pubkey,
                         &registration.payload.pin_pubkey.0,
                     )
                     .expect("Could not verify registration message");
