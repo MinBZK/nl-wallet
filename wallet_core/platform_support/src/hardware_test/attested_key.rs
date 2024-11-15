@@ -19,3 +19,17 @@ extern "C" fn attested_key_test() {
         ));
     });
 }
+
+#[cfg(target_os = "android")]
+mod android {
+    use jni::{objects::JClass, JNIEnv};
+
+    #[rustfmt::skip]
+    #[no_mangle]
+    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_attested_1key_AttestedKeyBridgeInstrumentedTest_attested_1key_1test(
+        _env: JNIEnv,
+        _: JClass,
+    ) {
+        super::attested_key_test();
+    }
+}

@@ -70,11 +70,12 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
     @Throws(KeyException::class)
     fun sign(payload: List<UByte>): List<UByte> {
         try {
-            val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
             val privateKey = keyStore.getKey(keyAlias, null) as PrivateKey
-            signature.initSign(privateKey)
-            signature.update(payload.toByteArray())
-            return signature.sign().toUByteList()
+            return Signature.getInstance(SIGNATURE_ALGORITHM).run {
+                initSign(privateKey)
+                update(payload.toByteArray())
+                sign().toUByteList()
+            }
         } catch (ex: Exception) {
             when (ex) {
                 is UnrecoverableKeyException,
@@ -82,6 +83,16 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
                 is KeyStoreException -> throw KeyStoreKeyError.FetchKeyError(ex).keyException
             }
             throw KeyStoreKeyError.SignKeyError(ex).keyException
+        }
+    }
+
+    fun validate(payload: List<UByte>, signature: List<UByte>) {
+        val publicKey = keyStore.getCertificate(keyAlias).publicKey
+
+        return Signature.getInstance(SIGNATURE_ALGORITHM).run {
+            initVerify(publicKey)
+            update(payload.toByteArray())
+            verify(signature.toByteArray())
         }
     }
 
