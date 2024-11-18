@@ -169,14 +169,14 @@ class AttestedKeyBridgeInstrumentedTest {
         )
     }
 
-//    @Test
-//    fun bridge_test_attested_key() = runTest {
-//        // Explicitly load platform_support since hw_keystore_test_hardware_signature() is stripped from rust_core
-//        System.loadLibrary("platform_support")
-//
-//        // The Rust code will panic if this test fails.
-//        attested_key_test()
-//    }
+   @Test
+   fun bridge_test_attested_key() = runTest {
+       // Explicitly load platform_support since hw_keystore_test_hardware_signature() is stripped from rust_core
+       System.loadLibrary("platform_support")
+
+       // The Rust code will panic if this test fails.
+       attested_key_test()
+   }
 
     private fun isValidSignature(
         signatureBytes: ByteArray,
