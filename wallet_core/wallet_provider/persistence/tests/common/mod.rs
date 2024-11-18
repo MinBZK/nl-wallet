@@ -21,6 +21,7 @@ use wallet_provider_domain::model::encrypted::Encrypted;
 use wallet_provider_domain::model::encrypter::Encrypter;
 use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::database::Db;
@@ -67,6 +68,7 @@ where
             wallet_id,
             hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
             encrypted_pin_pubkey: encrypted_pin_key("key1").await,
+            attestation: Some(WalletUserAttestationCreate::Apple { data: random_bytes(64) }),
         },
     )
     .await

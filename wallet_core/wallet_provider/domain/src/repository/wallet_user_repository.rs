@@ -75,6 +75,13 @@ pub trait WalletUserRepository {
     async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
     async fn save_wte_issued(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+
+    async fn update_apple_assertion_counter(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        assertion_counter: u32,
+    ) -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -185,6 +192,15 @@ pub mod mock {
         }
 
         async fn save_wte_issued(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
+            Ok(())
+        }
+
+        async fn update_apple_assertion_counter(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _assertion_counter: u32,
+        ) -> Result<()> {
             Ok(())
         }
     }

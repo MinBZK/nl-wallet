@@ -325,6 +325,7 @@ impl AccountServer {
                     wallet_id: wallet_id.clone(),
                     hw_pubkey,
                     encrypted_pin_pubkey,
+                    attestation: None,
                 },
             )
             .await?;

@@ -6,6 +6,7 @@ use uuid::Uuid;
 use wallet_common::generator::Generator;
 use wallet_common::utils::random_string;
 use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::EpochGenerator;
@@ -17,6 +18,7 @@ use wallet_provider_persistence::wallet_user::commit_pin_change;
 use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
+use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
 
 use crate::common::encrypted_pin_key;
 
@@ -65,6 +67,8 @@ async fn test_find_wallet_user_by_wallet_id() {
         &wallet_user_model.hw_pubkey_der
     );
     assert!(wallet_user.instruction_challenge.is_none());
+    assert!(!wallet_user.has_wte);
+    assert_matches!(wallet_user.attestation, Some(WalletUserAttestation::Apple { .. }));
 
     // After generating a random instruction challenge, this should be found together with the user.
     common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
@@ -267,4 +271,51 @@ async fn test_rollback_pin() {
         before_pin_change.encrypted_pin_pubkey_sec1
     );
     assert_eq!(after_rollback.pin_pubkey_iv, before_pin_change.pin_pubkey_iv);
+}
+
+#[tokio::test]
+async fn test_update_apple_assertion_counter() {
+    let (db, _wallet_user_id, wallet_id, _wallet_user_model) = create_test_user().await;
+    let (_, _, other_wallet_id, _) = create_test_user().await;
+
+    // Each of the two users created above should start out with an assertion counter of 0.
+    let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
+    let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
+
+    match (wallet_user, other_wallet_user) {
+        (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
+            assert_matches!(
+                wallet_user.attestation,
+                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+            );
+            assert_matches!(
+                other_wallet_user.attestation,
+                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+            );
+        }
+        _ => panic!(),
+    };
+
+    // After updating the assertion counter for the first user it
+    // should be changed, while the other one should remain at 0.
+    update_apple_assertion_counter(&db, &wallet_id, 1337)
+        .await
+        .expect("updating apple assertion could succeed");
+
+    let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
+    let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
+
+    match (wallet_user, other_wallet_user) {
+        (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
+            assert_matches!(
+                wallet_user.attestation,
+                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 1337
+            );
+            assert_matches!(
+                other_wallet_user.attestation,
+                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+            );
+        }
+        _ => panic!(),
+    };
 }

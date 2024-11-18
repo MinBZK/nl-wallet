@@ -157,6 +157,15 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user::save_wte_issued(transaction, wallet_id).await
     }
+
+    async fn update_apple_assertion_counter(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        assertion_counter: u32,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::update_apple_assertion_counter(transaction, wallet_id, assertion_counter).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -277,6 +286,13 @@ pub mod mock {
                 transaction: &MockTransaction,
                 wallet_id: &str
             ) -> Result<(), PersistenceError>;
+
+            async fn update_apple_assertion_counter(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str,
+                assertion_counter: u32,
+            ) -> Result<(), PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -325,6 +341,7 @@ pub mod mock {
                 }),
                 instruction_sequence_number: self.instruction_sequence_number,
                 has_wte: false,
+                attestation: None,
             })))
         }
 
@@ -429,6 +446,15 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn update_apple_assertion_counter(
+            &self,
+            _transaction: &MockTransaction,
+            _wallet_id: &str,
+            _assertion_counter: u32,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
