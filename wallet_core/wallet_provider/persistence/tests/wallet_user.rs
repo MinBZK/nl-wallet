@@ -91,20 +91,20 @@ async fn test_create_wallet_user_transaction_rollback() {
 async fn test_insert_instruction_challenge_on_conflict() {
     let (db, wallet_user_id, wallet_id, _wallet_user) = create_test_user().await;
 
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert!(challenges.is_empty());
 
     // insert an instruction challenge for the first time, we should only find that one afterwards
-    common::create_instruction_challenge_with_random_data(&db, wallet_id.clone()).await;
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id.clone());
 
     let og_id = challenges[0].id;
-    common::create_instruction_challenge_with_random_data(&db, wallet_id.clone()).await;
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
 
     // insert another instruction challenge, this should update the bytes and expiration date in the first one
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id);
     // as the challenge should be updated, its ID stays the same
@@ -115,13 +115,13 @@ async fn test_insert_instruction_challenge_on_conflict() {
         .expect("Could not clear instruction challenges");
 
     // after clearing it, we should not find any challenges anymore
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 0);
 
-    common::create_instruction_challenge_with_random_data(&db, wallet_id.clone()).await;
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
 
     // insert an instruction challenge for the second time, we should only find that one afterwards
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id);
     // this time a new challenge is injected, so the ID should be changed
@@ -132,20 +132,20 @@ async fn test_insert_instruction_challenge_on_conflict() {
     let wallet_id2 = random_string(32);
     common::create_wallet_user_with_random_keys(&db, wallet_user_id2, wallet_id2.clone()).await;
 
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id.clone());
 
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id2.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id2).await;
     assert!(challenges.is_empty());
 
     // insert an instruction challenge for our second wallet, we should only find one per wallet
-    common::create_instruction_challenge_with_random_data(&db, wallet_id2.clone()).await;
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id2.clone()).await;
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id2).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id2).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id2.clone());
 
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id.clone());
 }

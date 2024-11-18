@@ -85,14 +85,14 @@ where
         .expect("Could not fetch wallet user")
 }
 
-pub async fn create_instruction_challenge_with_random_data<S, T>(db: &T, wallet_id: String)
+pub async fn create_instruction_challenge_with_random_data<S, T>(db: &T, wallet_id: &str)
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     update_instruction_challenge_and_sequence_number(
         db,
-        &wallet_id,
+        wallet_id,
         InstructionChallenge {
             expiration_date_time: Utc::now(), // irrelevant for these tests
             bytes: random_bytes(32),
@@ -111,10 +111,7 @@ pub struct InstructionChallengeResult {
     pub expiration_date_time: DateTime<Utc>,
 }
 
-pub async fn find_instruction_challenges_by_wallet_id<S, T>(
-    db: &T,
-    wallet_id: String,
-) -> Vec<InstructionChallengeResult>
+pub async fn find_instruction_challenges_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Vec<InstructionChallengeResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
