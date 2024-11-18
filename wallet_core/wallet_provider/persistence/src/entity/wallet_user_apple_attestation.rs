@@ -3,16 +3,15 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "wallet_user_key")]
+#[sea_orm(table_name = "wallet_user_apple_attestation")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
+    #[sea_orm(unique)]
     pub wallet_user_id: Uuid,
-    pub identifier: String,
+    pub assertion_counter: i64,
     #[sea_orm(column_type = "Binary(BlobSize::Blob(None))")]
-    pub encrypted_private_key: Vec<u8>,
-    #[sea_orm(column_type = "Binary(BlobSize::Blob(None))")]
-    pub public_key: Vec<u8>,
+    pub attestation_data: Vec<u8>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

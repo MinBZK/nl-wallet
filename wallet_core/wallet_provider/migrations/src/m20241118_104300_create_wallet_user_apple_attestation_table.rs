@@ -12,34 +12,42 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(WalletUserInstructionChallenge::Table)
+                    .table(WalletUserAppleAttestation::Table)
                     .col(
-                        ColumnDef::new(WalletUserInstructionChallenge::Id)
+                        ColumnDef::new(WalletUserAppleAttestation::Id)
                             .uuid()
                             .not_null()
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(WalletUserInstructionChallenge::WalletUserId)
+                        ColumnDef::new(WalletUserAppleAttestation::WalletUserId)
                             .uuid()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(WalletUserInstructionChallenge::InstructionChallenge)
-                            .binary()
-                            .not_null(),
+                        ColumnDef::new(WalletUserAppleAttestation::AssertionCounter)
+                            .big_integer()
+                            .not_null()
+                            .default(0)
+                            .check(
+                                // Emulate a u32 with a CHECK constraint, since
+                                // PostgreSQL does not support unsigned integers.
+                                Expr::col(WalletUserAppleAttestation::AssertionCounter)
+                                    .gte(0)
+                                    .and(Expr::col(WalletUserAppleAttestation::AssertionCounter).lte(u32::MAX)),
+                            ),
                     )
                     .col(
-                        ColumnDef::new(WalletUserInstructionChallenge::ExpirationDateTime)
-                            .timestamp_with_time_zone()
+                        ColumnDef::new(WalletUserAppleAttestation::AttestationData)
+                            .binary()
                             .not_null(),
                     )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_id")
                             .from(
-                                WalletUserInstructionChallenge::Table,
-                                WalletUserInstructionChallenge::WalletUserId,
+                                WalletUserAppleAttestation::Table,
+                                WalletUserAppleAttestation::WalletUserId,
                             )
                             .to(WalletUser::Table, WalletUser::Id)
                             .on_delete(ForeignKeyAction::NoAction),
@@ -47,8 +55,8 @@ impl MigrationTrait for Migration {
                     .index(
                         Index::create()
                             .unique()
-                            .name("wallet_user_instruction_challenge_unique_wallet_user_id")
-                            .col(WalletUserInstructionChallenge::WalletUserId),
+                            .name("wallet_user_apple_attestation_unique_wallet_user_id")
+                            .col(WalletUserAppleAttestation::WalletUserId),
                     )
                     .to_owned(),
             )
@@ -59,10 +67,10 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-enum WalletUserInstructionChallenge {
+enum WalletUserAppleAttestation {
     Table,
     Id,
     WalletUserId,
-    InstructionChallenge,
-    ExpirationDateTime,
+    AssertionCounter,
+    AttestationData,
 }
