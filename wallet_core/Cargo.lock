@@ -5710,6 +5710,7 @@ dependencies = [
 name = "wallet_provider_persistence"
 version = "0.2.2"
 dependencies = [
+ "assert_matches",
  "chrono",
  "ctor",
  "mockall",

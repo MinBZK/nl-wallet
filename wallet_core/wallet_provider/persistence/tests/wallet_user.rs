@@ -1,9 +1,12 @@
+use assert_matches::assert_matches;
 use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::EncodePublicKey;
 use uuid::Uuid;
 
 use wallet_common::generator::Generator;
 use wallet_common::utils::random_string;
 use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_persistence::database::Db;
@@ -11,6 +14,7 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
+use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
 
@@ -37,6 +41,45 @@ async fn create_test_user() -> (Db, Uuid, String, wallet_user::Model) {
 async fn test_create_wallet_user() {
     let (_db, _wallet_user_id, wallet_id, wallet_user) = create_test_user().await;
     assert_eq!(wallet_id, wallet_user.wallet_id);
+}
+
+#[tokio::test]
+async fn test_find_wallet_user_by_wallet_id() {
+    let (db, wallet_user_id, wallet_id, wallet_user_model) = create_test_user().await;
+
+    // A wallet user that does not have an instruction challenge associated with it should be found.
+    let wallet_user_result = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .expect("finding wallet user by wallet id should succeed");
+
+    assert_matches!(wallet_user_result, WalletUserQueryResult::Found(_));
+
+    let WalletUserQueryResult::Found(wallet_user) = wallet_user_result else {
+        panic!();
+    };
+
+    assert_eq!(wallet_user.id, wallet_user_id);
+    assert_eq!(wallet_user.wallet_id, wallet_id);
+    assert_eq!(
+        wallet_user.hw_pubkey.0.to_public_key_der().unwrap().as_bytes(),
+        &wallet_user_model.hw_pubkey_der
+    );
+    assert!(wallet_user.instruction_challenge.is_none());
+
+    // After generating a random instruction challenge, this should be found together with the user.
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
+
+    let wallet_user_result = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .expect("finding wallet user by wallet id should succeed");
+
+    assert_matches!(wallet_user_result, WalletUserQueryResult::Found(_));
+
+    let WalletUserQueryResult::Found(wallet_user) = wallet_user_result else {
+        panic!();
+    };
+
+    assert!(wallet_user.instruction_challenge.is_some());
 }
 
 #[tokio::test]
