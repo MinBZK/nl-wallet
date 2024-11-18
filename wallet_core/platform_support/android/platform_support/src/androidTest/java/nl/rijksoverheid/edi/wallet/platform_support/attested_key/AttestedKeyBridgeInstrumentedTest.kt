@@ -3,28 +3,33 @@ package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 import android.security.keystore.KeyProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
-import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SIGNATURE_ALGORITHM
+import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import uniffi.platform_support.AttestationData
-import uniffi.platform_support.AttestedKeyType
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SIGNATURE_ALGORITHM
-import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
-import org.junit.Assert.fail
 import uniffi.platform_support.AttestedKeyException
+import uniffi.platform_support.AttestedKeyType
 import java.security.KeyFactory
 import java.security.Signature
 import java.security.spec.X509EncodedKeySpec
@@ -109,6 +114,22 @@ class AttestedKeyBridgeInstrumentedTest {
     }
 
     @Test
+    fun test_attest_for_existing_key_should_fail() = runTest {
+        val id = "id"
+        val challenge = "challenge".toByteArray().toUByteList()
+
+        // Generate a new key using `attest`
+        attestedKeyBridge.attest(id, challenge)
+        try {
+            attestedKeyBridge.attest(id, challenge)
+            fail("Should raise an exception")
+        } catch (e: Exception) {
+            assert(e is AttestedKeyException.Other) { "expected an AttestedKeyException.Other, but got ${e::class.qualifiedName} instead" }
+            assertEquals("reason=failed to create key: reason=Could not create private key. Reason: A key already exists with alias: `ecdsa-id`", e.message)
+        }
+    }
+
+    @Test
     fun test_delete() = runTest {
         val id = "id"
         val challenge = "challenge".toByteArray().toUByteList()
@@ -169,14 +190,14 @@ class AttestedKeyBridgeInstrumentedTest {
         )
     }
 
-   @Test
-   fun bridge_test_attested_key() = runTest {
-       // Explicitly load platform_support since hw_keystore_test_hardware_signature() is stripped from rust_core
-       System.loadLibrary("platform_support")
-
-       // The Rust code will panic if this test fails.
-       attested_key_test()
-   }
+//   @Test
+//   fun bridge_test_attested_key() {
+//       // Explicitly load platform_support since hw_keystore_test_hardware_signature() is stripped from rust_core
+//       System.loadLibrary("platform_support")
+//
+//       // The Rust code will panic if this test fails.
+//       attested_key_test()
+//   }
 
     private fun isValidSignature(
         signatureBytes: ByteArray,

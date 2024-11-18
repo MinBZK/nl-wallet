@@ -37,17 +37,26 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             throw AttestedKeyException.AttestationNotSupported()
         }
 
-        val signingKey = createKey(identifier, challenge)
-        val challengeResponse = signingKey.sign(challenge)
-        val certificateChain = signingKey.getCertificateChain()
-            ?.asSequence()
-            ?.map { it.encoded.toUByteList() }
-            ?.toList() ?: throw AttestedKeyException.Other("failed to get Certificate Chain")
+        try {
+            val signingKey = createKey(identifier, challenge)
+            val challengeResponse = signingKey.sign(challenge)
+            val certificateChain = signingKey.getCertificateChain()
+                ?.asSequence()
+                ?.map { it.encoded.toUByteList() }
+                ?.toList() ?: throw AttestedKeyException.Other("failed to get Certificate Chain")
 
-        AttestationData.Google(
-            certificateChain,
-            challengeResponse
-        )
+            AttestationData.Google(
+                certificateChain,
+                challengeResponse
+            )
+        } catch (e: Exception) {
+            when (e) {
+                is AttestedKeyException -> throw e
+                is IllegalStateException -> throw AttestedKeyException.Other("precondition failed: ${e.message}")
+                is KeyStoreException.KeyException -> throw AttestedKeyException.Other("failed to create key: ${e.message}")
+                else -> throw AttestedKeyException.Other("unexpected failure: ${e.message}")
+            }
+        }
     }
 
     @Throws(AttestedKeyException::class)
@@ -92,8 +101,10 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             SigningKey.createKey(context, keyAlias, challenge)
             return SigningKey(keyAlias).takeIf { it.isConsideredValid }!!
         } catch (ex: Exception) {
-            if (ex is KeyStoreException) throw ex
-            throw KeyStoreKeyError.CreateKeyError(ex).keyException
+            throw when (ex) {
+                is KeyStoreException -> ex
+                else -> KeyStoreKeyError.CreateKeyError(ex).keyException
+            }
         }
     }
 

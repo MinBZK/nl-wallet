@@ -27,9 +27,7 @@ abstract class KeyBridge(val context: Context) {
      */
     @Throws(IllegalStateException::class)
     fun verifyDeviceUnlocked() {
-        if (context.isDeviceLocked()) {
-            throw IllegalStateException("Key interaction not allowed while device is locked")
-        }
+        check (!context.isDeviceLocked()) { "Key interaction not allowed while device is locked" }
     }
 
     /**
@@ -37,19 +35,15 @@ abstract class KeyBridge(val context: Context) {
      */
     @Throws(IllegalStateException::class)
     fun verifyKeyDoesNotExist(keyAlias: String) {
-        if (keyExists(keyAlias)) {
-            throw IllegalStateException("A key already exists with alias: `$keyAlias`")
-        }
-    }
+        check (!keyExists(keyAlias)) { "A key already exists with alias: `$keyAlias`" }
+     }
 
     /**
      * Verifies that the keystore does contain a key with [keyAlias].
      */
     @Throws(IllegalStateException::class)
     fun verifyKeyExists(keyAlias: String) {
-        if (!keyExists(keyAlias)) {
-            throw IllegalStateException("Key not found for alias: `$keyAlias`")
-        }
+        check (keyExists(keyAlias)) { "Key not found for alias: `$keyAlias`" }
     }
 
     @Throws(KeyStoreException::class)
@@ -69,3 +63,4 @@ abstract class KeyBridge(val context: Context) {
     protected fun deleteEntry(keyAlias: String) = keyStore.deleteEntry(keyAlias)
 
 }
+
