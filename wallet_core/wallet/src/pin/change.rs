@@ -7,7 +7,6 @@ use serde::Serialize;
 
 use error_category::ErrorCategory;
 use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::jwt::EcdsaDecodingKey;
 use wallet_common::jwt::JwtError;
 
 use crate::errors::InstructionError;
@@ -124,21 +123,16 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
     }
 
     // Perform the same sanity checks as during registration, with the addition of checking the received wallet_id.
-    pub fn validate_certificate(
-        certificate: &WalletCertificate,
-        certificate_public_key: &EcdsaDecodingKey,
-        hw_pubkey: &VerifyingKey,
-        wallet_id: &str,
-    ) -> ChangePinResult<()> {
+    pub fn validate_certificate(&self, certificate: &WalletCertificate) -> ChangePinResult<()> {
         let cert_claims = certificate
-            .parse_and_verify_with_sub(certificate_public_key)
+            .parse_and_verify_with_sub(&self.certificate_public_key.into())
             .map_err(ChangePinError::CertificateValidation)?;
 
-        if &cert_claims.hw_pubkey.0 != hw_pubkey {
+        if &cert_claims.hw_pubkey.0 != self.hw_pubkey {
             return Err(ChangePinError::PublicKeyMismatch);
         }
 
-        if cert_claims.wallet_id != wallet_id {
+        if cert_claims.wallet_id != self.wallet_id {
             return Err(ChangePinError::WalletIdMismatch);
         }
 
@@ -184,13 +178,8 @@ where
             })
             .and_then(|new_pin_certificate| {
                 // If the received certificate does not validate, initiate a rollback of the PIN change.
-                Self::validate_certificate(
-                    &new_pin_certificate,
-                    &self.certificate_public_key.into(),
-                    self.hw_pubkey,
-                    self.wallet_id,
-                )
-                .map_err(|error| (error, true))?;
+                self.validate_certificate(&new_pin_certificate)
+                    .map_err(|error| (error, true))?;
 
                 Ok(new_pin_certificate)
             });
