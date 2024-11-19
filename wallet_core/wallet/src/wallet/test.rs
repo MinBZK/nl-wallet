@@ -20,7 +20,7 @@ use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
-use wallet_common::keys::local::LocalEcdsaKey;
+use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::software::SoftwareEcdsaKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
@@ -137,7 +137,7 @@ pub async fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
 /// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and issuer key.
 pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -> Mdoc {
     let private_key_id = utils::random_string(16);
-    let mdoc_public_key = (&LocalEcdsaKey::new_random(private_key_id.clone())
+    let mdoc_public_key = (&MockRemoteEcdsaKey::new_random(private_key_id.clone())
         .verifying_key()
         .await
         .unwrap())
@@ -147,7 +147,7 @@ pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &Issuer
         .await
         .unwrap();
 
-    Mdoc::new::<LocalEcdsaKey>(
+    Mdoc::new::<MockRemoteEcdsaKey>(
         private_key_id,
         issuer_signed,
         &TimeGenerator,

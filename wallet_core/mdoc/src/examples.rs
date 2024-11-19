@@ -214,7 +214,7 @@ pub fn example_items_requests() -> ItemsRequests {
 pub mod mock {
     use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::local::LocalEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
 
@@ -235,7 +235,7 @@ pub mod mock {
                 .issuer_signed
                 .clone();
 
-            Mdoc::new::<LocalEcdsaKey>(
+            Mdoc::new::<MockRemoteEcdsaKey>(
                 EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,

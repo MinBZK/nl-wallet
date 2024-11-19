@@ -70,7 +70,7 @@ mod tests {
     use rand_core::OsRng;
 
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::keys::local::LocalEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
     use crate::server_keys::KeyPair;
@@ -133,7 +133,7 @@ mod tests {
         assert_eq!(cose_payload.validity_info.valid_until, unsigned.valid_until);
 
         // Construct an mdoc so we can use `compare_unsigned()` to check that the attributes have the expected values
-        let mdoc = Mdoc::new::<LocalEcdsaKey>(
+        let mdoc = Mdoc::new::<MockRemoteEcdsaKey>(
             "key_id_not_used_in_this_test".to_string(),
             issuer_signed,
             &TimeGenerator,

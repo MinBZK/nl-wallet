@@ -25,25 +25,25 @@ use super::SecureEcdsaKey;
 use super::WithIdentifier;
 
 #[derive(Debug, thiserror::Error)]
-pub enum LocalKeyFactoryError {
+pub enum MockRemoteKeyFactoryError {
     #[error("key generation error")]
     Generating,
     #[error("signing error")]
     Signing,
     #[error("ECDSA error: {0}")]
-    Ecdsa(#[source] <LocalEcdsaKey as EcdsaKey>::Error),
+    Ecdsa(#[source] <MockRemoteEcdsaKey as EcdsaKey>::Error),
     #[error("PoA error: {0}")]
     Poa(#[from] PoaError),
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalEcdsaKey {
+pub struct MockRemoteEcdsaKey {
     identifier: String,
     #[debug(skip)]
     key: SigningKey,
 }
 
-impl LocalEcdsaKey {
+impl MockRemoteEcdsaKey {
     pub fn new(identifier: String, key: SigningKey) -> Self {
         Self { identifier, key }
     }
@@ -53,7 +53,7 @@ impl LocalEcdsaKey {
     }
 }
 
-impl EcdsaKey for LocalEcdsaKey {
+impl EcdsaKey for MockRemoteEcdsaKey {
     type Error = p256::ecdsa::Error;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -66,30 +66,30 @@ impl EcdsaKey for LocalEcdsaKey {
         Signer::try_sign(&self.key, msg)
     }
 }
-impl SecureEcdsaKey for LocalEcdsaKey {}
+impl SecureEcdsaKey for MockRemoteEcdsaKey {}
 
-impl WithIdentifier for LocalEcdsaKey {
+impl WithIdentifier for MockRemoteEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
 }
 
-impl CredentialEcdsaKey for LocalEcdsaKey {
-    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Local;
+impl CredentialEcdsaKey for MockRemoteEcdsaKey {
+    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Mock;
 }
 
-/// The [`LocalKeyFactory`] type implements [`KeyFactory`] and has the option
-/// of returning [`LocalKeyFactoryError::Generating`] when generating multiple
-/// keys and [`LocalKeyFactoryError::Signing`] when signing multiple.
+/// The [`MockRemoteKeyFactory`] type implements [`KeyFactory`] and has the option
+/// of returning [`MockRemoteKeyFactoryError::Generating`] when generating multiple
+/// keys and [`MockRemoteKeyFactoryError::Signing`] when signing multiple.
 #[derive(Debug)]
-pub struct LocalKeyFactory {
+pub struct MockRemoteKeyFactory {
     signing_keys: Mutex<HashMap<String, SigningKey>>,
     pub has_generating_error: bool,
     pub has_multi_key_signing_error: bool,
 }
 
-impl LocalKeyFactory {
-    pub fn new(keys: Vec<LocalEcdsaKey>) -> Self {
+impl MockRemoteKeyFactory {
+    pub fn new(keys: Vec<MockRemoteEcdsaKey>) -> Self {
         let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
 
         Self::new_signing_keys(signing_keys)
@@ -104,7 +104,7 @@ impl LocalKeyFactory {
     }
 }
 
-impl Default for LocalKeyFactory {
+impl Default for MockRemoteKeyFactory {
     fn default() -> Self {
         let keys = HashMap::from([
             #[cfg(feature = "examples")]
@@ -120,13 +120,13 @@ impl Default for LocalKeyFactory {
     }
 }
 
-impl KeyFactory for LocalKeyFactory {
-    type Key = LocalEcdsaKey;
-    type Error = LocalKeyFactoryError;
+impl KeyFactory for MockRemoteKeyFactory {
+    type Key = MockRemoteEcdsaKey;
+    type Error = MockRemoteKeyFactoryError;
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
         if self.has_generating_error {
-            return Err(LocalKeyFactoryError::Generating);
+            return Err(MockRemoteKeyFactoryError::Generating);
         }
 
         let identifiers_and_signing_keys =
@@ -142,7 +142,7 @@ impl KeyFactory for LocalKeyFactory {
 
         let keys = identifiers_and_signing_keys
             .into_iter()
-            .map(|(identifer, signing_key)| LocalEcdsaKey::new(identifer, signing_key))
+            .map(|(identifer, signing_key)| MockRemoteEcdsaKey::new(identifer, signing_key))
             .collect();
 
         Ok(keys)
@@ -165,7 +165,7 @@ impl KeyFactory for LocalKeyFactory {
             "called generate_existing() with incorrect public_key"
         );
 
-        LocalEcdsaKey::new(identifier, signing_key)
+        MockRemoteEcdsaKey::new(identifier, signing_key)
     }
 
     async fn sign_with_new_keys(
@@ -176,16 +176,16 @@ impl KeyFactory for LocalKeyFactory {
         let keys = self.generate_new_multiple(number_of_keys).await?;
 
         if self.has_multi_key_signing_error {
-            return Err(LocalKeyFactoryError::Signing);
+            return Err(MockRemoteKeyFactoryError::Signing);
         }
 
         let signatures_by_identifier = future::try_join_all(keys.into_iter().map(|key| async {
             let signature = key
                 .try_sign(msg.as_slice())
                 .await
-                .map_err(LocalKeyFactoryError::Ecdsa)?;
+                .map_err(MockRemoteKeyFactoryError::Ecdsa)?;
 
-            Ok::<_, LocalKeyFactoryError>((key, signature))
+            Ok::<_, MockRemoteKeyFactoryError>((key, signature))
         }))
         .await?
         .into_iter()
@@ -199,7 +199,7 @@ impl KeyFactory for LocalKeyFactory {
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
     ) -> Result<Vec<Vec<Signature>>, Self::Error> {
         if self.has_multi_key_signing_error {
-            return Err(LocalKeyFactoryError::Signing);
+            return Err(MockRemoteKeyFactoryError::Signing);
         }
 
         let result = future::try_join_all(
@@ -207,15 +207,15 @@ impl KeyFactory for LocalKeyFactory {
                 .into_iter()
                 .map(|(msg, keys)| async move {
                     let signatures = future::try_join_all(keys.into_iter().map(|key| async {
-                        let signature = key.try_sign(&msg).await.map_err(LocalKeyFactoryError::Ecdsa)?;
+                        let signature = key.try_sign(&msg).await.map_err(MockRemoteKeyFactoryError::Ecdsa)?;
 
-                        Ok::<_, LocalKeyFactoryError>(signature)
+                        Ok::<_, MockRemoteKeyFactoryError>(signature)
                     }))
                     .await?
                     .into_iter()
                     .collect::<Vec<_>>();
 
-                    Ok::<_, LocalKeyFactoryError>(signatures)
+                    Ok::<_, MockRemoteKeyFactoryError>(signatures)
                 })
                 .collect::<Vec<_>>(),
         )

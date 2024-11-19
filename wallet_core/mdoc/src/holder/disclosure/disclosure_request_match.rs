@@ -197,7 +197,7 @@ mod tests {
     use futures::future;
     use rstest::rstest;
 
-    use wallet_common::keys::local::LocalKeyFactory;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use crate::holder::mock::MockMdocDataSource;
     use crate::iso::mdocs::Attributes;
@@ -243,7 +243,7 @@ mod tests {
         use crate::DeviceRequest;
 
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-        let key_factory = LocalKeyFactory::default();
+        let key_factory = MockRemoteKeyFactory::default();
 
         let mdoc_data_source = MockMdocDataSource::new(
             future::join_all(

@@ -24,8 +24,8 @@ mock_secure_keys = []
 mock_apple_attested_key = ["apple_app_attest/mock", "dep:ciborium", "dep:rand_core"]
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
 software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
-# Include LocalEcdsaKey type and LocalKeyFactory implementation of KeyFactory for testing
-local_key = ["dep:parking_lot", "dep:rand_core"]
+# Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
+mock_remote_key = ["dep:parking_lot", "dep:rand_core"]
 # Enable helper code for integration tests
 integration_test = []
 

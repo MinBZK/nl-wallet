@@ -871,8 +871,8 @@ mod tests {
     use nl_wallet_mdoc::utils::x509::Certificate;
     use nl_wallet_mdoc::IssuerSigned;
     use wallet_common::keys::factory::KeyFactory;
-    use wallet_common::keys::local::LocalEcdsaKey;
-    use wallet_common::keys::local::LocalKeyFactory;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::keys::EcdsaKey;
     use wallet_common::nonempty::NonEmpty;
 
@@ -896,11 +896,11 @@ mod tests {
         CredentialPreview,
         Certificate,
         VerifyingKey,
-        LocalKeyFactory,
+        MockRemoteKeyFactory,
     ) {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-        let key_factory = LocalKeyFactory::default();
+        let key_factory = MockRemoteKeyFactory::default();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
         let preview = CredentialPreview::MsoMdoc {
@@ -1100,7 +1100,7 @@ mod tests {
         }
         .accept_issuance(
             &[((&ca_cert).try_into().unwrap())],
-            LocalKeyFactory::default(),
+            MockRemoteKeyFactory::default(),
             None,
             "https://issuer.example.com".parse().unwrap(),
         )
@@ -1118,7 +1118,7 @@ mod tests {
         let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
 
         let _ = credential_response
-            .into_credential::<LocalEcdsaKey>(
+            .into_credential::<MockRemoteEcdsaKey>(
                 "key_id".to_string(),
                 &mdoc_public_key,
                 &preview,
@@ -1135,7 +1135,7 @@ mod tests {
         // public key than the one contained within the response should fail.
         let other_public_key = *SigningKey::random(&mut OsRng).verifying_key();
         let error = credential_response
-            .into_credential::<LocalEcdsaKey>(
+            .into_credential::<MockRemoteEcdsaKey>(
                 "key_id".to_string(),
                 &other_public_key,
                 &preview,
@@ -1168,7 +1168,7 @@ mod tests {
         };
 
         let error = credential_response
-            .into_credential::<LocalEcdsaKey>(
+            .into_credential::<MockRemoteEcdsaKey>(
                 "key_id".to_string(),
                 &mdoc_public_key,
                 &preview,
@@ -1203,7 +1203,7 @@ mod tests {
         };
 
         let error = credential_response
-            .into_credential::<LocalEcdsaKey>(
+            .into_credential::<MockRemoteEcdsaKey>(
                 "key_id".to_string(),
                 &mdoc_public_key,
                 &preview,
@@ -1221,7 +1221,7 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` that is
         // validated against incorrect trust anchors should fail.
         let error = credential_response
-            .into_credential::<LocalEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[])
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::MdocVerification(_));
@@ -1244,7 +1244,7 @@ mod tests {
         };
 
         let error = credential_response
-            .into_credential::<LocalEcdsaKey>(
+            .into_credential::<MockRemoteEcdsaKey>(
                 "key_id".to_string(),
                 &mdoc_public_key,
                 &preview,

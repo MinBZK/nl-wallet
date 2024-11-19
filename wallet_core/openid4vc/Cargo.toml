@@ -25,7 +25,7 @@ allow_insecure_url = []
 # Include mock implementations for testing
 mock = ["dep:mockall"]
 # Include miscellaneous test utilities
-test = ["wallet_common/local_key", "dep:assert_matches", "dep:parking_lot"]
+test = ["wallet_common/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "test", "dep:ciborium"]
 
@@ -83,4 +83,4 @@ tracing-test.workspace = true
 wiremock.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors", "mock_time"] }
-wallet_common = { path = "../wallet_common", features = ["examples", "local_key"] }
+wallet_common = { path = "../wallet_common", features = ["examples", "mock_remote_key"] }

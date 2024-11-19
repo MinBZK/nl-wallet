@@ -17,7 +17,7 @@ test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include example based constructors to several types for testing
-mock_example_constructors = ["examples", "mock", "wallet_common/examples", "wallet_common/local_key"]
+mock_example_constructors = ["examples", "mock", "wallet_common/examples", "wallet_common/mock_remote_key"]
 # Include MockTimeGenerator, which can be used to mock the curren time for testing purposes
 mock_time = ["dep:parking_lot"]
 
@@ -75,4 +75,4 @@ regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-wallet_common = { path = "../wallet_common", features = ["examples", "mock_secure_keys", "local_key"] }
+wallet_common = { path = "../wallet_common", features = ["examples", "mock_secure_keys", "mock_remote_key"] }

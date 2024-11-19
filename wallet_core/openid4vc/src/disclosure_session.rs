@@ -728,9 +728,9 @@ mod tests {
     use serde_json::json;
 
     use wallet_common::keys::factory::KeyFactory;
-    use wallet_common::keys::local::LocalEcdsaKey;
-    use wallet_common::keys::local::LocalKeyFactory;
-    use wallet_common::keys::local::LocalKeyFactoryError;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
     use wallet_common::keys::poa::Poa;
     use wallet_common::keys::poa::VecAtLeastTwo;
     use wallet_common::utils::random_string;
@@ -835,7 +835,7 @@ mod tests {
             .collect();
 
         let redirect_uri = proposal
-            .disclose(&LocalKeyFactory::default())
+            .disclose(&MockRemoteKeyFactory::default())
             .await
             .expect("Could not disclose DisclosureSession");
 
@@ -1602,20 +1602,20 @@ mod tests {
         /// A mock key factory that just returns errors.
         struct MockKeyFactory;
         impl KeyFactory for MockKeyFactory {
-            type Key = LocalEcdsaKey;
-            type Error = LocalKeyFactoryError;
+            type Key = MockRemoteEcdsaKey;
+            type Error = MockRemoteKeyFactoryError;
 
             fn generate_existing<I: Into<String>>(&self, identifier: I, _: VerifyingKey) -> Self::Key {
                 // Normally this method is expected to return a key whose public key equals the specified
                 // `VerifyingKey`, but for the purposes of this test, it doesn't matter that we don't do so here.
-                LocalEcdsaKey::new(identifier.into(), SigningKey::random(&mut OsRng))
+                MockRemoteEcdsaKey::new(identifier.into(), SigningKey::random(&mut OsRng))
             }
 
             async fn sign_multiple_with_existing_keys(
                 &self,
                 _: Vec<(Vec<u8>, Vec<&Self::Key>)>,
             ) -> Result<Vec<Vec<Signature>>, Self::Error> {
-                Err(LocalKeyFactoryError::Signing)
+                Err(MockRemoteKeyFactoryError::Signing)
             }
 
             async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
@@ -1663,7 +1663,7 @@ mod tests {
             .unwrap();
 
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &LocalKeyFactory::default(), false).await,
+            try_disclose(proposal_session, wallet_messages, &MockRemoteKeyFactory::default(), false).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::AuthResponseEncryption(_)
@@ -1686,7 +1686,7 @@ mod tests {
         });
 
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &LocalKeyFactory::default(), true).await,
+            try_disclose(proposal_session, wallet_messages, &MockRemoteKeyFactory::default(), true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
@@ -1709,7 +1709,7 @@ mod tests {
 
         // No data should have been shared in this case
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &LocalKeyFactory::default(), true).await,
+            try_disclose(proposal_session, wallet_messages, &MockRemoteKeyFactory::default(), true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))

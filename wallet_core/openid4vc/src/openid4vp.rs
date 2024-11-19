@@ -764,8 +764,8 @@ mod tests {
 
     use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::local::LocalEcdsaKey;
-    use wallet_common::keys::local::LocalKeyFactory;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use nl_wallet_mdoc::examples::example_items_requests;
     use nl_wallet_mdoc::examples::Example;
@@ -1039,11 +1039,11 @@ mod tests {
             device_name_spaces_bytes: IndexMap::new().into(),
         }));
         let challenge = cbor_serialize(&device_authentication).unwrap();
-        let key = LocalEcdsaKey::new(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key());
+        let key = MockRemoteEcdsaKey::new(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key());
         let keys_and_challenges = vec![(key, challenge.as_ref())];
 
         // Sign the challenge using the mdoc key
-        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &LocalKeyFactory::default())
+        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &MockRemoteKeyFactory::default())
             .await
             .unwrap()
             .first()
