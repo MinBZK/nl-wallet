@@ -271,8 +271,7 @@ artifacts.
 
 Here is a template/example for the release notes. Make sure you replace `DAY`,
 `MONTH`, `YEAR`, `A.B.C`, `X.Y.Z`, `CONDITIONAL_PRE_RELEASE_WARNING`,
-`OPTIONAL_RELEASE_STORY` and list all `CHANGE` items (tip: can be issue titles
-from the Jira release page):
+`OPTIONAL_RELEASE_STORY`.
 
 ```
 Release date: DAY of MONTH, YEAR
@@ -294,9 +293,8 @@ We have the following artifacts as a part of this release:
 **OPTIONAL_RELEASE_STORY**
 
 ## Changes
-- CHANGE
-- CHANGE
-- CHANGE
+
+See: https://github.com/MinBZK/nl-wallet/blob/vX.Y.Z/documentation/release_notes/vX.Y.Z.md
 ```
 
 Note on `CONDITIONAL_PRE_RELEASE_WARNING`: When you mark this release as a
@@ -309,12 +307,7 @@ Note on `OPTIONAL_RELEASE_STORY`: You can include a paragraph or two here which
 details what is special about this release, highlight some features or good to
 knows, like config-file-format changes, schema changes, etc.
 
-Note about `CHANGE` lines: You can either construct change lines by hand by
-reviewing commits in this release, or (preferably) you can use our Jira release
-page to find the issues in this release and use the Jira issue number and title
-(and optionally an additional information field which concisely describes the
-feature or fix). This probably would involve some scripting or creative copy and
-paste work.
+Note about `CHANGE`: Ensure that this file exists with the proper filename.
 
 After you've created the above release notes for this release, save it somewhere
 so we can use it in the next step where we're going to create the actual GitHub
