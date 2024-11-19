@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Build
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
-import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKeyError
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
 import nl.rijksoverheid.edi.wallet.platform_support.longRunning
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
@@ -43,7 +42,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             val certificateChain = signingKey.getCertificateChain()
                 ?.asSequence()
                 ?.map { it.encoded.toUByteList() }
-                ?.toList() ?: throw AttestedKeyException.Other("failed to get Certificate Chain")
+                ?.toList() ?: throw AttestedKeyException.Other("failed to get certificate chain")
 
             AttestationData.Google(
                 certificateChain,
@@ -52,8 +51,8 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         } catch (e: Exception) {
             when (e) {
                 is AttestedKeyException -> throw e
-                is IllegalStateException -> throw AttestedKeyException.Other("precondition failed: ${e.message}")
                 is KeyStoreException.KeyException -> throw AttestedKeyException.Other("failed to create key: ${e.message}")
+                is java.security.KeyStoreException -> throw AttestedKeyException.Other("failed to get certificate chain: ${e.message}")
                 else -> throw AttestedKeyException.Other("unexpected failure: ${e.message}")
             }
         }
@@ -65,8 +64,8 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             getKey(identifier.keyAlias()).sign(payload)
         } catch (e: Exception) {
             when (e) {
-                is IllegalStateException -> throw AttestedKeyException.Other("precondition failed: ${e.message}")
-                is KeyStoreException.KeyException -> throw AttestedKeyException.Other("failed to obtain public key: ${e.message}")
+                is AttestedKeyException -> throw e
+                is KeyStoreException.KeyException -> throw AttestedKeyException.Other("failed to sign the payload: ${e.message}")
                 else -> throw AttestedKeyException.Other("unexpected failure: ${e.message}")
             }
         }
@@ -77,7 +76,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             getKey(identifier.keyAlias()).publicKey()
         } catch (e: Exception) {
             when (e) {
-                is IllegalStateException -> throw AttestedKeyException.Other("precondition failed: ${e.message}")
+                is AttestedKeyException -> throw e
                 is KeyStoreException.KeyException -> throw AttestedKeyException.Other("failed to obtain public key: ${e.message}")
                 else -> throw AttestedKeyException.Other("unexpected failure: ${e.message}")
             }
@@ -92,7 +91,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         }
     }
 
-    @Throws(KeyStoreException::class, IllegalStateException::class)
+    @Throws(AttestedKeyException::class)
     private fun createKey(identifier: String, challenge: List<UByte>): SigningKey {
         val keyAlias = identifier.keyAlias()
         try {
@@ -100,18 +99,23 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             verifyKeyDoesNotExist(keyAlias)
             SigningKey.createKey(context, keyAlias, challenge)
             return SigningKey(keyAlias).takeIf { it.isConsideredValid }!!
-        } catch (ex: Exception) {
-            throw when (ex) {
-                is KeyStoreException -> ex
-                else -> KeyStoreKeyError.CreateKeyError(ex).keyException
+        } catch (e: Exception) {
+            throw when (e) {
+                is IllegalStateException -> throw AttestedKeyException.Other("precondition failed: ${e.message}")
+                is NullPointerException -> throw AttestedKeyException.Other("generated key is invalid")
+                else -> AttestedKeyException.Other("failed to create key: ${e.message}")
             }
         }
     }
 
-    @Throws(IllegalStateException::class)
+    @Throws(AttestedKeyException::class)
     private fun getKey(keyAlias: String): SigningKey {
-        verifyDeviceUnlocked()
-        verifyKeyExists(keyAlias)
+        try {
+            verifyDeviceUnlocked()
+            verifyKeyExists(keyAlias)
+        } catch (e: IllegalStateException) {
+            throw AttestedKeyException.Other("precondition failed: ${e.message}")
+        }
         return SigningKey(keyAlias)
     }
 

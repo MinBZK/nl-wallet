@@ -3,13 +3,9 @@ package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 import android.security.keystore.KeyProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Runnable
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
@@ -35,7 +31,8 @@ import java.security.Signature
 import java.security.spec.X509EncodedKeySpec
 
 @RunWith(AndroidJUnit4::class)
-@ExperimentalCoroutinesApi
+@DelicateCoroutinesApi // Needed for `newSingleThreadContext`
+@ExperimentalCoroutinesApi // Needed for `newSingleThreadContext`, `Dispatchers.setMain` and `Dispatchers.resetMain`
 class AttestedKeyBridgeInstrumentedTest {
     companion object {
         @JvmStatic
@@ -44,7 +41,6 @@ class AttestedKeyBridgeInstrumentedTest {
 
     private lateinit var attestedKeyBridge: AttestedKeyBridge
 
-    @ExperimentalCoroutinesApi
     private val mainThreadSurrogate = newSingleThreadContext("UI thread")
 
     @Before
@@ -118,14 +114,11 @@ class AttestedKeyBridgeInstrumentedTest {
         val id = "id"
         val challenge = "challenge".toByteArray().toUByteList()
 
-        // Generate a new key using `attest`
         attestedKeyBridge.attest(id, challenge)
-        try {
+        assertFails<AttestedKeyException.Other>(
+            "reason=precondition failed: A key already exists with alias: `ecdsa-id`"
+        ) {
             attestedKeyBridge.attest(id, challenge)
-            fail("Should raise an exception")
-        } catch (e: Exception) {
-            assert(e is AttestedKeyException.Other) { "expected an AttestedKeyException.Other, but got ${e::class.qualifiedName} instead" }
-            assertEquals("reason=failed to create key: reason=Could not create private key. Reason: A key already exists with alias: `ecdsa-id`", e.message)
         }
     }
 
@@ -135,15 +128,8 @@ class AttestedKeyBridgeInstrumentedTest {
         val challenge = "challenge".toByteArray().toUByteList()
 
         // Verify public key for 'id' does not exist
-        try {
+        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa-id`") {
             attestedKeyBridge.publicKey(id)
-            fail("Should raise an exception")
-        } catch (e: AttestedKeyException) {
-            assert(e is AttestedKeyException.Other)
-            assertEquals(
-                "reason=precondition failed: Key not found for alias: `ecdsa-id`",
-                e.message
-            )
         }
 
         // Generate new key via `attest`
@@ -156,16 +142,22 @@ class AttestedKeyBridgeInstrumentedTest {
         attestedKeyBridge.delete(id)
 
         // Verify public key for 'id' does no longer exist
-        try {
+        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa-id`") {
             attestedKeyBridge.publicKey(id)
-            fail("Should raise an exception")
-        } catch (e: AttestedKeyException) {
-            assert(e is AttestedKeyException.Other)
-            assertEquals(
-                "reason=precondition failed: Key not found for alias: `ecdsa-id`",
-                e.message
-            )
         }
+    }
+
+    @Test
+    fun test_delete_should_succeed_when_key_does_not_exist() = runTest {
+        val id = "id"
+
+        // Verify public key for 'id' does not exist
+        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa-id`") {
+            attestedKeyBridge.publicKey(id)
+        }
+
+        // Delete key for 'id'
+        attestedKeyBridge.delete(id)
     }
 
     @Test
@@ -183,11 +175,19 @@ class AttestedKeyBridgeInstrumentedTest {
         // Verify the signature
         assert(
             isValidSignature(
-                signature.toByteArray(),
-                valueToSign.toByteArray(),
-                attestedKeyBridge.publicKey(id).toByteArray()
+                signature.toByteArray(), valueToSign.toByteArray(), attestedKeyBridge.publicKey(id).toByteArray()
             )
         )
+    }
+
+    @Test
+    fun test_sign_should_fail_for_non_existing_key() = runTest {
+        val id = "id"
+        val valueToSign = "value to sign".toByteArray().toUByteList()
+
+        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa-id`") {
+            attestedKeyBridge.sign(id, valueToSign)
+        }
     }
 
 //   @Test
@@ -198,18 +198,38 @@ class AttestedKeyBridgeInstrumentedTest {
 //       // The Rust code will panic if this test fails.
 //       attested_key_test()
 //   }
+}
 
-    private fun isValidSignature(
-        signatureBytes: ByteArray,
-        payload: ByteArray,
-        publicKeyBytes: ByteArray,
-    ): Boolean {
-        val x509EncodedKeySpec = X509EncodedKeySpec(publicKeyBytes)
-        val keyFactory: KeyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_EC)
-        val publicKey = keyFactory.generatePublic(x509EncodedKeySpec)
-        val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
-        signature.initVerify(publicKey)
-        signature.update(payload)
-        return signature.verify(signatureBytes)
+private fun isValidSignature(
+    signatureBytes: ByteArray,
+    payload: ByteArray,
+    publicKeyBytes: ByteArray,
+): Boolean {
+    val x509EncodedKeySpec = X509EncodedKeySpec(publicKeyBytes)
+    val keyFactory: KeyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_EC)
+    val publicKey = keyFactory.generatePublic(x509EncodedKeySpec)
+    val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
+    signature.initVerify(publicKey)
+    signature.update(payload)
+    return signature.verify(signatureBytes)
+}
+
+private suspend inline fun <reified T> assertFails(
+    expectedMessage: String? = null,
+    crossinline block: suspend () -> Unit
+) {
+    runBlocking {
+        try {
+            block()
+            fail("Expected exception, but got none")
+        } catch (e: Exception) {
+            when (e) {
+                is T -> expectedMessage?.let {
+                    assertEquals(it, e.message)
+                }
+
+                else -> fail("Expected exception ${T::class.qualifiedName}, but got ${e::class.qualifiedName}")
+            }
+        }
     }
 }
