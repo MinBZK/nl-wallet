@@ -1,21 +1,78 @@
 #!/usr/bin/env bash
 
 ########################################################################
+# Globals, Includes
+########################################################################
+
+BASE64="openssl base64 -e -A"
+SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+source "${SCRIPTS_DIR}/colors.sh"
+
+########################################################################
 # Colors
 ########################################################################
 
-source "${SCRIPTS_DIR}/colors.sh"
-
 SECTION=${LIGHT_BLUE}
 SUCCESS=${LIGHT_GREEN}
+ERROR=${RED}
 INFO=${PURPLE}
 
 ########################################################################
 # Functions
 ########################################################################
 
+# Is this macOS?
 function is_macos() {
   uname -a | grep -i darwin >/dev/null
+}
+
+# Print to stderr.
+function error() {
+  local msg=$1
+  echo -e "${ERROR}$msg${NC}" 1>&2
+}
+
+# Prints the installable belonging to an `executable` ($1).
+# If $1 is not in known_installables_map, it returns $1.
+function map_installable() {
+
+    local installable=$1
+
+    # Mapping of executables to installable packages in the form:
+    # "<EXECUTABLE>:<INSTALLABLE>".
+    known_installables_map=(
+        "cargo-set-version:cargo-edit"
+        "p11tool:gnutls"
+    )
+
+    for mapping in "${known_installables_map[@]}"; do
+        local key="${mapping%%:*}"
+        local value="${mapping##*:}"
+
+        if [[ "$key" == "$installable" ]]; then
+            installable=("$value")
+        fi
+    done
+
+    echo "${installable[@]}"
+}
+
+# Check if required executables are available on the path.
+function have() {
+    local missing=()
+    for executable in "$@"; do
+        which "$executable" &>/dev/null || missing+=($(map_installable "$executable"))
+    done
+    if [ ${#missing[@]} -eq 0 ]; then
+        return 0
+    else
+        error "Missing required tool(s) to run this: ${missing[*]}"
+        exit 1
+    fi
+}
+
+function base64_url_encode() {
+    ${BASE64} | tr '/+' '_-' | tr -d '=\n';
 }
 
 function detect_softhsm() {
@@ -37,21 +94,9 @@ function detect_softhsm() {
 function check_openssl() {
   if ! openssl version | grep "OpenSSL" > /dev/null
   then
-    echo -e "${RED}ERROR${NC}: Please install an OpenSSL version"
+    error "Please install an actual, real OpenSSL version"
     exit 1
   fi
-}
-
-# Check whether COMMAND exists, and if not echo an error MESSAGE, and exit
-#
-# $1 - COMMAND: Name of the shell command
-# $2 - MESSAGE: Error message to show when COMMAND does not exist
-function expect_command {
-    if ! command -v "$1" > /dev/null
-    then
-        echo -e "${RED}ERROR${NC}: $2"
-        exit 1
-    fi
 }
 
 # Execute envsubst on TEMPLATE and write the result to TARGET
