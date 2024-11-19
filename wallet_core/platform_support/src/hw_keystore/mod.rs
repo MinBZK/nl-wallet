@@ -29,7 +29,7 @@ pub trait PlatformEncryptionKey: StoredByIdentifier + SecureEncryptionKey {
     // from EncryptionKey: encrypt(), decrypt()
 }
 
-#[cfg(feature = "mock")]
+#[cfg(feature = "mock_hw_keystore")]
 mod software {
     use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
     use wallet_common::keys::mock_hardware::MockHardwareEncryptionKey;
