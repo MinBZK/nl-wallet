@@ -1,8 +1,8 @@
-use http::{header::InvalidHeaderValue, HeaderValue};
+use cfg_if::cfg_if;
+use http::header::InvalidHeaderValue;
+use http::HeaderValue;
 use nutype::nutype;
 use serde::Deserialize;
-#[cfg(feature = "axum")]
-use tower_http::cors::AllowOrigin;
 use url::Url;
 
 #[nutype(
@@ -48,10 +48,13 @@ pub struct Origin(Url);
 
 impl Origin {
     fn is_valid(u: &Url) -> bool {
-        #[cfg(feature = "allow_insecure_url")]
-        let allowed_schemes = ["https", "http"];
-        #[cfg(not(feature = "allow_insecure_url"))]
-        let allowed_schemes = ["https"];
+        cfg_if! {
+            if #[cfg(feature = "allow_insecure_url")] {
+                let allowed_schemes = ["https", "http"];
+            } else {
+                let allowed_schemes = ["https"];
+            }
+        }
 
         (allowed_schemes.contains(&u.scheme()))
             && u.has_host()
@@ -84,19 +87,25 @@ pub enum CorsOrigin {
 }
 
 #[cfg(feature = "axum")]
-impl From<CorsOrigin> for AllowOrigin {
-    fn from(value: CorsOrigin) -> Self {
-        match value {
-            CorsOrigin::Origins(allow_origins) => AllowOrigin::list(
-                allow_origins
-                    .into_iter()
-                    .map(|url| {
-                        url.try_into()
-                            .expect("cross_origin base_url should be parseable to header value")
-                    })
-                    .collect::<Vec<_>>(),
-            ),
-            CorsOrigin::Any => AllowOrigin::any(),
+mod axum {
+    use tower_http::cors::AllowOrigin;
+
+    use super::CorsOrigin;
+
+    impl From<CorsOrigin> for AllowOrigin {
+        fn from(value: CorsOrigin) -> Self {
+            match value {
+                CorsOrigin::Origins(allow_origins) => AllowOrigin::list(
+                    allow_origins
+                        .into_iter()
+                        .map(|url| {
+                            url.try_into()
+                                .expect("cross_origin base_url should be parseable to header value")
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+                CorsOrigin::Any => AllowOrigin::any(),
+            }
         }
     }
 }

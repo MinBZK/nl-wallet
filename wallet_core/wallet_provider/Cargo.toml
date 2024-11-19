@@ -31,6 +31,7 @@ hsm_test = ["dep:rand_core", "dep:serial_test"]
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str"] }
 http.workspace = true
 nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }

@@ -1,16 +1,18 @@
-use futures::{try_join, TryFutureExt};
-use serde::{Deserialize, Serialize};
-use serde_with::{base64::Base64, serde_as};
+use futures::try_join;
+use futures::TryFutureExt;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
-use crate::{
-    account::{
-        errors::{Error, Result},
-        serialization::DerVerifyingKey,
-        signed::ChallengeResponse,
-    },
-    jwt::{Jwt, JwtSubject},
-    keys::{EphemeralEcdsaKey, SecureEcdsaKey},
-};
+use crate::account::errors::Error;
+use crate::account::errors::Result;
+use crate::account::serialization::DerVerifyingKey;
+use crate::account::signed::ChallengeResponse;
+use crate::jwt::Jwt;
+use crate::jwt::JwtSubject;
+use crate::keys::EphemeralEcdsaKey;
+use crate::keys::SecureEcdsaKey;
 
 // Registration challenge response
 #[serde_as]
@@ -28,18 +30,18 @@ pub struct Registration {
     pub hw_pubkey: DerVerifyingKey,
 }
 
-impl Registration {
+impl ChallengeResponse<Registration> {
     pub async fn new_signed(
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
         challenge: Vec<u8>,
-    ) -> Result<ChallengeResponse<Registration>> {
+    ) -> Result<Self> {
         let (pin_pubkey, hw_pubkey) = try_join!(
             pin_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
             hw_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
         )?;
 
-        ChallengeResponse::sign(
+        Self::sign_ecdsa(
             Registration {
                 pin_pubkey: pin_pubkey.into(),
                 hw_pubkey: hw_pubkey.into(),
@@ -94,12 +96,12 @@ mod tests {
         let challenge = b"challenge";
 
         // wallet calculates wallet provider registration message
-        let msg = Registration::new_signed(&hw_privkey, &pin_privkey, challenge.to_vec()).await?;
+        let msg = ChallengeResponse::<Registration>::new_signed(&hw_privkey, &pin_privkey, challenge.to_vec()).await?;
 
         let unverified = msg.dangerous_parse_unverified()?;
 
         // wallet provider takes the public keys from the message, and verifies the signatures
-        msg.parse_and_verify(
+        msg.parse_and_verify_ecdsa(
             challenge,
             SequenceNumberComparison::EqualTo(0),
             &unverified.payload.hw_pubkey.0,

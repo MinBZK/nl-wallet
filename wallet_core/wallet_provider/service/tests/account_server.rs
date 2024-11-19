@@ -2,27 +2,29 @@ use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use uuid::Uuid;
 
-use wallet_common::{
-    account::messages::{
-        auth::{Registration, WalletCertificate, WalletCertificateClaims},
-        instructions::{CheckPin, InstructionChallengeRequest},
-    },
-    generator::Generator,
-    keys::{software::SoftwareEcdsaKey, EcdsaKey},
-};
+use wallet_common::account::messages::auth::Registration;
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::account::messages::auth::WalletCertificateClaims;
+use wallet_common::account::messages::instructions::CheckPin;
+use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::account::signed::ChallengeResponse;
+use wallet_common::generator::Generator;
+use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::keys::EcdsaKey;
 use wallet_provider_database_settings::Settings;
-use wallet_provider_domain::{
-    model::{hsm::mock::MockPkcs11Client, wallet_user::WalletUserQueryResult},
-    repository::{PersistenceError, TransactionStarter, WalletUserRepository},
-    EpochGenerator,
-};
-use wallet_provider_persistence::{database::Db, repositories::Repositories};
-use wallet_provider_service::{
-    account_server::{mock, AccountServer},
-    hsm::HsmError,
-    keys::WalletCertificateSigningKey,
-    wallet_certificate,
-};
+use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
+use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
+use wallet_provider_domain::repository::PersistenceError;
+use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletUserRepository;
+use wallet_provider_domain::EpochGenerator;
+use wallet_provider_persistence::database::Db;
+use wallet_provider_persistence::repositories::Repositories;
+use wallet_provider_service::account_server::mock;
+use wallet_provider_service::account_server::AccountServer;
+use wallet_provider_service::hsm::HsmError;
+use wallet_provider_service::keys::WalletCertificateSigningKey;
+use wallet_provider_service::wallet_certificate;
 
 struct UuidGenerator;
 impl Generator<Uuid> for UuidGenerator {
@@ -56,7 +58,7 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
-    let registration_message = Registration::new_signed(hw_privkey, pin_privkey, challenge)
+    let registration_message = ChallengeResponse::<Registration>::new_signed(hw_privkey, pin_privkey, challenge)
         .await
         .expect("Could not sign new registration");
 
@@ -122,9 +124,14 @@ async fn test_instruction_challenge() {
 
     let challenge1 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(1, &hw_privkey, certificate.clone())
-                .await
-                .unwrap(),
+            InstructionChallengeRequest::new_signed::<CheckPin>(
+                cert_data.wallet_id.clone(),
+                1,
+                &hw_privkey,
+                certificate.clone(),
+            )
+            .await
+            .unwrap(),
             &repos,
             &EpochGenerator,
             &hsm,
@@ -136,9 +143,14 @@ async fn test_instruction_challenge() {
 
     let challenge2 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(2, &hw_privkey, certificate)
-                .await
-                .unwrap(),
+            InstructionChallengeRequest::new_signed::<CheckPin>(
+                cert_data.wallet_id.clone(),
+                2,
+                &hw_privkey,
+                certificate,
+            )
+            .await
+            .unwrap(),
             &repos,
             &EpochGenerator,
             &hsm,

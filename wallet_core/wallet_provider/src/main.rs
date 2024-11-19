@@ -3,7 +3,8 @@ use std::error::Error;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use wallet_provider::{server, settings::Settings};
+use wallet_provider::server;
+use wallet_provider::settings::Settings;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

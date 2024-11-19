@@ -1,7 +1,9 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::utils::x509::{CertificateType, MdocCertificateExtension};
+use crate::utils::x509::CertificateType;
+use crate::utils::x509::MdocCertificateExtension;
 
 use super::Organization;
 

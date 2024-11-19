@@ -2,24 +2,23 @@ use p256::ecdsa::VerifyingKey;
 
 use openid4vc::jwt::JwtCredential;
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    account::messages::instructions::{IssueWte, IssueWteResult},
-    utils::random_string,
-};
+use wallet_common::account::messages::instructions::IssueWte;
+use wallet_common::account::messages::instructions::IssueWteResult;
+use wallet_common::utils::random_string;
+use wallet_common::wte::WteClaims;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    instruction::{InstructionClient, RemoteEcdsaKey},
-    storage::Storage,
-    wallet::PidIssuanceError,
-};
+use crate::account_provider::AccountProviderClient;
+use crate::instruction::InstructionClient;
+use crate::instruction::RemoteEcdsaKey;
+use crate::storage::Storage;
+use crate::wallet::PidIssuanceError;
 
 pub trait WteIssuanceClient {
     async fn obtain_wte<S, PEK, APC>(
         &self,
         wte_issuer_pubkey: &VerifyingKey,
         remote_instruction: &InstructionClient<'_, S, PEK, APC>,
-    ) -> Result<JwtCredential, PidIssuanceError>
+    ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
     where
         S: Storage,
         PEK: PlatformEcdsaKey,
@@ -33,7 +32,7 @@ impl WteIssuanceClient for WpWteIssuanceClient {
         &self,
         wte_issuer_pubkey: &VerifyingKey,
         remote_instruction: &InstructionClient<'_, S, PEK, APC>,
-    ) -> Result<JwtCredential, PidIssuanceError>
+    ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
     where
         S: Storage,
         PEK: PlatformEcdsaKey,
@@ -62,15 +61,15 @@ pub(crate) mod tests {
 
     use openid4vc::jwt::JwtCredential;
     use platform_support::hw_keystore::PlatformEcdsaKey;
-    use wallet_common::{
-        keys::{software::SoftwareEcdsaKey, StoredByIdentifier},
-        utils::random_string,
-    };
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::StoredByIdentifier;
+    use wallet_common::utils::random_string;
+    use wallet_common::wte::WteClaims;
 
-    use crate::{
-        account_provider::AccountProviderClient, instruction::InstructionClient, storage::Storage,
-        wallet::PidIssuanceError,
-    };
+    use crate::account_provider::AccountProviderClient;
+    use crate::instruction::InstructionClient;
+    use crate::storage::Storage;
+    use crate::wallet::PidIssuanceError;
 
     use super::WteIssuanceClient;
 
@@ -81,7 +80,7 @@ pub(crate) mod tests {
             &self,
             _pubkey: &VerifyingKey,
             _remote_instruction: &InstructionClient<'_, S, PEK, APC>,
-        ) -> Result<JwtCredential, PidIssuanceError>
+        ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
         where
             S: Storage,
             PEK: PlatformEcdsaKey,

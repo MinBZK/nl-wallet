@@ -1,19 +1,24 @@
-use axum::response::{IntoResponse, Response};
+use axum::response::IntoResponse;
+use axum::response::Response;
+use derive_more::AsRef;
+use derive_more::Display;
+use derive_more::From;
+use derive_more::FromStr;
 use http::StatusCode;
-use nutype::nutype;
 
-use wallet_common::{
-    account::messages::errors::{AccountError, AccountErrorType},
-    http_error::{HttpJsonError, HttpJsonErrorType},
-};
-use wallet_provider_service::{
-    account_server::{ChallengeError, InstructionError, RegistrationError, WalletCertificateError},
-    hsm::HsmError,
-    wte_issuer::HsmWteIssuerError,
-};
+use wallet_common::account::messages::errors::AccountError;
+use wallet_common::account::messages::errors::AccountErrorType;
+use wallet_common::http_error::HttpJsonError;
+use wallet_common::http_error::HttpJsonErrorType;
+use wallet_provider_service::account_server::ChallengeError;
+use wallet_provider_service::account_server::InstructionError;
+use wallet_provider_service::account_server::RegistrationError;
+use wallet_provider_service::account_server::WalletCertificateError;
+use wallet_provider_service::hsm::HsmError;
+use wallet_provider_service::wte_issuer::HsmWteIssuerError;
 
 // Make a newtype to circumvent the orphan rule.
-#[nutype(derive(Debug, Clone, From, AsRef, Display, FromStr))]
+#[derive(Debug, Clone, From, AsRef, Display, FromStr)]
 pub struct WalletProviderErrorType(AccountErrorType);
 
 #[derive(Debug, thiserror::Error)]

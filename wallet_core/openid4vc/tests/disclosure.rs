@@ -1,56 +1,72 @@
-use std::{
-    collections::{HashMap, HashSet},
-    convert::Infallible,
-    num::NonZeroU8,
-    str::FromStr,
-    sync::Arc,
-};
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::convert::Infallible;
+use std::num::NonZeroU8;
+use std::str::FromStr;
+use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use chrono::Utc;
 use futures::future;
 use itertools::Itertools;
-use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
-use ring::{hmac, rand};
+use josekit::jwk::alg::ec::EcCurve;
+use josekit::jwk::alg::ec::EcKeyPair;
+use ring::hmac;
+use ring::rand;
 use rstest::rstest;
 
-use nl_wallet_mdoc::{
-    examples::{example_items_requests, IsoCertTimeGenerator},
-    holder::{
-        mock::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, Mdoc, MdocDataSource, StoredMdoc,
-        TrustAnchor,
-    },
-    server_keys::KeyPair,
-    test::{
-        data::{addr_street, pid_full_name, pid_given_name},
-        TestDocuments,
-    },
-    utils::reader_auth::ReaderRegistration,
-    verifier::ItemsRequests,
-    DeviceResponse, DocType, SessionTranscript,
-};
-use openid4vc::{
-    credential::MdocCopies,
-    disclosure_session::{
-        DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
-    },
-    jwt,
-    openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
-    return_url::ReturnUrlTemplate,
-    server_state::{MemorySessionStore, SessionToken},
-    verifier::{
-        DisclosedAttributesError, DisclosureData, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase, Verifier,
-        VerifierUrlParameters, VpToken, WalletAuthResponse,
-    },
-    ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
-};
-use wallet_common::{
-    generator::TimeGenerator,
-    jwt::Jwt,
-    keys::{examples::Examples, software_key_factory::SoftwareKeyFactory},
-    trust_anchor::OwnedTrustAnchor,
-    urls::BaseUrl,
-};
+use nl_wallet_mdoc::examples::example_items_requests;
+use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
+use nl_wallet_mdoc::holder::mock::MockMdocDataSource as IsoMockMdocDataSource;
+use nl_wallet_mdoc::holder::DisclosureRequestMatch;
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::holder::MdocDataSource;
+use nl_wallet_mdoc::holder::StoredMdoc;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::test::data::addr_street;
+use nl_wallet_mdoc::test::data::pid_full_name;
+use nl_wallet_mdoc::test::data::pid_given_name;
+use nl_wallet_mdoc::test::TestDocuments;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use nl_wallet_mdoc::DeviceResponse;
+use nl_wallet_mdoc::DocType;
+use nl_wallet_mdoc::SessionTranscript;
+use openid4vc::credential::MdocCopies;
+use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::disclosure_session::VpClientError;
+use openid4vc::disclosure_session::VpMessageClient;
+use openid4vc::disclosure_session::VpMessageClientError;
+use openid4vc::jwt;
+use openid4vc::openid4vp::IsoVpAuthorizationRequest;
+use openid4vc::openid4vp::VpAuthorizationRequest;
+use openid4vc::openid4vp::VpAuthorizationResponse;
+use openid4vc::openid4vp::VpRequestUriObject;
+use openid4vc::return_url::ReturnUrlTemplate;
+use openid4vc::server_state::MemorySessionStore;
+use openid4vc::server_state::SessionToken;
+use openid4vc::verifier::DisclosedAttributesError;
+use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::StatusResponse;
+use openid4vc::verifier::UseCase;
+use openid4vc::verifier::Verifier;
+use openid4vc::verifier::VerifierUrlParameters;
+use openid4vc::verifier::VpToken;
+use openid4vc::verifier::WalletAuthResponse;
+use openid4vc::ErrorResponse;
+use openid4vc::GetRequestErrorCode;
+use openid4vc::PostAuthResponseErrorCode;
+use openid4vc::VpAuthorizationErrorCode;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::jwt::Jwt;
+use wallet_common::keys::examples::Examples;
+use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::urls::BaseUrl;
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -761,7 +777,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
-        let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
+        let session_token = path_segments[path_segments.len() - 2].to_owned().into();
 
         let jws = self
             .verifier
@@ -785,7 +801,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
-        let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
+        let session_token = path_segments[path_segments.len() - 2].to_owned().into();
 
         let response = self
             .verifier

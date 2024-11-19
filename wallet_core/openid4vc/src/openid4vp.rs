@@ -1,42 +1,48 @@
 use std::string::FromUtf8Error;
 
 use base64::DecodeError;
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use indexmap::IndexSet;
-use josekit::{
-    jwe::{alg::ecdh_es::EcdhEsJweAlgorithm, JweHeader},
-    jwk::{alg::ec::EcKeyPair, Jwk},
-    jwt::JwtPayload,
-    JoseError,
-};
-use serde::{Deserialize, Serialize};
-use serde_with::{formats::PreferOne, serde_as, skip_serializing_none, OneOrMany};
+use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
+use josekit::jwe::JweHeader;
+use josekit::jwk::alg::ec::EcKeyPair;
+use josekit::jwk::Jwk;
+use josekit::jwt::JwtPayload;
+use josekit::JoseError;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::formats::PreferOne;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    utils::{
-        serialization::CborBase64,
-        x509::{Certificate, CertificateError},
-    },
-    verifier::{DisclosedAttributes, ItemsRequests},
-    DeviceResponse, SessionTranscript,
-};
-use wallet_common::{
-    generator::{Generator, TimeGenerator},
-    jwt::Jwt,
-    urls::BaseUrl,
-    utils::random_string,
-};
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::utils::serialization::CborBase64;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use nl_wallet_mdoc::DeviceResponse;
+use nl_wallet_mdoc::SessionTranscript;
+use wallet_common::generator::Generator;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::jwt::Jwt;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils::random_string;
 
-use crate::{
-    authorization::{AuthorizationRequest, ResponseMode, ResponseType},
-    jwt::{self, JwtX5cError},
-    presentation_exchange::{
-        InputDescriptorMappingObject, PdConversionError, PresentationDefinition, PresentationSubmission, PsError,
-    },
-    Format,
-};
+use crate::authorization::AuthorizationRequest;
+use crate::authorization::ResponseMode;
+use crate::authorization::ResponseType;
+use crate::jwt::JwtX5cError;
+use crate::jwt::{self};
+use crate::presentation_exchange::InputDescriptorMappingObject;
+use crate::presentation_exchange::PdConversionError;
+use crate::presentation_exchange::PresentationDefinition;
+use crate::presentation_exchange::PresentationSubmission;
+use crate::presentation_exchange::PsError;
+use crate::Format;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestError {
@@ -752,25 +758,39 @@ mod tests {
     use std::borrow::Cow;
 
     use indexmap::IndexMap;
-    use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
+    use josekit::jwk::alg::ec::EcCurve;
+    use josekit::jwk::alg::ec::EcKeyPair;
     use serde_json::json;
 
-    use wallet_common::keys::{
-        examples::{Examples, EXAMPLE_KEY_IDENTIFIER},
-        software::SoftwareEcdsaKey,
-        software_key_factory::SoftwareKeyFactory,
-    };
+    use wallet_common::keys::examples::Examples;
+    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
 
-    use nl_wallet_mdoc::{
-        examples::{example_items_requests, Example, IsoCertTimeGenerator, EXAMPLE_DOC_TYPE},
-        server_keys::KeyPair,
-        utils::serialization::{cbor_serialize, CborBase64, CborSeq, TaggedBytes},
-        DeviceAuthenticationKeyed, DeviceResponse, DeviceResponseVersion, DeviceSigned, Document, SessionTranscript,
-    };
+    use nl_wallet_mdoc::examples::example_items_requests;
+    use nl_wallet_mdoc::examples::Example;
+    use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
+    use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::utils::serialization::cbor_serialize;
+    use nl_wallet_mdoc::utils::serialization::CborBase64;
+    use nl_wallet_mdoc::utils::serialization::CborSeq;
+    use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+    use nl_wallet_mdoc::DeviceAuthenticationKeyed;
+    use nl_wallet_mdoc::DeviceResponse;
+    use nl_wallet_mdoc::DeviceResponseVersion;
+    use nl_wallet_mdoc::DeviceSigned;
+    use nl_wallet_mdoc::Document;
+    use nl_wallet_mdoc::SessionTranscript;
 
-    use crate::{openid4vp::IsoVpAuthorizationRequest, AuthorizationErrorCode, VpAuthorizationErrorCode};
+    use crate::openid4vp::IsoVpAuthorizationRequest;
+    use crate::AuthorizationErrorCode;
+    use crate::VpAuthorizationErrorCode;
 
-    use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
+    use super::jwt;
+    use super::VerifiablePresentation;
+    use super::VpAuthorizationRequest;
+    use super::VpAuthorizationResponse;
 
     #[test]
     fn test_vp_authorization_error_code_serialization() {

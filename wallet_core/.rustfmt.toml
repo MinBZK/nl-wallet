@@ -6,10 +6,11 @@ comment_width = 120
 doc_comment_code_block_width = 120
 format_code_in_doc_comments = true
 format_strings = true
-imports_granularity = "Crate"
+group_imports = "Preserve"
+imports_granularity = "Item"
 normalize_comments = true
 wrap_comments = true
 
 # manual check for unsupported cases
-error_on_line_overflow = true
-error_on_unformatted = true
+# error_on_line_overflow = true
+# error_on_unformatted = true

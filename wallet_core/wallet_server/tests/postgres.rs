@@ -1,21 +1,28 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use parking_lot::RwLock;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use serial_test::{parallel, serial};
+use serial_test::parallel;
+use serial_test::serial;
 
 use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
-use openid4vc::server_state::{
-    test::{self, RandomData},
-    Expirable, HasProgress, Progress, SessionStoreTimeouts,
-};
+use openid4vc::server_state::test::RandomData;
+use openid4vc::server_state::test::{self};
+use openid4vc::server_state::Expirable;
+use openid4vc::server_state::HasProgress;
+use openid4vc::server_state::Progress;
+use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::utils;
-use wallet_server::{
-    settings::{Settings, Storage},
-    store::{postgres::PostgresSessionStore, SessionDataType},
-};
+use wallet_server::settings::Settings;
+use wallet_server::settings::Storage;
+use wallet_server::store::postgres::PostgresSessionStore;
+use wallet_server::store::postgres::PostgresWteTracker;
+use wallet_server::store::postgres::{self};
+use wallet_server::store::SessionDataType;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,9 +92,7 @@ async fn postgres_session_store() -> PostgresSessionStore {
     let storage_settings = storage_settings();
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
-    PostgresSessionStore::try_new(storage_settings.url, timeouts)
-        .await
-        .unwrap()
+    PostgresSessionStore::new(postgres::new_connection(storage_settings.url).await.unwrap(), timeouts)
 }
 
 type SessionStoreWithMockTime = (PostgresSessionStore<MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>);
@@ -99,9 +104,11 @@ async fn postgres_session_store_with_mock_time() -> SessionStoreWithMockTime {
     let storage_settings = storage_settings();
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
-    let session_store = PostgresSessionStore::try_new_with_time(storage_settings.url, timeouts, time_generator)
-        .await
-        .unwrap();
+    let session_store = PostgresSessionStore::new_with_time(
+        postgres::new_connection(storage_settings.url).await.unwrap(),
+        timeouts,
+        time_generator,
+    );
 
     (session_store, mock_time)
 }
@@ -112,6 +119,19 @@ async fn test_get_write() {
     let session_store = postgres_session_store().await;
 
     test::test_session_store_get_write::<MockSessionData>(&session_store).await;
+}
+
+#[tokio::test]
+async fn test_wte_tracker() {
+    let time_generator = MockTimeGenerator::default();
+    let mock_time = Arc::clone(&time_generator.time);
+
+    let wte_tracker = PostgresWteTracker::new_with_time(
+        postgres::new_connection(storage_settings().url).await.unwrap(),
+        time_generator,
+    );
+
+    test::test_wte_tracker(&wte_tracker, mock_time.as_ref()).await;
 }
 
 #[tokio::test]

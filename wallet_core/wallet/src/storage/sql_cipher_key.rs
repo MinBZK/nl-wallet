@@ -1,4 +1,5 @@
-use std::{array::TryFromSliceError, fmt::Write};
+use std::array::TryFromSliceError;
+use std::fmt::Write;
 
 // Utility function for converting bytes to uppercase hex.
 fn bytes_to_hex(bytes: &[u8]) -> String {

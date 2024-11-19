@@ -1,23 +1,28 @@
-use std::{
-    any::TypeId,
-    collections::{HashMap, HashSet},
-    sync::LazyLock,
-};
+use std::any::TypeId;
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::sync::LazyLock;
 
-use p256::{
-    ecdsa::{Signature, VerifyingKey},
-    pkcs8::DecodePublicKey,
-};
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
 use parking_lot::Mutex;
 
-use wallet_common::{
-    keys::{EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier, WithIdentifier},
-    spawn,
-};
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::EncryptionKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::SecureEncryptionKey;
+use wallet_common::keys::StoredByIdentifier;
+use wallet_common::keys::WithIdentifier;
+use wallet_common::spawn;
 
-use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge};
+use crate::bridge::hw_keystore::get_encryption_key_bridge;
+use crate::bridge::hw_keystore::get_signing_key_bridge;
 
-use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
+use super::HardwareKeyStoreError;
+use super::KeyStoreError;
+use super::PlatformEcdsaKey;
+use super::PlatformEncryptionKey;
 
 /// A static hash map of sets that contains all the identifiers for which an instance
 /// of that type currently exists within the application, keyed by the type's `TypeId`.

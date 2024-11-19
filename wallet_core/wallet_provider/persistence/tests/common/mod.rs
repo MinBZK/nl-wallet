@@ -1,32 +1,34 @@
 use std::convert::Infallible;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use ctor::ctor;
-use p256::ecdsa::{SigningKey, VerifyingKey};
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
-use sea_orm::{
-    sea_query::{Expr, Query},
-    ColumnTrait, ConnectionTrait, EntityTrait, FromQueryResult, QueryFilter,
-};
+use sea_orm::sea_query::Expr;
+use sea_orm::sea_query::Query;
+use sea_orm::ColumnTrait;
+use sea_orm::ConnectionTrait;
+use sea_orm::EntityTrait;
+use sea_orm::FromQueryResult;
+use sea_orm::QueryFilter;
 use uuid::Uuid;
 
 use wallet_common::utils::random_bytes;
 use wallet_provider_database_settings::Settings;
-use wallet_provider_domain::{
-    model::{
-        encrypted::Encrypted,
-        encrypter::Encrypter,
-        hsm::mock::MockPkcs11Client,
-        wallet_user::{InstructionChallenge, WalletUserCreate},
-    },
-    repository::PersistenceError,
-};
-use wallet_provider_persistence::{
-    database::Db,
-    entity::{wallet_user, wallet_user_instruction_challenge},
-    wallet_user::{create_wallet_user, update_instruction_challenge_and_sequence_number},
-    PersistenceConnection,
-};
+use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::encrypter::Encrypter;
+use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
+use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::WalletUserCreate;
+use wallet_provider_domain::repository::PersistenceError;
+use wallet_provider_persistence::database::Db;
+use wallet_provider_persistence::entity::wallet_user;
+use wallet_provider_persistence::entity::wallet_user_instruction_challenge;
+use wallet_provider_persistence::wallet_user::create_wallet_user;
+use wallet_provider_persistence::wallet_user::update_instruction_challenge_and_sequence_number;
+use wallet_provider_persistence::PersistenceConnection;
 
 #[ctor]
 fn init_logging() {

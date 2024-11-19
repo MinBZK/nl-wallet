@@ -2,18 +2,25 @@ use std::collections::HashMap;
 
 use indexmap::IndexSet;
 
-use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::wte::WteClaims;
 
 use nl_wallet_mdoc::holder::TrustAnchor;
 use wallet_common::urls::BaseUrl;
 
-use crate::{
-    issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies},
-    jwt::JwtCredential,
-    metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
-    oidc::Config,
-    token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
-};
+use crate::issuance_session::HttpVcMessageClient;
+use crate::issuance_session::IssuanceSession;
+use crate::issuance_session::IssuanceSessionError;
+use crate::issuance_session::IssuedCredentialCopies;
+use crate::jwt::JwtCredential;
+use crate::metadata::CredentialResponseEncryption;
+use crate::metadata::IssuerData;
+use crate::metadata::IssuerMetadata;
+use crate::oidc::Config;
+use crate::token::CredentialPreview;
+use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
 
 // We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
 // traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
@@ -49,7 +56,7 @@ impl IssuanceSession for MockIssuanceSession {
         &self,
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
-        _: Option<JwtCredential>,
+        _: Option<JwtCredential<WteClaims>>,
         _: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         self.accept()

@@ -1,13 +1,15 @@
-use std::{
-    future::Future,
-    path::{Path, PathBuf},
-};
+use std::future::Future;
+use std::path::Path;
+use std::path::PathBuf;
 
-use aes_gcm::{
-    aead::{Aead, Nonce},
-    AeadCore, Aes256Gcm, Key, KeyInit,
-};
-use hmac::{Hmac, Mac};
+use aes_gcm::aead::Aead;
+use aes_gcm::aead::Nonce;
+use aes_gcm::AeadCore;
+use aes_gcm::Aes256Gcm;
+use aes_gcm::Key;
+use aes_gcm::KeyInit;
+use hmac::Hmac;
+use hmac::Mac;
 use rand_core::OsRng;
 use sha2::Sha256;
 use tokio::fs::DirEntry;
@@ -123,12 +125,13 @@ pub fn verify_name(name: &str, authentication_code: &str, hmac_key: &Key<HmacSha
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::utils::{random_bytes, random_string};
+    use wallet_common::utils::random_bytes;
+    use wallet_common::utils::random_string;
 
-    use crate::{
-        gba::encryption::{name_to_encoded_hash, verify_name, HmacSha256},
-        settings::SymmetricKey,
-    };
+    use crate::gba::encryption::name_to_encoded_hash;
+    use crate::gba::encryption::verify_name;
+    use crate::gba::encryption::HmacSha256;
+    use crate::settings::SymmetricKey;
 
     #[test]
     fn encode_to_hash_and_verify() {

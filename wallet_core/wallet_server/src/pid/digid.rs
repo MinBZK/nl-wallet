@@ -1,16 +1,20 @@
 use reqwest::Certificate;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use openid4vc::{
-    oidc::{
-        self,
-        alg::rsaes::{RsaesJweAlgorithm, RsaesJweDecrypter},
-        enc::aescbc_hmac::AescbcHmacJweEncryption,
-        BiscuitError, Empty, JoseError, OidcError, SignatureAlgorithm, JWT,
-    },
-    token::TokenRequest,
-};
-use wallet_common::{reqwest::trusted_reqwest_client_builder, urls::BaseUrl};
+use openid4vc::oidc::alg::rsaes::RsaesJweAlgorithm;
+use openid4vc::oidc::alg::rsaes::RsaesJweDecrypter;
+use openid4vc::oidc::enc::aescbc_hmac::AescbcHmacJweEncryption;
+use openid4vc::oidc::BiscuitError;
+use openid4vc::oidc::Empty;
+use openid4vc::oidc::JoseError;
+use openid4vc::oidc::OidcError;
+use openid4vc::oidc::SignatureAlgorithm;
+use openid4vc::oidc::JWT;
+use openid4vc::oidc::{self};
+use openid4vc::token::TokenRequest;
+use wallet_common::reqwest::trusted_reqwest_client_builder;
+use wallet_common::urls::BaseUrl;
 
 #[derive(Serialize, Deserialize)]
 struct UserInfo {

@@ -1,7 +1,9 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use sea_orm::entity::prelude::*;
 
-use crate::{history_doc_type, issuance_history_event_doc_type};
+use crate::history_doc_type;
+use crate::issuance_history_event_doc_type;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "issuance_history_event")]

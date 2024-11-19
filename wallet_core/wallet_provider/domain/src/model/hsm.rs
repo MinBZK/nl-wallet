@@ -1,9 +1,13 @@
-use std::{error::Error, sync::Arc};
+use std::error::Error;
+use std::sync::Arc;
 
 use futures::future;
-use p256::ecdsa::{Signature, VerifyingKey};
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 
-use crate::model::{encrypted::Encrypted, wallet_user::WalletId, wrapped_key::WrappedKey};
+use crate::model::encrypted::Encrypted;
+use crate::model::wallet_user::WalletId;
+use crate::model::wrapped_key::WrappedKey;
 
 pub fn key_identifier(prefix: &str, identifier: &str) -> String {
     format!("{prefix}_{identifier}")
@@ -73,23 +77,32 @@ pub trait Hsm {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use std::{error::Error, marker::PhantomData, sync::Arc};
+    use std::error::Error;
+    use std::marker::PhantomData;
+    use std::sync::Arc;
 
     use dashmap::DashMap;
-    use hmac::{digest::MacError, Hmac, Mac};
-    use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+    use hmac::digest::MacError;
+    use hmac::Hmac;
+    use hmac::Mac;
+    use p256::ecdsa::signature::Signer;
+    use p256::ecdsa::Signature;
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use rand::rngs::OsRng;
     use sha2::Sha256;
 
     use wallet_common::utils::random_bytes;
 
-    use crate::model::{
-        encrypted::{Encrypted, InitializationVector},
-        encrypter::{Decrypter, Encrypter},
-        hsm::{key_identifier, Hsm, WalletUserHsm},
-        wallet_user::WalletId,
-        wrapped_key::WrappedKey,
-    };
+    use crate::model::encrypted::Encrypted;
+    use crate::model::encrypted::InitializationVector;
+    use crate::model::encrypter::Decrypter;
+    use crate::model::encrypter::Encrypter;
+    use crate::model::hsm::key_identifier;
+    use crate::model::hsm::Hsm;
+    use crate::model::hsm::WalletUserHsm;
+    use crate::model::wallet_user::WalletId;
+    use crate::model::wrapped_key::WrappedKey;
 
     type HmacSha256 = Hmac<Sha256>;
 

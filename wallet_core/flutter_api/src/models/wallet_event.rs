@@ -1,9 +1,14 @@
-use wallet::{EventStatus, HistoryEvent};
+use wallet::EventStatus;
+use wallet::HistoryEvent;
 
-use crate::models::{
-    card::{Card, LocalizedString},
-    disclosure::{DisclosureCard, DisclosureStatus, DisclosureType, Organization, RPLocalizedStrings, RequestPolicy},
-};
+use crate::models::card::Card;
+use crate::models::card::LocalizedString;
+use crate::models::disclosure::DisclosureCard;
+use crate::models::disclosure::DisclosureStatus;
+use crate::models::disclosure::DisclosureType;
+use crate::models::disclosure::Organization;
+use crate::models::disclosure::RPLocalizedStrings;
+use crate::models::disclosure::RequestPolicy;
 
 pub enum WalletEvent {
     Disclosure {

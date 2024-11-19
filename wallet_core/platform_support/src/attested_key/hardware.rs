@@ -1,29 +1,37 @@
 use derive_more::Debug;
-use p256::{
-    ecdsa::{Signature, VerifyingKey},
-    pkcs8::DecodePublicKey,
-};
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
 
-use wallet_common::keys::{EcdsaKey, SecureEcdsaKey};
+use wallet_common::apple::AppleAssertion;
+use wallet_common::apple::AppleAttestedKey;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
 
-use crate::bridge::attested_key::{get_attested_key_bridge, AttestationData, AttestedKeyBridge, AttestedKeyType};
+use crate::bridge::attested_key::get_attested_key_bridge;
+use crate::bridge::attested_key::AttestationData;
+use crate::bridge::attested_key::AttestedKeyBridge;
+use crate::bridge::attested_key::AttestedKeyType;
 
 pub use crate::bridge::attested_key::AttestedKeyError;
 
-use super::{
-    AppleAssertion, AppleAttestedKey, AttestationError, AttestedKey, AttestedKeyHolder, GoogleAttestedKey,
-    KeyWithAttestation,
-};
+use super::AttestationError;
+use super::AttestedKey;
+use super::AttestedKeyHolder;
+use super::GoogleAttestedKey;
+use super::KeyWithAttestation;
 
 use key::HardwareAttestedKey;
 
 mod key {
-    use std::{collections::HashSet, sync::LazyLock};
+    use std::collections::HashSet;
+    use std::sync::LazyLock;
 
     use derive_more::Debug;
     use parking_lot::Mutex;
 
-    use crate::bridge::attested_key::{AttestedKeyBridge, AttestedKeyError};
+    use crate::bridge::attested_key::AttestedKeyBridge;
+    use crate::bridge::attested_key::AttestedKeyError;
 
     static UNIQUE_IDENTIFIERS: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
@@ -199,7 +207,7 @@ impl AppleAttestedKey for AppleHardwareAttestedKey {
     async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error> {
         let assertion = self.0.sign(payload).await?;
 
-        Ok(AppleAssertion(assertion))
+        Ok(AppleAssertion::from(assertion))
     }
 }
 

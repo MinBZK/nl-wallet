@@ -1,40 +1,55 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, LazyLock},
-    time::Duration,
-};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::LazyLock;
+use std::time::Duration;
 
-use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use nl_wallet_mdoc::{
-    holder::Mdoc, server_keys::KeyPair, unsigned::UnsignedMdoc, utils::issuer_auth::IssuerRegistration, IssuerSigned,
-};
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    account::messages::auth::{WalletCertificate, WalletCertificateClaims},
-    generator::TimeGenerator,
-    jwt::Jwt,
-    keys::{software::SoftwareEcdsaKey, EcdsaKey, SecureEcdsaKey, StoredByIdentifier, WithIdentifier},
-    trust_anchor::DerTrustAnchor,
-    utils,
-};
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::account::messages::auth::WalletCertificateClaims;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::jwt::Jwt;
+use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::StoredByIdentifier;
+use wallet_common::keys::WithIdentifier;
+use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::utils;
 
-use crate::{
-    account_provider::MockAccountProviderClient,
-    config::{default_configuration, LocalConfigurationRepository, UpdatingConfigurationRepository},
-    disclosure::MockMdocDisclosureSession,
-    document,
-    issuance::MockDigidSession,
-    pin::key as pin_key,
-    storage::{KeyedData, KeyedDataResult, MockStorage, RegistrationData, StorageState},
-    wte::tests::MockWteIssuanceClient,
-    Document, HistoryEvent,
-};
+use crate::account_provider::MockAccountProviderClient;
+use crate::config::default_configuration;
+use crate::config::LocalConfigurationRepository;
+use crate::config::UpdatingConfigurationRepository;
+use crate::disclosure::MockMdocDisclosureSession;
+use crate::document;
+use crate::issuance::MockDigidSession;
+use crate::pin::key as pin_key;
+use crate::storage::KeyedData;
+use crate::storage::KeyedDataResult;
+use crate::storage::MockStorage;
+use crate::storage::RegistrationData;
+use crate::storage::StorageState;
+use crate::wte::tests::MockWteIssuanceClient;
+use crate::Document;
+use crate::HistoryEvent;
 
-use super::{documents::DocumentsError, HistoryError, Wallet, WalletInitError, WalletRegistration};
+use super::documents::DocumentsError;
+use super::HistoryError;
+use super::Wallet;
+use super::WalletInitError;
+use super::WalletRegistration;
 
 static FALLIBLE_KEY_ERRORS: LazyLock<Mutex<HashMap<String, FallibleSoftwareEcdsaKeyErrors>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -269,10 +284,14 @@ impl WalletWithMocks {
     pub async fn new_registered_and_unlocked() -> Self {
         let mut wallet = Self::new_unregistered().await;
 
+        let wallet_certificate = Self::valid_certificate().await;
+        let wallet_id = wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id;
+
         // Generate registration data.
         let registration_data = RegistrationData {
             pin_salt: pin_key::new_pin_salt(),
-            wallet_certificate: Self::valid_certificate().await,
+            wallet_id,
+            wallet_certificate,
         };
 
         // Store the registration in `Storage`, populate the field

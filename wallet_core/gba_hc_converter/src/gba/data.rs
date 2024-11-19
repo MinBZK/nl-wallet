@@ -1,12 +1,14 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
+use std::fmt::Formatter;
 
 use indexmap::IndexMap;
-use quick_xml::{
-    events::Event,
-    name::{Namespace, ResolveResult::Bound},
-    DeError, NsReader,
-};
-use serde::{Deserialize, Deserializer};
+use quick_xml::events::Event;
+use quick_xml::name::Namespace;
+use quick_xml::name::ResolveResult::Bound;
+use quick_xml::DeError;
+use quick_xml::NsReader;
+use serde::Deserialize;
+use serde::Deserializer;
 
 use crate::gba::error::Error;
 

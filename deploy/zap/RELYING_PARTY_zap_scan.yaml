@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "${RELYING_PARTY_URL}"
+    - "${RELYING_PARTY_URL}/"
     includePaths:
-    - "${RELYING_PARTY_URL}.*"
+    - "${RELYING_PARTY_URL}/.*"
     excludePaths: []
     authentication:
       parameters: {}

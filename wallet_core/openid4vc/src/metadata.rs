@@ -1,10 +1,14 @@
 use std::collections::HashMap;
 
-use chrono::{serde::ts_seconds, DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::serde::ts_seconds;
+use chrono::DateTime;
+use chrono::Utc;
+use serde::Deserialize;
+use serde::Serialize;
 
 use serde_with::skip_serializing_none;
-use wallet_common::{jwt::Jwt, urls::BaseUrl};
+use wallet_common::jwt::Jwt;
+use wallet_common::urls::BaseUrl;
 
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.
@@ -362,11 +366,14 @@ pub struct BackgroundImage {
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::metadata::{
-        CredentialMetadata, CredentialSigningAlg, CryptographicBindingMethod, ProofSigningAlg, ProofType,
-    };
+    use crate::metadata::CredentialMetadata;
+    use crate::metadata::CredentialSigningAlg;
+    use crate::metadata::CryptographicBindingMethod;
+    use crate::metadata::ProofSigningAlg;
+    use crate::metadata::ProofType;
 
-    use super::{CredentialFormat, IssuerMetadata};
+    use super::CredentialFormat;
+    use super::IssuerMetadata;
 
     #[test]
     fn deserialize_example() {

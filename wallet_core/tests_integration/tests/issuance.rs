@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use tests_integration::common::*;
-use wallet::{AttributeValue, Document};
+use wallet::AttributeValue;
+use wallet::Document;
 
 #[tokio::test]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

@@ -1,32 +1,41 @@
-use std::{collections::HashMap, marker::PhantomData, str::FromStr, sync::LazyLock};
+use std::collections::HashMap;
+use std::marker::PhantomData;
+use std::str::FromStr;
+use std::sync::LazyLock;
 
 use base64::prelude::*;
-use chrono::{serde::ts_seconds, DateTime, Utc};
-use indexmap::IndexMap;
+use chrono::serde::ts_seconds;
+use chrono::DateTime;
+use chrono::Utc;
 use itertools::Itertools;
-use jsonwebtoken::{
-    jwk::{self, EllipticCurve, Jwk},
-    Algorithm, DecodingKey, Header, Validation,
-};
-use p256::{
-    ecdsa::{signature, VerifyingKey},
-    EncodedPoint,
-};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none};
-use x509_parser::{
-    der_parser::{asn1_rs::BitString, Oid},
-    prelude::FromDer,
-    x509::AlgorithmIdentifier,
-};
+use jsonwebtoken::jwk::EllipticCurve;
+use jsonwebtoken::jwk::Jwk;
+use jsonwebtoken::jwk::{self};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::DecodingKey;
+use jsonwebtoken::Header;
+use jsonwebtoken::Validation;
+use p256::ecdsa::signature;
+use p256::ecdsa::VerifyingKey;
+use p256::EncodedPoint;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use x509_parser::der_parser::asn1_rs::BitString;
+use x509_parser::der_parser::Oid;
+use x509_parser::prelude::FromDer;
+use x509_parser::x509::AlgorithmIdentifier;
 
 use error_category::ErrorCategory;
 
-use crate::{
-    account::serialization::DerVerifyingKey,
-    keys::{factory::KeyFactory, CredentialEcdsaKey, EcdsaKey, SecureEcdsaKey},
-    nonempty::NonEmpty,
-};
+use crate::account::serialization::DerVerifyingKey;
+use crate::keys::factory::KeyFactory;
+use crate::keys::CredentialEcdsaKey;
+use crate::keys::EcdsaKey;
+use crate::keys::SecureEcdsaKey;
+use crate::nonempty::NonEmpty;
 
 /// JWT type, generic over its contents.
 ///
@@ -42,6 +51,34 @@ pub struct Jwt<T>(pub String, PhantomData<T>);
 impl<T, S: Into<String>> From<S> for Jwt<T> {
     fn from(val: S) -> Self {
         Jwt(val.into(), PhantomData)
+    }
+}
+
+/// A verified JWS, along with its header and payload.
+pub struct VerifiedJwt<T> {
+    header: Header,
+    payload: T,
+    jwt: Jwt<T>,
+}
+
+impl<T> VerifiedJwt<T>
+where
+    T: DeserializeOwned,
+{
+    pub fn try_new(jwt: Jwt<T>, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<Self> {
+        let (header, payload) = jwt.parse_and_verify_with_header(pubkey, validation_options)?;
+
+        Ok(Self { header, payload, jwt })
+    }
+
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+    pub fn payload(&self) -> &T {
+        &self.payload
+    }
+    pub fn jwt(&self) -> &Jwt<T> {
+        &self.jwt
     }
 }
 
@@ -145,11 +182,20 @@ where
 {
     /// Verify the JWT, and parse and return its payload.
     pub fn parse_and_verify(&self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<T> {
-        let payload = jsonwebtoken::decode::<T>(&self.0, &pubkey.0, validation_options)
-            .map_err(JwtError::Validation)?
-            .claims;
+        let (_, claims) = self.parse_and_verify_with_header(pubkey, validation_options)?;
 
-        Ok(payload)
+        Ok(claims)
+    }
+
+    pub fn parse_and_verify_with_header(
+        &self,
+        pubkey: &EcdsaDecodingKey,
+        validation_options: &Validation,
+    ) -> Result<(Header, T)> {
+        let payload =
+            jsonwebtoken::decode::<T>(&self.0, &pubkey.0, validation_options).map_err(JwtError::Validation)?;
+
+        Ok((payload.header, payload.claims))
     }
 
     /// Verify a JWT against the `subjectPublicKeyInfo` of a trust anchor.
@@ -312,20 +358,19 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
 
 /// Claims of a `JwtCredential`: the body of the JWT.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialClaims {
+pub struct JwtCredentialClaims<T> {
     #[serde(rename = "cnf")]
     pub confirmation: JwtCredentialConfirmation,
 
     #[serde(flatten)]
-    pub contents: JwtCredentialContents,
+    pub contents: JwtCredentialContents<T>,
 }
 
-impl JwtCredentialClaims {
-    pub fn new(
-        pubkey: &VerifyingKey,
-        iss: String,
-        attributes: IndexMap<String, serde_json::Value>,
-    ) -> Result<Self, JwkConversionError> {
+impl<T> JwtCredentialClaims<T>
+where
+    T: Serialize,
+{
+    pub fn new(pubkey: &VerifyingKey, iss: String, attributes: T) -> Result<Self, JwkConversionError> {
         let claims = Self {
             confirmation: JwtCredentialConfirmation {
                 jwk: jwk_from_p256(pubkey)?,
@@ -341,10 +386,10 @@ impl JwtCredentialClaims {
         issuer_privkey: &impl EcdsaKey,
         iss: String,
         typ: Option<String>,
-        attributes: IndexMap<String, serde_json::Value>,
-    ) -> Result<Jwt<JwtCredentialClaims>, JwtError> {
-        let jwt = Jwt::<JwtCredentialClaims>::sign(
-            &JwtCredentialClaims::new(holder_pubkey, iss, attributes)?,
+        attributes: T,
+    ) -> Result<Jwt<JwtCredentialClaims<T>>, JwtError> {
+        let jwt = Jwt::<JwtCredentialClaims<T>>::sign(
+            &JwtCredentialClaims::<T>::new(holder_pubkey, iss, attributes)?,
             &Header {
                 typ: typ.or(Some("jwt".to_string())),
                 ..Header::new(jsonwebtoken::Algorithm::ES256)
@@ -361,11 +406,11 @@ impl JwtCredentialClaims {
 /// key (`Cnf`): the attributes and metadata of the credential.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialContents {
+pub struct JwtCredentialContents<T> {
     pub iss: String,
 
     #[serde(flatten)]
-    pub attributes: IndexMap<String, serde_json::Value>,
+    pub attributes: T,
 }
 
 /// Contains the holder public key of a `JwtCredential`.
@@ -418,17 +463,24 @@ pub enum JwkConversionError {
 }
 
 pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
-    let point = value.to_encoded_point(false);
     let jwk = Jwk {
         common: Default::default(),
-        algorithm: jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
-            key_type: jwk::EllipticCurveKeyType::EC,
-            curve: jwk::EllipticCurve::P256,
-            x: BASE64_URL_SAFE_NO_PAD.encode(point.x().ok_or(JwkConversionError::MissingCoordinate)?),
-            y: BASE64_URL_SAFE_NO_PAD.encode(point.y().ok_or(JwkConversionError::MissingCoordinate)?),
-        }),
+        algorithm: jwk_alg_from_p256(value)?,
     };
+
     Ok(jwk)
+}
+
+pub fn jwk_alg_from_p256(value: &VerifyingKey) -> Result<jwk::AlgorithmParameters, JwkConversionError> {
+    let point = value.to_encoded_point(false);
+    let alg = jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
+        key_type: jwk::EllipticCurveKeyType::EC,
+        curve: jwk::EllipticCurve::P256,
+        x: BASE64_URL_SAFE_NO_PAD.encode(point.x().ok_or(JwkConversionError::MissingCoordinate)?),
+        y: BASE64_URL_SAFE_NO_PAD.encode(point.y().ok_or(JwkConversionError::MissingCoordinate)?),
+    });
+
+    Ok(alg)
 }
 
 pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
@@ -471,11 +523,13 @@ pub struct JsonJwt<T> {
     pub payload: String,
     #[serde(flatten)]
     pub signatures: JsonJwtSignatures,
-    #[serde(skip, default)]
+    #[serde(skip)]
     _phantomdata: PhantomData<T>,
 }
 
 /// Contains the JWS signatures, supporting both the "general" and "flattened" syntaxes.
+///
+/// The "general" syntax uses `NonEmpty` so this type always contains at least one `JsonJwtSignature`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum JsonJwtSignatures {
@@ -745,6 +799,7 @@ mod tests {
         let json_jwt_one: JsonJwt<_> = NonEmpty::new(vec![jwt.clone()]).unwrap().try_into().unwrap();
         assert_matches!(json_jwt_one.signatures, JsonJwtSignatures::Flattened { .. });
         let serialized = serde_json::to_string(&json_jwt_one).unwrap();
+
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
         assert_matches!(deserialized.signatures, JsonJwtSignatures::Flattened { .. });
 

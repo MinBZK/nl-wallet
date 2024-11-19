@@ -1,12 +1,12 @@
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::io;
+use std::path::Path;
+use std::path::PathBuf;
 
 use tokio::fs;
 
 use error_category::ErrorCategory;
-use wallet_common::{keys::SecureEncryptionKey, utils};
+use wallet_common::keys::SecureEncryptionKey;
+use wallet_common::utils;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -88,11 +88,14 @@ async fn read_encrypted_file(path: &Path, encryption_key: &impl SecureEncryption
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, env};
+    use std::cell::RefCell;
+    use std::env;
 
-    use aes_gcm::{Aes256Gcm, KeyInit};
+    use aes_gcm::Aes256Gcm;
+    use aes_gcm::KeyInit;
     use rand_core::OsRng;
-    use tempfile::{NamedTempFile, TempPath};
+    use tempfile::NamedTempFile;
+    use tempfile::TempPath;
 
     use super::*;
 

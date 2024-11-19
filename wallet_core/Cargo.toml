@@ -30,7 +30,7 @@ exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.3-dev"
 edition = "2021"
 rust-version = "1.80"
 
@@ -43,6 +43,9 @@ expl_impl_clone_on_copy = "warn"
 needless_pass_by_value = "warn"
 redundant_allocation = "warn"
 trivially_copy_pass_by_ref = "warn"
+unnecessary_wraps = "warn"
+unused_async = "warn"
+unused_self = "warn"
 
 [workspace.dependencies]
 accept-language = "3.1.0"

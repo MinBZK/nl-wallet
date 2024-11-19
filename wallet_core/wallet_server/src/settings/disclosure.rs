@@ -1,11 +1,17 @@
 use std::collections::HashMap;
 
+use derive_more::AsRef;
+use derive_more::From;
+use derive_more::IntoIterator;
 use nutype::nutype;
 use ring::hmac;
 use serde::Deserialize;
-use serde_with::{hex::Hex, serde_as};
+use serde_with::hex::Hex;
+use serde_with::serde_as;
 
-use openid4vc::verifier::{SessionTypeReturnUrl, UseCase, UseCases};
+use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::UseCase;
+use openid4vc::verifier::UseCases;
 use wallet_common::urls::CorsOrigin;
 
 use super::*;
@@ -21,7 +27,7 @@ pub struct Verifier {
     pub allow_origins: Option<CorsOrigin>,
 }
 
-#[nutype(derive(Clone, From, Deserialize, Deref, AsRef))]
+#[derive(Clone, From, AsRef, IntoIterator, Deserialize)]
 pub struct VerifierUseCases(HashMap<String, VerifierUseCase>);
 
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
@@ -40,7 +46,6 @@ impl TryFrom<VerifierUseCases> for UseCases {
 
     fn try_from(value: VerifierUseCases) -> Result<Self, Self::Error> {
         let use_cases = value
-            .into_inner()
             .into_iter()
             .map(|(id, use_case)| {
                 let use_case = UseCase::try_from(&use_case)?;

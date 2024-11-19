@@ -1,9 +1,12 @@
-use std::{collections::HashSet, error::Error};
+use std::collections::HashSet;
+use std::error::Error;
 
 use super::Mdoc;
 
 pub use disclosure_request_match::DisclosureRequestMatch;
-pub use proposed_document::{ProposedAttributes, ProposedDocument, ProposedDocumentAttributes};
+pub use proposed_document::ProposedAttributes;
+pub use proposed_document::ProposedDocument;
+pub use proposed_document::ProposedDocumentAttributes;
 
 mod device_signed;
 mod disclosure_request_match;

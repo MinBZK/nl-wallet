@@ -10,6 +10,9 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
 ip = '0.0.0.0'
 port = ${PID_ISSUER_WS_PORT}
 
+[issuer]
+wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
+
 [issuer.digid]
 issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 bsn_privkey = '${BSN_PRIVKEY}'

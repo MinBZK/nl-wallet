@@ -1,9 +1,12 @@
 use std::error::Error;
 
-use tracing::{info, level_filters::LevelFilter};
+use tracing::info;
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use gba_hc_converter::{app, haal_centraal, settings::Settings};
+use gba_hc_converter::app;
+use gba_hc_converter::haal_centraal;
+use gba_hc_converter::settings::Settings;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

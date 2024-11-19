@@ -1,57 +1,70 @@
 use std::collections::VecDeque;
 
 use derive_more::Debug;
-use futures::{
-    future::{try_join_all, OptionFuture},
-    TryFutureExt,
-};
+use futures::future::try_join_all;
+use futures::future::OptionFuture;
+use futures::TryFutureExt;
 use itertools::Itertools;
-use jsonwebtoken::{Algorithm, Header};
-use p256::{
-    ecdsa::{SigningKey, VerifyingKey},
-    elliptic_curve::rand_core::OsRng,
-};
-use reqwest::{
-    header::{ToStrError, AUTHORIZATION},
-    Method,
-};
-use serde::{de::DeserializeOwned, Serialize};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve::rand_core::OsRng;
+use reqwest::header::ToStrError;
+use reqwest::header::AUTHORIZATION;
+use reqwest::Method;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use url::Url;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::{IssuedAttributesMismatch, Mdoc, TrustAnchor},
-    utils::{
-        cose::CoseError,
-        serialization::{CborBase64, CborError, TaggedBytes},
-        x509::CertificateError,
-    },
-    ATTR_RANDOM_LENGTH,
-};
-use wallet_common::{
-    generator::TimeGenerator,
-    jwt::{JwkConversionError, Jwt, JwtError, JwtPopClaims, NL_WALLET_CLIENT_ID},
-    keys::{
-        factory::KeyFactory,
-        poa::{Poa, VecAtLeastTwo},
-        CredentialEcdsaKey,
-    },
-    nonempty::NonEmpty,
-    urls::BaseUrl,
-};
+use nl_wallet_mdoc::holder::IssuedAttributesMismatch;
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::serialization::CborBase64;
+use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::ATTR_RANDOM_LENGTH;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::jwt::JwkConversionError;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtError;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::jwt::NL_WALLET_CLIENT_ID;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::VecAtLeastTwo;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
+use wallet_common::wte::WteClaims;
 
-use crate::{
-    credential::{
-        CredentialCopies, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
-        CredentialResponses, MdocCopies, WteDisclosure,
-    },
-    dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    jwt::{compare_jwt_attributes, JwtCredential, JwtCredentialError},
-    metadata::IssuerMetadata,
-    oidc,
-    token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorResponse, Format, TokenErrorCode,
-};
+use crate::credential::CredentialCopies;
+use crate::credential::CredentialRequest;
+use crate::credential::CredentialRequestProof;
+use crate::credential::CredentialRequests;
+use crate::credential::CredentialResponse;
+use crate::credential::CredentialResponses;
+use crate::credential::MdocCopies;
+use crate::credential::WteDisclosure;
+use crate::dpop::Dpop;
+use crate::dpop::DpopError;
+use crate::dpop::DPOP_HEADER_NAME;
+use crate::dpop::DPOP_NONCE_HEADER_NAME;
+use crate::jwt::JwtCredential;
+use crate::jwt::JwtCredentialError;
+use crate::metadata::IssuerMetadata;
+use crate::oidc;
+use crate::token::AccessToken;
+use crate::token::CredentialPreview;
+use crate::token::TokenRequest;
+use crate::token::TokenResponseWithPreviews;
+use crate::CredentialErrorCode;
+use crate::ErrorResponse;
+use crate::Format;
+use crate::TokenErrorCode;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -123,9 +136,6 @@ pub enum IssuanceSessionError {
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]
     AttributeRandomLength(usize, usize),
-    #[error("unexpected credential format: expected {expected:?}, found {found:?}")]
-    #[category(critical)]
-    UnexpectedCredentialFormat { expected: Format, found: Format },
     #[error("received zero credential copies")]
     #[category(critical)]
     NoCredentialCopies,
@@ -137,7 +147,6 @@ pub enum IssuanceSessionError {
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
     MsoMdoc(Box<Mdoc>),
-    Jwt(JwtCredential),
 }
 
 impl TryFrom<IssuedCredential> for Mdoc {
@@ -146,24 +155,6 @@ impl TryFrom<IssuedCredential> for Mdoc {
     fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
         match value {
             IssuedCredential::MsoMdoc(mdoc) => Ok(*mdoc),
-            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
-                expected: Format::MsoMdoc,
-                found: (&value).into(),
-            }),
-        }
-    }
-}
-
-impl TryFrom<IssuedCredential> for JwtCredential {
-    type Error = IssuanceSessionError;
-
-    fn try_from(value: IssuedCredential) -> Result<Self, Self::Error> {
-        match value {
-            IssuedCredential::Jwt(jwt) => Ok(jwt),
-            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
-                expected: Format::Jwt,
-                found: (&value).into(),
-            }),
         }
     }
 }
@@ -172,7 +163,6 @@ impl From<&IssuedCredential> for Format {
     fn from(value: &IssuedCredential) -> Self {
         match value {
             IssuedCredential::MsoMdoc(_) => Format::MsoMdoc,
-            IssuedCredential::Jwt(_) => Format::Jwt,
         }
     }
 }
@@ -180,14 +170,12 @@ impl From<&IssuedCredential> for Format {
 #[derive(Clone, Debug)]
 pub enum IssuedCredentialCopies {
     MsoMdoc(MdocCopies),
-    Jwt(CredentialCopies<JwtCredential>),
 }
 
 impl IssuedCredentialCopies {
     pub fn len(&self) -> usize {
         match self {
             IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.len(),
-            IssuedCredentialCopies::Jwt(jwts) => jwts.len(),
         }
     }
 
@@ -202,7 +190,6 @@ impl From<&IssuedCredentialCopies> for Format {
     fn from(value: &IssuedCredentialCopies) -> Self {
         match value {
             IssuedCredentialCopies::MsoMdoc(_) => Format::MsoMdoc,
-            IssuedCredentialCopies::Jwt(_) => Format::Jwt,
         }
     }
 }
@@ -213,10 +200,6 @@ impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
     fn try_from(value: &'a IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match &value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
-            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
-                expected: Format::MsoMdoc,
-                found: value.into(),
-            }),
         }
     }
 }
@@ -227,10 +210,6 @@ impl TryFrom<IssuedCredentialCopies> for MdocCopies {
     fn try_from(value: IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match value {
             IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
-            _ => Err(IssuanceSessionError::UnexpectedCredentialFormat {
-                expected: Format::MsoMdoc,
-                found: (&value).into(),
-            }),
         }
     }
 }
@@ -261,7 +240,6 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
         let copies = match creds.first().ok_or(IssuanceSessionError::NoCredentialCopies)? {
             // We can unwrap in these arms because we just checked that we have at least one credential
             IssuedCredential::MsoMdoc(_) => IssuedCredentialCopies::MsoMdoc(NonEmpty::new(creds).unwrap().try_into()?),
-            IssuedCredential::Jwt(_) => IssuedCredentialCopies::Jwt(NonEmpty::new(creds).unwrap().try_into()?),
         };
 
         Ok(copies)
@@ -282,7 +260,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        wte: Option<JwtCredential>,
+        wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
 
@@ -574,7 +552,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        wte: Option<JwtCredential>,
+        wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
@@ -613,11 +591,9 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let (mut wte_disclosure, wte_privkey) = match wte {
             Some(wte) => {
                 let wte_privkey = wte.private_key(&key_factory)?;
-
                 let wte_release =
                     Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
-
-                (Some((wte.jwt, wte_release)), Some(wte_privkey))
+                (Some(WteDisclosure::new(wte.jwt, wte_release)), Some(wte_privkey))
             }
             None => (None, None),
         };
@@ -789,12 +765,7 @@ impl CredentialResponse {
                 credential: issuer_signed,
             } => {
                 let CborBase64(issuer_signed) = *issuer_signed;
-                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview else {
-                    return Err(IssuanceSessionError::UnexpectedCredentialFormat {
-                        expected: Format::MsoMdoc,
-                        found: preview.into(),
-                    });
-                };
+                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
 
                 if issuer_signed
                     .public_key()
@@ -840,30 +811,6 @@ impl CredentialResponse {
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
-            CredentialResponse::Jwt { credential } => {
-                let (cred, cred_claims) =
-                    JwtCredential::new_verify_against_trust_anchors::<K>(key_id, credential, trust_anchors)?;
-
-                let CredentialPreview::Jwt {
-                    claims: expected_claims,
-                    ..
-                } = preview
-                else {
-                    return Err(IssuanceSessionError::UnexpectedCredentialFormat {
-                        expected: Format::Jwt,
-                        found: preview.into(),
-                    });
-                };
-
-                if cred_claims.contents.iss != expected_claims.iss {
-                    return Err(IssuanceSessionError::IssuerMismatch);
-                }
-
-                compare_jwt_attributes(&cred_claims.contents, expected_claims)
-                    .map_err(IssuanceSessionError::IssuedJwtAttributesMismatch)?;
-
-                Ok(IssuedCredential::Jwt(cred))
-            }
         }
     }
 }
@@ -886,27 +833,25 @@ impl IssuanceState {
 }
 
 #[cfg(any(test, feature = "test"))]
-pub async fn mock_wte(key_factory: &impl KeyFactory) -> JwtCredential {
-    use wallet_common::{
-        jwt::JwtCredentialClaims,
-        keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
-    };
+pub async fn mock_wte(key_factory: &impl KeyFactory, privkey: &SigningKey) -> JwtCredential<WteClaims> {
+    use wallet_common::jwt::JwtCredentialClaims;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_common::keys::WithIdentifier;
 
-    // As a shortcut we use this private key both as the cnf in the WTE and as the issuer private key
-    // to sign the WTE with.
-    let privkey = key_factory.generate_new().await.unwrap();
+    let wte_privkey = key_factory.generate_new().await.unwrap();
 
     let wte = JwtCredentialClaims::new_signed(
-        &privkey.verifying_key().await.unwrap(),
-        &privkey,
+        &wte_privkey.verifying_key().await.unwrap(),
+        privkey,
         "iss".to_string(),
         None,
-        Default::default(),
+        WteClaims::new(),
     )
     .await
     .unwrap();
 
-    JwtCredential::new_unverified::<SoftwareEcdsaKey>(privkey.identifier().to_string(), wte)
+    JwtCredential::new_unverified::<SoftwareEcdsaKey>(wte_privkey.identifier().to_string(), wte)
 }
 
 #[cfg(test)]
@@ -915,22 +860,19 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use nl_wallet_mdoc::{
-        server_keys::KeyPair,
-        test::data,
-        unsigned::UnsignedMdoc,
-        utils::{
-            issuer_auth::IssuerRegistration,
-            serialization::{CborBase64, TaggedBytes},
-            x509::Certificate,
-        },
-        IssuerSigned,
-    };
-    use wallet_common::{
-        jwt::JwtCredentialClaims,
-        keys::{factory::KeyFactory, software::SoftwareEcdsaKey, software_key_factory::SoftwareKeyFactory, EcdsaKey},
-        nonempty::NonEmpty,
-    };
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::test::data;
+    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+    use nl_wallet_mdoc::utils::serialization::CborBase64;
+    use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+    use nl_wallet_mdoc::utils::x509::Certificate;
+    use nl_wallet_mdoc::IssuerSigned;
+    use wallet_common::keys::factory::KeyFactory;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_common::nonempty::NonEmpty;
 
     use crate::token::TokenResponse;
 
@@ -1046,7 +988,7 @@ mod tests {
         session_state: &IssuanceState,
         dpop_header: &str,
         access_token_header: &str,
-        attestations: &Option<(Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>)>,
+        attestations: &Option<WteDisclosure>,
         use_wte: bool,
     ) {
         assert_eq!(
@@ -1074,7 +1016,7 @@ mod tests {
     async fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
         let (cred_response, preview, ca_cert, _, key_factory) = create_credential_response().await;
         let wte = if use_wte {
-            Some(mock_wte(&key_factory).await)
+            Some(mock_wte(&key_factory, &SigningKey::random(&mut OsRng)).await)
         } else {
             None
         };
@@ -1221,7 +1163,6 @@ mod tests {
 
                 CredentialResponse::MsoMdoc { credential }
             }
-            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response
@@ -1257,7 +1198,6 @@ mod tests {
                 unsigned_mdoc,
                 issuer: other_issuance_key.certificate().clone(),
             },
-            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response
@@ -1299,7 +1239,6 @@ mod tests {
                 unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
                 issuer,
             },
-            _ => panic!("unexpected credential format"),
         };
 
         let error = credential_response

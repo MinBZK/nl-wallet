@@ -1,18 +1,18 @@
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
+use indexmap::IndexSet;
 
-use wallet_common::keys::{factory::KeyFactory, CredentialEcdsaKey};
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
 
-use crate::{
-    errors::Result,
-    identifiers::AttributeIdentifier,
-    iso::{
-        disclosure::{DeviceSigned, Document, IssuerSigned},
-        mdocs::DocType,
-    },
-    unsigned::Entry,
-    utils::x509::Certificate,
-    NameSpace,
-};
+use crate::errors::Result;
+use crate::identifiers::AttributeIdentifier;
+use crate::iso::disclosure::DeviceSigned;
+use crate::iso::disclosure::Document;
+use crate::iso::disclosure::IssuerSigned;
+use crate::iso::mdocs::DocType;
+use crate::unsigned::Entry;
+use crate::utils::x509::Certificate;
+use crate::NameSpace;
 
 use super::StoredMdoc;
 
@@ -231,18 +231,16 @@ mod tests {
     use assert_matches::assert_matches;
     use coset::Header;
 
-    use wallet_common::keys::{examples::Examples, software_key_factory::SoftwareKeyFactory};
+    use wallet_common::keys::examples::Examples;
+    use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
 
-    use crate::{
-        errors::Error,
-        examples::EXAMPLE_NAMESPACE,
-        holder::Mdoc,
-        iso::disclosure::DeviceAuth,
-        utils::{
-            cose::{self, CoseError},
-            serialization::TaggedBytes,
-        },
-    };
+    use crate::errors::Error;
+    use crate::examples::EXAMPLE_NAMESPACE;
+    use crate::holder::Mdoc;
+    use crate::iso::disclosure::DeviceAuth;
+    use crate::utils::cose::CoseError;
+    use crate::utils::cose::{self};
+    use crate::utils::serialization::TaggedBytes;
 
     use super::*;
 

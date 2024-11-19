@@ -1,22 +1,31 @@
-use std::{borrow::Cow, error::Error};
+use std::borrow::Cow;
+use std::error::Error;
 
-use error_category::{sentry_capture_error, ErrorCategory};
-use tracing::{info, instrument};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
+use tracing::info;
+use tracing::instrument;
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{account::messages::auth::Registration, jwt::JwtError, keys::StoredByIdentifier};
+use wallet_common::account::messages::auth::Registration;
+use wallet_common::account::signed::ChallengeResponse;
+use wallet_common::jwt::JwtError;
+use wallet_common::keys::StoredByIdentifier;
 
-use crate::{
-    account_provider::{AccountProviderClient, AccountProviderError},
-    config::ConfigurationRepository,
-    pin::{
-        key::{self as pin_key, PinKey},
-        validation::{validate_pin, PinValidationError},
-    },
-    storage::{RegistrationData, Storage, StorageError, StorageState},
-};
+use crate::account_provider::AccountProviderClient;
+use crate::account_provider::AccountProviderError;
+use crate::config::ConfigurationRepository;
+use crate::pin::key::PinKey;
+use crate::pin::key::{self as pin_key};
+use crate::pin::validation::validate_pin;
+use crate::pin::validation::PinValidationError;
+use crate::storage::RegistrationData;
+use crate::storage::Storage;
+use crate::storage::StorageError;
+use crate::storage::StorageState;
 
-use super::{Wallet, WalletRegistration};
+use super::Wallet;
+use super::WalletRegistration;
 
 const WALLET_KEY_ID: &str = "wallet";
 
@@ -30,10 +39,9 @@ pub(super) fn wallet_key_id() -> Cow<'static, str> {
 
     #[cfg(any(test, feature = "test"))]
     {
-        use std::{
-            cell::Cell,
-            sync::atomic::{AtomicUsize, Ordering},
-        };
+        use std::cell::Cell;
+        use std::sync::atomic::AtomicUsize;
+        use std::sync::atomic::Ordering;
 
         static WALLET_TEST_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -137,7 +145,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
             .verifying_key()
             .await
             .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
-        let registration_message = Registration::new_signed(&hw_privkey, &pin_key, challenge)
+        let registration_message = ChallengeResponse::<Registration>::new_signed(&hw_privkey, &pin_key, challenge)
             .await
             .map_err(WalletRegistrationError::Signing)?;
 
@@ -170,6 +178,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
         // Save the registration data in storage.
         let data = RegistrationData {
+            wallet_id: cert_claims.wallet_id,
             pin_salt,
             wallet_certificate,
         };
@@ -191,15 +200,18 @@ mod tests {
     use http::StatusCode;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-    use wallet_common::{account::signed::SequenceNumberComparison, jwt::Jwt, utils};
+    use wallet_common::account::signed::SequenceNumberComparison;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::utils;
 
-    use crate::{
-        account_provider::AccountProviderResponseError,
-        storage::{KeyedData, KeyedDataResult},
-        wallet::test::{FallibleSoftwareEcdsaKey, ACCOUNT_SERVER_KEYS},
-    };
+    use crate::account_provider::AccountProviderResponseError;
+    use crate::storage::KeyedData;
+    use crate::storage::KeyedDataResult;
+    use crate::wallet::test::FallibleSoftwareEcdsaKey;
+    use crate::wallet::test::ACCOUNT_SERVER_KEYS;
 
-    use super::{super::test::WalletWithMocks, *};
+    use super::super::test::WalletWithMocks;
+    use super::*;
 
     const PIN: &str = "051097";
 
@@ -240,7 +252,7 @@ mod tests {
                 assert_eq!(registration.challenge, challenge_expected);
 
                 registration_signed
-                    .parse_and_verify(
+                    .parse_and_verify_ecdsa(
                         &registration.challenge,
                         SequenceNumberComparison::EqualTo(0),
                         &registration.payload.hw_pubkey.0,

@@ -1,15 +1,19 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use parking_lot::RwLock;
 use reqwest::Certificate;
 use tracing::info;
 
-use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey, urls::BaseUrl};
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::urls::BaseUrl;
 
-use crate::config::{
-    http_client::HttpConfigurationClient, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
-    UpdateableConfigurationRepository,
-};
+use crate::config::http_client::HttpConfigurationClient;
+use crate::config::ConfigurationError;
+use crate::config::ConfigurationRepository;
+use crate::config::ConfigurationUpdateState;
+use crate::config::UpdateableConfigurationRepository;
 
 pub struct HttpConfigurationRepository {
     client: HttpConfigurationClient,

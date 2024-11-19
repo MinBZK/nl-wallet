@@ -32,3 +32,8 @@ reason = "same finding as RUSTSEC-2024-0363"
 id = "RUSTSEC-2024-0370"
 ignoreUntil = 2024-12-01
 reason = "Unmaintained, but not vulnerable. Should be fixed when sea-orm is upgraded to 1.1.1"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0388"
+ignoreUntil = 2024-12-01
+reason = "Unmaintained, but not vulnerable. Should be fixed when sea-orm is upgraded to 1.1.1"

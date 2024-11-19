@@ -1,17 +1,26 @@
 use futures::future::try_join_all;
 use nutype::nutype;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use nl_wallet_mdoc::{holder::Mdoc, utils::serialization::CborBase64, IssuerSigned};
-use wallet_common::{
-    jwt::{jwk_jwt_header, Jwt, JwtCredentialClaims, JwtPopClaims},
-    keys::{factory::KeyFactory, poa::Poa, CredentialEcdsaKey},
-    nonempty::NonEmpty,
-    urls::BaseUrl,
-};
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::utils::serialization::CborBase64;
+use nl_wallet_mdoc::IssuerSigned;
+use wallet_common::jwt::jwk_jwt_header;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
+use wallet_common::wte::WteClaims;
 
-use crate::{issuance_session::IssuanceSessionError, token::CredentialPreview, Format};
+use crate::issuance_session::IssuanceSessionError;
+use crate::token::CredentialPreview;
+use crate::Format;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
 /// Sent JSON-encoded to `POST /batch_credential`.
@@ -23,7 +32,17 @@ pub struct CredentialRequests {
     pub poa: Option<Poa>,
 }
 
-pub type WteDisclosure = (Jwt<JwtCredentialClaims>, Jwt<JwtPopClaims>);
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WteDisclosure(
+    pub(crate) Jwt<JwtCredentialClaims<WteClaims>>,
+    pub(crate) Jwt<JwtPopClaims>,
+);
+
+impl WteDisclosure {
+    pub fn new(wte: Jwt<JwtCredentialClaims<WteClaims>>, release: Jwt<JwtPopClaims>) -> Self {
+        Self(wte, release)
+    }
+}
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
 /// Sent JSON-encoded to `POST /credential`.
@@ -42,7 +61,6 @@ impl CredentialRequest {
     pub fn credential_type(&self) -> Option<&str> {
         match &self.credential_type {
             CredentialRequestType::MsoMdoc { doctype } => doctype.as_ref().map(String::as_str),
-            CredentialRequestType::Jwt => None,
         }
     }
 }
@@ -51,7 +69,6 @@ impl CredentialRequest {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialRequestType {
     MsoMdoc { doctype: Option<String> },
-    Jwt,
 }
 
 impl From<&CredentialPreview> for CredentialRequestType {
@@ -60,7 +77,6 @@ impl From<&CredentialPreview> for CredentialRequestType {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => CredentialRequestType::MsoMdoc {
                 doctype: Some(unsigned_mdoc.doc_type.clone()),
             },
-            CredentialPreview::Jwt { .. } => CredentialRequestType::Jwt,
         }
     }
 }
@@ -69,7 +85,6 @@ impl From<&CredentialRequestType> for Format {
     fn from(value: &CredentialRequestType) -> Self {
         match value {
             CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
-            CredentialRequestType::Jwt { .. } => Format::Jwt,
         }
     }
 }
@@ -91,14 +106,12 @@ pub struct CredentialResponses {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
     MsoMdoc { credential: Box<CborBase64<IssuerSigned>> },
-    Jwt { credential: Jwt<JwtCredentialClaims> },
 }
 
 impl From<&CredentialResponse> for Format {
     fn from(value: &CredentialResponse) -> Self {
         match value {
             CredentialResponse::MsoMdoc { .. } => Format::MsoMdoc,
-            CredentialResponse::Jwt { .. } => Format::Jwt,
         }
     }
 }

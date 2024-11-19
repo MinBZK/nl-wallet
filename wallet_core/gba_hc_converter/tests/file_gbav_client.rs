@@ -1,13 +1,12 @@
-use gba_hc_converter::{
-    gba::{
-        client::{FileGbavClient, GbavClient},
-        data::GbaResponse,
-        error::Error,
-    },
-    haal_centraal::{Bsn, Element},
-};
+use gba_hc_converter::gba::client::FileGbavClient;
+use gba_hc_converter::gba::client::GbavClient;
+use gba_hc_converter::gba::data::GbaResponse;
+use gba_hc_converter::gba::error::Error;
+use gba_hc_converter::haal_centraal::Bsn;
+use gba_hc_converter::haal_centraal::Element;
 
-use crate::common::{encrypt_xmls, read_file};
+use crate::common::encrypt_xmls;
+use crate::common::read_file;
 
 pub mod common;
 

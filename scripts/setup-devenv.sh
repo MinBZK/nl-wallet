@@ -44,41 +44,35 @@ set -u # warn against undefined variables
 set -o pipefail
 # set -x # echo statements before executing, useful while debugging
 
-SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
-export SCRIPTS_DIR
+########################################################################
+# Globals and includes
+########################################################################
+
+SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 BASE_DIR=$(dirname "${SCRIPTS_DIR}")
-export BASE_DIR
 
 source "${SCRIPTS_DIR}/utils.sh"
 
 ########################################################################
 # Check prerequisites
+########################################################################
 
-expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
-expect_command openssl "Missing binary 'openssl', please install OpenSSL"
-expect_command jq "Missing binary 'jq', please install"
-expect_command tr "Missing binary 'tr', please install"
-expect_command xxd "Missing binary 'xxd', please install"
-if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
-    expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
-fi
-expect_command softhsm2-util "Missing binary 'softhsm2-util', please install softhsm2"
-expect_command p11tool "Missing binary 'p11tool', please install 'gnutls' using Homebrew on macOS or 'gnutls-bin' on Debian/Ubuntu."
-if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
-    expect_command node "Missing binary 'node', please install (e.g. using node version manager: nvm)"
-fi
+# Use gsed on macOS, sed on others
+is_macos && SED="gsed" || SED="sed"
+have cargo jq tr xxd openssl softhsm2-util p11tool ${SED}
+
+# Check if openssl is "real" OpenSSL
 check_openssl
 
-if is_macos
-then
-    expect_command gsed "Missing binary 'gsed', please install gnu-sed"
-    GNUSED="gsed"
-else
-    GNUSED="sed"
+# Only check for docker if we build rdo-max
+if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
+    have docker
 fi
 
-BASE64="openssl base64 -e -A"
-base64_url_encode() { ${BASE64} | tr '/+' '_-' | tr -d '=\n'; }
+# Only check for node if we build wallet_web
+if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
+    have node
+fi
 
 ########################################################################
 # Configuration
@@ -118,6 +112,7 @@ mkdir -p "${TARGET_DIR}/wallet_provider"
 
 ########################################################################
 # Configure digid-connector
+########################################################################
 
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   echo -e "${SECTION}Configure and start digid-connector${NC}"
@@ -174,6 +169,7 @@ fi
 
 ########################################################################
 # Build wallet_web frontend library
+########################################################################
 
 if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     echo
@@ -200,6 +196,7 @@ fi
 
 ########################################################################
 # Configure wallet_server and mock_relying_party
+########################################################################
 
 echo
 echo -e "${SECTION}Configure wallet_server and mock_relying_party${NC}"
@@ -214,6 +211,13 @@ else
 fi
 openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
         -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
+
+# Generate key for WTE signing
+generate_wp_signing_key wte_signing
+WP_WTE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wte_signing.pem"
+export WP_WTE_SIGNING_KEY_PATH
+WP_WTE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wte_signing.pub.der" ${BASE64})
+export WP_WTE_PUBLIC_KEY
 
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
@@ -295,6 +299,7 @@ render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_
 
 ########################################################################
 # Configure wallet_provider
+########################################################################
 
 echo
 echo -e "${SECTION}Configure wallet_provider${NC}"
@@ -304,12 +309,6 @@ WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signi
 export WP_CERTIFICATE_SIGNING_KEY_PATH
 WP_CERTIFICATE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/certificate_signing.pub.der" ${BASE64})
 export WP_CERTIFICATE_PUBLIC_KEY
-
-generate_wp_signing_key wte_signing
-WP_WTE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wte_signing.pem"
-export WP_WTE_SIGNING_KEY_PATH
-WP_WTE_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wte_signing.pub.der" ${BASE64})
-export WP_WTE_PUBLIC_KEY
 
 generate_wp_signing_key instruction_result_signing
 WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/instruction_result_signing.pem"
@@ -332,6 +331,7 @@ render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-co
 
 ########################################################################
 # Configure HSM
+########################################################################
 
 echo
 echo -e "${SECTION}Configure HSM${NC}"
@@ -361,6 +361,7 @@ p11tool --login --write \
 
 ########################################################################
 # Configure configuration-server
+########################################################################
 
 echo
 echo -e "${SECTION}Configure configuration-server${NC}"
@@ -397,8 +398,8 @@ BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
 DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \
   | openssl dgst -sha256 -sign "${TARGET_DIR}/wallet_provider/config_signing.pem" -keyform PEM -binary \
   | openssl asn1parse -inform DER)
-R=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${GNUSED} -n '1s/.*: //p' | ${GNUSED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
-S=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${GNUSED} -n '2s/.*: //p' | ${GNUSED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
+R=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${SED} -n '1s/.*: //p' | ${SED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
+S=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${SED} -n '2s/.*: //p' | ${SED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
 BASE64_JWS_SIGNATURE=$(echo -n "${R}${S}" | xxd -p -r | base64_url_encode)
 
 echo -n "${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}.${BASE64_JWS_SIGNATURE}" > "${TARGET_DIR}/wallet-config-jws-compact.txt"
@@ -415,6 +416,7 @@ cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/con
 
 ########################################################################
 # Configure gba-hc-converter
+########################################################################
 
 echo
 echo -e "${SECTION}Configure gba-hc-converter${NC}"
@@ -427,6 +429,7 @@ encrypt_gba_v_responses
 
 ########################################################################
 # Configure wallet
+########################################################################
 
 echo
 echo -e "${SECTION}Configure wallet${NC}"
@@ -435,6 +438,7 @@ render_template "${DEVENV}/wallet.env.template" "${BASE_DIR}/wallet_core/wallet/
 
 ########################################################################
 # Configure Android Emulator
+########################################################################
 
 if command -v adb > /dev/null
 then
@@ -446,6 +450,7 @@ fi
 
 ########################################################################
 # Done
+########################################################################
 
 echo
 echo -e "${SUCCESS}Setup complete${NC}"

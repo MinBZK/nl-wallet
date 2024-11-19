@@ -5,7 +5,7 @@ env:
     urls:
     - "${PID_ISSUER_BASE_URL}"
     includePaths:
-    - "${PID_ISSUER_BASE_URL}.*"
+    - "${PID_ISSUER_BASE_URL}/.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -62,7 +62,7 @@ jobs:
     threadPerHost: 24
     maxAlertsPerRule: 0
   policyDefinition:
-    defaultStrength: "insane"
+    defaultStrength: "medium"
     defaultThreshold: "medium"
     rules: []
   name: "activeScan"

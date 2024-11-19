@@ -1,8 +1,14 @@
-use std::{env, path::PathBuf, time::Duration};
+use std::env;
+use std::path::PathBuf;
+use std::time::Duration;
 
-use config::{Config, ConfigError, Environment, File};
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
 use serde::Deserialize;
-use serde_with::{serde_as, DurationSeconds};
+use serde_with::serde_as;
+use serde_with::DurationSeconds;
 
 #[derive(Clone, Deserialize)]
 pub struct Settings {

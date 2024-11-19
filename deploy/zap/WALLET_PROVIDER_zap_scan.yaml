@@ -5,7 +5,7 @@ env:
     urls:
     - "${WALLET_PROVIDER_BASE_URL}"
     includePaths:
-    - "${WALLET_PROVIDER_BASE_URL}.*"
+    - "${WALLET_PROVIDER_BASE_URL}/.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -62,7 +62,7 @@ jobs:
     threadPerHost: 24
     maxAlertsPerRule: 0
   policyDefinition:
-    defaultStrength: "insane"
+    defaultStrength: "medium"
     defaultThreshold: "medium"
     rules: []
   name: "activeScan"

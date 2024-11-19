@@ -2,11 +2,12 @@ use tokio::sync::RwLock;
 
 use wallet_common::account::messages::auth::WalletCertificate;
 
-use crate::{
-    errors::StorageError,
-    pin::change::{ChangePinStorage, State},
-    storage::{ChangePinData, RegistrationData, Storage},
-};
+use crate::errors::StorageError;
+use crate::pin::change::ChangePinStorage;
+use crate::pin::change::State;
+use crate::storage::ChangePinData;
+use crate::storage::RegistrationData;
+use crate::storage::Storage;
 
 impl<S> ChangePinStorage for RwLock<S>
 where
@@ -32,12 +33,14 @@ where
 
     async fn change_pin(
         &self,
+        wallet_id: String,
         new_pin_salt: Vec<u8>,
         new_pin_certificate: WalletCertificate,
     ) -> Result<(), StorageError> {
         let mut storage = self.write().await;
         let data = RegistrationData {
             pin_salt: new_pin_salt,
+            wallet_id,
             wallet_certificate: new_pin_certificate,
         };
         storage.upsert_data(&data).await
@@ -48,10 +51,10 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::{
-        pin::change::{ChangePinStorage, State},
-        storage::{MockStorage, StorageState},
-    };
+    use crate::pin::change::ChangePinStorage;
+    use crate::pin::change::State;
+    use crate::storage::MockStorage;
+    use crate::storage::StorageState;
 
     use super::*;
 
@@ -77,7 +80,9 @@ mod tests {
 
         let wallet_certificate = WalletCertificate::from("thisisdefinitelyvalid");
         assert_matches!(
-            change_pin_storage.change_pin(vec![1, 2, 3], wallet_certificate).await,
+            change_pin_storage
+                .change_pin("wallet_123".to_string(), vec![1, 2, 3], wallet_certificate)
+                .await,
             Ok(())
         );
 

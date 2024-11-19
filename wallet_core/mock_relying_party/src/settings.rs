@@ -1,11 +1,18 @@
-use std::{env, net::IpAddr, path::PathBuf};
+use std::env;
+use std::net::IpAddr;
+use std::path::PathBuf;
 
-use config::{Config, ConfigError, Environment, File};
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 use nl_wallet_mdoc::verifier::ItemsRequests;
-use wallet_common::urls::{BaseUrl, CorsOrigin};
+use wallet_common::urls::BaseUrl;
+use wallet_common::urls::CorsOrigin;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {

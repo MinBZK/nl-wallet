@@ -1,10 +1,16 @@
-use std::{error::Error, sync::LazyLock, time::Duration};
+use std::error::Error;
+use std::sync::LazyLock;
+use std::time::Duration;
 
 use base64::prelude::*;
 use http::header;
 use mime::Mime;
-use reqwest::{Certificate, Client, ClientBuilder, Response};
-use serde::{Deserialize, Deserializer};
+use reqwest::Certificate;
+use reqwest::Client;
+use reqwest::ClientBuilder;
+use reqwest::Response;
+use serde::Deserialize;
+use serde::Deserializer;
 
 use crate::http_error::APPLICATION_PROBLEM_JSON;
 

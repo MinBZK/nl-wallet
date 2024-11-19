@@ -1,9 +1,15 @@
-use std::{io, path::PathBuf};
+use std::io;
+use std::path::PathBuf;
 
-use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
+use sea_orm::ConnectOptions;
+use sea_orm::ConnectionTrait;
+use sea_orm::DatabaseConnection;
+use sea_orm::DbErr;
+use sea_orm::TransactionTrait;
 use tokio::fs;
 
-use migration::{Migrator, MigratorTrait};
+use migration::Migrator;
+use migration::MigratorTrait;
 use tracing::log::LevelFilter;
 
 use super::sql_cipher_key::SqlCipherKey;
@@ -104,7 +110,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_raw_sql_database() {
-        use sea_orm::{Statement, Value};
+        use sea_orm::Statement;
+        use sea_orm::Value;
 
         #[derive(Debug, PartialEq, Eq)]
         struct Person {
@@ -184,8 +191,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_entities_database() {
-        use sea_orm::{prelude::*, Set};
-        use serde::{Deserialize, Serialize};
+        use sea_orm::prelude::*;
+        use sea_orm::Set;
+        use serde::Deserialize;
+        use serde::Serialize;
 
         use entity::keyed_data;
 
