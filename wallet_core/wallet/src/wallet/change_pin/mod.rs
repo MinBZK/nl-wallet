@@ -9,8 +9,9 @@ use wallet_common::account::serialization::DerVerifyingKey;
 use crate::account_provider::AccountProviderClient;
 use crate::config::ConfigurationRepository;
 use crate::instruction::InstructionClientFactory;
+use crate::pin::change::BeginChangePinOperation;
 use crate::pin::change::ChangePinError;
-use crate::pin::change::ChangePinSession;
+use crate::pin::change::FinishChangePinOperation;
 use crate::storage::Storage;
 use crate::Wallet;
 
@@ -58,13 +59,12 @@ where
             &instruction_result_public_key,
         );
 
-        let session = ChangePinSession::new(
+        let session = BeginChangePinOperation::new(
             &instruction_client,
             &self.storage,
             &registration.data.wallet_id,
             certificate_public_key,
             &hw_pubkey,
-            CHANGE_PIN_RETRIES,
         );
         let (new_pin_salt, new_wallet_certificate) = session.begin_change_pin(old_pin, new_pin).await?;
 
@@ -90,13 +90,6 @@ where
         let config = &self.config_repository.config().account_server;
         let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
         let instruction_result_public_key = instruction_result_public_key.into();
-        let DerVerifyingKey(certificate_public_key) = &config.certificate_public_key;
-
-        let hw_pubkey = registration
-            .hw_privkey
-            .verifying_key()
-            .await
-            .map_err(|e| ChangePinError::HardwarePublicKey(e.into()))?;
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
@@ -107,16 +100,9 @@ where
             &instruction_result_public_key,
         );
 
-        let session = ChangePinSession::new(
-            &instruction_client,
-            &self.storage,
-            &registration.data.wallet_id,
-            certificate_public_key,
-            &hw_pubkey,
-            CHANGE_PIN_RETRIES,
-        );
+        let session = FinishChangePinOperation::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);
 
-        session.continue_change_pin(pin).await?;
+        session.finish_change_pin(pin).await?;
 
         info!("PIN change successfully finalized");
 
