@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# This script allows one to manage the individual services that are needed to run a completely local NL Wallet
-# development environment.
+# This script allows one to manage the individual services that are needed
+# to run a completely local NL Wallet development environment.
 #
 # - nl-rdo-max (digid-connector)
 # - mock_relying_party
@@ -15,15 +15,12 @@ set -o pipefail
 # set -x # echo statements before executing, useful while debugging
 
 ########################################################################
-# Configuration
+# Globals and includes
 ########################################################################
 
-SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
-export SCRIPTS_DIR
+SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 BASE_DIR=$(dirname "${SCRIPTS_DIR}")
-export BASE_DIR
 DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.yml
-export DOCKER_COMPOSE_FILE
 
 source "${SCRIPTS_DIR}/utils.sh"
 source "${SCRIPTS_DIR}/configuration.sh"
@@ -69,13 +66,13 @@ Where:
 
 ########################################################################
 # Check prerequisites
+########################################################################
 
-expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
-expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
-expect_command flutter "Missing binary 'flutter', please install Flutter"
+have cargo docker flutter
 
 ########################################################################
 # Commandline arguments
+########################################################################
 
 MOCK_RELYING_PARTY=1
 WALLET_PROVIDER=1
@@ -180,7 +177,7 @@ do
             shift # past argument
             ;;
         *)
-            echo -e "${RED}ERROR${NC}: Unknown argument: $1"
+            error "Unknown argument: $1"
             shift # past argument
             usage
             exit 1
@@ -196,6 +193,7 @@ fi
 
 ########################################################################
 # Manage digid-connector
+########################################################################
 
 if [ "${DIGID_CONNECTOR}" == "0" ]
 then
@@ -218,6 +216,7 @@ fi
 
 ########################################################################
 # Manage postgres
+########################################################################
 
 if [ "${POSTGRES}" == "0" ]
 then
@@ -238,6 +237,7 @@ fi
 
 ########################################################################
 # Manage mock_relying_party
+########################################################################
 
 if [ "${MOCK_RELYING_PARTY}" == "0" ]
 then
@@ -267,9 +267,9 @@ then
     fi
 fi
 
-
 ########################################################################
 # Manage pid_issuer
+########################################################################
 
 if [ "${PID_ISSUER}" == "0" ]
 then
@@ -306,6 +306,7 @@ fi
 
 ########################################################################
 # Manage verification_server
+########################################################################
 
 if [ "${VERIFICATION_SERVER}" == "0" ]
 then
@@ -343,6 +344,7 @@ fi
 
 ########################################################################
 # Manage wallet_provider
+########################################################################
 
 if [ "${WALLET_PROVIDER}" == "0" ]
 then
@@ -379,6 +381,7 @@ fi
 
 ########################################################################
 # Manage configuration_server
+########################################################################
 
 if [ "${CONFIG_SERVER}" == "0" ]
 then
@@ -410,6 +413,7 @@ fi
 
 ########################################################################
 # Manage brpproxy
+########################################################################
 
 if [ "${BRP_PROXY}" == "0" ]
 then
@@ -430,6 +434,7 @@ fi
 
 ########################################################################
 # Manage gba_hc_converter
+########################################################################
 
 if [ "${GBA_HC}" == "0" ]
 then
@@ -463,6 +468,7 @@ fi
 
 ########################################################################
 # Manage wallet
+########################################################################
 
 if [ "${WALLET}" == "0" ]
 then
