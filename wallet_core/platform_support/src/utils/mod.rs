@@ -1,8 +1,8 @@
 pub mod hardware;
 
-#[cfg(feature = "software")]
-pub mod software;
-#[cfg(any(all(feature = "software", test), feature = "integration_test"))]
+#[cfg(feature = "mock")]
+pub mod mock;
+#[cfg(any(all(feature = "mock", test), feature = "integration_test"))]
 pub mod test;
 
 use std::path::PathBuf;

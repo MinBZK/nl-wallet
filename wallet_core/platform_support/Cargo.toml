@@ -12,8 +12,8 @@ crate-type = ["staticlib", "cdylib", "lib"]
 doctest = false
 
 [features]
-# Implement the PlatformEcdsaKey trait on SoftwareEcdsaKey
-software = ["wallet_common/software_keys", "dep:tokio"]
+# Include mock implementations for use in tests
+mock = ["wallet_common/mock_hardware_keys", "dep:tokio"]
 # Enable helper code for integration tests
 integration_test = ["wallet_common/integration_test", "tokio/fs", "tokio/io-util"]
 # Enable helper code for iOS and Android integration tests

@@ -29,15 +29,15 @@ pub trait PlatformEncryptionKey: StoredByIdentifier + SecureEncryptionKey {
     // from EncryptionKey: encrypt(), decrypt()
 }
 
-#[cfg(feature = "software")]
+#[cfg(feature = "mock")]
 mod software {
-    use wallet_common::keys::software::SoftwareEcdsaKey;
-    use wallet_common::keys::software::SoftwareEncryptionKey;
+    use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
+    use wallet_common::keys::mock_hardware::MockHardwareEncryptionKey;
 
     use super::PlatformEcdsaKey;
     use super::PlatformEncryptionKey;
 
-    impl PlatformEcdsaKey for SoftwareEcdsaKey {}
+    impl PlatformEcdsaKey for MockHardwareEcdsaKey {}
 
-    impl PlatformEncryptionKey for SoftwareEncryptionKey {}
+    impl PlatformEncryptionKey for MockHardwareEncryptionKey {}
 }

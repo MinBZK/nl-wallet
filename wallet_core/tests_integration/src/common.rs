@@ -32,7 +32,7 @@ use openid4vc::oidc;
 use openid4vc::server_state::SessionState;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
-use platform_support::utils::software::SoftwareUtilities;
+use platform_support::utils::mock::MockHardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use wallet::mock::default_configuration;
 use wallet::mock::MockDigidSession;
@@ -43,7 +43,7 @@ use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::UpdateableConfigurationRepository;
 use wallet::Wallet;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
@@ -91,7 +91,7 @@ pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
 pub type WalletWithMocks = Wallet<
     HttpConfigurationRepository,
     MockStorage,
-    SoftwareEcdsaKey,
+    MockHardwareEcdsaKey,
     HttpAccountProviderClient,
     MockDigidSession,
     HttpIssuanceSession,
@@ -139,7 +139,7 @@ pub async fn setup_wallet_and_env(
         config_server_config.base_url,
         config_server_config.trust_anchors,
         (&config_server_config.signing_public_key).into(),
-        SoftwareUtilities::storage_path().await.unwrap(),
+        MockHardwareUtilities::storage_path().await.unwrap(),
         wallet_config,
     )
     .await

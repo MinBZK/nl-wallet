@@ -15,10 +15,10 @@ pub mod poa;
 
 #[cfg(feature = "examples")]
 pub mod examples;
+#[cfg(feature = "mock_hardware_keys")]
+pub mod mock_hardware;
 #[cfg(any(test, feature = "mock_remote_key"))]
 pub mod mock_remote;
-#[cfg(feature = "software_keys")]
-pub mod software;
 #[cfg(any(test, feature = "integration_test"))]
 pub mod test;
 

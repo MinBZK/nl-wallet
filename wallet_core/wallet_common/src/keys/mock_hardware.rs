@@ -28,21 +28,21 @@ static ENCRYPTION_CIPHERS: LazyLock<Mutex<HashMap<String, Arc<Aes256Gcm>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Debug, Clone)]
-pub struct SoftwareEcdsaKey {
+pub struct MockHardwareEcdsaKey {
     identifier: String,
     #[debug(skip)]
     key: Arc<SigningKey>,
 }
 
-impl SoftwareEcdsaKey {
-    // Peek into the static hashmap to see if an instance of
-    // `SoftwareEcdsaKey` with the specified identifier exists.
+impl MockHardwareEcdsaKey {
+    /// Peek into the static hashmap to see if an instance of
+    /// [`MockHardwareEcdsaKey`] with the specified identifier exists.
     pub fn identifier_exists(identifier: &str) -> bool {
         SIGNING_KEYS.lock().contains_key(identifier)
     }
 }
 
-impl EcdsaKey for SoftwareEcdsaKey {
+impl EcdsaKey for MockHardwareEcdsaKey {
     type Error = p256::ecdsa::Error;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -55,15 +55,15 @@ impl EcdsaKey for SoftwareEcdsaKey {
         Signer::try_sign(self.key.as_ref(), msg)
     }
 }
-impl SecureEcdsaKey for SoftwareEcdsaKey {}
+impl SecureEcdsaKey for MockHardwareEcdsaKey {}
 
-impl WithIdentifier for SoftwareEcdsaKey {
+impl WithIdentifier for MockHardwareEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
 }
 
-impl StoredByIdentifier for SoftwareEcdsaKey {
+impl StoredByIdentifier for MockHardwareEcdsaKey {
     type Error = Infallible;
 
     fn new_unique(identifier: &str) -> Option<Self> {
@@ -89,7 +89,7 @@ impl StoredByIdentifier for SoftwareEcdsaKey {
             signing_key
         });
 
-        Some(SoftwareEcdsaKey {
+        Some(MockHardwareEcdsaKey {
             key,
             identifier: identifier.to_string(),
         })
@@ -104,13 +104,13 @@ impl StoredByIdentifier for SoftwareEcdsaKey {
 }
 
 #[derive(Debug)]
-pub struct SoftwareEncryptionKey {
+pub struct MockHardwareEncryptionKey {
     identifier: String,
     #[debug(skip)]
     cipher: Arc<Aes256Gcm>,
 }
 
-impl SoftwareEncryptionKey {
+impl MockHardwareEncryptionKey {
     pub fn new_random(identifier: String) -> Self {
         Self {
             identifier,
@@ -118,14 +118,14 @@ impl SoftwareEncryptionKey {
         }
     }
 
-    // Peek into the static hashmap to see if an instance of
-    // `SoftwareEncryptionKey` with the specified identifier exists.
+    /// Peek into the static hashmap to see if an instance of
+    /// [`MockHardwareEncryptionKey`] with the specified identifier exists.
     pub fn identifier_exists(identifier: &str) -> bool {
         ENCRYPTION_CIPHERS.lock().contains_key(identifier)
     }
 }
 
-impl EncryptionKey for SoftwareEncryptionKey {
+impl EncryptionKey for MockHardwareEncryptionKey {
     type Error = <Aes256Gcm as EncryptionKey>::Error;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
@@ -137,15 +137,15 @@ impl EncryptionKey for SoftwareEncryptionKey {
     }
 }
 
-impl SecureEncryptionKey for SoftwareEncryptionKey {}
+impl SecureEncryptionKey for MockHardwareEncryptionKey {}
 
-impl WithIdentifier for SoftwareEncryptionKey {
+impl WithIdentifier for MockHardwareEncryptionKey {
     fn identifier(&self) -> &str {
         &self.identifier
     }
 }
 
-impl StoredByIdentifier for SoftwareEncryptionKey {
+impl StoredByIdentifier for MockHardwareEncryptionKey {
     type Error = Infallible;
 
     fn new_unique(identifier: &str) -> Option<Self> {
@@ -171,7 +171,7 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
             encryption_cipher
         });
 
-        Some(SoftwareEncryptionKey {
+        Some(MockHardwareEncryptionKey {
             cipher,
             identifier: identifier.to_string(),
         })
@@ -187,23 +187,23 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
 
 #[cfg(test)]
 mod tests {
-    use crate::keys::software::SoftwareEcdsaKey;
-    use crate::keys::software::SoftwareEncryptionKey;
+    use crate::keys::mock_hardware::MockHardwareEcdsaKey;
+    use crate::keys::mock_hardware::MockHardwareEncryptionKey;
     use crate::keys::test;
 
     #[tokio::test]
-    async fn test_software_signature() {
+    async fn test_mock_hardware_signature() {
         let payload = b"This is a message that will be signed.";
-        let identifier = "test_software_signature";
+        let identifier = "test_mock_hardware_signature";
 
-        test::sign_and_verify_signature::<SoftwareEcdsaKey>(payload, identifier).await;
+        test::sign_and_verify_signature::<MockHardwareEcdsaKey>(payload, identifier).await;
     }
 
     #[tokio::test]
-    async fn test_software_encryption() {
+    async fn test_mock_hardware_encryption() {
         let payload = b"This message will be encrypted.";
-        let identifier = "test_software_encryption";
+        let identifier = "test_mock_hardware_encryption";
 
-        test::encrypt_and_decrypt_message::<SoftwareEncryptionKey>(payload, identifier).await;
+        test::encrypt_and_decrypt_message::<MockHardwareEncryptionKey>(payload, identifier).await;
     }
 }
