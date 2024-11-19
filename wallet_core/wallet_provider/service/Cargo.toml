@@ -19,7 +19,7 @@ required-features = ["db_test"]
 # Implement InstructionResultSigningKey and related traits on SoftwareEcdsaKey
 software_keys = ["wallet_common/software_keys"]
 # Include mock implementations and constructors for testing
-mock = ["dep:anyhow", "dep:hmac", "dep:rand_core", "wallet_provider_domain/mock"]
+mock = ["dep:anyhow", "dep:hmac", "dep:rand_core", "apple_app_attest/mock", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["software_keys", "mock", "dep:tracing-subscriber", "dep:wallet_provider_database_settings"]
 
@@ -54,6 +54,7 @@ uuid = { workspace = true, features = ["v4"] }
 rand_core = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true, features = ["std"] }
 
+apple_app_attest.path = "../../apple_app_attest"
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_domain.path = "../domain"
 wallet_common.path = "../../wallet_common"
@@ -67,6 +68,7 @@ rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 
+apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
 wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys", "software_keys"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }

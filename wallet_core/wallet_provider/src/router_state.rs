@@ -65,6 +65,7 @@ impl RouterState {
             (&certificate_signing_pubkey).into(),
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
+            settings.ios.into(),
         )?;
 
         let db = Db::new(

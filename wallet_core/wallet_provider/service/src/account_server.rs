@@ -12,6 +12,8 @@ use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
 
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::AttestationEnvironment;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::RegistrationAttestation;
@@ -217,6 +219,11 @@ impl JwtSubject for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
 
+pub struct AppleAttestationConfiguration {
+    pub app_identifier: AppIdentifier,
+    pub environment: AttestationEnvironment,
+}
+
 pub struct AccountServer {
     instruction_challenge_timeout: Duration,
 
@@ -225,6 +232,8 @@ pub struct AccountServer {
     wallet_certificate_signing_pubkey: EcdsaDecodingKey,
     encryption_key_identifier: String,
     pin_public_disclosure_protection_key_identifier: String,
+    #[allow(dead_code)]
+    apple_config: AppleAttestationConfiguration,
 }
 
 impl AccountServer {
@@ -234,6 +243,7 @@ impl AccountServer {
         wallet_certificate_signing_pubkey: EcdsaDecodingKey,
         encryption_key_identifier: String,
         pin_public_disclosure_protection_key_identifier: String,
+        apple_config: AppleAttestationConfiguration,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
             instruction_challenge_timeout,
@@ -241,6 +251,7 @@ impl AccountServer {
             wallet_certificate_signing_pubkey,
             encryption_key_identifier,
             pin_public_disclosure_protection_key_identifier,
+            apple_config,
         })
     }
 
@@ -796,6 +807,11 @@ pub mod mock {
             certificate_signing_pubkey.into(),
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+            AppleAttestationConfiguration {
+                // TODO: Check if `AppIdentifier::new_mock()` should be a separate cargo feature.
+                app_identifier: AppIdentifier::new_mock(),
+                environment: AttestationEnvironment::Development,
+            },
         )
         .unwrap()
     }

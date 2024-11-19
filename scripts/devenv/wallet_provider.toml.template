@@ -28,3 +28,8 @@ library_path = "${HSM_LIBRARY_PATH}"
 user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
+
+[ios]
+team_identifier = "XGL6UKBPLP"
+bundle_identifier = "nl.ictu.edi.wallet.latest"
+environment = "development"

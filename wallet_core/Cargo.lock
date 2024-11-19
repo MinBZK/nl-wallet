@@ -5644,6 +5644,7 @@ dependencies = [
 name = "wallet_provider"
 version = "0.2.2"
 dependencies = [
+ "apple_app_attest",
  "axum",
  "chrono",
  "config",
@@ -5732,6 +5733,7 @@ name = "wallet_provider_service"
 version = "0.2.2"
 dependencies = [
  "anyhow",
+ "apple_app_attest",
  "assert_matches",
  "base64 0.22.1",
  "chrono",
