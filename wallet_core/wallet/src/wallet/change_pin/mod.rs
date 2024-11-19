@@ -4,6 +4,7 @@ mod storage;
 use tracing::info;
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
+use wallet_common::account::serialization::DerVerifyingKey;
 
 use crate::account_provider::AccountProviderClient;
 use crate::config::ConfigurationRepository;
@@ -38,8 +39,9 @@ where
         }
 
         let config = &self.config_repository.config().account_server;
-        let instruction_result_public_key = config.instruction_result_public_key.clone().into();
-        let certificate_public_key = config.certificate_public_key.clone().into();
+        let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
+        let instruction_result_public_key = instruction_result_public_key.into();
+        let DerVerifyingKey(certificate_public_key) = &config.certificate_public_key;
 
         let hw_pubkey = registration
             .hw_privkey
@@ -56,16 +58,15 @@ where
             &instruction_result_public_key,
         );
 
-        let session = ChangePinSession::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);
-        let (new_pin_salt, new_wallet_certificate) = session
-            .begin_change_pin(
-                &certificate_public_key,
-                &hw_pubkey,
-                registration.data.wallet_id.clone(),
-                old_pin,
-                new_pin,
-            )
-            .await?;
+        let session = ChangePinSession::new(
+            &instruction_client,
+            &self.storage,
+            &registration.data.wallet_id,
+            certificate_public_key,
+            &hw_pubkey,
+            CHANGE_PIN_RETRIES,
+        );
+        let (new_pin_salt, new_wallet_certificate) = session.begin_change_pin(old_pin, new_pin).await?;
 
         registration.data.pin_salt = new_pin_salt;
         registration.data.wallet_certificate = new_wallet_certificate;
@@ -86,19 +87,34 @@ where
 
         // Wallet does not need to be unlocked, see [`Wallet::unlock`].
 
-        let config = self.config_repository.config();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        let config = &self.config_repository.config().account_server;
+        let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
+        let instruction_result_public_key = instruction_result_public_key.into();
+        let DerVerifyingKey(certificate_public_key) = &config.certificate_public_key;
+
+        let hw_pubkey = registration
+            .hw_privkey
+            .verifying_key()
+            .await
+            .map_err(|e| ChangePinError::HardwarePublicKey(e.into()))?;
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            &config.account_server.base_url,
+            &config.base_url,
             &instruction_result_public_key,
         );
 
-        let session = ChangePinSession::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);
+        let session = ChangePinSession::new(
+            &instruction_client,
+            &self.storage,
+            &registration.data.wallet_id,
+            certificate_public_key,
+            &hw_pubkey,
+            CHANGE_PIN_RETRIES,
+        );
 
         session.continue_change_pin(pin).await?;
 
