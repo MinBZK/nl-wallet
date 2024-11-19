@@ -1,6 +1,7 @@
 use std::convert::Infallible;
 use std::sync::LazyLock;
 
+use apple_app_attest::VerifiedAssertion;
 use assert_matches::assert_matches;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -164,7 +165,7 @@ fn test_assertion<F>(
 ) where
     F: FnOnce(AssertionError),
 {
-    let result = Assertion::parse_and_verify(
+    let result = VerifiedAssertion::parse_and_verify(
         assertion_data,
         &parameters.client_data,
         parameters.verifying_key(),

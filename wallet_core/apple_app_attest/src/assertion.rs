@@ -77,6 +77,9 @@ impl From<DerSignature> for Vec<u8> {
     }
 }
 
+#[derive(Debug, Clone, AsRef)]
+pub struct VerifiedAssertion(Assertion);
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
@@ -89,6 +92,14 @@ pub struct Assertion {
 }
 
 impl Assertion {
+    pub fn parse(bytes: &[u8]) -> Result<Self, AssertionError> {
+        let assertion = ciborium::from_reader(bytes).map_err(AssertionDecodingError::Cbor)?;
+
+        Ok(assertion)
+    }
+}
+
+impl VerifiedAssertion {
     pub fn parse_and_verify(
         bytes: &[u8],
         client_data: &impl ClientData,
@@ -97,7 +108,7 @@ impl Assertion {
         previous_counter: u32,
         expected_challenge: &[u8],
     ) -> Result<(Self, u32), AssertionError> {
-        let assertion: Self = ciborium::from_reader(bytes).map_err(AssertionDecodingError::Cbor)?;
+        let assertion = Assertion::parse(bytes)?;
 
         // The steps below are listed at:
         // https://developer.apple.com/documentation/devicecheck/validating-apps-that-connect-to-your-server#Verify-the-assertion
@@ -157,7 +168,7 @@ impl Assertion {
             return Err(AssertionValidationError::ChallengeMismatch)?;
         }
 
-        Ok((assertion, counter))
+        Ok((VerifiedAssertion(assertion), counter))
     }
 }
 

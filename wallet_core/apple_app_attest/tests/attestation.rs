@@ -1,3 +1,4 @@
+use apple_app_attest::VerifiedAttestation;
 use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
@@ -6,7 +7,6 @@ use rstest::fixture;
 use rstest::rstest;
 
 use apple_app_attest::AppIdentifier;
-use apple_app_attest::Attestation;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::AttestationError;
 use apple_app_attest::AttestationValidationError;
@@ -112,7 +112,7 @@ fn test_attestation<F>(
 ) where
     F: FnOnce(AttestationError),
 {
-    let result = Attestation::parse_and_verify_with_time(
+    let result = VerifiedAttestation::parse_and_verify_with_time(
         attestation_data,
         &APPLE_TRUST_ANCHORS,
         parameters.time,

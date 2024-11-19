@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use apple_app_attest::VerifiedAssertion;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -8,7 +9,6 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use apple_app_attest::AppIdentifier;
-use apple_app_attest::Assertion;
 use apple_app_attest::ClientData;
 
 use crate::apple::AppleAssertion;
@@ -207,7 +207,7 @@ impl<T> SignedMessage<T> {
             });
         };
 
-        let (_, counter) = Assertion::parse_and_verify(
+        let (_, counter) = VerifiedAssertion::parse_and_verify(
             assertion.as_ref(),
             &parsed,
             verifying_key,

@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::derive::AsRef;
 use p256::ecdsa::VerifyingKey;
 use passkey_types::ctap2::Aaguid;
 use serde::Deserialize;
@@ -71,6 +72,9 @@ impl AttestationEnvironment {
     }
 }
 
+#[derive(Debug, Clone, AsRef)]
+pub struct VerifiedAttestation(Attestation);
+
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
@@ -104,6 +108,14 @@ pub struct AttestationStatement {
 }
 
 impl Attestation {
+    pub fn parse(bytes: &[u8]) -> Result<Self, AttestationError> {
+        let attestation = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
+
+        Ok(attestation)
+    }
+}
+
+impl VerifiedAttestation {
     pub fn parse_and_verify(
         bytes: &[u8],
         trust_anchors: &[TrustAnchor],
@@ -122,7 +134,7 @@ impl Attestation {
         app_identifier: &AppIdentifier,
         environment: AttestationEnvironment,
     ) -> Result<(Self, VerifyingKey), AttestationError> {
-        let attestation: Self = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
+        let attestation = Attestation::parse(bytes)?;
 
         // The steps below are listed at:
         // https://developer.apple.com/documentation/devicecheck/validating-apps-that-connect-to-your-server#Verify-the-attestation
@@ -222,6 +234,6 @@ impl Attestation {
             return Err(AttestationValidationError::KeyIdentifierMismatch)?;
         }
 
-        Ok((attestation, public_key))
+        Ok((VerifiedAttestation(attestation), public_key))
     }
 }
