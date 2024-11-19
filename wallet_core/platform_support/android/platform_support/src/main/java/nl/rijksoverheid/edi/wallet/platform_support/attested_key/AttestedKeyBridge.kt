@@ -1,7 +1,6 @@
 package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 
 import android.content.Context
-import android.os.Build
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
@@ -31,22 +30,15 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
 
     @Throws(AttestedKeyException::class)
     override suspend fun attest(identifier: String, challenge: List<UByte>): AttestationData = longRunning {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            // TODO: Is this correct? Only the [setAttestationChallenge] method was added then, is it strictly necessary?
-            throw AttestedKeyException.AttestationNotSupported()
-        }
-
         try {
             val signingKey = createKey(identifier, challenge)
             val challengeResponse = signingKey.sign(challenge)
-            val certificateChain = signingKey.getCertificateChain()
-                ?.asSequence()
-                ?.map { it.encoded.toUByteList() }
-                ?.toList() ?: throw AttestedKeyException.Other("failed to get certificate chain")
+            val certificateChain =
+                signingKey.getCertificateChain()?.asSequence()?.map { it.encoded.toUByteList() }?.toList()
+                    ?: throw AttestedKeyException.Other("failed to get certificate chain")
 
             AttestationData.Google(
-                certificateChain,
-                challengeResponse
+                certificateChain, challengeResponse
             )
         } catch (e: Exception) {
             when (e) {
@@ -120,6 +112,5 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
     }
 
     override fun clean() =
-        keyStore.aliases().asSequence().filter { it.startsWith(ATTESTED_KEY_PREFIX) }
-            .forEach(::deleteEntry)
+        keyStore.aliases().asSequence().filter { it.startsWith(ATTESTED_KEY_PREFIX) }.forEach(::deleteEntry)
 }

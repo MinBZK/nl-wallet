@@ -42,9 +42,7 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
                 .setStrongBoxBackedCompat(context, true)
                 .also { spec ->
                     challenge?.let {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                            spec.setAttestationChallenge(it.toByteArray())
-                        }
+                        spec.setAttestationChallenge(it.toByteArray())
                     }
                 }
 
