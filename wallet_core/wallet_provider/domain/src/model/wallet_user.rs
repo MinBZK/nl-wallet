@@ -65,7 +65,7 @@ pub struct WalletUserCreate {
 
 #[derive(Debug)]
 pub enum WalletUserAttestationCreate {
-    Apple { data: Vec<u8> },
+    Apple { data: Vec<u8>, assertion_counter: u32 },
 }
 
 #[derive(Clone)]

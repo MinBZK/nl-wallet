@@ -64,11 +64,15 @@ where
     .await
     .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
 
-    if let Some(WalletUserAttestationCreate::Apple { data }) = user.attestation {
+    if let Some(WalletUserAttestationCreate::Apple {
+        data,
+        assertion_counter,
+    }) = user.attestation
+    {
         wallet_user_apple_attestation::ActiveModel {
             id: Set(Uuid::new_v4()),
             wallet_user_id: Set(user.id),
-            assertion_counter: Set(0),
+            assertion_counter: Set(assertion_counter.into()),
             attestation_data: Set(data),
         }
         .insert(connection)
