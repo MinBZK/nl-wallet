@@ -10,6 +10,7 @@ use webpki::types::TrustAnchor;
 
 use crate::account::serialization::DerVerifyingKey;
 use crate::config::digid::DigidApp2AppConfiguration;
+use crate::config::http::TlsPinningConfig;
 use crate::trust_anchor::DerTrustAnchor;
 use crate::urls::BaseUrl;
 
@@ -63,9 +64,7 @@ impl Default for LockTimeoutConfiguration {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct AccountServerConfiguration {
-    // The base URL for the Account Server API
-    pub base_url: BaseUrl,
-    // The known public key for the Wallet Provider
+    pub http_config: TlsPinningConfig,
     #[debug(skip)]
     pub certificate_public_key: DerVerifyingKey,
     #[debug(skip)]
@@ -74,32 +73,24 @@ pub struct AccountServerConfiguration {
     pub wte_public_key: DerVerifyingKey,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct DigidConfiguration {
+    pub client_id: String,
+    #[serde(default)]
+    pub app2app: Option<DigidApp2AppConfiguration>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: BaseUrl,
-    pub digid_url: BaseUrl,
-    pub digid_client_id: String,
-    #[serde(default)]
-    pub digid_trust_anchors: Vec<DerTrustAnchor>,
-    #[serde(default)]
-    pub digid_app2app: Option<DigidApp2AppConfiguration>,
+    pub digid: DigidConfiguration,
+    pub digid_http_config: TlsPinningConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct DisclosureConfiguration {
+    #[debug(skip)]
     pub rp_trust_anchors: Vec<DerTrustAnchor>,
-}
-
-impl PidIssuanceConfiguration {
-    pub fn digid_trust_anchors(&self) -> Vec<reqwest::Certificate> {
-        self.digid_trust_anchors
-            .iter()
-            .map(|anchor| {
-                reqwest::Certificate::from_der(&anchor.der_bytes)
-                    .expect("DerTrustAnchor should be able to be converted to reqwest::Certificate")
-            })
-            .collect()
-    }
 }
 
 impl DisclosureConfiguration {

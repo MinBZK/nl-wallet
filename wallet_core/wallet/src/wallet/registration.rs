@@ -123,13 +123,12 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         info!("Requesting challenge from account server");
 
         let config = &self.config_repository.config().account_server;
-        let base_url = config.base_url.clone();
         let certificate_public_key = config.certificate_public_key.clone();
 
         // Retrieve a challenge from the account server
         let challenge = self
             .account_provider_client
-            .registration_challenge(&base_url)
+            .registration_challenge(&config.http_config)
             .await
             .map_err(WalletRegistrationError::ChallengeRequest)?;
 
@@ -152,7 +151,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         // Send the registration message to the account server and receive the wallet certificate in response.
         let wallet_certificate = self
             .account_provider_client
-            .register(&base_url, registration_message)
+            .register(&config.http_config, registration_message)
             .await
             .map_err(WalletRegistrationError::RegistrationRequest)?;
 

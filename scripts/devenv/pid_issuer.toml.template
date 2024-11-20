@@ -18,7 +18,7 @@ issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 bsn_privkey = '${BSN_PRIVKEY}'
 # Add extra trusted CAs to the already supported OS root CAs.
 # Needed for development setup where we use a self-signed CA.
-trust_anchors = [${DIGID_CA_CRT}]
+trust_anchors = ["${DIGID_CA_CRT}"]
 
 [issuer.private_keys."com.example.pid"]
 private_key = "${PID_ISSUER_KEY}"

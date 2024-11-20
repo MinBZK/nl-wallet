@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
-
+use wallet_common::config::http::TlsServerConfig;
 use wallet_provider_database_settings::Database;
 
 #[serde_as]
@@ -26,6 +26,7 @@ pub struct Settings {
     pub wte_issuer_identifier: String,
     pub database: Database,
     pub webserver: Webserver,
+    pub tls_config: Option<TlsServerConfig>,
     pub hsm: Hsm,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,

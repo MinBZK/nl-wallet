@@ -5,14 +5,13 @@ use http::header;
 use http::HeaderValue;
 use http::StatusCode;
 use parking_lot::Mutex;
-use reqwest::Certificate;
 use tokio::fs;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::validations;
 use wallet_common::jwt::EcdsaDecodingKey;
 use wallet_common::jwt::Jwt;
-use wallet_common::reqwest::tls_pinned_client_builder;
+use wallet_common::reqwest::ReqwestClient;
 use wallet_common::urls::BaseUrl;
 
 use crate::config::ConfigurationError;
@@ -30,19 +29,22 @@ pub struct HttpConfigurationClient {
 const ETAG_FILENAME: &str = "latest-configuration-etag.txt";
 
 impl HttpConfigurationClient {
-    pub async fn new(
-        base_url: BaseUrl,
-        trust_anchors: Vec<Certificate>,
+    pub async fn new<C>(
+        http_config: C,
         signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,
-    ) -> Result<Self, ConfigurationError> {
+    ) -> Result<Self, ConfigurationError>
+    where
+        C: ReqwestClient,
+    {
         let initial_etag = Self::read_latest_etag(storage_path.as_path()).await?;
 
         let client = Self {
-            http_client: tls_pinned_client_builder(trust_anchors)
+            http_client: http_config
+                .client_builder()
                 .build()
                 .expect("Could not build reqwest HTTP client"),
-            base_url,
+            base_url: http_config.base_url().clone(),
             signing_public_key,
             storage_path,
             latest_etag: Mutex::new(initial_etag),

@@ -1,24 +1,19 @@
 use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
-use reqwest::Certificate;
 use reqwest::Response;
 use url::Url;
 
-use wallet_common::reqwest::trusted_reqwest_client_builder;
-use wallet_common::urls::BaseUrl;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::reqwest::ReqwestClient;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
 // invoking the same URLs at the DigiD bridge that would normally be invoked by the app and browser in the mock
 // flow of the DigiD bridge.
 // Note that this depends of part of the internal API of the DigiD bridge, so it may break when the bridge
 // is updated.
-pub async fn fake_digid_auth(
-    authorization_url: &Url,
-    digid_base_url: &BaseUrl,
-    trust_anchors: Vec<Certificate>,
-    bsn: &str,
-) -> Url {
-    let client = trusted_reqwest_client_builder(trust_anchors)
+pub async fn fake_digid_auth(authorization_url: &Url, digid_http_config: &TlsPinningConfig, bsn: &str) -> Url {
+    let client = digid_http_config
+        .client_builder()
         .redirect(Policy::none())
         .build()
         .unwrap();
@@ -44,7 +39,7 @@ pub async fn fake_digid_auth(
     // Get the HTML page containing the redirect_uri back to our own app
     let finish_digid_url = format!(
         "{}acs?SAMLart={}&RelayState={}&mocking=1",
-        digid_base_url, bsn, relay_state
+        digid_http_config.base_url, bsn, relay_state
     );
 
     let response = do_get_request(&client, finish_digid_url).await;

@@ -26,4 +26,4 @@ tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
 
-wallet_common.path = "../wallet_common"
+wallet_common = { path = "../wallet_common", features = ["axum"] }
