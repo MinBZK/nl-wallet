@@ -43,7 +43,7 @@ where
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            &config.account_server.base_url,
+            &config.account_server.http_config,
             &instruction_result_public_key,
         );
 
@@ -79,7 +79,7 @@ where
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            &config.account_server.base_url,
+            &config.account_server.http_config,
             &instruction_result_public_key,
         );
 

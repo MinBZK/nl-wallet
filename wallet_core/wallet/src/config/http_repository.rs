@@ -2,12 +2,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use parking_lot::RwLock;
-use reqwest::Certificate;
 use tracing::info;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::urls::BaseUrl;
+use wallet_common::reqwest::ReqwestClient;
 
 use crate::config::http_client::HttpConfigurationClient;
 use crate::config::ConfigurationError;
@@ -21,15 +20,17 @@ pub struct HttpConfigurationRepository {
 }
 
 impl HttpConfigurationRepository {
-    pub async fn new(
-        base_url: BaseUrl,
-        trust_anchors: Vec<Certificate>,
+    pub async fn new<C>(
+        http_config: C,
         signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,
         initial_config: WalletConfiguration,
-    ) -> Result<Self, ConfigurationError> {
+    ) -> Result<Self, ConfigurationError>
+    where
+        C: ReqwestClient,
+    {
         Ok(Self {
-            client: HttpConfigurationClient::new(base_url, trust_anchors, signing_public_key, storage_path).await?,
+            client: HttpConfigurationClient::new(http_config, signing_public_key, storage_path).await?,
             config: RwLock::new(Arc::new(initial_config)),
         })
     }

@@ -5603,6 +5603,7 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "axum",
+ "axum-server",
  "base64 0.22.1",
  "cfg-if",
  "chrono",
@@ -5646,6 +5647,7 @@ name = "wallet_provider"
 version = "0.2.3-dev"
 dependencies = [
  "axum",
+ "axum-server",
  "chrono",
  "config",
  "derive_more",

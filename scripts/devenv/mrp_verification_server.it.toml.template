@@ -12,7 +12,7 @@ certificate = "${PID_ISSUER_CRT}"
 client_id = "${WALLET_CLIENT_ID}"
 issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 bsn_privkey = '${BSN_PRIVKEY}'
-trust_anchors = [${DIGID_CA_CRT}]
+trust_anchors = ["${DIGID_CA_CRT}"]
 
 # Integration test cases
 [verifier.usecases.multiple_cards]

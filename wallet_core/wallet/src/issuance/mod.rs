@@ -5,10 +5,12 @@ use url::Url;
 use error_category::ErrorCategory;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
-use wallet_common::config::wallet_config::PidIssuanceConfiguration;
 
 pub use app2app::App2AppErrorMessage;
 pub use app2app::HttpDigidSession;
+
+use wallet_common::config::wallet_config::DigidConfiguration;
+use wallet_common::reqwest::ReqwestClient;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -46,9 +48,14 @@ pub enum DigidSessionError {
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait DigidSession {
-    async fn start(config: PidIssuanceConfiguration, redirect_uri: Url) -> Result<(Self, Url), DigidSessionError>
+    async fn start<C>(
+        digid_config: DigidConfiguration,
+        http_config: &C,
+        redirect_uri: Url,
+    ) -> Result<(Self, Url), DigidSessionError>
     where
-        Self: Sized;
+        Self: Sized,
+        C: ReqwestClient + 'static;
 
     async fn into_token_request(self, received_redirect_uri: Url) -> Result<TokenRequest, DigidSessionError>;
 }

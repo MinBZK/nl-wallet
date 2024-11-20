@@ -7,6 +7,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
+
 use wallet_common::urls::BaseUrl;
 
 use super::OidcError;
@@ -122,12 +123,13 @@ const fn bool_value<const B: bool>() -> bool {
 #[cfg(test)]
 pub mod tests {
     use serde_json::json;
-    use wallet_common::urls::BaseUrl;
     use wiremock::matchers::method;
     use wiremock::matchers::path;
     use wiremock::Mock;
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
+
+    use wallet_common::urls::BaseUrl;
 
     use super::Config;
 

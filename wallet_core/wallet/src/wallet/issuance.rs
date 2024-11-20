@@ -19,7 +19,7 @@ use openid4vc::jwt::JwtCredentialError;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::jwt::JwtError;
-use wallet_common::reqwest::trusted_reqwest_client_builder;
+use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
@@ -143,7 +143,8 @@ where
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
         let (session, auth_url) = DS::start(
-            pid_issuance_config.clone(),
+            pid_issuance_config.digid.clone(),
+            &pid_issuance_config.digid_http_config,
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
@@ -232,18 +233,18 @@ where
             .await
             .map_err(PidIssuanceError::DigidSessionFinish)?;
 
-        let pid_issuance_config = &self.config_repository.config().pid_issuance;
-        let http_client = trusted_reqwest_client_builder(pid_issuance_config.digid_trust_anchors())
+        let pid_issuer_http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
                 HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
             )]))
             .build()
             .expect("Could not build reqwest HTTP client");
+
         let config = self.config_repository.config();
 
         let (pid_issuer, attestation_previews) = IS::start_issuance(
-            http_client.into(),
+            pid_issuer_http_client.into(),
             config.pid_issuance.pid_issuer_url.clone(),
             token_request,
             &config.mdoc_trust_anchors(),
@@ -302,7 +303,7 @@ where
             .new_instruction_client(
                 pin,
                 registration,
-                &config.account_server.base_url,
+                &config.account_server.http_config,
                 &instruction_result_public_key,
             )
             .await?;
@@ -412,6 +413,8 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use wallet_common::config::http::TlsPinningConfig;
+
     use crate::document::DocumentPersistence;
     use crate::document::{self};
     use crate::issuance::MockDigidSession;
@@ -434,7 +437,7 @@ mod tests {
 
         // Set up a mock DigiD session.
         let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _| {
+        session_start_context.expect().returning(|_, _: &TlsPinningConfig, _| {
             let client = MockDigidSession::default();
             Ok((client, Url::parse(AUTH_URL).unwrap()))
         });
@@ -523,7 +526,7 @@ mod tests {
         let session_start_context = MockDigidSession::start_context();
         session_start_context
             .expect()
-            .return_once(|_, _| Err(OidcError::NoAuthCode.into()));
+            .return_once(|_, _: &TlsPinningConfig, _| Err(OidcError::NoAuthCode.into()));
 
         // The error should be forwarded when attempting to create a DigiD authentication URL.
         let error = wallet
@@ -853,7 +856,7 @@ mod tests {
         const AUTH_URL: &str = "http://example.com/auth";
         // Set up a mock DigiD session.
         let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _| {
+        session_start_context.expect().returning(|_, _: &TlsPinningConfig, _| {
             let client = MockDigidSession::default();
             Ok((client, Url::parse(AUTH_URL).unwrap()))
         });
