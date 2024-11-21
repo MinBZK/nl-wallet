@@ -95,7 +95,7 @@ itertools = "0.13.0"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = { version = "9.3.0", default-features = false }
-libsqlite3-sys = { version = "0.27.0", default-features = false }
+libsqlite3-sys = { version = "0.30.1", default-features = false }
 mime = "0.3.17"
 mockall = "0.13.0"
 nutype = "0.5.0"
@@ -118,9 +118,9 @@ ring = "0.17.8"
 rpassword = "7.3.1"
 rstest = "0.21.0"
 rustls-webpki = "0.102.8"
-sea-orm = { version = "0.12.3", default-features = false }
-sea-orm-migration = { version = "0.12.3", default-features = false }
-sea-query = { version = "0.30.7", default-features = false }
+sea-orm = { version = "1.1.1", default-features = false }
+sea-orm-migration = { version = "1.1.1", default-features = false }
+sea-query = { version = "0.32.0", default-features = false }
 sec1 = "0.7.3"
 sentry = { version = "0.34", default-features = false }
 sentry-panic = "0.34"
