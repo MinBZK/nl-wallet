@@ -36,6 +36,8 @@ pub enum MockRemoteKeyFactoryError {
     Poa(#[from] PoaError),
 }
 
+/// To be used in test in place of `RemoteEcdsaKey`, implementing the
+/// [`EcdsaKey`], [`SecureEcdsaKey`] and [`WithIdentifier`] traits.
 #[derive(Debug, Clone)]
 pub struct MockRemoteEcdsaKey {
     identifier: String,
@@ -78,9 +80,10 @@ impl CredentialEcdsaKey for MockRemoteEcdsaKey {
     const KEY_TYPE: CredentialKeyType = CredentialKeyType::Mock;
 }
 
-/// The [`MockRemoteKeyFactory`] type implements [`KeyFactory`] and has the option
-/// of returning [`MockRemoteKeyFactoryError::Generating`] when generating multiple
-/// keys and [`MockRemoteKeyFactoryError::Signing`] when signing multiple.
+/// A type that implements [`KeyFactory`] and can be used in tests. It has the option
+/// of returning `MockRemoteKeyFactoryError::Generating` when generating multiple
+/// keys and `MockRemoteKeyFactoryError::Signing` when signing multiple, influenced
+/// by boolean fields on the type.
 #[derive(Debug)]
 pub struct MockRemoteKeyFactory {
     signing_keys: Mutex<HashMap<String, SigningKey>>,

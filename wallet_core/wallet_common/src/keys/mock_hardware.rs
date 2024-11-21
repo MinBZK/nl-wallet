@@ -27,6 +27,9 @@ static SIGNING_KEYS: LazyLock<Mutex<HashMap<String, Arc<SigningKey>>>> = LazyLoc
 static ENCRYPTION_CIPHERS: LazyLock<Mutex<HashMap<String, Arc<Aes256Gcm>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+/// To be used in tests in place of `HardwareEcdsaKey`. It implements the [`EcdsaKey`],
+/// [`SecureEcdsaKey`], [`WithIdentifier`] and [`StoredByIdentifier`] traits, mocking
+/// the behaviour of keys that are stored in secure hardware on a device.
 #[derive(Debug, Clone)]
 pub struct MockHardwareEcdsaKey {
     identifier: String,
@@ -103,6 +106,9 @@ impl StoredByIdentifier for MockHardwareEcdsaKey {
     }
 }
 
+/// To be used in tests in place of `HardwareEncryptionKey`. It implements the [`EncryptionKey`],
+/// [`SecureEncryptionKey`], [`WithIdentifier`] and [`StoredByIdentifier`] traits, mocking
+/// the behaviour of keys that are stored in secure hardware on a device.
 #[derive(Debug)]
 pub struct MockHardwareEncryptionKey {
     identifier: String,
