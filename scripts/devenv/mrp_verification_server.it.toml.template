@@ -10,8 +10,10 @@ certificate = "${PID_ISSUER_CRT}"
 
 [issuer.digid]
 client_id = "${WALLET_CLIENT_ID}"
-issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 bsn_privkey = '${BSN_PRIVKEY}'
+
+[issuer.digid.http_config]
+base_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 trust_anchors = ["${DIGID_CA_CRT}"]
 
 # Integration test cases

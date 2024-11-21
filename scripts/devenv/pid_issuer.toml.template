@@ -14,10 +14,10 @@ port = ${PID_ISSUER_WS_PORT}
 wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
 
 [issuer.digid]
-issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 bsn_privkey = '${BSN_PRIVKEY}'
-# Add extra trusted CAs to the already supported OS root CAs.
-# Needed for development setup where we use a self-signed CA.
+
+[issuer.digid.http_config]
+base_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 trust_anchors = ["${DIGID_CA_CRT}"]
 
 [issuer.private_keys."com.example.pid"]

@@ -93,7 +93,7 @@ pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
 }
 
 pub type WalletWithMocks = Wallet<
-    HttpConfigurationRepository,
+    HttpConfigurationRepository<TlsPinningConfig>,
     MockStorage,
     SoftwareEcdsaKey,
     HttpAccountProviderClient,

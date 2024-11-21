@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::reqwest::ReqwestClient;
+use wallet_common::reqwest::RequestBuilder;
 
 use super::config_file;
 use super::ConfigurationError;
@@ -17,16 +17,16 @@ pub struct FileStorageConfigurationRepository<T> {
     storage_path: PathBuf,
 }
 
-impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
-    pub async fn init<C>(
+impl<C> FileStorageConfigurationRepository<HttpConfigurationRepository<C>>
+where
+    C: RequestBuilder,
+{
+    pub async fn init(
         storage_path: PathBuf,
         http_config: C,
         signing_public_key: EcdsaDecodingKey,
         initial_config: WalletConfiguration,
-    ) -> Result<Self, ConfigurationError>
-    where
-        C: ReqwestClient,
-    {
+    ) -> Result<Self, ConfigurationError> {
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
             Some(stored_config) if initial_config.version > stored_config.version => {
                 // When the initial configuration is newer than the stored configuration (e.g. due to an app update)
