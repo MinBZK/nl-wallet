@@ -338,8 +338,12 @@ impl FlutterApiErrorFields for ChangePinError {
                 FlutterApiErrorType::WalletState
             }
             Self::Instruction(e) => FlutterApiErrorType::from(e),
-            Self::Storage(_) => FlutterApiErrorType::Generic,
-            Self::PinValidation(_) => FlutterApiErrorType::Generic,
+            Self::Storage(_)
+            | Self::PinValidation(_)
+            | Self::HardwarePublicKey(_)
+            | Self::CertificateValidation(_)
+            | Self::PublicKeyMismatch
+            | Self::WalletIdMismatch => FlutterApiErrorType::Generic,
         }
     }
 }

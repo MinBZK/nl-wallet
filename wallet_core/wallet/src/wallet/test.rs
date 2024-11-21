@@ -284,7 +284,7 @@ impl WalletWithMocks {
     pub async fn new_registered_and_unlocked() -> Self {
         let mut wallet = Self::new_unregistered().await;
 
-        let wallet_certificate = Self::valid_certificate().await;
+        let wallet_certificate = wallet.valid_certificate().await;
         let wallet_id = wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id;
 
         // Generate registration data.
@@ -312,9 +312,9 @@ impl WalletWithMocks {
     }
 
     /// Generates a valid certificate for the `Wallet`.
-    pub async fn valid_certificate() -> WalletCertificate {
+    pub async fn valid_certificate(&self) -> WalletCertificate {
         Jwt::sign_with_sub(
-            &Self::valid_certificate_claims().await,
+            &Self::valid_certificate_claims(self).await,
             &ACCOUNT_SERVER_KEYS.certificate_signing_key,
         )
         .await
@@ -322,10 +322,22 @@ impl WalletWithMocks {
     }
 
     /// Generates valid certificate claims for the `Wallet`.
-    pub async fn valid_certificate_claims() -> WalletCertificateClaims {
+    pub async fn valid_certificate_claims(&self) -> WalletCertificateClaims {
+        let wallet_id = self
+            .registration
+            .as_ref()
+            .map(|registration| registration.data.wallet_id.clone())
+            .unwrap_or_else(|| utils::random_string(32));
+        // Workaround to make sure the is only ever one hardware key instance.
+        let verifying_key = match self.registration.as_ref() {
+            Some(registration) => registration.hw_privkey.verifying_key().await,
+            None => Self::hw_privkey().verifying_key().await,
+        }
+        .unwrap();
+
         WalletCertificateClaims {
-            wallet_id: utils::random_string(32),
-            hw_pubkey: Self::hw_privkey().verifying_key().await.unwrap().into(),
+            wallet_id,
+            hw_pubkey: verifying_key.into(),
             pin_pubkey_hash: utils::random_bytes(32),
             version: 0,
             iss: "wallet_unit_test".to_string(),

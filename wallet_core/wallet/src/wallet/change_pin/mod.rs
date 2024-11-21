@@ -4,14 +4,18 @@ mod storage;
 use tracing::info;
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
+use wallet_common::account::serialization::DerVerifyingKey;
 
 use crate::account_provider::AccountProviderClient;
 use crate::config::ConfigurationRepository;
 use crate::instruction::InstructionClientFactory;
+use crate::pin::change::BeginChangePinOperation;
 use crate::pin::change::ChangePinError;
-use crate::pin::change::ChangePinSession;
+use crate::pin::change::FinishChangePinOperation;
 use crate::storage::Storage;
 use crate::Wallet;
+
+const CHANGE_PIN_RETRIES: u8 = 3;
 
 impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
@@ -27,7 +31,7 @@ where
         info!("Checking if registered");
         let registration = self
             .registration
-            .as_ref()
+            .as_mut()
             .ok_or_else(|| ChangePinError::NotRegistered)?;
 
         info!("Checking if locked");
@@ -35,25 +39,37 @@ where
             return Err(ChangePinError::Locked);
         }
 
-        let config = self.config_repository.config();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        let config = &self.config_repository.config().account_server;
+        let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
+        let instruction_result_public_key = instruction_result_public_key.into();
+        let DerVerifyingKey(certificate_public_key) = &config.certificate_public_key;
+
+        let hw_pubkey = registration
+            .hw_privkey
+            .verifying_key()
+            .await
+            .map_err(|e| ChangePinError::HardwarePublicKey(e.into()))?;
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            &config.account_server.http_config,
+            &config.http_config,
             &instruction_result_public_key,
         );
 
-        let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
-        session
-            .begin_change_pin(registration.data.wallet_id.clone(), old_pin, new_pin)
-            .await?;
+        let session = BeginChangePinOperation::new(
+            &instruction_client,
+            &self.storage,
+            &registration.data.wallet_id,
+            certificate_public_key,
+            &hw_pubkey,
+        );
+        let (new_pin_salt, new_wallet_certificate) = session.begin_change_pin(old_pin, new_pin).await?;
 
-        info!("Update PIN registration data on Wallet");
-        self.update_registration_from_db().await?;
+        registration.data.pin_salt = new_pin_salt;
+        registration.data.wallet_certificate = new_wallet_certificate;
 
         info!("PIN change started");
 
@@ -71,21 +87,22 @@ where
 
         // Wallet does not need to be unlocked, see [`Wallet::unlock`].
 
-        let config = self.config_repository.config();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        let config = &self.config_repository.config().account_server;
+        let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
+        let instruction_result_public_key = instruction_result_public_key.into();
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            &config.account_server.http_config,
+            &config.http_config,
             &instruction_result_public_key,
         );
 
-        let session = ChangePinSession::new(&instruction_client, &self.storage, 3);
+        let session = FinishChangePinOperation::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);
 
-        session.continue_change_pin(pin).await?;
+        session.finish_change_pin(pin).await?;
 
         info!("PIN change successfully finalized");
 
@@ -98,7 +115,7 @@ mod tests {
     use assert_matches::assert_matches;
     use serde::de::DeserializeOwned;
     use serde::Serialize;
-    use wallet_common::account::messages::auth::WalletCertificate;
+
     use wallet_common::account::messages::instructions::ChangePinCommit;
     use wallet_common::account::messages::instructions::ChangePinStart;
     use wallet_common::account::messages::instructions::Instruction;
@@ -126,7 +143,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_begin_change_pin() {
+    async fn test_wallet_begin_and_continue_change_pin() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         wallet
@@ -135,7 +152,7 @@ mod tests {
             .times(2)
             .returning(|_, _| Ok(utils::random_bytes(32)));
 
-        let wp_result = create_wp_result(WalletCertificate::from("thisisdefinitelyvalid")).await;
+        let wp_result = create_wp_result(wallet.valid_certificate().await).await;
 
         wallet
             .account_provider_client

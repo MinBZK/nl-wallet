@@ -236,7 +236,7 @@ mod tests {
 
         // Have the account server respond with a valid
         // certificate when the wallet sends a request for it.
-        let cert = WalletWithMocks::valid_certificate().await;
+        let cert = wallet.valid_certificate().await;
         let cert_response = cert.clone();
         let challenge_expected = challenge.clone();
 
@@ -418,7 +418,7 @@ mod tests {
         // Have the account server sign the wallet certificate with
         // a key to which the certificate public key does not belong.
         let other_key = SigningKey::random(&mut OsRng);
-        let cert = Jwt::sign_with_sub(&WalletWithMocks::valid_certificate_claims().await, &other_key)
+        let cert = Jwt::sign_with_sub(&wallet.valid_certificate_claims().await, &other_key)
             .await
             .unwrap();
 
@@ -449,7 +449,7 @@ mod tests {
         // Have the account server include a hardware public key
         // in the wallet certificate that the wallet did not send.
         let other_key = SigningKey::random(&mut OsRng);
-        let mut cert_claims = WalletWithMocks::valid_certificate_claims().await;
+        let mut cert_claims = wallet.valid_certificate_claims().await;
         cert_claims.hw_pubkey = (*other_key.verifying_key()).into();
         let cert = Jwt::sign_with_sub(&cert_claims, &ACCOUNT_SERVER_KEYS.certificate_signing_key)
             .await
@@ -479,7 +479,7 @@ mod tests {
             .expect_registration_challenge()
             .return_once(|_| Ok(utils::random_bytes(32)));
 
-        let cert = WalletWithMocks::valid_certificate().await;
+        let cert = wallet.valid_certificate().await;
 
         wallet
             .account_provider_client
