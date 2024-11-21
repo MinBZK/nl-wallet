@@ -2,18 +2,16 @@ use p256::ecdsa::VerifyingKey;
 
 use openid4vc::jwt::JwtCredential;
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    account::messages::instructions::{IssueWte, IssueWteResult},
-    utils::random_string,
-    wte::WteClaims,
-};
+use wallet_common::account::messages::instructions::IssueWte;
+use wallet_common::account::messages::instructions::IssueWteResult;
+use wallet_common::utils::random_string;
+use wallet_common::wte::WteClaims;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    instruction::{InstructionClient, RemoteEcdsaKey},
-    storage::Storage,
-    wallet::PidIssuanceError,
-};
+use crate::account_provider::AccountProviderClient;
+use crate::instruction::InstructionClient;
+use crate::instruction::RemoteEcdsaKey;
+use crate::storage::Storage;
+use crate::wallet::PidIssuanceError;
 
 pub trait WteIssuanceClient {
     async fn obtain_wte<S, PEK, APC>(
@@ -63,16 +61,15 @@ pub(crate) mod tests {
 
     use openid4vc::jwt::JwtCredential;
     use platform_support::hw_keystore::PlatformEcdsaKey;
-    use wallet_common::{
-        keys::{software::SoftwareEcdsaKey, StoredByIdentifier},
-        utils::random_string,
-        wte::WteClaims,
-    };
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::StoredByIdentifier;
+    use wallet_common::utils::random_string;
+    use wallet_common::wte::WteClaims;
 
-    use crate::{
-        account_provider::AccountProviderClient, instruction::InstructionClient, storage::Storage,
-        wallet::PidIssuanceError,
-    };
+    use crate::account_provider::AccountProviderClient;
+    use crate::instruction::InstructionClient;
+    use crate::storage::Storage;
+    use crate::wallet::PidIssuanceError;
 
     use super::WteIssuanceClient;
 

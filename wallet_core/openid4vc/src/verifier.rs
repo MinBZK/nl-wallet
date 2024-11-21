@@ -1,50 +1,64 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::{collections::HashMap, fmt::Display, sync::Arc, time::Duration};
+use std::collections::HashMap;
+use std::fmt::Display;
+use std::sync::Arc;
+use std::time::Duration;
 
-use chrono::{DateTime, SecondsFormat, Utc};
-use derive_more::{AsRef, From};
+use chrono::DateTime;
+use chrono::SecondsFormat;
+use chrono::Utc;
+use derive_more::AsRef;
+use derive_more::From;
 use itertools::Itertools;
-use josekit::{
-    jwk::{
-        alg::ec::{EcCurve, EcKeyPair},
-        Jwk,
-    },
-    JoseError,
-};
+use josekit::jwk::alg::ec::EcCurve;
+use josekit::jwk::alg::ec::EcKeyPair;
+use josekit::jwk::Jwk;
+use josekit::JoseError;
 use ring::hmac;
-use serde::{Deserialize, Serialize};
-use serde_with::{hex::Hex, serde_as, skip_serializing_none};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::hex::Hex;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
 use tokio::task::JoinHandle;
-use tracing::{debug, info, warn};
+use tracing::debug;
+use tracing::info;
+use tracing::warn;
 
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    server_keys::KeyPair,
-    utils::x509::CertificateError,
-    verifier::{DisclosedAttributes, ItemsRequests},
-};
-use wallet_common::{
-    generator::Generator,
-    jwt::{Jwt, JwtError},
-    trust_anchor::OwnedTrustAnchor,
-    urls::BaseUrl,
-    utils::random_string,
-};
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use wallet_common::generator::Generator;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtError;
+use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils::random_string;
 
-use crate::{
-    jwt,
-    openid4vp::{
-        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest,
-        VpAuthorizationResponse, VpRequestUriObject, VpResponse,
-    },
-    return_url::ReturnUrlTemplate,
-    server_state::{
-        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
-        CLEANUP_INTERVAL_SECONDS,
-    },
-    AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
-};
+use crate::jwt;
+use crate::openid4vp::AuthRequestError;
+use crate::openid4vp::AuthResponseError;
+use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::RequestUriMethod;
+use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpAuthorizationResponse;
+use crate::openid4vp::VpRequestUriObject;
+use crate::openid4vp::VpResponse;
+use crate::return_url::ReturnUrlTemplate;
+use crate::server_state::Expirable;
+use crate::server_state::HasProgress;
+use crate::server_state::Progress;
+use crate::server_state::SessionState;
+use crate::server_state::SessionStore;
+use crate::server_state::SessionStoreError;
+use crate::server_state::SessionToken;
+use crate::server_state::CLEANUP_INTERVAL_SECONDS;
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::VpAuthorizationErrorCode;
 
 pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
@@ -1108,26 +1122,48 @@ impl Session<WaitingForResponse> {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use chrono::{DateTime, Duration, Utc};
+    use chrono::DateTime;
+    use chrono::Duration;
+    use chrono::Utc;
     use indexmap::IndexMap;
     use itertools::Itertools;
-    use ring::{hmac, rand};
+    use ring::hmac;
+    use ring::rand;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::{server_keys::KeyPair, utils::reader_auth::ReaderRegistration, ItemsRequest};
-    use wallet_common::{
-        generator::{Generator, TimeGenerator},
-        trust_anchor::DerTrustAnchor,
-    };
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+    use nl_wallet_mdoc::ItemsRequest;
+    use wallet_common::generator::Generator;
+    use wallet_common::generator::TimeGenerator;
+    use wallet_common::trust_anchor::DerTrustAnchor;
 
-    use crate::server_state::{MemorySessionStore, SessionToken};
+    use crate::server_state::MemorySessionStore;
+    use crate::server_state::SessionToken;
 
-    use super::{
-        AuthorizationErrorCode, DisclosedAttributesError, DisclosureData, Done, ErrorResponse, GetAuthRequestError,
-        HashMap, ItemsRequests, NewSessionError, SessionError, SessionResult, SessionState, SessionStatus,
-        SessionStore, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase, Verifier, VpAuthorizationErrorCode,
-        VpRequestUriObject, WalletAuthResponse, EPHEMERAL_ID_VALIDITY_SECONDS,
-    };
+    use super::AuthorizationErrorCode;
+    use super::DisclosedAttributesError;
+    use super::DisclosureData;
+    use super::Done;
+    use super::ErrorResponse;
+    use super::GetAuthRequestError;
+    use super::HashMap;
+    use super::ItemsRequests;
+    use super::NewSessionError;
+    use super::SessionError;
+    use super::SessionResult;
+    use super::SessionState;
+    use super::SessionStatus;
+    use super::SessionStore;
+    use super::SessionType;
+    use super::SessionTypeReturnUrl;
+    use super::StatusResponse;
+    use super::UseCase;
+    use super::Verifier;
+    use super::VpAuthorizationErrorCode;
+    use super::VpRequestUriObject;
+    use super::WalletAuthResponse;
+    use super::EPHEMERAL_ID_VALIDITY_SECONDS;
 
     const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
     const DISCLOSURE_NAME_SPACE: &str = "example_namespace";

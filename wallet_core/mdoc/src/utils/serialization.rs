@@ -1,18 +1,19 @@
 //! CBOR serialization: wrapper types that modify serialization and specialized (de)serialization implementations.
 
 use base64::prelude::*;
-use ciborium::{tag, value::Value};
+use ciborium::tag;
+use ciborium::value::Value;
 use core::fmt::Debug;
 use coset::AsCborValue;
 use indexmap::IndexMap;
 use nutype::nutype;
-use serde::{
-    de,
-    de::{DeserializeOwned, Deserializer},
-    ser,
-    ser::Serializer,
-    Deserialize, Serialize,
-};
+use serde::de;
+use serde::de::DeserializeOwned;
+use serde::de::Deserializer;
+use serde::ser;
+use serde::ser::Serializer;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_aux::serde_introspection::serde_introspect;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
@@ -20,10 +21,9 @@ use url::Url;
 
 use error_category::ErrorCategory;
 
-use crate::{
-    iso::*,
-    utils::cose::{CoseKey, MdocCose},
-};
+use crate::iso::*;
+use crate::utils::cose::CoseKey;
+use crate::utils::cose::MdocCose;
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
@@ -435,13 +435,15 @@ pub struct JsonCborValue(Value);
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use ciborium::{
-        cbor,
-        value::Value::{Array, Bytes, Null, Text},
-    };
+    use ciborium::cbor;
+    use ciborium::value::Value::Array;
+    use ciborium::value::Value::Bytes;
+    use ciborium::value::Value::Null;
+    use ciborium::value::Value::Text;
     use hex_literal::hex;
     use serde_json::json;
-    use serde_with::{serde_as, FromInto};
+    use serde_with::serde_as;
+    use serde_with::FromInto;
 
     use crate::examples::Example;
 

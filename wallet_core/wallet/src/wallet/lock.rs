@@ -1,18 +1,21 @@
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use tracing::{info, instrument};
+use tracing::info;
+use tracing::instrument;
 
-use error_category::{sentry_capture_error, ErrorCategory};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
 use wallet_common::account::messages::instructions::CheckPin;
 
-pub use crate::{lock::LockCallback, storage::UnlockMethod};
+pub use crate::lock::LockCallback;
+pub use crate::storage::UnlockMethod;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    config::ConfigurationRepository,
-    errors::{ChangePinError, StorageError},
-    instruction::InstructionError,
-    storage::{Storage, UnlockData},
-};
+use crate::account_provider::AccountProviderClient;
+use crate::config::ConfigurationRepository;
+use crate::errors::ChangePinError;
+use crate::errors::StorageError;
+use crate::instruction::InstructionError;
+use crate::storage::Storage;
+use crate::storage::UnlockData;
 
 use super::Wallet;
 
@@ -118,7 +121,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
             .new_instruction_client(
                 pin,
                 registration,
-                &config.account_server.base_url,
+                &config.account_server.http_config,
                 &instruction_result_public_key,
             )
             .await?;
@@ -203,29 +206,25 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use parking_lot::Mutex;
     use rand_core::OsRng;
-    use wallet_common::{
-        account::{
-            messages::{
-                errors::{AccountError, IncorrectPinData, PinTimeoutData},
-                instructions::{CheckPin, Instruction, InstructionResultClaims},
-            },
-            signed::SequenceNumberComparison,
-        },
-        jwt::Jwt,
-        keys::EcdsaKey,
-        utils,
-    };
+    use wallet_common::account::messages::errors::AccountError;
+    use wallet_common::account::messages::errors::IncorrectPinData;
+    use wallet_common::account::messages::errors::PinTimeoutData;
+    use wallet_common::account::messages::instructions::CheckPin;
+    use wallet_common::account::messages::instructions::Instruction;
+    use wallet_common::account::messages::instructions::InstructionResultClaims;
+    use wallet_common::account::signed::SequenceNumberComparison;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_common::utils;
 
-    use crate::{
-        account_provider::AccountProviderResponseError,
-        pin::key::PinKey,
-        storage::{InstructionData, KeyedData},
-    };
+    use crate::account_provider::AccountProviderResponseError;
+    use crate::pin::key::PinKey;
+    use crate::storage::InstructionData;
+    use crate::storage::KeyedData;
 
-    use super::{
-        super::test::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
-        *,
-    };
+    use super::super::test::WalletWithMocks;
+    use super::super::test::ACCOUNT_SERVER_KEYS;
+    use super::*;
 
     const PIN: &str = "051097";
 
@@ -255,13 +254,14 @@ mod tests {
         let challenge_response = challenge.clone();
         let registration = wallet.registration.as_ref().unwrap();
         let wallet_cert = registration.data.wallet_certificate.clone();
+        let wallet_id = registration.data.wallet_id.clone();
         let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
 
         wallet
             .account_provider_client
             .expect_instruction_challenge()
             .with(
-                eq(wallet.config_repository.config().account_server.base_url.clone()),
+                eq(wallet.config_repository.config().account_server.http_config.clone()),
                 always(),
             )
             .return_once(move |_, challenge_request| {
@@ -269,7 +269,7 @@ mod tests {
 
                 challenge_request
                     .request
-                    .parse_and_verify(SequenceNumberComparison::EqualTo(1), &hw_pubkey)
+                    .parse_and_verify_ecdsa(&wallet_id, SequenceNumberComparison::EqualTo(1), &hw_pubkey)
                     .expect("challenge request should be valid");
 
                 Ok(challenge_response)
@@ -295,7 +295,7 @@ mod tests {
             .account_provider_client
             .expect_instruction()
             .with(
-                eq(wallet.config_repository.config().account_server.base_url.clone()),
+                eq(wallet.config_repository.config().account_server.http_config.clone()),
                 always(),
             )
             .return_once(move |_, instruction: Instruction<CheckPin>| {
@@ -303,7 +303,7 @@ mod tests {
 
                 instruction
                     .instruction
-                    .parse_and_verify(
+                    .parse_and_verify_ecdsa(
                         &challenge,
                         SequenceNumberComparison::LargerThan(1),
                         &hw_pubkey,

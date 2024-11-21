@@ -21,7 +21,7 @@ hardware_integration_test = ["integration_test", "dep:apple_app_attest", "dep:ch
 
 [dependencies]
 async-trait.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "debug", "into"] }
+derive_more = { workspace = true, features = ["debug"] }
 log.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 parking_lot.workspace = true
@@ -32,7 +32,7 @@ chrono = { workspace = true, optional = true, features = ["now"] }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 
 error_category.path = "../error_category"
-wallet_common.path = "../wallet_common"
+wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 

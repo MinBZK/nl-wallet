@@ -1,6 +1,10 @@
-use std::{concat, env};
+use std::concat;
+use std::env;
 
-use lib_flutter_rust_bridge_codegen::{config_parse, frb_codegen, get_symbols_if_no_duplicates, RawOpts};
+use lib_flutter_rust_bridge_codegen::config_parse;
+use lib_flutter_rust_bridge_codegen::frb_codegen;
+use lib_flutter_rust_bridge_codegen::get_symbols_if_no_duplicates;
+use lib_flutter_rust_bridge_codegen::RawOpts;
 
 /// Path of input Rust code
 const RUST_INPUT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../flutter_api/src/api.rs");

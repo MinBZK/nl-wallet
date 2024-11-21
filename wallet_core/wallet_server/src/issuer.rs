@@ -1,34 +1,59 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::collections::HashMap;
+use std::str::FromStr;
+use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri},
-    routing::{delete, get, post},
-    Form, Json, Router,
-};
-use axum_extra::{
-    headers::{self, authorization::Credentials, Authorization, Header},
-    TypedHeader,
-};
-use derive_more::{AsRef, From};
-use p256::ecdsa::{SigningKey, VerifyingKey};
+use axum::extract::State;
+use axum::http::HeaderMap;
+use axum::http::HeaderName;
+use axum::http::HeaderValue;
+use axum::http::StatusCode;
+use axum::http::Uri;
+use axum::routing::delete;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Form;
+use axum::Json;
+use axum::Router;
+use axum_extra::headers::authorization::Credentials;
+use axum_extra::headers::Authorization;
+use axum_extra::headers::Header;
+use axum_extra::headers::{self};
+use axum_extra::TypedHeader;
+use derive_more::AsRef;
+use derive_more::From;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 
-use nl_wallet_mdoc::server_keys::{KeyPair, KeyRing};
-use openid4vc::{
-    credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
-    dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    metadata::IssuerMetadata,
-    oidc,
-    server_state::{SessionStore, WteTracker},
-    token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorResponse, ErrorStatusCode, TokenErrorCode,
-};
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::server_keys::KeyRing;
+use openid4vc::credential::CredentialRequest;
+use openid4vc::credential::CredentialRequests;
+use openid4vc::credential::CredentialResponse;
+use openid4vc::credential::CredentialResponses;
+use openid4vc::dpop::Dpop;
+use openid4vc::dpop::DPOP_HEADER_NAME;
+use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
+use openid4vc::metadata::IssuerMetadata;
+use openid4vc::oidc;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::WteTracker;
+use openid4vc::token::AccessToken;
+use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenResponseWithPreviews;
+use openid4vc::CredentialErrorCode;
+use openid4vc::ErrorResponse;
+use openid4vc::ErrorStatusCode;
+use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings::{self, KeyPairError, Urls};
+use crate::settings::KeyPairError;
+use crate::settings::Urls;
+use crate::settings::{self};
 
-use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
+use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::Issuer;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Issuer<A, K, S, W>,

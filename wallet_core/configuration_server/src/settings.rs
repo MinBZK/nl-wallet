@@ -1,19 +1,21 @@
-use std::{env, net::IpAddr, path::PathBuf};
+use std::env;
+use std::net::IpAddr;
+use std::path::PathBuf;
 
-use config::{Config, ConfigError, Environment, File};
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
 use serde::Deserialize;
-use serde_with::{base64::Base64, serde_as};
 
-#[serde_as]
+use wallet_common::config::http::TlsServerConfig;
+
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
     pub wallet_config_jwt: String,
-    #[serde_as(as = "Base64")]
-    pub config_server_cert: Vec<u8>,
-    #[serde_as(as = "Base64")]
-    pub config_server_key: Vec<u8>,
+    pub tls_config: TlsServerConfig,
 }
 
 impl Settings {

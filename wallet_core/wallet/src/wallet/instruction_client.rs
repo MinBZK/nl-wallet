@@ -1,12 +1,16 @@
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{jwt::EcdsaDecodingKey, urls::BaseUrl};
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::jwt::EcdsaDecodingKey;
 
-use crate::{
-    account_provider::AccountProviderClient, config::ConfigurationRepository, errors::ChangePinError,
-    instruction::InstructionClient, pin::change::ChangePinStorage, storage::Storage,
-};
+use crate::account_provider::AccountProviderClient;
+use crate::config::ConfigurationRepository;
+use crate::errors::ChangePinError;
+use crate::instruction::InstructionClient;
+use crate::pin::change::ChangePinStorage;
+use crate::storage::Storage;
 
-use super::{Wallet, WalletRegistration};
+use super::Wallet;
+use super::WalletRegistration;
 
 impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
@@ -23,7 +27,7 @@ where
         &'a self,
         pin: String,
         registration: &'a WalletRegistration<PEK>,
-        account_provider_base_url: &'a BaseUrl,
+        client_config: &'a TlsPinningConfig,
         instruction_result_public_key: &'a EcdsaDecodingKey,
     ) -> Result<InstructionClient<'a, S, PEK, APC>, ChangePinError> {
         tracing::info!("Try to finalize PIN change if it is in progress");
@@ -38,7 +42,7 @@ where
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            account_provider_base_url,
+            client_config,
             instruction_result_public_key,
         );
 

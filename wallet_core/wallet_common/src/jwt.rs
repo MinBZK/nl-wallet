@@ -1,32 +1,41 @@
-use std::{collections::HashMap, marker::PhantomData, str::FromStr, sync::LazyLock};
+use std::collections::HashMap;
+use std::marker::PhantomData;
+use std::str::FromStr;
+use std::sync::LazyLock;
 
 use base64::prelude::*;
-use chrono::{serde::ts_seconds, DateTime, Utc};
-use indexmap::IndexMap;
+use chrono::serde::ts_seconds;
+use chrono::DateTime;
+use chrono::Utc;
 use itertools::Itertools;
-use jsonwebtoken::{
-    jwk::{self, EllipticCurve, Jwk},
-    Algorithm, DecodingKey, Header, Validation,
-};
-use p256::{
-    ecdsa::{signature, VerifyingKey},
-    EncodedPoint,
-};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none};
-use x509_parser::{
-    der_parser::{asn1_rs::BitString, Oid},
-    prelude::FromDer,
-    x509::AlgorithmIdentifier,
-};
+use jsonwebtoken::jwk::EllipticCurve;
+use jsonwebtoken::jwk::Jwk;
+use jsonwebtoken::jwk::{self};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::DecodingKey;
+use jsonwebtoken::Header;
+use jsonwebtoken::Validation;
+use p256::ecdsa::signature;
+use p256::ecdsa::VerifyingKey;
+use p256::EncodedPoint;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use x509_parser::der_parser::asn1_rs::BitString;
+use x509_parser::der_parser::Oid;
+use x509_parser::prelude::FromDer;
+use x509_parser::x509::AlgorithmIdentifier;
 
 use error_category::ErrorCategory;
 
-use crate::{
-    account::serialization::DerVerifyingKey,
-    keys::{factory::KeyFactory, CredentialEcdsaKey, EcdsaKey, SecureEcdsaKey},
-    nonempty::NonEmpty,
-};
+use crate::account::serialization::DerVerifyingKey;
+use crate::keys::factory::KeyFactory;
+use crate::keys::CredentialEcdsaKey;
+use crate::keys::EcdsaKey;
+use crate::keys::SecureEcdsaKey;
+use crate::nonempty::NonEmpty;
 
 /// JWT type, generic over its contents.
 ///
@@ -349,7 +358,7 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
 
 /// Claims of a `JwtCredential`: the body of the JWT.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialClaims<T = IndexMap<String, serde_json::Value>> {
+pub struct JwtCredentialClaims<T> {
     #[serde(rename = "cnf")]
     pub confirmation: JwtCredentialConfirmation,
 
@@ -397,7 +406,7 @@ where
 /// key (`Cnf`): the attributes and metadata of the credential.
 #[skip_serializing_none]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialContents<T = IndexMap<String, serde_json::Value>> {
+pub struct JwtCredentialContents<T> {
     pub iss: String,
 
     #[serde(flatten)]

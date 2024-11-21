@@ -1,8 +1,12 @@
-use std::{ffi::CStr, fmt::Write, io};
+use std::ffi::CStr;
+use std::fmt::Write;
+use std::io;
 
-use android_logger::{LogId, PlatformLogWriter};
+use android_logger::LogId;
+use android_logger::PlatformLogWriter;
 use cstr::cstr;
-use tracing::{log, Metadata};
+use tracing::log;
+use tracing::Metadata;
 use tracing_subscriber::fmt::MakeWriter;
 
 /// Print "core" as the tag in Android logs, to differentiate from Flutter messages.

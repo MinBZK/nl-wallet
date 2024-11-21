@@ -10,6 +10,19 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "assertion"
+path = "tests/assertion.rs"
+required-features = ["mock"]
+
+[[test]]
+name = "attestation"
+path = "tests/attestation.rs"
+
+[features]
+serialize = []
+mock = ["serialize"]
+
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
 ciborium.workspace = true

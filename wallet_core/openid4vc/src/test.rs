@@ -1,33 +1,44 @@
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
+use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use chrono::Utc;
 use derive_more::Debug;
-use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
+use josekit::jwk::alg::ec::EcCurve;
+use josekit::jwk::alg::ec::EcKeyPair;
 use parking_lot::Mutex;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-    holder::{mock::MockMdocDataSource, TrustAnchor},
-    iso::device_retrieval::ItemsRequest,
-    server_keys::KeyPair,
-    utils::reader_auth::ReaderRegistration,
-    verifier::ItemsRequests,
-};
-use wallet_common::{jwt::Jwt, trust_anchor::DerTrustAnchor, urls::BaseUrl, utils::random_string};
+use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
+use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
+use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
+use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::iso::device_retrieval::ItemsRequest;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use wallet_common::jwt::Jwt;
+use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils::random_string;
 
-use crate::{
-    disclosure_session::{
-        DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
-    },
-    jwt,
-    openid4vp::{
-        IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest, VpRequestUriObject, WalletRequest,
-    },
-    verifier::{SessionType, VerifierUrlParameters},
-    AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
-};
+use crate::disclosure_session::DisclosureSession;
+use crate::disclosure_session::DisclosureUriSource;
+use crate::disclosure_session::VpClientError;
+use crate::disclosure_session::VpMessageClient;
+use crate::disclosure_session::VpMessageClientError;
+use crate::jwt;
+use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::RequestUriMethod;
+use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpRequestUriObject;
+use crate::openid4vp::WalletRequest;
+use crate::verifier::SessionType;
+use crate::verifier::VerifierUrlParameters;
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::VpAuthorizationErrorCode;
 
 // Constants for testing.
 pub const VERIFIER_URL: &str = "http://example.com/disclosure";

@@ -1,19 +1,29 @@
-use std::{error::Error, fmt::Display};
+use std::error::Error;
+use std::fmt::Display;
 
 use anyhow::Chain;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use wallet::{
-    errors::{
-        openid4vc::{IssuanceSessionError, OidcError, VpClientError, VpMessageClientErrorType},
-        reqwest, AccountProviderError, ChangePinError, DigidSessionError, DisclosureError, HistoryError,
-        InstructionError, PidIssuanceError, ResetError, UriIdentificationError, WalletInitError,
-        WalletRegistrationError, WalletUnlockError,
-    },
-    openid4vc::SessionType,
-};
+use wallet::errors::openid4vc::IssuanceSessionError;
+use wallet::errors::openid4vc::OidcError;
+use wallet::errors::openid4vc::VpClientError;
+use wallet::errors::openid4vc::VpMessageClientErrorType;
+use wallet::errors::reqwest;
+use wallet::errors::AccountProviderError;
+use wallet::errors::ChangePinError;
+use wallet::errors::DigidSessionError;
+use wallet::errors::DisclosureError;
+use wallet::errors::HistoryError;
+use wallet::errors::InstructionError;
+use wallet::errors::PidIssuanceError;
+use wallet::errors::ResetError;
+use wallet::errors::UriIdentificationError;
+use wallet::errors::WalletInitError;
+use wallet::errors::WalletRegistrationError;
+use wallet::errors::WalletUnlockError;
+use wallet::openid4vc::SessionType;
 
 /// A type encapsulating data about a Flutter error that
 /// is to be serialized to JSON and sent to Flutter.
@@ -328,8 +338,12 @@ impl FlutterApiErrorFields for ChangePinError {
                 FlutterApiErrorType::WalletState
             }
             Self::Instruction(e) => FlutterApiErrorType::from(e),
-            Self::Storage(_) => FlutterApiErrorType::Generic,
-            Self::PinValidation(_) => FlutterApiErrorType::Generic,
+            Self::Storage(_)
+            | Self::PinValidation(_)
+            | Self::HardwarePublicKey(_)
+            | Self::CertificateValidation(_)
+            | Self::PublicKeyMismatch
+            | Self::WalletIdMismatch => FlutterApiErrorType::Generic,
         }
     }
 }

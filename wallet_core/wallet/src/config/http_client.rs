@@ -1,24 +1,24 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
-use http::{header, HeaderValue, StatusCode};
+use http::header;
+use http::HeaderValue;
+use http::StatusCode;
 use parking_lot::Mutex;
-use reqwest::Certificate;
 use tokio::fs;
 
-use wallet_common::{
-    config::wallet_config::WalletConfiguration,
-    jwt::{validations, EcdsaDecodingKey, Jwt},
-    reqwest::tls_pinned_client_builder,
-    urls::BaseUrl,
-};
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::jwt::validations;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::jwt::Jwt;
+use wallet_common::reqwest::RequestBuilder;
 
 use crate::config::ConfigurationError;
 
 use super::FileStorageError;
 
-pub struct HttpConfigurationClient {
-    http_client: reqwest::Client,
-    base_url: BaseUrl,
+pub struct HttpConfigurationClient<C> {
+    http_config: C,
     signing_public_key: EcdsaDecodingKey,
     storage_path: PathBuf,
     latest_etag: Mutex<Option<HeaderValue>>,
@@ -26,20 +26,19 @@ pub struct HttpConfigurationClient {
 
 const ETAG_FILENAME: &str = "latest-configuration-etag.txt";
 
-impl HttpConfigurationClient {
+impl<C> HttpConfigurationClient<C>
+where
+    C: RequestBuilder,
+{
     pub async fn new(
-        base_url: BaseUrl,
-        trust_anchors: Vec<Certificate>,
+        http_config: C,
         signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,
     ) -> Result<Self, ConfigurationError> {
         let initial_etag = Self::read_latest_etag(storage_path.as_path()).await?;
 
         let client = Self {
-            http_client: tls_pinned_client_builder(trust_anchors)
-                .build()
-                .expect("Could not build reqwest HTTP client"),
-            base_url,
+            http_config,
             signing_public_key,
             storage_path,
             latest_etag: Mutex::new(initial_etag),
@@ -72,15 +71,14 @@ impl HttpConfigurationClient {
     }
 
     pub async fn get_wallet_config(&self) -> Result<Option<WalletConfiguration>, ConfigurationError> {
-        let url = self.base_url.join("wallet-config");
-        let mut request_builder = self.http_client.get(url);
+        let (http_client, mut request_builder) = self.http_config.get(Path::new("wallet-config"));
 
         if let Some(etag) = self.latest_etag.lock().as_ref() {
             request_builder = request_builder.header(header::IF_NONE_MATCH, etag);
         }
 
         let request = request_builder.build()?;
-        let response = self.http_client.execute(request).await?;
+        let response = http_client.execute(request).await?;
 
         // Try to get the body from any 4xx or 5xx error responses,
         // in order to create an ConfigurationError::Response.

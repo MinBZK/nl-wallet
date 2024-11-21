@@ -1,25 +1,42 @@
 use base64::prelude::*;
-pub use biscuit::{
-    errors::Error as BiscuitError, jwa, jwa::SignatureAlgorithm, jwk::JWKSet, ClaimsSet, CompactJson, CompactPart,
-    Empty, ValidationOptions, JWT,
-};
+pub use biscuit::errors::Error as BiscuitError;
+pub use biscuit::jwa;
+pub use biscuit::jwa::SignatureAlgorithm;
+pub use biscuit::jwk::JWKSet;
+pub use biscuit::ClaimsSet;
+pub use biscuit::CompactJson;
+pub use biscuit::CompactPart;
+pub use biscuit::Empty;
+pub use biscuit::ValidationOptions;
+pub use biscuit::JWT;
 use futures::TryFutureExt;
-pub use josekit::{
-    jwe::{alg, enc, JweContentEncryption, JweDecrypter},
-    JoseError,
-};
+pub use josekit::jwe::alg;
+pub use josekit::jwe::enc;
+pub use josekit::jwe::JweContentEncryption;
+pub use josekit::jwe::JweDecrypter;
+pub use josekit::JoseError;
 use reqwest::header;
 use url::Url;
 
 use error_category::ErrorCategory;
-use wallet_common::{reqwest::trusted_reqwest_client_builder, urls::BaseUrl, utils};
+use wallet_common::reqwest::JsonReqwestBuilder;
+use wallet_common::utils;
 
-use crate::{
-    authorization::{AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge, ResponseType},
-    pkce::{PkcePair, S256PkcePair},
-    token::{AccessToken, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse},
-    AuthBearerErrorCode, AuthorizationErrorCode, ErrorResponse, TokenErrorCode,
-};
+use crate::authorization::AuthorizationRequest;
+use crate::authorization::AuthorizationResponse;
+use crate::authorization::PkceCodeChallenge;
+use crate::authorization::ResponseType;
+use crate::pkce::PkcePair;
+use crate::pkce::S256PkcePair;
+use crate::token::AccessToken;
+use crate::token::AuthorizationCode;
+use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
+use crate::token::TokenResponse;
+use crate::AuthBearerErrorCode;
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::TokenErrorCode;
 
 use super::Config;
 
@@ -68,14 +85,10 @@ const APPLICATION_JWT: &str = "application/jwt";
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait OidcClient {
     /// Create a new instance by using OpenID discovery, and return an authorization URL.
-    async fn start(
-        trust_anchors: Vec<reqwest::Certificate>,
-        issuer_url: BaseUrl,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<(Self, Url), OidcError>
+    async fn start<C>(http_config: &C, client_id: String, redirect_uri: Url) -> Result<(Self, Url), OidcError>
     where
-        Self: Sized;
+        Self: Sized,
+        C: JsonReqwestBuilder + 'static;
 
     /// Create an OpenID Token Request based on the contents
     /// of the redirect URI received.
@@ -101,16 +114,16 @@ pub struct HttpOidcClient<P = S256PkcePair> {
     nonce: String,
 }
 
-impl<P: PkcePair> OidcClient for HttpOidcClient<P> {
-    async fn start(
-        trust_anchors: Vec<reqwest::Certificate>,
-        issuer: BaseUrl,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<(Self, Url), OidcError> {
-        let http_client = trusted_reqwest_client_builder(trust_anchors).build()?;
-        let config = Config::discover(&http_client, &issuer).await?;
-        let jwks = config.jwks(&http_client).await?;
+impl<P> OidcClient for HttpOidcClient<P>
+where
+    P: PkcePair,
+{
+    async fn start<C>(http_config: &C, client_id: String, redirect_uri: Url) -> Result<(Self, Url), OidcError>
+    where
+        C: JsonReqwestBuilder + 'static,
+    {
+        let config = Config::discover(http_config).await?;
+        let jwks = config.jwks(&http_config.json_builder().build()?).await?;
 
         let client = Self::new(config, jwks, client_id, redirect_uri);
 
@@ -197,13 +210,14 @@ impl<P: PkcePair> HttpOidcClient<P> {
 }
 
 pub async fn request_token(
-    http_client: &reqwest::Client,
-    issuer: &BaseUrl,
+    http_config: &impl JsonReqwestBuilder,
     token_request: TokenRequest,
 ) -> Result<TokenResponse, OidcError> {
-    let config = Config::discover(http_client, issuer).await?;
+    let config = Config::discover(http_config).await?;
 
-    let response: TokenResponse = http_client
+    let response: TokenResponse = http_config
+        .builder()
+        .build()?
         .post(config.token_endpoint.clone())
         .form(&token_request)
         .send()
@@ -224,8 +238,7 @@ pub async fn request_token(
 }
 
 pub async fn request_userinfo<C, H>(
-    http_client: &reqwest::Client,
-    issuer: &BaseUrl,
+    http_config: &impl JsonReqwestBuilder,
     access_token: &AccessToken,
     expected_sig_alg: SignatureAlgorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
@@ -234,14 +247,16 @@ where
     ClaimsSet<C>: CompactPart,
     H: CompactJson,
 {
-    let config = Config::discover(http_client, issuer).await?;
-    let jwks = config.jwks(http_client).await?;
+    let config = Config::discover(http_config).await?;
+    let jwks = config.jwks(&http_config.json_builder().build()?).await?;
 
     // Get userinfo endpoint from discovery, throw an error otherwise.
     let endpoint = config.userinfo_endpoint.clone().ok_or(OidcError::NoUserinfoUrl)?;
 
     // Use the access_token to retrieve the userinfo as a JWT.
-    let jwt = http_client
+    let jwt = http_config
+        .builder()
+        .build()?
         .post(endpoint)
         .header(header::ACCEPT, APPLICATION_JWT)
         .bearer_auth(access_token.as_ref())
@@ -301,16 +316,20 @@ mod tests {
     use biscuit::jwk::JWKSet;
     use rstest::rstest;
     use url::Url;
+
+    use wallet_common::config::http::test::HttpConfig;
     use wallet_common::urls::BaseUrl;
 
-    use crate::{
-        oidc::tests::start_discovery_server,
-        pkce::{MockPkcePair, S256PkcePair},
-        token::TokenRequestGrantType,
-        AuthorizationErrorCode,
-    };
+    use crate::oidc::tests::start_discovery_server;
+    use crate::pkce::MockPkcePair;
+    use crate::pkce::S256PkcePair;
+    use crate::token::TokenRequestGrantType;
+    use crate::AuthorizationErrorCode;
 
-    use super::{Config, HttpOidcClient, OidcClient, OidcError};
+    use super::Config;
+    use super::HttpOidcClient;
+    use super::OidcClient;
+    use super::OidcError;
 
     // These constants are used by multiple tests.
     const ISSUER_URL: &str = "http://example.com";
@@ -345,8 +364,9 @@ mod tests {
         let (_server, server_url) = start_discovery_server().await;
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
         let (client, auth_url) = HttpOidcClient::<MockPkcePair>::start(
-            vec![],
-            server_url.clone(),
+            &HttpConfig {
+                base_url: server_url.clone(),
+            },
             CLIENT_ID.to_string(),
             redirect_uri.clone(),
         )

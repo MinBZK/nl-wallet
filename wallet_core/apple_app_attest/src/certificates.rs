@@ -1,20 +1,27 @@
-use std::{sync::LazyLock, time::Duration};
+use std::sync::LazyLock;
+use std::time::Duration;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use derive_more::AsRef;
 use nutype::nutype;
-use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
-use webpki::{
-    ring::{ECDSA_P256_SHA256, ECDSA_P256_SHA384, ECDSA_P384_SHA256, ECDSA_P384_SHA384},
-    types::{CertificateDer, TrustAnchor, UnixTime},
-    EndEntityCert, KeyUsage,
-};
-use x509_parser::{
-    certificate::X509Certificate,
-    der_parser::{self, der, Oid},
-    error::X509Error,
-    prelude::FromDer,
-};
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
+use webpki::ring::ECDSA_P256_SHA256;
+use webpki::ring::ECDSA_P256_SHA384;
+use webpki::ring::ECDSA_P384_SHA256;
+use webpki::ring::ECDSA_P384_SHA384;
+use webpki::types::CertificateDer;
+use webpki::types::TrustAnchor;
+use webpki::types::UnixTime;
+use webpki::EndEntityCert;
+use webpki::KeyUsage;
+use x509_parser::certificate::X509Certificate;
+use x509_parser::der_parser::der;
+use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::{self};
+use x509_parser::error::X509Error;
+use x509_parser::prelude::FromDer;
 
 static APPLE_ANONYMOUS_ATTESTATION_IOD: LazyLock<Oid> =
     LazyLock::new(|| Oid::from(&[1, 2, 840, 113635, 100, 8, 2]).unwrap());
@@ -46,6 +53,13 @@ pub enum CertificateError {
     derive(Debug, Clone, TryFrom, AsRef)
 )]
 pub struct DerX509CertificateChain(Vec<Vec<u8>>);
+
+#[cfg(feature = "serialize")]
+impl From<DerX509CertificateChain> for Vec<Vec<u8>> {
+    fn from(value: DerX509CertificateChain) -> Self {
+        value.into_inner()
+    }
+}
 
 impl DerX509CertificateChain {
     fn credential_certificate_der(&self) -> &[u8] {

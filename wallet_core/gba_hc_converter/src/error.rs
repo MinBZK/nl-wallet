@@ -1,8 +1,10 @@
 use http::StatusCode;
 
-use wallet_common::http_error::{HttpJsonError, HttpJsonErrorType};
+use wallet_common::http_error::HttpJsonError;
+use wallet_common::http_error::HttpJsonErrorType;
 
-use crate::{gba, haal_centraal};
+use crate::gba;
+use crate::haal_centraal;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]

@@ -1,4 +1,5 @@
 pub mod account;
+pub mod apple;
 pub mod config;
 pub mod generator;
 pub mod http_error;

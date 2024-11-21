@@ -4,7 +4,8 @@ use wallet_common::spawn;
 
 use crate::bridge::utils::get_utils_bridge;
 
-use super::{PlatformUtilities, UtilitiesError};
+use super::PlatformUtilities;
+use super::UtilitiesError;
 
 pub struct HardwareUtilities;
 

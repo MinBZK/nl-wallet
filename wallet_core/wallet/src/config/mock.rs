@@ -4,10 +4,12 @@ use wallet_common::config::wallet_config::WalletConfiguration;
 
 use crate::config::data::default_configuration;
 
-use super::{
-    ConfigCallback, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
-    ObservableConfigurationRepository, UpdateableConfigurationRepository,
-};
+use super::ConfigCallback;
+use super::ConfigurationError;
+use super::ConfigurationRepository;
+use super::ConfigurationUpdateState;
+use super::ObservableConfigurationRepository;
+use super::UpdateableConfigurationRepository;
 
 pub struct LocalConfigurationRepository {
     config: Arc<WalletConfiguration>,

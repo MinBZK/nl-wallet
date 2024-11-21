@@ -5,24 +5,26 @@ use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    test::{
-        data::{addr_street, pid_family_name, pid_full_name, pid_given_name},
-        TestDocuments,
-    },
-    verifier::DisclosedAttributes,
-    ItemsRequest,
-};
-use openid4vc::{
-    return_url::ReturnUrlTemplate,
-    verifier::{SessionType, StatusResponse},
-};
+use nl_wallet_mdoc::test::data::addr_street;
+use nl_wallet_mdoc::test::data::pid_family_name;
+use nl_wallet_mdoc::test::data::pid_full_name;
+use nl_wallet_mdoc::test::data::pid_given_name;
+use nl_wallet_mdoc::test::TestDocuments;
+use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use nl_wallet_mdoc::ItemsRequest;
+use openid4vc::return_url::ReturnUrlTemplate;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::StatusResponse;
 use tests_integration::common::*;
-use wallet::{errors::DisclosureError, mock::MockDigidSession, DisclosureUriSource};
+use wallet::errors::DisclosureError;
+use wallet::mock::MockDigidSession;
+use wallet::DisclosureUriSource;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_server::verifier::{
-    DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse, StatusParams,
-};
+use wallet_server::verifier::DisclosedAttributesParams;
+use wallet_server::verifier::StartDisclosureRequest;
+use wallet_server::verifier::StartDisclosureResponse;
+use wallet_server::verifier::StatusParams;
 
 async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> StatusResponse {
     let response = client.get(status_url).send().await.unwrap();
@@ -232,7 +234,7 @@ async fn test_disclosure_usecases_ok(
 #[serial]
 async fn test_disclosure_without_pid() {
     let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _| {
+    digid_context.expect().return_once(|_, _: &TlsPinningConfig, _| {
         let session = MockDigidSession::default();
         Ok((session, Url::parse("http://localhost/").unwrap()))
     });

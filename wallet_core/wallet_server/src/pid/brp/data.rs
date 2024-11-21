@@ -1,11 +1,16 @@
-use std::{num::NonZeroU8, ops::Add};
+use std::num::NonZeroU8;
+use std::ops::Add;
 
-use chrono::{Days, NaiveDate, Utc};
+use chrono::Days;
+use chrono::NaiveDate;
+use chrono::Utc;
 use ciborium::Value;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-use nl_wallet_mdoc::{unsigned, unsigned::UnsignedMdoc, Tdate};
+use nl_wallet_mdoc::unsigned;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::Tdate;
 
 use crate::pid::constants::*;
 
@@ -288,15 +293,17 @@ impl BrpAddress {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, fs, path::PathBuf};
+    use std::env;
+    use std::fs;
+    use std::path::PathBuf;
 
     use indexmap::IndexMap;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::{
-        unsigned::{Entry, UnsignedMdoc},
-        DataElementValue, NameSpace,
-    };
+    use nl_wallet_mdoc::unsigned::Entry;
+    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+    use nl_wallet_mdoc::DataElementValue;
+    use nl_wallet_mdoc::NameSpace;
 
     use crate::pid::brp::data::BrpPersons;
 

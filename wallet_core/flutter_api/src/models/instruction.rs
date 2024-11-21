@@ -1,4 +1,7 @@
-use wallet::errors::{ChangePinError, InstructionError, PidIssuanceError, WalletUnlockError};
+use wallet::errors::ChangePinError;
+use wallet::errors::InstructionError;
+use wallet::errors::PidIssuanceError;
+use wallet::errors::WalletUnlockError;
 
 pub enum WalletInstructionResult {
     Ok,

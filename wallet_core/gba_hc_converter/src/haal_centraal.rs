@@ -1,13 +1,17 @@
-use std::{collections::HashMap, env, path::PathBuf, str::FromStr, sync::LazyLock};
+use std::collections::HashMap;
+use std::env;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::sync::LazyLock;
 
 use nutype::nutype;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::{
-    gba,
-    gba::data::{Categorievoorkomen, GbaResponse},
-};
+use crate::gba;
+use crate::gba::data::Categorievoorkomen;
+use crate::gba::data::GbaResponse;
 
 static NATIONALITY_TABLE: LazyLock<HashMap<String, String>> =
     LazyLock::new(|| read_csv("Tabel32 Nationaliteitentabel (gesorteerd op code)").unwrap());

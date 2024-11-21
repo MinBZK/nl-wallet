@@ -6,32 +6,40 @@
 
 use std::collections::HashSet;
 
-use base64::{prelude::*, DecodeError};
-use chrono::{DateTime, Utc};
-use indexmap::IndexMap;
+use base64::prelude::*;
+use base64::DecodeError;
+use chrono::DateTime;
+use chrono::Utc;
 use itertools::Itertools;
 use josekit::JoseError;
-use jsonwebtoken::{Algorithm, Header, Validation};
-
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
+use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::{map_difference, IssuedAttributesMismatch, TrustAnchor},
-    server_keys::KeyPair,
-    utils::x509::{Certificate, CertificateError, CertificateUsage},
-};
-use wallet_common::{
-    account::serialization::DerVerifyingKey,
-    generator::Generator,
-    jwt::{jwk_to_p256, validations, JwkConversionError, Jwt, JwtCredentialClaims, JwtCredentialContents, JwtError},
-    keys::{factory::KeyFactory, CredentialEcdsaKey, CredentialKeyType},
-    trust_anchor::trust_anchor_names,
-};
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_common::generator::Generator;
+use wallet_common::jwt::jwk_to_p256;
+use wallet_common::jwt::validations;
+use wallet_common::jwt::JwkConversionError;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtError;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::CredentialKeyType;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct JwtCredential<T = IndexMap<String, serde_json::Value>> {
+pub struct JwtCredential<T> {
     pub(crate) private_key_id: String,
     pub(crate) key_type: CredentialKeyType,
 
@@ -76,42 +84,6 @@ where
         Ok((cred, claims))
     }
 
-    pub fn new_verify_against_trust_anchors<K: CredentialEcdsaKey>(
-        private_key_id: String,
-        jwt: Jwt<JwtCredentialClaims<T>>,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<(Self, JwtCredentialClaims<T>), JwtCredentialError> {
-        // Get the `iss` field from the claims so we can find the trust anchor with which to verify the JWT.
-        // We have to read this from the JWT before we have verified it, but doing that for the purposes of
-        // deciding with which key to verify the JWT is common practice and not a security issue
-        // (someone messing with this field could at most change it to an issuer whose key they don't control,
-        // in which case they won't be able to produce a signature on the JWT that the code below will accept).
-        let (_, claims) = jwt.dangerous_parse_unverified()?;
-        let jwt_issuer = &claims.contents.iss;
-
-        // See if we have a trust anchor that has the JWT issuer as (one of) its subject(s)
-        let trust_anchor = trust_anchors
-            .iter()
-            .find_map(|anchor| {
-                trust_anchor_names(anchor)
-                    .map_err(JwtCredentialError::TrustAnchorNameParsing)
-                    .map(|names| names.iter().any(|name| name == jwt_issuer).then_some(anchor))
-                    .transpose()
-            })
-            .transpose()?
-            .ok_or(JwtCredentialError::UnknownIssuer(jwt_issuer.to_string()))?;
-
-        // Now verify the JWT
-        jwt.verify_against_spki(&trust_anchor.subject_public_key_info)?;
-
-        let cred = Self {
-            private_key_id,
-            key_type: K::KEY_TYPE,
-            jwt,
-        };
-        Ok((cred, claims))
-    }
-
     #[cfg(any(feature = "test", test))]
     pub fn new_unverified<K: CredentialEcdsaKey>(private_key_id: String, jwt: Jwt<JwtCredentialClaims<T>>) -> Self {
         Self {
@@ -130,20 +102,6 @@ where
     pub(crate) fn private_key<K>(&self, key_factory: &impl KeyFactory<Key = K>) -> Result<K, JwkConversionError> {
         Ok(key_factory.generate_existing(&self.private_key_id, jwk_to_p256(&self.jwt_claims().confirmation.jwk)?))
     }
-}
-
-pub fn compare_jwt_attributes(
-    cred: &JwtCredentialContents,
-    other: &JwtCredentialContents,
-) -> Result<(), IssuedAttributesMismatch<String>> {
-    let missing = map_difference(&other.attributes, &cred.attributes);
-    let unexpected = map_difference(&cred.attributes, &other.attributes);
-
-    if !missing.is_empty() || !unexpected.is_empty() {
-        return Err(IssuedAttributesMismatch { missing, unexpected });
-    }
-
-    Ok(())
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -236,15 +194,17 @@ mod tests {
     use indexmap::IndexMap;
     use serde_json::json;
 
-    use wallet_common::{
-        generator::TimeGenerator,
-        jwt::JwtCredentialClaims,
-        keys::{software::SoftwareEcdsaKey, EcdsaKey},
-    };
+    use wallet_common::generator::TimeGenerator;
+    use wallet_common::jwt::JwtCredentialClaims;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::EcdsaKey;
 
-    use nl_wallet_mdoc::{server_keys::KeyPair, utils::x509::CertificateError};
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::utils::x509::CertificateError;
 
-    use crate::jwt::{sign_with_certificate, JwtCredential, JwtX5cError};
+    use crate::jwt::sign_with_certificate;
+    use crate::jwt::JwtCredential;
+    use crate::jwt::JwtX5cError;
 
     use super::verify_against_trust_anchors;
 

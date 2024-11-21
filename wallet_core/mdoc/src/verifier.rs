@@ -1,27 +1,33 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
 use p256::SecretKey;
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, FromInto, IfIsHumanReadable};
-use tracing::{debug, warn};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::serde_as;
+use serde_with::FromInto;
+use serde_with::IfIsHumanReadable;
+use tracing::debug;
+use tracing::warn;
 use webpki::types::TrustAnchor;
 
 use wallet_common::generator::Generator;
 
-use crate::{
-    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    iso::*,
-    utils::{
-        cose::ClonePayload,
-        crypto::{cbor_digest, dh_hmac_key},
-        serialization::{cbor_serialize, CborSeq, JsonCborValue, TaggedBytes},
-        x509::CertificateUsage,
-    },
-    Result,
-};
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
+use crate::iso::*;
+use crate::utils::cose::ClonePayload;
+use crate::utils::crypto::cbor_digest;
+use crate::utils::crypto::dh_hmac_key;
+use crate::utils::serialization::cbor_serialize;
+use crate::utils::serialization::CborSeq;
+use crate::utils::serialization::JsonCborValue;
+use crate::utils::serialization::TaggedBytes;
+use crate::utils::x509::CertificateUsage;
+use crate::Result;
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
@@ -336,20 +342,27 @@ impl ItemsRequest {
 mod tests {
     use std::ops::Add;
 
-    use chrono::{Duration, Utc};
+    use chrono::Duration;
+    use chrono::Utc;
     use rstest::rstest;
 
     use wallet_common::keys::examples::Examples;
 
-    use crate::{
-        examples::{
-            example_items_requests, Example, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE,
-            EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE,
-        },
-        identifiers::AttributeIdentifierHolder,
-        test::{self, DebugCollapseBts},
-        DeviceAuthenticationBytes, DeviceResponse, Document, Error, ValidityInfo,
-    };
+    use crate::examples::example_items_requests;
+    use crate::examples::Example;
+    use crate::examples::IsoCertTimeGenerator;
+    use crate::examples::EXAMPLE_ATTR_NAME;
+    use crate::examples::EXAMPLE_ATTR_VALUE;
+    use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::examples::EXAMPLE_NAMESPACE;
+    use crate::identifiers::AttributeIdentifierHolder;
+    use crate::test::DebugCollapseBts;
+    use crate::test::{self};
+    use crate::DeviceAuthenticationBytes;
+    use crate::DeviceResponse;
+    use crate::Document;
+    use crate::Error;
+    use crate::ValidityInfo;
 
     use super::*;
 

@@ -44,41 +44,35 @@ set -u # warn against undefined variables
 set -o pipefail
 # set -x # echo statements before executing, useful while debugging
 
-SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
-export SCRIPTS_DIR
+########################################################################
+# Globals and includes
+########################################################################
+
+SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 BASE_DIR=$(dirname "${SCRIPTS_DIR}")
-export BASE_DIR
 
 source "${SCRIPTS_DIR}/utils.sh"
 
 ########################################################################
 # Check prerequisites
+########################################################################
 
-expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
-expect_command openssl "Missing binary 'openssl', please install OpenSSL"
-expect_command jq "Missing binary 'jq', please install"
-expect_command tr "Missing binary 'tr', please install"
-expect_command xxd "Missing binary 'xxd', please install"
-if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
-    expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
-fi
-expect_command softhsm2-util "Missing binary 'softhsm2-util', please install softhsm2"
-expect_command p11tool "Missing binary 'p11tool', please install 'gnutls' using Homebrew on macOS or 'gnutls-bin' on Debian/Ubuntu."
-if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
-    expect_command node "Missing binary 'node', please install (e.g. using node version manager: nvm)"
-fi
+# Use gsed on macOS, sed on others
+is_macos && SED="gsed" || SED="sed"
+have cargo jq tr xxd openssl softhsm2-util p11tool ${SED}
+
+# Check if openssl is "real" OpenSSL
 check_openssl
 
-if is_macos
-then
-    expect_command gsed "Missing binary 'gsed', please install gnu-sed"
-    GNUSED="gsed"
-else
-    GNUSED="sed"
+# Only check for docker if we build rdo-max
+if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
+    have docker
 fi
 
-BASE64="openssl base64 -e -A"
-base64_url_encode() { ${BASE64} | tr '/+' '_-' | tr -d '=\n'; }
+# Only check for node if we build wallet_web
+if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
+    have node
+fi
 
 ########################################################################
 # Configuration
@@ -118,50 +112,49 @@ mkdir -p "${TARGET_DIR}/wallet_provider"
 
 ########################################################################
 # Configure digid-connector
+########################################################################
+
+echo -e "${SECTION}Configure and start digid-connector${NC}"
+
+# Check for existing nl-rdo-max, re-use if existing, clone if not
+if [ -d "${DIGID_CONNECTOR_PATH}" ]; then
+echo -e "${INFO}Using existing nl-rdo-max repository (not cloning)${NC}"
+else
+echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
+# Unfortunately we can't directly clone a commit hash, so clone the tag and reset to the commit
+git clone --depth 1 -b "${DIGID_CONNECTOR_BASE_TAG}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
+fi
+
+# Enter nl-rdo-max git repository
+cd "${DIGID_CONNECTOR_PATH}"
+
+# Checkout validated-working commit
+echo -e "${INFO}Switching to commit: ${DIGID_CONNECTOR_BASE_COMMIT}${NC}"
+git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
+
+# Apply the patches, if not applied before
+for p in "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*; do
+if git apply --check "$p" 2> /dev/null; then
+  echo -e "${INFO}Applying patch: $p${NC}"
+  git apply "$p"
+else
+  echo -e "${INFO}Skipping previously applied patch: $p${NC}"
+fi
+done
+
+make setup-secrets setup-saml setup-config
+
+render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
+render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
+render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
+
+generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
+openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
+      -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
+DIGID_CA_CRT=$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})
+export DIGID_CA_CRT
 
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
-  echo -e "${SECTION}Configure and start digid-connector${NC}"
-
-  # Check for existing nl-rdo-max, re-use if existing, clone if not
-  if [ -d "${DIGID_CONNECTOR_PATH}" ]; then
-    echo -e "${INFO}Using existing nl-rdo-max repository (not cloning)${NC}"
-  else
-    echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
-    # Unfortunately we can't directly clone a commit hash, so clone the tag and reset to the commit
-    git clone --depth 1 -b "${DIGID_CONNECTOR_BASE_TAG}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
-  fi
-
-  # Enter nl-rdo-max git repository
-  cd "${DIGID_CONNECTOR_PATH}"
-
-  # Checkout validated-working commit
-  echo -e "${INFO}Switching to commit: ${DIGID_CONNECTOR_BASE_COMMIT}${NC}"
-  git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
-
-  # Apply the patches, if not applied before
-  for p in "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*; do
-    if git apply --check "$p" 2> /dev/null; then
-      echo -e "${INFO}Applying patch: $p${NC}"
-      git apply "$p"
-    else
-      echo -e "${INFO}Skipping previously applied patch: $p${NC}"
-    fi
-  done
-
-  make setup-secrets setup-saml setup-config
-
-  render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
-  render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
-  render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
-
-  generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
-  openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
-          -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
-  # shellcheck disable=SC2089
-  DIGID_CA_CRT="\"$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})\""
-  # shellcheck disable=SC2090
-  export DIGID_CA_CRT
-
   # Build max docker container
   docker compose build max
   # Generate JWK from private RSA key of test_client.
@@ -174,6 +167,7 @@ fi
 
 ########################################################################
 # Build wallet_web frontend library
+########################################################################
 
 if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     echo
@@ -200,6 +194,7 @@ fi
 
 ########################################################################
 # Configure wallet_server and mock_relying_party
+########################################################################
 
 echo
 echo -e "${SECTION}Configure wallet_server and mock_relying_party${NC}"
@@ -302,9 +297,31 @@ render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_
 
 ########################################################################
 # Configure wallet_provider
+########################################################################
 
 echo
 echo -e "${SECTION}Configure wallet_provider${NC}"
+
+
+# Generate root CA
+if [ ! -f "${TARGET_DIR}/wallet_provider/ca.key.pem" ]; then
+    generate_root_ca "${TARGET_DIR}/wallet_provider" "nl-wallet-provider"
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/wallet_provider/ca.key.pem' already exists, not (re-)generating root CA"
+fi
+
+generate_ssl_key_pair_with_san "${TARGET_DIR}/wallet_provider" wallet_provider "${TARGET_DIR}/wallet_provider/ca.crt.pem" "${TARGET_DIR}/wallet_provider/ca.key.pem"
+
+cp "${TARGET_DIR}/wallet_provider/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/wp.ca.crt.der"
+WALLET_PROVIDER_SERVER_CA_CRT=$(< "${TARGET_DIR}/wallet_provider/ca.crt.der" ${BASE64})
+export WALLET_PROVIDER_SERVER_CA_CRT
+
+WALLET_PROVIDER_SERVER_CERT=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.crt.der" ${BASE64})
+export WALLET_PROVIDER_SERVER_CERT
+
+WALLET_PROVIDER_SERVER_KEY=$(< "${TARGET_DIR}/wallet_provider/wallet_provider.key.der" ${BASE64})
+export WALLET_PROVIDER_SERVER_KEY
+
 
 generate_wp_signing_key certificate_signing
 WP_CERTIFICATE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/certificate_signing.pem"
@@ -333,6 +350,7 @@ render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-co
 
 ########################################################################
 # Configure HSM
+########################################################################
 
 echo
 echo -e "${SECTION}Configure HSM${NC}"
@@ -362,6 +380,7 @@ p11tool --login --write \
 
 ########################################################################
 # Configure configuration-server
+########################################################################
 
 echo
 echo -e "${SECTION}Configure configuration-server${NC}"
@@ -377,7 +396,7 @@ fi
 
 generate_ssl_key_pair_with_san "${TARGET_DIR}/configuration_server" config_server "${TARGET_DIR}/configuration_server/ca.crt.pem" "${TARGET_DIR}/configuration_server/ca.key.pem"
 
-cp "${TARGET_DIR}/configuration_server/ca.crt.pem" "${BASE_DIR}/wallet_core/tests_integration/"
+cp "${TARGET_DIR}/configuration_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/cs.ca.crt.der"
 CONFIG_SERVER_CA_CRT=$(< "${TARGET_DIR}/configuration_server/ca.crt.der" ${BASE64})
 export CONFIG_SERVER_CA_CRT
 
@@ -398,8 +417,8 @@ BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
 DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \
   | openssl dgst -sha256 -sign "${TARGET_DIR}/wallet_provider/config_signing.pem" -keyform PEM -binary \
   | openssl asn1parse -inform DER)
-R=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${GNUSED} -n '1s/.*: //p' | ${GNUSED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
-S=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${GNUSED} -n '2s/.*: //p' | ${GNUSED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
+R=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${SED} -n '1s/.*: //p' | ${SED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
+S=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${SED} -n '2s/.*: //p' | ${SED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
 BASE64_JWS_SIGNATURE=$(echo -n "${R}${S}" | xxd -p -r | base64_url_encode)
 
 echo -n "${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}.${BASE64_JWS_SIGNATURE}" > "${TARGET_DIR}/wallet-config-jws-compact.txt"
@@ -416,6 +435,7 @@ cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/con
 
 ########################################################################
 # Configure gba-hc-converter
+########################################################################
 
 echo
 echo -e "${SECTION}Configure gba-hc-converter${NC}"
@@ -428,6 +448,7 @@ encrypt_gba_v_responses
 
 ########################################################################
 # Configure wallet
+########################################################################
 
 echo
 echo -e "${SECTION}Configure wallet${NC}"
@@ -436,6 +457,7 @@ render_template "${DEVENV}/wallet.env.template" "${BASE_DIR}/wallet_core/wallet/
 
 ########################################################################
 # Configure Android Emulator
+########################################################################
 
 if command -v adb > /dev/null
 then
@@ -447,6 +469,7 @@ fi
 
 ########################################################################
 # Done
+########################################################################
 
 echo
 echo -e "${SUCCESS}Setup complete${NC}"

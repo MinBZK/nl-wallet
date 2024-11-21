@@ -4,17 +4,16 @@ use reqwest::StatusCode;
 use url::ParseError;
 
 use error_category::ErrorCategory;
-use wallet_common::{
-    account::{
-        messages::{
-            auth::{Registration, WalletCertificate},
-            errors::{AccountError, AccountErrorType},
-            instructions::{Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResult},
-        },
-        signed::ChallengeResponse,
-    },
-    urls::BaseUrl,
-};
+use wallet_common::account::messages::auth::Registration;
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::account::messages::errors::AccountError;
+use wallet_common::account::messages::errors::AccountErrorType;
+use wallet_common::account::messages::instructions::Instruction;
+use wallet_common::account::messages::instructions::InstructionAndResult;
+use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::account::messages::instructions::InstructionResult;
+use wallet_common::account::signed::ChallengeResponse;
+use wallet_common::config::http::TlsPinningConfig;
 
 pub use self::client::HttpAccountProviderClient;
 
@@ -46,23 +45,23 @@ pub enum AccountProviderResponseError {
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait AccountProviderClient {
-    async fn registration_challenge(&self, base_url: &BaseUrl) -> Result<Vec<u8>, AccountProviderError>;
+    async fn registration_challenge(&self, client_config: &TlsPinningConfig) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn register(
         &self,
-        base_url: &BaseUrl,
+        client_config: &TlsPinningConfig,
         registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError>;
 
     async fn instruction_challenge(
         &self,
-        base_url: &BaseUrl,
+        client_config: &TlsPinningConfig,
         challenge_request: InstructionChallengeRequest,
     ) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn instruction<I>(
         &self,
-        base_url: &BaseUrl,
+        client_config: &TlsPinningConfig,
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where

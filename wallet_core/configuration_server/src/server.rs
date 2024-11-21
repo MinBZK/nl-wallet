@@ -1,21 +1,22 @@
-use std::{error::Error, net::SocketAddr};
+use std::error::Error;
+use std::net::SocketAddr;
 
-use axum::{
-    extract::State,
-    response::{IntoResponse, Response},
-    routing::get,
-    Router,
-};
-use axum_server::tls_rustls::RustlsConfig;
+use axum::extract::State;
+use axum::response::IntoResponse;
+use axum::response::Response;
+use axum::routing::get;
+use axum::Router;
 use etag::EntityTag;
-use http::{header, HeaderMap, HeaderValue, StatusCode};
-use tracing::{debug, info};
+use http::header;
+use http::HeaderMap;
+use http::HeaderValue;
+use http::StatusCode;
+use tracing::debug;
+use tracing::info;
 
 use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
-    let config = RustlsConfig::from_der(vec![settings.config_server_cert], settings.config_server_key).await?;
-
     let socket = SocketAddr::new(settings.ip, settings.port);
     debug!("listening on {}", socket);
 
@@ -26,7 +27,7 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
             .with_state(settings.wallet_config_jwt.into_bytes()),
     );
 
-    axum_server::bind_rustls(socket, config)
+    axum_server::bind_rustls(socket, settings.tls_config.to_rustls_config().await?)
         .serve(app.into_make_service())
         .await?;
 

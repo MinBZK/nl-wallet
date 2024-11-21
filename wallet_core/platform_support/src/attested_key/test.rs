@@ -1,14 +1,23 @@
-use std::{convert::Infallible, fmt::Debug, mem};
+use std::convert::Infallible;
+use std::fmt::Debug;
+use std::mem;
 
 use chrono::Utc;
 use p256::ecdsa::signature::Verifier;
 
-use apple_app_attest::{
-    AppIdentifier, Assertion, Attestation, AttestationEnvironment, ClientData, APPLE_TRUST_ANCHORS,
-};
-use wallet_common::{keys::EcdsaKey, utils};
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::Assertion;
+use apple_app_attest::Attestation;
+use apple_app_attest::AttestationEnvironment;
+use apple_app_attest::ClientData;
+use apple_app_attest::APPLE_TRUST_ANCHORS;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::utils;
 
-use super::{AppleAttestedKey, AttestedKey, AttestedKeyHolder, KeyWithAttestation};
+use super::AppleAttestedKey;
+use super::AttestedKey;
+use super::AttestedKeyHolder;
+use super::KeyWithAttestation;
 
 /// This simply wraps a [`Vec<u8>`] as hash data and a generated challenge.
 struct SimpleClientData {
@@ -32,8 +41,8 @@ impl ClientData for SimpleClientData {
         Ok(&self.hash_data)
     }
 
-    fn challenge(&self) -> impl AsRef<[u8]> {
-        &self.challenge
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
+        Ok(&self.challenge)
     }
 }
 
@@ -89,7 +98,7 @@ where
                 &public_key,
                 &app_identifier,
                 0,
-                client_data1.challenge().as_ref(),
+                &client_data1.challenge,
             )
             .expect("could not verify first assertion");
 
@@ -118,7 +127,7 @@ where
                 &public_key,
                 &app_identifier,
                 1,
-                client_data2.challenge().as_ref(),
+                &client_data2.challenge,
             )
             .expect("could not verify second assertion");
         }

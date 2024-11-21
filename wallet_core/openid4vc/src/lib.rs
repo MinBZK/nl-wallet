@@ -1,4 +1,5 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 // Data structures implemening OAuth/OpenID(4VCI) protocol messages.
 pub mod authorization;

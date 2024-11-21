@@ -2,13 +2,13 @@ pub mod attested_key;
 pub mod hw_keystore;
 pub mod utils;
 
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
+use std::sync::OnceLock;
 
-use self::{
-    attested_key::AttestedKeyBridge,
-    hw_keystore::{EncryptionKeyBridge, SigningKeyBridge},
-    utils::UtilitiesBridge,
-};
+use self::attested_key::AttestedKeyBridge;
+use self::hw_keystore::EncryptionKeyBridge;
+use self::hw_keystore::SigningKeyBridge;
+use self::utils::UtilitiesBridge;
 
 static PLATFORM_SUPPORT: OnceLock<PlatformSupport> = OnceLock::new();
 

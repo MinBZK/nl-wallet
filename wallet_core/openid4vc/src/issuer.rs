@@ -1,52 +1,70 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::{Arc, LazyLock},
-};
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::sync::Arc;
+use std::sync::LazyLock;
 
 use futures::future::try_join_all;
 use itertools::Itertools;
-use jsonwebtoken::{Algorithm, Validation};
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use nl_wallet_mdoc::{
-    server_keys::KeyRing,
-    utils::{crypto::CryptoError, serialization::CborError},
-    IssuerSigned,
-};
-use wallet_common::{
-    jwt::{
-        jwk_to_p256, validations, EcdsaDecodingKey, JwkConversionError, JwtCredentialClaims, JwtError, JwtPopClaims,
-        VerifiedJwt, NL_WALLET_CLIENT_ID,
-    },
-    keys::poa::{Poa, PoaError, PoaVerificationError},
-    nonempty::NonEmpty,
-    urls::BaseUrl,
-    utils::random_string,
-    wte::WteClaims,
-};
+use nl_wallet_mdoc::server_keys::KeyRing;
+use nl_wallet_mdoc::utils::crypto::CryptoError;
+use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::IssuerSigned;
+use wallet_common::jwt::jwk_to_p256;
+use wallet_common::jwt::validations;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::jwt::JwkConversionError;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtError;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::jwt::VerifiedJwt;
+use wallet_common::jwt::NL_WALLET_CLIENT_ID;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::PoaError;
+use wallet_common::keys::poa::PoaVerificationError;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils::random_string;
+use wallet_common::wte::WteClaims;
 
-use crate::{
-    credential::{
-        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
-        WteDisclosure, OPENID4VCI_VC_POP_JWT_TYPE,
-    },
-    dpop::{Dpop, DpopError},
-    metadata::{self, CredentialResponseEncryption, IssuerMetadata},
-    oidc,
-    server_state::{
-        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, WteTracker,
-        CLEANUP_INTERVAL_SECONDS,
-    },
-    token::{
-        AccessToken, AuthorizationCode, CredentialPreview, TokenRequest, TokenRequestGrantType, TokenResponse,
-        TokenResponseWithPreviews, TokenType,
-    },
-    Format,
-};
+use crate::credential::CredentialRequest;
+use crate::credential::CredentialRequestProof;
+use crate::credential::CredentialRequests;
+use crate::credential::CredentialResponse;
+use crate::credential::CredentialResponses;
+use crate::credential::WteDisclosure;
+use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
+use crate::dpop::Dpop;
+use crate::dpop::DpopError;
+use crate::metadata::CredentialResponseEncryption;
+use crate::metadata::IssuerMetadata;
+use crate::metadata::{self};
+use crate::oidc;
+use crate::server_state::Expirable;
+use crate::server_state::HasProgress;
+use crate::server_state::Progress;
+use crate::server_state::SessionState;
+use crate::server_state::SessionStore;
+use crate::server_state::SessionStoreError;
+use crate::server_state::WteTracker;
+use crate::server_state::CLEANUP_INTERVAL_SECONDS;
+use crate::token::AccessToken;
+use crate::token::AuthorizationCode;
+use crate::token::CredentialPreview;
+use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
+use crate::token::TokenResponse;
+use crate::token::TokenResponseWithPreviews;
+use crate::token::TokenType;
+use crate::Format;
 
 // Errors are structured as follow in this module: the handler for a token request on the one hand, and the handlers for
 // the other endpoints on the other hand, have specific error types. (There is also a general error type included by
@@ -640,17 +658,17 @@ impl Session<WaitingForResponse> {
         (result, next)
     }
 
-    pub async fn check_credential_endpoint_access(
+    pub fn check_credential_endpoint_access(
         &self,
-        access_token: AccessToken,
-        dpop: Dpop,
+        access_token: &AccessToken,
+        dpop: &Dpop,
         endpoint: &str,
         issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
         // Check authorization of the request
-        if session_data.access_token != access_token {
+        if session_data.access_token != *access_token {
             return Err(CredentialRequestError::Unauthorized);
         }
 
@@ -659,7 +677,7 @@ impl Session<WaitingForResponse> {
             &session_data.dpop_public_key,
             &issuer_data.server_url.join(endpoint),
             &Method::POST,
-            Some(&access_token),
+            Some(access_token),
             Some(&session_data.dpop_nonce),
         )
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -713,8 +731,7 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
-        self.check_credential_endpoint_access(access_token, dpop, "credential", issuer_data)
-            .await?;
+        self.check_credential_endpoint_access(&access_token, &dpop, "credential", issuer_data)?;
 
         // If we have exactly one credential on offer that matches the credential type that the client is
         // requesting, then we issue that credential.
@@ -735,9 +752,7 @@ impl Session<WaitingForResponse> {
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
-        let holder_pubkey = credential_request
-            .verify(&session_data.c_nonce, preview.credential_type(), issuer_data)
-            .await?;
+        let holder_pubkey = credential_request.verify(&session_data.c_nonce, preview.credential_type(), issuer_data)?;
 
         self.verify_wte_and_poa(
             credential_request.attestations,
@@ -785,8 +800,7 @@ impl Session<WaitingForResponse> {
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
-        self.check_credential_endpoint_access(access_token, dpop, "batch_credential", issuer_data)
-            .await?;
+        self.check_credential_endpoint_access(&access_token, &dpop, "batch_credential", issuer_data)?;
 
         let previews_and_holder_pubkeys = try_join_all(
             credential_requests
@@ -800,9 +814,7 @@ impl Session<WaitingForResponse> {
                         .flat_map(|preview| itertools::repeat_n(preview.clone(), preview.copy_count().into())),
                 )
                 .map(|(cred_req, preview)| async move {
-                    let key = cred_req
-                        .verify(&session_data.c_nonce, preview.credential_type(), issuer_data)
-                        .await?;
+                    let key = cred_req.verify(&session_data.c_nonce, preview.credential_type(), issuer_data)?;
 
                     Ok::<_, CredentialRequestError>((preview, key))
                 }),
@@ -866,13 +878,12 @@ impl CredentialPreview {
     fn issuer_key_identifier(&self) -> &str {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,
-            CredentialPreview::Jwt { claims, .. } => &claims.iss,
         }
     }
 }
 
 impl CredentialRequest {
-    pub(crate) async fn verify(
+    pub(crate) fn verify(
         &self,
         c_nonce: &str,
         expected_credential_type: Option<&str>,
@@ -921,26 +932,6 @@ impl CredentialResponse {
                 Ok(CredentialResponse::MsoMdoc {
                     credential: Box::new(issuer_signed.into()),
                 })
-            }
-
-            CredentialPreview::Jwt { claims, jwt_typ, .. } => {
-                // Add the holder public key to the claims that are going to be signed
-                let credential = JwtCredentialClaims::new_signed(
-                    &holder_pubkey,
-                    issuer_privkey.private_key(),
-                    issuer_privkey
-                        .certificate()
-                        .common_names()
-                        .unwrap()
-                        .first()
-                        .unwrap()
-                        .to_string(),
-                    jwt_typ.or(Some("jwt".to_string())),
-                    claims.attributes,
-                )
-                .await?;
-
-                Ok(CredentialResponse::Jwt { credential })
             }
         }
     }

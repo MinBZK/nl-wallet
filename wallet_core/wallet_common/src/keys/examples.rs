@@ -1,13 +1,14 @@
-use anyhow::{bail, Context, Result};
+use anyhow::bail;
+use anyhow::Context;
+use anyhow::Result;
 use hex_literal::hex;
-use p256::{
-    ecdsa::{SigningKey, VerifyingKey},
-    EncodedPoint, SecretKey,
-};
-use webpki::{
-    anchor_from_trusted_cert,
-    types::{CertificateDer, TrustAnchor},
-};
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use p256::EncodedPoint;
+use p256::SecretKey;
+use webpki::anchor_from_trusted_cert;
+use webpki::types::CertificateDer;
+use webpki::types::TrustAnchor;
 
 pub struct Examples;
 

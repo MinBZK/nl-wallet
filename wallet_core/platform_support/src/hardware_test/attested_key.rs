@@ -1,6 +1,7 @@
 use tokio::runtime;
 
-use crate::attested_key::{hardware::HardwareAttestedKeyHolder, test};
+use crate::attested_key::hardware::HardwareAttestedKeyHolder;
+use crate::attested_key::test;
 
 #[no_mangle]
 extern "C" fn attested_key_test() {

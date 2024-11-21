@@ -1,28 +1,27 @@
-use std::{
-    cmp::Ordering,
-    ops::{Add, Sub},
-    path::Path,
-    process::Command,
-};
+use std::cmp::Ordering;
+use std::ops::Add;
+use std::ops::Sub;
+use std::path::Path;
+use std::process::Command;
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use assert_fs::{fixture::ChildPath, prelude::*, TempDir};
-use p256::{
-    ecdsa::SigningKey,
-    pkcs8::{
-        spki::{DynAssociatedAlgorithmIdentifier, ObjectIdentifier},
-        DecodePrivateKey,
-    },
-};
-use predicates::{
-    prelude::*,
-    str::{RegexPredicate, StartsWithPredicate},
-};
-use time::{Duration, OffsetDateTime};
+use assert_fs::fixture::ChildPath;
+use assert_fs::prelude::*;
+use assert_fs::TempDir;
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::spki::DynAssociatedAlgorithmIdentifier;
+use p256::pkcs8::spki::ObjectIdentifier;
+use p256::pkcs8::DecodePrivateKey;
+use predicates::prelude::*;
+use predicates::str::RegexPredicate;
+use predicates::str::StartsWithPredicate;
+use time::Duration;
+use time::OffsetDateTime;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
 
-use nl_wallet_mdoc::utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 
 trait RangeCompare<Offset> {
     /// Compare [`self`] to the range of [`other`] +/- the [`offset`].

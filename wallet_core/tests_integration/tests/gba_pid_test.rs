@@ -2,18 +2,21 @@ use indexmap::IndexMap;
 use rstest::rstest;
 use uuid::Uuid;
 
-use openid4vc::{
-    disclosure_session::{DisclosureSession, HttpVpMessageClient},
-    issuance_session::{HttpIssuanceSession, IssuanceSessionError},
-    ErrorResponse, TokenErrorCode,
-};
+use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::ErrorResponse;
+use openid4vc::TokenErrorCode;
 use tests_integration::fake_digid::fake_digid_auth;
-use wallet::{
-    errors::PidIssuanceError,
-    mock::{default_configuration, LocalConfigurationRepository, MockStorage},
-    wallet_deps::{ConfigurationRepository, HttpAccountProviderClient, HttpDigidSession},
-    Wallet,
-};
+use wallet::errors::PidIssuanceError;
+use wallet::mock::default_configuration;
+use wallet::mock::LocalConfigurationRepository;
+use wallet::mock::MockStorage;
+use wallet::wallet_deps::ConfigurationRepository;
+use wallet::wallet_deps::HttpAccountProviderClient;
+use wallet::wallet_deps::HttpDigidSession;
+use wallet::Wallet;
 use wallet_common::keys::software::SoftwareEcdsaKey;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -140,13 +143,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(
-        &authorization_url,
-        &pid_issuance_config.digid_url,
-        pid_issuance_config.digid_trust_anchors(),
-        bsn,
-    )
-    .await;
+    let redirect_url = fake_digid_auth(&authorization_url, &pid_issuance_config.digid_http_config, bsn).await;
 
     let unsigned_mdocs_result = wallet.continue_pid_issuance(redirect_url).await;
     let unsigned_mdocs = match unsigned_mdocs_result {
