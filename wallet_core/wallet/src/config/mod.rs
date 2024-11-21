@@ -12,6 +12,7 @@ use std::sync::Arc;
 use url::ParseError;
 
 use error_category::ErrorCategory;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
 
@@ -24,7 +25,7 @@ pub use self::http_repository::HttpConfigurationRepository;
 pub use self::updating_repository::UpdatingConfigurationRepository;
 
 pub type UpdatingFileHttpConfigurationRepository =
-    UpdatingConfigurationRepository<FileStorageConfigurationRepository<HttpConfigurationRepository>>;
+    UpdatingConfigurationRepository<FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>>>;
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::LocalConfigurationRepository;

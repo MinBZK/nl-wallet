@@ -18,6 +18,10 @@ name = "${DB_NAME}"
 ip = "0.0.0.0"
 port = ${WALLET_PROVIDER_PORT}
 
+[tls_config]
+cert = "${WALLET_PROVIDER_SERVER_CERT}"
+key = "${WALLET_PROVIDER_SERVER_KEY}"
+
 [pin_policy]
 # rounds = 4
 # attempts_per_round = 4

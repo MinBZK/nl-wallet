@@ -49,7 +49,7 @@ test-rust:
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
-    - cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
+    - RUST_BACKTRACE=1 cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
     reports:

@@ -1,6 +1,6 @@
 use std::error::Error;
+use std::net::SocketAddr;
 
-use tokio::net::TcpListener;
 use tracing::debug;
 
 use super::router;
@@ -8,14 +8,20 @@ use super::router_state::RouterState;
 use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
-    let listener = TcpListener::bind((settings.webserver.ip, settings.webserver.port)).await?;
+    let socket = SocketAddr::new(settings.webserver.ip, settings.webserver.port);
     debug!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
 
+    let tls_config = settings.tls_config.clone();
     let router_state = RouterState::new_from_settings(settings).await?;
-
     let app = router::router(router_state);
 
-    axum::serve(listener, app).await?;
+    if let Some(tls_config) = tls_config {
+        axum_server::bind_rustls(socket, tls_config.to_rustls_config().await?)
+            .serve(app.into_make_service())
+            .await?;
+    } else {
+        axum_server::bind(socket).serve(app.into_make_service()).await?;
+    }
 
     Ok(())
 }

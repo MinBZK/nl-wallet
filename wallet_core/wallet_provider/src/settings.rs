@@ -14,6 +14,7 @@ use serde_with::DurationSeconds;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use wallet_common::config::http::TlsServerConfig;
 use wallet_provider_database_settings::Database;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 
@@ -29,6 +30,7 @@ pub struct Settings {
     pub wte_issuer_identifier: String,
     pub database: Database,
     pub webserver: Webserver,
+    pub tls_config: Option<TlsServerConfig>,
     pub hsm: Hsm,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,

@@ -30,7 +30,7 @@ uniffi.workspace = true
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 
 error_category.path = "../error_category"
-wallet_common.path = "../wallet_common"
+wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 

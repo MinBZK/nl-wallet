@@ -35,8 +35,7 @@ impl UpdatingFileHttpConfigurationRepository {
     ) -> Result<Self, ConfigurationError> {
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
-            config.base_url,
-            config.trust_anchors,
+            config.http_config,
             (&config.signing_public_key).into(),
             initial_config,
         )
