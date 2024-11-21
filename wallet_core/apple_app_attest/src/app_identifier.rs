@@ -1,12 +1,12 @@
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::{self};
-
+use derive_more::derive::AsRef;
+use derive_more::derive::Display;
 use sha2::Digest;
 use sha2::Sha256;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, AsRef, Display)]
+#[display("{identifier}")]
 pub struct AppIdentifier {
+    #[as_ref(str)]
     identifier: String,
     bundle_identifier_offset: usize,
     hash: [u8; 32],
@@ -38,18 +38,6 @@ impl AppIdentifier {
 
     pub fn sha256_hash(&self) -> &[u8] {
         &self.hash
-    }
-}
-
-impl Display for AppIdentifier {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.identifier.fmt(f)
-    }
-}
-
-impl AsRef<str> for AppIdentifier {
-    fn as_ref(&self) -> &str {
-        &self.identifier
     }
 }
 
