@@ -17,8 +17,7 @@ use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
 use openid4vc::token::TokenRequest;
 use wallet_common::config::wallet_config::DigidConfiguration;
-use wallet_common::reqwest::ReqwestClient;
-use wallet_common::urls::BaseUrl;
+use wallet_common::reqwest::JsonReqwestBuilder;
 use wallet_common::urls::{self};
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
@@ -99,7 +98,7 @@ pub struct SamlReturnUrlParameters {
 
 struct App2AppSession {
     http_client: Client,
-    digid_url: BaseUrl,
+    acs_request: reqwest::RequestBuilder,
 }
 
 pub struct HttpDigidSession<OIC = HttpOidcClient> {
@@ -118,7 +117,7 @@ where
     ) -> Result<(Self, Url), DigidSessionError>
     where
         Self: Sized,
-        C: ReqwestClient + 'static,
+        C: JsonReqwestBuilder + 'static,
     {
         // the icon must be within the same domain as the return URL, but the path is stripped off the UL
         const LOGO_PATH: &str = "/.well-known/logo.png";
@@ -133,7 +132,7 @@ where
                 // this enforces DigiD, even if others are supported by rdo-max
                 auth_url.query_pairs_mut().append_pair("login_hint", "digid");
 
-                let http_client = http_config.client_builder().redirect(Policy::none()).build()?;
+                let http_client = http_config.builder().redirect(Policy::none()).build()?;
 
                 info!("Sending get request to Auth URL, expecting an HTTP Redirect");
                 let res = http_client.get(auth_url).send().await?.error_for_status()?;
@@ -152,11 +151,14 @@ where
 
                 let app2app_url = Self::format_app2app_url(digid_app2app.universal_link().to_owned(), json_request)?;
 
+                // this route is standard for rdo-max
+                let acs_request = http_config.get_with_client(&http_client, "acs");
+
                 info!("DigiD app2app URL generated");
                 (
                     Some(App2AppSession {
                         http_client,
-                        digid_url: http_config.base_url().clone(),
+                        acs_request,
                     }),
                     app2app_url,
                 )
@@ -191,13 +193,12 @@ where
                     return Err(DigidSessionError::App2AppError(error));
                 }
 
-                // this route is standard for rdo-max
-                let mut acs_url = config.digid_url.join("acs");
-                acs_url.set_query(Some(serde_urlencoded::to_string(app_app.saml_parameters)?.as_str()));
+                let acs_request = config.acs_request.query(&app_app.saml_parameters).build()?;
 
                 // pass saml artifact and relay_state to rdo-max, exchange for redirect_uri
                 info!("Sending SAML artifact and Relay State to acs URL, expecting a redirect");
-                let res = config.http_client.get(acs_url).send().await?.error_for_status()?;
+                let res = config.http_client.execute(acs_request).await?.error_for_status()?;
+
                 Self::extract_location_header(&res)?
             }
         };
@@ -284,8 +285,20 @@ mod test {
     use wallet_common::config::http::test::HttpConfig;
     use wallet_common::config::wallet_config::DigidConfiguration;
     use wallet_common::reqwest::default_reqwest_client_builder;
+    use wallet_common::urls::BaseUrl;
 
     use super::*;
+
+    fn default_token_request() -> TokenRequest {
+        TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                pre_authorized_code: "".to_owned().into(),
+            },
+            code_verifier: Default::default(),
+            client_id: Default::default(),
+            redirect_uri: Default::default(),
+        }
+    }
 
     #[tokio::test]
     #[serial(MockOidcClient)]
@@ -503,16 +516,9 @@ mod test {
     #[serial(MockOidcClient)]
     async fn test_into_token_request_no_app2app() {
         let mut client = MockOidcClient::default();
-        client.expect_into_token_request().return_once(|_| {
-            Ok(TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "".to_owned().into(),
-                },
-                code_verifier: Default::default(),
-                client_id: Default::default(),
-                redirect_uri: Default::default(),
-            })
-        });
+        client
+            .expect_into_token_request()
+            .return_once(|_| Ok(default_token_request()));
 
         // same as a call to `HttpDigidSession::start`
         let session = HttpDigidSession::<MockOidcClient> {
@@ -618,25 +624,21 @@ mod test {
                 return Err(err);
             }
 
-            Ok(TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "".to_owned().into(),
-                },
-                code_verifier: Default::default(),
-                client_id: Default::default(),
-                redirect_uri: Default::default(),
-            })
+            Ok(default_token_request())
         });
+
+        let http_client = default_reqwest_client_builder()
+            .redirect(Policy::none())
+            .build()
+            .unwrap();
+        let acs_request = http_client.get(base_url.join("acs"));
 
         // same as a call to `HttpDigidSession::start`
         let session = HttpDigidSession::<MockOidcClient> {
             oidc_client: client,
             app2app_session: Some(App2AppSession {
-                http_client: default_reqwest_client_builder()
-                    .redirect(Policy::none())
-                    .build()
-                    .unwrap(),
-                digid_url: base_url,
+                http_client,
+                acs_request,
             }),
         };
 

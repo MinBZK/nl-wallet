@@ -19,8 +19,7 @@ use reqwest::header;
 use url::Url;
 
 use error_category::ErrorCategory;
-use wallet_common::reqwest::ReqwestClient;
-use wallet_common::urls::BaseUrl;
+use wallet_common::reqwest::JsonReqwestBuilder;
 use wallet_common::utils;
 
 use crate::authorization::AuthorizationRequest;
@@ -89,7 +88,7 @@ pub trait OidcClient {
     async fn start<C>(http_config: &C, client_id: String, redirect_uri: Url) -> Result<(Self, Url), OidcError>
     where
         Self: Sized,
-        C: ReqwestClient + 'static;
+        C: JsonReqwestBuilder + 'static;
 
     /// Create an OpenID Token Request based on the contents
     /// of the redirect URI received.
@@ -121,11 +120,10 @@ where
 {
     async fn start<C>(http_config: &C, client_id: String, redirect_uri: Url) -> Result<(Self, Url), OidcError>
     where
-        C: ReqwestClient,
+        C: JsonReqwestBuilder + 'static,
     {
-        let http_client = http_config.client_builder().build()?;
-        let config = Config::discover(&http_client, http_config.base_url()).await?;
-        let jwks = config.jwks(&http_client).await?;
+        let config = Config::discover(http_config).await?;
+        let jwks = config.jwks(&http_config.json_builder().build()?).await?;
 
         let client = Self::new(config, jwks, client_id, redirect_uri);
 
@@ -212,13 +210,14 @@ impl<P: PkcePair> HttpOidcClient<P> {
 }
 
 pub async fn request_token(
-    http_client: &reqwest::Client,
-    issuer: &BaseUrl,
+    http_config: &impl JsonReqwestBuilder,
     token_request: TokenRequest,
 ) -> Result<TokenResponse, OidcError> {
-    let config = Config::discover(http_client, issuer).await?;
+    let config = Config::discover(http_config).await?;
 
-    let response: TokenResponse = http_client
+    let response: TokenResponse = http_config
+        .builder()
+        .build()?
         .post(config.token_endpoint.clone())
         .form(&token_request)
         .send()
@@ -239,8 +238,7 @@ pub async fn request_token(
 }
 
 pub async fn request_userinfo<C, H>(
-    http_client: &reqwest::Client,
-    issuer: &BaseUrl,
+    http_config: &impl JsonReqwestBuilder,
     access_token: &AccessToken,
     expected_sig_alg: SignatureAlgorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
@@ -249,14 +247,16 @@ where
     ClaimsSet<C>: CompactPart,
     H: CompactJson,
 {
-    let config = Config::discover(http_client, issuer).await?;
-    let jwks = config.jwks(http_client).await?;
+    let config = Config::discover(http_config).await?;
+    let jwks = config.jwks(&http_config.json_builder().build()?).await?;
 
     // Get userinfo endpoint from discovery, throw an error otherwise.
     let endpoint = config.userinfo_endpoint.clone().ok_or(OidcError::NoUserinfoUrl)?;
 
     // Use the access_token to retrieve the userinfo as a JWT.
-    let jwt = http_client
+    let jwt = http_config
+        .builder()
+        .build()?
         .post(endpoint)
         .header(header::ACCEPT, APPLICATION_JWT)
         .bearer_auth(access_token.as_ref())

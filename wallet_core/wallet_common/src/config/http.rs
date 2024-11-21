@@ -1,17 +1,22 @@
 #[cfg(feature = "axum")]
 use std::io;
+use std::path::Path;
 
 #[cfg(feature = "axum")]
 use axum_server::tls_rustls::RustlsConfig;
 use derive_more::Debug;
-use reqwest::ClientBuilder;
+use http::Method;
+use reqwest::Client;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crate::reqwest::tls_pinned_client_builder;
-use crate::reqwest::ReqwestClient;
+use crate::reqwest::ClientBuilder;
+use crate::reqwest::JsonClientBuilder;
+use crate::reqwest::JsonReqwestBuilder;
+use crate::reqwest::RequestBuilder;
 use crate::trust_anchor::DerTrustAnchor;
 use crate::urls::BaseUrl;
 
@@ -31,17 +36,35 @@ pub struct TlsPinningConfig {
     pub trust_anchors: Vec<DerTrustAnchor>,
 }
 
-impl ReqwestClient for TlsPinningConfig {
-    fn base_url(&self) -> &BaseUrl {
-        &self.base_url
-    }
-
-    fn client_builder(&self) -> ClientBuilder {
+impl ClientBuilder for TlsPinningConfig {
+    fn builder(&self) -> reqwest::ClientBuilder {
         tls_pinned_client_builder(self.certificates())
     }
 }
 
+impl JsonClientBuilder for TlsPinningConfig {}
+
+impl RequestBuilder for TlsPinningConfig {
+    fn request(&self, method: Method, path: impl AsRef<Path>) -> (reqwest::Client, reqwest::RequestBuilder) {
+        let client = self.client();
+        let request = self.request_with_client(&client, method, &path);
+        (client, request)
+    }
+
+    fn request_with_client(&self, client: &Client, method: Method, path: impl AsRef<Path>) -> reqwest::RequestBuilder {
+        client.request(method, self.base_url.join(&path.as_ref().to_string_lossy()))
+    }
+}
+
+impl JsonReqwestBuilder for TlsPinningConfig {}
+
 impl TlsPinningConfig {
+    fn client(&self) -> reqwest::Client {
+        self.builder()
+            .build()
+            .expect("should be able to build reqwest HTTP client")
+    }
+
     pub fn certificates(&self) -> Vec<reqwest::Certificate> {
         self.trust_anchors
             .iter()
@@ -62,20 +85,51 @@ impl TlsServerConfig {
 
 #[cfg(any(test, feature = "test"))]
 pub mod test {
-    use crate::reqwest::ReqwestClient;
+    use std::path::Path;
+
+    use http::Method;
+    use reqwest::Client;
+
+    use crate::reqwest::ClientBuilder;
+    use crate::reqwest::JsonClientBuilder;
+    use crate::reqwest::JsonReqwestBuilder;
+    use crate::reqwest::RequestBuilder;
+    use crate::reqwest::ReqwestBuilder;
     use crate::urls::BaseUrl;
 
     pub struct HttpConfig {
         pub base_url: BaseUrl,
     }
 
-    impl ReqwestClient for HttpConfig {
-        fn base_url(&self) -> &BaseUrl {
-            &self.base_url
-        }
-
-        fn client_builder(&self) -> reqwest::ClientBuilder {
+    impl ClientBuilder for HttpConfig {
+        fn builder(&self) -> reqwest::ClientBuilder {
             reqwest::ClientBuilder::new()
         }
     }
+
+    impl JsonClientBuilder for HttpConfig {}
+
+    impl RequestBuilder for HttpConfig {
+        fn request(&self, method: Method, path: impl AsRef<Path>) -> (reqwest::Client, reqwest::RequestBuilder) {
+            let client = self
+                .builder()
+                .build()
+                .expect("should be able to build reqwest HTTP client");
+            let request = self.request_with_client(&client, method, &path);
+            (client, request)
+        }
+
+        fn request_with_client(
+            &self,
+            client: &Client,
+            method: Method,
+            path: impl AsRef<Path>,
+        ) -> reqwest::RequestBuilder {
+            client.request(method, self.base_url.join(&path.as_ref().to_string_lossy()))
+        }
+    }
+
+    impl JsonReqwestBuilder for HttpConfig {}
+
+    impl ReqwestBuilder for HttpConfig {}
 }

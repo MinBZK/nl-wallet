@@ -4,7 +4,7 @@ use reqwest::Response;
 use url::Url;
 
 use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::reqwest::ReqwestClient;
+use wallet_common::reqwest::ClientBuilder;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
 // invoking the same URLs at the DigiD bridge that would normally be invoked by the app and browser in the mock
@@ -12,11 +12,7 @@ use wallet_common::reqwest::ReqwestClient;
 // Note that this depends of part of the internal API of the DigiD bridge, so it may break when the bridge
 // is updated.
 pub async fn fake_digid_auth(authorization_url: &Url, digid_http_config: &TlsPinningConfig, bsn: &str) -> Url {
-    let client = digid_http_config
-        .client_builder()
-        .redirect(Policy::none())
-        .build()
-        .unwrap();
+    let client = digid_http_config.builder().redirect(Policy::none()).build().unwrap();
 
     // Avoid the DigiD/mock DigiD landing page of the DigiD bridge by preselecting the latter
     let authorization_url = authorization_url.to_string() + "&login_hint=digid_mock";

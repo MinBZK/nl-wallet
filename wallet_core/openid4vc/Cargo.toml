@@ -83,4 +83,4 @@ tracing-test.workspace = true
 wiremock.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "generate", "test", "examples", "mock_time"] }
-wallet_common = { path = "../wallet_common", features = ["software_key_factory"] }
+wallet_common = { path = "../wallet_common", features = ["software_key_factory", "test"] }

@@ -6,7 +6,7 @@ use tracing::info;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::reqwest::ReqwestClient;
+use wallet_common::reqwest::RequestBuilder;
 
 use crate::config::http_client::HttpConfigurationClient;
 use crate::config::ConfigurationError;
@@ -14,21 +14,21 @@ use crate::config::ConfigurationRepository;
 use crate::config::ConfigurationUpdateState;
 use crate::config::UpdateableConfigurationRepository;
 
-pub struct HttpConfigurationRepository {
-    client: HttpConfigurationClient,
+pub struct HttpConfigurationRepository<C> {
+    client: HttpConfigurationClient<C>,
     config: RwLock<Arc<WalletConfiguration>>,
 }
 
-impl HttpConfigurationRepository {
-    pub async fn new<C>(
+impl<C> HttpConfigurationRepository<C>
+where
+    C: RequestBuilder,
+{
+    pub async fn new(
         http_config: C,
         signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,
         initial_config: WalletConfiguration,
-    ) -> Result<Self, ConfigurationError>
-    where
-        C: ReqwestClient,
-    {
+    ) -> Result<Self, ConfigurationError> {
         Ok(Self {
             client: HttpConfigurationClient::new(http_config, signing_public_key, storage_path).await?,
             config: RwLock::new(Arc::new(initial_config)),
@@ -36,7 +36,7 @@ impl HttpConfigurationRepository {
     }
 }
 
-impl ConfigurationRepository for HttpConfigurationRepository {
+impl<C> ConfigurationRepository for HttpConfigurationRepository<C> {
     fn config(&self) -> Arc<WalletConfiguration> {
         Arc::clone(&self.config.read())
     }
@@ -44,7 +44,10 @@ impl ConfigurationRepository for HttpConfigurationRepository {
 
 /// Here we assume that lock poisoning is a programmer error and therefore
 /// we just panic when that occurs.
-impl UpdateableConfigurationRepository for HttpConfigurationRepository {
+impl<C> UpdateableConfigurationRepository for HttpConfigurationRepository<C>
+where
+    C: RequestBuilder + Sync,
+{
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
         if let Some(new_config) = self.client.get_wallet_config().await? {
             {

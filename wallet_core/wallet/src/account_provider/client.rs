@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use http::StatusCode;
 use reqwest::Client;
 use reqwest::Request;
@@ -19,7 +21,7 @@ use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::reqwest::parse_content_type;
-use wallet_common::reqwest::ReqwestClient;
+use wallet_common::reqwest::RequestBuilder;
 
 use super::AccountProviderClient;
 use super::AccountProviderError;
@@ -49,16 +51,11 @@ impl HttpAccountProviderClient {
     where
         S: Serialize,
         T: DeserializeOwned,
-        C: ReqwestClient,
+        C: RequestBuilder,
     {
-        let http_client = client_config.accept_json_client();
-
-        let request = http_client
-            .post(client_config.base_url().join(endpoint))
-            .json(json)
-            .build()?;
-
-        self.send_json_request::<T>(http_client, request).await
+        let (http_client, request) = client_config.post(Path::new(endpoint));
+        self.send_json_request::<T>(http_client, request.json(json).build()?)
+            .await
     }
 
     async fn send_json_request<T>(&self, http_client: Client, request: Request) -> Result<T, AccountProviderError>
@@ -114,11 +111,9 @@ impl HttpAccountProviderClient {
 
 impl AccountProviderClient for HttpAccountProviderClient {
     async fn registration_challenge(&self, client_config: &TlsPinningConfig) -> Result<Vec<u8>, AccountProviderError> {
-        let http_client = client_config.accept_json_client();
+        let (http_client, request) = client_config.post("enroll");
 
-        let request = http_client.post(client_config.base_url().join("enroll")).build()?;
-
-        let challenge: Challenge = self.send_json_request::<Challenge>(http_client, request).await?;
+        let challenge: Challenge = self.send_json_request(http_client, request.build()?).await?;
 
         Ok(challenge.challenge)
     }
@@ -185,6 +180,7 @@ mod tests {
     use wiremock::ResponseTemplate;
 
     use wallet_common::config::http::test::HttpConfig;
+    use wallet_common::reqwest::JsonReqwestBuilder;
     use wallet_common::urls::BaseUrl;
 
     use super::*;
@@ -202,22 +198,13 @@ mod tests {
         (server, base_url)
     }
 
-    async fn post_example_request<C>(
+    async fn post_example_request(
         client: &HttpAccountProviderClient,
-        endpoint: &str,
-        client_config: &C,
-    ) -> Result<ExampleBody, AccountProviderError>
-    where
-        C: ReqwestClient,
-    {
-        let http_client = client_config.accept_json_client();
-
-        let request = http_client
-            .post(client_config.base_url().join(endpoint))
-            .build()
-            .expect("Could not create request");
-
-        client.send_json_request::<ExampleBody>(http_client, request).await
+        endpoint: impl AsRef<Path>,
+        client_config: &impl JsonReqwestBuilder,
+    ) -> Result<ExampleBody, AccountProviderError> {
+        let (http_client, request) = client_config.post(endpoint);
+        client.send_json_request(http_client, request.build()?).await
     }
 
     #[tokio::test]

@@ -23,6 +23,7 @@ use wallet::wallet_deps::HttpDigidSession;
 use wallet::wallet_deps::UpdateableConfigurationRepository;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::keys::software::SoftwareEcdsaKey;
 use wallet_server::verifier::StartDisclosureRequest;
 use wallet_server::verifier::StartDisclosureResponse;
@@ -57,7 +58,7 @@ async fn main() {
     let pid_issuance_config = &config_repository.config().pid_issuance;
 
     let mut wallet: Wallet<
-        HttpConfigurationRepository,
+        HttpConfigurationRepository<TlsPinningConfig>,
         MockStorage,
         SoftwareEcdsaKey,
         HttpAccountProviderClient,

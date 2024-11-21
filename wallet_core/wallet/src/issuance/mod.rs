@@ -10,7 +10,7 @@ pub use app2app::App2AppErrorMessage;
 pub use app2app::HttpDigidSession;
 
 use wallet_common::config::wallet_config::DigidConfiguration;
-use wallet_common::reqwest::ReqwestClient;
+use wallet_common::reqwest::JsonReqwestBuilder;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -55,7 +55,7 @@ pub trait DigidSession {
     ) -> Result<(Self, Url), DigidSessionError>
     where
         Self: Sized,
-        C: ReqwestClient + 'static;
+        C: JsonReqwestBuilder + 'static;
 
     async fn into_token_request(self, received_redirect_uri: Url) -> Result<TokenRequest, DigidSessionError>;
 }
