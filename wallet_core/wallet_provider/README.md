@@ -3,9 +3,8 @@
 ## Setup database
 
 The wallet provider requires a Postgres database, named `wallet_provider`, that
-is accessible to a user
-named `postgres` having the password `postgres`. See the defaults in
-`wallet_provider/src/settings.rs`.
+is accessible to a user named `postgres` having the password `postgres`. See the
+defaults in `wallet_provider/src/settings.rs`.
 
 To setup a local database using `psql`:
 
@@ -55,6 +54,14 @@ From `wallet_core`, run:
 
 ```bash
 sea-orm-cli generate entity -o wallet_provider/persistence/src/entity --database-url "postgres://localhost/wallet_provider"
+```
+
+## Running integration tests
+
+There are database-specific integration test that can be run with:
+
+```bash
+cargo test --features db_test --test '*'
 ```
 
 ## Running the server & retrieving the public keys
