@@ -1,5 +1,7 @@
 ip = "0.0.0.0"
 port = ${CONFIG_SERVER_PORT}
 wallet_config_jwt = "${WALLET_CONFIG_JWT}"
-config_server_cert = "${CONFIG_SERVER_CERT}"
-config_server_key = "${CONFIG_SERVER_KEY}"
+
+[tls_config]
+cert = "${CONFIG_SERVER_CERT}"
+key = "${CONFIG_SERVER_KEY}"

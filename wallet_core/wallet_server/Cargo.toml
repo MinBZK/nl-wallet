@@ -129,4 +129,4 @@ serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "mock_time"] }
-wallet_common = { path = "../wallet_common", features = ["mock_remote_key"] }
+wallet_common = { path = "../wallet_common", features = ["mock_remote_key", "insecure_http_client"] }

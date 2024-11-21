@@ -23,6 +23,7 @@ use wallet::wallet_deps::HttpDigidSession;
 use wallet::wallet_deps::UpdateableConfigurationRepository;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 use wallet_server::verifier::StartDisclosureRequest;
 use wallet_server::verifier::StartDisclosureResponse;
@@ -46,8 +47,7 @@ async fn main() {
     let wallet_config = default_configuration();
 
     let config_repository = HttpConfigurationRepository::new(
-        config_server_config.base_url,
-        config_server_config.trust_anchors,
+        config_server_config.http_config,
         (&config_server_config.signing_public_key).into(),
         temp_path.into_path(),
         wallet_config,
@@ -58,7 +58,7 @@ async fn main() {
     let pid_issuance_config = &config_repository.config().pid_issuance;
 
     let mut wallet: Wallet<
-        HttpConfigurationRepository,
+        HttpConfigurationRepository<TlsPinningConfig>,
         MockStorage,
         MockHardwareEcdsaKey,
         HttpAccountProviderClient,
@@ -82,13 +82,7 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(
-        &authorization_url,
-        &pid_issuance_config.digid_url,
-        pid_issuance_config.digid_trust_anchors(),
-        "999991772",
-    )
-    .await;
+    let redirect_url = fake_digid_auth(&authorization_url, &pid_issuance_config.digid_http_config, "999991772").await;
 
     let _unsigned_mdocs = wallet
         .continue_pid_issuance(redirect_url)

@@ -58,6 +58,7 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
@@ -119,9 +120,11 @@ fn fake_issuer_settings() -> Issuer {
         private_keys: Default::default(),
         wallet_client_ids: Default::default(),
         digid: Digid {
-            issuer_url: url.clone(),
             bsn_privkey: Default::default(),
-            trust_anchors: Default::default(),
+            http_config: TlsPinningConfig {
+                base_url: url.clone(),
+                trust_anchors: Default::default(),
+            },
         },
         brp_server: url,
         wte_issuer_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),

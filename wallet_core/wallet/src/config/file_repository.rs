@@ -1,11 +1,9 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use reqwest::Certificate;
-
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::urls::BaseUrl;
+use wallet_common::reqwest::RequestBuilder;
 
 use super::config_file;
 use super::ConfigurationError;
@@ -19,11 +17,13 @@ pub struct FileStorageConfigurationRepository<T> {
     storage_path: PathBuf,
 }
 
-impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
+impl<C> FileStorageConfigurationRepository<HttpConfigurationRepository<C>>
+where
+    C: RequestBuilder,
+{
     pub async fn init(
         storage_path: PathBuf,
-        base_url: BaseUrl,
-        trust_anchors: Vec<Certificate>,
+        http_config: C,
         signing_public_key: EcdsaDecodingKey,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
@@ -39,14 +39,8 @@ impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
         };
 
         Ok(Self::new(
-            HttpConfigurationRepository::new(
-                base_url,
-                trust_anchors,
-                signing_public_key,
-                storage_path.clone(),
-                default_config,
-            )
-            .await?,
+            HttpConfigurationRepository::new(http_config, signing_public_key, storage_path.clone(), default_config)
+                .await?,
             storage_path,
         ))
     }
@@ -94,6 +88,7 @@ mod tests {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
+    use wallet_common::config::http::test::HttpConfig;
     use wallet_common::config::wallet_config::WalletConfiguration;
     use wallet_common::jwt::EcdsaDecodingKey;
 
@@ -176,8 +171,9 @@ mod tests {
 
         let repo = FileStorageConfigurationRepository::init(
             path.clone(),
-            "http://localhost".parse().unwrap(),
-            vec![],
+            HttpConfig {
+                base_url: "http://localhost".parse().unwrap(),
+            },
             config_decoding_key.clone(),
             default_configuration(),
         )
@@ -190,8 +186,9 @@ mod tests {
 
         let repo = FileStorageConfigurationRepository::init(
             path.clone(),
-            "http://localhost".parse().unwrap(),
-            vec![],
+            HttpConfig {
+                base_url: "http://localhost".parse().unwrap(),
+            },
             config_decoding_key,
             embedded_wallet_config,
         )

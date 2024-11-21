@@ -143,13 +143,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(
-        &authorization_url,
-        &pid_issuance_config.digid_url,
-        pid_issuance_config.digid_trust_anchors(),
-        bsn,
-    )
-    .await;
+    let redirect_url = fake_digid_auth(&authorization_url, &pid_issuance_config.digid_http_config, bsn).await;
 
     let unsigned_mdocs_result = wallet.continue_pid_issuance(redirect_url).await;
     let unsigned_mdocs = match unsigned_mdocs_result {

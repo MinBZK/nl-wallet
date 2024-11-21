@@ -62,7 +62,7 @@ migration.path = "migration"
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
-wallet_common.path = "../wallet_common"
+wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 [dev-dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -80,7 +80,12 @@ nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_const
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["mock"] }
-wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_hardware_keys", "mock_remote_key"] }
+wallet_common = { path = "../wallet_common", features = [
+    "mock_secure_keys",
+    "mock_hardware_keys",
+    "mock_remote_key",
+    "insecure_http_client",
+] }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }

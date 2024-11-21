@@ -11,6 +11,7 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
 
@@ -65,21 +66,20 @@ impl AttributeCertificates {
 
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
-    openid_client: OpenIdClient,
+    openid_client: OpenIdClient<TlsPinningConfig>,
     certificates: AttributeCertificates,
 }
 
 impl BrpPidAttributeService {
     pub fn new(
         brp_client: HttpBrpClient,
-        issuer_url: BaseUrl,
         bsn_privkey: &str,
-        trust_anchors: Vec<reqwest::Certificate>,
+        http_config: TlsPinningConfig,
         certificates: IndexMap<String, Certificate>,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::new(issuer_url, bsn_privkey, trust_anchors)?,
+            openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
             certificates: AttributeCertificates::new(certificates),
         })
     }

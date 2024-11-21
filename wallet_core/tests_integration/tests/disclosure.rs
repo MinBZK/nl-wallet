@@ -19,6 +19,7 @@ use tests_integration::common::*;
 use wallet::errors::DisclosureError;
 use wallet::mock::MockDigidSession;
 use wallet::DisclosureUriSource;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_server::verifier::DisclosedAttributesParams;
 use wallet_server::verifier::StartDisclosureRequest;
@@ -233,7 +234,7 @@ async fn test_disclosure_usecases_ok(
 #[serial]
 async fn test_disclosure_without_pid() {
     let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _| {
+    digid_context.expect().return_once(|_, _: &TlsPinningConfig, _| {
         let session = MockDigidSession::default();
         Ok((session, Url::parse("http://localhost/").unwrap()))
     });
