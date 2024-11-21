@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::iter;
 
+use derive_more::Debug;
 use futures::future;
+use p256::ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -10,36 +12,102 @@ use rand_core::OsRng;
 
 use crate::jwt::JwtPopClaims;
 use crate::jwt::NL_WALLET_CLIENT_ID;
-use crate::keys::factory::KeyFactory;
-use crate::keys::poa::Poa;
-use crate::keys::software::SoftwareEcdsaKey;
-use crate::keys::EcdsaKey;
 use crate::utils;
 
+use super::factory::KeyFactory;
+use super::poa::Poa;
 use super::poa::PoaError;
 use super::poa::VecAtLeastTwo;
+use super::CredentialEcdsaKey;
+use super::CredentialKeyType;
+use super::EcdsaKey;
+use super::SecureEcdsaKey;
+use super::WithIdentifier;
 
-/// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
-/// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple
-/// keys and [`SoftwareKeyFactoryError::Signing`] when signing multiple.
+#[derive(Debug, thiserror::Error)]
+pub enum MockRemoteKeyFactoryError {
+    #[error("key generation error")]
+    Generating,
+    #[error("signing error")]
+    Signing,
+    #[error("ECDSA error: {0}")]
+    Ecdsa(#[source] <MockRemoteEcdsaKey as EcdsaKey>::Error),
+    #[error("PoA error: {0}")]
+    Poa(#[from] PoaError),
+}
+
+/// To be used in test in place of `RemoteEcdsaKey`, implementing the
+/// [`EcdsaKey`], [`SecureEcdsaKey`] and [`WithIdentifier`] traits.
+#[derive(Debug, Clone)]
+pub struct MockRemoteEcdsaKey {
+    identifier: String,
+    #[debug(skip)]
+    key: SigningKey,
+}
+
+impl MockRemoteEcdsaKey {
+    pub fn new(identifier: String, key: SigningKey) -> Self {
+        Self { identifier, key }
+    }
+
+    pub fn new_random(identifier: String) -> Self {
+        Self::new(identifier, SigningKey::random(&mut OsRng))
+    }
+}
+
+impl EcdsaKey for MockRemoteEcdsaKey {
+    type Error = p256::ecdsa::Error;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        let key = self.key.verifying_key();
+
+        Ok(*key)
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        Signer::try_sign(&self.key, msg)
+    }
+}
+impl SecureEcdsaKey for MockRemoteEcdsaKey {}
+
+impl WithIdentifier for MockRemoteEcdsaKey {
+    fn identifier(&self) -> &str {
+        &self.identifier
+    }
+}
+
+impl CredentialEcdsaKey for MockRemoteEcdsaKey {
+    const KEY_TYPE: CredentialKeyType = CredentialKeyType::Mock;
+}
+
+/// A type that implements [`KeyFactory`] and can be used in tests. It has the option
+/// of returning `MockRemoteKeyFactoryError::Generating` when generating multiple
+/// keys and `MockRemoteKeyFactoryError::Signing` when signing multiple, influenced
+/// by boolean fields on the type.
 #[derive(Debug)]
-pub struct SoftwareKeyFactory {
+pub struct MockRemoteKeyFactory {
     signing_keys: Mutex<HashMap<String, SigningKey>>,
     pub has_generating_error: bool,
     pub has_multi_key_signing_error: bool,
 }
 
-impl SoftwareKeyFactory {
-    pub fn new(signing_keys: HashMap<String, SigningKey>) -> Self {
+impl MockRemoteKeyFactory {
+    pub fn new(keys: Vec<MockRemoteEcdsaKey>) -> Self {
+        let signing_keys = keys.into_iter().map(|key| (key.identifier, key.key)).collect();
+
+        Self::new_signing_keys(signing_keys)
+    }
+
+    fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
-            signing_keys: signing_keys.into(),
+            signing_keys: Mutex::new(signing_keys),
             has_generating_error: false,
             has_multi_key_signing_error: false,
         }
     }
 }
 
-impl Default for SoftwareKeyFactory {
+impl Default for MockRemoteKeyFactory {
     fn default() -> Self {
         let keys = HashMap::from([
             #[cfg(feature = "examples")]
@@ -51,30 +119,17 @@ impl Default for SoftwareKeyFactory {
             },
         ]);
 
-        Self::new(keys)
+        Self::new_signing_keys(keys)
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("SoftwareKeyFactoryError")]
-pub enum SoftwareKeyFactoryError {
-    #[error("key generation error")]
-    Generating,
-    #[error("signing error")]
-    Signing,
-    #[error("ECDSA error: {0}")]
-    Ecdsa(#[source] <SoftwareEcdsaKey as EcdsaKey>::Error),
-    #[error("PoA error: {0}")]
-    Poa(#[from] PoaError),
-}
-
-impl KeyFactory for SoftwareKeyFactory {
-    type Key = SoftwareEcdsaKey;
-    type Error = SoftwareKeyFactoryError;
+impl KeyFactory for MockRemoteKeyFactory {
+    type Key = MockRemoteEcdsaKey;
+    type Error = MockRemoteKeyFactoryError;
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
         if self.has_generating_error {
-            return Err(SoftwareKeyFactoryError::Generating);
+            return Err(MockRemoteKeyFactoryError::Generating);
         }
 
         let identifiers_and_signing_keys =
@@ -90,7 +145,7 @@ impl KeyFactory for SoftwareKeyFactory {
 
         let keys = identifiers_and_signing_keys
             .into_iter()
-            .map(|(identifer, signing_key)| SoftwareEcdsaKey::new(identifer, signing_key))
+            .map(|(identifer, signing_key)| MockRemoteEcdsaKey::new(identifer, signing_key))
             .collect();
 
         Ok(keys)
@@ -113,7 +168,7 @@ impl KeyFactory for SoftwareKeyFactory {
             "called generate_existing() with incorrect public_key"
         );
 
-        SoftwareEcdsaKey::new(identifier, signing_key)
+        MockRemoteEcdsaKey::new(identifier, signing_key)
     }
 
     async fn sign_with_new_keys(
@@ -124,16 +179,16 @@ impl KeyFactory for SoftwareKeyFactory {
         let keys = self.generate_new_multiple(number_of_keys).await?;
 
         if self.has_multi_key_signing_error {
-            return Err(SoftwareKeyFactoryError::Signing);
+            return Err(MockRemoteKeyFactoryError::Signing);
         }
 
         let signatures_by_identifier = future::try_join_all(keys.into_iter().map(|key| async {
             let signature = key
                 .try_sign(msg.as_slice())
                 .await
-                .map_err(SoftwareKeyFactoryError::Ecdsa)?;
+                .map_err(MockRemoteKeyFactoryError::Ecdsa)?;
 
-            Ok::<_, SoftwareKeyFactoryError>((key, signature))
+            Ok::<_, MockRemoteKeyFactoryError>((key, signature))
         }))
         .await?
         .into_iter()
@@ -147,7 +202,7 @@ impl KeyFactory for SoftwareKeyFactory {
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
     ) -> Result<Vec<Vec<Signature>>, Self::Error> {
         if self.has_multi_key_signing_error {
-            return Err(SoftwareKeyFactoryError::Signing);
+            return Err(MockRemoteKeyFactoryError::Signing);
         }
 
         let result = future::try_join_all(
@@ -155,15 +210,15 @@ impl KeyFactory for SoftwareKeyFactory {
                 .into_iter()
                 .map(|(msg, keys)| async move {
                     let signatures = future::try_join_all(keys.into_iter().map(|key| async {
-                        let signature = key.try_sign(&msg).await.map_err(SoftwareKeyFactoryError::Ecdsa)?;
+                        let signature = key.try_sign(&msg).await.map_err(MockRemoteKeyFactoryError::Ecdsa)?;
 
-                        Ok::<_, SoftwareKeyFactoryError>(signature)
+                        Ok::<_, MockRemoteKeyFactoryError>(signature)
                     }))
                     .await?
                     .into_iter()
                     .collect::<Vec<_>>();
 
-                    Ok::<_, SoftwareKeyFactoryError>(signatures)
+                    Ok::<_, MockRemoteKeyFactoryError>(signatures)
                 })
                 .collect::<Vec<_>>(),
         )

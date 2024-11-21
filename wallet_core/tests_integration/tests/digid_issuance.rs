@@ -11,7 +11,7 @@ use wallet::mock::default_configuration;
 use wallet::wallet_common::WalletConfiguration;
 use wallet::wallet_deps::DigidSession;
 use wallet::wallet_deps::HttpDigidSession;
-use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use wallet_common::urls::{self};
 use wallet_server::pid::attributes::BrpPidAttributeService;
@@ -80,7 +80,7 @@ async fn test_pid_issuance_digid_bridge() {
     let mdocs = pid_issuer_client
         .accept_issuance(
             &trust_anchors(&default_configuration()),
-            SoftwareKeyFactory::default(),
+            MockRemoteKeyFactory::default(),
             None,
             server_url,
         )

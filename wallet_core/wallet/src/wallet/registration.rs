@@ -206,7 +206,7 @@ mod tests {
     use crate::account_provider::AccountProviderResponseError;
     use crate::storage::KeyedData;
     use crate::storage::KeyedDataResult;
-    use crate::wallet::test::FallibleSoftwareEcdsaKey;
+    use crate::wallet::test::FallibleMockHardwareEcdsaKey;
     use crate::wallet::test::ACCOUNT_SERVER_KEYS;
 
     use super::super::test::WalletWithMocks;
@@ -341,7 +341,7 @@ mod tests {
             .return_once(|_| Ok(utils::random_bytes(32)));
 
         // Have the hardware public key fetching fail.
-        FallibleSoftwareEcdsaKey::next_public_key_error_for_identifier(
+        FallibleMockHardwareEcdsaKey::next_public_key_error_for_identifier(
             wallet_key_id().as_ref().to_string(),
             p256::ecdsa::Error::new(),
         );
@@ -366,7 +366,7 @@ mod tests {
             .return_once(|_| Ok(utils::random_bytes(32)));
 
         // Have the hardware key signing fail.
-        FallibleSoftwareEcdsaKey::next_private_key_error_for_identifier(
+        FallibleMockHardwareEcdsaKey::next_private_key_error_for_identifier(
             wallet_key_id().as_ref().to_string(),
             p256::ecdsa::Error::new(),
         );

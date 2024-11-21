@@ -17,7 +17,7 @@ use wallet::wallet_deps::ConfigurationRepository;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpDigidSession;
 use wallet::Wallet;
-use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 
 #[derive(Debug, Eq, PartialEq)]
 enum TestError {
@@ -121,7 +121,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let mut wallet: Wallet<
         LocalConfigurationRepository,
         MockStorage,
-        SoftwareEcdsaKey,
+        MockHardwareEcdsaKey,
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,

@@ -116,7 +116,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
     use wallet_common::keys::EcdsaKey;
 
     use crate::pin::key as pin_key;
@@ -205,7 +205,7 @@ mod tests {
         // The hardware private key should not exist at this point in the test.
         // In a real life scenario it does, as this test models a `Wallet` with
         // a pre-existing registration in its database.
-        assert!(!SoftwareEcdsaKey::identifier_exists(
+        assert!(!MockHardwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
 
@@ -232,7 +232,7 @@ mod tests {
         };
 
         // The hardware private key should now exist.
-        assert!(SoftwareEcdsaKey::identifier_exists(
+        assert!(MockHardwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
 

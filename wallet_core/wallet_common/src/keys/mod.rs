@@ -15,10 +15,10 @@ pub mod poa;
 
 #[cfg(feature = "examples")]
 pub mod examples;
-#[cfg(any(test, feature = "software_keys"))]
-pub mod software;
-#[cfg(any(test, feature = "software_key_factory"))]
-pub mod software_key_factory;
+#[cfg(feature = "mock_hardware_keys")]
+pub mod mock_hardware;
+#[cfg(any(test, feature = "mock_remote_key"))]
+pub mod mock_remote;
 #[cfg(any(test, feature = "integration_test"))]
 pub mod test;
 
@@ -139,8 +139,8 @@ pub trait CredentialEcdsaKey: SecureEcdsaKey + WithIdentifier {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CredentialKeyType {
-    #[cfg(any(test, feature = "software_keys"))]
-    Software,
+    #[cfg(any(test, feature = "mock_remote_key"))]
+    Mock,
     Remote,
 }
 

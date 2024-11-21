@@ -196,7 +196,7 @@ mod tests {
 
     use wallet_common::generator::TimeGenerator;
     use wallet_common::jwt::JwtCredentialClaims;
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::EcdsaKey;
 
     use nl_wallet_mdoc::server_keys::KeyPair;
@@ -252,7 +252,7 @@ mod tests {
     #[tokio::test]
     async fn test_jwt_credential() {
         let holder_key_id = "key";
-        let holder_keypair = SoftwareEcdsaKey::new_random(holder_key_id.to_string());
+        let holder_keypair = MockRemoteEcdsaKey::new_random(holder_key_id.to_string());
         let issuer_keypair = KeyPair::generate_issuer_mock_ca().unwrap();
 
         // Produce a JWT with `JwtCredentialClaims` in it
@@ -272,7 +272,7 @@ mod tests {
         .await
         .unwrap();
 
-        let (cred, claims) = JwtCredential::new::<SoftwareEcdsaKey>(
+        let (cred, claims) = JwtCredential::new::<MockRemoteEcdsaKey>(
             holder_key_id.to_string(),
             jwt,
             &issuer_keypair.certificate().public_key().unwrap(),

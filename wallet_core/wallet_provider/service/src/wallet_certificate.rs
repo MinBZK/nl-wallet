@@ -204,8 +204,6 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
 
-    use wallet_common::keys::software::SoftwareEcdsaKey;
-    use wallet_common::keys::EcdsaKey;
     use wallet_provider_domain::model::encrypted::Encrypted;
     use wallet_provider_domain::model::encrypter::Encrypter;
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
@@ -234,14 +232,14 @@ pub mod mock {
         pub hw_pubkey: VerifyingKey,
         pub pin_pubkey: VerifyingKey,
         pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
-        pub signing_key: SoftwareEcdsaKey,
+        pub signing_key: SigningKey,
         pub signing_pubkey: VerifyingKey,
     }
 
     impl WalletCertificateSetup {
         pub async fn new() -> Self {
-            let signing_key = SoftwareEcdsaKey::new_random(SIGNING_KEY_IDENTIFIER.to_string());
-            let signing_pubkey = signing_key.verifying_key().await.unwrap();
+            let signing_key = SigningKey::random(&mut OsRng);
+            let signing_pubkey = *signing_key.verifying_key();
 
             let hw_privkey = SigningKey::random(&mut OsRng);
             let pin_privkey = SigningKey::random(&mut OsRng);

@@ -46,9 +46,9 @@ use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
 use wallet_common::jwt::JsonJwt;
 use wallet_common::jwt::Jwt;
+use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::PoaPayload;
-use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
 
@@ -108,7 +108,7 @@ async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2
     .await
     .unwrap();
 
-    let key_factory = SoftwareKeyFactory::default();
+    let key_factory = MockRemoteKeyFactory::default();
     let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     let issued_creds = session
@@ -164,7 +164,7 @@ async fn start_and_accept_err(
     .await
     .unwrap();
 
-    let key_factory = SoftwareKeyFactory::default();
+    let key_factory = MockRemoteKeyFactory::default();
     let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     session

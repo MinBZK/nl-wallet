@@ -64,7 +64,7 @@ use openid4vc::VpAuthorizationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::examples::Examples;
-use wallet_common::keys::software_key_factory::SoftwareKeyFactory;
+use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::trust_anchor::OwnedTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
@@ -111,7 +111,7 @@ async fn disclosure_direct() {
 
 /// The wallet side: verify the Authorization Request, compute the disclosure, and encrypt it into a JWE.
 async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors: &[TrustAnchor<'_>]) -> String {
-    let mdocs = IsoMockMdocDataSource::default();
+    let mdocs = IsoMockMdocDataSource::new_with_example();
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
@@ -137,7 +137,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     let to_disclose = candidates.into_values().map(|mut docs| docs.pop().unwrap()).collect();
 
     // Compute the disclosure.
-    let key_factory = SoftwareKeyFactory::default();
+    let key_factory = MockRemoteKeyFactory::default();
     let device_response = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
         .await
         .unwrap();
@@ -157,8 +157,8 @@ async fn disclosure_using_message_client() {
         .unwrap();
 
     // Initialize the "wallet"
-    let mdocs = IsoMockMdocDataSource::default();
-    let key_factory = &SoftwareKeyFactory::default();
+    let mdocs = IsoMockMdocDataSource::new_with_example();
+    let key_factory = &MockRemoteKeyFactory::default();
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair);
@@ -697,11 +697,11 @@ async fn start_disclosure_session(
 ) -> Result<
     (
         DisclosureSession<VerifierMockVpMessageClient, String>,
-        SoftwareKeyFactory,
+        MockRemoteKeyFactory,
     ),
     VpClientError,
 > {
-    let key_factory = SoftwareKeyFactory::default();
+    let key_factory = MockRemoteKeyFactory::default();
 
     // Populate the wallet with the specified test documents
     let mdocs = future::join_all(

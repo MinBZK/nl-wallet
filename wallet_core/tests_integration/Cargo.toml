@@ -77,7 +77,7 @@ test_common = [
 # Include the fake_digid submodule
 fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = ["wallet_provider_persistence?/db_test", "wallet_provider_service/db_test", "wallet_server?/db_test"]
+db_test = ["wallet_provider_persistence?/db_test", "wallet_provider_service?/db_test", "wallet_server?/db_test"]
 # Include and run test that depend on a configured HSM
 hsm_test = ["wallet_provider?/hsm_test"]
 # Feature used for enabling all integration tests
@@ -93,9 +93,9 @@ integration_test = [
     "dep:rstest",
     "dep:serde_urlencoded",
     "dep:serial_test",
+    "dep:tokio",
     "tokio/macros",
     "tokio/sync",
-    "dep:url",
 ]
 # Optional feature for running integration tests that depend on the DigiD connector
 digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter"]
@@ -139,6 +139,7 @@ gba_pid_test = [
     "dep:serde_urlencoded",
     "dep:serde_yaml",
     "dep:tokio",
+    "dep:wallet",
     "dep:wallet_common",
     "dep:wallet_server",
     "wallet/snapshot_test",
@@ -183,11 +184,12 @@ configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
-platform_support = { path = "../platform_support", optional = true, features = ["software"] }
+platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "env_config", "test"] }
-wallet_common = { path = "../wallet_common", optional = true, features = ["software_key_factory"] }
+wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
+wallet_provider_service = { path = "../wallet_provider/service", optional = true }
 wallet_server = { path = "../wallet_server", optional = true, features = ["issuance", "disclosure", "mock"] }
 
 [build-dependencies]
