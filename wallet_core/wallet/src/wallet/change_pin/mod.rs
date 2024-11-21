@@ -55,7 +55,7 @@ where
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            &config.base_url,
+            &config.http_config,
             &instruction_result_public_key,
         );
 
@@ -96,7 +96,7 @@ where
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            &config.base_url,
+            &config.http_config,
             &instruction_result_public_key,
         );
 

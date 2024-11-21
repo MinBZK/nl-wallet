@@ -121,7 +121,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
             .new_instruction_client(
                 pin,
                 registration,
-                &config.account_server.base_url,
+                &config.account_server.http_config,
                 &instruction_result_public_key,
             )
             .await?;
@@ -261,7 +261,7 @@ mod tests {
             .account_provider_client
             .expect_instruction_challenge()
             .with(
-                eq(wallet.config_repository.config().account_server.base_url.clone()),
+                eq(wallet.config_repository.config().account_server.http_config.clone()),
                 always(),
             )
             .return_once(move |_, challenge_request| {
@@ -295,7 +295,7 @@ mod tests {
             .account_provider_client
             .expect_instruction()
             .with(
-                eq(wallet.config_repository.config().account_server.base_url.clone()),
+                eq(wallet.config_repository.config().account_server.http_config.clone()),
                 always(),
             )
             .return_once(move |_, instruction: Instruction<CheckPin>| {

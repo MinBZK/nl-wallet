@@ -14,7 +14,7 @@ doctest = false
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = []
 # Include implementations of the axum IntoResponse trait.
-axum = ["dep:axum", "dep:tower-http"]
+axum = ["dep:axum", "dep:tower-http", "dep:axum-server"]
 # Include examples from the ISO specification
 examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
@@ -28,6 +28,8 @@ software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 software_key_factory = ["software_keys"]
 # Enable helper code for integration tests
 integration_test = []
+# Various test related functionality
+insecure_http_client = []
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -63,6 +65,7 @@ x509-parser.workspace = true
 anyhow = { workspace = true, optional = true }
 ciborium = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
+axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
 hex = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }

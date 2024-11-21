@@ -1,4 +1,3 @@
-use reqwest::Certificate;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -13,8 +12,7 @@ use openid4vc::oidc::SignatureAlgorithm;
 use openid4vc::oidc::JWT;
 use openid4vc::oidc::{self};
 use openid4vc::token::TokenRequest;
-use wallet_common::reqwest::trusted_reqwest_client_builder;
-use wallet_common::urls::BaseUrl;
+use wallet_common::reqwest::JsonReqwestBuilder;
 
 #[derive(Serialize, Deserialize)]
 struct UserInfo {
@@ -36,34 +34,30 @@ pub enum Error {
 }
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
-pub struct OpenIdClient {
-    issuer_url: BaseUrl,
+pub struct OpenIdClient<C> {
     decrypter_private_key: RsaesJweDecrypter,
-    trust_anchors: Vec<Certificate>,
+    http_config: C,
 }
 
-impl OpenIdClient {
-    pub fn new(issuer_url: BaseUrl, bsn_privkey: &str, trust_anchors: Vec<Certificate>) -> Result<Self> {
+impl<C> OpenIdClient<C>
+where
+    C: JsonReqwestBuilder,
+{
+    pub fn new(bsn_privkey: &str, http_config: C) -> Result<Self> {
         let userinfo_client = OpenIdClient {
-            issuer_url,
-            decrypter_private_key: OpenIdClient::decrypter(bsn_privkey)?,
-            trust_anchors,
+            decrypter_private_key: OpenIdClient::<C>::decrypter(bsn_privkey)?,
+            http_config,
         };
         Ok(userinfo_client)
     }
 
     pub async fn bsn(&self, token_request: TokenRequest) -> Result<String> {
-        let http_client = trusted_reqwest_client_builder(self.trust_anchors.clone())
-            .build()
-            .expect("Could not build reqwest HTTP client");
-
-        let access_token = &oidc::request_token(&http_client, &self.issuer_url, token_request)
+        let access_token = &oidc::request_token(&self.http_config, token_request)
             .await?
             .access_token;
 
         let userinfo_claims: JWT<UserInfo, Empty> = oidc::request_userinfo(
-            &http_client,
-            &self.issuer_url,
+            &self.http_config,
             access_token,
             SignatureAlgorithm::RS256,
             Some((&self.decrypter_private_key, &AescbcHmacJweEncryption::A128cbcHs256)),
@@ -83,11 +77,7 @@ impl OpenIdClient {
     }
 
     pub async fn discover_metadata(&self) -> Result<oidc::Config> {
-        let http_client = trusted_reqwest_client_builder(self.trust_anchors.clone())
-            .build()
-            .expect("Could not build reqwest HTTP client");
-
-        let metadata = oidc::Config::discover(&http_client, &self.issuer_url).await?;
+        let metadata = oidc::Config::discover(&self.http_config).await?;
         Ok(metadata)
     }
 }

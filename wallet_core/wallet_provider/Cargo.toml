@@ -29,6 +29,7 @@ hsm_test = ["dep:rand_core", "dep:serial_test"]
 
 [dependencies]
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
+axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str"] }

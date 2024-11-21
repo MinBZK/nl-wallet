@@ -39,9 +39,9 @@ spec:
             - name: pid-issuer-port
               containerPort: 3007
           volumeMounts:
-            - name: config-volume
+            - name: pid-issuer-config-volume
               mountPath: /pid_issuer.toml
-              subPath: config.toml
+              subPath: pid_issuer.toml
           env:
             - name: PID_ISSUER_WALLET_SERVER__PORT
               value: "3007"
@@ -49,7 +49,7 @@ spec:
               value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
             - name: PID_ISSUER_STRUCTURED_LOGGING
               value: "true"
-            - name: PID_ISSUER_ISSUER__DIGID__ISSUER_URL
+            - name: PID_ISSUER_ISSUER__DIGID__HTTP_CONFIG__BASE_URL
               value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
             - name: PID_ISSUER_ISSUER__BRP_SERVER
               value: "http://brpproxy:5001/"
@@ -72,6 +72,6 @@ spec:
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
-        - name: config-volume
+        - name: pid-issuer-config-volume
           secret:
             secretName: nl-pid-issuer-config

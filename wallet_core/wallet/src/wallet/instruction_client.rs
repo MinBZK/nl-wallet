@@ -1,6 +1,6 @@
 use platform_support::hw_keystore::PlatformEcdsaKey;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::urls::BaseUrl;
 
 use crate::account_provider::AccountProviderClient;
 use crate::config::ConfigurationRepository;
@@ -27,7 +27,7 @@ where
         &'a self,
         pin: String,
         registration: &'a WalletRegistration<PEK>,
-        account_provider_base_url: &'a BaseUrl,
+        client_config: &'a TlsPinningConfig,
         instruction_result_public_key: &'a EcdsaDecodingKey,
     ) -> Result<InstructionClient<'a, S, PEK, APC>, ChangePinError> {
         tracing::info!("Try to finalize PIN change if it is in progress");
@@ -42,7 +42,7 @@ where
             &registration.hw_privkey,
             &self.account_provider_client,
             &registration.data,
-            account_provider_base_url,
+            client_config,
             instruction_result_public_key,
         );
 

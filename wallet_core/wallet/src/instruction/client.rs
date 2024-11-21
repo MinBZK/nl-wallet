@@ -1,4 +1,5 @@
 use std::future::Future;
+
 use tokio::sync::RwLock;
 use tokio::sync::RwLockWriteGuard;
 
@@ -6,8 +7,8 @@ use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::urls::BaseUrl;
 
 use crate::account_provider::AccountProviderClient;
 use crate::pin::key::PinKey;
@@ -23,7 +24,7 @@ pub struct InstructionClient<'a, S, K, A> {
     hw_privkey: &'a K,
     account_provider_client: &'a A,
     registration: &'a RegistrationData,
-    account_provider_base_url: &'a BaseUrl,
+    client_config: &'a TlsPinningConfig,
     instruction_result_public_key: &'a EcdsaDecodingKey,
 }
 
@@ -43,7 +44,7 @@ where
         hw_privkey: &'a K,
         account_provider_client: &'a A,
         registration: &'a RegistrationData,
-        account_provider_base_url: &'a BaseUrl,
+        client_config: &'a TlsPinningConfig,
         instruction_result_public_key: &'a EcdsaDecodingKey,
     ) -> Self {
         Self {
@@ -52,7 +53,7 @@ where
             hw_privkey,
             account_provider_client,
             registration,
-            account_provider_base_url,
+            client_config,
             instruction_result_public_key,
         }
     }
@@ -93,7 +94,7 @@ where
 
         let result = self
             .account_provider_client
-            .instruction_challenge(self.account_provider_base_url, challenge_request)
+            .instruction_challenge(self.client_config, challenge_request)
             .await?;
 
         Ok(result)
@@ -135,7 +136,7 @@ where
 
         let signed_result = self
             .account_provider_client
-            .instruction(self.account_provider_base_url, instruction)
+            .instruction(self.client_config, instruction)
             .await
             .map_err(InstructionError::from)?;
 
@@ -153,7 +154,7 @@ pub struct InstructionClientFactory<'a, S, K, A> {
     hw_privkey: &'a K,
     account_provider_client: &'a A,
     registration: &'a RegistrationData,
-    account_provider_base_url: &'a BaseUrl,
+    client_config: &'a TlsPinningConfig,
     instruction_result_public_key: &'a EcdsaDecodingKey,
 }
 
@@ -163,7 +164,7 @@ impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
         hw_privkey: &'a K,
         account_provider_client: &'a A,
         registration: &'a RegistrationData,
-        account_provider_base_url: &'a BaseUrl,
+        client_config: &'a TlsPinningConfig,
         instruction_result_public_key: &'a EcdsaDecodingKey,
     ) -> Self {
         Self {
@@ -171,7 +172,7 @@ impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
             hw_privkey,
             account_provider_client,
             registration,
-            account_provider_base_url,
+            client_config,
             instruction_result_public_key,
         }
     }
@@ -190,7 +191,7 @@ impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
             self.hw_privkey,
             self.account_provider_client,
             self.registration,
-            self.account_provider_base_url,
+            self.client_config,
             self.instruction_result_public_key,
         )
     }
