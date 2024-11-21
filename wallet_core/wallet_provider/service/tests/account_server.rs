@@ -9,8 +9,6 @@ use wallet_common::account::messages::instructions::CheckPin;
 use wallet_common::account::messages::instructions::InstructionChallengeRequest;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::generator::Generator;
-use wallet_common::keys::software::SoftwareEcdsaKey;
-use wallet_common::keys::EcdsaKey;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -104,11 +102,11 @@ async fn test_instruction_challenge() {
     let db = db_from_env().await.expect("Could not connect to database");
     let repos = Repositories::new(db);
 
-    let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
-    let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
+    let certificate_signing_key = SigningKey::random(&mut OsRng);
+    let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
     let hsm = wallet_certificate::mock::setup_hsm().await;
-    let account_server = mock::setup_account_server(&certificate_signing_pubkey);
+    let account_server = mock::setup_account_server(certificate_signing_pubkey);
     let hw_privkey = SigningKey::random(&mut OsRng);
     let pin_privkey = SigningKey::random(&mut OsRng);
 

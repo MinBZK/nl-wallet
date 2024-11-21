@@ -111,10 +111,10 @@ pub mod mock {
 mod tests {
     use chrono::Utc;
 
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use wallet_common::jwt::jwk_to_p256;
     use wallet_common::jwt::{self};
-    use wallet_common::keys::software::SoftwareEcdsaKey;
-    use wallet_common::keys::EcdsaKey;
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 
     use crate::hsm::HsmError;
@@ -125,8 +125,8 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         let hsm = MockPkcs11Client::<HsmError>::default();
-        let wte_signing_key = SoftwareEcdsaKey::new_random("wte_signing_key".to_string());
-        let wte_verifying_key = wte_signing_key.verifying_key().await.unwrap();
+        let wte_signing_key = SigningKey::random(&mut OsRng);
+        let wte_verifying_key = wte_signing_key.verifying_key();
         let iss = "iss";
 
         let wte_issuer = HsmWteIssuer {
@@ -138,7 +138,7 @@ mod tests {
         let (wte_privkey, wte) = wte_issuer.issue_wte().await.unwrap();
 
         let wte_claims = wte
-            .parse_and_verify(&(&wte_verifying_key).into(), &jwt::validations())
+            .parse_and_verify(&wte_verifying_key.into(), &jwt::validations())
             .unwrap();
 
         assert_eq!(

@@ -641,10 +641,10 @@ pub(crate) mod tests {
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-    use platform_support::utils::software::SoftwareUtilities;
+    use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
     use wallet_common::account::messages::auth::WalletCertificate;
-    use wallet_common::keys::software::SoftwareEncryptionKey;
+    use wallet_common::keys::mock_hardware::MockHardwareEncryptionKey;
     use wallet_common::utils::random_bytes;
 
     use crate::storage::data::RegistrationData;
@@ -676,7 +676,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_database_open_encrypted_database_and_clear() {
         let mut storage =
-            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
 
         let name = "test_open_encrypted_database";
         let key_file_alias = key_file_alias_for_name(name);
@@ -688,7 +688,7 @@ pub(crate) mod tests {
         _ = fs::remove_file(database_path).await;
 
         // The key file encryption key should be absent.
-        assert!(!SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+        assert!(!MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
 
         // Open the encrypted database.
         let open_database = storage
@@ -708,19 +708,19 @@ pub(crate) mod tests {
         assert!(fs::try_exists(&database_path).await.unwrap());
 
         // The key file encryption key should be present.
-        assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+        assert!(MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
 
         // Set the open database on the `DatabaseStorage` instance, then drop the storage.
         // Both the database file and the encryption key should still exist.
         storage.open_database = open_database.into();
         mem::drop(storage);
         assert!(fs::try_exists(&database_path).await.unwrap());
-        assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+        assert!(MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
 
         // Re-open the encrypted database, set it on the `DatabaseStorage`
         // instance and then call clear on it in order to delete the database.
         let mut storage =
-            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
         storage.open_database = storage
             .open_encrypted_database(name)
             .await
@@ -730,12 +730,12 @@ pub(crate) mod tests {
 
         // The database file should be gone and the key file encryption key should be absent.
         assert!(!fs::try_exists(&database_path).await.unwrap());
-        assert!(!SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+        assert!(!MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
     }
 
-    async fn open_test_database_storage() -> DatabaseStorage<SoftwareEncryptionKey> {
+    async fn open_test_database_storage() -> DatabaseStorage<MockHardwareEncryptionKey> {
         let mut storage =
-            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
 
         // Create a test database, override the database field on Storage.
         let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
@@ -745,7 +745,7 @@ pub(crate) mod tests {
 
         // Create an encryption key for the key file, which is not actually used,
         // but still needs to be present.
-        let key_file_key = SoftwareEncryptionKey::new_random("open_test_database_storage".to_string());
+        let key_file_key = MockHardwareEncryptionKey::new_random("open_test_database_storage".to_string());
 
         storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
 

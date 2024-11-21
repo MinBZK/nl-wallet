@@ -88,7 +88,7 @@ mod tests {
         let eph_reader_key = Examples::ephemeral_reader_key();
         let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
 
-        // We grab the private key directly from the `Examples` instead of obtaining a `SoftwareEcdsaKey` from `mdoc`,
+        // We grab the private key directly from the `Examples` instead of obtaining a `LocalEcdsaKey` from `mdoc`,
         // because we need to access it directly in this test to convert it to a `SecretKey`.
         let secret_key = SecretKey::from(Examples::static_device_key().as_nonzero_scalar());
 

@@ -5,7 +5,7 @@ use tokio::io::AsyncWriteExt;
 
 use crate::utils::PlatformUtilities;
 
-// This utility function is used both by the Rust unit tests test for the "software" feature
+// This utility function is used both by the Rust unit tests test for the "mock" feature
 // and by integration test performed from Android / iOS.
 // This would normally fall under dev-dependencies, however we need it in the main binary
 // for the Android / iOS integration test.

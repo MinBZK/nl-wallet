@@ -24,7 +24,7 @@ use wallet::wallet_deps::UpdateableConfigurationRepository;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
 use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 use wallet_server::verifier::StartDisclosureRequest;
 use wallet_server::verifier::StartDisclosureResponse;
 use wallet_server::verifier::StatusParams;
@@ -60,7 +60,7 @@ async fn main() {
     let mut wallet: Wallet<
         HttpConfigurationRepository<TlsPinningConfig>,
         MockStorage,
-        SoftwareEcdsaKey,
+        MockHardwareEcdsaKey,
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,

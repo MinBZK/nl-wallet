@@ -20,7 +20,8 @@ use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
-use wallet_common::keys::software::SoftwareEcdsaKey;
+use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
+use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::keys::StoredByIdentifier;
@@ -51,7 +52,7 @@ use super::Wallet;
 use super::WalletInitError;
 use super::WalletRegistration;
 
-static FALLIBLE_KEY_ERRORS: LazyLock<Mutex<HashMap<String, FallibleSoftwareEcdsaKeyErrors>>> =
+static FALLIBLE_KEY_ERRORS: LazyLock<Mutex<HashMap<String, FallibleMockHardwareEcdsaKeyErrors>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// This contains key material that is used to generate valid account server responses.
@@ -68,22 +69,22 @@ pub struct IssuerKey {
 
 /// This is used as a mock for `PlatformEcdsaKey`, so we can introduce failure conditions.
 #[derive(Debug)]
-pub struct FallibleSoftwareEcdsaKey {
-    key: SoftwareEcdsaKey,
-    pub next_public_key_error: Mutex<Option<<SoftwareEcdsaKey as EcdsaKey>::Error>>,
-    pub next_private_key_error: Mutex<Option<<SoftwareEcdsaKey as EcdsaKey>::Error>>,
+pub struct FallibleMockHardwareEcdsaKey {
+    key: MockHardwareEcdsaKey,
+    pub next_public_key_error: Mutex<Option<<MockHardwareEcdsaKey as EcdsaKey>::Error>>,
+    pub next_private_key_error: Mutex<Option<<MockHardwareEcdsaKey as EcdsaKey>::Error>>,
 }
 
-struct FallibleSoftwareEcdsaKeyErrors {
-    public_key_error: Option<<SoftwareEcdsaKey as EcdsaKey>::Error>,
-    private_key_error: Option<<SoftwareEcdsaKey as EcdsaKey>::Error>,
+struct FallibleMockHardwareEcdsaKeyErrors {
+    public_key_error: Option<<MockHardwareEcdsaKey as EcdsaKey>::Error>,
+    private_key_error: Option<<MockHardwareEcdsaKey as EcdsaKey>::Error>,
 }
 
 /// An alias for the `Wallet<>` with all mock dependencies.
 pub type WalletWithMocks = Wallet<
     UpdatingConfigurationRepository<LocalConfigurationRepository>,
     MockStorage,
-    FallibleSoftwareEcdsaKey,
+    FallibleMockHardwareEcdsaKey,
     MockAccountProviderClient,
     MockDigidSession,
     MockIssuanceSession,
@@ -136,7 +137,7 @@ pub async fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
 /// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and issuer key.
 pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -> Mdoc {
     let private_key_id = utils::random_string(16);
-    let mdoc_public_key = (&SoftwareEcdsaKey::new_random(private_key_id.clone())
+    let mdoc_public_key = (&MockRemoteEcdsaKey::new_random(private_key_id.clone())
         .verifying_key()
         .await
         .unwrap())
@@ -146,7 +147,7 @@ pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &Issuer
         .await
         .unwrap();
 
-    Mdoc::new::<SoftwareEcdsaKey>(
+    Mdoc::new::<MockRemoteEcdsaKey>(
         private_key_id,
         issuer_signed,
         &TimeGenerator,
@@ -155,13 +156,13 @@ pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &Issuer
     .unwrap()
 }
 
-impl FallibleSoftwareEcdsaKey {
+impl FallibleMockHardwareEcdsaKey {
     /// Sets the next public key error value for the next
-    /// `FallibleSoftwareEcdsaKey` to be returned for the given identifier.
-    pub fn next_public_key_error_for_identifier(identifier: String, error: <SoftwareEcdsaKey as EcdsaKey>::Error) {
+    /// [`FallibleMockHardwareEcdsaKey`] to be returned for the given identifier.
+    pub fn next_public_key_error_for_identifier(identifier: String, error: <MockHardwareEcdsaKey as EcdsaKey>::Error) {
         FALLIBLE_KEY_ERRORS.lock().insert(
             identifier,
-            FallibleSoftwareEcdsaKeyErrors {
+            FallibleMockHardwareEcdsaKeyErrors {
                 public_key_error: error.into(),
                 private_key_error: None,
             },
@@ -169,11 +170,11 @@ impl FallibleSoftwareEcdsaKey {
     }
 
     /// Sets the next private key error value for the next
-    /// `FallibleSoftwareEcdsaKey` to be returned for the given identifier.
-    pub fn next_private_key_error_for_identifier(identifier: String, error: <SoftwareEcdsaKey as EcdsaKey>::Error) {
+    /// [`FallibleMockHardwareEcdsaKey`] to be returned for the given identifier.
+    pub fn next_private_key_error_for_identifier(identifier: String, error: <MockHardwareEcdsaKey as EcdsaKey>::Error) {
         FALLIBLE_KEY_ERRORS.lock().insert(
             identifier,
-            FallibleSoftwareEcdsaKeyErrors {
+            FallibleMockHardwareEcdsaKeyErrors {
                 public_key_error: None,
                 private_key_error: error.into(),
             },
@@ -181,10 +182,10 @@ impl FallibleSoftwareEcdsaKey {
     }
 }
 
-// Implement traits for `FallibleSoftwareEcdsaKey` so all calls can be forwarded to `SoftwareEcdsaKey`.
-impl From<SoftwareEcdsaKey> for FallibleSoftwareEcdsaKey {
-    fn from(value: SoftwareEcdsaKey) -> Self {
-        FallibleSoftwareEcdsaKey {
+// Implement traits for `FallibleMockHardwareEcdsaKey` so all calls can be forwarded to `MockHardwareEcdsaKey`.
+impl From<MockHardwareEcdsaKey> for FallibleMockHardwareEcdsaKey {
+    fn from(value: MockHardwareEcdsaKey) -> Self {
+        FallibleMockHardwareEcdsaKey {
             key: value,
             next_public_key_error: Mutex::new(None),
             next_private_key_error: Mutex::new(None),
@@ -192,16 +193,16 @@ impl From<SoftwareEcdsaKey> for FallibleSoftwareEcdsaKey {
     }
 }
 
-impl PlatformEcdsaKey for FallibleSoftwareEcdsaKey {}
+impl PlatformEcdsaKey for FallibleMockHardwareEcdsaKey {}
 
-impl StoredByIdentifier for FallibleSoftwareEcdsaKey {
-    type Error = <SoftwareEcdsaKey as StoredByIdentifier>::Error;
+impl StoredByIdentifier for FallibleMockHardwareEcdsaKey {
+    type Error = <MockHardwareEcdsaKey as StoredByIdentifier>::Error;
 
     fn new_unique(identifier: &str) -> Option<Self> {
-        let mut key = SoftwareEcdsaKey::new_unique(identifier).map(Self::from);
+        let mut key = MockHardwareEcdsaKey::new_unique(identifier).map(Self::from);
 
         if let Some(key) = key.as_mut() {
-            if let Some(FallibleSoftwareEcdsaKeyErrors {
+            if let Some(FallibleMockHardwareEcdsaKeyErrors {
                 public_key_error,
                 private_key_error,
             }) = FALLIBLE_KEY_ERRORS.lock().remove(identifier)
@@ -219,16 +220,16 @@ impl StoredByIdentifier for FallibleSoftwareEcdsaKey {
     }
 }
 
-impl WithIdentifier for FallibleSoftwareEcdsaKey {
+impl WithIdentifier for FallibleMockHardwareEcdsaKey {
     fn identifier(&self) -> &str {
         self.key.identifier()
     }
 }
 
-impl SecureEcdsaKey for FallibleSoftwareEcdsaKey {}
+impl SecureEcdsaKey for FallibleMockHardwareEcdsaKey {}
 
-impl EcdsaKey for FallibleSoftwareEcdsaKey {
-    type Error = <SoftwareEcdsaKey as EcdsaKey>::Error;
+impl EcdsaKey for FallibleMockHardwareEcdsaKey {
+    type Error = <MockHardwareEcdsaKey as EcdsaKey>::Error;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         let next_error = self.next_public_key_error.lock().take();
