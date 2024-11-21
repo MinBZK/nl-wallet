@@ -29,7 +29,7 @@ software_key_factory = ["software_keys"]
 # Enable helper code for integration tests
 integration_test = []
 # Various test related functionality
-test = []
+insecure_http_client = []
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
