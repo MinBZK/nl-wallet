@@ -83,7 +83,7 @@ impl TlsServerConfig {
     }
 }
 
-#[cfg(any(test, feature = "test"))]
+#[cfg(any(test, feature = "insecure_http_client"))]
 pub mod test {
     use std::path::Path;
 
