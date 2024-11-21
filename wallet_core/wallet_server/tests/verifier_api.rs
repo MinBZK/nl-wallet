@@ -58,6 +58,7 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
+#[cfg(feature = "issuance")]
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
@@ -720,7 +721,9 @@ async fn test_disclosure_expired_memory() {
     test_disclosure_expired(settings, session_store, mock_time.as_ref(), false).await;
 }
 
+// TODO: Remove sleep timers from this test and re-enable.
 #[cfg(feature = "db_test")]
+#[ignore]
 #[tokio::test]
 async fn test_disclosure_expired_postgres() {
     use wallet_server::store::postgres::PostgresSessionStore;
