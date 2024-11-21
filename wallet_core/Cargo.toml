@@ -93,6 +93,7 @@ jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = { version = "9.3.0", default-features = false }
 libsqlite3-sys = { version = "0.27.0", default-features = false }
+log = "0.4.22"
 mime = "0.3.17"
 mockall = "0.13.0"
 nutype = "0.5.0"

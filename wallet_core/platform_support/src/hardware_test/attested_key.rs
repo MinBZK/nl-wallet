@@ -22,7 +22,9 @@ extern "C" fn attested_key_test() {
 
 #[cfg(target_os = "android")]
 mod android {
+    use android_logger::Config;
     use jni::{objects::JClass, JNIEnv};
+    use log::LevelFilter;
 
     #[rustfmt::skip]
     #[no_mangle]
@@ -30,6 +32,10 @@ mod android {
         _env: JNIEnv,
         _: JClass,
     ) {
+        android_logger::init_once(
+            Config::default().with_max_level(LevelFilter::Trace),
+        );
+        log::info!("Begin attested key test");
         super::attested_key_test();
     }
 }
