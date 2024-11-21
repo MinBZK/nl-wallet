@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
 use serde::de::DeserializeOwned;
@@ -14,6 +15,9 @@ use uuid::Uuid;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use apple_app_attest::AttestationError;
+use apple_app_attest::VerifiedAttestation;
+use apple_app_attest::APPLE_TRUST_ANCHORS;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::RegistrationAttestation;
@@ -48,6 +52,8 @@ use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletUser;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
@@ -132,6 +138,8 @@ pub enum RegistrationError {
     WalletCertificate(#[from] WalletCertificateError),
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
+    #[error("validation of Apple attestation failed: {0}")]
+    AppleAttestation(#[from] AttestationError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -304,20 +312,51 @@ impl AccountServer {
         let wallet_id =
             Self::verify_registration_challenge(&self.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
 
-        let hw_pubkey = match unverified.payload.attestation {
+        let (hw_pubkey, attestation_data) = match unverified.payload.attestation {
             RegistrationAttestation::None {
                 hw_pubkey: DerVerifyingKey(hw_pubkey),
-            } => hw_pubkey,
-            RegistrationAttestation::Apple { .. } => todo!(),
+            } => (hw_pubkey, None),
+            RegistrationAttestation::Apple { data } => {
+                debug!("Validating Apple key and app attestation");
+
+                let (_, hw_pubkey) = VerifiedAttestation::parse_and_verify(
+                    &data,
+                    &APPLE_TRUST_ANCHORS,
+                    challenge,
+                    &self.apple_config.app_identifier,
+                    self.apple_config.environment,
+                )?;
+
+                (hw_pubkey, Some(data))
+            }
         };
 
         let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
 
         debug!("Checking if challenge is signed with the provided hw and pin keys");
 
-        registration_message
-            .parse_and_verify_ecdsa(challenge, SequenceNumberComparison::EqualTo(0), &hw_pubkey, &pin_pubkey)
-            .map_err(RegistrationError::MessageValidation)?;
+        let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
+        let attestation = match attestation_data {
+            None => registration_message
+                .parse_and_verify_ecdsa(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
+                .map(|_| None),
+            Some(data) => registration_message
+                .parse_and_verify_apple(
+                    challenge,
+                    sequence_number_comparison,
+                    &hw_pubkey,
+                    &self.apple_config.app_identifier,
+                    0,
+                    &pin_pubkey,
+                )
+                .map(|(_, assertion_counter)| {
+                    Some(WalletUserAttestationCreate::Apple {
+                        data,
+                        assertion_counter,
+                    })
+                }),
+        }
+        .map_err(RegistrationError::MessageValidation)?;
 
         debug!("Starting database transaction");
 
@@ -336,7 +375,7 @@ impl AccountServer {
                     wallet_id: wallet_id.clone(),
                     hw_pubkey,
                     encrypted_pin_pubkey,
-                    attestation: None,
+                    attestation,
                 },
             )
             .await?;
@@ -380,11 +419,25 @@ impl AccountServer {
         .await?;
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
-        let request = challenge_request.request.parse_and_verify_ecdsa(
-            &claims.wallet_id,
-            SequenceNumberComparison::LargerThan(user.instruction_sequence_number),
-            &user.hw_pubkey.0,
-        )?;
+
+        let sequence_number_comparison = SequenceNumberComparison::LargerThan(user.instruction_sequence_number);
+        let DerVerifyingKey(hw_pubkey) = &user.hw_pubkey;
+        let (request, assertion_counter) = match user.attestation {
+            None => challenge_request
+                .request
+                .parse_and_verify_ecdsa(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
+                .map(|request| (request, None)),
+            Some(WalletUserAttestation::Apple { assertion_counter }) => challenge_request
+                .request
+                .parse_and_verify_apple(
+                    &claims.wallet_id,
+                    sequence_number_comparison,
+                    hw_pubkey,
+                    &self.apple_config.app_identifier,
+                    assertion_counter,
+                )
+                .map(|(request, assertion_counter)| (request, Some(assertion_counter))),
+        }?;
 
         debug!("Verifying wallet certificate");
         verify_wallet_certificate_public_keys(
@@ -409,14 +462,22 @@ impl AccountServer {
 
         debug!("Starting database transaction");
         let tx = repositories.begin_transaction().await?;
-        repositories
-            .update_instruction_challenge_and_sequence_number(
-                &tx,
-                &user.wallet_id,
-                challenge.clone(),
-                request.sequence_number,
-            )
-            .await?;
+
+        let instruction_update = repositories.update_instruction_challenge_and_sequence_number(
+            &tx,
+            &user.wallet_id,
+            challenge.clone(),
+            request.sequence_number,
+        );
+
+        if let Some(assertion_counter) = assertion_counter {
+            let update_assertion_counter =
+                repositories.update_apple_assertion_counter(&tx, &user.wallet_id, assertion_counter);
+            try_join!(instruction_update, update_assertion_counter,)?;
+        } else {
+            instruction_update.await?;
+        }
+
         tx.commit().await?;
 
         debug!("Responding with generated challenge");
@@ -654,39 +715,44 @@ impl AccountServer {
 
         debug!("Verifying instruction");
 
-        let verification_result = Self::verify_instruction(
-            self.encryption_key_identifier.as_str(),
-            instruction,
-            &wallet_user,
-            generators,
-            wallet_user_hsm,
-        )
-        .await;
+        let verification_result = self
+            .verify_instruction(
+                self.encryption_key_identifier.as_str(),
+                instruction,
+                &wallet_user,
+                generators,
+                wallet_user_hsm,
+            )
+            .await;
 
         match verification_result {
-            Ok(challenge_response_payload) => {
+            Ok((challenge_response_payload, assertion_counter)) => {
                 debug!("Instruction successfully verified, validating instruction");
 
                 challenge_response_payload.payload.validate_instruction(&wallet_user)?;
 
                 debug!("Instruction successfully validated, resetting pin retries");
 
-                repositories
-                    .reset_unsuccessful_pin_entries(&tx, &wallet_user.wallet_id)
-                    .await?;
+                let reset_pin_entries = repositories.reset_unsuccessful_pin_entries(&tx, &wallet_user.wallet_id);
 
                 debug!(
                     "Updating instruction sequence number to {}",
                     challenge_response_payload.sequence_number
                 );
 
-                repositories
-                    .update_instruction_sequence_number(
-                        &tx,
-                        &wallet_user.wallet_id,
-                        challenge_response_payload.sequence_number,
-                    )
-                    .await?;
+                let update_sequence_number = repositories.update_instruction_sequence_number(
+                    &tx,
+                    &wallet_user.wallet_id,
+                    challenge_response_payload.sequence_number,
+                );
+
+                if let Some(assertion_counter) = assertion_counter {
+                    let update_assertion_counter =
+                        repositories.update_apple_assertion_counter(&tx, &wallet_user.wallet_id, assertion_counter);
+                    try_join!(reset_pin_entries, update_sequence_number, update_assertion_counter)?;
+                } else {
+                    try_join!(reset_pin_entries, update_sequence_number)?;
+                }
 
                 tx.commit().await?;
 
@@ -745,12 +811,13 @@ impl AccountServer {
     }
 
     async fn verify_instruction<I, D>(
+        &self,
         encryption_key_identifier: &str,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
         time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
-    ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
+    ) -> Result<(ChallengeResponsePayload<I>, Option<u32>), InstructionValidationError>
     where
         I: InstructionAndResult,
         D: Decrypter<VerifyingKey, Error = HsmError>,
@@ -761,17 +828,28 @@ impl AccountServer {
             .decrypt(encryption_key_identifier, wallet_user.encrypted_pin_pubkey.clone())
             .await?;
 
-        let parsed = instruction
-            .instruction
-            .parse_and_verify_ecdsa(
-                &challenge.bytes,
-                SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number),
-                &wallet_user.hw_pubkey.0,
-                &pin_pubkey,
-            )
-            .map_err(InstructionValidationError::VerificationFailed)?;
+        let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
+        let DerVerifyingKey(hw_pubkey) = &wallet_user.hw_pubkey;
+        let (parsed, assertion_counter) = match wallet_user.attestation {
+            None => instruction
+                .instruction
+                .parse_and_verify_ecdsa(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
+                .map(|parsed| (parsed, None)),
+            Some(WalletUserAttestation::Apple { assertion_counter }) => instruction
+                .instruction
+                .parse_and_verify_apple(
+                    &challenge.bytes,
+                    sequence_number_comparison,
+                    hw_pubkey,
+                    &self.apple_config.app_identifier,
+                    assertion_counter,
+                    &pin_pubkey,
+                )
+                .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
+        }
+        .map_err(InstructionValidationError::VerificationFailed)?;
 
-        Ok(parsed)
+        Ok((parsed, assertion_counter))
     }
 
     async fn sign_instruction_result<R>(
@@ -1147,7 +1225,7 @@ mod tests {
 
         assert_matches!(
             wallet_user,
-            WalletUserQueryResult::Found(user) if AccountServer::verify_instruction(
+            WalletUserQueryResult::Found(user) if account_server.verify_instruction(
                 wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
                 Instruction::new_signed(CheckPin, challenge, 44, &setup.hw_privkey, &setup.pin_privkey, cert.clone())
                     .await
@@ -1188,7 +1266,7 @@ mod tests {
         assert_matches!(
             wallet_user,
             WalletUserQueryResult::Found(user) if matches!(
-                AccountServer::verify_instruction(
+                account_server.verify_instruction(
                     wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
                     Instruction::new_signed(
                             CheckPin,
@@ -1246,23 +1324,24 @@ mod tests {
             });
 
             assert_matches!(
-                AccountServer::verify_instruction(
-                    wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-                    Instruction::new_signed(
-                        CheckPin,
-                        challenge,
-                        44,
-                        &setup.hw_privkey,
-                        &setup.pin_privkey,
-                        cert.clone()
+                account_server
+                    .verify_instruction(
+                        wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
+                        Instruction::new_signed(
+                            CheckPin,
+                            challenge,
+                            44,
+                            &setup.hw_privkey,
+                            &setup.pin_privkey,
+                            cert.clone()
+                        )
+                        .await
+                        .unwrap(),
+                        &user,
+                        &EpochGenerator,
+                        get_global_hsm().await,
                     )
-                    .await
-                    .unwrap(),
-                    &user,
-                    &EpochGenerator,
-                    get_global_hsm().await,
-                )
-                .await,
+                    .await,
                 Err(InstructionValidationError::ChallengeTimeout)
             );
         }
