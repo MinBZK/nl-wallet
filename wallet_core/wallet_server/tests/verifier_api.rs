@@ -58,6 +58,7 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
+#[cfg(feature = "issuance")]
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
