@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::future::Future;
+use std::future::{self};
 use std::net::IpAddr;
 use std::net::TcpListener;
 use std::process;
@@ -637,13 +639,15 @@ async fn test_disclosure_cancel() {
     );
 }
 
-async fn test_disclosure_expired<S>(
+async fn test_disclosure_expired<S, F, Fut>(
     settings: Settings,
     session_store: S,
     mock_time: &RwLock<DateTime<Utc>>,
-    use_delay: bool,
+    create_cleanup_awaiter: F,
 ) where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    F: Fn() -> Fut,
+    Fut: Future<Output = ()>,
 {
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
 
@@ -668,13 +672,14 @@ async fn test_disclosure_expired<S>(
     *mock_time.write() = expiry_time;
 
     time::pause();
+    let cleanup_awaiter = create_cleanup_awaiter();
     time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
     time::resume();
 
     // Wait for the database to have run the cleanup.
-    if use_delay {
-        time::sleep(Duration::from_millis(100)).await;
-    }
+    time::timeout(Duration::from_secs(10), cleanup_awaiter)
+        .await
+        .expect("timeout waiting for database cleanup");
 
     // Fetching the status should return OK and be in the Expired state.
     assert_matches!(
@@ -691,13 +696,14 @@ async fn test_disclosure_expired<S>(
     *mock_time.write() = expiry_time + timeouts.failed_deletion + Duration::from_millis(1);
 
     time::pause();
+    let cleanup_awaiter = create_cleanup_awaiter();
     time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
     time::resume();
 
     // Wait for the database to have run the cleanup.
-    if use_delay {
-        time::sleep(Duration::from_millis(100)).await;
-    }
+    time::timeout(Duration::from_secs(10), cleanup_awaiter)
+        .await
+        .expect("timeout waiting for database cleanup");
 
     // Both the status and disclosed attribute requests should now return 404.
     let response = client.get(status_url).send().await.unwrap();
@@ -718,40 +724,133 @@ async fn test_disclosure_expired_memory() {
     let mock_time = Arc::clone(&time_generator.time);
     let session_store = MemorySessionStore::new_with_time(timeouts, time_generator);
 
-    test_disclosure_expired(settings, session_store, mock_time.as_ref(), false).await;
+    // The `MemorySessionStore` performs cleanup instantly, so we simply pass
+    // an already completed future as the cleanup awaiter in the closure.
+    test_disclosure_expired(settings, session_store, mock_time.as_ref(), || future::ready(())).await;
 }
 
-// TODO: Remove sleep timers from this test and re-enable.
 #[cfg(feature = "db_test")]
-#[ignore]
-#[tokio::test]
-async fn test_disclosure_expired_postgres() {
+mod db_test {
+    use std::future::Future;
+    use std::mem;
+    use std::sync::Arc;
+
+    use futures::FutureExt;
+    use parking_lot::Mutex;
+    use tokio::sync::oneshot;
+
+    use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
+    use openid4vc::server_state::SessionState;
+    use openid4vc::server_state::SessionStore;
+    use openid4vc::server_state::SessionStoreError;
+    use openid4vc::server_state::SessionStoreTimeouts;
+    use openid4vc::server_state::SessionToken;
+    use openid4vc::verifier::DisclosureData;
+    use wallet_server::settings::Settings;
     use wallet_server::store::postgres::PostgresSessionStore;
     use wallet_server::store::postgres::{self};
 
-    // Combine the generated settings with the storage settings from the configuration file.
-    let (mut settings, _, _) = wallet_server_settings();
-    let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
-        .unwrap()
-        .storage;
-    settings.storage = storage_settings;
+    use super::test_disclosure_expired;
+    use super::wallet_server_settings;
 
-    assert_eq!(
-        settings.storage.url.scheme(),
-        "postgres",
-        "should be configured to use PostgreSQL storage"
-    );
+    /// Helper type created along with [`PostgresSessionStoreProxy`]
+    /// that can be used to register awaiters for the cleanup task.
+    struct PostgresSessionStoreNotifier {
+        cleanup_oneshots: Arc<Mutex<Vec<oneshot::Sender<()>>>>,
+    }
 
-    let timeouts = SessionStoreTimeouts::from(&settings.storage);
-    let time_generator = MockTimeGenerator::default();
-    let mock_time = Arc::clone(&time_generator.time);
-    let session_store = PostgresSessionStore::new_with_time(
-        postgres::new_connection(settings.storage.url.clone()).await.unwrap(),
-        timeouts,
-        time_generator,
-    );
+    impl PostgresSessionStoreNotifier {
+        // Note that this method is not async, which means it creates a new
+        // oneshot channel as soon as it is called, i.e. hot instead of cold.
+        fn register_cleanup_awaiter(&self) -> impl Future<Output = ()> {
+            let (tx, rx) = oneshot::channel();
 
-    test_disclosure_expired(settings, session_store, mock_time.as_ref(), true).await;
+            self.cleanup_oneshots.lock().push(tx);
+
+            // Ignore errors.
+            rx.map(|result| result.unwrap())
+        }
+    }
+
+    /// A wrapper for [`PostgresSessionStore`] that can be used to
+    /// monitor execution of cleanups from another tokio task.
+    struct PostgresSessionStoreProxy {
+        session_store: PostgresSessionStore<MockTimeGenerator>,
+        cleanup_oneshots: Arc<Mutex<Vec<oneshot::Sender<()>>>>,
+    }
+
+    impl PostgresSessionStoreProxy {
+        /// This creates both a [`PostgresSessionStoreProxy`] and a [`PostgresSessionStoreNotifier`].
+        fn new(session_store: PostgresSessionStore<MockTimeGenerator>) -> (Self, PostgresSessionStoreNotifier) {
+            let cleanup_oneshots = Arc::new(Mutex::new(Vec::new()));
+
+            let proxy = PostgresSessionStoreProxy {
+                session_store,
+                cleanup_oneshots: Arc::clone(&cleanup_oneshots),
+            };
+            let notifier = PostgresSessionStoreNotifier {
+                cleanup_oneshots: Arc::clone(&cleanup_oneshots),
+            };
+
+            (proxy, notifier)
+        }
+    }
+
+    impl SessionStore<DisclosureData> for PostgresSessionStoreProxy {
+        async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<DisclosureData>>, SessionStoreError> {
+            self.session_store.get(token).await
+        }
+
+        async fn write(&self, session: SessionState<DisclosureData>, is_new: bool) -> Result<(), SessionStoreError> {
+            self.session_store.write(session, is_new).await
+        }
+
+        async fn cleanup(&self) -> Result<(), SessionStoreError> {
+            // Before performing cleanup, take all of the oneshots that are currently
+            // waiting and replace the value of the mutex with an empty Vec.
+            let cleanup_oneshots: Vec<oneshot::Sender<()>> = mem::take(&mut self.cleanup_oneshots.lock());
+
+            <PostgresSessionStore<MockTimeGenerator> as SessionStore<DisclosureData>>::cleanup(&self.session_store)
+                .await
+                .inspect(|_| {
+                    // Then after the cleanup, notify all of the those oneshots, which consumes them.
+                    for cleanup_oneshot in cleanup_oneshots {
+                        cleanup_oneshot.send(()).unwrap()
+                    }
+                })
+        }
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_expired_postgres() {
+        // Combine the generated settings with the storage settings from the configuration file.
+        let (mut settings, _, _) = wallet_server_settings();
+        let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
+            .unwrap()
+            .storage;
+        settings.storage = storage_settings;
+
+        assert_eq!(
+            settings.storage.url.scheme(),
+            "postgres",
+            "should be configured to use PostgreSQL storage"
+        );
+
+        let timeouts = SessionStoreTimeouts::from(&settings.storage);
+        let time_generator = MockTimeGenerator::default();
+        let mock_time = Arc::clone(&time_generator.time);
+        let session_store = PostgresSessionStore::new_with_time(
+            postgres::new_connection(settings.storage.url.clone()).await.unwrap(),
+            timeouts,
+            time_generator,
+        );
+        let (store_proxy, cleanup_notify) = PostgresSessionStoreProxy::new(session_store);
+
+        test_disclosure_expired(settings, store_proxy, mock_time.as_ref(), || {
+            cleanup_notify.register_cleanup_awaiter()
+        })
+        .await;
+    }
 }
 
 /// This utility function is used to prepare the two mocks necessary to emulate a valid holder.
