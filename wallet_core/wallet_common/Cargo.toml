@@ -21,7 +21,7 @@ examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
 # Include MockAppleAttestedKey for generating Apple assertions in tests.
-mock_apple_attested_key = ["apple_app_attest/mock", "dep:ciborium", "dep:rand_core"]
+mock_apple_attested_key = ["apple_app_attest/mock", "dep:rand_core"]
 # Include MockHardwareEcdsaKey and MockHardwareEncryptionKey for use in tests
 mock_hardware_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
@@ -63,7 +63,6 @@ url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
 
 anyhow = { workspace = true, optional = true }
-ciborium = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
 hex = { workspace = true, optional = true }

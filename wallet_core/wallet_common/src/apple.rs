@@ -54,12 +54,10 @@ mod mock_apple_attested_key {
         type Error = Infallible;
 
         async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error> {
-            let assertion = Assertion::new_mock(&self.signing_key, &self.app_identifier, self.counter, &payload);
+            let assertion_bytes =
+                Assertion::new_mock_bytes(&self.signing_key, &self.app_identifier, self.counter, &payload);
 
-            let mut bytes = Vec::<u8>::new();
-            ciborium::into_writer(&assertion, &mut bytes).unwrap();
-
-            Ok(bytes.into())
+            Ok(assertion_bytes.into())
         }
     }
 }

@@ -86,17 +86,14 @@ impl AssertionParameters {
 #[once]
 fn assertion_data() -> Vec<u8> {
     let parameters = AssertionParameters::default();
-    let assertion = Assertion::new_mock(
+    let assertion_bytes = Assertion::new_mock_bytes(
         &parameters.private_key,
         &parameters.app_identifier,
         parameters.counter,
         parameters.client_data.hash_data().unwrap().as_ref(),
     );
 
-    let mut bytes = Vec::<u8>::new();
-    ciborium::into_writer(&assertion, &mut bytes).unwrap();
-
-    bytes
+    assertion_bytes
 }
 
 // Vary the default parameters for different error scenarios.

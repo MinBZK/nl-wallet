@@ -207,5 +207,19 @@ mod mock {
                 authenticator_data,
             }
         }
+
+        pub fn new_mock_bytes(
+            private_key: &SigningKey,
+            app_identifier: &AppIdentifier,
+            counter: u32,
+            client_data: &[u8],
+        ) -> Vec<u8> {
+            let assertion = Self::new_mock(private_key, app_identifier, counter, client_data);
+
+            let mut bytes = Vec::new();
+            ciborium::into_writer(&assertion, &mut bytes).unwrap();
+
+            bytes
+        }
     }
 }
