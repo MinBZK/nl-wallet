@@ -420,7 +420,7 @@ mod tests {
             .parse_and_verify_apple(
                 "incorrect",
                 SequenceNumberComparison::EqualTo(sequence_number),
-                attested_key.signing_key.verifying_key(),
+                attested_key.verifying_key(),
                 &attested_key.app_identifier,
                 0,
             )
@@ -433,7 +433,7 @@ mod tests {
             .parse_and_verify_apple(
                 &wallet_id,
                 SequenceNumberComparison::LargerThan(sequence_number),
-                attested_key.signing_key.verifying_key(),
+                attested_key.verifying_key(),
                 &attested_key.app_identifier,
                 0,
             )
@@ -446,7 +446,7 @@ mod tests {
             .parse_and_verify_apple(
                 &wallet_id,
                 SequenceNumberComparison::EqualTo(sequence_number),
-                attested_key.signing_key.verifying_key(),
+                attested_key.verifying_key(),
                 &attested_key.app_identifier,
                 0,
             )
@@ -535,7 +535,7 @@ mod tests {
             .parse_and_verify_apple(
                 b"wrong",
                 SequenceNumberComparison::LargerThan(sequence_number - 1),
-                attested_key.signing_key.verifying_key(),
+                attested_key.verifying_key(),
                 &attested_key.app_identifier,
                 0,
                 pin_privkey.verifying_key(),
@@ -549,7 +549,7 @@ mod tests {
             .parse_and_verify_apple(
                 challenge,
                 SequenceNumberComparison::EqualTo(42),
-                attested_key.signing_key.verifying_key(),
+                attested_key.verifying_key(),
                 &attested_key.app_identifier,
                 0,
                 pin_privkey.verifying_key(),
@@ -563,7 +563,7 @@ mod tests {
             .parse_and_verify_apple(
                 challenge,
                 SequenceNumberComparison::LargerThan(sequence_number - 1),
-                attested_key.signing_key.verifying_key(),
+                attested_key.verifying_key(),
                 &attested_key.app_identifier,
                 0,
                 pin_privkey.verifying_key(),

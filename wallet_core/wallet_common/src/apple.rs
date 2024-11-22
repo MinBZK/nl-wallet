@@ -26,6 +26,7 @@ mod mock_apple_attested_key {
     use std::convert::Infallible;
 
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
 
     use apple_app_attest::AppIdentifier;
@@ -47,6 +48,10 @@ mod mock_apple_attested_key {
                 app_identifier,
                 counter: 1,
             }
+        }
+
+        pub fn verifying_key(&self) -> &VerifyingKey {
+            self.signing_key.verifying_key()
         }
     }
 

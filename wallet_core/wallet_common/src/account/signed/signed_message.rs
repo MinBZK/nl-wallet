@@ -398,12 +398,7 @@ mod tests {
             .expect("should sign message with Apple attested key");
 
         let (output_payload, counter) = signed_message
-            .parse_and_verify_apple(
-                key.signing_key.verifying_key(),
-                &key.app_identifier,
-                0,
-                &input_payload.challenge,
-            )
+            .parse_and_verify_apple(key.verifying_key(), &key.app_identifier, 0, &input_payload.challenge)
             .expect("should parse and verify SignedMessage successfully using its Apple assertion");
 
         assert_eq!(output_payload.string, "Some payload.");
@@ -436,12 +431,7 @@ mod tests {
 
         // Verifying with a wrong challenge should return a `Error::AssertionVerification`.
         let error = signed_message
-            .parse_and_verify_apple(
-                key.signing_key.verifying_key(),
-                &key.app_identifier,
-                0,
-                b"wrong_challenge",
-            )
+            .parse_and_verify_apple(key.verifying_key(), &key.app_identifier, 0, b"wrong_challenge")
             .expect_err("verifying SignedMessage should return an error");
 
         assert_matches!(error, Error::AssertionVerification(_));
@@ -479,7 +469,7 @@ mod tests {
             SignatureType::Ecdsa(r#type) => signed_message.parse_and_verify_ecdsa(r#type, ecdsa_key.verifying_key()),
             SignatureType::AppleAssertion => signed_message
                 .parse_and_verify_apple(
-                    attested_key.signing_key.verifying_key(),
+                    attested_key.verifying_key(),
                     &attested_key.app_identifier,
                     0,
                     &payload.challenge,
@@ -520,12 +510,7 @@ mod tests {
             .expect("should sign message successfully");
 
         let (output_payload, counter) = signed_message
-            .parse_and_verify_apple(
-                key.signing_key.verifying_key(),
-                &key.app_identifier,
-                0,
-                &input_payload.challenge,
-            )
+            .parse_and_verify_apple(key.verifying_key(), &key.app_identifier, 0, &input_payload.challenge)
             .expect("should parse and verify SignedSubjectMessage successfully using its Apple assertion");
 
         assert_eq!(output_payload.string, "Some payload.");
@@ -578,7 +563,7 @@ mod tests {
             SignatureType::Ecdsa(r#type) => decoded_message.parse_and_verify_ecdsa(r#type, ecdsa_key.verifying_key()),
             SignatureType::AppleAssertion => decoded_message
                 .parse_and_verify_apple(
-                    attested_key.signing_key.verifying_key(),
+                    attested_key.verifying_key(),
                     &attested_key.app_identifier,
                     0,
                     &payload.challenge,
