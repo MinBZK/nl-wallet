@@ -343,7 +343,7 @@ mod tests {
     fn create_mock_apple_attested_key() -> MockAppleAttestedKey {
         let app_identifier = AppIdentifier::new_mock();
 
-        MockAppleAttestedKey::new(app_identifier)
+        MockAppleAttestedKey::new_random(app_identifier)
     }
 
     #[tokio::test]

@@ -122,6 +122,8 @@ pub struct Certificate {
 #[cfg(test)]
 mod tests {
     use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AttestationEnvironment;
+    use apple_app_attest::VerifiedAttestation;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
@@ -131,25 +133,25 @@ mod tests {
             signed::{ChallengeResponse, SequenceNumberComparison},
         },
         apple::MockAppleAttestedKey,
-        utils,
     };
 
     use super::{Registration, RegistrationAttestation};
 
     #[tokio::test]
     async fn test_apple_registration() {
-        let app_identifier = AppIdentifier::new_mock();
-        let attested_key = MockAppleAttestedKey::new(app_identifier.clone());
-        let attestation_data = utils::random_bytes(32);
-        let pin_signing_key = SigningKey::random(&mut OsRng);
-
         // The Wallet Provider generates a challenge.
         let challenge = b"challenge";
+
+        // Generate a mock assertion, a mock attested key and a mock PIN siging key.
+        let app_identifier = AppIdentifier::new_mock();
+        let (attested_key, attestation, mock_ca) =
+            MockAppleAttestedKey::new_with_attestation(app_identifier.clone(), challenge);
+        let pin_signing_key = SigningKey::random(&mut OsRng);
 
         // The Wallet generates a registration message.
         let msg = ChallengeResponse::<Registration>::new_apple(
             &attested_key,
-            attestation_data,
+            attestation,
             &pin_signing_key,
             challenge.to_vec(),
         )
@@ -159,20 +161,24 @@ mod tests {
         let unverified = msg
             .dangerous_parse_unverified()
             .expect("registration should parse successfully");
-        let RegistrationAttestation::Apple {
-            data: _attestation_data,
-        } = &unverified.payload.attestation
-        else {
+        let RegistrationAttestation::Apple { data: attestation_data } = &unverified.payload.attestation else {
             panic!("apple registration message should contain attestation data");
         };
 
-        // TODO: Get public key from attestation data.
+        let (_attestation, public_key) = VerifiedAttestation::parse_and_verify(
+            attestation_data,
+            &[mock_ca.trust_anchor()],
+            challenge,
+            &app_identifier,
+            AttestationEnvironment::Development,
+        )
+        .expect("apple attestation should validate succesfully");
 
         // The Wallet Provider takes the public keys from the message and verifies the signatures.
         msg.parse_and_verify_apple(
             challenge,
             SequenceNumberComparison::EqualTo(0),
-            attested_key.signing_key.verifying_key(),
+            &public_key,
             &app_identifier,
             0,
             &unverified.payload.pin_pubkey.0,

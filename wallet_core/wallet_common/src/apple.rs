@@ -31,6 +31,8 @@ mod mock_apple_attested_key {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::Assertion;
+    use apple_app_attest::Attestation;
+    use apple_app_attest::MockAttestationCa;
 
     use super::AppleAssertion;
     use super::AppleAttestedKey;
@@ -42,12 +44,27 @@ mod mock_apple_attested_key {
     }
 
     impl MockAppleAttestedKey {
-        pub fn new(app_identifier: AppIdentifier) -> Self {
+        fn new(signing_key: SigningKey, app_identifier: AppIdentifier) -> Self {
             Self {
-                signing_key: SigningKey::random(&mut OsRng),
+                signing_key,
                 app_identifier,
                 counter: 1,
             }
+        }
+
+        pub fn new_random(app_identifier: AppIdentifier) -> Self {
+            Self::new(SigningKey::random(&mut OsRng), app_identifier)
+        }
+
+        pub fn new_with_attestation(
+            app_identifier: AppIdentifier,
+            challenge: &[u8],
+        ) -> (Self, Vec<u8>, MockAttestationCa) {
+            let mock_ca = Attestation::generate_ca();
+            let (attestation, signing_key) = Attestation::new_mock_bytes(&mock_ca, challenge, &app_identifier);
+            let attested_key = Self::new(signing_key, app_identifier);
+
+            (attested_key, attestation, mock_ca)
         }
 
         pub fn verifying_key(&self) -> &VerifyingKey {
