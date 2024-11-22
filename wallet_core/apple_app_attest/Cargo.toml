@@ -28,6 +28,7 @@ chrono = { workspace = true, features = ["now"] }
 ciborium.workspace = true
 const-decoder.workspace = true
 coset.workspace = true
+der = { workspace = true, features = ["std", "derive"] }
 derive_more = { workspace = true, features = ["as_ref", "display"] }
 nutype.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }

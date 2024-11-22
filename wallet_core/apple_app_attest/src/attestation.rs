@@ -172,11 +172,11 @@ impl VerifiedAttestation {
         //    sequence. Decode the sequence and extract the single octet string that it contains. Verify that the string
         //    equals nonce.
 
-        let extension_nonce = credential_certificate
-            .attestation_extension_data()
+        let extension = credential_certificate
+            .attestation_extension()
             .map_err(AttestationDecodingError::CertificateExtension)?;
 
-        if *nonce != *extension_nonce {
+        if *nonce != *extension.nonce {
             return Err(AttestationValidationError::NonceMismatch)?;
         }
 

@@ -3,6 +3,8 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use der::Decode;
+use der::Sequence;
 use derive_more::AsRef;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
@@ -17,10 +19,8 @@ use webpki::types::UnixTime;
 use webpki::EndEntityCert;
 use webpki::KeyUsage;
 use x509_parser::certificate::X509Certificate;
-use x509_parser::der_parser::der;
-use x509_parser::der_parser::Oid;
-use x509_parser::der_parser::{self};
 use x509_parser::error::X509Error;
+use x509_parser::oid_registry::Oid;
 use x509_parser::prelude::FromDer;
 
 static APPLE_ANONYMOUS_ATTESTATION_OID: LazyLock<Oid> =
@@ -43,9 +43,7 @@ pub enum CertificateError {
     #[error("extracting anonymous attestation extension from certificate failed: {0}")]
     ExtensionExtraction(#[source] X509Error),
     #[error("parsing anonymous attestation certificate extension failed: {0}")]
-    ExtensionParsing(#[source] der_parser::error::Error),
-    #[error("anonymous attestation certificate extension did not contain exactly 1 item, received: {0}")]
-    ExtensionSequenceCount(usize),
+    ExtensionParsing(#[source] der::Error),
 }
 
 #[nutype(
@@ -112,6 +110,12 @@ impl DerX509CertificateChain {
     }
 }
 
+#[derive(Debug, Sequence)]
+pub struct AppleAnonymousAttestationExtension<'a> {
+    #[asn1(context_specific = "1", type = "OCTET STRING")]
+    pub nonce: &'a [u8],
+}
+
 #[derive(Debug, AsRef)]
 pub struct CredentialCertificate<'a>(X509Certificate<'a>);
 
@@ -123,28 +127,16 @@ impl<'a> CredentialCertificate<'a> {
         Ok(public_key)
     }
 
-    pub fn attestation_extension_data(&self) -> Result<&[u8], CertificateError> {
+    pub fn attestation_extension(&self) -> Result<AppleAnonymousAttestationExtension, CertificateError> {
         let extension = self
             .as_ref()
             .get_extension_unique(&APPLE_ANONYMOUS_ATTESTATION_OID)
             .map_err(CertificateError::ExtensionExtraction)?
             .ok_or(CertificateError::ExtensionMissing)?;
 
-        let (_, sequence) = der::parse_der_sequence(extension.value)
-            .map_err(|error| CertificateError::ExtensionParsing(error.into()))?;
-        let octet_strings = sequence
-            .into_iter()
-            .map(|object| der::parse_der_octetstring(object.content.as_slice()?))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|error| CertificateError::ExtensionParsing(error.into()))?;
+        let decoded_extension = AppleAnonymousAttestationExtension::from_der(extension.value)
+            .map_err(CertificateError::ExtensionParsing)?;
 
-        let octet_string = match (octet_strings.len(), octet_strings.into_iter().next()) {
-            (1, Some((_, octect_string))) => octect_string,
-            (count, _) => return Err(CertificateError::ExtensionSequenceCount(count)),
-        };
-
-        let data = octet_string.as_slice().map_err(CertificateError::ExtensionParsing)?;
-
-        Ok(data)
+        Ok(decoded_extension)
     }
 }
