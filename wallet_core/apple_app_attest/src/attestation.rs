@@ -11,9 +11,9 @@ use sha2::Sha256;
 use webpki::types::TrustAnchor;
 
 use crate::app_identifier::AppIdentifier;
+use crate::auth_data::FullAuthenticatorDataWithSource;
 use crate::certificates::CertificateError;
 use crate::certificates::DerX509CertificateChain;
-use crate::FullAuthenticatorDataWithSource;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationError {
