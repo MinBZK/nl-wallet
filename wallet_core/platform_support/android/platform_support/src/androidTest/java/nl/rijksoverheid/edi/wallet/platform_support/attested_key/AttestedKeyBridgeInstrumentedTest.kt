@@ -46,23 +46,17 @@ class AttestedKeyBridgeInstrumentedTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(mainThreadSurrogate)
-    }
 
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain() // reset the main dispatcher to the original Main dispatcher
-        mainThreadSurrogate.close()
-    }
-
-    @Before
-    fun setup() {
         val context = InstrumentationRegistry.getInstrumentation().context
         attestedKeyBridge = PlatformSupport.getInstance(context).attestedKeyBridge
     }
 
     @After
-    fun cleanup() {
+    fun tearDown() {
         attestedKeyBridge.clean()
+
+        Dispatchers.resetMain() // reset the main dispatcher to the original Main dispatcher
+        mainThreadSurrogate.close()
     }
 
     @Test
@@ -136,7 +130,13 @@ class AttestedKeyBridgeInstrumentedTest {
         attestedKeyBridge.attest(id, challenge)
 
         // Verify public key for 'id' does exist
-        attestedKeyBridge.publicKey(id)
+        val publicKeyBytes = attestedKeyBridge.publicKey(id).toByteArray()
+        // Verify publicKey is an X.509 Ecdsa key
+        val x509EncodedKeySpec = X509EncodedKeySpec(publicKeyBytes)
+        val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_EC)
+        val publicKey = keyFactory.generatePublic(x509EncodedKeySpec)
+        assertEquals("X.509", publicKey.format)
+        assertEquals("EC", publicKey.algorithm)
 
         // Delete key
         attestedKeyBridge.delete(id)

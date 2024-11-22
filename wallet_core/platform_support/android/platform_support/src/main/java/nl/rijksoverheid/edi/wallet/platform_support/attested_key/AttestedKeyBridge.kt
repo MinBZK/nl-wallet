@@ -4,7 +4,7 @@ import android.content.Context
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
-import nl.rijksoverheid.edi.wallet.platform_support.longRunning
+import nl.rijksoverheid.edi.wallet.platform_support.util.longRunning
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import uniffi.platform_support.AttestationData
 import uniffi.platform_support.AttestedKeyException
@@ -37,9 +37,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
                 signingKey.getCertificateChain()?.asSequence()?.map { it.encoded.toUByteList() }?.toList()
                     ?: throw AttestedKeyException.Other("failed to get certificate chain")
 
-            AttestationData.Google(
-                certificateChain, challengeResponse
-            )
+            AttestationData.Google(certificateChain, challengeResponse)
         } catch (e: Exception) {
             when (e) {
                 is AttestedKeyException -> throw e
