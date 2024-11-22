@@ -129,3 +129,23 @@ fn test_attestation<F>(
         error_matcher(error);
     }
 }
+
+#[cfg(feature = "mock")]
+#[test]
+fn test_mock_attestation() {
+    use apple_app_attest::Attestation;
+
+    let app_identifier = AppIdentifier::new_mock();
+    let challenge = b"mock_attestation_challenge";
+    let mock_ca = Attestation::generate_ca();
+    let (attestation_bytes, _signing_key) = Attestation::new_mock_bytes(&mock_ca, challenge, &app_identifier);
+
+    VerifiedAttestation::parse_and_verify(
+        &attestation_bytes,
+        &[mock_ca.trust_anchor()],
+        challenge,
+        &app_identifier,
+        AttestationEnvironment::Development,
+    )
+    .expect("mock attestation should validate successfully");
+}

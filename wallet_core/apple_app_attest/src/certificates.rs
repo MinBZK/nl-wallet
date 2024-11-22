@@ -23,8 +23,9 @@ use x509_parser::error::X509Error;
 use x509_parser::oid_registry::Oid;
 use x509_parser::prelude::FromDer;
 
-static APPLE_ANONYMOUS_ATTESTATION_OID: LazyLock<Oid> =
-    LazyLock::new(|| Oid::from(&[1, 2, 840, 113635, 100, 8, 2]).unwrap());
+pub const APPLE_ANONYMOUS_ATTESTATION_OID: [u64; 7] = [1, 2, 840, 113635, 100, 8, 2];
+static APPLE_ANONYMOUS_ATTESTATION_OID_ASN1: LazyLock<Oid> =
+    LazyLock::new(|| Oid::from(&APPLE_ANONYMOUS_ATTESTATION_OID).unwrap());
 
 #[derive(Debug, thiserror::Error)]
 pub enum CertificateError {
@@ -130,7 +131,7 @@ impl<'a> CredentialCertificate<'a> {
     pub fn attestation_extension(&self) -> Result<AppleAnonymousAttestationExtension, CertificateError> {
         let extension = self
             .as_ref()
-            .get_extension_unique(&APPLE_ANONYMOUS_ATTESTATION_OID)
+            .get_extension_unique(&APPLE_ANONYMOUS_ATTESTATION_OID_ASN1)
             .map_err(CertificateError::ExtensionExtraction)?
             .ok_or(CertificateError::ExtensionMissing)?;
 

@@ -237,3 +237,163 @@ impl VerifiedAttestation {
         Ok((VerifiedAttestation(attestation), public_key))
     }
 }
+
+#[cfg(feature = "mock")]
+pub use mock::MockAttestationCa;
+
+#[cfg(feature = "mock")]
+mod mock {
+    use coset::iana::EllipticCurve;
+    use coset::CoseKeyBuilder;
+    use der::Encode;
+    use derive_more::Debug;
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
+    use p256::pkcs8::DecodePrivateKey;
+    use p256::pkcs8::DecodePublicKey;
+    use passkey_types::ctap2::AttestedCredentialData;
+    use passkey_types::ctap2::AuthenticatorData;
+    use rand::RngCore;
+    use rcgen::BasicConstraints;
+    use rcgen::Certificate;
+    use rcgen::CertificateParams;
+    use rcgen::CustomExtension;
+    use rcgen::IsCa;
+    use rcgen::KeyPair;
+    use sha2::Digest;
+    use sha2::Sha256;
+    use webpki::types::CertificateDer;
+    use webpki::types::TrustAnchor;
+
+    use crate::app_identifier::AppIdentifier;
+    use crate::auth_data::FullAuthenticatorDataWithSource;
+    use crate::certificates::AppleAnonymousAttestationExtension;
+    use crate::certificates::APPLE_ANONYMOUS_ATTESTATION_OID;
+
+    use super::Attestation;
+    use super::AttestationEnvironment;
+    use super::AttestationFormat;
+    use super::AttestationStatement;
+
+    #[derive(Debug)]
+    pub struct MockAttestationCa {
+        #[debug(skip)]
+        certificate: Certificate,
+        der: CertificateDer<'static>,
+    }
+
+    impl MockAttestationCa {
+        pub fn trust_anchor(&self) -> TrustAnchor {
+            webpki::anchor_from_trusted_cert(&self.der).unwrap()
+        }
+    }
+
+    impl Attestation {
+        pub fn generate_ca() -> MockAttestationCa {
+            let mut params = CertificateParams::default();
+            params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+
+            let certificate = Certificate::from_params(params).unwrap();
+            let der = CertificateDer::from(certificate.serialize_der().unwrap()).to_owned();
+
+            MockAttestationCa { certificate, der }
+        }
+
+        pub fn new_mock(
+            ca: &MockAttestationCa,
+            challenge: &[u8],
+            app_identifier: &AppIdentifier,
+        ) -> (Self, SigningKey) {
+            let mut params = CertificateParams::default();
+
+            // Generate an ECDSA key pair and get both the private and public key from it.
+            let key_pair = KeyPair::generate(params.alg).unwrap();
+            let signing_key = SigningKey::from_pkcs8_der(key_pair.serialized_der()).unwrap();
+            let verifying_key = VerifyingKey::from_public_key_der(&key_pair.public_key_der()).unwrap();
+
+            // Build `AuthenticatorData` with the following contents:
+            // * The app identifier string as RP ID.
+            // * An initial assertion counter of 0.
+            // * The Apple development environment as AAGUID.
+            // * A hash of the raw public key as credential ID.
+            // * The public key in COSE key format.
+            let mut auth_data = AuthenticatorData::new(app_identifier.as_ref(), Some(0));
+
+            let aaguid = AttestationEnvironment::Development.aaguid();
+
+            let encoded_point = verifying_key.to_encoded_point(false);
+            let credential_id = Sha256::digest(encoded_point).to_vec();
+
+            let key = CoseKeyBuilder::new_ec2_pub_key(
+                EllipticCurve::P_256,
+                encoded_point.x().unwrap().to_vec(),
+                encoded_point.y().unwrap().to_vec(),
+            )
+            .build();
+
+            auth_data.attested_credential_data = Some(AttestedCredentialData::new(aaguid, credential_id, key).unwrap());
+
+            let auth_data = FullAuthenticatorDataWithSource::from(auth_data);
+
+            // Calculate the nonce based on the serialized `AuthenticatorData` and the provided challenge,
+            // then encode this in an Apple anonymous attestation extension. Use this and the key pair to
+            // generate a X.509 certiticate.
+            let nonce = Sha256::new()
+                .chain_update(auth_data.source())
+                .chain_update(challenge)
+                .finalize()
+                .to_vec();
+            let extension = AppleAnonymousAttestationExtension { nonce: &nonce };
+            let mut extension_content = Vec::new();
+            extension.encode_to_vec(&mut extension_content).unwrap();
+            params.custom_extensions = vec![CustomExtension::from_oid_content(
+                &APPLE_ANONYMOUS_ATTESTATION_OID,
+                extension_content,
+            )];
+
+            params.key_pair = Some(key_pair);
+            let certificate = Certificate::from_params(params).unwrap();
+
+            // Sign the X.509 certificate with the CA private key, then serialize
+            // this and the CA certificate into a DER certificate chain.
+            let x509_certificates = vec![
+                certificate.serialize_der_with_signer(&ca.certificate).unwrap(),
+                ca.der.as_ref().to_vec(),
+            ]
+            .try_into()
+            .unwrap();
+
+            // Generate random receipt data, as this is not validated.
+            let mut receipt = vec![0u8; 32];
+            rand::thread_rng().fill_bytes(&mut receipt);
+
+            // Combine all of the above elements into an `Attestation` struct
+            // and return it together with the private key.
+            let attestation_statement = AttestationStatement {
+                x509_certificates,
+                receipt,
+            };
+
+            let attestation = Attestation {
+                format: AttestationFormat::default(),
+                attestation_statement,
+                auth_data,
+            };
+
+            (attestation, signing_key)
+        }
+
+        pub fn new_mock_bytes(
+            ca: &MockAttestationCa,
+            challenge: &[u8],
+            app_identifier: &AppIdentifier,
+        ) -> (Vec<u8>, SigningKey) {
+            let (attestation, signing_key) = Self::new_mock(ca, challenge, app_identifier);
+
+            let mut bytes = Vec::new();
+            ciborium::into_writer(&attestation, &mut bytes).unwrap();
+
+            (bytes, signing_key)
+        }
+    }
+}
