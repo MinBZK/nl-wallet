@@ -243,7 +243,7 @@ pub struct AccountServer {
     wallet_certificate_signing_pubkey: EcdsaDecodingKey,
     encryption_key_identifier: String,
     pin_public_disclosure_protection_key_identifier: String,
-    apple_config: AppleAttestationConfiguration,
+    pub apple_config: AppleAttestationConfiguration,
     apple_trust_anchors: Vec<TrustAnchor<'static>>,
 }
 
@@ -728,13 +728,7 @@ impl AccountServer {
         debug!("Verifying instruction");
 
         let verification_result = self
-            .verify_instruction(
-                self.encryption_key_identifier.as_str(),
-                instruction,
-                &wallet_user,
-                generators,
-                wallet_user_hsm,
-            )
+            .verify_instruction(instruction, &wallet_user, generators, wallet_user_hsm)
             .await;
 
         match verification_result {
@@ -824,7 +818,6 @@ impl AccountServer {
 
     async fn verify_instruction<I, D>(
         &self,
-        encryption_key_identifier: &str,
         instruction: Instruction<I>,
         wallet_user: &WalletUser,
         time_generator: &impl Generator<DateTime<Utc>>,
@@ -837,7 +830,10 @@ impl AccountServer {
         let challenge = Self::verify_instruction_challenge(wallet_user, time_generator)?;
 
         let pin_pubkey = verifying_key_decrypter
-            .decrypt(encryption_key_identifier, wallet_user.encrypted_pin_pubkey.clone())
+            .decrypt(
+                &self.encryption_key_identifier,
+                wallet_user.encrypted_pin_pubkey.clone(),
+            )
             .await?;
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
@@ -886,41 +882,134 @@ impl AccountServer {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use apple_app_attest::APPLE_ROOT_CA;
+    use p256::ecdsa::SigningKey;
+
+    use apple_app_attest::MockAttestationCa;
+    use wallet_common::apple::MockAppleAttestedKey;
 
     use crate::wallet_certificate;
 
     use super::*;
 
-    pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> AccountServer {
-        AccountServer::new(
+    pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> (AccountServer, MockAttestationCa) {
+        let apple_mock_ca = MockAttestationCa::generate();
+        let account_server = AccountServer::new(
             Duration::from_millis(15000),
             "mock_account_server".into(),
             certificate_signing_pubkey.into(),
             wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
             AppleAttestationConfiguration {
-                // TODO: Check if `AppIdentifier::new_mock()` should be a separate cargo feature.
                 app_identifier: AppIdentifier::new_mock(),
                 environment: AttestationEnvironment::Development,
             },
-            vec![&APPLE_ROOT_CA],
+            vec![apple_mock_ca.as_ref()],
         )
-        .unwrap()
+        .unwrap();
+
+        (account_server, apple_mock_ca)
+    }
+
+    pub enum MockHardwareKey {
+        Ecdsa(SigningKey),
+        Apple(MockAppleAttestedKey),
+    }
+
+    impl MockHardwareKey {
+        pub fn verifying_key(&self) -> &VerifyingKey {
+            match self {
+                Self::Ecdsa(signing_key) => signing_key.verifying_key(),
+                Self::Apple(attested_key) => attested_key.verifying_key(),
+            }
+        }
+
+        pub async fn sign_instruction_challenge<I>(
+            &self,
+            wallet_id: String,
+            instruction_sequence_number: u64,
+            certificate: WalletCertificate,
+        ) -> InstructionChallengeRequest
+        where
+            I: InstructionAndResult,
+        {
+            match self {
+                Self::Ecdsa(signing_key) => {
+                    InstructionChallengeRequest::new_ecdsa::<I>(
+                        wallet_id,
+                        instruction_sequence_number,
+                        signing_key,
+                        certificate,
+                    )
+                    .await
+                }
+                Self::Apple(attested_key) => {
+                    InstructionChallengeRequest::new_apple::<I>(
+                        wallet_id,
+                        instruction_sequence_number,
+                        attested_key,
+                        certificate,
+                    )
+                    .await
+                }
+            }
+            .unwrap()
+        }
+
+        pub async fn sign_instruction<T>(
+            &self,
+            instruction: T,
+            challenge: Vec<u8>,
+            instruction_sequence_number: u64,
+            pin_privkey: &SigningKey,
+            certificate: WalletCertificate,
+        ) -> Instruction<T>
+        where
+            T: Serialize + DeserializeOwned,
+        {
+            match self {
+                Self::Ecdsa(signing_key) => {
+                    Instruction::new_ecdsa(
+                        instruction,
+                        challenge,
+                        instruction_sequence_number,
+                        signing_key,
+                        pin_privkey,
+                        certificate,
+                    )
+                    .await
+                }
+                Self::Apple(attested_key) => {
+                    Instruction::new_apple(
+                        instruction,
+                        challenge,
+                        instruction_sequence_number,
+                        attested_key,
+                        pin_privkey,
+                        certificate,
+                    )
+                    .await
+                }
+            }
+            .unwrap()
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use apple_app_attest::AssertionError;
+    use apple_app_attest::AssertionValidationError;
+    use apple_app_attest::MockAttestationCa;
     use assert_matches::assert_matches;
     use chrono::TimeZone;
     use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
+    use rstest::rstest;
     use tokio::sync::OnceCell;
 
     use wallet_common::account::messages::instructions::ChangePinCommit;
     use wallet_common::account::messages::instructions::CheckPin;
-    use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+    use wallet_common::apple::MockAppleAttestedKey;
     use wallet_common::keys::EcdsaKey;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
@@ -937,9 +1026,15 @@ mod tests {
     use crate::wallet_certificate::{self};
     use crate::wte_issuer::mock::MockWteIssuer;
 
-    use super::*;
+    use super::{mock::MockHardwareKey, *};
 
     static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
+
+    #[derive(Debug, Clone, Copy)]
+    enum AttestationType {
+        Apple,
+        None,
+    }
 
     async fn get_global_hsm() -> &'static MockPkcs11Client<HsmError> {
         HSM.get_or_init(wallet_certificate::mock::setup_hsm).await
@@ -949,18 +1044,38 @@ mod tests {
         account_server: &AccountServer,
         hsm: &MockPkcs11Client<HsmError>,
         certificate_signing_key: &impl WalletCertificateSigningKey,
-        hw_privkey: &SigningKey,
         pin_privkey: &SigningKey,
-    ) -> WalletCertificate {
+        mock_apple_ca: &MockAttestationCa,
+        attestation_type: AttestationType,
+    ) -> (WalletCertificate, MockHardwareKey) {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
             .await
             .expect("Could not get registration challenge");
 
-        let registration_message =
-            ChallengeResponse::<Registration>::new_unattested(hw_privkey, pin_privkey, challenge)
-                .await
-                .expect("Could not sign new registration");
+        let (registration_message, hw_privkey) = match attestation_type {
+            AttestationType::Apple => {
+                let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
+                    mock_apple_ca,
+                    account_server.apple_config.app_identifier.clone(),
+                    &challenge,
+                );
+                let registration_message =
+                    ChallengeResponse::new_apple(&attested_key, attestation_data, pin_privkey, challenge)
+                        .await
+                        .expect("Could not sign new Apple attested registration");
+
+                (registration_message, MockHardwareKey::Apple(attested_key))
+            }
+            AttestationType::None => {
+                let signing_key = SigningKey::random(&mut OsRng);
+                let registration_message = ChallengeResponse::new_unattested(&signing_key, pin_privkey, challenge)
+                    .await
+                    .expect("Could not sign new unattested registration");
+
+                (registration_message, MockHardwareKey::Ecdsa(signing_key))
+            }
+        };
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
@@ -968,7 +1083,7 @@ mod tests {
             .returning(|| Ok(MockTransaction));
         wallet_user_repo.expect_create_wallet_user().returning(|_, _| Ok(()));
 
-        account_server
+        let wallet_certificate = account_server
             .register(
                 certificate_signing_key,
                 &FixedUuidGenerator,
@@ -977,42 +1092,53 @@ mod tests {
                 registration_message,
             )
             .await
-            .expect("Could not process registration message at account server")
+            .expect("Could not process registration message at account server");
+
+        (wallet_certificate, hw_privkey)
     }
 
-    async fn setup_and_do_registration() -> (
+    async fn setup_and_do_registration(
+        attestation_type: AttestationType,
+    ) -> (
         WalletCertificateSetup,
         AccountServer,
+        MockHardwareKey,
         WalletCertificate,
         WalletUserTestRepo,
     ) {
-        let setup = wallet_certificate::mock::WalletCertificateSetup::new().await;
-        let account_server = mock::setup_account_server(&setup.signing_pubkey);
+        let setup = WalletCertificateSetup::new().await;
+        let (account_server, apple_mock_ca) = mock::setup_account_server(&setup.signing_pubkey);
 
-        let cert = do_registration(
+        let (cert, hw_privkey) = do_registration(
             &account_server,
             get_global_hsm().await,
             &setup.signing_key,
-            &setup.hw_privkey,
             &setup.pin_privkey,
+            &apple_mock_ca,
+            attestation_type,
         )
         .await;
 
+        let apple_assertion_counter = match attestation_type {
+            AttestationType::Apple => Some(1),
+            AttestationType::None => None,
+        };
         let repo = WalletUserTestRepo {
-            hw_pubkey: setup.hw_pubkey,
+            hw_pubkey: *hw_privkey.verifying_key(),
             encrypted_pin_pubkey: setup.encrypted_pin_pubkey.clone(),
             previous_encrypted_pin_pubkey: None,
             challenge: None,
             instruction_sequence_number: 0,
+            apple_assertion_counter,
         };
 
-        (setup, account_server, cert, repo)
+        (setup, account_server, hw_privkey, cert, repo)
     }
 
     async fn do_instruction_challenge<I>(
         account_server: &AccountServer,
         repo: &WalletUserTestRepo,
-        hw_privkey: &SigningKey,
+        hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
         instruction_sequence_number: u64,
         hsm: &MockPkcs11Client<HsmError>,
@@ -1020,58 +1146,56 @@ mod tests {
     where
         I: InstructionAndResult,
     {
-        account_server
-            .instruction_challenge(
-                InstructionChallengeRequest::new_ecdsa::<I>(
-                    wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id,
-                    instruction_sequence_number,
-                    hw_privkey,
-                    wallet_certificate,
-                )
-                .await
-                .unwrap(),
-                repo,
-                &EpochGenerator,
-                hsm,
+        let instruction_challenge = hw_privkey
+            .sign_instruction_challenge::<I>(
+                wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id,
+                instruction_sequence_number,
+                wallet_certificate,
             )
+            .await;
+
+        account_server
+            .instruction_challenge(instruction_challenge, repo, &EpochGenerator, hsm)
             .await
     }
 
     async fn do_check_pin(
         account_server: &AccountServer,
         repo: WalletUserTestRepo,
-        wallet_certificate_setup: &WalletCertificateSetup,
+        pin_privkey: &SigningKey,
+        hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
         instruction_result_signing_key: &SigningKey,
     ) -> Result<InstructionResult<()>, anyhow::Error> {
         let challenge = do_instruction_challenge::<CheckPin>(
             account_server,
             &repo,
-            &wallet_certificate_setup.hw_privkey,
+            hw_privkey,
             wallet_certificate.clone(),
             43,
             get_global_hsm().await,
         )
         .await?;
 
+        let updated_repo = WalletUserTestRepo {
+            challenge: Some(challenge.clone()),
+            apple_assertion_counter: match hw_privkey {
+                MockHardwareKey::Ecdsa(_) => None,
+                MockHardwareKey::Apple(attested_key) => Some(attested_key.next_counter() - 1),
+            },
+            ..repo
+        };
+
         let instruction_error = account_server
             .handle_instruction(
-                Instruction::new_ecdsa(
-                    CheckPin,
-                    challenge.clone(),
-                    43,
-                    &wallet_certificate_setup.hw_privkey,
-                    &wallet_certificate_setup.pin_privkey,
-                    wallet_certificate.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(CheckPin, challenge.clone(), 43, pin_privkey, wallet_certificate.clone())
+                    .await,
                 instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
-                    challenge: Some(challenge.clone()),
                     instruction_sequence_number: 43,
-                    ..repo.clone()
+                    ..updated_repo.clone()
                 },
                 &FailingPinPolicy,
                 get_global_hsm().await,
@@ -1090,22 +1214,14 @@ mod tests {
 
         let result = account_server
             .handle_instruction(
-                Instruction::new_ecdsa(
-                    CheckPin,
-                    challenge.clone(),
-                    44,
-                    &wallet_certificate_setup.hw_privkey,
-                    &wallet_certificate_setup.pin_privkey,
-                    wallet_certificate.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(CheckPin, challenge, 44, pin_privkey, wallet_certificate.clone())
+                    .await,
                 instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
-                    challenge: Some(challenge),
                     instruction_sequence_number: 2,
-                    ..repo
+                    ..updated_repo
                 },
                 &TimeoutPinPolicy,
                 get_global_hsm().await,
@@ -1118,8 +1234,9 @@ mod tests {
 
     async fn do_pin_change_start(
         account_server: &AccountServer,
-        repo: &WalletUserTestRepo,
+        repo: WalletUserTestRepo,
         wallet_certificate_setup: &WalletCertificateSetup,
+        hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
         instruction_result_signing_key: &SigningKey,
     ) -> (SigningKey, VerifyingKey, Encrypted<VerifyingKey>, WalletCertificate) {
@@ -1136,8 +1253,8 @@ mod tests {
 
         let challenge = do_instruction_challenge::<ChangePinStart>(
             account_server,
-            repo,
-            &wallet_certificate_setup.hw_privkey,
+            &repo,
+            hw_privkey,
             wallet_certificate.clone(),
             43,
             get_global_hsm().await,
@@ -1149,27 +1266,24 @@ mod tests {
 
         let new_certificate_result = account_server
             .handle_change_pin_start_instruction(
-                Instruction::new_ecdsa(
-                    ChangePinStart {
-                        pin_pubkey: new_pin_pubkey.into(),
-                        pop_pin_pubkey: pop_pin_pubkey.into(),
-                    },
-                    challenge.clone(),
-                    44,
-                    &wallet_certificate_setup.hw_privkey,
-                    &wallet_certificate_setup.pin_privkey,
-                    wallet_certificate.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(
+                        ChangePinStart {
+                            pin_pubkey: new_pin_pubkey.into(),
+                            pop_pin_pubkey: pop_pin_pubkey.into(),
+                        },
+                        challenge.clone(),
+                        44,
+                        &wallet_certificate_setup.pin_privkey,
+                        wallet_certificate.clone(),
+                    )
+                    .await,
                 (instruction_result_signing_key, &wallet_certificate_setup.signing_key),
                 &MockGenerators,
                 &WalletUserTestRepo {
-                    hw_pubkey: wallet_certificate_setup.hw_pubkey,
-                    encrypted_pin_pubkey: wallet_certificate_setup.encrypted_pin_pubkey.clone(),
-                    previous_encrypted_pin_pubkey: None,
                     challenge: Some(challenge),
                     instruction_sequence_number: 2,
+                    ..repo
                 },
                 &TimeoutPinPolicy,
                 get_global_hsm().await,
@@ -1191,14 +1305,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_register() {
-        let (setup, account_server, cert, repo) = setup_and_do_registration().await;
+    #[rstest]
+    async fn test_register(#[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType) {
+        let (setup, account_server, hw_privkey, cert, repo) = setup_and_do_registration(attestation_type).await;
 
         let cert_data = cert
             .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
-        assert_eq!(cert_data.hw_pubkey.0, setup.hw_pubkey);
+        assert_eq!(&cert_data.hw_pubkey.0, hw_privkey.verifying_key());
 
         verify_wallet_certificate(
             &cert,
@@ -1214,17 +1329,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn valid_instruction_challenge_should_verify() {
-        let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
+    #[rstest]
+    async fn valid_instruction_challenge_should_verify(
+        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+    ) {
+        let (setup, account_server, hw_privkey, cert, mut repo) = setup_and_do_registration(attestation_type).await;
 
-        let challenge_request = InstructionChallengeRequest::new_ecdsa::<CheckPin>(
-            cert.dangerous_parse_unverified().unwrap().1.wallet_id,
-            1,
-            &setup.hw_privkey,
-            cert.clone(),
-        )
-        .await
-        .unwrap();
+        let challenge_request = hw_privkey
+            .sign_instruction_challenge::<CheckPin>(
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                1,
+                cert.clone(),
+            )
+            .await;
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)
@@ -1237,34 +1354,33 @@ mod tests {
         let wallet_user = repo.find_wallet_user_by_wallet_id(&tx, "0").await.unwrap();
         tx.commit().await.unwrap();
 
-        assert_matches!(
-            wallet_user,
-            WalletUserQueryResult::Found(user) if account_server.verify_instruction(
-                wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-                Instruction::new_ecdsa(CheckPin, challenge, 44, &setup.hw_privkey, &setup.pin_privkey, cert.clone())
-                    .await
-                    .unwrap(),
-                &user,
-                &EpochGenerator,
-                get_global_hsm().await,
-            )
-            .await
-            .is_ok()
-        );
+        if let WalletUserQueryResult::Found(user) = wallet_user {
+            let instruction = hw_privkey
+                .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
+                .await;
+            let _ = account_server
+                .verify_instruction(instruction, &user, &EpochGenerator, get_global_hsm().await)
+                .await
+                .expect("instruction should be valid");
+        } else {
+            panic!("user should be found")
+        }
     }
 
     #[tokio::test]
-    async fn wrong_instruction_challenge_should_not_verify() {
-        let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
+    #[rstest]
+    async fn wrong_instruction_challenge_should_not_verify(
+        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+    ) {
+        let (setup, account_server, hw_privkey, cert, mut repo) = setup_and_do_registration(attestation_type).await;
 
-        let challenge_request = InstructionChallengeRequest::new_ecdsa::<CheckPin>(
-            cert.dangerous_parse_unverified().unwrap().1.wallet_id,
-            1,
-            &setup.hw_privkey,
-            cert.clone(),
-        )
-        .await
-        .unwrap();
+        let challenge_request = hw_privkey
+            .sign_instruction_challenge::<CheckPin>(
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                1,
+                cert.clone(),
+            )
+            .await;
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)
@@ -1277,28 +1393,36 @@ mod tests {
         let wallet_user = repo.find_wallet_user_by_wallet_id(&tx, "0").await.unwrap();
         tx.commit().await.unwrap();
 
-        assert_matches!(
-            wallet_user,
-            WalletUserQueryResult::Found(user) if matches!(
-                account_server.verify_instruction(
-                    wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-                    Instruction::new_ecdsa(
-                            CheckPin,
-                            challenge,
-                            44,
-                            &setup.hw_privkey,
-                            &setup.pin_privkey,
-                            cert.clone()
-                    ).await.unwrap(),
-                    &user,
-                    &EpochGenerator,
-                    get_global_hsm().await,
-                ).await,
-                Err(InstructionValidationError::VerificationFailed(
-                    wallet_common::account::errors::Error::ChallengeMismatch
-                ))
-            )
-        );
+        if let WalletUserQueryResult::Found(user) = wallet_user {
+            let instruction = hw_privkey
+                .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
+                .await;
+            let error = account_server
+                .verify_instruction(instruction, &user, &EpochGenerator, get_global_hsm().await)
+                .await
+                .expect_err("instruction should not be valid");
+
+            match attestation_type {
+                AttestationType::Apple => {
+                    assert_matches!(
+                        error,
+                        InstructionValidationError::VerificationFailed(AccountError::AssertionVerification(
+                            AssertionError::Validation(AssertionValidationError::ChallengeMismatch)
+                        ))
+                    );
+                }
+                AttestationType::None => {
+                    assert_matches!(
+                        error,
+                        InstructionValidationError::VerificationFailed(
+                            wallet_common::account::errors::Error::ChallengeMismatch
+                        )
+                    );
+                }
+            };
+        } else {
+            panic!("user should be found")
+        }
     }
 
     struct ExpiredAtEpochGeneretor;
@@ -1310,17 +1434,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn expired_instruction_challenge_should_not_verify() {
-        let (setup, account_server, cert, repo) = setup_and_do_registration().await;
+    #[rstest]
+    async fn expired_instruction_challenge_should_not_verify(
+        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+    ) {
+        let (setup, account_server, hw_privkey, cert, repo) = setup_and_do_registration(attestation_type).await;
 
-        let challenge_request = InstructionChallengeRequest::new_ecdsa::<CheckPin>(
-            cert.dangerous_parse_unverified().unwrap().1.wallet_id,
-            1,
-            &setup.hw_privkey,
-            cert.clone(),
-        )
-        .await
-        .unwrap();
+        let challenge_request = hw_privkey
+            .sign_instruction_challenge::<CheckPin>(
+                cert.dangerous_parse_unverified().unwrap().1.wallet_id,
+                1,
+                cert.clone(),
+            )
+            .await;
 
         let challenge = account_server
             .instruction_challenge(challenge_request, &repo, &EpochGenerator, get_global_hsm().await)
@@ -1329,7 +1455,6 @@ mod tests {
 
         let tx = repo.begin_transaction().await.unwrap();
         let wallet_user = repo.find_wallet_user_by_wallet_id(&tx, "0").await.unwrap();
-        assert_matches!(wallet_user, WalletUserQueryResult::Found(_));
 
         if let WalletUserQueryResult::Found(mut user) = wallet_user {
             user.instruction_challenge = Some(InstructionChallenge {
@@ -1337,33 +1462,26 @@ mod tests {
                 expiration_date_time: ExpiredAtEpochGeneretor.generate(),
             });
 
-            assert_matches!(
-                account_server
-                    .verify_instruction(
-                        wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-                        Instruction::new_ecdsa(
-                            CheckPin,
-                            challenge,
-                            44,
-                            &setup.hw_privkey,
-                            &setup.pin_privkey,
-                            cert.clone()
-                        )
-                        .await
-                        .unwrap(),
-                        &user,
-                        &EpochGenerator,
-                        get_global_hsm().await,
-                    )
-                    .await,
-                Err(InstructionValidationError::ChallengeTimeout)
-            );
+            let instruction = hw_privkey
+                .sign_instruction(CheckPin, challenge, 44, &setup.pin_privkey, cert)
+                .await;
+            let error = account_server
+                .verify_instruction(instruction, &user, &EpochGenerator, get_global_hsm().await)
+                .await
+                .expect_err("instruction should not be valid");
+
+            assert_matches!(error, InstructionValidationError::ChallengeTimeout);
+        } else {
+            panic!("user should be found")
         }
     }
 
     #[tokio::test]
-    async fn test_check_pin() {
-        let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
+    #[rstest]
+    async fn test_check_pin(
+        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+    ) {
+        let (setup, account_server, hw_privkey, cert, mut repo) = setup_and_do_registration(attestation_type).await;
         repo.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
@@ -1371,7 +1489,7 @@ mod tests {
         let challenge_error = do_instruction_challenge::<CheckPin>(
             &account_server,
             &repo,
-            &setup.hw_privkey,
+            &hw_privkey,
             cert.clone(),
             9,
             get_global_hsm().await,
@@ -1384,9 +1502,16 @@ mod tests {
             ChallengeError::Validation(wallet_common::account::errors::Error::SequenceNumberMismatch)
         );
 
-        let instruction_result = do_check_pin(&account_server, repo, &setup, cert, &instruction_result_signing_key)
-            .await
-            .expect("should return unit instruction result");
+        let instruction_result = do_check_pin(
+            &account_server,
+            repo,
+            &setup.pin_privkey,
+            &hw_privkey,
+            cert,
+            &instruction_result_signing_key,
+        )
+        .await
+        .expect("should return unit instruction result");
 
         instruction_result
             .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
@@ -1395,15 +1520,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_commit() {
-        let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
+        let (setup, account_server, hw_privkey, cert, mut repo) =
+            setup_and_do_registration(AttestationType::None).await;
         repo.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
-        let (new_pin_privkey, new_pin_pubkey, encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
+        let (new_pin_privkey, _new_pin_pubkey, encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
             &account_server,
-            &repo,
+            repo.clone(),
             &setup,
+            &hw_privkey,
             cert.clone(),
             &instruction_result_signing_key,
         )
@@ -1438,7 +1565,7 @@ mod tests {
         let challenge = do_instruction_challenge::<ChangePinCommit>(
             &account_server,
             &repo,
-            &setup.hw_privkey,
+            &hw_privkey,
             new_cert.clone(),
             45,
             get_global_hsm().await,
@@ -1448,16 +1575,15 @@ mod tests {
 
         account_server
             .handle_instruction(
-                Instruction::new_ecdsa(
-                    ChangePinCommit {},
-                    challenge.clone(),
-                    46,
-                    &setup.hw_privkey,
-                    &setup.pin_privkey,
-                    cert.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(
+                        ChangePinCommit {},
+                        challenge.clone(),
+                        46,
+                        &setup.pin_privkey,
+                        cert.clone(),
+                    )
+                    .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
@@ -1474,16 +1600,15 @@ mod tests {
 
         let instruction_result = account_server
             .handle_instruction(
-                Instruction::new_ecdsa(
-                    ChangePinCommit {},
-                    challenge.clone(),
-                    46,
-                    &setup.hw_privkey,
-                    &new_pin_privkey,
-                    new_cert.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(
+                        ChangePinCommit {},
+                        challenge.clone(),
+                        46,
+                        &new_pin_privkey,
+                        new_cert.clone(),
+                    )
+                    .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
@@ -1505,16 +1630,15 @@ mod tests {
 
         account_server
             .handle_instruction(
-                Instruction::new_ecdsa(
-                    ChangePinCommit {},
-                    challenge.clone(),
-                    46,
-                    &setup.hw_privkey,
-                    &new_pin_privkey,
-                    new_cert.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(
+                        ChangePinCommit {},
+                        challenge.clone(),
+                        46,
+                        &new_pin_privkey,
+                        new_cert.clone(),
+                    )
+                    .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
@@ -1533,12 +1657,8 @@ mod tests {
         do_check_pin(
             &account_server,
             repo,
-            &WalletCertificateSetup {
-                pin_privkey: new_pin_privkey,
-                pin_pubkey: new_pin_pubkey,
-                encrypted_pin_pubkey: encrypted_new_pin_pubkey,
-                ..setup
-            },
+            &new_pin_privkey,
+            &hw_privkey,
             new_cert,
             &instruction_result_signing_key,
         )
@@ -1548,7 +1668,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_invalid_pop() {
-        let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
+        let (setup, account_server, hw_privkey, cert, mut repo) =
+            setup_and_do_registration(AttestationType::None).await;
         repo.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
@@ -1559,7 +1680,7 @@ mod tests {
         let challenge = do_instruction_challenge::<ChangePinStart>(
             &account_server,
             &repo,
-            &setup.hw_privkey,
+            &hw_privkey,
             cert.clone(),
             43,
             get_global_hsm().await,
@@ -1571,27 +1692,24 @@ mod tests {
 
         let error = account_server
             .handle_change_pin_start_instruction(
-                Instruction::new_ecdsa(
-                    ChangePinStart {
-                        pin_pubkey: new_pin_pubkey.into(),
-                        pop_pin_pubkey: pop_pin_pubkey.into(),
-                    },
-                    challenge.clone(),
-                    44,
-                    &setup.hw_privkey,
-                    &setup.pin_privkey,
-                    cert.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(
+                        ChangePinStart {
+                            pin_pubkey: new_pin_pubkey.into(),
+                            pop_pin_pubkey: pop_pin_pubkey.into(),
+                        },
+                        challenge.clone(),
+                        44,
+                        &setup.pin_privkey,
+                        cert.clone(),
+                    )
+                    .await,
                 (&instruction_result_signing_key, &setup.signing_key),
                 &MockGenerators,
                 &WalletUserTestRepo {
-                    hw_pubkey: setup.hw_pubkey,
-                    encrypted_pin_pubkey: setup.encrypted_pin_pubkey.clone(),
-                    previous_encrypted_pin_pubkey: None,
                     challenge: Some(challenge),
                     instruction_sequence_number: 2,
+                    ..repo
                 },
                 &TimeoutPinPolicy,
                 get_global_hsm().await,
@@ -1607,15 +1725,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_rollback() {
-        let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
+        let (setup, account_server, hw_privkey, cert, mut repo) =
+            setup_and_do_registration(AttestationType::None).await;
         repo.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
-        let (new_pin_privkey, new_pin_pubkey, encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
+        let (new_pin_privkey, _new_pin_pubkey, _encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
             &account_server,
-            &repo,
+            repo.clone(),
             &setup,
+            &hw_privkey,
             cert.clone(),
             &instruction_result_signing_key,
         )
@@ -1624,7 +1744,7 @@ mod tests {
         let challenge = do_instruction_challenge::<ChangePinRollback>(
             &account_server,
             &repo,
-            &setup.hw_privkey,
+            &hw_privkey,
             cert.clone(),
             45,
             get_global_hsm().await,
@@ -1634,16 +1754,15 @@ mod tests {
 
         account_server
             .handle_change_pin_rollback_instruction(
-                Instruction::new_ecdsa(
-                    ChangePinRollback {},
-                    challenge.clone(),
-                    46,
-                    &setup.hw_privkey,
-                    &new_pin_privkey,
-                    new_cert.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(
+                        ChangePinRollback {},
+                        challenge.clone(),
+                        46,
+                        &new_pin_privkey,
+                        new_cert.clone(),
+                    )
+                    .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
@@ -1659,16 +1778,15 @@ mod tests {
 
         account_server
             .handle_change_pin_rollback_instruction(
-                Instruction::new_ecdsa(
-                    ChangePinRollback {},
-                    challenge.clone(),
-                    46,
-                    &setup.hw_privkey,
-                    &setup.pin_privkey,
-                    cert.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(
+                        ChangePinRollback {},
+                        challenge.clone(),
+                        46,
+                        &setup.pin_privkey,
+                        cert.clone(),
+                    )
+                    .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
@@ -1684,16 +1802,15 @@ mod tests {
 
         let instruction_result = account_server
             .handle_change_pin_rollback_instruction(
-                Instruction::new_ecdsa(
-                    ChangePinRollback {},
-                    challenge.clone(),
-                    47,
-                    &setup.hw_privkey,
-                    &setup.pin_privkey,
-                    cert.clone(),
-                )
-                .await
-                .unwrap(),
+                hw_privkey
+                    .sign_instruction(
+                        ChangePinRollback {},
+                        challenge.clone(),
+                        47,
+                        &setup.pin_privkey,
+                        cert.clone(),
+                    )
+                    .await,
                 &instruction_result_signing_key,
                 &MockGenerators,
                 &WalletUserTestRepo {
@@ -1713,16 +1830,9 @@ mod tests {
 
         do_check_pin(
             &account_server,
-            WalletUserTestRepo {
-                encrypted_pin_pubkey: setup.encrypted_pin_pubkey.clone(),
-                ..repo.clone()
-            },
-            &WalletCertificateSetup {
-                pin_privkey: new_pin_privkey,
-                pin_pubkey: new_pin_pubkey,
-                encrypted_pin_pubkey: encrypted_new_pin_pubkey,
-                ..setup.clone()
-            },
+            repo.clone(),
+            &new_pin_privkey,
+            &hw_privkey,
             new_cert,
             &instruction_result_signing_key,
         )
@@ -1731,11 +1841,9 @@ mod tests {
 
         do_check_pin(
             &account_server,
-            WalletUserTestRepo {
-                encrypted_pin_pubkey: setup.encrypted_pin_pubkey.clone(),
-                ..repo
-            },
-            &setup,
+            repo,
+            &setup.pin_privkey,
+            &hw_privkey,
             cert,
             &instruction_result_signing_key,
         )
@@ -1745,23 +1853,32 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_no_other_instructions_allowed() {
-        let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
+        let (setup, account_server, hw_privkey, cert, mut repo) =
+            setup_and_do_registration(AttestationType::None).await;
         repo.instruction_sequence_number = 42;
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
         let (_new_pin_privkey, _new_pin_pubkey, encrypted_new_pin_pubkey, _new_cert) = do_pin_change_start(
             &account_server,
-            &repo,
+            repo.clone(),
             &setup,
+            &hw_privkey,
             cert.clone(),
             &instruction_result_signing_key,
         )
         .await;
 
         repo.previous_encrypted_pin_pubkey = Some(encrypted_new_pin_pubkey);
-        let error = do_check_pin(&account_server, repo, &setup, cert, &instruction_result_signing_key)
-            .await
-            .expect_err("other instructions than change_pin_commit and change_pin_rollback are not allowed");
+        let error = do_check_pin(
+            &account_server,
+            repo,
+            &setup.pin_privkey,
+            &hw_privkey,
+            cert,
+            &instruction_result_signing_key,
+        )
+        .await
+        .expect_err("other instructions than change_pin_commit and change_pin_rollback are not allowed");
         assert_eq!(
             "instruction validation error: pin change is in progress",
             error.to_string()

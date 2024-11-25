@@ -186,6 +186,7 @@ pub mod mock {
     use wallet_provider_domain::model::encrypted::Encrypted;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUser;
+    use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -309,6 +310,7 @@ pub mod mock {
         pub previous_encrypted_pin_pubkey: Option<Encrypted<VerifyingKey>>,
         pub challenge: Option<Vec<u8>>,
         pub instruction_sequence_number: u64,
+        pub apple_assertion_counter: Option<u32>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -341,7 +343,9 @@ pub mod mock {
                 }),
                 instruction_sequence_number: self.instruction_sequence_number,
                 has_wte: false,
-                attestation: None,
+                attestation: self
+                    .apple_assertion_counter
+                    .map(|assertion_counter| WalletUserAttestation::Apple { assertion_counter }),
             })))
         }
 
