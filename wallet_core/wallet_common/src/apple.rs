@@ -24,6 +24,9 @@ pub use mock_apple_attested_key::MockAppleAttestedKey;
 #[cfg(any(test, feature = "mock_apple_attested_key"))]
 mod mock_apple_attested_key {
     use std::convert::Infallible;
+    use std::sync::atomic::AtomicU32;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
 
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -37,10 +40,11 @@ mod mock_apple_attested_key {
     use super::AppleAssertion;
     use super::AppleAttestedKey;
 
+    #[derive(Debug, Clone)]
     pub struct MockAppleAttestedKey {
         pub signing_key: SigningKey,
         pub app_identifier: AppIdentifier,
-        pub counter: u32,
+        pub counter: Arc<AtomicU32>,
     }
 
     impl MockAppleAttestedKey {
@@ -48,7 +52,7 @@ mod mock_apple_attested_key {
             Self {
                 signing_key,
                 app_identifier,
-                counter: 1,
+                counter: Arc::new(AtomicU32::new(1)),
             }
         }
 
@@ -76,8 +80,12 @@ mod mock_apple_attested_key {
         type Error = Infallible;
 
         async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error> {
-            let assertion_bytes =
-                Assertion::new_mock_bytes(&self.signing_key, &self.app_identifier, self.counter, &payload);
+            let assertion_bytes = Assertion::new_mock_bytes(
+                &self.signing_key,
+                &self.app_identifier,
+                self.counter.fetch_add(1, Ordering::Relaxed),
+                &payload,
+            );
 
             Ok(assertion_bytes.into())
         }
