@@ -20,6 +20,7 @@ use wallet_common::utils;
 use wallet_server::settings::Settings;
 use wallet_server::settings::Storage;
 use wallet_server::store::postgres::PostgresSessionStore;
+#[cfg(feature = "issuance")]
 use wallet_server::store::postgres::PostgresWteTracker;
 use wallet_server::store::postgres::{self};
 use wallet_server::store::SessionDataType;
@@ -121,6 +122,7 @@ async fn test_get_write() {
     test::test_session_store_get_write::<MockSessionData>(&session_store).await;
 }
 
+#[cfg(feature = "issuance")]
 #[tokio::test]
 async fn test_wte_tracker() {
     let time_generator = MockTimeGenerator::default();
