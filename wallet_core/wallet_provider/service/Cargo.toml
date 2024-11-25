@@ -35,6 +35,7 @@ itertools.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 r2d2-cryptoki.workspace = true
+rustls-webpki.workspace = true
 sec1.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

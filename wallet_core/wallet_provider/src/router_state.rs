@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use apple_app_attest::APPLE_ROOT_CA;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -66,6 +67,7 @@ impl RouterState {
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
             settings.ios.into(),
+            vec![&APPLE_ROOT_CA],
         )?;
 
         let db = Db::new(

@@ -12,12 +12,13 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
+use webpki::types::CertificateDer;
+use webpki::types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::AttestationError;
 use apple_app_attest::VerifiedAttestation;
-use apple_app_attest::APPLE_TRUST_ANCHORS;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::RegistrationAttestation;
@@ -78,6 +79,8 @@ pub enum AccountServerInitError {
     PrivateKeyDecoding(#[from] p256::pkcs8::Error),
     #[error("server public key decoding error")]
     PublicKeyDecoding(#[from] HsmError),
+    #[error("could not extract trust anchor from provided Apple certificate")]
+    AppleCertificate(#[from] webpki::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -240,8 +243,8 @@ pub struct AccountServer {
     wallet_certificate_signing_pubkey: EcdsaDecodingKey,
     encryption_key_identifier: String,
     pin_public_disclosure_protection_key_identifier: String,
-    #[allow(dead_code)]
     apple_config: AppleAttestationConfiguration,
+    apple_trust_anchors: Vec<TrustAnchor<'static>>,
 }
 
 impl AccountServer {
@@ -252,7 +255,15 @@ impl AccountServer {
         encryption_key_identifier: String,
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
+        apple_der_certificates: Vec<&[u8]>,
     ) -> Result<Self, AccountServerInitError> {
+        let apple_trust_anchors = apple_der_certificates
+            .into_iter()
+            .map(|der_certificate| {
+                webpki::anchor_from_trusted_cert(&CertificateDer::from(der_certificate)).map(|anchor| anchor.to_owned())
+            })
+            .collect::<Result<_, _>>()?;
+
         Ok(AccountServer {
             instruction_challenge_timeout,
             name,
@@ -260,6 +271,7 @@ impl AccountServer {
             encryption_key_identifier,
             pin_public_disclosure_protection_key_identifier,
             apple_config,
+            apple_trust_anchors,
         })
     }
 
@@ -321,7 +333,7 @@ impl AccountServer {
 
                 let (_, hw_pubkey) = VerifiedAttestation::parse_and_verify(
                     &data,
-                    &APPLE_TRUST_ANCHORS,
+                    &self.apple_trust_anchors,
                     challenge,
                     &self.apple_config.app_identifier,
                     self.apple_config.environment,
@@ -874,6 +886,8 @@ impl AccountServer {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use apple_app_attest::APPLE_ROOT_CA;
+
     use crate::wallet_certificate;
 
     use super::*;
@@ -890,6 +904,7 @@ pub mod mock {
                 app_identifier: AppIdentifier::new_mock(),
                 environment: AttestationEnvironment::Development,
             },
+            vec![&APPLE_ROOT_CA],
         )
         .unwrap()
     }
