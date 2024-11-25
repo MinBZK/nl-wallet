@@ -7,6 +7,7 @@ use crate::account::serialization::DerSignature;
 use crate::account::serialization::DerVerifyingKey;
 use crate::account::signed::ChallengeRequest;
 use crate::account::signed::ChallengeResponse;
+use crate::apple::AppleAttestedKey;
 use crate::jwt::Jwt;
 use crate::jwt::JwtCredentialClaims;
 use crate::jwt::JwtSubject;
@@ -164,7 +165,14 @@ impl<T> Instruction<T>
 where
     T: Serialize + DeserializeOwned,
 {
-    pub async fn new_signed(
+    fn new(instruction: ChallengeResponse<T>, certificate: WalletCertificate) -> Self {
+        Self {
+            instruction,
+            certificate,
+        }
+    }
+
+    pub async fn new_ecdsa(
         instruction: T,
         challenge: Vec<u8>,
         instruction_sequence_number: u64,
@@ -172,7 +180,7 @@ where
         pin_privkey: &impl EphemeralEcdsaKey,
         certificate: WalletCertificate,
     ) -> Result<Self> {
-        let signed = ChallengeResponse::sign_ecdsa(
+        let challenge_response = ChallengeResponse::sign_ecdsa(
             instruction,
             challenge,
             instruction_sequence_number,
@@ -181,15 +189,36 @@ where
         )
         .await?;
 
-        Ok(Self {
-            instruction: signed,
-            certificate,
-        })
+        Ok(Self::new(challenge_response, certificate))
+    }
+
+    pub async fn new_apple(
+        instruction: T,
+        challenge: Vec<u8>,
+        instruction_sequence_number: u64,
+        attested_key: &impl AppleAttestedKey,
+        pin_privkey: &impl EphemeralEcdsaKey,
+        certificate: WalletCertificate,
+    ) -> Result<Self> {
+        let challenge_response = ChallengeResponse::sign_apple(
+            instruction,
+            challenge,
+            instruction_sequence_number,
+            attested_key,
+            pin_privkey,
+        )
+        .await?;
+
+        Ok(Self::new(challenge_response, certificate))
     }
 }
 
 impl InstructionChallengeRequest {
-    pub async fn new_signed<I>(
+    fn new(request: ChallengeRequest, certificate: WalletCertificate) -> Self {
+        Self { request, certificate }
+    }
+
+    pub async fn new_ecdsa<I>(
         wallet_id: String,
         instruction_sequence_number: u64,
         hw_privkey: &impl SecureEcdsaKey,
@@ -198,13 +227,30 @@ impl InstructionChallengeRequest {
     where
         I: InstructionAndResult,
     {
-        let signed =
+        let challenge_request =
             ChallengeRequest::sign_ecdsa(wallet_id, instruction_sequence_number, I::NAME.to_string(), hw_privkey)
                 .await?;
 
-        Ok(Self {
-            request: signed,
-            certificate,
-        })
+        Ok(Self::new(challenge_request, certificate))
+    }
+
+    pub async fn new_apple<I>(
+        wallet_id: String,
+        instruction_sequence_number: u64,
+        attested_key: &impl AppleAttestedKey,
+        certificate: WalletCertificate,
+    ) -> Result<Self>
+    where
+        I: InstructionAndResult,
+    {
+        let challenge_request = ChallengeRequest::sign_apple(
+            wallet_id,
+            instruction_sequence_number,
+            I::NAME.to_string(),
+            attested_key,
+        )
+        .await?;
+
+        Ok(Self::new(challenge_request, certificate))
     }
 }

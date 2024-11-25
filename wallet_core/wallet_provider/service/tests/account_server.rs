@@ -122,7 +122,7 @@ async fn test_instruction_challenge() {
 
     let challenge1 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(
+            InstructionChallengeRequest::new_ecdsa::<CheckPin>(
                 cert_data.wallet_id.clone(),
                 1,
                 &hw_privkey,
@@ -141,7 +141,7 @@ async fn test_instruction_challenge() {
 
     let challenge2 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(
+            InstructionChallengeRequest::new_ecdsa::<CheckPin>(
                 cert_data.wallet_id.clone(),
                 2,
                 &hw_privkey,

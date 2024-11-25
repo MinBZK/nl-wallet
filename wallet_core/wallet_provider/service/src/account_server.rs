@@ -1007,7 +1007,7 @@ mod tests {
     {
         account_server
             .instruction_challenge(
-                InstructionChallengeRequest::new_signed::<I>(
+                InstructionChallengeRequest::new_ecdsa::<I>(
                     wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id,
                     instruction_sequence_number,
                     hw_privkey,
@@ -1041,7 +1041,7 @@ mod tests {
 
         let instruction_error = account_server
             .handle_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     CheckPin,
                     challenge.clone(),
                     43,
@@ -1075,7 +1075,7 @@ mod tests {
 
         let result = account_server
             .handle_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     CheckPin,
                     challenge.clone(),
                     44,
@@ -1134,7 +1134,7 @@ mod tests {
 
         let new_certificate_result = account_server
             .handle_change_pin_start_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     ChangePinStart {
                         pin_pubkey: new_pin_pubkey.into(),
                         pop_pin_pubkey: pop_pin_pubkey.into(),
@@ -1202,7 +1202,7 @@ mod tests {
     async fn valid_instruction_challenge_should_verify() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(
+        let challenge_request = InstructionChallengeRequest::new_ecdsa::<CheckPin>(
             cert.dangerous_parse_unverified().unwrap().1.wallet_id,
             1,
             &setup.hw_privkey,
@@ -1226,7 +1226,7 @@ mod tests {
             wallet_user,
             WalletUserQueryResult::Found(user) if account_server.verify_instruction(
                 wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-                Instruction::new_signed(CheckPin, challenge, 44, &setup.hw_privkey, &setup.pin_privkey, cert.clone())
+                Instruction::new_ecdsa(CheckPin, challenge, 44, &setup.hw_privkey, &setup.pin_privkey, cert.clone())
                     .await
                     .unwrap(),
                 &user,
@@ -1242,7 +1242,7 @@ mod tests {
     async fn wrong_instruction_challenge_should_not_verify() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(
+        let challenge_request = InstructionChallengeRequest::new_ecdsa::<CheckPin>(
             cert.dangerous_parse_unverified().unwrap().1.wallet_id,
             1,
             &setup.hw_privkey,
@@ -1267,7 +1267,7 @@ mod tests {
             WalletUserQueryResult::Found(user) if matches!(
                 account_server.verify_instruction(
                     wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-                    Instruction::new_signed(
+                    Instruction::new_ecdsa(
                             CheckPin,
                             challenge,
                             44,
@@ -1298,7 +1298,7 @@ mod tests {
     async fn expired_instruction_challenge_should_not_verify() {
         let (setup, account_server, cert, repo) = setup_and_do_registration().await;
 
-        let challenge_request = InstructionChallengeRequest::new_signed::<CheckPin>(
+        let challenge_request = InstructionChallengeRequest::new_ecdsa::<CheckPin>(
             cert.dangerous_parse_unverified().unwrap().1.wallet_id,
             1,
             &setup.hw_privkey,
@@ -1326,7 +1326,7 @@ mod tests {
                 account_server
                     .verify_instruction(
                         wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER,
-                        Instruction::new_signed(
+                        Instruction::new_ecdsa(
                             CheckPin,
                             challenge,
                             44,
@@ -1433,7 +1433,7 @@ mod tests {
 
         account_server
             .handle_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     ChangePinCommit {},
                     challenge.clone(),
                     46,
@@ -1459,7 +1459,7 @@ mod tests {
 
         let instruction_result = account_server
             .handle_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     ChangePinCommit {},
                     challenge.clone(),
                     46,
@@ -1490,7 +1490,7 @@ mod tests {
 
         account_server
             .handle_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     ChangePinCommit {},
                     challenge.clone(),
                     46,
@@ -1556,7 +1556,7 @@ mod tests {
 
         let error = account_server
             .handle_change_pin_start_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     ChangePinStart {
                         pin_pubkey: new_pin_pubkey.into(),
                         pop_pin_pubkey: pop_pin_pubkey.into(),
@@ -1619,7 +1619,7 @@ mod tests {
 
         account_server
             .handle_change_pin_rollback_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     ChangePinRollback {},
                     challenge.clone(),
                     46,
@@ -1644,7 +1644,7 @@ mod tests {
 
         account_server
             .handle_change_pin_rollback_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     ChangePinRollback {},
                     challenge.clone(),
                     46,
@@ -1669,7 +1669,7 @@ mod tests {
 
         let instruction_result = account_server
             .handle_change_pin_rollback_instruction(
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     ChangePinRollback {},
                     challenge.clone(),
                     47,
