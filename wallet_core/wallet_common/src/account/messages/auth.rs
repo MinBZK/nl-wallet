@@ -123,6 +123,7 @@ pub struct Certificate {
 mod tests {
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AttestationEnvironment;
+    use apple_app_attest::MockAttestationCa;
     use apple_app_attest::VerifiedAttestation;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -144,8 +145,9 @@ mod tests {
 
         // Generate a mock assertion, a mock attested key and a mock PIN siging key.
         let app_identifier = AppIdentifier::new_mock();
-        let (attested_key, attestation, mock_ca) =
-            MockAppleAttestedKey::new_with_attestation(app_identifier.clone(), challenge);
+        let mock_ca = MockAttestationCa::generate();
+        let (attested_key, attestation) =
+            MockAppleAttestedKey::new_with_attestation(&mock_ca, app_identifier.clone(), challenge);
         let pin_signing_key = SigningKey::random(&mut OsRng);
 
         // The Wallet generates a registration message.

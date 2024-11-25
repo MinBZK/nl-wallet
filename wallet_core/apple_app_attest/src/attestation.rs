@@ -283,22 +283,28 @@ mod mock {
     }
 
     impl MockAttestationCa {
-        pub fn trust_anchor(&self) -> TrustAnchor {
-            webpki::anchor_from_trusted_cert(&self.der).unwrap()
-        }
-    }
-
-    impl Attestation {
-        pub fn generate_ca() -> MockAttestationCa {
+        pub fn generate() -> Self {
             let mut params = CertificateParams::default();
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
 
             let certificate = Certificate::from_params(params).unwrap();
             let der = CertificateDer::from(certificate.serialize_der().unwrap()).to_owned();
 
-            MockAttestationCa { certificate, der }
+            Self { certificate, der }
         }
 
+        pub fn trust_anchor(&self) -> TrustAnchor {
+            webpki::anchor_from_trusted_cert(&self.der).unwrap()
+        }
+    }
+
+    impl AsRef<[u8]> for MockAttestationCa {
+        fn as_ref(&self) -> &[u8] {
+            self.der.as_ref()
+        }
+    }
+
+    impl Attestation {
         pub fn new_mock(
             ca: &MockAttestationCa,
             challenge: &[u8],

@@ -44,7 +44,7 @@ mod mock_apple_attested_key {
     pub struct MockAppleAttestedKey {
         pub signing_key: SigningKey,
         pub app_identifier: AppIdentifier,
-        pub counter: Arc<AtomicU32>,
+        pub next_counter: Arc<AtomicU32>,
     }
 
     impl MockAppleAttestedKey {
@@ -52,7 +52,7 @@ mod mock_apple_attested_key {
             Self {
                 signing_key,
                 app_identifier,
-                counter: Arc::new(AtomicU32::new(1)),
+                next_counter: Arc::new(AtomicU32::new(1)),
             }
         }
 
@@ -61,18 +61,22 @@ mod mock_apple_attested_key {
         }
 
         pub fn new_with_attestation(
+            mock_ca: &MockAttestationCa,
             app_identifier: AppIdentifier,
             challenge: &[u8],
-        ) -> (Self, Vec<u8>, MockAttestationCa) {
-            let mock_ca = Attestation::generate_ca();
-            let (attestation, signing_key) = Attestation::new_mock_bytes(&mock_ca, challenge, &app_identifier);
+        ) -> (Self, Vec<u8>) {
+            let (attestation, signing_key) = Attestation::new_mock_bytes(mock_ca, challenge, &app_identifier);
             let attested_key = Self::new(signing_key, app_identifier);
 
-            (attested_key, attestation, mock_ca)
+            (attested_key, attestation)
         }
 
         pub fn verifying_key(&self) -> &VerifyingKey {
             self.signing_key.verifying_key()
+        }
+
+        pub fn next_counter(&self) -> u32 {
+            self.next_counter.load(Ordering::Relaxed)
         }
     }
 
@@ -83,7 +87,7 @@ mod mock_apple_attested_key {
             let assertion_bytes = Assertion::new_mock_bytes(
                 &self.signing_key,
                 &self.app_identifier,
-                self.counter.fetch_add(1, Ordering::Relaxed),
+                self.next_counter.fetch_add(1, Ordering::Relaxed),
                 &payload,
             );
 

@@ -134,10 +134,11 @@ fn test_attestation<F>(
 #[test]
 fn test_mock_attestation() {
     use apple_app_attest::Attestation;
+    use apple_app_attest::MockAttestationCa;
 
     let app_identifier = AppIdentifier::new_mock();
     let challenge = b"mock_attestation_challenge";
-    let mock_ca = Attestation::generate_ca();
+    let mock_ca = MockAttestationCa::generate();
     let (attestation_bytes, _signing_key) = Attestation::new_mock_bytes(&mock_ca, challenge, &app_identifier);
 
     VerifiedAttestation::parse_and_verify(
