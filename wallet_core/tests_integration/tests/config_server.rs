@@ -44,13 +44,6 @@ async fn test_wallet_config() {
         ..Default::default()
     };
 
-    let (settings, wp_root_ca) = wallet_provider_settings();
-    start_wallet_provider(settings.clone(), &wp_root_ca).await;
-
-    let mut wallet_config = default_configuration();
-    wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
-    wallet_config.account_server.http_config.trust_anchors = vec![wp_root_ca];
-
     let storage_path = env::temp_dir();
     let etag_file = storage_path.join("latest-configuration-etag.txt");
     // make sure there are no storage files from previous test runs
@@ -60,7 +53,7 @@ async fn test_wallet_config() {
         config_server_config.http_config,
         (&config_server_config.signing_public_key).into(),
         storage_path.clone(),
-        wallet_config,
+        default_configuration(),
     )
     .await
     .unwrap();
@@ -86,7 +79,7 @@ async fn test_wallet_config() {
 #[tokio::test]
 #[serial]
 async fn test_wallet_config_stale() {
-    let (settings, wp_root_ca) = wallet_provider_settings();
+    let (settings, _) = wallet_provider_settings();
 
     let mut served_wallet_config = default_configuration();
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
@@ -104,17 +97,11 @@ async fn test_wallet_config_stale() {
         ..Default::default()
     };
 
-    start_wallet_provider(settings.clone(), &wp_root_ca).await;
-
-    let mut wallet_config = default_configuration();
-    wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
-    wallet_config.account_server.http_config.trust_anchors = vec![wp_root_ca];
-
     let http_config = HttpConfigurationRepository::new(
         config_server_config.http_config,
         (&config_server_config.signing_public_key).into(),
         env::temp_dir(),
-        wallet_config,
+        default_configuration(),
     )
     .await
     .unwrap();
@@ -130,7 +117,7 @@ async fn test_wallet_config_stale() {
 #[tokio::test]
 #[serial]
 async fn test_wallet_config_signature_verification_failed() {
-    let (settings, wp_root_ca) = wallet_provider_settings();
+    let (settings, _) = wallet_provider_settings();
 
     let mut served_wallet_config = default_configuration();
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
@@ -163,17 +150,11 @@ async fn test_wallet_config_signature_verification_failed() {
         ..Default::default()
     };
 
-    start_wallet_provider(settings.clone(), &wp_root_ca).await;
-
-    let mut wallet_config = default_configuration();
-    wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
-    wallet_config.account_server.http_config.trust_anchors = vec![wp_root_ca];
-
     let http_config = HttpConfigurationRepository::new(
         config_server_config.http_config,
         (&config_server_config.signing_public_key).into(),
         env::temp_dir(),
-        wallet_config,
+        default_configuration(),
     )
     .await
     .unwrap();
