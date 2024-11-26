@@ -1,27 +1,12 @@
-## X.Y.Z
-* All commits in this release: https://github.com/MinBZK/nl-wallet/compare/vA.B.C...vX.Y.Z
-* Documentation for this release: https://github.com/MinBZK/nl-wallet/blob/vX.Y.Z/documentation/index.md
+## vX.Y.Z (fill in version, place at /documentation/release-notes/vX.Y.Z.md)
 
-### Upgrade Steps
-*
-*
+### Important (this is an optional header, remove if there are no )
+* Title of change that is important
+  - More context, for example changing of config files, etc
+  - Some more context, etc
+* Next item
 
-### Breaking Changes
-*
-*
-
-### New Features
-*
-*
-
-### Bug Fixes
-*
-*
-
-### Performance Improvements
-*
-*
-
-### Other Changes
-*
-*
+### Changes
+* Regular change line one
+* Regular change line two
+* etc
