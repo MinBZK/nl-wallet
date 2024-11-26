@@ -1,17 +1,21 @@
-use std::{fmt::Debug, num::NonZeroU8};
+use std::fmt::Debug;
+use std::num::NonZeroU8;
 
 use ciborium::Value;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
+use indexmap::IndexSet;
 
-use crate::{
-    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    iso::{
-        device_retrieval::{DeviceRequest, DocRequest, ItemsRequest},
-        mdocs::DataElementValue,
-    },
-    unsigned::{Entry, UnsignedMdoc},
-    verifier::{DisclosedAttributes, DocumentDisclosedAttributes, ItemsRequests},
-};
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
+use crate::iso::device_retrieval::DeviceRequest;
+use crate::iso::device_retrieval::DocRequest;
+use crate::iso::device_retrieval::ItemsRequest;
+use crate::iso::mdocs::DataElementValue;
+use crate::unsigned::Entry;
+use crate::unsigned::UnsignedMdoc;
+use crate::verifier::DisclosedAttributes;
+use crate::verifier::DocumentDisclosedAttributes;
+use crate::verifier::ItemsRequests;
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
 /// but with byte sequences (which can take a lot of vertical space) replaced with
@@ -155,14 +159,15 @@ impl TestDocument {
         copy_count: NonZeroU8,
     ) -> crate::holder::Mdoc
     where
-        KF: crate::utils::keys::KeyFactory,
+        KF: wallet_common::keys::factory::KeyFactory,
     {
-        use wallet_common::{
-            generator::TimeGenerator,
-            keys::{EcdsaKey, WithIdentifier},
-        };
+        use wallet_common::generator::TimeGenerator;
+        use wallet_common::keys::EcdsaKey;
+        use wallet_common::keys::WithIdentifier;
 
-        use crate::{holder::Mdoc, iso::disclosure::IssuerSigned, utils::issuer_auth::IssuerRegistration};
+        use crate::holder::Mdoc;
+        use crate::iso::disclosure::IssuerSigned;
+        use crate::utils::issuer_auth::IssuerRegistration;
 
         let unsigned = {
             let mut unsigned = UnsignedMdoc::from(self);

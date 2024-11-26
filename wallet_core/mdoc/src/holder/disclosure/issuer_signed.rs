@@ -1,6 +1,7 @@
 use p256::ecdsa::VerifyingKey;
 
-use crate::{errors::Result, iso::disclosure::IssuerSigned};
+use crate::errors::Result;
+use crate::iso::disclosure::IssuerSigned;
 
 impl IssuerSigned {
     pub fn public_key(&self) -> Result<VerifyingKey> {
@@ -16,7 +17,9 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
-    use crate::{examples::Examples, holder::Mdoc};
+    use wallet_common::keys::examples::Examples;
+
+    use crate::holder::Mdoc;
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {

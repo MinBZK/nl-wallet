@@ -1,26 +1,30 @@
 use anyhow::Result;
-use tokio::sync::{OnceCell, RwLock};
+use tokio::sync::OnceCell;
+use tokio::sync::RwLock;
 use url::Url;
 
-use flutter_api_macros::{async_runtime, flutter_api_error};
+use flutter_api_macros::async_runtime;
+use flutter_api_macros::flutter_api_error;
 use flutter_rust_bridge::StreamSink;
-use wallet::{self, errors::WalletInitError, DisclosureUriSource, UnlockMethod, Wallet};
+use wallet::errors::WalletInitError;
+use wallet::DisclosureUriSource;
+use wallet::UnlockMethod;
+use wallet::Wallet;
+use wallet::{self};
 
-use crate::{
-    async_runtime::init_async_runtime,
-    logging::init_logging,
-    models::{
-        card::Card,
-        config::FlutterConfiguration,
-        disclosure::{AcceptDisclosureResult, StartDisclosureResult},
-        instruction::WalletInstructionResult,
-        pin::PinValidationResult,
-        uri::IdentifyUriResult,
-        wallet_event::{WalletEvent, WalletEvents},
-    },
-    sentry::init_sentry,
-    stream::ClosingStreamSink,
-};
+use crate::async_runtime::init_async_runtime;
+use crate::logging::init_logging;
+use crate::models::card::Card;
+use crate::models::config::FlutterConfiguration;
+use crate::models::disclosure::AcceptDisclosureResult;
+use crate::models::disclosure::StartDisclosureResult;
+use crate::models::instruction::WalletInstructionResult;
+use crate::models::pin::PinValidationResult;
+use crate::models::uri::IdentifyUriResult;
+use crate::models::wallet_event::WalletEvent;
+use crate::models::wallet_event::WalletEvents;
+use crate::sentry::init_sentry;
+use crate::stream::ClosingStreamSink;
 
 static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
 
@@ -190,12 +194,19 @@ pub async fn check_pin(pin: String) -> Result<WalletInstructionResult> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn change_pin(old_pin: String, new_pin: String) -> Result<WalletInstructionResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.begin_change_pin(old_pin, new_pin).await.try_into()?;
+
+    Ok(result)
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn continue_change_pin(pin: String) -> Result<WalletInstructionResult> {
     let wallet = wallet().read().await;
 
-    let result = wallet.check_pin(old_pin).await.try_into()?;
-
-    // TODO: Actually change the PIN
-    println!("Newly selected pin {new_pin}");
+    let result = wallet.continue_change_pin(pin).await.try_into()?;
 
     Ok(result)
 }

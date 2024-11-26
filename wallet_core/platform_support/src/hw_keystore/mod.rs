@@ -1,6 +1,10 @@
 pub mod hardware;
 
-use wallet_common::keys::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::SecureEncryptionKey;
+use wallet_common::keys::StoredByIdentifier;
+
+pub use crate::bridge::hw_keystore::KeyStoreError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
@@ -12,18 +16,9 @@ pub enum HardwareKeyStoreError {
     SigningError(#[from] p256::ecdsa::Error),
 }
 
-// implementation of KeyStoreError from UDL
-#[derive(Debug, thiserror::Error)]
-pub enum KeyStoreError {
-    #[error("key error: {reason}")]
-    KeyError { reason: String },
-    #[error("bridging error: {reason}")]
-    BridgingError { reason: String },
-}
-
 /// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
-/// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
+/// Handles to private keys are requested through [`StoredByIdentifier::new_unique()`].
 pub trait PlatformEcdsaKey: StoredByIdentifier + SecureEcdsaKey {
     // from StoredByIdentifier: new_unique(), delete(), identifier()
     // from EcdsaKey: verifying_key(), try_sign(), sign()
@@ -34,13 +29,15 @@ pub trait PlatformEncryptionKey: StoredByIdentifier + SecureEncryptionKey {
     // from EncryptionKey: encrypt(), decrypt()
 }
 
-#[cfg(feature = "software")]
+#[cfg(feature = "mock_hw_keystore")]
 mod software {
-    use wallet_common::keys::software::{SoftwareEcdsaKey, SoftwareEncryptionKey};
+    use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
+    use wallet_common::keys::mock_hardware::MockHardwareEncryptionKey;
 
-    use super::{PlatformEcdsaKey, PlatformEncryptionKey};
+    use super::PlatformEcdsaKey;
+    use super::PlatformEncryptionKey;
 
-    impl PlatformEcdsaKey for SoftwareEcdsaKey {}
+    impl PlatformEcdsaKey for MockHardwareEcdsaKey {}
 
-    impl PlatformEncryptionKey for SoftwareEncryptionKey {}
+    impl PlatformEncryptionKey for MockHardwareEncryptionKey {}
 }

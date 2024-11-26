@@ -1,13 +1,17 @@
-use std::{collections::HashMap, env, path::PathBuf, str::FromStr, sync::LazyLock};
+use std::collections::HashMap;
+use std::env;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::sync::LazyLock;
 
 use nutype::nutype;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::{
-    gba,
-    gba::data::{Categorievoorkomen, GbaResponse},
-};
+use crate::gba;
+use crate::gba::data::Categorievoorkomen;
+use crate::gba::data::GbaResponse;
 
 static NATIONALITY_TABLE: LazyLock<HashMap<String, String>> =
     LazyLock::new(|| read_csv("Tabel32 Nationaliteitentabel (gesorteerd op code)").unwrap());
@@ -100,13 +104,40 @@ fn csv_path(name: &str) -> PathBuf {
         .join(format!("resources/stamdata/{}.csv", name))
 }
 
-static BSN_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[0-9]{8,9}$").unwrap());
-
 #[nutype(
-    validate(regex = BSN_REGEX),
+    validate(predicate = Bsn::validate),
     derive(Deserialize, Serialize, Clone, Debug, Display, AsRef)
 )]
 pub struct Bsn(String);
+
+impl Bsn {
+    // Validate the BSN by using the so-called "Elfproef".
+    // See section I.2.3 of Logisch Ontwerp BSN 2024 Q1 for the details on the "Elfproef"
+    fn validate(bsn: &str) -> bool {
+        if !(matches!(bsn.len(), 8 | 9)) {
+            return false;
+        }
+
+        // Pad the BSN with a leading zero when the length is 8
+        let padded_bsn = format!("{:0>9}", bsn);
+
+        let digits: Vec<i32> = padded_bsn
+            .chars()
+            .filter_map(|c| c.to_digit(10))
+            .map(|d| d as i32)
+            .collect();
+
+        if digits.len() != 9 {
+            return false;
+        }
+
+        let weights = [9, 8, 7, 6, 5, 4, 3, 2, -1];
+
+        let sum: i32 = digits.iter().zip(weights).map(|(digit, weight)| digit * weight).sum();
+
+        sum % 11 == 0
+    }
+}
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -178,9 +209,10 @@ impl TryFrom<GbaResponse> for Vec<GbaPerson> {
 
         let person = GbaPerson {
             bsn: cat1.elementen.get_mandatory(Element::Bsn.code())?,
-            gender: GbaCode {
-                code: cat1.elementen.get_mandatory(Element::Geslacht.code())?,
-            },
+            gender: cat1
+                .elementen
+                .get_optional(Element::Geslacht.code())
+                .map(|code| GbaCode { code }),
             name: cat1.try_into()?,
             birth: cat1.try_into()?,
             nationalities: cat4s
@@ -384,7 +416,7 @@ pub struct GbaPerson {
     bsn: String,
 
     #[serde(rename = "geslacht")]
-    gender: GbaCode,
+    gender: Option<GbaCode>,
 
     #[serde(rename = "naam")]
     name: GbaName,
@@ -546,4 +578,33 @@ pub struct GbaInvestigation {
 
     #[serde(rename = "datumIngangOnderzoek")]
     start_date: Option<String>,
+}
+
+#[cfg(test)]
+mod test {
+    use crate::haal_centraal::Bsn;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("999991772")]
+    #[case("900253010")]
+    #[case("900265462")]
+    #[case("11122146")]
+    fn test_bsn_should_validate(#[case] bsn: &str) {
+        assert!(Bsn::validate(bsn));
+    }
+
+    #[rstest]
+    #[case("999991773")]
+    #[case("900253011")]
+    #[case("900265463")]
+    #[case("9999917721")]
+    #[case("900265")]
+    #[case("abcd")]
+    #[case("abcdefghi")]
+    #[case("11122234")]
+    #[case("218")]
+    fn test_bsn_should_not_validate(#[case] bsn: &str) {
+        assert!(!Bsn::validate(bsn));
+    }
 }

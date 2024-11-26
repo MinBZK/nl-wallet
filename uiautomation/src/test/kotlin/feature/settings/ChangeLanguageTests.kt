@@ -1,8 +1,8 @@
 package feature.settings
 
 import helper.TestBase
-import navigator.OnboardingNavigator
-import navigator.screen.OnboardingScreen
+import navigator.MenuNavigator
+import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import screen.dashboard.DashboardScreen
 import screen.menu.MenuScreen
 import screen.settings.ChangeLanguageScreen
 import screen.settings.SettingsScreen
@@ -30,9 +29,8 @@ class ChangeLanguageTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.Dashboard)
+        MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
 
-        DashboardScreen().clickMenuButton()
         MenuScreen().clickSettingsButton()
         SettingsScreen().clickChangeLanguageButton()
 

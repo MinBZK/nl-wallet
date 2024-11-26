@@ -335,7 +335,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nunset SDKROOT && unset IPHONEOS_DEPLOYMENT_TARGET # fix for sqlx-macros/ring cross-compilation bug\n\nfunction get_dart_define {\n    IFS=\",\"\n\n    for DART_DEFINE in $DART_DEFINES\n    do\n        local DECODED=$(echo ${DART_DEFINE} | base64 -d)\n        local KEY=`echo ${DECODED} | cut -d = -f1`\n        local VALUE=`echo ${DECODED} | cut -d = -f2-`\n\n        if [ $KEY == $1 ]\n        then\n            echo $VALUE\n        fi\n    done\n}\n\nALLOW_HTTP_RETURN_URL=$(get_dart_define \"ALLOW_HTTP_RETURN_URL\")\nENV_CONFIGURATION=$(get_dart_define \"ENV_CONFIGURATION\")\n\nCARGO_FLAGS=\"--package flutter_api\"\n\nif [ \"$ALLOW_HTTP_RETURN_URL\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/allow_http_return_url\"\nfi\n\nif [ \"$ENV_CONFIGURATION\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/env_config\"\nfi\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../../wallet_core/Cargo.toml\" ${CARGO_FLAGS}\n";
+			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nfunction get_dart_define {\n    IFS=\",\"\n\n    for DART_DEFINE in $DART_DEFINES\n    do\n        local DECODED=$(echo ${DART_DEFINE} | base64 -d)\n        local KEY=`echo ${DECODED} | cut -d = -f1`\n        local VALUE=`echo ${DECODED} | cut -d = -f2-`\n\n        if [ $KEY == $1 ]\n        then\n            echo $VALUE\n        fi\n    done\n}\n\nALLOW_INSECURE_URL=$(get_dart_define \"ALLOW_INSECURE_URL\")\nENV_CONFIGURATION=$(get_dart_define \"ENV_CONFIGURATION\")\n\nCARGO_FLAGS=\"--package flutter_api\"\n\nif [ \"$ALLOW_INSECURE_URL\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/allow_insecure_url\"\nfi\n\nif [ \"$ENV_CONFIGURATION\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/env_config\"\nfi\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../../wallet_core/Cargo.toml\" ${CARGO_FLAGS}\n";
 		};
 		6C455936181F94502FED24CA /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -466,7 +466,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -562,7 +562,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -611,7 +611,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;

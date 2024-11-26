@@ -76,9 +76,12 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
                 widthFactor: defaultButtonSizeAsFraction,
                 child: Padding(
                   padding: EdgeInsets.only(right: centralPaddingTween.evaluate(animation)),
-                  child: ExcludeSemantics(
+                  child: ExcludeFocus(
                     excluding: animation.value == 1,
-                    child: widget.secondaryButton,
+                    child: ExcludeSemantics(
+                      excluding: animation.value == 1,
+                      child: widget.secondaryButton,
+                    ),
                   ),
                 ),
               ),

@@ -1,40 +1,52 @@
-use std::{fmt, str::FromStr, sync::Arc};
+use std::str::FromStr;
+use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use chrono::Utc;
-use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
+use derive_more::Debug;
+use josekit::jwk::alg::ec::EcCurve;
+use josekit::jwk::alg::ec::EcKeyPair;
 use parking_lot::Mutex;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    examples::{EXAMPLE_ATTRIBUTES, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-    holder::{mock::MockMdocDataSource, TrustAnchor},
-    iso::device_retrieval::ItemsRequest,
-    server_keys::KeyPair,
-    utils::reader_auth::ReaderRegistration,
-    verifier::ItemsRequests,
-};
-use wallet_common::{jwt::Jwt, trust_anchor::DerTrustAnchor, urls::BaseUrl, utils::random_string};
+use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
+use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
+use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
+use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::iso::device_retrieval::ItemsRequest;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use wallet_common::jwt::Jwt;
+use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils::random_string;
 
-use crate::{
-    disclosure_session::{
-        DisclosureSession, DisclosureUriSource, VpClientError, VpMessageClient, VpMessageClientError,
-    },
-    jwt,
-    openid4vp::{
-        IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest, VpRequestUriObject, WalletRequest,
-    },
-    verifier::{SessionType, VerifierUrlParameters},
-    AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
-};
+use crate::disclosure_session::DisclosureSession;
+use crate::disclosure_session::DisclosureUriSource;
+use crate::disclosure_session::VpClientError;
+use crate::disclosure_session::VpMessageClient;
+use crate::disclosure_session::VpMessageClientError;
+use crate::jwt;
+use crate::openid4vp::IsoVpAuthorizationRequest;
+use crate::openid4vp::RequestUriMethod;
+use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpRequestUriObject;
+use crate::openid4vp::WalletRequest;
+use crate::verifier::SessionType;
+use crate::verifier::VerifierUrlParameters;
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::VpAuthorizationErrorCode;
 
 // Constants for testing.
 pub const VERIFIER_URL: &str = "http://example.com/disclosure";
 
 /// Contains the minimum logic to respond with the correct verifier messages in a disclosure session,
 /// exposing fields to its user to inspect and/or modify the behaviour.
+#[derive(Debug)]
 pub struct MockVerifierSession<F> {
-    pub session_type: SessionType,
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<DerTrustAnchor>,
@@ -47,26 +59,8 @@ pub struct MockVerifierSession<F> {
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
 
     key_pair: KeyPair,
+    #[debug(skip)]
     transform_auth_request: F,
-}
-
-impl<F> fmt::Debug for MockVerifierSession<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockVerifierSession")
-            .field("session_type", &self.session_type)
-            .field("redirect_uri", &self.redirect_uri)
-            .field("reader_registration", &self.reader_registration)
-            .field("trust_anchors", &self.trust_anchors)
-            .field("items_requests", &self.items_requests)
-            .field("nonce", &self.nonce)
-            .field("encryption_keypair", &self.encryption_keypair)
-            .field("request_uri_object", &self.request_uri_object)
-            .field("request_uri_override", &self.request_uri_override)
-            .field("response_uri", &self.response_uri)
-            .field("wallet_messages", &self.wallet_messages)
-            .field("key_pair", &self.key_pair)
-            .finish_non_exhaustive()
-    }
 }
 
 pub fn request_uri_object(mut request_uri: Url, session_type: SessionType, client_id: String) -> VpRequestUriObject {
@@ -114,7 +108,6 @@ where
         let items_requests = vec![ItemsRequest::new_example()].into();
 
         MockVerifierSession {
-            session_type,
             redirect_uri,
             trust_anchors,
             reader_registration,
@@ -167,16 +160,9 @@ where
 }
 
 /// Implements [`VpMessageClient`] by simply forwarding the requests to an instance of [`MockVerifierSession<F>`].
+#[derive(Debug)]
 pub struct MockVerifierVpMessageClient<F> {
     session: Arc<MockVerifierSession<F>>,
-}
-
-impl<F> fmt::Debug for MockVerifierVpMessageClient<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockVerifierVpMessageClient")
-            .field("session", &self.session)
-            .finish()
-    }
 }
 
 impl<F> VpMessageClient for MockVerifierVpMessageClient<F>
@@ -278,7 +264,7 @@ where
     };
 
     // Set up the mock data source.
-    let mdoc_data_source = transform_mdoc(MockMdocDataSource::default());
+    let mdoc_data_source = transform_mdoc(MockMdocDataSource::new_with_example());
 
     // Starting disclosure and return the result.
     let result = DisclosureSession::start(
@@ -298,7 +284,9 @@ where
 
 /// An implementation of [`VpMessageClient`] that sends an error made by the response factory,
 /// allowing inspection of the messages that were sent.
+#[derive(Debug)]
 pub struct MockErrorFactoryVpMessageClient<F> {
+    #[debug(skip)]
     pub response_factory: F,
     pub wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
 }
@@ -309,14 +297,6 @@ impl<F> MockErrorFactoryVpMessageClient<F> {
             response_factory,
             wallet_messages,
         }
-    }
-}
-
-impl<F> fmt::Debug for MockErrorFactoryVpMessageClient<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MockHttpClient")
-            .field("wallet_messages", &self.wallet_messages)
-            .finish()
     }
 }
 

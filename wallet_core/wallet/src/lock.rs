@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use derive_more::Debug;
 
 pub type LockCallback = Box<dyn FnMut(bool) + Send + Sync>;
 
@@ -6,8 +6,10 @@ pub type LockCallback = Box<dyn FnMut(bool) + Send + Sync>;
 /// is restricted to the [`Self::lock()`] and [`Self::unlock()`] methods.
 /// Optionally, a callback can be set to get notified whenever the locked
 /// state changes.
+#[derive(Debug)]
 pub struct WalletLock {
     is_locked: bool,
+    #[debug(skip)]
     update_callback: Option<LockCallback>,
 }
 
@@ -54,14 +56,6 @@ impl WalletLock {
 
     pub fn clear_lock_callback(&mut self) -> Option<LockCallback> {
         self.update_callback.take()
-    }
-}
-
-impl Debug for WalletLock {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("WalletLock")
-            .field("is_locked", &self.is_locked)
-            .finish()
     }
 }
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <!-- Start group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
+  <suppress>
+    <notes><![CDATA[file name: Flutter:1.0.0]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/Flutter@.*$</packageUrl>
+    <cpe>cpe:/a:flutter:flutter</cpe>
+  </suppress>
+  <suppress>
+    <notes><![CDATA[file name: flutter_native_splash:0.0.1]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
+    <cve>CVE-2022-3095</cve>
+  </suppress>
+  <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
+
+  <!-- Start group: [HIGH] -->
+  <suppress>
+    <notes><![CDATA[file name: nl-wallet/Gemfile.lock:nokogiri]]></notes>
+    <packageUrl regex="true">^pkg:gem/nokogiri@.*$</packageUrl>
+    <vulnerabilityName>CVE-2024-25062</vulnerabilityName>
+  </suppress>
+  <!-- End group: [HIGH] -->
+</suppressions>

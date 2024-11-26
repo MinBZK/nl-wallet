@@ -1,0 +1,5 @@
+${PID_ISSUER_BASE_URL}/.well-known/openid-credential-issuer
+${PID_ISSUER_BASE_URL}/.well-known/oauth-authorization-server
+${PID_ISSUER_BASE_URL}/token
+${PID_ISSUER_BASE_URL}/credential
+${PID_ISSUER_BASE_URL}/batch_credential

@@ -1,8 +1,9 @@
-use crate::{
-    errors::Result,
-    iso::disclosure::{DeviceResponse, DeviceResponseVersion},
-    utils::keys::{KeyFactory, MdocEcdsaKey},
-};
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+
+use crate::errors::Result;
+use crate::iso::disclosure::DeviceResponse;
+use crate::iso::disclosure::DeviceResponseVersion;
 
 use super::proposed_document::ProposedDocument;
 
@@ -13,7 +14,7 @@ impl DeviceResponse {
     ) -> Result<Self>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
     {
         // Convert all of the `ProposedDocument` entries to `Document` by signing them.
         let documents = ProposedDocument::<I>::sign_multiple(key_factory, proposed_documents).await?;

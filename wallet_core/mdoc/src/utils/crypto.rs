@@ -1,29 +1,41 @@
 //! Cryptographic utilities: SHA256, ECDSA, Diffie-Hellman, HKDF, and key conversion functions.
 
-use std::fmt::Debug;
-
-use aes_gcm::{
-    aead::{Aead, Nonce},
-    Aes256Gcm, Key, KeyInit,
-};
+use aes_gcm::aead::Aead;
+use aes_gcm::aead::Nonce;
+use aes_gcm::Aes256Gcm;
+use aes_gcm::Key;
+use aes_gcm::KeyInit;
 use ciborium::value::Value;
-use coset::{iana, CoseKeyBuilder, Label};
-use p256::{ecdh, ecdsa::VerifyingKey, EncodedPoint, PublicKey, SecretKey};
+use coset::iana;
+use coset::CoseKeyBuilder;
+use coset::Label;
+use derive_more::Debug;
+use p256::ecdh;
+use p256::ecdsa::VerifyingKey;
+use p256::EncodedPoint;
+use p256::PublicKey;
+use p256::SecretKey;
 use ring::hmac;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 
 use error_category::ErrorCategory;
-use wallet_common::utils::{hkdf, sha256};
+use wallet_common::utils::hkdf;
+use wallet_common::utils::sha256;
 
-use crate::{
-    utils::{
-        cose::CoseKey,
-        serialization::{cbor_serialize, CborError, TaggedBytes},
-    },
-    CipherSuiteIdentifier, Result, Security, SecurityKeyed, SessionData, SessionTranscript,
-};
+use crate::utils::cose::CoseKey;
+use crate::utils::serialization::cbor_serialize;
+use crate::utils::serialization::CborError;
+use crate::utils::serialization::TaggedBytes;
+use crate::CipherSuiteIdentifier;
+use crate::Result;
+use crate::Security;
+use crate::SecurityKeyed;
+use crate::SessionData;
+use crate::SessionTranscript;
 
 use super::serialization::cbor_deserialize;
 
@@ -150,18 +162,11 @@ impl TryFrom<&Security> for PublicKey {
 }
 
 /// Key for encrypting/decrypting [`SessionData`] instances containing encrypted mdoc disclosure protocol messages.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SessionKey {
+    #[debug(skip)]
     key: ByteBuf,
     user: SessionKeyUser,
-}
-
-impl Debug for SessionKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SessionKey")
-            .field("user", &self.user)
-            .finish_non_exhaustive()
-    }
 }
 
 /// Identifies which agent uses the [`SessionKey`] to encrypt its messages.
@@ -249,11 +254,15 @@ mod test {
     use p256::SecretKey;
     use rand_core::OsRng;
 
-    use serde::{Deserialize, Serialize};
+    use serde::Deserialize;
+    use serde::Serialize;
 
-    use crate::{examples::Example, DeviceAuthenticationBytes, SessionData};
+    use crate::examples::Example;
+    use crate::DeviceAuthenticationBytes;
+    use crate::SessionData;
 
-    use super::{SessionKey, SessionKeyUser};
+    use super::SessionKey;
+    use super::SessionKeyUser;
 
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     struct ToyMessage {

@@ -1,7 +1,9 @@
-use std::io::{Result, Write};
+use std::io::Result;
+use std::io::Write;
 
 use oslog::OsLog;
-use tracing::{Level, Metadata};
+use tracing::Level;
+use tracing::Metadata;
 use tracing_subscriber::fmt::MakeWriter;
 
 const DEFAULT_LEVEL: &tracing::Level = &tracing::Level::INFO;

@@ -1,6 +1,9 @@
-use tracing::{info, instrument, warn};
+use tracing::info;
+use tracing::instrument;
+use tracing::warn;
 
-use error_category::{sentry_capture_error, ErrorCategory};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
 use wallet_common::keys::StoredByIdentifier;
 
 use crate::storage::Storage;
@@ -76,18 +79,16 @@ mod tests {
     use assert_matches::assert_matches;
 
     use openid4vc::mock::MockIssuanceSession;
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 
-    use crate::{disclosure::MockMdocDisclosureSession, storage::StorageState};
+    use crate::disclosure::MockMdocDisclosureSession;
+    use crate::storage::StorageState;
 
-    use super::{
-        super::{
-            issuance::PidIssuanceSession,
-            registration,
-            test::{self, WalletWithMocks},
-        },
-        *,
-    };
+    use super::super::issuance::PidIssuanceSession;
+    use super::super::registration;
+    use super::super::test::WalletWithMocks;
+    use super::super::test::{self};
+    use super::*;
 
     #[tokio::test]
     async fn test_wallet_reset() {
@@ -106,7 +107,7 @@ mod tests {
         events.lock().clear();
 
         // Double check that the hardware private key exists.
-        assert!(SoftwareEcdsaKey::identifier_exists(
+        assert!(MockHardwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
 
@@ -123,7 +124,7 @@ mod tests {
             wallet.storage.get_mut().state().await.unwrap(),
             StorageState::Uninitialized
         );
-        assert!(!SoftwareEcdsaKey::identifier_exists(
+        assert!(!MockHardwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
         assert!(wallet.is_locked());
@@ -146,7 +147,7 @@ mod tests {
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
 
         // Check that the hardware key exists.
-        assert!(SoftwareEcdsaKey::identifier_exists(
+        assert!(MockHardwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
 
@@ -161,7 +162,7 @@ mod tests {
             wallet.storage.get_mut().state().await.unwrap(),
             StorageState::Uninitialized
         );
-        assert!(!SoftwareEcdsaKey::identifier_exists(
+        assert!(!MockHardwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
         assert!(wallet.issuance_session.is_none());

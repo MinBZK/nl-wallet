@@ -1,18 +1,26 @@
 use indexmap::IndexMap;
 
-use nl_wallet_mdoc::{unsigned::UnsignedMdoc, utils::x509::Certificate};
-use openid4vc::{
-    issuer::{AttributeService, Created},
-    oidc,
-    server_state::SessionState,
-    token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
-    ErrorResponse, TokenErrorCode,
-};
-use wallet_common::{nonempty::NonEmpty, urls::BaseUrl};
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::Created;
+use openid4vc::oidc;
+use openid4vc::server_state::SessionState;
+use openid4vc::token::CredentialPreview;
+use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenRequestGrantType;
+use openid4vc::ErrorResponse;
+use openid4vc::TokenErrorCode;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
 
-use crate::pid::brp::client::{BrpClient, BrpError, HttpBrpClient};
+use crate::pid::brp::client::BrpClient;
+use crate::pid::brp::client::BrpError;
+use crate::pid::brp::client::HttpBrpClient;
 
-use super::digid::{self, OpenIdClient};
+use super::digid::OpenIdClient;
+use super::digid::{self};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -58,21 +66,20 @@ impl AttributeCertificates {
 
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
-    openid_client: OpenIdClient,
+    openid_client: OpenIdClient<TlsPinningConfig>,
     certificates: AttributeCertificates,
 }
 
 impl BrpPidAttributeService {
     pub fn new(
         brp_client: HttpBrpClient,
-        issuer_url: BaseUrl,
         bsn_privkey: &str,
-        trust_anchors: Vec<reqwest::Certificate>,
+        http_config: TlsPinningConfig,
         certificates: IndexMap<String, Certificate>,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::new(issuer_url, bsn_privkey, trust_anchors)?,
+            openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
             certificates: AttributeCertificates::new(certificates),
         })
     }

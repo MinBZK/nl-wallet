@@ -14,20 +14,25 @@ cfg_if::cfg_if! {
 #[cfg(all(feature = "disclosure", feature = "issuance"))]
 pub mod wallet_server;
 
-use std::{future::Future, io};
+use std::future::Future;
+use std::io;
 
 use anyhow::Result;
-use axum::{routing::get, Router};
-use http::{header, HeaderValue};
+use axum::routing::get;
+use axum::Router;
+use http::header;
+use http::HeaderValue;
 use tokio::net::TcpListener;
-use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
-use tracing::{debug, level_filters::LevelFilter};
+use tower_http::set_header::SetResponseHeaderLayer;
+use tower_http::trace::TraceLayer;
+use tracing::debug;
+use tracing::error;
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use crate::{
-    log_requests::log_request_response,
-    settings::{Server, Settings},
-};
+use crate::log_requests::log_request_response;
+use crate::settings::Server;
+use crate::settings::Settings;
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
@@ -144,8 +149,8 @@ async fn listen_wallet_only(wallet_server: Server, mut wallet_router: Router, lo
     Ok(())
 }
 
-/// Setup tracing, read settings and setup Sentry if configured, then run `app` on the tokio runtime.
-pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
+/// Setup tracing and read settings, then run `app`.
+pub async fn wallet_server_main<Fut: Future<Output = Result<()>>>(
     config_file: &str,
     env_prefix: &str,
     app: impl FnOnce(Settings) -> Fut,
@@ -164,14 +169,11 @@ pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
         builder.init();
     }
 
-    // Retain [`ClientInitGuard`]
-    let _guard = settings
-        .sentry
-        .as_ref()
-        .map(|sentry| sentry.init(sentry::release_name!()));
+    // Verify the settings here, now that we've setup tracing.
+    if let Err(error) = settings.verify_key_pairs() {
+        error!("invalid certificate configuration: {error}");
+        return Err(error.into());
+    }
 
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?
-        .block_on(async { app(settings).await })
+    app(settings).await
 }

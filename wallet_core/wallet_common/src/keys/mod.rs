@@ -1,13 +1,25 @@
 use std::error::Error;
 
-use aes_gcm::{aead::Aead, Aes256Gcm, Nonce};
-use p256::ecdsa::{Signature, VerifyingKey};
+use aes_gcm::aead::Aead;
+use aes_gcm::Aes256Gcm;
+use aes_gcm::Nonce;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::utils;
 
-#[cfg(feature = "software_keys")]
-pub mod software;
-#[cfg(any(all(feature = "software_keys", test), feature = "integration_test"))]
+pub mod factory;
+pub mod poa;
+
+#[cfg(feature = "examples")]
+pub mod examples;
+#[cfg(feature = "mock_hardware_keys")]
+pub mod mock_hardware;
+#[cfg(any(test, feature = "mock_remote_key"))]
+pub mod mock_remote;
+#[cfg(any(test, feature = "integration_test"))]
 pub mod test;
 
 #[trait_variant::make(EcdsaKeySend: Send)]
@@ -116,12 +128,30 @@ pub trait StoredByIdentifier: WithIdentifier {
     async fn delete(self) -> Result<(), Self::Error>;
 }
 
+/// Contract for ECDSA private keys suitable for credentials.
+/// Should be sufficiently secured e.g. through a HSM, or Android's TEE/StrongBox or Apple's SE.
+pub trait CredentialEcdsaKey: SecureEcdsaKey + WithIdentifier {
+    const KEY_TYPE: CredentialKeyType;
+
+    // from WithIdentifier: identifier()
+    // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum CredentialKeyType {
+    #[cfg(any(test, feature = "mock_remote_key"))]
+    Mock,
+    Remote,
+}
+
 #[cfg(any(test, feature = "mock_secure_keys"))]
-mod mock {
+mod mock_secure_keys {
     use aes_gcm::Aes256Gcm;
     use p256::ecdsa::SigningKey;
 
-    use super::{EphemeralEcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
+    use super::EphemeralEcdsaKey;
+    use super::SecureEcdsaKey;
+    use super::SecureEncryptionKey;
 
     impl EphemeralEcdsaKey for SigningKey {}
     impl SecureEcdsaKey for SigningKey {}

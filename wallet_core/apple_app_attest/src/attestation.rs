@@ -1,16 +1,18 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use passkey_types::ctap2::Aaguid;
 use serde::Deserialize;
-use serde_with::{serde_as, TryFromInto};
-use sha2::{Digest, Sha256};
-use webpki::TrustAnchor;
+use serde_with::serde_as;
+use serde_with::TryFromInto;
+use sha2::Digest;
+use sha2::Sha256;
+use webpki::types::TrustAnchor;
 
-use crate::{
-    app_identifier::AppIdentifier,
-    auth_data::AuthenticatorDataWithSource,
-    certificates::{CertificateError, DerX509CertificateChain},
-};
+use crate::app_identifier::AppIdentifier;
+use crate::certificates::CertificateError;
+use crate::certificates::DerX509CertificateChain;
+use crate::FullAuthenticatorDataWithSource;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttestationError {
@@ -70,7 +72,8 @@ impl AttestationEnvironment {
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct Attestation {
     #[serde(rename = "fmt")]
@@ -78,10 +81,11 @@ pub struct Attestation {
     #[serde(rename = "attStmt")]
     pub attestation_statement: AttestationStatement,
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
-    pub auth_data: AuthenticatorDataWithSource,
+    pub auth_data: FullAuthenticatorDataWithSource,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "kebab-case")]
 pub enum AttestationFormat {
     #[default]
@@ -90,6 +94,7 @@ pub enum AttestationFormat {
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct AttestationStatement {
     #[serde_as(as = "TryFromInto<Vec<Vec<u8>>>")]
@@ -106,7 +111,7 @@ impl Attestation {
         challenge: &[u8],
         app_identifier: &AppIdentifier,
         environment: AttestationEnvironment,
-    ) -> Result<(Self, VerifyingKey, u32), AttestationError> {
+    ) -> Result<(Self, VerifyingKey), AttestationError> {
         let attestation: Self = ciborium::from_reader(bytes).map_err(AttestationDecodingError::Cbor)?;
 
         // The steps below are listed at:
@@ -163,8 +168,8 @@ impl Attestation {
 
         let key_identifier = Sha256::digest(public_key.to_encoded_point(false));
 
-        // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s
-        //    RP ID hash.
+        // 6. Compute the SHA256 hash of your app’s App ID, and verify that it’s the same as the authenticator data’s RP
+        //    ID hash.
 
         if attestation.auth_data.as_ref().rp_id_hash() != app_identifier.sha256_hash() {
             return Err(AttestationValidationError::RpIdMismatch)?;
@@ -207,6 +212,6 @@ impl Attestation {
             return Err(AttestationValidationError::KeyIdentifierMismatch)?;
         }
 
-        Ok((attestation, public_key, counter))
+        Ok((attestation, public_key))
     }
 }

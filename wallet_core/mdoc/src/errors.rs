@@ -1,15 +1,12 @@
 use error_category::ErrorCategory;
 
-use crate::{
-    holder::HolderError,
-    utils::{
-        cose::{CoseError, KeysError},
-        crypto::CryptoError,
-        serialization::CborError,
-        x509::CertificateError,
-    },
-    verifier::VerificationError,
-};
+use crate::holder::HolderError;
+use crate::utils::cose::CoseError;
+use crate::utils::cose::KeysError;
+use crate::utils::crypto::CryptoError;
+use crate::utils::serialization::CborError;
+use crate::utils::x509::CertificateError;
+use crate::verifier::VerificationError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

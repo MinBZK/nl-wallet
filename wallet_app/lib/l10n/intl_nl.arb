@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-09-16T17:42:12+02:00",
+    "@@last_modified": "2024-11-07T12:20:41+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -46,7 +46,7 @@
             }
         }
     },
-    "biometricSettingsScreenSuccessDescription": "Je app is beveiligd met jouw pincode en {supportedBiometrics}.",
+    "biometricSettingsScreenSuccessDescription": "Je app is beveiligd met je pincode en {supportedBiometrics}.",
     "@biometricSettingsScreenSuccessDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -55,7 +55,7 @@
             }
         }
     },
-    "biometricSettingsScreenSuccessTitle": "Gelukt!",
+    "biometricSettingsScreenSuccessTitle": "Je NL Wallet is beveiligd",
     "biometricSettingsScreenSuccessToSettingsCta": "Naar instellingen",
     "biometricSettingsScreenSwitchCta": "Open met {supportedBiometrics}",
     "@biometricSettingsScreenSwitchCta": {
@@ -165,11 +165,11 @@
     "changePinScreenConfirmNewPinTitle": "Herhaal je nieuwe pincode",
     "changePinScreenEnterCurrentPinTitle": "Voor eerst je huidige pincode in",
     "changePinScreenSelectNewPinTitle": "Kies een nieuwe pincode",
-    "changePinScreenSuccessDescription": "Je app is beveiligd met je pincode.",
+    "changePinScreenSuccessDescription": "Je app is beveiligd met je nieuwe pincode.",
     "changePinScreenSuccessTitle": "Gelukt!",
     "changePinScreenToOverviewCta": "Naar mijn overzicht",
     "changePinScreenToSettingsCta": "Naar instellingen",
-    "changePinScreenUpdatingDescription": "Pincode wordt gewijzigd",
+    "changePinScreenUpdatingDescription": "Pincode wordt opgeslagen",
     "changePinScreenUpdatingTitle": "Even geduld",
     "checkAgreementPageCancelCta": "Nee",
     "checkAgreementPageConfirmCta": "Ja, volgende",
@@ -584,7 +584,7 @@
     "historyDetailScreenTitleForIssuance": "{card} kaart aangemaakt",
     "historyDetailScreenTitleForLogin": "Ingelogd bij {organization}",
     "historyOverviewScreenTitle": "Activiteiten",
-    "introductionConditionsScreenBulletPoints": "Je kunt op elke moment stoppen.\nJe houdt je pincode voor jezelf.\nJe bepaalt zelf met wie je deelt.",
+    "introductionConditionsScreenBulletPoints": "Je houdt je pincode voor jezelf.\nJe bepaalt zelf met wie je deelt.\nJe kunt op elk moment stoppen.",
     "introductionConditionsScreenHeadline": "Vergeet dit niet",
     "introductionConditionsScreenNextCta": "Begrepen",
     "introductionNextPageCta": "Volgende",
@@ -710,8 +710,21 @@
     },
     "issuanceSuccessPageCloseCta": "Naar mijn overzicht",
     "issuanceSuccessPageTitle": "Gelukt!",
-    "lockedOutDialogDescription": "Je hebt gezichts-scan of vingerafdruk te vaak verkeerd gebruikt. Open met je pincode.",
-    "lockedOutDialogDescriptioniOSVariant": "Je hebt Face ID of Touch ID te vaak verkeerd gebruikt. Open met je pincode.",
+    "localAuthMessageAndroidBiometricHint": "Gebruik vingerafdruk of gezichts-scan",
+    "localAuthMessageAndroidBiometricNotRecognized": "Niet herkend. Probeer opnieuw.",
+    "localAuthMessageAndroidBiometricRequiredTitle": "Zet eerst vingerafdruk of gezichts-scan aan",
+    "localAuthMessageAndroidBiometricSuccess": "Gelukt",
+    "localAuthMessageAndroidCancelButton": "Annuleren",
+    "localAuthMessageAndroidDeviceCredentialsRequiredTitle": "Zet eerst gezichts-scan of vingerafdruk aan",
+    "localAuthMessageAndroidDeviceCredentialsSetupDescription": "Zet eerst gezichts-scan of vingerafdruk aan",
+    "localAuthMessageAndroidGoToSettingsDescription": "Zet gezichts-scan of vingerafdruk aan in Instellingen > Gezichts-scan of Vingerafdruk.",
+    "localAuthMessageAndroidSignInTitle": "Scan vingerafdruk of gezicht",
+    "localAuthMessageGoToSettingsButton": "Naar Instellingen",
+    "localAuthMessageiOSCancelButton": "Sluiten",
+    "localAuthMessageiOSGoToSettingsDescription": "Zet eerst Face ID aan",
+    "localAuthMessageiOSLockOut": "Face ID staat uit. Zet je telefoon aan en uit om het in te schakelen.",
+    "lockedOutDialogDescription": "Te vaak geprobeerd. Open met je pincode.",
+    "lockedOutDialogDescriptioniOSVariant": "Te vaak geprobeerd. Open met je pincode.",
     "lockedOutDialogTitle": "Gezichts-scan of vingerafdruk mislukt",
     "lockedOutDialogTitleiOSVariant": "Face ID of Touch ID mislukt",
     "loginDetailScreenAgreementCta": "Lees de voorwaarden",
@@ -763,6 +776,7 @@
         }
     },
     "organizationApprovePageMoreInfoCta": "Bekijk details",
+    "organizationApprovePageMoreInfoLoginCta": "Bekijk welke gegevens je deelt",
     "organizationApprovePageShareWithApproveCta": "Ja, verder",
     "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationButtonLabel": "Over deze organisatie",
@@ -802,7 +816,7 @@
     },
     "pinErrorDialogForgotCodeCta": "PINCODE VERGETEN?",
     "pinErrorDialogNonFinalRoundFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app tijdelijk geblokkeerd.",
-    "pinErrorDialogNonFinalRoundInitialAttempt": "Pincode onjuist, probeer opnieuw.",
+    "pinErrorDialogNonFinalRoundInitialAttempt": "Verkeerde pincode. Probeer het opnieuw.",
     "pinErrorDialogNonFinalRoundNonFinalAttempt": "Je mag het nog {count} keer proberen.",
     "@pinErrorDialogNonFinalRoundNonFinalAttempt": {
         "placeholders": {
@@ -927,7 +941,7 @@
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
     "resetWalletDialogTitle": "Wil je alle gegevens verwijderen?",
-    "rootDetectedScreenDescription": "Om je gegevens te beschermen, kun je NL Wallet niet op dit apparaat gebruiken. \n\nDit apparaat is niet meer in de originele staat en is daarom niet veilig.",
+    "rootDetectedScreenDescription": "Om je gegevens te beschermen, kun je de NL Wallet niet op dit apparaat gebruiken. \n\nDit apparaat is niet meer in de originele staat en is daarom niet veilig. Bekijk de hulppagina voor meer informatie.",
     "rootDetectedScreenTitle": "Je apparaat is niet veilig",
     "scanWithWalletDialogBody": "Het lijkt erop dat je een QR-code hebt gescand met een andere app. Scan voor de zekerheid de QR-code met de NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR-code",
@@ -948,7 +962,7 @@
     "settingsScreenTitle": "Instellingen",
     "setupBiometricsPageDescription": "Hierdoor open je sneller je NL Wallet. Je gebruikt je gezicht of vingerafdruk in plaats van je pincode.",
     "setupBiometricsPageEnableCta": "Aanzetten",
-    "setupBiometricsPageLocalizedReason": "Instelling bevestigen",
+    "setupBiometricsPageLocalizedReason": "Om de app te openen",
     "setupBiometricsPageSkipCta": "Overslaan",
     "setupBiometricsPageTitle": "Wil je de app openen met {supportedBiometrics}?",
     "@setupBiometricsPageTitle": {
@@ -960,9 +974,9 @@
         }
     },
     "setupSecurityCompletedPageCreateWalletCta": "Volgende",
-    "setupSecurityCompletedPageDescription": "Je app is beveiligd met je pincode.",
+    "setupSecurityCompletedPageDescription": "Onthoud je pincode. Hiermee open je de app en deel je gegevens.",
     "setupSecurityCompletedPageTitle": "Gelukt!",
-    "setupSecurityCompletedPageWithBiometricsDescription": "Je app is beveiligd met je pincode en {supportedBiometrics}.",
+    "setupSecurityCompletedPageWithBiometricsDescription": "Onthoud je pincode. Hiermee deel je gegevens. {supportedBiometrics} opent alleen de app.",
     "@setupSecurityCompletedPageWithBiometricsDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -1016,7 +1030,7 @@
     "signSuccessPageHistoryCta": "Activiteiten",
     "signSuccessPageTitle": "Gelukt!",
     "unlockWithBiometricsReason": "Open de NL Wallet",
-    "walletPersonalizeCheckDataOfferingPageAcceptCta": "Ja, klopt",
+    "walletPersonalizeCheckDataOfferingPageAcceptCta": "Toevoegen",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",
     "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
@@ -1041,8 +1055,8 @@
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
     "walletPersonalizeCheckDataOfferingPageGenderLabel": "Geslacht",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
-    "walletPersonalizeCheckDataOfferingPageSubtitle": "Je gegevens zijn opgehaald via DigiD.",
-    "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
+    "walletPersonalizeCheckDataOfferingPageSubtitle": "Als je gegevens kloppen, kun je ze als kaarten toevoegen.",
+    "walletPersonalizeCheckDataOfferingPageTitle": "Wil je deze gegevens toevoegen?",
     "walletPersonalizeConfirmPinPageTitle": "Geef akkoord met je pincode",
     "walletPersonalizeDataIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Voeg daarom gegevens niet toe.",
     "walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints": "Neem contact op met jouw gemeente om je gegevens te laten aanpassen.\nWacht op een bericht van je gemeente dat de aanpassing is gelukt.\nLog opnieuw in met DigiD om de juiste gegevens op te halen.",
@@ -1057,11 +1071,11 @@
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Opnieuw inloggen",
     "walletPersonalizeDigidErrorPageNoDigidCta": "Hulp nodig met DigiD?",
     "walletPersonalizeDigidErrorPageTitle": "Inloggen niet gelukt",
-    "walletPersonalizeIntroPageDescription": "Je maakt je wallet aan door één keer je gegevens toe te voegen via de DigiD app.",
+    "walletPersonalizeIntroPageDescription": "Log één keer in met je DigiD app om je persoonlijke kaarten op te halen.",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open de DigiD app",
     "walletPersonalizeIntroPageNoDigidCta": "Geen DigiD?",
-    "walletPersonalizeIntroPageTitle": "Haal één keer je gegevens op via DigiD",
-    "walletPersonalizeNoDigidPageDescription": "Op dit moment kun je alleen een Wallet aanmaken met de DigiD app.\n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
+    "walletPersonalizeIntroPageTitle": "Kaarten toevoegen via DigiD",
+    "walletPersonalizeNoDigidPageDescription": "Op dit moment kun je de NL Wallet alleen gebruiken door je gegevens op te halen via de DigiD app.\n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
     "walletPersonalizeNoDigidPageHeadline": "Geen DigiD?",
     "walletPersonalizeNoDigidPageRequestDigidCta": "DigiD aanvragen",
     "walletPersonalizeScreenAwaitingUserAuthDescription": "Zo haal je je gegevens op",
@@ -1082,12 +1096,12 @@
     "walletPersonalizeScreenProcessingDigiDResultTitle": "Even geduld",
     "walletPersonalizeScreenStopDigidDialogNegativeCta": "Terug",
     "walletPersonalizeScreenStopDigidDialogPositiveCta": "Inloggen stoppen",
-    "walletPersonalizeScreenStopDigidDialogSubtitle": "Weet je zeker dat je wil stoppen?",
+    "walletPersonalizeScreenStopDigidDialogSubtitle": "Als je stopt, moet je opnieuw beginnen.",
     "walletPersonalizeScreenStopDigidDialogTitle": "DigiD inloggen stoppen?",
     "walletPersonalizeSetupFailedScreenCta": "Probeer opnieuw",
     "walletPersonalizeSetupFailedScreenDescription": "Je hebt te vaak een ongeldige pincode ingevuld. Kies een nieuwe pincode en begin opnieuw.",
     "walletPersonalizeSetupFailedScreenHeadline": "Aanmaken mislukt",
     "walletPersonalizeSuccessPageContinueCta": "Naar mijn overzicht",
-    "walletPersonalizeSuccessPageDescription": "Je gegevens zijn opgeslagen op de volgende kaarten. Deze zijn altijd beschikbaar in je wallet overzicht.",
-    "walletPersonalizeSuccessPageTitle": "Gelukt!"
+    "walletPersonalizeSuccessPageDescription": "Je kunt de gegevens in deze kaarten delen of gebruiken om in te loggen.",
+    "walletPersonalizeSuccessPageTitle": "Je NL Wallet is klaar"
 }

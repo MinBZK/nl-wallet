@@ -1,19 +1,29 @@
-use std::{error::Error, fmt::Display};
+use std::error::Error;
+use std::fmt::Display;
 
 use anyhow::Chain;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use wallet::{
-    errors::{
-        openid4vc::{IssuanceSessionError, OidcError, VpClientError, VpMessageClientErrorType},
-        reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
-        PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
-        WalletUnlockError,
-    },
-    openid4vc::SessionType,
-};
+use wallet::errors::openid4vc::IssuanceSessionError;
+use wallet::errors::openid4vc::OidcError;
+use wallet::errors::openid4vc::VpClientError;
+use wallet::errors::openid4vc::VpMessageClientErrorType;
+use wallet::errors::reqwest;
+use wallet::errors::AccountProviderError;
+use wallet::errors::ChangePinError;
+use wallet::errors::DigidSessionError;
+use wallet::errors::DisclosureError;
+use wallet::errors::HistoryError;
+use wallet::errors::InstructionError;
+use wallet::errors::PidIssuanceError;
+use wallet::errors::ResetError;
+use wallet::errors::UriIdentificationError;
+use wallet::errors::WalletInitError;
+use wallet::errors::WalletRegistrationError;
+use wallet::errors::WalletUnlockError;
+use wallet::openid4vc::SessionType;
 
 /// A type encapsulating data about a Flutter error that
 /// is to be serialized to JSON and sent to Flutter.
@@ -106,6 +116,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<HistoryError>().map(Self::from))
             .or_else(|e| e.downcast::<ResetError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
+            .or_else(|e| e.downcast::<ChangePinError>().map(Self::from))
     }
 }
 
@@ -148,6 +159,7 @@ impl FlutterApiErrorFields for WalletUnlockError {
             | WalletUnlockError::BiometricsUnlockingNotEnabled => FlutterApiErrorType::WalletState,
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
             WalletUnlockError::UnlockMethodStorage(_) => FlutterApiErrorType::Generic,
+            WalletUnlockError::ChangePin(e) => e.typ(),
         }
     }
 }
@@ -315,6 +327,23 @@ impl FlutterApiErrorFields for ResetError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             ResetError::NotRegistered => FlutterApiErrorType::WalletState,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for ChangePinError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::NotRegistered | Self::Locked | Self::ChangePinAlreadyInProgress | Self::NoChangePinInProgress => {
+                FlutterApiErrorType::WalletState
+            }
+            Self::Instruction(e) => FlutterApiErrorType::from(e),
+            Self::Storage(_)
+            | Self::PinValidation(_)
+            | Self::HardwarePublicKey(_)
+            | Self::CertificateValidation(_)
+            | Self::PublicKeyMismatch
+            | Self::WalletIdMismatch => FlutterApiErrorType::Generic,
         }
     }
 }

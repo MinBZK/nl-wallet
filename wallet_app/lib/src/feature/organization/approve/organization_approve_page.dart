@@ -70,7 +70,7 @@ class OrganizationApprovePage extends StatelessWidget {
             SliverToBoxAdapter(
               child: ListButton(
                 onPressed: onShowDetailsPressed,
-                text: Text.rich(context.l10n.organizationApprovePageMoreInfoCta.toTextSpan(context)),
+                text: Text.rich(_moreInfoButtonText(context).toTextSpan(context)),
               ),
             ),
             const SliverSizedBox(height: 32),
@@ -175,6 +175,15 @@ class OrganizationApprovePage extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _moreInfoButtonText(BuildContext context) {
+    switch (purpose) {
+      case ApprovalPurpose.login:
+        return context.l10n.organizationApprovePageMoreInfoLoginCta;
+      default:
+        return context.l10n.organizationApprovePageMoreInfoCta;
+    }
   }
 
   String _approveButtonText(BuildContext context) {

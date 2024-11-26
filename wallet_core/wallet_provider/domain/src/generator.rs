@@ -1,7 +1,10 @@
 #[cfg(feature = "mock")]
 pub mod mock {
-    use chrono::{offset::TimeZone, DateTime, Utc};
-    use uuid::{uuid, Uuid};
+    use chrono::offset::TimeZone;
+    use chrono::DateTime;
+    use chrono::Utc;
+    use uuid::uuid;
+    use uuid::Uuid;
     use wallet_common::generator::Generator;
 
     pub struct FixedUuidGenerator;

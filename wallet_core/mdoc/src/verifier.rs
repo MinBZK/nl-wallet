@@ -1,27 +1,33 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
 use p256::SecretKey;
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, FromInto, IfIsHumanReadable};
-use tracing::{debug, warn};
-use webpki::TrustAnchor;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::serde_as;
+use serde_with::FromInto;
+use serde_with::IfIsHumanReadable;
+use tracing::debug;
+use tracing::warn;
+use webpki::types::TrustAnchor;
 
 use wallet_common::generator::Generator;
 
-use crate::{
-    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    iso::*,
-    utils::{
-        cose::ClonePayload,
-        crypto::{cbor_digest, dh_hmac_key},
-        serialization::{cbor_serialize, CborSeq, JsonCborValue, TaggedBytes},
-        x509::CertificateUsage,
-    },
-    Result,
-};
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
+use crate::iso::*;
+use crate::utils::cose::ClonePayload;
+use crate::utils::crypto::cbor_digest;
+use crate::utils::crypto::dh_hmac_key;
+use crate::utils::serialization::cbor_serialize;
+use crate::utils::serialization::CborSeq;
+use crate::utils::serialization::JsonCborValue;
+use crate::utils::serialization::TaggedBytes;
+use crate::utils::x509::CertificateUsage;
+use crate::Result;
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
@@ -336,18 +342,27 @@ impl ItemsRequest {
 mod tests {
     use std::ops::Add;
 
-    use chrono::{Duration, Utc};
+    use chrono::Duration;
+    use chrono::Utc;
     use rstest::rstest;
 
-    use crate::{
-        examples::{
-            Example, Examples, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE,
-            EXAMPLE_NAMESPACE,
-        },
-        identifiers::AttributeIdentifierHolder,
-        test::{self, DebugCollapseBts},
-        DeviceAuthenticationBytes, DeviceResponse, Document, Error, ValidityInfo,
-    };
+    use wallet_common::keys::examples::Examples;
+
+    use crate::examples::example_items_requests;
+    use crate::examples::Example;
+    use crate::examples::IsoCertTimeGenerator;
+    use crate::examples::EXAMPLE_ATTR_NAME;
+    use crate::examples::EXAMPLE_ATTR_VALUE;
+    use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::examples::EXAMPLE_NAMESPACE;
+    use crate::identifiers::AttributeIdentifierHolder;
+    use crate::test::DebugCollapseBts;
+    use crate::test::{self};
+    use crate::DeviceAuthenticationBytes;
+    use crate::DeviceResponse;
+    use crate::Document;
+    use crate::Error;
+    use crate::ValidityInfo;
 
     use super::*;
 
@@ -467,7 +482,7 @@ mod tests {
 
     // return an unmodified device response, which should verify
     fn do_nothing() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        (DeviceResponse::example(), Examples::items_requests(), Ok(()))
+        (DeviceResponse::example(), example_items_requests(), Ok(()))
     }
 
     // Matching attributes is insensitive to swapped attributes, so verification succeeds
@@ -480,7 +495,7 @@ mod tests {
             attributes.swap(0, 1);
         });
 
-        (device_response, Examples::items_requests(), Ok(()))
+        (device_response, example_items_requests(), Ok(()))
     }
 
     // remove all disclosed documents
@@ -488,7 +503,7 @@ mod tests {
         let mut device_response = DeviceResponse::example();
         device_response.documents = None;
 
-        let items_requests = Examples::items_requests();
+        let items_requests = example_items_requests();
         let missing = attribute_identifiers(&items_requests);
         (device_response, items_requests, Err(missing))
     }
@@ -498,7 +513,7 @@ mod tests {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap().pop();
 
-        let items_requests = Examples::items_requests();
+        let items_requests = example_items_requests();
         let missing = attribute_identifiers(&items_requests);
         (device_response, items_requests, Err(missing))
     }
@@ -514,7 +529,7 @@ mod tests {
             .unwrap()
             .doc_type = "some_not_requested_doc_type".to_string();
 
-        let items_requests = Examples::items_requests();
+        let items_requests = example_items_requests();
         let missing = attribute_identifiers(&items_requests);
         (device_response, items_requests, Err(missing))
     }
@@ -530,7 +545,7 @@ mod tests {
             name_spaces.insert("some_not_requested_name_space".to_string(), attributes);
         });
 
-        let items_requests = Examples::items_requests();
+        let items_requests = example_items_requests();
         let missing = attribute_identifiers(&items_requests);
         (device_response, items_requests, Err(missing))
     }
@@ -545,7 +560,7 @@ mod tests {
             attributes.pop();
         });
 
-        let items_requests = Examples::items_requests();
+        let items_requests = example_items_requests();
         let missing = vec![attribute_identifiers(&items_requests).last().unwrap().clone()];
         (device_response, items_requests, Err(missing))
     }
@@ -557,7 +572,7 @@ mod tests {
         cloned_doc.doc_type = "a".to_string();
         device_response.documents.as_mut().unwrap().push(cloned_doc);
 
-        let mut items_requests = Examples::items_requests();
+        let mut items_requests = example_items_requests();
         let mut cloned_items_request = items_requests.0[0].clone();
         cloned_items_request.doc_type = "a".to_string();
         items_requests.0.push(cloned_items_request);

@@ -1,13 +1,16 @@
 use anyhow::Result;
-use chrono::{Duration, Utc};
-use clap::{Parser, Subcommand};
+use chrono::Duration;
+use chrono::Utc;
+use clap::Parser;
+use clap::Subcommand;
 use clio::CachedInput;
 
-use nl_wallet_mdoc::{
-    server_keys::KeyPair,
-    utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateConfiguration},
-};
-use wallet_ca::{read_key_pair, write_key_pair};
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
+use wallet_ca::read_key_pair;
+use wallet_ca::write_key_pair;
 
 /// Generate private keys and certificates
 ///
@@ -88,7 +91,7 @@ enum Command {
 }
 
 impl Command {
-    fn get_certificate_configuration(days: u32) -> Result<CertificateConfiguration> {
+    fn get_certificate_configuration(days: u32) -> CertificateConfiguration {
         let not_before = Utc::now();
         let not_after = not_before
             .checked_add_signed(Duration::days(days as i64))
@@ -96,11 +99,10 @@ impl Command {
         if not_after <= not_before {
             panic!("`valid_for` must be a positive duration");
         }
-        let configuration = CertificateConfiguration {
+        CertificateConfiguration {
             not_before: Some(not_before),
             not_after: Some(not_after),
-        };
-        Ok(configuration)
+        }
     }
 
     fn execute(self) -> Result<()> {
@@ -112,7 +114,7 @@ impl Command {
                 days,
                 force,
             } => {
-                let configuration = Self::get_certificate_configuration(days)?;
+                let configuration = Self::get_certificate_configuration(days);
                 let ca = KeyPair::generate_ca(&common_name, configuration)?;
                 write_key_pair(&ca, &file_prefix, force)?;
                 Ok(())
@@ -131,7 +133,7 @@ impl Command {
                 let key_pair = ca.generate(
                     &common_name,
                     &issuer_registration.into(),
-                    Self::get_certificate_configuration(days)?,
+                    Self::get_certificate_configuration(days),
                 )?;
                 write_key_pair(&key_pair, &file_prefix, force)?;
                 Ok(())
@@ -150,7 +152,7 @@ impl Command {
                 let key_pair = ca.generate(
                     &common_name,
                     &reader_registration.into(),
-                    Self::get_certificate_configuration(days)?,
+                    Self::get_certificate_configuration(days),
                 )?;
                 write_key_pair(&key_pair, &file_prefix, force)?;
                 Ok(())

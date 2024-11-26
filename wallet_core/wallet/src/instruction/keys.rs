@@ -1,18 +1,31 @@
 use std::iter;
 
-use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
+use itertools::Itertools;
+use p256::ecdsa::signature;
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 
-use nl_wallet_mdoc::utils::keys::{CredentialKeyType, KeyFactory, MdocEcdsaKey};
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{
-    account::messages::instructions::{GenerateKey, GenerateKeyResult, Sign},
-    keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier},
-    utils::random_string,
-};
+use wallet_common::account::messages::instructions::ConstructPoa;
+use wallet_common::account::messages::instructions::GenerateKey;
+use wallet_common::account::messages::instructions::GenerateKeyResult;
+use wallet_common::account::messages::instructions::Sign;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::VecAtLeastTwo;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::CredentialKeyType;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::WithIdentifier;
+use wallet_common::utils::random_string;
 
-use crate::{account_provider::AccountProviderClient, storage::Storage};
+use crate::account_provider::AccountProviderClient;
+use crate::storage::Storage;
 
-use super::{InstructionClient, InstructionError};
+use super::InstructionClient;
+use super::InstructionError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RemoteEcdsaKeyError {
@@ -125,6 +138,31 @@ where
 
         Ok(signatures)
     }
+
+    async fn poa(
+        &self,
+        keys: VecAtLeastTwo<&Self::Key>,
+        aud: String,
+        nonce: Option<String>,
+    ) -> Result<Poa, Self::Error> {
+        let poa = self
+            .instruction_client
+            .send(ConstructPoa {
+                key_identifiers: keys
+                    .as_ref()
+                    .iter()
+                    .map(|key| key.identifier.clone())
+                    .collect_vec()
+                    .try_into()
+                    .unwrap(), // our iterable is a VecAtLeastTwo
+                aud,
+                nonce,
+            })
+            .await?
+            .poa;
+
+        Ok(poa)
+    }
 }
 
 impl<S, K, A> WithIdentifier for RemoteEcdsaKey<'_, S, K, A> {
@@ -174,7 +212,7 @@ where
 {
 }
 
-impl<S, K, A> MdocEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
+impl<S, K, A> CredentialEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
     S: Storage,
     K: PlatformEcdsaKey,

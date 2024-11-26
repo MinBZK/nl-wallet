@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import WalletModal from "@/components/WalletModal.vue"
-import { translations, translationsKey, type Language } from "@/util/translations"
+import { RO_SANS_BOLD, RO_SANS_REGULAR } from "@/non-free/fonts"
+import { type Language, translations, translationsKey } from "@/util/translations"
 import { isDesktop, isMobileKey } from "@/util/useragent"
 import { provide, ref } from "vue"
-import { RO_SANS_BOLD, RO_SANS_REGULAR } from "../non-free/fonts"
 
 export interface Props {
   usecase: string
@@ -51,6 +51,8 @@ const close = () => {
 provide(isMobileKey, isMobile)
 provide(translationsKey, translations(props.lang))
 
+const appVersion = __APP_VERSION__
+
 // @font-face doesn't seem to be working in the shadow DOM, so we insert it into the parent
 // document instead.
 let fontFaceSheet = new CSSStyleSheet()
@@ -71,6 +73,7 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
 </script>
 
 <template>
+  <meta itemprop="version" :content="appVersion" />
   <button
     part="button"
     type="button"

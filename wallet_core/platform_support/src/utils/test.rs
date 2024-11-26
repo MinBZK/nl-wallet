@@ -1,15 +1,15 @@
-use tokio::{
-    fs::{self, File},
-    io::{AsyncReadExt, AsyncWriteExt},
-};
+use tokio::fs::File;
+use tokio::fs::{self};
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
 
 use crate::utils::PlatformUtilities;
 
-// This utility function is used both by the Rust unit tests test for the "software" feature
+// This utility function is used both by the Rust unit tests test for the "mock" feature
 // and by integration test performed from Android / iOS.
 // This would normally fall under dev-dependencies, however we need it in the main binary
 // for the Android / iOS integration test.
-pub async fn get_and_verify_storage_path<K: PlatformUtilities>() -> bool {
+pub async fn get_and_verify_storage_path<K: PlatformUtilities>() {
     let original_message = "Hello, wallet!";
     let mut path = K::storage_path()
         .await
@@ -44,5 +44,5 @@ pub async fn get_and_verify_storage_path<K: PlatformUtilities>() -> bool {
     // Clean up and verify the file contents match the [original_message]
     fs::remove_file(&path).await.expect("Could not delete test.txt");
 
-    contents == original_message
+    assert_eq!(contents, original_message, "file contents should match written payload");
 }

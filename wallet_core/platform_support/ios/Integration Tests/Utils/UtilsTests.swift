@@ -7,8 +7,8 @@
 
 import Foundation
 
-import XCTest
 import PlatformSupport
+import XCTest
 
 final class UtilsTests: XCTestCase {
     static var platformSupport: PlatformSupport?
@@ -18,6 +18,7 @@ final class UtilsTests: XCTestCase {
     }
 
     func testAllUtilities() {
-        XCTAssert(utils_test_get_storage_path())
+        // The Rust code will panic if this test fails.
+        utils_test_get_storage_path()
     }
 }

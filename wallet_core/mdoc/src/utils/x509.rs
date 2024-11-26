@@ -1,29 +1,45 @@
 use std::borrow::Cow;
+use std::time::Duration;
 
 use base64::prelude::*;
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use indexmap::IndexMap;
-use p256::{
-    ecdsa::VerifyingKey,
-    elliptic_curve::pkcs8::DecodePublicKey,
-    pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader},
-};
-use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
+use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve::pkcs8::DecodePublicKey;
+use p256::pkcs8::der::asn1::Utf8StringRef;
+use p256::pkcs8::der::Decode;
+use p256::pkcs8::der::SliceReader;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use serde_bytes::ByteBuf;
-use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
-use x509_parser::{
-    der_parser::Oid,
-    extensions::GeneralName,
-    nom::{self, AsBytes},
-    pem,
-    prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
-    x509::X509Name,
-};
+use webpki::anchor_from_trusted_cert;
+use webpki::ring::ECDSA_P256_SHA256;
+use webpki::types::CertificateDer;
+use webpki::types::TrustAnchor;
+use webpki::types::UnixTime;
+use webpki::EndEntityCert;
+use x509_parser::der_parser::Oid;
+use x509_parser::extensions::GeneralName;
+use x509_parser::nom::AsBytes;
+use x509_parser::nom::{self};
+use x509_parser::pem;
+use x509_parser::prelude::ExtendedKeyUsage;
+use x509_parser::prelude::FromDer;
+use x509_parser::prelude::PEMError;
+use x509_parser::prelude::X509Certificate;
+use x509_parser::prelude::X509Error;
+use x509_parser::x509::X509Name;
 
 use error_category::ErrorCategory;
-use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
+use wallet_common::generator::Generator;
+use wallet_common::trust_anchor::DerTrustAnchor;
 
-use super::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
+use super::issuer_auth::IssuerRegistration;
+use super::reader_auth::ReaderRegistration;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 #[category(pd)]
@@ -75,7 +91,7 @@ pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
 /// - verification of certificate chains: `webpki`
 /// - signing and generating: `rcgen`
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Certificate(ByteBuf);
+pub struct Certificate(CertificateDer<'static>);
 
 // Use base64 when we (de)serialize to JSON
 impl Serialize for Certificate {
@@ -87,16 +103,19 @@ impl Serialize for Certificate {
         }
     }
 }
+
 impl<'de> Deserialize<'de> for Certificate {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         if deserializer.is_human_readable() {
-            Ok(Certificate(ByteBuf::from(
+            let buffer = ByteBuf::from(
                 BASE64_STANDARD
                     .decode(String::deserialize(deserializer).map_err(serde::de::Error::custom)?)
                     .map_err(serde::de::Error::custom)?,
-            )))
+            );
+            Ok(Certificate::from_byte_buffer(&buffer))
         } else {
-            Ok(Certificate(ByteBuf::deserialize(deserializer)?))
+            let buffer = ByteBuf::deserialize(deserializer)?;
+            Ok(Certificate::from_byte_buffer(&buffer))
         }
     }
 }
@@ -104,14 +123,14 @@ impl<'de> Deserialize<'de> for Certificate {
 impl<'a> TryInto<TrustAnchor<'a>> for &'a Certificate {
     type Error = CertificateError;
     fn try_into(self) -> Result<TrustAnchor<'a>, Self::Error> {
-        Ok(TrustAnchor::try_from_cert_der(self.as_bytes())?)
+        Ok(anchor_from_trusted_cert(self.as_certificate_der())?)
     }
 }
 
 impl<'a> TryInto<EndEntityCert<'a>> for &'a Certificate {
     type Error = CertificateError;
     fn try_into(self) -> Result<EndEntityCert<'a>, Self::Error> {
-        Ok(self.as_bytes().try_into()?)
+        Ok(self.as_certificate_der().try_into()?)
     }
 }
 
@@ -129,7 +148,7 @@ impl From<Certificate> for Vec<u8> {
     }
 }
 
-impl<'a> TryInto<DerTrustAnchor> for &'a Certificate {
+impl TryInto<DerTrustAnchor> for &Certificate {
     type Error = CertificateError;
 
     fn try_into(self) -> Result<DerTrustAnchor, Self::Error> {
@@ -139,13 +158,21 @@ impl<'a> TryInto<DerTrustAnchor> for &'a Certificate {
 
 impl<T: AsRef<[u8]>> From<T> for Certificate {
     fn from(value: T) -> Self {
-        Certificate(ByteBuf::from(value.as_ref()))
+        Certificate::from_byte_buffer(&ByteBuf::from(value.as_ref()))
     }
 }
 
 const PEM_CERTIFICATE_HEADER: &str = "CERTIFICATE";
 
 impl Certificate {
+    fn from_byte_buffer(buffer: &ByteBuf) -> Self {
+        Certificate(CertificateDer::from(buffer.to_vec()))
+    }
+
+    fn as_certificate_der(&self) -> &CertificateDer {
+        &self.0
+    }
+
     pub fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
@@ -172,13 +199,18 @@ impl Certificate {
     ) -> Result<(), CertificateError> {
         self.to_webpki()?
             .verify_for_usage(
-                &[&ECDSA_P256_SHA256],
+                &[ECDSA_P256_SHA256],
                 trust_anchors,
-                intermediate_certs,
-                Time::from_seconds_since_unix_epoch(time.generate().timestamp() as u64),
+                &intermediate_certs
+                    .iter()
+                    .map(|der| CertificateDer::from(*der))
+                    .collect::<Vec<_>>(),
+                UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp() as u64)),
                 webpki::KeyUsage::required(usage.eku()),
-                &[],
+                None,
+                None,
             )
+            .map(|_| ())
             .map_err(CertificateError::Verification)
     }
 
@@ -194,7 +226,7 @@ impl Certificate {
     /// Convert the certificate to a [`EndEntityCert`] from the `webpki` crate, to verify it (possibly along with a
     /// certificate chain) against a set of trust roots.
     pub fn to_webpki(&self) -> Result<EndEntityCert, CertificateError> {
-        self.try_into()
+        Ok(EndEntityCert::try_from(self.as_certificate_der())?)
     }
 
     pub fn subject(&self) -> Result<IndexMap<String, String>, CertificateError> {
@@ -379,20 +411,25 @@ pub struct CertificateConfiguration {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
-    use chrono::{DateTime, Duration, Utc};
+    use chrono::DateTime;
+    use chrono::Duration;
+    use chrono::Utc;
     use p256::pkcs8::ObjectIdentifier;
-    use time::{macros::datetime, OffsetDateTime};
-    use webpki::TrustAnchor;
+    use time::macros::datetime;
+    use time::OffsetDateTime;
+    use webpki::types::TrustAnchor;
 
     use wallet_common::generator::TimeGenerator;
     use x509_parser::certificate::X509Certificate;
 
-    use crate::{
-        server_keys::KeyPair,
-        utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateType},
-    };
+    use crate::server_keys::KeyPair;
+    use crate::utils::issuer_auth::IssuerRegistration;
+    use crate::utils::reader_auth::ReaderRegistration;
+    use crate::utils::x509::CertificateType;
 
-    use super::{CertificateConfiguration, CertificateError, CertificateUsage};
+    use super::CertificateConfiguration;
+    use super::CertificateError;
+    use super::CertificateUsage;
 
     #[test]
     fn mdoc_eku_encoding_works() {

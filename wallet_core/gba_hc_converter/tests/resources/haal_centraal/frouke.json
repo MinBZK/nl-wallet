@@ -24,17 +24,6 @@
           "omschrijving": "Luik"
         }
       },
-      "nationaliteiten": [
-        {
-          "nationaliteit": {
-            "code": "0001",
-            "omschrijving": "Nederlandse"
-          },
-          "redenOpname": {
-            "code": "017"
-          }
-        }
-      ],
       "verblijfplaats": {
         "straat": "Van Wijngaerdenstraat",
         "naamOpenbareRuimte": "Van Wijngaerdenstraat",

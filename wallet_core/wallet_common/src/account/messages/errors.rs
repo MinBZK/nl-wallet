@@ -1,6 +1,8 @@
 use error_category::ErrorCategory;
-use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_json::Map;
+use serde_json::Value;
 
 /// The list of uniquely identifiable error types. A client
 /// can use these types to distinguish between different errors.
@@ -10,7 +12,7 @@ use serde_json::{Map, Value};
     derive(strum::Display, strum::EnumString),
     strum(serialize_all = "snake_case")
 )]
-#[category(critical)]
+#[category(pd)]
 pub enum AccountError {
     Unexpected,
     ChallengeValidation,

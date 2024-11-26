@@ -1,22 +1,22 @@
 use assert_matches::assert_matches;
-use chrono::{DateTime, Utc};
-use const_decoder::{Decoder, Pem};
-use rstest::{fixture, rstest};
-use webpki::TrustAnchor;
+use chrono::DateTime;
+use chrono::Utc;
+use const_decoder::Decoder;
+use rstest::fixture;
+use rstest::rstest;
 
-use apple_app_attest::{
-    AppIdentifier, Attestation, AttestationEnvironment, AttestationError, AttestationValidationError,
-};
-
-// Source: https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem
-const APPLE_ROOT_CA: [u8; 549] = Pem::decode(include_bytes!("../assets/Apple_App_Attestation_Root_CA.pem"));
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::Attestation;
+use apple_app_attest::AttestationEnvironment;
+use apple_app_attest::AttestationError;
+use apple_app_attest::AttestationValidationError;
+use apple_app_attest::APPLE_TRUST_ANCHORS;
 
 // Source: https://developer.apple.com/documentation/devicecheck/attestation-object-validation-guide
 const TEST_ATTESTATION: [u8; 5637] = Decoder::Base64.decode(include_bytes!("../assets/test_attestation_object.b64"));
 
 /// The parameters used to validate an attestation.
 struct AttestationParameters {
-    trust_anchor: TrustAnchor<'static>,
     time: DateTime<Utc>,
     challenge: Vec<u8>,
     app_identifier: AppIdentifier,
@@ -26,14 +26,12 @@ struct AttestationParameters {
 /// The default [`AttestationParameters`] can be used to validate the sample attestation provided by Apple.
 impl Default for AttestationParameters {
     fn default() -> Self {
-        let trust_anchor = TrustAnchor::try_from_cert_der(&APPLE_ROOT_CA).unwrap();
         let time = DateTime::parse_from_rfc3339("2024-04-18T12:00:00Z").unwrap().to_utc();
         let challenge = b"test_server_challenge".to_vec();
         let app_identifier = AppIdentifier::new("0352187391", "com.apple.example_app_attest");
         let environment = AttestationEnvironment::Production;
 
         Self {
-            trust_anchor,
             time,
             challenge,
             app_identifier,
@@ -116,7 +114,7 @@ fn test_attestation<F>(
 {
     let result = Attestation::parse_and_verify(
         attestation_data,
-        &[parameters.trust_anchor],
+        &APPLE_TRUST_ANCHORS,
         parameters.time,
         &parameters.challenge,
         &parameters.app_identifier,
@@ -124,9 +122,7 @@ fn test_attestation<F>(
     );
 
     if should_succeed {
-        let (_, _, counter) = result.expect("attestation object should be valid");
-
-        assert_eq!(counter, 0);
+        let _ = result.expect("attestation object should be valid");
     } else {
         let error = result.expect_err("attestation object should not be valid");
 

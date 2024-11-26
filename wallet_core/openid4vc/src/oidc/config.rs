@@ -1,10 +1,14 @@
 //! OpenID discovery, loosely based on https://crates.io/crates/openid.
 
-use biscuit::{jwk::JWKSet, Empty};
+use biscuit::jwk::JWKSet;
+use biscuit::Empty;
 use indexmap::IndexSet;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
+
+use wallet_common::reqwest::JsonReqwestBuilder;
 use wallet_common::urls::BaseUrl;
 
 use super::OidcError;
@@ -96,12 +100,12 @@ pub struct Config {
 }
 
 impl Config {
-    pub async fn discover(client: &reqwest::Client, issuer: &BaseUrl) -> Result<Self, OidcError> {
+    pub async fn discover(http_config: &impl JsonReqwestBuilder) -> Result<Self, OidcError> {
         // If the Issuer value contains a path component, any terminating / MUST be removed before
         // appending /.well-known/openid-configuration.
-        let oidc_conf_url = issuer.join(".well-known/openid-configuration");
+        let (http_client, request) = http_config.get(".well-known/openid-configuration");
 
-        let resp = client.get(oidc_conf_url).send().await?.error_for_status()?;
+        let resp = http_client.execute(request.build()?).await?.error_for_status()?;
         resp.json().await.map_err(OidcError::from)
     }
 
@@ -120,11 +124,15 @@ const fn bool_value<const B: bool>() -> bool {
 #[cfg(test)]
 pub mod tests {
     use serde_json::json;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
+
+    use wallet_common::config::http::test::HttpConfig;
+    use wallet_common::reqwest::JsonClientBuilder;
     use wallet_common::urls::BaseUrl;
-    use wiremock::{
-        matchers::{method, path},
-        Mock, MockServer, ResponseTemplate,
-    };
 
     use super::Config;
 
@@ -163,9 +171,11 @@ pub mod tests {
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
-        let http_client = reqwest::Client::new();
+        let http_config = HttpConfig {
+            base_url: server_url.clone(),
+        };
 
-        let discovered = Config::discover(&http_client, &server_url).await.unwrap();
+        let discovered = Config::discover(&http_config).await.unwrap();
 
         assert_eq!(&discovered.issuer, &server_url);
         assert_eq!(
@@ -173,7 +183,10 @@ pub mod tests {
             &server_url.join("/oauth2/authorize")
         );
 
-        let jwks = discovered.jwks(&http_client).await.unwrap();
+        let jwks = discovered
+            .jwks(&http_config.json_builder().build().unwrap())
+            .await
+            .unwrap();
         assert!(jwks.keys.is_empty());
     }
 }

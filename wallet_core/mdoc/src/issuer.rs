@@ -1,19 +1,18 @@
 use chrono::Utc;
 use ciborium::value::Value;
-use coset::{CoseSign1, HeaderBuilder};
+use coset::CoseSign1;
+use coset::HeaderBuilder;
 
 use wallet_common::keys::EcdsaKey;
 
-use crate::{
-    iso::*,
-    server_keys::KeyPair,
-    unsigned::UnsignedMdoc,
-    utils::{
-        cose::{CoseKey, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
-        serialization::TaggedBytes,
-    },
-    Result,
-};
+use crate::iso::*;
+use crate::server_keys::KeyPair;
+use crate::unsigned::UnsignedMdoc;
+use crate::utils::cose::CoseKey;
+use crate::utils::cose::MdocCose;
+use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
+use crate::utils::serialization::TaggedBytes;
+use crate::Result;
 
 impl IssuerSigned {
     pub async fn sign(
@@ -62,23 +61,26 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
-    use std::{num::NonZeroU8, ops::Add};
+    use std::num::NonZeroU8;
+    use std::ops::Add;
 
     use ciborium::Value;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use wallet_common::{generator::TimeGenerator, keys::software::SoftwareEcdsaKey};
+    use wallet_common::generator::TimeGenerator;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
-    use crate::{
-        holder::Mdoc,
-        server_keys::KeyPair,
-        unsigned::{Entry, UnsignedMdoc},
-        utils::{cose::CoseKey, issuer_auth::IssuerRegistration, serialization::TaggedBytes},
-        verifier::ValidityRequirement,
-        IssuerSigned,
-    };
+    use crate::holder::Mdoc;
+    use crate::server_keys::KeyPair;
+    use crate::unsigned::Entry;
+    use crate::unsigned::UnsignedMdoc;
+    use crate::utils::cose::CoseKey;
+    use crate::utils::issuer_auth::IssuerRegistration;
+    use crate::utils::serialization::TaggedBytes;
+    use crate::verifier::ValidityRequirement;
+    use crate::IssuerSigned;
 
     const ISSUANCE_DOC_TYPE: &str = "example_doctype";
     const ISSUANCE_NAME_SPACE: &str = "example_namespace";
@@ -88,7 +90,7 @@ mod tests {
     async fn it_works() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-        let trust_anchors = &[(ca.certificate()).try_into().unwrap()];
+        let trust_anchors = &[ca.certificate().try_into().unwrap()];
 
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
@@ -131,7 +133,7 @@ mod tests {
         assert_eq!(cose_payload.validity_info.valid_until, unsigned.valid_until);
 
         // Construct an mdoc so we can use `compare_unsigned()` to check that the attributes have the expected values
-        let mdoc = Mdoc::new::<SoftwareEcdsaKey>(
+        let mdoc = Mdoc::new::<MockRemoteEcdsaKey>(
             "key_id_not_used_in_this_test".to_string(),
             issuer_signed,
             &TimeGenerator,

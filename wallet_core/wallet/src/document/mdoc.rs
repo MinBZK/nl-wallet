@@ -4,22 +4,31 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::{ProposedAttributes, ProposedDocumentAttributes},
-    identifiers::AttributeIdentifier,
-    unsigned::{Entry, UnsignedMdoc},
-    utils::{
-        issuer_auth::IssuerRegistration,
-        x509::{CertificateError, MdocCertificateExtension},
-    },
-    DataElementIdentifier, DataElementValue, NameSpace,
-};
+use nl_wallet_mdoc::holder::ProposedAttributes;
+use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
+use nl_wallet_mdoc::identifiers::AttributeIdentifier;
+use nl_wallet_mdoc::unsigned::Entry;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use nl_wallet_mdoc::DataElementIdentifier;
+use nl_wallet_mdoc::DataElementValue;
+use nl_wallet_mdoc::NameSpace;
 
-use super::{
-    mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
-    Attribute, AttributeValue, DisclosureDocument, Document, DocumentAttributes, DocumentPersistence,
-    GenderAttributeValue, MissingDisclosureAttributes, PID_DOCTYPE,
-};
+use super::mapping::AttributeMapping;
+use super::mapping::DataElementValueMapping;
+use super::mapping::MappingDocType;
+use super::mapping::MDOC_DOCUMENT_MAPPING;
+use super::Attribute;
+use super::AttributeValue;
+use super::DisclosureDocument;
+use super::Document;
+use super::DocumentAttributes;
+use super::DocumentPersistence;
+use super::GenderAttributeValue;
+use super::MissingDisclosureAttributes;
+use super::PID_DOCTYPE;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -84,20 +93,16 @@ impl DisclosureType {
     /// `doc_type` of `PID_DOCTYPE`, with a `doc_attributes` map where `namespace` is `PID_DOCTYPE`
     /// also, with an entry vec of exactly one entry, where the `DataElementIdentifier` string is "bsn".
     pub fn from_proposed_attributes(proposed_attributes: &ProposedAttributes) -> Self {
-        if let Ok((doc_type, doc_attributes)) = proposed_attributes.iter().exactly_one() {
-            if doc_type == PID_DOCTYPE {
-                if let Ok((namespace, entries)) = doc_attributes.attributes.iter().exactly_one() {
-                    if namespace == PID_DOCTYPE {
-                        if let Ok(entry) = entries.iter().exactly_one() {
-                            if entry.name == "bsn" {
-                                return Self::Login;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Self::Regular
+        proposed_attributes
+            .iter()
+            .exactly_one()
+            .ok()
+            .and_then(|(doc_type, doc_attributes)| (doc_type == PID_DOCTYPE).then_some(doc_attributes))
+            .and_then(|doc_attributes| doc_attributes.attributes.iter().exactly_one().ok())
+            .and_then(|(namespace, entries)| (namespace == PID_DOCTYPE).then_some(entries))
+            .and_then(|entries| entries.iter().exactly_one().ok())
+            .and_then(|entry| (entry.name == "bsn").then_some(Self::Login))
+            .unwrap_or(Self::Regular)
     }
 
     pub fn is_login_flow(&self) -> bool {
@@ -364,18 +369,22 @@ impl DisclosureDocument {
 
 #[cfg(test)]
 pub mod tests {
-    use std::{collections::HashMap, mem, num::NonZeroU8, sync::LazyLock};
+    use std::collections::HashMap;
+    use std::mem;
+    use std::num::NonZeroU8;
+    use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use chrono::{Days, Utc};
+    use chrono::Days;
+    use chrono::Utc;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::{server_keys::KeyPair, Tdate};
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::Tdate;
 
-    use super::{
-        super::{ADDRESS_DOCTYPE, PID_DOCTYPE},
-        *,
-    };
+    use super::super::ADDRESS_DOCTYPE;
+    use super::super::PID_DOCTYPE;
+    use super::*;
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
@@ -539,7 +548,7 @@ pub mod tests {
         assert_matches!(document.persistence, DocumentPersistence::InMemory);
         assert_eq!(document.doc_type, PID_DOCTYPE);
         assert_eq!(
-            document.attributes.keys().cloned().collect::<Vec<_>>(),
+            document.attributes.keys().copied().collect::<Vec<_>>(),
             vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
         );
         assert_matches!(
@@ -760,7 +769,7 @@ pub mod tests {
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
-            disclosure_document.attributes.keys().cloned().collect::<Vec<_>>(),
+            disclosure_document.attributes.keys().copied().collect::<Vec<_>>(),
             vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
         );
         assert_matches!(
@@ -823,7 +832,7 @@ pub mod tests {
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
-            disclosure_document.attributes.keys().cloned().collect::<Vec<_>>(),
+            disclosure_document.attributes.keys().copied().collect::<Vec<_>>(),
             vec!["age_over_18"]
         );
         assert_matches!(

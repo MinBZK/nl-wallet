@@ -1,26 +1,37 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::collections::HashSet;
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
+use chrono::Utc;
 use indexmap::IndexMap;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{utils::x509::Certificate, DocType};
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::DocType;
 use openid4vc::credential::MdocCopies;
 
 use crate::storage::event_log::WalletEventModel;
 
-use super::{
-    data::{KeyedData, RegistrationData},
-    event_log::WalletEvent,
-    Storage, StorageResult, StorageState, StoredMdocCopy,
-};
+use super::data::KeyedData;
+use super::data::RegistrationData;
+use super::event_log::WalletEvent;
+use super::Storage;
+use super::StorageResult;
+use super::StorageState;
+use super::StoredMdocCopy;
+
+#[derive(Debug)]
+pub enum KeyedDataResult {
+    Data(String),
+    Error,
+}
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
 #[derive(Debug)]
 pub struct MockStorage {
     pub state: StorageState,
-    pub data: HashMap<&'static str, String>,
+    pub data: HashMap<&'static str, KeyedDataResult>,
     pub mdocs: IndexMap<DocType, Vec<MdocCopies>>,
     pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
@@ -32,7 +43,10 @@ impl MockStorage {
         let mut data = HashMap::new();
 
         if let Some(registration) = registration {
-            data.insert(RegistrationData::KEY, serde_json::to_string(&registration).unwrap());
+            data.insert(
+                RegistrationData::KEY,
+                KeyedDataResult::Data(serde_json::to_string(&registration).unwrap()),
+            );
         }
 
         MockStorage {
@@ -43,6 +57,10 @@ impl MockStorage {
             event_log: vec![],
             has_query_error: false,
         }
+    }
+
+    pub fn set_keyed_data_error(&mut self, key: &'static str) {
+        self.data.insert(key, KeyedDataResult::Error);
     }
 
     fn check_query_error(&self) -> StorageResult<()> {
@@ -77,29 +95,35 @@ impl Storage for MockStorage {
     }
 
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>> {
-        self.check_query_error()?;
+        let data = self.data.get(D::KEY);
 
-        let data = self.data.get(D::KEY).map(|s| serde_json::from_str(s).unwrap());
-
-        Ok(data)
+        match data {
+            Some(KeyedDataResult::Data(data)) => Ok(Some(serde_json::from_str(data).unwrap())),
+            Some(KeyedDataResult::Error) => Err(DbErr::Custom("Mock error".to_string()).into()),
+            None => Ok(None),
+        }
     }
 
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
-        self.check_query_error()?;
-
-        if self.data.contains_key(D::KEY) {
-            panic!("Registration already present");
+        match self.data.get(D::KEY) {
+            Some(KeyedDataResult::Data(_)) => panic!("{} already present", D::KEY),
+            Some(KeyedDataResult::Error) => return Err(DbErr::Custom("Mock error".to_string()).into()),
+            None => (),
         }
 
-        self.data.insert(D::KEY, serde_json::to_string(&data).unwrap());
+        self.data
+            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data).unwrap()));
 
         Ok(())
     }
 
     async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
-        self.check_query_error()?;
+        if let Some(KeyedDataResult::Error) = self.data.get(D::KEY) {
+            return Err(DbErr::Custom("Mock error".to_string()).into());
+        }
 
-        self.data.insert(D::KEY, serde_json::to_string(&data).unwrap());
+        self.data
+            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data).unwrap()));
 
         Ok(())
     }
@@ -226,12 +250,13 @@ impl Storage for MockStorage {
 
 #[cfg(test)]
 mod tests {
-    use serde::{Deserialize, Serialize};
+    use serde::Deserialize;
+    use serde::Serialize;
 
-    use crate::storage::{
-        database_storage::tests::{test_history_by_doc_type, test_history_ordering},
-        KeyedData, Storage,
-    };
+    use crate::storage::database_storage::tests::test_history_by_doc_type;
+    use crate::storage::database_storage::tests::test_history_ordering;
+    use crate::storage::KeyedData;
+    use crate::storage::Storage;
 
     use super::MockStorage;
 

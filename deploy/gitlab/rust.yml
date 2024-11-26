@@ -13,7 +13,7 @@
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -26,7 +26,7 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
   cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
@@ -35,7 +35,7 @@ test-rust:
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:8260dcdfd90b550c80d8a2e5527c0efb2280b371ab34c28f713f770a749c49dc"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:5da1ca66c23dca82ce706ecd0250118e86e688ce4405830c6ab7e775fd2dfa0e"
       alias: postgres
       variables:
         POSTGRES_USER: "postgres"
@@ -49,7 +49,7 @@ test-rust:
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
-    - cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
+    - RUST_BACKTRACE=1 cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
     reports:
@@ -67,7 +67,7 @@ test-rust:
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:80ee37043a73ff9c36d07c59c72971bd1922fd70adbbb7f34e78134a76a1b272"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a18d15cc70eba96f4178776721d251e0edec9cba4d2730b4a64748a5e40435ed"
   script:
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
@@ -82,7 +82,7 @@ test-rust-compilation-ios:
 .build-binary:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:4a4f49ce40693fbc9040869aa98822de3bfa87594ba7c7f25e5091f21a943fe5"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
   cache: !reference [.rust-cache, cache]
   needs:
     - job: test-rust
@@ -181,3 +181,19 @@ build-gba-fetch-binary:
   artifacts:
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_fetch
+
+build-gba-encrypt-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --package "gba_hc_converter" --bin gba_encrypt
+  artifacts:
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_encrypt
+
+build-gba-fetch-frontend-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin gba_fetch_frontend
+  artifacts:
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-musl/release/gba_fetch_frontend

@@ -40,24 +40,32 @@
 
 use std::collections::HashSet;
 
-use chrono::{serde::ts_seconds, DateTime, Utc};
-use jsonwebtoken::{Algorithm, TokenData, Validation};
+use chrono::serde::ts_seconds;
+use chrono::DateTime;
+use chrono::Utc;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::TokenData;
+use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
-use serde::{Deserialize, Serialize};
-use serde_with::{
-    base64::{Base64, UrlSafe},
-    formats::Unpadded,
-    serde_as, skip_serializing_none,
-};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
+use serde_with::formats::Unpadded;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
 use url::Url;
 
 use error_category::ErrorCategory;
-use wallet_common::{
-    jwt::{jwk_jwt_header, jwk_to_p256, EcdsaDecodingKey, JwkConversionError, Jwt, JwtError},
-    keys::EcdsaKey,
-    utils::random_string,
-};
+use wallet_common::jwt::jwk_jwt_header;
+use wallet_common::jwt::jwk_to_p256;
+use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::jwt::JwkConversionError;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtError;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::utils::random_string;
 
 use crate::token::AccessToken;
 
@@ -251,16 +259,16 @@ impl Dpop {
 mod tests {
     use base64::prelude::*;
     use jsonwebtoken::Header;
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use p256::ecdsa::SigningKey;
+    use p256::elliptic_curve::rand_core::OsRng;
     use reqwest::Method;
     use rstest::rstest;
     use serde::de::DeserializeOwned;
     use url::Url;
 
-    use crate::{
-        dpop::{DpopPayload, OPENID4VCI_DPOP_JWT_TYPE},
-        token::AccessToken,
-    };
+    use crate::dpop::DpopPayload;
+    use crate::dpop::OPENID4VCI_DPOP_JWT_TYPE;
+    use crate::token::AccessToken;
 
     use super::Dpop;
 

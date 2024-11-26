@@ -5,7 +5,8 @@ use serial_test::serial;
 use tokio::time::sleep;
 
 use tests_integration::common::*;
-use wallet::errors::{InstructionError, WalletUnlockError};
+use wallet::errors::InstructionError;
+use wallet::errors::WalletUnlockError;
 
 #[tokio::test]
 #[serial]
@@ -33,12 +34,17 @@ async fn test_unlock_ok() {
 async fn test_block() {
     let pin = "112234".to_string();
 
-    let mut settings = wallet_provider_settings();
+    let (mut settings, wp_root_ca) = wallet_provider_settings();
     settings.pin_policy.rounds = 1;
     settings.pin_policy.attempts_per_round = 2;
     settings.pin_policy.timeouts = vec![];
 
-    let mut wallet = setup_wallet_and_env(config_server_settings(), settings, wallet_server_settings()).await;
+    let mut wallet = setup_wallet_and_env(
+        config_server_settings(),
+        (settings, wp_root_ca),
+        wallet_server_settings(),
+    )
+    .await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     wallet.lock();

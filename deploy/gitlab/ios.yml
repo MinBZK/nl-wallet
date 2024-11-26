@@ -3,7 +3,7 @@ test-ios:
   rules: !reference [.default-or-release-or-merge-request, rules]
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.2
   artifacts:
     when: always
     reports:
@@ -35,7 +35,7 @@ test-ios:
       artifacts: false
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.2
   artifacts:
     name: "wallet-ios"
     paths:
@@ -59,6 +59,7 @@ test-ios:
         app_name:"${APP_NAME}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
+        mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
@@ -87,10 +88,11 @@ build-ios-app-ont:
     SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
     SENTRY_URL: "https://sentry.io/"
 
-# build-ios-app-ont-profile:
-#   extends: .build-ios-app-ont
-#   variables:
-#     APP_BUILD_MODE: "profile"
+build-ios-app-ont-profile:
+  extends: .build-ios-app-ont
+  variables:
+    APP_BUILD_MODE: "profile"
+    MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 .build-ios-app-release-tag:
   extends: .build-ios-app
@@ -138,10 +140,11 @@ build-ios-app-demo:
     SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
     SENTRY_URL: "https://sentry.io/"
 
-# build-ios-app-demo-profile:
-#   extends: .build-ios-app-demo
-#   variables:
-#     APP_BUILD_MODE: "profile" # override .build-ios-app-release-tag
+build-ios-app-demo-profile:
+  extends: .build-ios-app-demo
+  variables:
+    APP_BUILD_MODE: "profile" # override .build-ios-app-release-tag
+    MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 build-ios-app-acceptance:
   extends: .build-ios-app-release-tag
@@ -200,7 +203,7 @@ build-ios-app-production:
   extends: [.env-macos-runner, .ruby-cache-macos]
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.2
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   before_script:

@@ -1,10 +1,17 @@
-use std::{env, net::IpAddr, path::PathBuf, time::Duration};
+use std::env;
+use std::net::IpAddr;
+use std::path::PathBuf;
+use std::time::Duration;
 
-use config::{Config, ConfigError, Environment, File};
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
 use serde::Deserialize;
-use serde_with::{serde_as, DurationMilliSeconds, DurationSeconds};
-
-use wallet_common::sentry::Sentry;
+use serde_with::serde_as;
+use serde_with::DurationMilliSeconds;
+use serde_with::DurationSeconds;
+use wallet_common::config::http::TlsServerConfig;
 use wallet_provider_database_settings::Database;
 
 #[serde_as]
@@ -19,10 +26,10 @@ pub struct Settings {
     pub wte_issuer_identifier: String,
     pub database: Database,
     pub webserver: Webserver,
+    pub tls_config: Option<TlsServerConfig>,
     pub hsm: Hsm,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,
-    pub sentry: Option<Sentry>,
 
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]

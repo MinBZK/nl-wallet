@@ -1,20 +1,23 @@
 use std::error::Error;
 
-use chrono::{TimeDelta, Utc};
-use indexmap::IndexMap;
+use p256::ecdsa::VerifyingKey;
 
-use wallet_common::{
-    jwt::{Jwt, JwtCredentialClaims, JwtError},
-    keys::SecureEcdsaKey,
-};
-use wallet_provider_domain::model::{hsm::WalletUserHsm, wrapped_key::WrappedKey};
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtError;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::wte::WteClaims;
+use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
-use crate::{hsm::HsmError, keys::WalletProviderEcdsaKey};
+use crate::hsm::HsmError;
+use crate::keys::WalletProviderEcdsaKey;
 
 pub trait WteIssuer {
     type Error: Error + Send + Sync + 'static;
 
-    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error>;
+    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error>;
+    async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
 pub struct HsmWteIssuer<H, K = WalletProviderEcdsaKey> {
@@ -35,6 +38,8 @@ pub enum HsmWteIssuerError {
     Hsm(#[from] HsmError),
     #[error("JWT error: {0}")]
     KeyConversion(#[from] JwtError),
+    #[error("public key error: {0}")]
+    PublicKeyError(Box<dyn Error + Send + Sync + 'static>),
 }
 
 static WTE_JWT_TYP: &str = "wte+jwt";
@@ -46,7 +51,7 @@ where
 {
     type Error = HsmWteIssuerError;
 
-    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error> {
+    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
         let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key().await?;
 
         let jwt = JwtCredentialClaims::new_signed(
@@ -54,18 +59,18 @@ where
             &self.private_key,
             self.iss.clone(),
             Some(WTE_JWT_TYP.to_string()),
-            IndexMap::from([(
-                "exp".to_string(),
-                Utc::now()
-                    .checked_add_signed(TimeDelta::minutes(5))
-                    .unwrap() // Adding 5 minutes won't overflow
-                    .timestamp()
-                    .into(),
-            )]),
+            WteClaims::new(),
         )
         .await?;
 
         Ok((wrapped_privkey, jwt))
+    }
+
+    async fn public_key(&self) -> Result<VerifyingKey, Self::Error> {
+        self.private_key
+            .verifying_key()
+            .await
+            .map_err(|e| HsmWteIssuerError::PublicKeyError(Box::new(e)))
     }
 }
 
@@ -73,7 +78,12 @@ where
 pub mod mock {
     use std::convert::Infallible;
 
-    use wallet_common::jwt::{Jwt, JwtCredentialClaims};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
+    use wallet_common::jwt::Jwt;
+    use wallet_common::jwt::JwtCredentialClaims;
+    use wallet_common::wte::WteClaims;
     use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
     use super::WteIssuer;
@@ -83,34 +93,40 @@ pub mod mock {
     impl WteIssuer for MockWteIssuer {
         type Error = Infallible;
 
-        async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims>), Self::Error> {
-            Ok((WrappedKey::new(b"mock_key_bytes".to_vec()), "a.b.c".into()))
+        async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
+            let privkey = SigningKey::random(&mut OsRng);
+            Ok((
+                WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+                "a.b.c".into(),
+            ))
+        }
+
+        async fn public_key(&self) -> Result<p256::ecdsa::VerifyingKey, Self::Error> {
+            unimplemented!()
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use chrono::Utc;
-    use p256::ecdsa::signature::Verifier;
 
-    use wallet_common::{
-        jwt::{self, jwk_to_p256},
-        keys::{software::SoftwareEcdsaKey, EcdsaKey},
-    };
-    use wallet_provider_domain::model::hsm::{mock::MockPkcs11Client, WalletUserHsm};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+    use wallet_common::jwt::jwk_to_p256;
+    use wallet_common::jwt::{self};
+    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 
     use crate::hsm::HsmError;
 
-    use super::{HsmWteIssuer, WteIssuer};
+    use super::HsmWteIssuer;
+    use super::WteIssuer;
 
     #[tokio::test]
     async fn it_works() {
         let hsm = MockPkcs11Client::<HsmError>::default();
-        let wte_signing_key = SoftwareEcdsaKey::new_random("wte_signing_key".to_string());
-        let wte_verifying_key = wte_signing_key.verifying_key().await.unwrap();
+        let wte_signing_key = SigningKey::random(&mut OsRng);
+        let wte_verifying_key = wte_signing_key.verifying_key();
         let iss = "iss";
 
         let wte_issuer = HsmWteIssuer {
@@ -122,24 +138,16 @@ mod tests {
         let (wte_privkey, wte) = wte_issuer.issue_wte().await.unwrap();
 
         let wte_claims = wte
-            .parse_and_verify(&(&wte_verifying_key).into(), &jwt::validations())
+            .parse_and_verify(&wte_verifying_key.into(), &jwt::validations())
             .unwrap();
 
-        // We want to check that the public key of `wte_privkey` equals the public key in the `wte_claims`,
-        // but the `hsm` API does not allow us to do that. So instead we check that we can sign things
-        // with it that validate against the public key in the `wte_claims`.
-        let sig = wte_issuer
-            .hsm
-            .sign_wrapped(wte_privkey, Arc::new(b"".to_vec()))
-            .await
-            .unwrap();
-        jwk_to_p256(&wte_claims.confirmation.jwk)
-            .unwrap()
-            .verify(b"", &sig)
-            .unwrap();
+        assert_eq!(
+            wte_privkey.public_key(),
+            &jwk_to_p256(&wte_claims.confirmation.jwk).unwrap()
+        );
 
         // Check that the fields have the expected contents
         assert_eq!(wte_claims.contents.iss, iss.to_string());
-        assert!(wte_claims.contents.attributes["exp"].as_i64().unwrap() > Utc::now().timestamp());
+        assert!(wte_claims.contents.attributes.exp > Utc::now());
     }
 }

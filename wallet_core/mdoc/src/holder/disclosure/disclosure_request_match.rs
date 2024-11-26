@@ -1,19 +1,23 @@
 use std::collections::HashMap;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 
-use crate::{
-    engagement::{DeviceAuthenticationKeyed, SessionTranscript},
-    errors::Result,
-    holder::HolderError,
-    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    mdocs::DocType,
-    utils::serialization::{self, CborSeq, TaggedBytes},
-    ItemsRequest,
-};
+use crate::engagement::DeviceAuthenticationKeyed;
+use crate::engagement::SessionTranscript;
+use crate::errors::Result;
+use crate::holder::HolderError;
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
+use crate::mdocs::DocType;
+use crate::utils::serialization::CborSeq;
+use crate::utils::serialization::TaggedBytes;
+use crate::utils::serialization::{self};
+use crate::ItemsRequest;
 
-use super::{proposed_document::ProposedDocument, MdocDataSource};
+use super::proposed_document::ProposedDocument;
+use super::MdocDataSource;
 
 /// This type represents the result of matching an iterator of `ItemsRequest`
 /// instances against all locally stored document. This result is one of two options:
@@ -40,11 +44,11 @@ pub enum DisclosureRequestMatch<I> {
 }
 
 impl<I> DisclosureRequestMatch<I> {
-    pub async fn new<'a>(
-        items_requests: impl IntoIterator<Item = &'a ItemsRequest> + Clone,
+    pub async fn new(
+        items_requests: impl IntoIterator<Item = &ItemsRequest> + Clone,
         mdoc_data_source: &impl MdocDataSource<MdocIdentifier = I>,
         session_transcript: &SessionTranscript,
-    ) -> Result<DisclosureRequestMatch<I>> {
+    ) -> Result<Self> {
         // Make a `HashSet` of doc types from the `DeviceRequest` to account
         // for potential duplicate doc types in the request, then fetch them
         // from our data source.
@@ -193,19 +197,21 @@ mod tests {
     use futures::future;
     use rstest::rstest;
 
-    use crate::{
-        holder::mock::MockMdocDataSource,
-        iso::{
-            mdocs::{Attributes, IssuerNameSpaces, IssuerSignedItem},
-            unsigned::Entry,
-        },
-        server_keys::KeyPair,
-        software_key_factory::SoftwareKeyFactory,
-        test::{
-            data::{addr_street, empty, pid_family_name, pid_full_name, pid_given_name},
-            TestDocument, TestDocuments,
-        },
-    };
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+
+    use crate::holder::mock::MockMdocDataSource;
+    use crate::iso::mdocs::Attributes;
+    use crate::iso::mdocs::IssuerNameSpaces;
+    use crate::iso::mdocs::IssuerSignedItem;
+    use crate::iso::unsigned::Entry;
+    use crate::server_keys::KeyPair;
+    use crate::test::data::addr_street;
+    use crate::test::data::empty;
+    use crate::test::data::pid_family_name;
+    use crate::test::data::pid_full_name;
+    use crate::test::data::pid_given_name;
+    use crate::test::TestDocument;
+    use crate::test::TestDocuments;
 
     use super::*;
 
@@ -237,7 +243,7 @@ mod tests {
         use crate::DeviceRequest;
 
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-        let key_factory = SoftwareKeyFactory::default();
+        let key_factory = MockRemoteKeyFactory::default();
 
         let mdoc_data_source = MockMdocDataSource::new(
             future::join_all(

@@ -1,22 +1,26 @@
-use std::{net::IpAddr, sync::Arc};
+use std::net::IpAddr;
+use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::extract::State;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Json;
+use axum::Router;
 use http::StatusCode;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
-use tracing::{debug, info};
+use tracing::debug;
+use tracing::info;
 
 use wallet_common::http_error::HttpJsonError;
 
-use crate::{
-    error::{Error, ErrorType},
-    gba::{client::GbavClient, data::GbaResponse},
-    haal_centraal::{Bsn, PersonQuery, PersonsResponse},
-};
+use crate::error::Error;
+use crate::error::ErrorType;
+use crate::gba::client::GbavClient;
+use crate::gba::data::GbaResponse;
+use crate::haal_centraal::Bsn;
+use crate::haal_centraal::PersonQuery;
+use crate::haal_centraal::PersonsResponse;
 
 struct ApplicationState<T> {
     gbav_client: T,

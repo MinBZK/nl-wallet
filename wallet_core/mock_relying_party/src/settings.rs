@@ -1,14 +1,18 @@
-use std::{env, net::IpAddr, path::PathBuf};
+use std::env;
+use std::net::IpAddr;
+use std::path::PathBuf;
 
-use config::{Config, ConfigError, Environment, File};
-use http::{header::InvalidHeaderValue, HeaderValue};
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
 use indexmap::IndexMap;
-use nutype::nutype;
-use serde::{Deserialize, Serialize};
-use url::Url;
+use serde::Deserialize;
+use serde::Serialize;
 
 use nl_wallet_mdoc::verifier::ItemsRequests;
-use wallet_common::{sentry::Sentry, urls::BaseUrl};
+use wallet_common::urls::BaseUrl;
+use wallet_common::urls::CorsOrigin;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -17,11 +21,9 @@ pub struct Settings {
     pub public_wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
     pub structured_logging: bool,
-    #[serde(default)]
-    pub allow_origins: Vec<Origin>,
+    pub allow_origins: Option<CorsOrigin>,
     pub wallet_web: WalletWeb,
     pub usecases: IndexMap<String, Usecase>,
-    pub sentry: Option<Sentry>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -50,38 +52,6 @@ pub struct Usecase {
     #[serde(default)]
     pub return_url: ReturnUrlMode,
     pub items_requests: ItemsRequests,
-}
-
-#[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(TryFrom, Deserialize, Clone))]
-pub struct Origin(Url);
-
-impl Origin {
-    fn is_valid(u: &Url) -> bool {
-        #[cfg(feature = "allow_http_return_url")]
-        let allowed_schemes = ["https", "http"];
-        #[cfg(not(feature = "allow_http_return_url"))]
-        let allowed_schemes = ["https"];
-
-        (allowed_schemes.contains(&u.scheme()))
-            && u.has_host()
-            && u.fragment().is_none()
-            && u.query().is_none()
-            && u.path() == "/"
-        // trailing slash is stripped of when converting to `HeaderValue`
-    }
-}
-
-impl TryFrom<Origin> for HeaderValue {
-    type Error = InvalidHeaderValue;
-
-    fn try_from(value: Origin) -> Result<Self, Self::Error> {
-        let url = value.into_inner();
-        let mut str = format!("{0}://{1}", url.scheme(), url.host_str().unwrap(),);
-        if let Some(port) = url.port() {
-            str += &format!(":{0}", port);
-        }
-        HeaderValue::try_from(str)
-    }
 }
 
 impl Settings {

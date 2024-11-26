@@ -1,29 +1,40 @@
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
-use cryptoki::{
-    context::{CInitializeArgs, Pkcs11},
-    mechanism::{aead::GcmParams, Mechanism},
-    object::{Attribute, AttributeType, KeyType, ObjectClass, ObjectHandle},
-    types::AuthPin,
-};
-use der::{asn1::OctetString, Decode, Encode};
-use p256::{
-    ecdsa::{Signature, VerifyingKey},
-    pkcs8::AssociatedOid,
-    NistP256,
-};
-use r2d2_cryptoki::{Pool, SessionManager, SessionType};
+use cryptoki::context::CInitializeArgs;
+use cryptoki::context::Pkcs11;
+use cryptoki::mechanism::aead::GcmParams;
+use cryptoki::mechanism::Mechanism;
+use cryptoki::object::Attribute;
+use cryptoki::object::AttributeType;
+use cryptoki::object::KeyType;
+use cryptoki::object::ObjectClass;
+use cryptoki::object::ObjectHandle;
+use cryptoki::types::AuthPin;
+use der::asn1::OctetString;
+use der::Decode;
+use der::Encode;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::AssociatedOid;
+use p256::NistP256;
+use r2d2_cryptoki::Pool;
+use r2d2_cryptoki::SessionManager;
+use r2d2_cryptoki::SessionType;
 use sec1::EcParameters;
 
-use wallet_common::{spawn, utils::sha256};
-use wallet_provider_domain::model::{
-    encrypted::{Encrypted, InitializationVector},
-    encrypter::{Decrypter, Encrypter},
-    hsm,
-    hsm::{Hsm, WalletUserHsm},
-    wallet_user::WalletId,
-    wrapped_key::WrappedKey,
-};
+use wallet_common::spawn;
+use wallet_common::utils::sha256;
+use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::encrypted::InitializationVector;
+use wallet_provider_domain::model::encrypter::Decrypter;
+use wallet_provider_domain::model::encrypter::Encrypter;
+use wallet_provider_domain::model::hsm;
+use wallet_provider_domain::model::hsm::Hsm;
+use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wallet_user::WalletId;
+use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HsmError {
@@ -77,7 +88,12 @@ pub(crate) trait Pkcs11Client {
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle>;
     async fn get_verifying_key(&self, public_key_handle: PublicKeyHandle) -> Result<VerifyingKey>;
-    async fn wrap_key(&self, wrapping_key: PrivateKeyHandle, key: PrivateKeyHandle) -> Result<WrappedKey>;
+    async fn wrap_key(
+        &self,
+        wrapping_key: PrivateKeyHandle,
+        key: PrivateKeyHandle,
+        public_key: VerifyingKey,
+    ) -> Result<WrappedKey>;
     async fn unwrap_signing_key(
         &self,
         unwrapping_key: PrivateKeyHandle,
@@ -203,9 +219,12 @@ impl WalletUserHsm for Pkcs11Hsm {
     async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey)> {
         let private_wrapping_handle = self.get_private_key_handle(&self.wrapping_key_identifier).await?;
         let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
-
-        let wrapped = self.wrap_key(private_wrapping_handle, private_handle).await?;
         let verifying_key = Pkcs11Client::get_verifying_key(self, public_handle).await?;
+
+        let wrapped = self
+            .wrap_key(private_wrapping_handle, private_handle, verifying_key)
+            .await?;
+
         Ok((verifying_key, wrapped))
     }
 
@@ -401,13 +420,18 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
-    async fn wrap_key(&self, wrapping_key: PrivateKeyHandle, key: PrivateKeyHandle) -> Result<WrappedKey> {
+    async fn wrap_key(
+        &self,
+        wrapping_key: PrivateKeyHandle,
+        key: PrivateKeyHandle,
+        public_key: VerifyingKey,
+    ) -> Result<WrappedKey> {
         let pool = self.pool.clone();
 
         spawn::blocking(move || {
             let session = pool.get()?;
             let wrapped_key_bytes = session.wrap_key(&Mechanism::AesKeyWrapPad, wrapping_key.0, key.0)?;
-            Ok(WrappedKey::new(wrapped_key_bytes))
+            Ok(WrappedKey::new(wrapped_key_bytes, public_key))
         })
         .await
     }
@@ -418,7 +442,6 @@ impl Pkcs11Client for Pkcs11Hsm {
         wrapped_key: WrappedKey,
     ) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
-        let wrapped_key: Vec<u8> = wrapped_key.into();
 
         spawn::blocking(move || {
             let session = pool.get()?;
@@ -426,7 +449,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             let result = session.unwrap_key(
                 &Mechanism::AesKeyWrapPad,
                 unwrapping_key.0,
-                &wrapped_key,
+                wrapped_key.wrapped_private_key(),
                 &[
                     Attribute::KeyType(KeyType::EC),
                     Attribute::Token(false),

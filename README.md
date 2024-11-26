@@ -302,7 +302,7 @@ https://localhost:8006/ . Note the https in the URL, which is provided using
 self-signed certificates.
 
 Besides that, the development setup runs without using TLS. Therefore, the
-feature `allow_http_return_url` enables the possibility to use a return URL with
+feature `allow_insecure_url` enables the possibility to use a return URL with
 the scheme `http` (while normally `https` is only allowed).
 
 The local wallet can be connected to Sentry for crash and error reporting by
@@ -474,7 +474,7 @@ read the text in a regular text editor or pager to see them.
 
 [1]:  https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
 [2]:  https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte-eer-eidas/alles-wat-u-moet-weten-over-eidas/
-[3]:  https://www.figma.com/design/ouWgyuwvt3DrmN2MeGuh8P/20240923_Release_UI_NLWallet?node-id=1-3716&t=WI0g9Daoy1hSuWjg-1/
+[3]:  https://www.figma.com/design/CPMQrCx6QBr4oLYjDvhY3g/20241015_Release_UI_NLWallet?node-id=27602-6&t=DUBHU8KUCwhougZo-1/
 [4]:  https://github.com/MinBZK/nl-wallet/
 [5]:  https://edi.pleio.nl/
 [6]:  mailto:edi@minbzk.nl?subject=Feedback%20or%20ideas

@@ -11,15 +11,13 @@ workspace = true
 # Include code for generating certificates and keys
 generate = ["dep:rcgen"]
 # Include examples from the ISO specification
-examples = ["dep:anyhow", "dep:hex-literal"]
-# Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
-software_keys = ["wallet_common/software_keys"]
-# Include SoftwareKeyFactory, which implements KeyFactory for testing
-software_key_factory = ["software_keys", "dep:parking_lot"]
+examples = []
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
+# Include example based constructors to several types for testing
+mock_example_constructors = ["examples", "mock", "wallet_common/examples", "wallet_common/mock_remote_key"]
 # Include MockTimeGenerator, which can be used to mock the curren time for testing purposes
 mock_time = ["dep:parking_lot"]
 
@@ -29,7 +27,7 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
-derive_more = { workspace = true, features = ["as_ref"] }
+derive_more = { workspace = true, features = ["as_ref", "debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
@@ -77,4 +75,4 @@ regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "software_keys"] }
+wallet_common = { path = "../wallet_common", features = ["examples", "mock_secure_keys", "mock_remote_key"] }

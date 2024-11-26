@@ -1,10 +1,12 @@
-use sentry::{test::with_captured_events, Level};
+use sentry::test::with_captured_events;
+use sentry::Level;
 
 // Macro is applied in module, to verify whether `pub` is handled correctly
 mod my_module {
     use thiserror::Error;
 
-    use error_category::{sentry_capture_error, ErrorCategory};
+    use error_category::sentry_capture_error;
+    use error_category::ErrorCategory;
 
     // Test `sentry_capture_error` on regular functions
     #[sentry_capture_error]

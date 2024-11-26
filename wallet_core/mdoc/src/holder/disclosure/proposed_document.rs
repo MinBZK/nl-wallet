@@ -1,19 +1,18 @@
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
+use indexmap::IndexSet;
 
-use crate::{
-    errors::Result,
-    identifiers::AttributeIdentifier,
-    iso::{
-        disclosure::{DeviceSigned, Document, IssuerSigned},
-        mdocs::DocType,
-    },
-    unsigned::Entry,
-    utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
-        x509::Certificate,
-    },
-    NameSpace,
-};
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+
+use crate::errors::Result;
+use crate::identifiers::AttributeIdentifier;
+use crate::iso::disclosure::DeviceSigned;
+use crate::iso::disclosure::Document;
+use crate::iso::disclosure::IssuerSigned;
+use crate::iso::mdocs::DocType;
+use crate::unsigned::Entry;
+use crate::utils::x509::Certificate;
+use crate::NameSpace;
 
 use super::StoredMdoc;
 
@@ -174,7 +173,7 @@ impl<I> ProposedDocument<I> {
     ) -> Result<Vec<Document>>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
     {
         let keys_and_challenges = proposed_documents
             .iter()
@@ -203,7 +202,7 @@ impl<I> ProposedDocument<I> {
     }
 }
 
-#[cfg(any(test, all(feature = "examples", feature = "mock", feature = "software_keys")))]
+#[cfg(any(test, feature = "mock_example_constructors"))]
 mod examples {
     use crate::holder::Mdoc;
 
@@ -232,17 +231,16 @@ mod tests {
     use assert_matches::assert_matches;
     use coset::Header;
 
-    use crate::{
-        errors::Error,
-        examples::{Examples, EXAMPLE_NAMESPACE},
-        holder::Mdoc,
-        iso::disclosure::DeviceAuth,
-        software_key_factory::SoftwareKeyFactory,
-        utils::{
-            cose::{self, CoseError},
-            serialization::TaggedBytes,
-        },
-    };
+    use wallet_common::keys::examples::Examples;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+
+    use crate::errors::Error;
+    use crate::examples::EXAMPLE_NAMESPACE;
+    use crate::holder::Mdoc;
+    use crate::iso::disclosure::DeviceAuth;
+    use crate::utils::cose::CoseError;
+    use crate::utils::cose::{self};
+    use crate::utils::serialization::TaggedBytes;
 
     use super::*;
 
@@ -388,7 +386,7 @@ mod tests {
         .await
         .unwrap();
 
-        let mut documents = ProposedDocument::sign_multiple(&SoftwareKeyFactory::default(), vec![proposed_document])
+        let mut documents = ProposedDocument::sign_multiple(&MockRemoteKeyFactory::default(), vec![proposed_document])
             .await
             .expect("Could not sign ProposedDocument");
 
@@ -409,7 +407,7 @@ mod tests {
         // Set up a `KeyFactory` that returns keys that fail at signing.
         let proposed_document = ProposedDocument::new_example();
         let key_factory = {
-            let mut key_factory = SoftwareKeyFactory::default();
+            let mut key_factory = MockRemoteKeyFactory::default();
             key_factory.has_multi_key_signing_error = true;
 
             key_factory

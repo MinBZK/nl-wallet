@@ -1,17 +1,18 @@
-use std::{
-    collections::hash_map::DefaultHasher,
-    fmt::Debug,
-    hash::{Hash, Hasher},
-};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
 
+use derive_more::Debug;
 use etag::EntityTag;
-use serde::{Deserialize, Serialize};
-use webpki::TrustAnchor;
+use serde::Deserialize;
+use serde::Serialize;
+use webpki::types::TrustAnchor;
 
-use crate::{
-    account::serialization::DerVerifyingKey, config::digid::DigidApp2AppConfiguration, trust_anchor::DerTrustAnchor,
-    urls::BaseUrl,
-};
+use crate::account::serialization::DerVerifyingKey;
+use crate::config::digid::DigidApp2AppConfiguration;
+use crate::config::http::TlsPinningConfig;
+use crate::trust_anchor::DerTrustAnchor;
+use crate::urls::BaseUrl;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct WalletConfiguration {
@@ -61,59 +62,35 @@ impl Default for LockTimeoutConfiguration {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct AccountServerConfiguration {
-    // The base URL for the Account Server API
-    pub base_url: BaseUrl,
-    // The known public key for the Wallet Provider
+    pub http_config: TlsPinningConfig,
+    #[debug(skip)]
     pub certificate_public_key: DerVerifyingKey,
+    #[debug(skip)]
     pub instruction_result_public_key: DerVerifyingKey,
-    pub wte_trust_anchors: Vec<DerTrustAnchor>,
+    #[debug(skip)]
+    pub wte_public_key: DerVerifyingKey,
 }
 
-impl AccountServerConfiguration {
-    pub fn wte_trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.wte_trust_anchors
-            .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect()
-    }
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct DigidConfiguration {
+    pub client_id: String,
+    #[serde(default)]
+    pub app2app: Option<DigidApp2AppConfiguration>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: BaseUrl,
-    pub digid_url: BaseUrl,
-    pub digid_client_id: String,
-    #[serde(default)]
-    pub digid_trust_anchors: Vec<DerTrustAnchor>,
-    #[serde(default)]
-    pub digid_app2app: Option<DigidApp2AppConfiguration>,
+    pub digid: DigidConfiguration,
+    pub digid_http_config: TlsPinningConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct DisclosureConfiguration {
+    #[debug(skip)]
     pub rp_trust_anchors: Vec<DerTrustAnchor>,
-}
-
-impl Debug for AccountServerConfiguration {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AccountServerConfiguration")
-            .field("base_url", &self.base_url)
-            .finish_non_exhaustive()
-    }
-}
-
-impl PidIssuanceConfiguration {
-    pub fn digid_trust_anchors(&self) -> Vec<reqwest::Certificate> {
-        self.digid_trust_anchors
-            .iter()
-            .map(|anchor| {
-                reqwest::Certificate::from_der(&anchor.der_bytes)
-                    .expect("DerTrustAnchor should be able to be converted to reqwest::Certificate")
-            })
-            .collect()
-    }
 }
 
 impl DisclosureConfiguration {

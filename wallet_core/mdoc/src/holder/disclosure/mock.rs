@@ -2,12 +2,13 @@ use std::collections::HashSet;
 
 use crate::holder::Mdoc;
 
-use super::{MdocDataSource, StoredMdoc};
+use super::MdocDataSource;
+use super::StoredMdoc;
 
 /// A type that implements `MdocDataSource` and simply returns
 /// the [`Mdoc`] contained in `DeviceResponse::example()`, if its
 /// `doc_type` is requested.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MockMdocDataSource {
     pub mdocs: Vec<Mdoc>,
     pub has_error: bool,
@@ -19,16 +20,10 @@ impl MockMdocDataSource {
             has_error: false,
         }
     }
-}
 
-impl Default for MockMdocDataSource {
-    fn default() -> Self {
-        let mdocs = vec![
-            #[cfg(any(test, all(feature = "examples", feature = "software_keys")))]
-            Mdoc::new_example_mock(),
-        ];
-
-        Self::new(mdocs)
+    #[cfg(any(test, feature = "mock_example_constructors"))]
+    pub fn new_with_example() -> Self {
+        Self::new(vec![Mdoc::new_example_mock()])
     }
 }
 

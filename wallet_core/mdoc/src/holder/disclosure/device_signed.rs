@@ -1,18 +1,22 @@
-use coset::{iana, CoseMac0Builder, Header, HeaderBuilder};
+use coset::iana;
+use coset::CoseMac0Builder;
+use coset::Header;
+use coset::HeaderBuilder;
 
 use indexmap::IndexMap;
-use p256::{PublicKey, SecretKey};
+use p256::PublicKey;
+use p256::SecretKey;
 
-use crate::{
-    errors::Result,
-    iso::*,
-    utils::{
-        cose::{sign_coses, ClonePayload},
-        crypto::dh_hmac_key,
-        keys::{KeyFactory, MdocEcdsaKey},
-        serialization::{cbor_serialize, TaggedBytes},
-    },
-};
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+
+use crate::errors::Result;
+use crate::iso::*;
+use crate::utils::cose::sign_coses;
+use crate::utils::cose::ClonePayload;
+use crate::utils::crypto::dh_hmac_key;
+use crate::utils::serialization::cbor_serialize;
+use crate::utils::serialization::TaggedBytes;
 
 impl DeviceSigned {
     pub async fn new_signatures<K, KF>(
@@ -20,7 +24,7 @@ impl DeviceSigned {
         key_factory: &KF,
     ) -> Result<Vec<DeviceSigned>>
     where
-        K: MdocEcdsaKey,
+        K: CredentialEcdsaKey,
         KF: KeyFactory<Key = K>,
     {
         let coses = sign_coses(keys_and_challenges, key_factory, Header::default(), false).await?;
@@ -69,11 +73,14 @@ impl DeviceSigned {
 mod tests {
     use p256::SecretKey;
 
-    use crate::{
-        examples::{Example, Examples, IsoCertTimeGenerator},
-        holder::Mdoc,
-        DeviceAuthenticationBytes, DeviceSigned, Document,
-    };
+    use wallet_common::keys::examples::Examples;
+
+    use crate::examples::Example;
+    use crate::examples::IsoCertTimeGenerator;
+    use crate::holder::Mdoc;
+    use crate::DeviceAuthenticationBytes;
+    use crate::DeviceSigned;
+    use crate::Document;
 
     #[test]
     fn test_mac_device_signed() {
@@ -81,7 +88,7 @@ mod tests {
         let eph_reader_key = Examples::ephemeral_reader_key();
         let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
 
-        // We grab the private key directly from the `Examples` instead of obtaining a `SoftwareEcdsaKey` from `mdoc`,
+        // We grab the private key directly from the `Examples` instead of obtaining a `LocalEcdsaKey` from `mdoc`,
         // because we need to access it directly in this test to convert it to a `SecretKey`.
         let secret_key = SecretKey::from(Examples::static_device_key().as_nonzero_scalar());
 

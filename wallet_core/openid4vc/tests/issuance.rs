@@ -1,40 +1,60 @@
-use std::{num::NonZeroU8, ops::Add};
+use std::num::NonZeroU8;
+use std::ops::Add;
 
-use chrono::{Days, Utc};
+use assert_matches::assert_matches;
+use chrono::Days;
+use chrono::Utc;
 use ciborium::Value;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
+use rand_core::OsRng;
 use rstest::rstest;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    server_keys::{test::SingleKeyRing, KeyPair},
-    software_key_factory::SoftwareKeyFactory,
-    unsigned::{Entry, UnsignedMdoc},
-    utils::{issuer_auth::IssuerRegistration, x509::Certificate},
-    Tdate,
-};
-use openid4vc::{
-    credential::{
-        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
-    },
-    dpop::Dpop,
-    issuance_session::{
-        mock_wte, HttpIssuanceSession, IssuanceSession, IssuanceSessionError, IssuedCredentialCopies, VcMessageClient,
-    },
-    issuer::{AttributeService, Created, IssuanceData, Issuer},
-    jwt::compare_jwt_attributes,
-    metadata::IssuerMetadata,
-    oidc,
-    server_state::{MemorySessionStore, SessionState},
-    token::{AccessToken, CredentialPreview, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode,
-};
-use wallet_common::{jwt::JwtCredentialContents, nonempty::NonEmpty, urls::BaseUrl};
+use nl_wallet_mdoc::server_keys::test::SingleKeyRing;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::unsigned::Entry;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::Tdate;
+use openid4vc::credential::CredentialRequest;
+use openid4vc::credential::CredentialRequestProof;
+use openid4vc::credential::CredentialRequests;
+use openid4vc::credential::CredentialResponse;
+use openid4vc::credential::CredentialResponses;
+use openid4vc::dpop::Dpop;
+use openid4vc::issuance_session::mock_wte;
+use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::issuance_session::IssuedCredentialCopies;
+use openid4vc::issuance_session::VcMessageClient;
+use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::Created;
+use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::Issuer;
+use openid4vc::metadata::IssuerMetadata;
+use openid4vc::oidc;
+use openid4vc::server_state::MemorySessionStore;
+use openid4vc::server_state::MemoryWteTracker;
+use openid4vc::server_state::SessionState;
+use openid4vc::token::AccessToken;
+use openid4vc::token::CredentialPreview;
+use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenResponseWithPreviews;
+use openid4vc::CredentialErrorCode;
+use wallet_common::jwt::JsonJwt;
+use wallet_common::jwt::Jwt;
+use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::PoaPayload;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::urls::BaseUrl;
 
-type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
+type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
-fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
+fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
@@ -47,27 +67,13 @@ fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certific
     )
 }
 
-fn setup_jwt(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl) {
-    let ca = KeyPair::<SigningKey>::generate_issuer_mock_ca().unwrap();
-
-    // Use the CA itself as issuance key
-    let issuance_keypair = KeyPair::new_from_signing_key(ca.private_key().clone(), ca.certificate().clone()).unwrap();
-
-    setup(
-        MockAttributeService {
-            previews: mock_jwt_attributes(issuance_keypair.certificate(), attestation_count, copy_count),
-        },
-        ca,
-        issuance_keypair,
-    )
-}
-
 fn setup(
     attr_service: MockAttributeService,
     ca: KeyPair,
     issuance_keypair: KeyPair,
-) -> (MockIssuer, Certificate, BaseUrl) {
+) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();
+    let wte_issuer_privkey = SigningKey::random(&mut OsRng);
 
     let issuer = MockIssuer::new(
         MemorySessionStore::default(),
@@ -75,20 +81,22 @@ fn setup(
         SingleKeyRing(issuance_keypair),
         &server_url,
         vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+        *wte_issuer_privkey.verifying_key(),
+        MemoryWteTracker::new(),
     );
 
-    (issuer, ca.into(), server_url.join_base_url("issuance/"))
+    (
+        issuer,
+        ca.into(),
+        server_url.join_base_url("issuance/"),
+        wte_issuer_privkey,
+    )
 }
 
 #[rstest]
 #[tokio::test]
-async fn accept_issuance(
-    #[values(setup_mdoc, setup_jwt)] setup: fn(usize, u8) -> (MockIssuer, Certificate, BaseUrl),
-    #[values(1, 2)] attestation_count: usize,
-    #[values(1, 2)] copy_count: u8,
-    #[values(true, false)] use_wte: bool,
-) {
-    let (issuer, ca, server_url) = setup(attestation_count, copy_count);
+async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2)] copy_count: u8) {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(attestation_count, copy_count);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, previews) = HttpIssuanceSession::start_issuance(
@@ -100,15 +108,11 @@ async fn accept_issuance(
     .await
     .unwrap();
 
-    let key_factory = SoftwareKeyFactory::default();
-    let wte = if use_wte {
-        Some(mock_wte(&key_factory).await)
-    } else {
-        None
-    };
+    let key_factory = MockRemoteKeyFactory::default();
+    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     let issued_creds = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, wte, server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
         .await
         .unwrap();
 
@@ -123,23 +127,14 @@ async fn accept_issuance(
                 .first()
                 .compare_unsigned(match &preview {
                     CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
-                    _ => panic!("unexpected credential format"),
                 })
                 .unwrap(),
-            IssuedCredentialCopies::Jwt(jwts) => compare_jwt_attributes(
-                &jwts.first().jwt_claims().contents,
-                match &preview {
-                    CredentialPreview::Jwt { claims, .. } => claims,
-                    _ => panic!("unexpected credential format"),
-                },
-            )
-            .unwrap(),
         });
 }
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, _) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, _previews) = HttpIssuanceSession::start_issuance(
@@ -158,6 +153,7 @@ async fn start_and_accept_err(
     message_client: MockOpenidMessageClient,
     server_url: BaseUrl,
     ca: Certificate,
+    wte_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
@@ -168,60 +164,103 @@ async fn start_and_accept_err(
     .await
     .unwrap();
 
+    let key_factory = MockRemoteKeyFactory::default();
+    let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
+
     session
-        .accept_issuance(
-            &[(&ca).try_into().unwrap()],
-            SoftwareKeyFactory::default(),
-            None,
-            server_url,
-        )
+        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
         .await
         .unwrap_err()
 }
 
 #[tokio::test]
 async fn wrong_access_token() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         wrong_access_token: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
-    assert!(matches!(
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
-    ));
+    );
 }
 
 #[tokio::test]
 async fn invalid_dpop() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         invalidate_dpop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
-    assert!(matches!(
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
-    ));
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+    );
 }
 
 #[tokio::test]
 async fn invalid_pop() {
-    let (issuer, ca, server_url) = setup_mdoc(1, 1);
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient {
         invalidate_pop: true,
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let result = start_and_accept_err(message_client, server_url, ca).await;
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
     assert!(matches!(
         result,
         IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
     ));
+}
+
+#[tokio::test]
+async fn invalid_poa() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        invalidate_poa: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
+    );
+}
+
+#[tokio::test]
+async fn no_poa() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        strip_poa: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+    );
+}
+
+#[tokio::test]
+async fn no_wte() {
+    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let message_client = MockOpenidMessageClient {
+        strip_wte: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let result = start_and_accept_err(message_client, server_url, ca, wte_issuer_privkey).await;
+    assert_matches!(
+        result,
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+    );
 }
 
 // Helpers and mocks
@@ -241,6 +280,9 @@ struct MockOpenidMessageClient {
     wrong_access_token: bool,
     invalidate_dpop: bool,
     invalidate_pop: bool,
+    invalidate_poa: bool,
+    strip_poa: bool,
+    strip_wte: bool,
 }
 
 impl MockOpenidMessageClient {
@@ -250,6 +292,9 @@ impl MockOpenidMessageClient {
             wrong_access_token: false,
             invalidate_dpop: false,
             invalidate_pop: false,
+            invalidate_poa: false,
+            strip_poa: false,
+            strip_wte: false,
         }
     }
 }
@@ -281,6 +326,19 @@ impl MockOpenidMessageClient {
             };
             credential_request.proof = Some(invalidated_proof);
         }
+
+        if self.invalidate_poa {
+            credential_request.poa = Some(Self::invalidate_poa(credential_request.poa.unwrap()));
+        }
+
+        if self.strip_poa {
+            credential_request.poa.take();
+        }
+
+        if self.strip_wte {
+            credential_request.attestations.take();
+        }
+
         credential_request
     }
 
@@ -292,7 +350,29 @@ impl MockOpenidMessageClient {
             requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
         }
+
+        if self.invalidate_poa {
+            credential_requests.poa = Some(Self::invalidate_poa(credential_requests.poa.unwrap()));
+        }
+
+        if self.strip_poa {
+            credential_requests.poa.take();
+        }
+
+        if self.strip_wte {
+            credential_requests.attestations.take();
+        }
+
         credential_requests
+    }
+
+    fn invalidate_poa(poa: Poa) -> Poa {
+        let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
+        jwts.pop();
+        let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
+        let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
+
+        poa
     }
 }
 
@@ -402,21 +482,6 @@ fn mock_mdoc_attributes(issuer_cert: &Certificate, attestation_count: usize, cop
                 .unwrap(),
             },
             issuer: issuer_cert.clone(),
-        })
-        .collect()
-}
-
-fn mock_jwt_attributes(issuer: &Certificate, attestation_count: usize, copy_count: u8) -> Vec<CredentialPreview> {
-    let issuer = issuer.common_names().unwrap().first().unwrap().clone();
-
-    (0..attestation_count)
-        .map(|_| CredentialPreview::Jwt {
-            jwt_typ: None,
-            claims: JwtCredentialContents {
-                iss: issuer.clone(),
-                attributes: IndexMap::from([("foo".to_string(), "bar".to_string().into())]),
-            },
-            copy_count: NonZeroU8::new(copy_count).unwrap(),
         })
         .collect()
 }

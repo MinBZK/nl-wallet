@@ -1,8 +1,11 @@
-use assert_json_diff::{assert_json_matches, CompareMode, Config};
+use assert_json_diff::assert_json_matches;
+use assert_json_diff::CompareMode;
+use assert_json_diff::Config;
 use rstest::rstest;
 use serde_json::Value;
 
-use gba_hc_converter::{gba::data::GbaResponse, haal_centraal::PersonsResponse};
+use gba_hc_converter::gba::data::GbaResponse;
+use gba_hc_converter::haal_centraal::PersonsResponse;
 
 use crate::common::read_file;
 
@@ -11,7 +14,6 @@ pub mod common;
 #[tokio::test]
 #[rstest]
 #[case("gba/frouke.xml", "haal_centraal/frouke.json")]
-#[case("gba/mulitple-nationalities.xml", "haal_centraal/multiple-nationalities.json")]
 #[case("gba/partner.xml", "haal_centraal/partner.json")]
 #[case("gba/empty-response.xml", "haal_centraal/empty.json")]
 async fn test_conversion(#[case] xml: &str, #[case] json: &str) {

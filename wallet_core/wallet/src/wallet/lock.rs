@@ -1,22 +1,26 @@
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use tracing::{info, instrument};
+use tracing::info;
+use tracing::instrument;
 
-use error_category::{sentry_capture_error, ErrorCategory};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
 use wallet_common::account::messages::instructions::CheckPin;
 
-pub use crate::{lock::LockCallback, storage::UnlockMethod};
+pub use crate::lock::LockCallback;
+pub use crate::storage::UnlockMethod;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    config::ConfigurationRepository,
-    errors::StorageError,
-    instruction::{InstructionClient, InstructionError},
-    storage::{Storage, UnlockData},
-};
+use crate::account_provider::AccountProviderClient;
+use crate::config::ConfigurationRepository;
+use crate::errors::ChangePinError;
+use crate::errors::StorageError;
+use crate::instruction::InstructionError;
+use crate::storage::Storage;
+use crate::storage::UnlockData;
 
 use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum WalletUnlockError {
     #[error("wallet is not registered")]
     #[category(expected)]
@@ -28,11 +32,11 @@ pub enum WalletUnlockError {
     #[category(expected)]
     BiometricsUnlockingNotEnabled,
     #[error("error sending instruction to Wallet Provider: {0}")]
-    #[category(defer)]
     Instruction(#[from] InstructionError),
     #[error("could not write or read unlock method to or from database: {0}")]
-    #[category(defer)]
     UnlockMethodStorage(#[source] StorageError),
+    #[error("error finalizing pin change: {0}")]
+    ChangePin(#[from] ChangePinError),
 }
 
 impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC> {
@@ -101,6 +105,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Checking if registered");
 
@@ -112,15 +117,14 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         let config = self.config_repository.config();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
+        let remote_instruction = self
+            .new_instruction_client(
+                pin,
+                registration,
+                &config.account_server.http_config,
+                &instruction_result_public_key,
+            )
+            .await?;
 
         info!("Sending check pin instruction to Wallet Provider");
 
@@ -137,6 +141,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Unlocking wallet with pin");
 
@@ -161,9 +166,9 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
+        WIC: Default,
     {
         info!("Checking pin");
-
         self.send_check_pin_instruction(pin).await
     }
 
@@ -192,7 +197,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Deref, sync::Arc};
+    use std::sync::Arc;
 
     use assert_matches::assert_matches;
     use http::StatusCode;
@@ -201,25 +206,25 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use parking_lot::Mutex;
     use rand_core::OsRng;
-    use wallet_common::{
-        account::{
-            messages::{
-                errors::{AccountError, IncorrectPinData, PinTimeoutData},
-                instructions::{CheckPin, Instruction, InstructionResultClaims},
-            },
-            signed::SequenceNumberComparison,
-        },
-        jwt::Jwt,
-        keys::EcdsaKey,
-        utils,
-    };
+    use wallet_common::account::messages::errors::AccountError;
+    use wallet_common::account::messages::errors::IncorrectPinData;
+    use wallet_common::account::messages::errors::PinTimeoutData;
+    use wallet_common::account::messages::instructions::CheckPin;
+    use wallet_common::account::messages::instructions::Instruction;
+    use wallet_common::account::messages::instructions::InstructionResultClaims;
+    use wallet_common::account::signed::SequenceNumberComparison;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::keys::EcdsaKey;
+    use wallet_common::utils;
 
-    use crate::{account_provider::AccountProviderResponseError, pin::key::PinKey};
+    use crate::account_provider::AccountProviderResponseError;
+    use crate::pin::key::PinKey;
+    use crate::storage::InstructionData;
+    use crate::storage::KeyedData;
 
-    use super::{
-        super::test::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
-        *,
-    };
+    use super::super::test::WalletWithMocks;
+    use super::super::test::ACCOUNT_SERVER_KEYS;
+    use super::*;
 
     const PIN: &str = "051097";
 
@@ -249,13 +254,14 @@ mod tests {
         let challenge_response = challenge.clone();
         let registration = wallet.registration.as_ref().unwrap();
         let wallet_cert = registration.data.wallet_certificate.clone();
+        let wallet_id = registration.data.wallet_id.clone();
         let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
 
         wallet
             .account_provider_client
             .expect_instruction_challenge()
             .with(
-                eq(wallet.config_repository.config().account_server.base_url.clone()),
+                eq(wallet.config_repository.config().account_server.http_config.clone()),
                 always(),
             )
             .return_once(move |_, challenge_request| {
@@ -263,7 +269,7 @@ mod tests {
 
                 challenge_request
                     .request
-                    .parse_and_verify(SequenceNumberComparison::EqualTo(1), &hw_pubkey)
+                    .parse_and_verify_ecdsa(&wallet_id, SequenceNumberComparison::EqualTo(1), &hw_pubkey)
                     .expect("challenge request should be valid");
 
                 Ok(challenge_response)
@@ -289,7 +295,7 @@ mod tests {
             .account_provider_client
             .expect_instruction()
             .with(
-                eq(wallet.config_repository.config().account_server.base_url.clone()),
+                eq(wallet.config_repository.config().account_server.http_config.clone()),
                 always(),
             )
             .return_once(move |_, instruction: Instruction<CheckPin>| {
@@ -297,7 +303,7 @@ mod tests {
 
                 instruction
                     .instruction
-                    .parse_and_verify(
+                    .parse_and_verify_ecdsa(
                         &challenge,
                         SequenceNumberComparison::LargerThan(1),
                         &hw_pubkey,
@@ -318,7 +324,7 @@ mod tests {
         {
             let is_locked_vec = is_locked_vec.lock();
 
-            assert_eq!(is_locked_vec.deref(), &vec![false, true, false]);
+            assert_eq!(*is_locked_vec, vec![false, true, false]);
         }
 
         // Clear the lock callback on the `Wallet.`
@@ -547,7 +553,7 @@ mod tests {
         wallet.lock();
 
         // Have the database return an error when fetching the sequence number.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.get_mut().set_keyed_data_error(InstructionData::KEY);
 
         // Unlocking the wallet should now result in an
         // `InstructionError::StoreInstructionSequenceNumber` error.

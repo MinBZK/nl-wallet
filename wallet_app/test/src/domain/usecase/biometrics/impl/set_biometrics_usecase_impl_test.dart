@@ -31,6 +31,7 @@ void main() {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
     when(
       localAuthentication.authenticate(
+        authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
         options: anyNamed('options'),
       ),
@@ -38,6 +39,7 @@ void main() {
     await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
     verify(
       localAuthentication.authenticate(
+        authMessages: anyNamed('authMessages'),
         localizedReason: anyNamed('localizedReason'),
         options: anyNamed('options'),
       ),

@@ -1,18 +1,24 @@
-use assert_json_diff::{assert_json_matches, CompareMode, Config};
+use std::net::IpAddr;
+use std::net::TcpListener;
+use std::str::FromStr;
+
+use assert_json_diff::assert_json_matches;
+use assert_json_diff::CompareMode;
+use assert_json_diff::Config;
 use ctor::ctor;
 use http::StatusCode;
 use reqwest::Response;
-use std::{
-    net::{IpAddr, TcpListener},
-    str::FromStr,
-};
+use serde_json::json;
+use serde_json::Value;
 
-use gba_hc_converter::{
-    gba::{client::GbavClient, error::Error},
-    haal_centraal::{Bsn, Element, PersonQuery, PersonsResponse},
-    server,
-};
-use serde_json::{json, Value};
+use gba_hc_converter::gba::client::GbavClient;
+use gba_hc_converter::gba::error::Error;
+use gba_hc_converter::haal_centraal::Bsn;
+use gba_hc_converter::haal_centraal::Element;
+use gba_hc_converter::haal_centraal::PersonQuery;
+use gba_hc_converter::haal_centraal::PersonsResponse;
+use gba_hc_converter::server;
+use tests_integration::common::wait_for_server;
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 use crate::common::read_file;
@@ -49,13 +55,14 @@ where
             .unwrap();
     });
 
+    wait_for_server(format!("http://localhost:{port}").parse().unwrap(), vec![]).await;
     port
 }
 
 async fn query_personen(port: u16) -> Response {
     let query = PersonQuery {
         r#type: String::from("RaadpleegMetBurgerservicenummer"),
-        bsn: vec![Bsn::try_new("12345678").unwrap()],
+        bsn: vec![Bsn::try_new("11122146").unwrap()],
         registration_municipality: None,
         fields: vec![],
     };

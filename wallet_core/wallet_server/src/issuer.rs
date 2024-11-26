@@ -1,40 +1,65 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::collections::HashMap;
+use std::str::FromStr;
+use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri},
-    routing::{delete, get, post},
-    Form, Json, Router,
-};
-use axum_extra::{
-    headers::{self, authorization::Credentials, Authorization, Header},
-    TypedHeader,
-};
-use nutype::nutype;
+use axum::extract::State;
+use axum::http::HeaderMap;
+use axum::http::HeaderName;
+use axum::http::HeaderValue;
+use axum::http::StatusCode;
+use axum::http::Uri;
+use axum::routing::delete;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Form;
+use axum::Json;
+use axum::Router;
+use axum_extra::headers::authorization::Credentials;
+use axum_extra::headers::Authorization;
+use axum_extra::headers::Header;
+use axum_extra::headers::{self};
+use axum_extra::TypedHeader;
+use derive_more::AsRef;
+use derive_more::From;
 use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 
-use nl_wallet_mdoc::server_keys::{KeyPair, KeyRing};
-use openid4vc::{
-    credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
-    dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    metadata::IssuerMetadata,
-    oidc,
-    server_state::SessionStore,
-    token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorResponse, ErrorStatusCode, TokenErrorCode,
-};
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::server_keys::KeyRing;
+use openid4vc::credential::CredentialRequest;
+use openid4vc::credential::CredentialRequests;
+use openid4vc::credential::CredentialResponse;
+use openid4vc::credential::CredentialResponses;
+use openid4vc::dpop::Dpop;
+use openid4vc::dpop::DPOP_HEADER_NAME;
+use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
+use openid4vc::metadata::IssuerMetadata;
+use openid4vc::oidc;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::WteTracker;
+use openid4vc::token::AccessToken;
+use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenResponseWithPreviews;
+use openid4vc::CredentialErrorCode;
+use openid4vc::ErrorResponse;
+use openid4vc::ErrorStatusCode;
+use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings::{self, KeyPairError, Urls};
+use crate::settings::KeyPairError;
+use crate::settings::Urls;
+use crate::settings::{self};
 
-use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
+use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::Issuer;
 
-struct ApplicationState<A, K, S> {
-    issuer: Issuer<A, K, S>,
+struct ApplicationState<A, K, S, W> {
+    issuer: Issuer<A, K, S, W>,
 }
 
-#[nutype(derive(From, AsRef))]
+#[derive(From, AsRef)]
 pub struct IssuerKeyRing<K>(HashMap<String, KeyPair<K>>);
 
 impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
@@ -63,18 +88,21 @@ impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing<SigningKey> {
     }
 }
 
-pub fn create_issuance_router<A, K, S>(
+pub fn create_issuance_router<A, K, S, W>(
     urls: &Urls,
     private_keys: K,
     sessions: S,
     attr_service: A,
     wallet_client_ids: Vec<String>,
+    wte_issuer_pubkey: VerifyingKey,
+    wte_tracker: W,
 ) -> anyhow::Result<Router>
 where
     A: AttributeService + Send + Sync + 'static,
     K: KeyRing + Send + Sync + 'static,
     <K as KeyRing>::Key: Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
+    W: WteTracker + Send + Sync + 'static,
 {
     let application_state = Arc::new(ApplicationState {
         issuer: Issuer::new(
@@ -83,6 +111,8 @@ where
             private_keys,
             &urls.public_url,
             wallet_client_ids,
+            wte_issuer_pubkey,
+            wte_tracker,
         ),
     });
 
@@ -101,13 +131,14 @@ where
 
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`
 // for consistency with the other endpoints.
-async fn oauth_metadata<A, K, S>(
-    State(state): State<Arc<ApplicationState<A, K, S>>>,
+async fn oauth_metadata<A, K, S, W>(
+    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
 ) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
 where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<IssuanceData>,
+    W: WteTracker,
 {
     let metadata = state
         .issuer
@@ -122,12 +153,12 @@ where
     Ok(Json(metadata))
 }
 
-async fn metadata<A, K, S>(State(state): State<Arc<ApplicationState<A, K, S>>>) -> Json<IssuerMetadata> {
+async fn metadata<A, K, S, W>(State(state): State<Arc<ApplicationState<A, K, S, W>>>) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata.clone())
 }
 
-async fn token<A, K, S>(
-    State(state): State<Arc<ApplicationState<A, K, S>>>,
+async fn token<A, K, S, W>(
+    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponseWithPreviews>), ErrorResponse<TokenErrorCode>>
@@ -135,6 +166,7 @@ where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<IssuanceData>,
+    W: WteTracker,
 {
     let (response, dpop_nonce) = state.issuer.process_token_request(token_request, dpop).await?;
     let headers = HeaderMap::from_iter([(
@@ -144,8 +176,8 @@ where
     Ok((headers, Json(response)))
 }
 
-async fn credential<A, K, S>(
-    State(state): State<Arc<ApplicationState<A, K, S>>>,
+async fn credential<A, K, S, W>(
+    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
@@ -154,6 +186,7 @@ where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<IssuanceData>,
+    W: WteTracker,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -163,8 +196,8 @@ where
     Ok(Json(response))
 }
 
-async fn batch_credential<A, K, S>(
-    State(state): State<Arc<ApplicationState<A, K, S>>>,
+async fn batch_credential<A, K, S, W>(
+    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
@@ -173,6 +206,7 @@ where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<IssuanceData>,
+    W: WteTracker,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -182,8 +216,8 @@ where
     Ok(Json(response))
 }
 
-async fn reject_issuance<A, K, S>(
-    State(state): State<Arc<ApplicationState<A, K, S>>>,
+async fn reject_issuance<A, K, S, W>(
+    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
@@ -192,6 +226,7 @@ where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<IssuanceData>,
+    W: WteTracker,
 {
     let uri_path = &uri.path()[1..]; // strip off leading slash
 

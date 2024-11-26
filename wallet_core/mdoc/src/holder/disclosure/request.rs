@@ -1,22 +1,27 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use indexmap::IndexSet;
-use wallet_common::generator::Generator;
-use webpki::TrustAnchor;
+use webpki::types::TrustAnchor;
 
-use crate::{
-    device_retrieval::{DeviceRequest, DocRequest, ReaderAuthenticationKeyed},
-    engagement::SessionTranscript,
-    errors::Result,
-    holder::HolderError,
-    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    utils::{
-        cose::ClonePayload,
-        reader_auth::ReaderRegistration,
-        serialization::{self, CborSeq, TaggedBytes},
-        x509::{Certificate, CertificateType, CertificateUsage},
-    },
-    ItemsRequest,
-};
+use wallet_common::generator::Generator;
+
+use crate::device_retrieval::DeviceRequest;
+use crate::device_retrieval::DocRequest;
+use crate::device_retrieval::ReaderAuthenticationKeyed;
+use crate::engagement::SessionTranscript;
+use crate::errors::Result;
+use crate::holder::HolderError;
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
+use crate::utils::cose::ClonePayload;
+use crate::utils::reader_auth::ReaderRegistration;
+use crate::utils::serialization::CborSeq;
+use crate::utils::serialization::TaggedBytes;
+use crate::utils::serialization::{self};
+use crate::utils::x509::Certificate;
+use crate::utils::x509::CertificateType;
+use crate::utils::x509::CertificateUsage;
+use crate::ItemsRequest;
 
 impl DeviceRequest {
     /// Verify reader authentication, if present.
@@ -121,14 +126,14 @@ impl DocRequest {
 mod tests {
     use assert_matches::assert_matches;
 
-    use wallet_common::{generator::TimeGenerator, trust_anchor::DerTrustAnchor};
+    use wallet_common::generator::TimeGenerator;
+    use wallet_common::trust_anchor::DerTrustAnchor;
 
-    use crate::{
-        errors::Error,
-        iso::device_retrieval::ReaderAuthenticationBytes,
-        server_keys::KeyPair,
-        utils::cose::{self, MdocCose},
-    };
+    use crate::errors::Error;
+    use crate::iso::device_retrieval::ReaderAuthenticationBytes;
+    use crate::server_keys::KeyPair;
+    use crate::utils::cose::MdocCose;
+    use crate::utils::cose::{self};
 
     use super::*;
 

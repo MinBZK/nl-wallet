@@ -1,10 +1,11 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 
 pub trait Generator<T> {
     fn generate(&self) -> T;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct TimeGenerator;
 
 impl Generator<DateTime<Utc>> for TimeGenerator {

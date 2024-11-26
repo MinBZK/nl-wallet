@@ -1,30 +1,13 @@
 #!/bin/bash
 
-# Get the directory of the script.
-script_dir="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+# Get the directory of this script.
+scripts_dir="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+
+# Include utility functions.
+source "${scripts_dir}/utils.sh"
 
 # Navigate up one directory (assuming script is in project_dir/scripts).
-project_root="$(cd "$script_dir/.." &> /dev/null && pwd)"
-
-# Echo to stderr.
-function error() {
-  local msg=$1
-  echo "$msg" 1>&2
-}
-
-# Check if required executables are available on the path.
-function have() {
-    local missing=()
-    for executable in "$@"; do
-        which "$executable" &>/dev/null || missing+=("$executable")
-    done
-    if [ ${#missing[@]} -eq 0 ]; then
-        return 0
-    else
-        error "Missing required executable(s) to run this: ${missing[*]}"
-        exit 1
-    fi
-}
+project_root="$(cd "$scripts_dir/.." &> /dev/null && pwd)"
 
 # Help output.
 function help() {
@@ -83,7 +66,8 @@ function get() {
 
 # Set versions of our components in their respective project files.
 function set() {
-    have cargo cargo-set-version flutter jq mv sed
+    is_macos && sed="gsed" || sed="sed"
+    have cargo cargo-set-version flutter jq mv $sed
     local version="$1"
     if [[ "$version" =~ ^(v)?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
         local non_prefixed_version="${version#v}"
@@ -95,7 +79,7 @@ function set() {
         cargo set-version --manifest-path "$project_root/wallet_core/Cargo.toml" --workspace "$non_prefixed_version" > /dev/null 2>&1
 
         # Wallet app (pubspec.yaml):
-        sed -i "s|^version:[\s]*.*$|version: $non_prefixed_version|g" "$project_root/wallet_app/pubspec.yaml" > /dev/null 2>&1
+        $sed -i "s|^version:[\s]*.*$|version: $non_prefixed_version|g" "$project_root/wallet_app/pubspec.yaml" > /dev/null 2>&1
 
         # Wallet web (package.json):
         jq ".version = \"$non_prefixed_version\"" "$project_root/wallet_web/package.json" > "/tmp/wallet_web_package_json_$$" 2>&1

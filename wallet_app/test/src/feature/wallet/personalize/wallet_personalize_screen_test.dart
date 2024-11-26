@@ -7,7 +7,6 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
-import 'package:wallet/src/domain/model/attribute/value/gender.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/feature/common/page/generic_loading_page.dart';
@@ -56,12 +55,6 @@ void main() {
       label: 'Naam bij geboorte',
       value: const StringValue('John'),
       key: 'mock.birthName',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Geslacht',
-      value: const GenderValue(Gender.male),
-      key: 'mock.gender',
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
@@ -115,87 +108,6 @@ void main() {
     DataAttribute.untranslated(
       label: 'Huisnummer',
       value: const StringValue('1A'),
-      key: 'mock.houseNumber',
-      sourceCardDocType: kPidId,
-    ),
-  ];
-
-  final sampleFemaleAttributes = [
-    DataAttribute.untranslated(
-      label: 'Voornamen',
-      value: const StringValue('Jill'),
-      key: 'mock.firstNames',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Achternaam',
-      value: const StringValue('Doe'),
-      key: 'mock.lastName',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Naam bij geboorte',
-      value: const StringValue('Jillian'),
-      key: 'mock.birthName',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Geslacht',
-      value: const GenderValue(Gender.female),
-      key: 'mock.gender',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Geboortedatum',
-      value: DateValue(DateTime(2001, 3, 5)),
-      key: 'mock.birthDate',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Geboorteplaats',
-      value: const StringValue('Den Haag'),
-      key: 'mock.birthPlace',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Geboorteland',
-      value: const StringValue('Nederland'),
-      key: 'mock.birthCountry',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Getrouwd of geregistreerd partnerschap',
-      value: const StringValue('Nee'),
-      key: 'mock.hasSpouseOrPartner',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Burger­service­nummer (BSN)',
-      value: const StringValue('001222333'),
-      key: 'mock.citizenshipNumber',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Stad',
-      value: const StringValue('Rotterdam'),
-      key: 'mock.city',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Postcode',
-      value: const StringValue('9988DB'),
-      key: 'mock.postalCode',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Straatnaam',
-      value: const StringValue('Coolsingel'),
-      key: 'mock.streetName',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Huisnummer',
-      value: const StringValue('14C'),
       key: 'mock.houseNumber',
       sourceCardDocType: kPidId,
     ),
@@ -598,40 +510,6 @@ void main() {
       // Verify the 'show details' cta is shown
       final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
       expect(showDetailsCtaFinder, findsOneWidget);
-    });
-
-    testWidgets('Verify male icon is shown with male attributes', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            WalletPersonalizeCheckData(availableAttributes: sampleMaleAttributes),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      final iconFinder = find.byIcon(Icons.male_outlined);
-      expect(iconFinder, findsOneWidget);
-    });
-
-    testWidgets('Verify female icon is shown with female attributes', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            WalletPersonalizeCheckData(availableAttributes: sampleFemaleAttributes),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      final iconFinder = find.byIcon(Icons.female_outlined);
-      expect(iconFinder, findsOneWidget);
     });
 
     testWidgets('Verify WalletPersonalizeInitial shows WalletPersonalizeIntroPage', (tester) async {

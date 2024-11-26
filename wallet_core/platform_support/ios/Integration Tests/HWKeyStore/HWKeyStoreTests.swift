@@ -8,8 +8,8 @@
 import Foundation
 import Security
 
-import XCTest
 import PlatformSupport
+import XCTest
 
 final class HWKeyStoreTests: XCTestCase {
     static var platformSupport: PlatformSupport?

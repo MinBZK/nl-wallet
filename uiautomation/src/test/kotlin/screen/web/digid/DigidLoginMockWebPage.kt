@@ -6,9 +6,7 @@ import util.MobileActions
 class DigidLoginMockWebPage : MobileActions() {
 
     private val headlineTextLocator = By.xpath("//*[contains(text(), 'DigiD MOCK')]")
-
     private val bsnInputLocator = By.id("bsn_inp")
-
     private val mockLoginButtonLocator = By.linkText("Login / Submit")
 
     fun visible() = isWebElementVisible(findElement(headlineTextLocator))

@@ -1,63 +1,68 @@
-use std::{
-    env,
-    path::PathBuf,
-    result::Result as StdResult,
-    sync::{Arc, LazyLock},
-};
+use std::env;
+use std::path::PathBuf;
+use std::result::Result as StdResult;
+use std::sync::Arc;
+use std::sync::LazyLock;
 
 use askama::Template;
-use axum::{
-    async_trait,
-    extract::{FromRequestParts, Path, Query, Request, State},
-    handler::HandlerWithoutStateExt,
-    http::{Method, StatusCode},
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
-    routing::{get, post},
-    Json, Router,
-};
+use axum::async_trait;
+use axum::extract::FromRequestParts;
+use axum::extract::Path;
+use axum::extract::Query;
+use axum::extract::Request;
+use axum::extract::State;
+use axum::handler::HandlerWithoutStateExt;
+use axum::http::Method;
+use axum::http::StatusCode;
+use axum::middleware::Next;
+use axum::middleware::{self};
+use axum::response::IntoResponse;
+use axum::response::Response;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Json;
+use axum::Router;
 use base64::prelude::*;
-use http::{
-    header::{ACCEPT_LANGUAGE, CACHE_CONTROL},
-    request::Parts,
-    HeaderMap, HeaderValue,
-};
+use http::header::ACCEPT_LANGUAGE;
+use http::header::CACHE_CONTROL;
+use http::request::Parts;
+use http::HeaderMap;
+use http::HeaderValue;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use nutype::nutype;
+use serde::Deserialize;
+use serde::Serialize;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
-use tower_http::{
-    cors::{Any, CorsLayer},
-    services::ServeDir,
-    trace::TraceLayer,
-};
+use tower_http::cors::Any;
+use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
 
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
-use wallet_common::{urls::BaseUrl, utils::sha256};
+use wallet_common::urls::BaseUrl;
+use wallet_common::urls::CorsOrigin;
+use wallet_common::utils::sha256;
 
-use crate::{
-    askama_axum,
-    client::WalletServerClient,
-    settings::{Origin, ReturnUrlMode, Settings, Usecase, WalletWeb},
-    translations::{Words, TRANSLATIONS},
-};
+use crate::askama_axum;
+use crate::client::WalletServerClient;
+use crate::settings::ReturnUrlMode;
+use crate::settings::Settings;
+use crate::settings::Usecase;
+use crate::settings::WalletWeb;
+use crate::translations::Words;
+use crate::translations::TRANSLATIONS;
 
-#[derive(Debug)]
+#[nutype(derive(Debug, From, AsRef))]
 pub struct Error(anyhow::Error);
-
-impl From<anyhow::Error> for Error {
-    fn from(error: anyhow::Error) -> Self {
-        Self(error)
-    }
-}
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         warn!("error result: {:?}", self);
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", self.0)).into_response()
+        (StatusCode::INTERNAL_SERVER_ERROR, self.as_ref().to_string()).into_response()
     }
 }
 
@@ -73,25 +78,11 @@ struct ApplicationState {
     wallet_web: WalletWeb,
 }
 
-fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
-    if allow_origins.is_empty() {
-        return None;
-    }
-
-    let layer = CorsLayer::new()
-        .allow_origin(
-            allow_origins
-                .into_iter()
-                .map(|url| {
-                    url.try_into()
-                        .expect("cross_origin base_url should be parseable to header value")
-                })
-                .collect::<Vec<_>>(),
-        )
+fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin(allow_origins)
         .allow_headers(Any)
-        .allow_methods([Method::GET, Method::POST]);
-
-    Some(layer)
+        .allow_methods([Method::GET, Method::POST])
 }
 
 async fn set_static_cache_control(request: Request, next: Next) -> Response {
@@ -133,8 +124,8 @@ pub fn create_router(settings: Settings) -> Router {
         .with_state(application_state)
         .layer(TraceLayer::new_for_http());
 
-    if let Some(cors) = cors_layer(settings.allow_origins) {
-        app = app.layer(cors);
+    if let Some(cors_origin) = settings.allow_origins {
+        app = app.layer(cors_layer(cors_origin));
     }
 
     app
@@ -388,6 +379,7 @@ async fn disclosed_attributes(
 mod filters {
     use nl_wallet_mdoc::verifier::DisclosedAttributes;
 
+    #[allow(clippy::unnecessary_wraps)]
     pub fn attribute(attributes: &DisclosedAttributes, name: &str) -> ::askama::Result<String> {
         for doctype in attributes {
             for namespace in &doctype.1.attributes {

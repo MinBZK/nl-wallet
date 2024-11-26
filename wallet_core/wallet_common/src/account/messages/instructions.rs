@@ -1,16 +1,22 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::{
-    account::{
-        errors::Result,
-        serialization::{DerSignature, DerVerifyingKey},
-        signed::{ChallengeRequest, ChallengeResponse},
-    },
-    jwt::{Jwt, JwtCredentialClaims, JwtSubject},
-    keys::{EphemeralEcdsaKey, SecureEcdsaKey},
-};
+use crate::account::errors::Result;
+use crate::account::serialization::DerSignature;
+use crate::account::serialization::DerVerifyingKey;
+use crate::account::signed::ChallengeRequest;
+use crate::account::signed::ChallengeResponse;
+use crate::jwt::Jwt;
+use crate::jwt::JwtCredentialClaims;
+use crate::jwt::JwtSubject;
+use crate::keys::poa::Poa;
+use crate::keys::poa::VecAtLeastTwo;
+use crate::keys::EphemeralEcdsaKey;
+use crate::keys::SecureEcdsaKey;
+use crate::wte::WteClaims;
 
-use super::auth::{Certificate, WalletCertificate};
+use super::auth::WalletCertificate;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Instruction<T> {
@@ -60,7 +66,19 @@ pub struct IssueWte {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IssueWteResult {
-    pub wte: Jwt<JwtCredentialClaims>,
+    pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ConstructPoa {
+    pub key_identifiers: VecAtLeastTwo<String>,
+    pub aud: String,
+    pub nonce: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ConstructPoaResult {
+    pub poa: Poa,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,7 +121,7 @@ impl InstructionAndResult for CheckPin {
 impl InstructionAndResult for ChangePinStart {
     const NAME: &'static str = "change_pin_start";
 
-    type Result = Certificate;
+    type Result = WalletCertificate;
 }
 
 impl InstructionAndResult for ChangePinCommit {
@@ -136,6 +154,12 @@ impl InstructionAndResult for IssueWte {
     type Result = IssueWteResult;
 }
 
+impl InstructionAndResult for ConstructPoa {
+    const NAME: &'static str = "construct_poa";
+
+    type Result = ConstructPoaResult;
+}
+
 impl<T> Instruction<T>
 where
     T: Serialize + DeserializeOwned,
@@ -148,7 +172,7 @@ where
         pin_privkey: &impl EphemeralEcdsaKey,
         certificate: WalletCertificate,
     ) -> Result<Self> {
-        let signed = ChallengeResponse::sign(
+        let signed = ChallengeResponse::sign_ecdsa(
             instruction,
             challenge,
             instruction_sequence_number,
@@ -166,6 +190,7 @@ where
 
 impl InstructionChallengeRequest {
     pub async fn new_signed<I>(
+        wallet_id: String,
         instruction_sequence_number: u64,
         hw_privkey: &impl SecureEcdsaKey,
         certificate: WalletCertificate,
@@ -173,7 +198,9 @@ impl InstructionChallengeRequest {
     where
         I: InstructionAndResult,
     {
-        let signed = ChallengeRequest::sign(instruction_sequence_number, I::NAME.to_string(), hw_privkey).await?;
+        let signed =
+            ChallengeRequest::sign_ecdsa(wallet_id, instruction_sequence_number, I::NAME.to_string(), hw_privkey)
+                .await?;
 
         Ok(Self {
             request: signed,

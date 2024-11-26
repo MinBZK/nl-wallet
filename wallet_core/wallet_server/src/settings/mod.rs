@@ -1,14 +1,34 @@
-use std::{env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
+use std::env;
+use std::net::IpAddr;
+use std::num::NonZeroU64;
+use std::path::PathBuf;
+use std::time::Duration;
 
-use config::{Config, ConfigError, Environment, File};
-use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
+use chrono::DateTime;
+use chrono::Utc;
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::DecodePrivateKey;
+#[cfg(feature = "integration_test")]
+use p256::pkcs8::EncodePrivateKey;
 use serde::Deserialize;
-use serde_with::{base64::Base64, serde_as};
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 use url::Url;
 
-use nl_wallet_mdoc::utils::x509::{Certificate, CertificateError};
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::CertificateType;
+use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
-use wallet_common::{sentry::Sentry, urls::BaseUrl};
+use wallet_common::generator::Generator;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::urls::BaseUrl;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
@@ -55,10 +75,17 @@ pub struct Settings {
     #[cfg(feature = "issuance")]
     pub issuer: Issuer,
 
+    /// Issuer trust anchors are used to validate the keys and certificates in the `issuer.private_keys` configuration
+    /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
+    pub issuer_trust_anchors: Vec<DerTrustAnchor>,
+
     #[cfg(feature = "disclosure")]
     pub verifier: Verifier,
 
-    pub sentry: Option<Sentry>,
+    /// Reader trust anchors are used to verify the keys and certificates in the `verifier.usecases` configuration on
+    /// application startup.
+    #[cfg(feature = "disclosure")]
+    pub reader_trust_anchors: Vec<DerTrustAnchor>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -134,6 +161,34 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
     }
 }
 
+#[cfg(feature = "integration_test")]
+impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
+    type Error = KeyPairError;
+    fn try_from(source: nl_wallet_mdoc::server_keys::KeyPair) -> Result<Self, Self::Error> {
+        let private_key = source.private_key().to_pkcs8_der()?.as_bytes().to_vec();
+        let certificate = source.certificate().as_bytes().to_vec();
+
+        Ok(Self {
+            certificate,
+            private_key,
+        })
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CertificateVerificationError {
+    #[error("missing trust anchors, expected at least 1")]
+    MissingTrustAnchors,
+    #[error("invalid certificate `{1}`: {0}")]
+    InvalidCertificate(#[source] CertificateError, String),
+    #[error("invalid key pair `{1}`: {0}")]
+    InvalidKeyPair(#[source] KeyPairError, String),
+    #[error("no CertificateType found in certificate `{1}`: {0}")]
+    NoCertificateType(#[source] CertificateError, String),
+    #[error("certificate `{0}` is missing CertificateType registration data")]
+    IncompleteCertificateType(String),
+}
+
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Settings::new_custom("wallet_server.toml", "wallet_server")
@@ -163,13 +218,16 @@ impl Settings {
             )?;
 
         #[cfg(feature = "disclosure")]
-        let config_builder = config_builder.set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?;
+        let config_builder = config_builder
+            .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
+            .set_default("requester_server.ip", "0.0.0.0")?
+            .set_default("requester_server.port", 3002)?;
 
         #[cfg(feature = "issuance")]
         let config_builder = config_builder
             .set_default(
                 "issuer.wallet_client_ids",
-                vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
+                vec![wallet_common::jwt::NL_WALLET_CLIENT_ID.to_string()],
             )?
             .set_default("issuer.brp_server", "http://localhost:3007/")?;
 
@@ -180,20 +238,134 @@ impl Settings {
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
-            .prefix_separator("_");
+            .prefix_separator("_")
+            .list_separator(",");
+
+        let environment_parser = environment_parser.with_list_parse_key("issuer_trust_anchors");
 
         #[cfg(feature = "disclosure")]
-        let environment_parser = environment_parser
-            .list_separator(",")
-            .with_list_parse_key("verifier.trust_anchors");
+        let environment_parser = environment_parser.with_list_parse_key("reader_trust_anchors");
 
         let environment_parser = environment_parser.try_parsing(true);
 
-        config_builder
+        let config = config_builder
             .add_source(File::from(config_source).required(false))
             .add_source(File::from(PathBuf::from(config_file)).required(false))
             .add_source(environment_parser)
             .build()?
-            .try_deserialize()
+            .try_deserialize()?;
+
+        Ok(config)
     }
+
+    pub fn verify_key_pairs(&self) -> Result<(), CertificateVerificationError> {
+        #[cfg(feature = "disclosure")]
+        {
+            tracing::debug!("verifying verifier.usecases certificates");
+            self.verify_verifier_key_pairs()?;
+        }
+
+        #[cfg(feature = "issuance")]
+        {
+            tracing::debug!("verifying issuer.private_keys certificates");
+            self.verify_issuer_key_pairs()?;
+        }
+
+        Ok(())
+    }
+
+    #[cfg(feature = "disclosure")]
+    pub fn verify_verifier_key_pairs<'a>(&'a self) -> Result<(), CertificateVerificationError> {
+        let time = TimeGenerator;
+
+        let trust_anchors: Vec<TrustAnchor<'a>> = self
+            .reader_trust_anchors
+            .iter()
+            .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+            .collect::<Vec<_>>();
+
+        let key_pairs: Vec<(String, KeyPair)> = self
+            .verifier
+            .usecases
+            .as_ref()
+            .iter()
+            .map(|(use_case_id, usecase)| (use_case_id.clone(), usecase.key_pair.clone()))
+            .collect();
+
+        verify_key_pairs(
+            &key_pairs,
+            &trust_anchors,
+            CertificateUsage::ReaderAuth,
+            &time,
+            |certificate_type| matches!(certificate_type, CertificateType::ReaderAuth(Some(_))),
+        )
+    }
+
+    #[cfg(feature = "issuance")]
+    pub fn verify_issuer_key_pairs<'a>(&'a self) -> Result<(), CertificateVerificationError> {
+        let time = TimeGenerator;
+
+        let trust_anchors: Vec<TrustAnchor<'a>> = self
+            .issuer_trust_anchors
+            .iter()
+            .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+            .collect::<Vec<_>>();
+
+        let key_pairs: Vec<(String, KeyPair)> = self
+            .issuer
+            .private_keys
+            .iter()
+            .map(|(id, keypair)| (id.clone(), keypair.clone()))
+            .collect();
+
+        verify_key_pairs(
+            &key_pairs,
+            &trust_anchors,
+            CertificateUsage::Mdl,
+            &time,
+            |certificate_type| matches!(certificate_type, CertificateType::Mdl(Some(_))),
+        )
+    }
+}
+
+fn verify_key_pairs<F>(
+    key_pairs: &[(String, KeyPair)],
+    trust_anchors: &[TrustAnchor<'_>],
+    usage: CertificateUsage,
+    time: &impl Generator<DateTime<Utc>>,
+    has_usage_registration: F,
+) -> Result<(), CertificateVerificationError>
+where
+    F: Fn(CertificateType) -> bool,
+{
+    if trust_anchors.is_empty() {
+        return Err(CertificateVerificationError::MissingTrustAnchors);
+    }
+
+    for (key_pair_id, key_pair) in key_pairs {
+        tracing::debug!("verifying certificate of {key_pair_id}");
+
+        let key_pair: nl_wallet_mdoc::server_keys::KeyPair = key_pair
+            .try_into()
+            .map_err(|error| CertificateVerificationError::InvalidKeyPair(error, key_pair_id.clone()))?;
+
+        let certificate = key_pair.certificate();
+
+        if !trust_anchors.is_empty() {
+            certificate
+                .verify(usage, &[], time, trust_anchors)
+                .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.clone()))?;
+        }
+
+        let certificate_type = CertificateType::from_certificate(certificate)
+            .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.clone()))?;
+
+        if !has_usage_registration(certificate_type) {
+            return Err(CertificateVerificationError::IncompleteCertificateType(
+                key_pair_id.clone(),
+            ));
+        }
+    }
+
+    Ok(())
 }

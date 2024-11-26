@@ -1,33 +1,42 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::Json,
-    routing::{get, post},
-    Router,
-};
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::Json;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Router;
 use serde::Serialize;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
-use wallet_common::{
-    account::{
-        messages::{
-            auth::{Certificate, Challenge, Registration, WalletCertificate},
-            instructions::{
-                ChangePinCommit, ChangePinRollback, ChangePinStart, CheckPin, GenerateKey, GenerateKeyResult,
-                Instruction, InstructionAndResult, InstructionChallengeRequest, InstructionResultMessage, IssueWte,
-                IssueWteResult, Sign, SignResult,
-            },
-        },
-        serialization::DerVerifyingKey,
-        signed::ChallengeResponse,
-    },
-    keys::EcdsaKey,
-};
+use wallet_common::account::messages::auth::Certificate;
+use wallet_common::account::messages::auth::Challenge;
+use wallet_common::account::messages::auth::Registration;
+use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_common::account::messages::instructions::ChangePinCommit;
+use wallet_common::account::messages::instructions::ChangePinRollback;
+use wallet_common::account::messages::instructions::ChangePinStart;
+use wallet_common::account::messages::instructions::CheckPin;
+use wallet_common::account::messages::instructions::ConstructPoa;
+use wallet_common::account::messages::instructions::ConstructPoaResult;
+use wallet_common::account::messages::instructions::GenerateKey;
+use wallet_common::account::messages::instructions::GenerateKeyResult;
+use wallet_common::account::messages::instructions::Instruction;
+use wallet_common::account::messages::instructions::InstructionAndResult;
+use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::account::messages::instructions::InstructionResultMessage;
+use wallet_common::account::messages::instructions::IssueWte;
+use wallet_common::account::messages::instructions::IssueWteResult;
+use wallet_common::account::messages::instructions::Sign;
+use wallet_common::account::messages::instructions::SignResult;
+use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_common::account::signed::ChallengeResponse;
+use wallet_common::keys::EcdsaKey;
+use wallet_provider_service::wte_issuer::WteIssuer;
 
-use crate::{errors::WalletProviderError, router_state::RouterState};
+use crate::errors::WalletProviderError;
+use crate::router_state::RouterState;
 
 /// All handlers should return this result. The [`WalletProviderError`] wraps
 /// a [`StatusCode`] and JSON body, all top-level errors should be convertible
@@ -68,6 +77,7 @@ pub fn router(router_state: RouterState) -> Router {
                 .route(&format!("/instructions/{}", GenerateKey::NAME), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::NAME), post(sign))
                 .route(&format!("/instructions/{}", IssueWte::NAME), post(issue_wte))
+                .route(&format!("/instructions/{}", ConstructPoa::NAME), post(construct_poa))
                 .layer(TraceLayer::new_for_http())
                 .with_state(Arc::clone(&state)),
         )
@@ -229,19 +239,31 @@ async fn issue_wte(
     Ok((StatusCode::OK, body.into()))
 }
 
+async fn construct_poa(
+    State(state): State<Arc<RouterState>>,
+    Json(payload): Json<Instruction<ConstructPoa>>,
+) -> Result<(StatusCode, Json<InstructionResultMessage<ConstructPoaResult>>)> {
+    info!("Received new PoA request, handling the ConstructPoa instruction");
+    let body = state.handle_instruction(payload).await?;
+    Ok((StatusCode::OK, body.into()))
+}
+
 #[derive(Serialize)]
 struct PublicKeys {
     certificate_public_key: DerVerifyingKey,
     instruction_result_public_key: DerVerifyingKey,
+    wte_signing_key: DerVerifyingKey,
 }
 
 async fn public_keys(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<PublicKeys>)> {
     let certificate_public_key = state.certificate_signing_key.verifying_key().await?.into();
     let instruction_result_public_key = state.instruction_result_signing_key.verifying_key().await?.into();
+    let wte_signing_key = state.instruction_state.wte_issuer.public_key().await?.into();
 
     let body = PublicKeys {
         certificate_public_key,
         instruction_result_public_key,
+        wte_signing_key,
     };
 
     Ok((StatusCode::OK, body.into()))

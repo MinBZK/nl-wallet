@@ -1,31 +1,52 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, Query, State},
-    routing::{delete, get, post},
-    Form, Json, Router,
-};
-use http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri};
-use serde::{Deserialize, Serialize};
-use tower_http::cors::{Any, CorsLayer};
-use tracing::{info, warn};
+use axum::extract::Path;
+use axum::extract::Query;
+use axum::extract::State;
+use axum::routing::delete;
+use axum::routing::get;
+use axum::routing::post;
+use axum::Form;
+use axum::Json;
+use axum::Router;
+use http::header;
+use http::HeaderMap;
+use http::HeaderValue;
+use http::Method;
+use http::StatusCode;
+use http::Uri;
+use serde::Deserialize;
+use serde::Serialize;
+use tower_http::cors::CorsLayer;
+use tracing::info;
+use tracing::warn;
 
-use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests};
-use openid4vc::{
-    disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
-    openid4vp::{VpResponse, WalletRequest},
-    return_url::ReturnUrlTemplate,
-    server_state::{SessionStore, SessionToken},
-    verifier::{DisclosureData, SessionType, StatusResponse, Verifier, WalletAuthResponse},
-    DisclosureErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
-};
-use wallet_common::{
-    generator::TimeGenerator,
-    http_error::HttpJsonError,
-    urls::{self, BaseUrl},
-};
+use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
+use openid4vc::openid4vp::VpResponse;
+use openid4vc::openid4vp::WalletRequest;
+use openid4vc::return_url::ReturnUrlTemplate;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionToken;
+use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::StatusResponse;
+use openid4vc::verifier::Verifier;
+use openid4vc::verifier::WalletAuthResponse;
+use openid4vc::DisclosureErrorResponse;
+use openid4vc::GetRequestErrorCode;
+use openid4vc::PostAuthResponseErrorCode;
+use openid4vc::VerificationErrorCode;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::http_error::HttpJsonError;
+use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::urls::BaseUrl;
+use wallet_common::urls::CorsOrigin;
+use wallet_common::urls::{self};
 
-use crate::settings::{self, Urls};
+use crate::settings::Urls;
+use crate::settings::{self};
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,
@@ -36,6 +57,7 @@ struct ApplicationState<S> {
 fn create_application_state<S>(
     urls: Urls,
     verifier: settings::Verifier,
+    issuer_trust_anchors: Vec<DerTrustAnchor>,
     sessions: S,
 ) -> anyhow::Result<ApplicationState<S>>
 where
@@ -45,8 +67,7 @@ where
         verifier: Verifier::new(
             verifier.usecases.try_into()?,
             sessions,
-            verifier
-                .trust_anchors
+            issuer_trust_anchors
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
                 .collect::<Vec<_>>(),
@@ -58,21 +79,37 @@ where
     Ok(application_state)
 }
 
-pub fn create_routers<S>(urls: Urls, verifier: settings::Verifier, sessions: S) -> anyhow::Result<(Router, Router)>
+fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin(allow_origins)
+        .allow_methods([Method::GET, Method::DELETE])
+}
+
+pub fn create_routers<S>(
+    urls: Urls,
+    verifier: settings::Verifier,
+    issuer_trust_anchors: Vec<DerTrustAnchor>,
+    sessions: S,
+) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
+    let allow_origins = verifier.allow_origins.clone();
+    let application_state = Arc::new(create_application_state(
+        urls,
+        verifier,
+        issuer_trust_anchors,
+        sessions,
+    )?);
 
-    let wallet_web = Router::new()
+    let mut wallet_web = Router::new()
         .route("/:session_token", get(status::<S>))
-        .route("/:session_token", delete(cancel::<S>))
+        .route("/:session_token", delete(cancel::<S>));
+
+    if let Some(cors_origin) = allow_origins {
         // The CORS headers should be set for these routes, so that any web browser may call them.
-        .layer(
-            CorsLayer::new()
-                .allow_methods([Method::GET, Method::DELETE])
-                .allow_origin(Any),
-        );
+        wallet_web = wallet_web.layer(cors_layer(cors_origin));
+    }
 
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the

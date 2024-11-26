@@ -1,27 +1,43 @@
 //! Cose objects, keys, parsing, and verification.
 
-use std::{marker::PhantomData, result::Result};
+use std::marker::PhantomData;
+use std::result::Result;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use ciborium::value::Value;
-use coset::{
-    iana, sig_structure_data, CoseMac0, CoseMac0Builder, CoseSign1, CoseSign1Builder, Header, HeaderBuilder, Label,
-    ProtectedHeader, SignatureContext,
-};
-use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+use coset::iana;
+use coset::sig_structure_data;
+use coset::CoseMac0;
+use coset::CoseMac0Builder;
+use coset::CoseSign1;
+use coset::CoseSign1Builder;
+use coset::Header;
+use coset::HeaderBuilder;
+use coset::Label;
+use coset::ProtectedHeader;
+use coset::SignatureContext;
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 use ring::hmac;
-use serde::{de::DeserializeOwned, Serialize};
-use webpki::TrustAnchor;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use webpki::types::TrustAnchor;
 
 use error_category::ErrorCategory;
-use wallet_common::{generator::Generator, keys::EcdsaKey};
+use wallet_common::generator::Generator;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::EcdsaKey;
 
-use crate::utils::{
-    keys::{KeyFactory, MdocEcdsaKey},
-    serialization::{cbor_deserialize, cbor_serialize, CborError},
-};
+use crate::utils::serialization::cbor_deserialize;
+use crate::utils::serialization::cbor_serialize;
+use crate::utils::serialization::CborError;
 
-use super::x509::{Certificate, CertificateError, CertificateUsage};
+use super::x509::Certificate;
+use super::x509::CertificateError;
+use super::x509::CertificateUsage;
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
 pub trait Cose {
@@ -180,7 +196,7 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose.into())
     }
 
-    pub async fn generate_keys_and_sign<K: MdocEcdsaKey>(
+    pub async fn generate_keys_and_sign<K: CredentialEcdsaKey>(
         obj: &T,
         unprotected_header: Header,
         number_of_keys: u64,
@@ -306,7 +322,7 @@ pub async fn sign_cose(
     Ok(signed)
 }
 
-pub async fn sign_coses<K: MdocEcdsaKey>(
+pub async fn sign_coses<K: CredentialEcdsaKey>(
     keys_and_challenges: Vec<(K, &[u8])>,
     key_factory: &impl KeyFactory<Key = K>,
     unprotected_header: Header,
@@ -351,7 +367,7 @@ pub enum KeysError {
     KeyGeneration(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-pub async fn generate_keys_and_sign_cose<K: MdocEcdsaKey>(
+pub async fn generate_keys_and_sign_cose<K: CredentialEcdsaKey>(
     payload: &[u8],
     unprotected_header: Header,
     number_of_keys: u64,
@@ -462,23 +478,24 @@ impl coset::AsCborValue for CoseKey {
 
 #[cfg(test)]
 mod tests {
-    use coset::{Header, HeaderBuilder, Label};
+    use coset::Header;
+    use coset::HeaderBuilder;
+    use coset::Label;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-    use serde::{Deserialize, Serialize};
+    use serde::Deserialize;
+    use serde::Serialize;
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::{
-        server_keys::KeyPair,
-        utils::{
-            cose::{self, CoseError},
-            issuer_auth::IssuerRegistration,
-            x509::CertificateUsage,
-        },
-    };
+    use crate::server_keys::KeyPair;
+    use crate::utils::cose::CoseError;
+    use crate::utils::cose::{self};
+    use crate::utils::issuer_auth::IssuerRegistration;
+    use crate::utils::x509::CertificateUsage;
 
-    use super::{ClonePayload, MdocCose};
+    use super::ClonePayload;
+    use super::MdocCose;
 
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
     struct ToyMessage {

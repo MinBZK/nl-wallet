@@ -1,22 +1,25 @@
 use anyhow::Result;
 
-use wallet_server::{
-    pid::attributes::BrpPidAttributeService,
-    server::{self, wallet_server_main},
-    settings::Settings,
-    store::SessionStoreVariant,
-};
+use wallet_server::pid::attributes::BrpPidAttributeService;
+use wallet_server::server::wallet_server_main;
+use wallet_server::server::{self};
+use wallet_server::settings::Settings;
+use wallet_server::store::DatabaseConnection;
+use wallet_server::store::SessionStoreVariant;
+use wallet_server::store::WteTrackerVariant;
 
-// Cannot use #[tokio::main], see: https://docs.sentry.io/platforms/rust/#async-main-function
-fn main() -> Result<()> {
-    wallet_server_main("wallet_server.toml", "wallet_server", async_main)
+#[tokio::main]
+async fn main() -> Result<()> {
+    wallet_server_main("wallet_server.toml", "wallet_server", main_impl).await
 }
 
-async fn async_main(settings: Settings) -> Result<()> {
+async fn main_impl(settings: Settings) -> Result<()> {
     let storage_settings = &settings.storage;
-    let disclosure_sessions = SessionStoreVariant::new(storage_settings.url.clone(), storage_settings.into()).await?;
-    // Clone from `disclosure_sessions` so that database connection pool is reused when using PostgreSQL.
-    let issuance_sessions = disclosure_sessions.clone_into();
+    let db_connection = DatabaseConnection::try_new(storage_settings.url.clone()).await?;
+
+    let disclosure_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let issuance_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let wte_tracker = WteTrackerVariant::new(db_connection);
 
     // This will block until the server shuts down.
     server::wallet_server::serve(
@@ -24,6 +27,7 @@ async fn async_main(settings: Settings) -> Result<()> {
         settings,
         disclosure_sessions,
         issuance_sessions,
+        wte_tracker,
     )
     .await
 }

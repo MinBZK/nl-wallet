@@ -1,29 +1,32 @@
-use std::{num::NonZeroU8, time::Duration};
+use std::time::Duration;
 
 use derive_more::From;
 use indexmap::IndexSet;
-
-use serde::{Deserialize, Serialize};
-use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::formats::SpaceSeparator;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use serde_with::DurationSeconds;
+use serde_with::StringWithSeparator;
 use url::Url;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    unsigned::UnsignedMdoc,
-    utils::{
-        issuer_auth::IssuerRegistration,
-        x509::{Certificate, CertificateError, CertificateType, CertificateUsage},
-    },
-};
-use wallet_common::{
-    generator::TimeGenerator,
-    jwt::JwtCredentialContents,
-    nonempty::NonEmpty,
-    utils::{random_string, sha256},
-};
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::CertificateType;
+use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::nonempty::NonEmpty;
+use wallet_common::utils::random_string;
+use wallet_common::utils::sha256;
 
-use crate::{authorization::AuthorizationDetails, server_state::SessionToken, Format};
+use crate::authorization::AuthorizationDetails;
+use crate::server_state::SessionToken;
+use crate::Format;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -149,18 +152,12 @@ pub enum CredentialPreview {
         unsigned_mdoc: UnsignedMdoc,
         issuer: Certificate,
     },
-    Jwt {
-        jwt_typ: Option<String>,
-        claims: JwtCredentialContents,
-        copy_count: NonZeroU8,
-    },
 }
 
 impl From<&CredentialPreview> for Format {
     fn from(value: &CredentialPreview) -> Self {
         match value {
             CredentialPreview::MsoMdoc { .. } => Format::MsoMdoc,
-            CredentialPreview::Jwt { .. } => Format::Jwt,
         }
     }
 }
@@ -169,14 +166,12 @@ impl CredentialPreview {
     pub fn copy_count(&self) -> u8 {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
-            CredentialPreview::Jwt { copy_count, .. } => (*copy_count).into(),
         }
     }
 
     pub fn credential_type(&self) -> Option<&str> {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Some(&unsigned_mdoc.doc_type),
-            CredentialPreview::Jwt { .. } => None,
         }
     }
 
@@ -184,16 +179,16 @@ impl CredentialPreview {
         match self {
             CredentialPreview::MsoMdoc { issuer, .. } => {
                 // Verify the issuer certificates that the issuer presents for each credential to be issued.
-                // NB: this only proves the authenticity of the data inside the certificates (the [`IssuerRegistration`]s),
-                // but does not authenticate the issuer that presents them.
-                // Anyone that has ever seen these certificates (such as other wallets that received them during issuance)
-                // could present them here in the protocol without needing the corresponding issuer private key.
-                // This is not a problem, because at the end of the issuance protocol each mdoc is verified against the
-                // corresponding certificate in the credential preview, which implicitly authenticates the issuer because
-                // only it could have produced an mdoc against that certificate.
+                // NB: this only proves the authenticity of the data inside the certificates (the
+                // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
+                // Anyone that has ever seen these certificates (such as other wallets that received them during
+                // issuance) could present them here in the protocol without needing the corresponding
+                // issuer private key. This is not a problem, because at the end of the issuance
+                // protocol each mdoc is verified against the corresponding certificate in the
+                // credential preview, which implicitly authenticates the issuer because only it could
+                // have produced an mdoc against that certificate.
                 issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
             }
-            CredentialPreview::Jwt { .. } => Ok(()),
         }
     }
 }
@@ -206,18 +201,13 @@ pub enum CredentialPreviewError {
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
-    #[error("unexpected credential format: expected MsoMdoc, found {0:?}")]
-    #[category(critical)]
-    UnexpectedFormat(Format),
 }
 
 impl TryFrom<CredentialPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
     type Error = CredentialPreviewError;
 
     fn try_from(value: CredentialPreview) -> Result<Self, Self::Error> {
-        let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = value else {
-            Err(CredentialPreviewError::UnexpectedFormat(Format::Jwt))?
-        };
+        let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = value;
         let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&issuer)? else {
             Err(CredentialPreviewError::NoIssuerRegistration)?
         };
@@ -239,7 +229,9 @@ mod tests {
     use indexmap::IndexSet;
     use serde_json::json;
 
-    use crate::token::{TokenRequest, TokenRequestGrantType, TokenResponse};
+    use crate::token::TokenRequest;
+    use crate::token::TokenRequestGrantType;
+    use crate::token::TokenResponse;
 
     #[test]
     fn token_request_serialization() {

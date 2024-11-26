@@ -1,4 +1,6 @@
-use std::{env, fs, path::PathBuf};
+use std::env;
+use std::fs;
+use std::path::PathBuf;
 
 /// Add a temporary workaround for compiling for the Android x86_64 target, which is missing a symbol required by
 /// "sqlite3-sys". The root cause of the issue is documented here: https://github.com/rust-lang/rust/issues/109717.
@@ -80,7 +82,7 @@ fn inject_dotenv_vars() {
         Ok(values) => {
             for item in values {
                 let (key, value) = item.expect("Could not read entry from .env file");
-                println!("cargo:rustc-env={}={}", key, value)
+                println!("cargo:rustc-env={}={}", key, value);
             }
         }
         // Do not panic on this, as we may want to operate without any `.env` file.

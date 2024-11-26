@@ -1,54 +1,88 @@
-use std::{
-    collections::HashMap,
-    net::{IpAddr, TcpListener},
-    process,
-    str::FromStr,
-    sync::{Arc, LazyLock},
-    time::Duration,
-};
+use std::collections::HashMap;
+use std::net::IpAddr;
+use std::net::TcpListener;
+use std::process;
+use std::str::FromStr;
+use std::sync::Arc;
+use std::sync::LazyLock;
+use std::time::Duration;
 
 use assert_matches::assert_matches;
-use chrono::{DateTime, Days, Utc};
+use chrono::DateTime;
+use chrono::Days;
+use chrono::Utc;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::EncodePrivateKey;
 use parking_lot::RwLock;
+#[cfg(feature = "issuance")]
 use rand_core::OsRng;
-use reqwest::{Client, Response};
+use reqwest::Client;
+use reqwest::Response;
 use rstest::rstest;
 use tokio::time;
 use url::Url;
 
-use nl_wallet_mdoc::{
-    examples::{Example, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-    holder::{mock::MockMdocDataSource, Mdoc, TrustAnchor},
-    server_keys::KeyPair,
-    software_key_factory::SoftwareKeyFactory,
-    unsigned::{Entry, UnsignedMdoc},
-    utils::{
-        issuer_auth::IssuerRegistration, mock_time::MockTimeGenerator, reader_auth::ReaderRegistration,
-        serialization::TaggedBytes,
-    },
-    verifier::DisclosedAttributes,
-    DeviceResponse, IssuerSigned, ItemsRequest,
-};
-use openid4vc::{
-    disclosure_session::{DisclosureSession, DisclosureUriSource, HttpVpMessageClient},
-    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS},
-    verifier::{DisclosureData, SessionType, SessionTypeReturnUrl, StatusResponse, VerifierUrlParameters},
-    ErrorResponse,
-};
-use wallet_common::{
-    generator::TimeGenerator, http_error::HttpJsonErrorBody, keys::software::SoftwareEcdsaKey,
-    reqwest::default_reqwest_client_builder, trust_anchor::OwnedTrustAnchor, urls::BaseUrl, utils,
-};
+use nl_wallet_mdoc::examples::Example;
+use nl_wallet_mdoc::examples::EXAMPLE_ATTR_NAME;
+use nl_wallet_mdoc::examples::EXAMPLE_ATTR_VALUE;
+use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
+use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
+use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
+use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::unsigned::Entry;
+use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use nl_wallet_mdoc::DeviceResponse;
+use nl_wallet_mdoc::IssuerSigned;
+use nl_wallet_mdoc::ItemsRequest;
+use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::server_state::MemorySessionStore;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc::server_state::SessionToken;
+use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
+use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::StatusResponse;
+use openid4vc::verifier::VerifierUrlParameters;
+use openid4vc::ErrorResponse;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::http_error::HttpJsonErrorBody;
+use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::reqwest::default_reqwest_client_builder;
+use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::urls::BaseUrl;
+use wallet_common::utils;
+use wallet_server::settings::Authentication;
 #[cfg(feature = "issuance")]
-use wallet_server::settings::{Digid, Issuer};
-use wallet_server::{
-    settings::{Authentication, RequesterAuth, Server, Settings, Storage, Urls, Verifier, VerifierUseCase},
-    verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams},
-};
+use wallet_server::settings::Digid;
+#[cfg(feature = "issuance")]
+use wallet_server::settings::Issuer;
+use wallet_server::settings::RequesterAuth;
+use wallet_server::settings::Server;
+use wallet_server::settings::Settings;
+use wallet_server::settings::Storage;
+use wallet_server::settings::Urls;
+use wallet_server::settings::Verifier;
+use wallet_server::settings::VerifierUseCase;
+use wallet_server::verifier::StartDisclosureRequest;
+use wallet_server::verifier::StartDisclosureResponse;
+use wallet_server::verifier::StatusParams;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -86,11 +120,14 @@ fn fake_issuer_settings() -> Issuer {
         private_keys: Default::default(),
         wallet_client_ids: Default::default(),
         digid: Digid {
-            issuer_url: url.clone(),
             bsn_privkey: Default::default(),
-            trust_anchors: Default::default(),
+            http_config: TlsPinningConfig {
+                base_url: url.clone(),
+                trust_anchors: Default::default(),
+            },
         },
         brp_server: url,
+        wte_issuer_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
     }
 }
 
@@ -166,12 +203,14 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         },
         #[cfg(feature = "issuance")]
         issuer: fake_issuer_settings(),
+        issuer_trust_anchors: vec![issuer_trust_anchor],
         verifier: Verifier {
             usecases,
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
-            trust_anchors: vec![issuer_trust_anchor],
+            allow_origins: None,
         },
-        sentry: None,
+        #[cfg(feature = "disclosure")]
+        reader_trust_anchors: vec![rp_ca.certificate().try_into().unwrap()],
     };
 
     (settings, issuer_key_pair, rp_trust_anchor)
@@ -685,6 +724,7 @@ async fn test_disclosure_expired_memory() {
 #[tokio::test]
 async fn test_disclosure_expired_postgres() {
     use wallet_server::store::postgres::PostgresSessionStore;
+    use wallet_server::store::postgres::{self};
 
     // Combine the generated settings with the storage settings from the configuration file.
     let (mut settings, _, _) = wallet_server_settings();
@@ -702,9 +742,11 @@ async fn test_disclosure_expired_postgres() {
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
     let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
-    let session_store = PostgresSessionStore::try_new_with_time(settings.storage.url.clone(), timeouts, time_generator)
-        .await
-        .unwrap();
+    let session_store = PostgresSessionStore::new_with_time(
+        postgres::new_connection(settings.storage.url.clone()).await.unwrap(),
+        timeouts,
+        time_generator,
+    );
 
     test_disclosure_expired(settings, session_store, mock_time.as_ref(), true).await;
 }
@@ -716,7 +758,7 @@ async fn test_disclosure_expired_postgres() {
 async fn prepare_example_holder_mocks(
     issuer_key_pair: &KeyPair<SigningKey>,
     issuer_trust_anchors: &[TrustAnchor<'_>],
-) -> (MockMdocDataSource, SoftwareKeyFactory) {
+) -> (MockMdocDataSource, MockRemoteKeyFactory) {
     // Extract the the attributes from the example DeviceResponse in the ISO specs.
     let example_document = DeviceResponse::example().documents.unwrap().into_iter().next().unwrap();
     let example_attributes = example_document
@@ -750,22 +792,18 @@ async fn prepare_example_holder_mocks(
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = utils::random_string(16);
-    let mdoc_private_key = SigningKey::random(&mut OsRng);
-    let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
+    let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
+    let mdoc_public_key = (&mdoc_private_key.verifying_key().await.unwrap()).try_into().unwrap();
     let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, issuer_key_pair)
         .await
         .unwrap();
-    let mdoc = Mdoc::new::<SoftwareEcdsaKey>(
-        mdoc_private_key_id.clone(),
-        issuer_signed,
-        &TimeGenerator,
-        issuer_trust_anchors,
-    )
-    .unwrap();
+    let mdoc =
+        Mdoc::new::<MockRemoteEcdsaKey>(mdoc_private_key_id, issuer_signed, &TimeGenerator, issuer_trust_anchors)
+            .unwrap();
 
     // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.
     let mdoc_data_source = MockMdocDataSource::new(vec![mdoc]);
-    let key_factory = SoftwareKeyFactory::new(HashMap::from([(mdoc_private_key_id, mdoc_private_key)]));
+    let key_factory = MockRemoteKeyFactory::new(vec![mdoc_private_key]);
 
     (mdoc_data_source, key_factory)
 }
@@ -788,8 +826,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     let (mdoc_data_source, key_factory) = prepare_example_holder_mocks(
         &issuer_key_pair,
         &settings
-            .verifier
-            .trust_anchors
+            .issuer_trust_anchors
             .iter()
             .map(|anchor| (&anchor.owned_trust_anchor).into())
             .collect_vec(),
@@ -933,7 +970,7 @@ async fn test_disclosed_attributes_failed_session() {
         HttpVpMessageClient::from(client.clone()),
         &request_uri_query,
         DisclosureUriSource::QrCode,
-        &MockMdocDataSource::default(),
+        &MockMdocDataSource::new_with_example(),
         &[rp_trust_anchor].iter().map(Into::into).collect_vec(),
     )
     .await
@@ -944,7 +981,7 @@ async fn test_disclosed_attributes_failed_session() {
     };
 
     proposal
-        .disclose(&SoftwareKeyFactory::default())
+        .disclose(&MockRemoteKeyFactory::default())
         .await
         .expect_err("disclosing attributes should result in an error");
 

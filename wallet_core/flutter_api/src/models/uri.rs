@@ -1,4 +1,5 @@
-use wallet::{errors::UriIdentificationError, UriType};
+use wallet::errors::UriIdentificationError;
+use wallet::UriType;
 
 pub enum IdentifyUriResult {
     PidIssuance,

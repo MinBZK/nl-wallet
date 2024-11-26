@@ -1,30 +1,27 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-    str,
-};
+use std::env;
+use std::path::Path;
+use std::path::PathBuf;
+use std::str;
 
 use aes_gcm::Aes256Gcm;
 use base64::prelude::*;
 use http::header;
 use pem::Pem;
-use reqwest::{tls, Certificate, Identity};
+use reqwest::Certificate;
+use reqwest::Identity;
 use tracing::info;
 
-use wallet_common::{reqwest::tls_pinned_client_builder, urls::BaseUrl};
+use wallet_common::reqwest::tls_pinned_client_builder;
+use wallet_common::urls::BaseUrl;
 
-use crate::{
-    gba::{
-        encryption::{decrypt_bytes_from_dir, HmacSha256},
-        error::Error,
-    },
-    haal_centraal::Bsn,
-    settings::SymmetricKey,
-};
+use crate::gba::encryption::decrypt_bytes_from_dir;
+use crate::gba::encryption::HmacSha256;
+use crate::gba::error::Error;
+use crate::haal_centraal::Bsn;
+use crate::settings::SymmetricKey;
 
-#[trait_variant::make(GbavClient: Send)]
-pub trait GbavClientLocal {
-    #[allow(dead_code)]
+#[trait_variant::make(Send)]
+pub trait GbavClient {
     async fn vraag(&self, bsn: &Bsn) -> Result<Option<String>, Error>;
 }
 
@@ -60,8 +57,6 @@ impl HttpGbavClient {
         let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
 
         let http_client = tls_pinned_client_builder(vec![trust_anchor])
-            // TLS_1_3 is currently not supported and version negotiation seems broken
-            .max_tls_version(tls::Version::TLS_1_2)
             .identity(Identity::from_pem(cert_buf.as_bytes())?)
             .build()
             .expect("Could not build reqwest HTTP client");
@@ -148,8 +143,10 @@ where
 
         if let Some(bytes) = decrypted {
             let xml = String::from_utf8(bytes)?;
+            info!("Using preloaded data");
             Ok(Some(xml))
         } else {
+            info!("No preloaded data found");
             self.client.vraag(bsn).await
         }
     }

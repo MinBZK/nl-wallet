@@ -1,34 +1,63 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::collections::HashSet;
+use std::path::PathBuf;
 
 use futures::try_join;
-use sea_orm::{
-    sea_query::{Alias, BinOper, Expr, IntoColumnRef, Query},
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoSimpleExpr, JoinType, ModelTrait,
-    QueryFilter, QueryOrder, QueryResult, QuerySelect, RelationDef, RelationTrait, Select, Set, StatementBuilder,
-    TransactionTrait,
-};
-use sea_query::{OnConflict, SimpleExpr};
+use sea_orm::sea_query::Alias;
+use sea_orm::sea_query::BinOper;
+use sea_orm::sea_query::Expr;
+use sea_orm::sea_query::IntoColumnRef;
+use sea_orm::sea_query::Query;
+use sea_orm::ActiveModelTrait;
+use sea_orm::ColumnTrait;
+use sea_orm::ConnectionTrait;
+use sea_orm::DbErr;
+use sea_orm::EntityTrait;
+use sea_orm::IntoSimpleExpr;
+use sea_orm::JoinType;
+use sea_orm::ModelTrait;
+use sea_orm::QueryFilter;
+use sea_orm::QueryOrder;
+use sea_orm::QueryResult;
+use sea_orm::QuerySelect;
+use sea_orm::RelationDef;
+use sea_orm::RelationTrait;
+use sea_orm::Select;
+use sea_orm::Set;
+use sea_orm::StatementBuilder;
+use sea_orm::TransactionTrait;
+use sea_query::OnConflict;
+use sea_query::SimpleExpr;
 use tokio::fs;
 use tracing::warn;
 use uuid::Uuid;
 
-use entity::{
-    disclosure_history_event::{self, EventStatus},
-    disclosure_history_event_doc_type, history_doc_type, issuance_history_event, issuance_history_event_doc_type,
-    keyed_data, mdoc, mdoc_copy,
-};
-use nl_wallet_mdoc::utils::serialization::{cbor_deserialize, cbor_serialize, CborError};
+use entity::disclosure_history_event::EventStatus;
+use entity::disclosure_history_event::{self};
+use entity::disclosure_history_event_doc_type;
+use entity::history_doc_type;
+use entity::issuance_history_event;
+use entity::issuance_history_event_doc_type;
+use entity::keyed_data;
+use entity::mdoc;
+use entity::mdoc_copy;
+use nl_wallet_mdoc::utils::serialization::cbor_deserialize;
+use nl_wallet_mdoc::utils::serialization::cbor_serialize;
+use nl_wallet_mdoc::utils::serialization::CborError;
 use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
-use super::{
-    data::KeyedData,
-    database::{Database, SqliteUrl},
-    event_log::{WalletEvent, WalletEventModel},
-    key_file,
-    sql_cipher_key::SqlCipherKey,
-    Storage, StorageError, StorageResult, StorageState, StoredMdocCopy,
-};
+use super::data::KeyedData;
+use super::database::Database;
+use super::database::SqliteUrl;
+use super::event_log::WalletEvent;
+use super::event_log::WalletEventModel;
+use super::key_file;
+use super::sql_cipher_key::SqlCipherKey;
+use super::Storage;
+use super::StorageError;
+use super::StorageResult;
+use super::StorageState;
+use super::StoredMdocCopy;
 
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
@@ -601,20 +630,22 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::{mem, sync::LazyLock};
+    use std::mem;
+    use std::sync::LazyLock;
 
-    use chrono::{TimeZone, Utc};
+    use chrono::TimeZone;
+    use chrono::Utc;
     use tokio::fs;
 
-    use nl_wallet_mdoc::{
-        holder::Mdoc,
-        server_keys::KeyPair,
-        utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration},
-    };
-    use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
-    use wallet_common::{
-        account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
-    };
+    use nl_wallet_mdoc::holder::Mdoc;
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+    use platform_support::utils::mock::MockHardwareUtilities;
+    use platform_support::utils::PlatformUtilities;
+    use wallet_common::account::messages::auth::WalletCertificate;
+    use wallet_common::keys::mock_hardware::MockHardwareEncryptionKey;
+    use wallet_common::utils::random_bytes;
 
     use crate::storage::data::RegistrationData;
 
@@ -645,7 +676,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_database_open_encrypted_database_and_clear() {
         let mut storage =
-            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
 
         let name = "test_open_encrypted_database";
         let key_file_alias = key_file_alias_for_name(name);
@@ -657,7 +688,7 @@ pub(crate) mod tests {
         _ = fs::remove_file(database_path).await;
 
         // The key file encryption key should be absent.
-        assert!(!SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+        assert!(!MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
 
         // Open the encrypted database.
         let open_database = storage
@@ -677,19 +708,19 @@ pub(crate) mod tests {
         assert!(fs::try_exists(&database_path).await.unwrap());
 
         // The key file encryption key should be present.
-        assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+        assert!(MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
 
         // Set the open database on the `DatabaseStorage` instance, then drop the storage.
         // Both the database file and the encryption key should still exist.
         storage.open_database = open_database.into();
         mem::drop(storage);
         assert!(fs::try_exists(&database_path).await.unwrap());
-        assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+        assert!(MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
 
         // Re-open the encrypted database, set it on the `DatabaseStorage`
         // instance and then call clear on it in order to delete the database.
         let mut storage =
-            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
         storage.open_database = storage
             .open_encrypted_database(name)
             .await
@@ -699,12 +730,12 @@ pub(crate) mod tests {
 
         // The database file should be gone and the key file encryption key should be absent.
         assert!(!fs::try_exists(&database_path).await.unwrap());
-        assert!(!SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+        assert!(!MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
     }
 
-    async fn open_test_database_storage() -> DatabaseStorage<SoftwareEncryptionKey> {
+    async fn open_test_database_storage() -> DatabaseStorage<MockHardwareEncryptionKey> {
         let mut storage =
-            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+            DatabaseStorage::<MockHardwareEncryptionKey>::new(MockHardwareUtilities::storage_path().await.unwrap());
 
         // Create a test database, override the database field on Storage.
         let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
@@ -714,7 +745,7 @@ pub(crate) mod tests {
 
         // Create an encryption key for the key file, which is not actually used,
         // but still needs to be present.
-        let key_file_key = SoftwareEncryptionKey::new_random("open_test_database_storage".to_string());
+        let key_file_key = MockHardwareEncryptionKey::new_random("open_test_database_storage".to_string());
 
         storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
 
@@ -725,6 +756,7 @@ pub(crate) mod tests {
     async fn test_database_keyed_storage() {
         let registration = RegistrationData {
             pin_salt: vec![1, 2, 3, 4],
+            wallet_id: "wallet_123".to_string(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
         };
 
@@ -769,6 +801,7 @@ pub(crate) mod tests {
         let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
             pin_salt: new_salt,
+            wallet_id: registration.wallet_id.clone(),
             wallet_certificate: registration.wallet_certificate.clone(),
         };
         storage

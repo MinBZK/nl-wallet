@@ -1,25 +1,25 @@
 use std::result::Result;
 
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
+use chrono::Utc;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
-use webpki::TrustAnchor;
+use serde::Deserialize;
+use serde::Serialize;
+use webpki::types::TrustAnchor;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::CredentialKeyType;
 
-use crate::{
-    identifiers::AttributeIdentifier,
-    iso::*,
-    unsigned::{Entry, UnsignedMdoc},
-    utils::{
-        cose::CoseError,
-        keys::{CredentialKeyType, MdocEcdsaKey},
-        x509::Certificate,
-    },
-    verifier::ValidityRequirement,
-};
+use crate::identifiers::AttributeIdentifier;
+use crate::iso::*;
+use crate::unsigned::Entry;
+use crate::unsigned::UnsignedMdoc;
+use crate::utils::cose::CoseError;
+use crate::utils::x509::Certificate;
+use crate::verifier::ValidityRequirement;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -40,7 +40,7 @@ pub struct Mdoc {
 
 impl Mdoc {
     /// Construct a new `Mdoc`, verifying it against the specified thrust anchors before returning it.
-    pub fn new<K: MdocEcdsaKey>(
+    pub fn new<K: CredentialEcdsaKey>(
         private_key_id: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,

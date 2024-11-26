@@ -2,9 +2,11 @@ use std::mem;
 
 use p256::ecdsa::signature::Verifier;
 
-use super::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
+use super::SecureEcdsaKey;
+use super::SecureEncryptionKey;
+use super::StoredByIdentifier;
 
-// This utility function is used both by the Rust unit tests for the "software_keys" feature
+// This utility function is used both by the Rust unit tests for the "mock_hardware_keys" feature
 // and by integration test performed in platform_support from Android / iOS.
 pub async fn sign_and_verify_signature<K: StoredByIdentifier + SecureEcdsaKey>(payload: &[u8], key_identifier: &str) {
     // Create a unique signing key for the identifier.

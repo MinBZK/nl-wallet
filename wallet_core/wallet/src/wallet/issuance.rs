@@ -1,30 +1,48 @@
-use http::{header, HeaderMap, HeaderValue};
+use http::header;
+use http::HeaderMap;
+use http::HeaderValue;
 use p256::ecdsa::signature;
-use tracing::{info, instrument};
+use tracing::info;
+use tracing::instrument;
 use url::Url;
 
-use error_category::{sentry_capture_error, ErrorCategory};
-use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
-use openid4vc::{
-    credential::MdocCopies,
-    issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
-    jwt::JwtCredentialError,
-    token::CredentialPreviewError,
-};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
+use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use openid4vc::credential::MdocCopies;
+use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::jwt::JwtCredentialError;
+use openid4vc::token::CredentialPreviewError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{jwt::JwtError, reqwest::trusted_reqwest_client_builder, urls};
+use wallet_common::jwt::JwtError;
+use wallet_common::reqwest::default_reqwest_client_builder;
+use wallet_common::urls;
 
-use crate::{
-    account_provider::AccountProviderClient,
-    config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
-    document::{Document, DocumentMdocError, PID_DOCTYPE},
-    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    issuance::{DigidSession, DigidSessionError, HttpDigidSession},
-    storage::{Storage, StorageError, WalletEvent},
-    wte::WteIssuanceClient,
-};
+use crate::account_provider::AccountProviderClient;
+use crate::config::ConfigurationRepository;
+use crate::config::UNIVERSAL_LINK_BASE_URL;
+use crate::document::Document;
+use crate::document::DocumentMdocError;
+use crate::document::PID_DOCTYPE;
+use crate::errors::ChangePinError;
+use crate::instruction::InstructionError;
+use crate::instruction::RemoteEcdsaKeyError;
+use crate::instruction::RemoteEcdsaKeyFactory;
+use crate::issuance::DigidSession;
+use crate::issuance::DigidSessionError;
+use crate::issuance::HttpDigidSession;
+use crate::storage::Storage;
+use crate::storage::StorageError;
+use crate::storage::WalletEvent;
+use crate::wte::WteIssuanceClient;
 
-use super::{documents::DocumentsError, history::EventStorageError, Wallet};
+use super::documents::DocumentsError;
+use super::history::EventStorageError;
+use super::Wallet;
 
 pub(super) enum PidIssuanceSession<DS = HttpDigidSession, IS = HttpIssuanceSession> {
     Digid(DS),
@@ -78,8 +96,9 @@ pub enum PidIssuanceError {
     Document(#[source] DocumentsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
+    #[error("error finalizing pin change: {0}")]
+    ChangePin(#[from] ChangePinError),
     #[error("JWT credential error: {0}")]
-    #[category(defer)]
     JwtCredential(#[from] JwtCredentialError),
 }
 
@@ -124,7 +143,8 @@ where
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
         let (session, auth_url) = DS::start(
-            pid_issuance_config.clone(),
+            pid_issuance_config.digid.clone(),
+            &pid_issuance_config.digid_http_config,
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
@@ -213,18 +233,18 @@ where
             .await
             .map_err(PidIssuanceError::DigidSessionFinish)?;
 
-        let pid_issuance_config = &self.config_repository.config().pid_issuance;
-        let http_client = trusted_reqwest_client_builder(pid_issuance_config.digid_trust_anchors())
+        let pid_issuer_http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
                 HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
             )]))
             .build()
             .expect("Could not build reqwest HTTP client");
+
         let config = self.config_repository.config();
 
         let (pid_issuer, attestation_previews) = IS::start_issuance(
-            http_client.into(),
+            pid_issuer_http_client.into(),
             config.pid_issuance.pid_issuer_url.clone(),
             token_request,
             &config.mdoc_trust_anchors(),
@@ -254,7 +274,7 @@ where
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
-        WIC: WteIssuanceClient,
+        WIC: WteIssuanceClient + Default,
     {
         info!("Accepting PID issuance");
 
@@ -279,20 +299,20 @@ where
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
-        let remote_instruction = InstructionClient::new(
-            pin,
-            &self.storage,
-            &registration.hw_privkey,
-            &self.account_provider_client,
-            &registration.data,
-            &config.account_server.base_url,
-            &instruction_result_public_key,
-        );
+        let remote_instruction = self
+            .new_instruction_client(
+                pin,
+                registration,
+                &config.account_server.http_config,
+                &instruction_result_public_key,
+            )
+            .await?;
+
         let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
         let wte = self
             .wte_issuance_client
-            .obtain_wte(&config.account_server.wte_trust_anchors(), &remote_instruction)
+            .obtain_wte(&config.account_server.wte_public_key.0, &remote_instruction)
             .await?;
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
@@ -383,27 +403,28 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
-    use openid4vc::{
-        issuance_session::IssuedCredential,
-        mock::MockIssuanceSession,
-        oidc::OidcError,
-        token::{CredentialPreview, TokenRequest, TokenRequestGrantType},
-    };
+    use openid4vc::issuance_session::IssuedCredential;
+    use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::oidc::OidcError;
+    use openid4vc::token::CredentialPreview;
+    use openid4vc::token::TokenRequest;
+    use openid4vc::token::TokenRequestGrantType;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
 
-    use crate::{
-        document::{self, DocumentPersistence},
-        issuance::MockDigidSession,
-        storage::StorageState,
-        wallet::history::HistoryEvent,
-    };
+    use wallet_common::config::http::TlsPinningConfig;
 
-    use super::{
-        super::test::{self, WalletWithMocks, ISSUER_KEY},
-        *,
-    };
+    use crate::document::DocumentPersistence;
+    use crate::document::{self};
+    use crate::issuance::MockDigidSession;
+    use crate::storage::StorageState;
+    use crate::wallet::history::HistoryEvent;
+
+    use super::super::test::WalletWithMocks;
+    use super::super::test::ISSUER_KEY;
+    use super::super::test::{self};
+    use super::*;
 
     #[tokio::test]
     #[serial(MockDigidSession)]
@@ -416,7 +437,7 @@ mod tests {
 
         // Set up a mock DigiD session.
         let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _| {
+        session_start_context.expect().returning(|_, _: &TlsPinningConfig, _| {
             let client = MockDigidSession::default();
             Ok((client, Url::parse(AUTH_URL).unwrap()))
         });
@@ -505,7 +526,7 @@ mod tests {
         let session_start_context = MockDigidSession::start_context();
         session_start_context
             .expect()
-            .return_once(|_, _| Err(OidcError::NoAuthCode.into()));
+            .return_once(|_, _: &TlsPinningConfig, _| Err(OidcError::NoAuthCode.into()));
 
         // The error should be forwarded when attempting to create a DigiD authentication URL.
         let error = wallet
@@ -791,9 +812,11 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client
-                .expect_accept()
-                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
+            client.expect_accept().return_once(|| {
+                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
+                    .try_into()
+                    .unwrap()])
+            });
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -833,7 +856,7 @@ mod tests {
         const AUTH_URL: &str = "http://example.com/auth";
         // Set up a mock DigiD session.
         let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _| {
+        session_start_context.expect().returning(|_, _: &TlsPinningConfig, _| {
             let client = MockDigidSession::default();
             Ok((client, Url::parse(AUTH_URL).unwrap()))
         });
@@ -855,9 +878,11 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client
-                .expect_accept()
-                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
+            client.expect_accept().return_once(|| {
+                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
+                    .try_into()
+                    .unwrap()])
+            });
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -1045,9 +1070,11 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc().await;
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
-            client
-                .expect_accept()
-                .return_once(|| Ok(vec![vec![IssuedCredential::MsoMdoc(mdoc)].try_into().unwrap()]));
+            client.expect_accept().return_once(|| {
+                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
+                    .try_into()
+                    .unwrap()])
+            });
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));

@@ -1,12 +1,17 @@
 use std::error::Error;
 
-use nutype::nutype;
-use p256::ecdsa::{signature::Verifier, Signature, VerifyingKey};
+use derive_more::AsRef;
+use p256::ecdsa::signature::Verifier;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
-use serde_with::{serde_as, TryFromInto};
-use sha2::{Digest, Sha256};
+use serde_with::serde_as;
+use serde_with::TryFromInto;
+use sha2::Digest;
+use sha2::Sha256;
 
-use crate::{app_identifier::AppIdentifier, auth_data::AuthenticatorDataWithSource};
+use crate::app_identifier::AppIdentifier;
+use crate::auth_data::TruncatedAuthenticatorDataWithSource;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AssertionError {
@@ -22,6 +27,8 @@ pub enum AssertionDecodingError {
     Cbor(#[source] ciborium::de::Error<std::io::Error>),
     #[error("could not get client data hash: {0}")]
     ClientDataHash(Box<dyn Error + Send + Sync>),
+    #[error("could not get client data challenge: {0}")]
+    ClientDataChallenge(Box<dyn Error + Send + Sync>),
     #[error("counter is not present in authenticator data")]
     CounterMissing,
 }
@@ -45,10 +52,10 @@ pub trait ClientData {
     type Error: Error + Send + Sync + 'static;
 
     fn hash_data(&self) -> Result<impl AsRef<[u8]>, Self::Error>;
-    fn challenge(&self) -> impl AsRef<[u8]>;
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error>;
 }
 
-#[nutype(derive(Debug, Clone, AsRef))]
+#[derive(Debug, Clone, AsRef)]
 pub struct DerSignature(Signature);
 
 impl TryFrom<Vec<u8>> for DerSignature {
@@ -57,18 +64,28 @@ impl TryFrom<Vec<u8>> for DerSignature {
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         let signature = Signature::from_der(&value)?;
 
-        Ok(DerSignature::new(signature))
+        Ok(DerSignature(signature))
+    }
+}
+
+#[cfg(feature = "serialize")]
+impl From<DerSignature> for Vec<u8> {
+    fn from(value: DerSignature) -> Self {
+        let DerSignature(signature) = value;
+
+        signature.to_der().as_bytes().to_vec()
     }
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct Assertion {
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
     pub signature: DerSignature,
     #[serde_as(as = "TryFromInto<Vec<u8>>")]
-    pub authenticator_data: AuthenticatorDataWithSource,
+    pub authenticator_data: TruncatedAuthenticatorDataWithSource,
 }
 
 impl Assertion {
@@ -78,7 +95,7 @@ impl Assertion {
         public_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
         previous_counter: u32,
-        challenge: &[u8],
+        expected_challenge: &[u8],
     ) -> Result<(Self, u32), AssertionError> {
         let assertion: Self = ciborium::from_reader(bytes).map_err(AssertionDecodingError::Cbor)?;
 
@@ -131,10 +148,53 @@ impl Assertion {
 
         // 6. Verify that the embedded challenge in the client data matches the earlier challenge to the client.
 
-        if client_data.challenge().as_ref() != challenge {
+        if client_data
+            .challenge()
+            .map_err(|error| AssertionDecodingError::ClientDataChallenge(Box::new(error)))?
+            .as_ref()
+            != expected_challenge
+        {
             return Err(AssertionValidationError::ChallengeMismatch)?;
         }
 
         Ok((assertion, counter))
+    }
+}
+
+#[cfg(feature = "mock")]
+mod mock {
+    use p256::ecdsa::signature::Signer;
+    use p256::ecdsa::SigningKey;
+    use passkey_types::ctap2::AuthenticatorData;
+    use sha2::Digest;
+    use sha2::Sha256;
+
+    use crate::app_identifier::AppIdentifier;
+    use crate::auth_data::AuthenticatorDataWithSource;
+
+    use super::Assertion;
+
+    impl Assertion {
+        /// Generate a mock [`Assertion`] based on a private key and other parameters.
+        pub fn new_mock(
+            private_key: &SigningKey,
+            app_identifier: &AppIdentifier,
+            counter: u32,
+            client_data: &[u8],
+        ) -> Self {
+            let authenticator_data =
+                AuthenticatorDataWithSource::from(AuthenticatorData::new(app_identifier.as_ref(), Some(counter)));
+
+            let nonce = Sha256::new()
+                .chain_update(authenticator_data.source())
+                .chain_update(Sha256::digest(client_data))
+                .finalize();
+            let signature = super::DerSignature(private_key.try_sign(&nonce).unwrap());
+
+            Self {
+                signature,
+                authenticator_data,
+            }
+        }
     }
 }

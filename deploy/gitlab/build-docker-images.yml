@@ -125,6 +125,17 @@ build-gba-fetch-image:
   needs:
     - job: build-gba-fetch-binary
       artifacts: true
+    - job: build-gba-encrypt-binary
+      artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/Dockerfile.gba_fetch
     DOCKER_IMAGE_NAME: nl-wallet-gba-fetch
+
+build-gba-fetch-frontend-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-gba-fetch-frontend-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/Dockerfile.gba_fetch_frontend
+    DOCKER_IMAGE_NAME: nl-wallet-gba-fetch-frontend

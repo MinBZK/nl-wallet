@@ -1,22 +1,29 @@
 use tokio::sync::RwLock;
 
-use error_category::{sentry_capture_error, ErrorCategory};
-use platform_support::{
-    hw_keystore::{hardware::HardwareEncryptionKey, PlatformEcdsaKey},
-    utils::{hardware::HardwareUtilities, PlatformUtilities, UtilitiesError},
-};
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
+use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
+use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::utils::hardware::HardwareUtilities;
+use platform_support::utils::PlatformUtilities;
+use platform_support::utils::UtilitiesError;
 
-use crate::{
-    account_provider::HttpAccountProviderClient,
-    config::{
-        default_configuration, init_universal_link_base_url, ConfigServerConfiguration, ConfigurationError,
-        ConfigurationRepository, UpdatingConfigurationRepository,
-    },
-    lock::WalletLock,
-    storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
-};
+use crate::account_provider::HttpAccountProviderClient;
+use crate::config::default_configuration;
+use crate::config::init_universal_link_base_url;
+use crate::config::ConfigServerConfiguration;
+use crate::config::ConfigurationError;
+use crate::config::ConfigurationRepository;
+use crate::config::UpdatingConfigurationRepository;
+use crate::lock::WalletLock;
+use crate::storage::DatabaseStorage;
+use crate::storage::RegistrationData;
+use crate::storage::Storage;
+use crate::storage::StorageError;
+use crate::storage::StorageState;
 
-use super::{Wallet, WalletRegistration};
+use super::Wallet;
+use super::WalletRegistration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -47,7 +54,7 @@ impl Wallet {
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
 where
     CR: ConfigurationRepository,
     S: Storage,
@@ -109,14 +116,15 @@ where
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
+    use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
+    use wallet_common::keys::EcdsaKey;
 
-    use crate::{pin::key as pin_key, storage::MockStorage};
+    use crate::pin::key as pin_key;
+    use crate::storage::MockStorage;
 
-    use super::{
-        super::{registration, test::WalletWithMocks},
-        *,
-    };
+    use super::super::registration;
+    use super::super::test::WalletWithMocks;
+    use super::*;
 
     // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
     #[tokio::test]
@@ -172,6 +180,7 @@ mod tests {
             StorageState::Unopened,
             Some(RegistrationData {
                 pin_salt: pin_salt.clone(),
+                wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),
         ))
@@ -196,7 +205,7 @@ mod tests {
         // The hardware private key should not exist at this point in the test.
         // In a real life scenario it does, as this test models a `Wallet` with
         // a pre-existing registration in its database.
-        assert!(!SoftwareEcdsaKey::identifier_exists(
+        assert!(!MockHardwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
 
@@ -207,6 +216,7 @@ mod tests {
                 StorageState::Unopened,
                 Some(RegistrationData {
                     pin_salt: pin_key::new_pin_salt(),
+                    wallet_id: "wallet_123".to_string(),
                     wallet_certificate: "thisisjwt".to_string().into(),
                 }),
             ))
@@ -222,7 +232,7 @@ mod tests {
         };
 
         // The hardware private key should now exist.
-        assert!(SoftwareEcdsaKey::identifier_exists(
+        assert!(MockHardwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
 

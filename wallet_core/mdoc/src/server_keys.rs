@@ -1,12 +1,16 @@
-use std::fmt::{Debug, Formatter};
+use derive_more::Debug;
+use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
 
-use p256::ecdsa::{Signature, SigningKey};
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::EcdsaKeySend;
 
-use wallet_common::keys::{EcdsaKey, EcdsaKeySend};
+use crate::utils::x509::Certificate;
+use crate::utils::x509::CertificateError;
 
-use crate::utils::x509::{Certificate, CertificateError};
-
+#[derive(Debug)]
 pub struct KeyPair<S = SigningKey> {
+    #[debug(skip)]
     private_key: S,
     certificate: Certificate,
 }
@@ -55,14 +59,6 @@ impl<S> KeyPair<S> {
     }
 }
 
-impl<S> Debug for KeyPair<S> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("KeyPair")
-            .field("certificate", &self.certificate)
-            .finish_non_exhaustive()
-    }
-}
-
 impl<S> From<KeyPair<S>> for Certificate {
     fn from(source: KeyPair<S>) -> Certificate {
         source.certificate
@@ -91,7 +87,8 @@ pub trait KeyRing {
 pub mod test {
     use p256::ecdsa::SigningKey;
 
-    use super::{KeyPair, KeyRing};
+    use super::KeyPair;
+    use super::KeyRing;
 
     /// An implementation of [`KeyRing`] containing a single key.
     pub struct SingleKeyRing(pub KeyPair<SigningKey>);
@@ -107,25 +104,28 @@ pub mod test {
 
 #[cfg(any(test, feature = "generate"))]
 mod generate {
-    use p256::{
-        ecdsa::SigningKey,
-        pkcs8::{
-            der::{asn1::SequenceOf, Encode},
-            DecodePrivateKey, EncodePrivateKey, ObjectIdentifier,
-        },
-    };
-    use rcgen::{
-        BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa, SanType,
-    };
+    use p256::ecdsa::SigningKey;
+    use p256::pkcs8::der::asn1::SequenceOf;
+    use p256::pkcs8::der::Encode;
+    use p256::pkcs8::DecodePrivateKey;
+    use p256::pkcs8::EncodePrivateKey;
+    use p256::pkcs8::ObjectIdentifier;
+    use rcgen::BasicConstraints;
+    use rcgen::Certificate as RcgenCertificate;
+    use rcgen::CertificateParams;
+    use rcgen::CustomExtension;
+    use rcgen::DnType;
+    use rcgen::IsCa;
+    use rcgen::SanType;
     use time::OffsetDateTime;
 
-    use crate::{
-        server_keys::KeyPair,
-        utils::x509::{
-            CertificateConfiguration, CertificateError, CertificateType, CertificateUsage, MdocCertificateExtension,
-            OID_EXT_KEY_USAGE,
-        },
-    };
+    use crate::server_keys::KeyPair;
+    use crate::utils::x509::CertificateConfiguration;
+    use crate::utils::x509::CertificateError;
+    use crate::utils::x509::CertificateType;
+    use crate::utils::x509::CertificateUsage;
+    use crate::utils::x509::MdocCertificateExtension;
+    use crate::utils::x509::OID_EXT_KEY_USAGE;
 
     impl KeyPair {
         /// Generate a new self-signed CA key pair.
@@ -233,10 +233,9 @@ mod generate {
 
     #[cfg(any(test, feature = "mock"))]
     mod mock {
-        use crate::{
-            server_keys::KeyPair,
-            utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration},
-        };
+        use crate::server_keys::KeyPair;
+        use crate::utils::issuer_auth::IssuerRegistration;
+        use crate::utils::reader_auth::ReaderRegistration;
 
         use super::*;
 
