@@ -26,7 +26,7 @@ use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::keys::StoredByIdentifier;
 use wallet_common::keys::WithIdentifier;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
@@ -64,7 +64,7 @@ pub struct AccountServerKeys {
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
     pub issuance_key: KeyPair<SigningKey>,
-    pub trust_anchor: DerTrustAnchor,
+    pub trust_anchor: BorrowingTrustAnchor,
 }
 
 /// This is used as a mock for `PlatformEcdsaKey`, so we can introduce failure conditions.
@@ -151,7 +151,7 @@ pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &Issuer
         private_key_id,
         issuer_signed,
         &TimeGenerator,
-        &[(&issuer_key.trust_anchor.owned_trust_anchor).into()],
+        &[(&issuer_key.trust_anchor).into()],
     )
     .unwrap()
 }

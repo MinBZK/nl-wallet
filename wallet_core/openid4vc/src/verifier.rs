@@ -34,7 +34,7 @@ use nl_wallet_mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtError;
-use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -483,7 +483,7 @@ pub struct Verifier<S> {
     use_cases: UseCases,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
-    trust_anchors: Vec<OwnedTrustAnchor>,
+    trust_anchors: Vec<BorrowingTrustAnchor>,
     ephemeral_id_secret: hmac::Key,
 }
 
@@ -510,7 +510,7 @@ where
     pub fn new(
         use_cases: UseCases,
         sessions: S,
-        trust_anchors: Vec<OwnedTrustAnchor>,
+        trust_anchors: Vec<BorrowingTrustAnchor>,
         ephemeral_id_secret: hmac::Key,
     ) -> Self
     where
@@ -1136,7 +1136,7 @@ mod tests {
     use nl_wallet_mdoc::ItemsRequest;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::trust_anchor::DerTrustAnchor;
+    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionToken;
@@ -1192,11 +1192,7 @@ mod tests {
     fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
         // Initialize server state
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![
-            DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec())
-                .unwrap()
-                .owned_trust_anchor,
-        ];
+        let trust_anchors = vec![BorrowingTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
         let reader_registration = Some(ReaderRegistration::new_mock());
 
         let use_cases = HashMap::from([

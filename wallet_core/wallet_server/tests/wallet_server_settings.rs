@@ -7,7 +7,7 @@ use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::Certificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::ParsedTrustAnchor;
 use wallet_server::settings::CertificateVerificationError;
 use wallet_server::settings::Settings;
 use wallet_server::settings::VerifierUseCase;
@@ -19,7 +19,7 @@ fn to_use_case(key_pair: KeyPair) -> VerifierUseCase {
     }
 }
 
-fn certificates_to_trust_anchors(trust_anchors: &[Certificate]) -> Result<Vec<DerTrustAnchor>, CertificateError> {
+fn certificates_to_trust_anchors(trust_anchors: &[Certificate]) -> Result<Vec<ParsedTrustAnchor>, CertificateError> {
     trust_anchors
         .iter()
         .map(TryInto::try_into)

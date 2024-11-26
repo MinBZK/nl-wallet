@@ -27,7 +27,7 @@ use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 cfg_if::cfg_if! {
@@ -77,7 +77,7 @@ pub struct Settings {
 
     /// Issuer trust anchors are used to validate the keys and certificates in the `issuer.private_keys` configuration
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
-    pub issuer_trust_anchors: Vec<DerTrustAnchor>,
+    pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
 
     #[cfg(feature = "disclosure")]
     pub verifier: Verifier,
@@ -85,7 +85,7 @@ pub struct Settings {
     /// Reader trust anchors are used to verify the keys and certificates in the `verifier.usecases` configuration on
     /// application startup.
     #[cfg(feature = "disclosure")]
-    pub reader_trust_anchors: Vec<DerTrustAnchor>,
+    pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -281,7 +281,7 @@ impl Settings {
         let trust_anchors: Vec<TrustAnchor<'a>> = self
             .reader_trust_anchors
             .iter()
-            .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+            .map(|trust_anchor| trust_anchor.into())
             .collect::<Vec<_>>();
 
         let key_pairs: Vec<(String, KeyPair)> = self
@@ -308,7 +308,7 @@ impl Settings {
         let trust_anchors: Vec<TrustAnchor<'a>> = self
             .issuer_trust_anchors
             .iter()
-            .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+            .map(|trust_anchor| trust_anchor.into())
             .collect::<Vec<_>>();
 
         let key_pairs: Vec<(String, KeyPair)> = self

@@ -51,6 +51,7 @@ rand.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 ring.workspace = true
 rustls-webpki.workspace = true
+rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
@@ -61,6 +62,7 @@ tokio = { workspace = true, features = ["rt", "parking_lot"] }
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
+yoke = { workspace = true, features = ["derive"] }
 
 anyhow = { workspace = true, optional = true }
 ciborium = { workspace = true, optional = true }

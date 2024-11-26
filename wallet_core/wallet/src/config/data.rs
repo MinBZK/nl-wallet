@@ -13,7 +13,7 @@ use wallet_common::config::wallet_config::DisclosureConfiguration;
 use wallet_common::config::wallet_config::LockTimeoutConfiguration;
 use wallet_common::config::wallet_config::PidIssuanceConfiguration;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 
@@ -138,7 +138,7 @@ impl Default for ConfigServerConfiguration {
     }
 }
 
-fn parse_trust_anchors(source: &str) -> Vec<DerTrustAnchor> {
+fn parse_trust_anchors(source: &str) -> Vec<BorrowingTrustAnchor> {
     source
         .split('|')
         .map(|anchor| serde_json::from_str(format!("\"{}\"", anchor).as_str()).expect("failed to parse trust anchor"))

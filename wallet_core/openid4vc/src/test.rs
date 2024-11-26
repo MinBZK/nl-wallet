@@ -19,7 +19,7 @@ use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::verifier::ItemsRequests;
 use wallet_common::jwt::Jwt;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -49,7 +49,7 @@ pub const VERIFIER_URL: &str = "http://example.com/disclosure";
 pub struct MockVerifierSession<F> {
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
-    pub trust_anchors: Vec<DerTrustAnchor>,
+    pub trust_anchors: Vec<BorrowingTrustAnchor>,
     pub items_requests: ItemsRequests,
     pub nonce: String,
     pub encryption_keypair: EcKeyPair,
@@ -93,7 +93,7 @@ where
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
+        let trust_anchors = vec![BorrowingTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
         let key_pair = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
         // Generate some OpenID4VP specific session material.
@@ -128,10 +128,7 @@ where
     }
 
     fn trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.trust_anchors
-            .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect()
+        self.trust_anchors.iter().map(|anchor| anchor.into()).collect()
     }
 
     pub fn request_uri_query(&self) -> String {

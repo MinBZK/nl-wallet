@@ -4,14 +4,14 @@ use std::hash::Hasher;
 
 use derive_more::Debug;
 use etag::EntityTag;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
-use webpki::types::TrustAnchor;
 
 use crate::account::serialization::DerVerifyingKey;
 use crate::config::digid::DigidApp2AppConfiguration;
 use crate::config::http::TlsPinningConfig;
-use crate::trust_anchor::DerTrustAnchor;
+use crate::trust_anchor::BorrowingTrustAnchor;
 use crate::urls::BaseUrl;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
@@ -20,16 +20,13 @@ pub struct WalletConfiguration {
     pub account_server: AccountServerConfiguration,
     pub pid_issuance: PidIssuanceConfiguration,
     pub disclosure: DisclosureConfiguration,
-    pub mdoc_trust_anchors: Vec<DerTrustAnchor>,
+    pub mdoc_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub version: u64,
 }
 
 impl WalletConfiguration {
     pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.mdoc_trust_anchors
-            .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect()
+        self.mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect()
     }
 
     pub fn to_hash(&self) -> u64 {
@@ -90,14 +87,11 @@ pub struct PidIssuanceConfiguration {
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct DisclosureConfiguration {
     #[debug(skip)]
-    pub rp_trust_anchors: Vec<DerTrustAnchor>,
+    pub rp_trust_anchors: Vec<BorrowingTrustAnchor>,
 }
 
 impl DisclosureConfiguration {
     pub fn rp_trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.rp_trust_anchors
-            .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect()
+        self.rp_trust_anchors.iter().map(|anchor| anchor.into()).collect()
     }
 }

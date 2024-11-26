@@ -36,7 +36,7 @@ use x509_parser::x509::X509Name;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
 use super::issuer_auth::IssuerRegistration;
 use super::reader_auth::ReaderRegistration;
@@ -148,11 +148,11 @@ impl From<Certificate> for Vec<u8> {
     }
 }
 
-impl TryInto<DerTrustAnchor> for &Certificate {
+impl TryInto<BorrowingTrustAnchor> for &Certificate {
     type Error = CertificateError;
 
-    fn try_into(self) -> Result<DerTrustAnchor, Self::Error> {
-        Ok(DerTrustAnchor::from_der(self.0.to_vec())?)
+    fn try_into(self) -> Result<BorrowingTrustAnchor, Self::Error> {
+        Ok(BorrowingTrustAnchor::from_der(self.as_bytes())?)
     }
 }
 

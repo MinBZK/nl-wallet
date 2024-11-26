@@ -65,7 +65,7 @@ use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::examples::Examples;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 #[tokio::test]
@@ -641,11 +641,10 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     );
 }
 
-fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTrustAnchor, KeyPair) {
+fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, BorrowingTrustAnchor, KeyPair) {
     // Initialize key material
     let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor: TrustAnchor = rp_ca.certificate().try_into().unwrap();
 
     // Initialize the verifier
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(items_requests));
@@ -680,11 +679,15 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTr
     let verifier = Arc::new(MockVerifier::new(
         usecases,
         MemorySessionStore::default(),
-        vec![OwnedTrustAnchor::from(&(issuer_ca.certificate().try_into().unwrap()))],
+        vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_bytes()).unwrap()],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     ));
 
-    (verifier, (&rp_trust_anchor).into(), issuer_ca)
+    (
+        verifier,
+        BorrowingTrustAnchor::from_der(rp_ca.certificate().as_bytes()).unwrap(),
+        issuer_ca,
+    )
 }
 
 async fn start_disclosure_session(
@@ -693,7 +696,7 @@ async fn start_disclosure_session(
     issuer_ca: &KeyPair,
     uri_source: DisclosureUriSource,
     request_uri: &str,
-    trust_anchor: &OwnedTrustAnchor,
+    trust_anchor: &BorrowingTrustAnchor,
 ) -> Result<
     (
         DisclosureSession<VerifierMockVpMessageClient, String>,

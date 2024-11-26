@@ -68,7 +68,7 @@ use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_server::settings::Authentication;
@@ -134,7 +134,7 @@ fn fake_issuer_settings() -> Issuer {
     }
 }
 
-fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor) {
+fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnchor) {
     // Set up the hostname and ports.
     let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
@@ -153,7 +153,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
     let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor = OwnedTrustAnchor::from(&rp_ca.certificate().try_into().unwrap());
+    let rp_trust_anchor = BorrowingTrustAnchor::from_der(rp_ca.certificate().as_bytes()).unwrap();
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
         &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
     ));
@@ -544,7 +544,7 @@ async fn start_disclosure<S>(
     SessionToken,
     BaseUrl,
     KeyPair<SigningKey>,
-    OwnedTrustAnchor,
+    BorrowingTrustAnchor,
 )
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -930,7 +930,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         &settings
             .issuer_trust_anchors
             .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
+            .map(|anchor| anchor.into())
             .collect_vec(),
     )
     .await;

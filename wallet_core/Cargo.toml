@@ -119,6 +119,7 @@ ring = "0.17.8"
 rpassword = "7.3.1"
 rstest = "0.21.0"
 rustls-webpki = "0.102.8"
+rustls-pki-types = "1.10.0"
 sea-orm = { version = "1.1.1", default-features = false }
 sea-orm-migration = { version = "1.1.1", default-features = false }
 sea-query = { version = "0.32.0", default-features = false }
@@ -154,3 +155,4 @@ url = "2.4.0"
 uuid = "1.4.0"
 wiremock = "0.6.0"
 x509-parser = "0.16.0"
+yoke = "0.7.4"
