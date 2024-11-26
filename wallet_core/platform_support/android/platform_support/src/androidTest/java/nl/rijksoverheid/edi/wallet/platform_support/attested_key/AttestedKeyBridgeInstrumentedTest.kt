@@ -88,14 +88,9 @@ class AttestedKeyBridgeInstrumentedTest {
 
         // Verify that attestationData is an instance of `Google`
         if (attestationData is AttestationData.Google) {
-            // Verify the attestation token is a valid signature of the challenge
-            assert(
-                isValidSignature(
-                    attestationData.appAttestationToken.toByteArray(),
-                    challenge.toByteArray(),
-                    attestedKeyBridge.publicKey(id).toByteArray()
-                )
-            )
+            // Verify the attestation token is empty
+            // TODO: fix when implementing app attestation
+            assert(attestationData.appAttestationToken.isEmpty())
             // Verify that the certificate chain is not empty
             assert(attestationData.certificateChain.isNotEmpty()) { "expected a certificate chain" }
         } else {
@@ -110,7 +105,7 @@ class AttestedKeyBridgeInstrumentedTest {
 
         attestedKeyBridge.attest(id, challenge)
         assertFails<AttestedKeyException.Other>(
-            "reason=precondition failed: A key already exists with alias: `ecdsa-id`"
+            "reason=precondition failed: A key already exists with alias: `ecdsa_id`"
         ) {
             attestedKeyBridge.attest(id, challenge)
         }
@@ -122,7 +117,7 @@ class AttestedKeyBridgeInstrumentedTest {
         val challenge = "challenge".toByteArray().toUByteList()
 
         // Verify public key for 'id' does not exist
-        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa-id`") {
+        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa_id`") {
             attestedKeyBridge.publicKey(id)
         }
 
@@ -142,7 +137,7 @@ class AttestedKeyBridgeInstrumentedTest {
         attestedKeyBridge.delete(id)
 
         // Verify public key for 'id' does no longer exist
-        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa-id`") {
+        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa_id`") {
             attestedKeyBridge.publicKey(id)
         }
     }
@@ -152,7 +147,7 @@ class AttestedKeyBridgeInstrumentedTest {
         val id = "id"
 
         // Verify public key for 'id' does not exist
-        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa-id`") {
+        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa_id`") {
             attestedKeyBridge.publicKey(id)
         }
 
@@ -185,7 +180,7 @@ class AttestedKeyBridgeInstrumentedTest {
         val id = "id"
         val valueToSign = "value to sign".toByteArray().toUByteList()
 
-        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa-id`") {
+        assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa_id`") {
             attestedKeyBridge.sign(id, valueToSign)
         }
     }

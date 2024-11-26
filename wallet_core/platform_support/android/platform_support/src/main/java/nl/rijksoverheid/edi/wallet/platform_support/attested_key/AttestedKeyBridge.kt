@@ -1,10 +1,13 @@
 package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 
 import android.content.Context
+import android.util.Log
+import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
-import nl.rijksoverheid.edi.wallet.platform_support.util.longRunning
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import uniffi.platform_support.AttestationData
 import uniffi.platform_support.AttestedKeyException
@@ -14,7 +17,7 @@ import java.util.UUID
 import uniffi.platform_support.AttestedKeyBridge as RustAttestedKeyBridge
 
 // Note this prefix is almost the same as [SigningKeyBridge.SIGN_KEY_PREFIX], however this one ends with a hyphen '-'.
-private const val ATTESTED_KEY_PREFIX = "ecdsa-"
+private const val ATTESTED_KEY_PREFIX = "ecdsa_"
 
 private fun String.keyAlias() = ATTESTED_KEY_PREFIX + this
 
@@ -28,20 +31,32 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
 
     override suspend fun generate(): String = UUID.randomUUID().toString()
 
+    /**
+     * Generate a new key pair with [identifier] and attestation [challenge].
+     *
+     * Note that this method should never throw [AttestedKeyException.ServerUnreachable], as that will cause the caller
+     * to re-invoke this method with the same [identifier], which will fail. This behavior however is implemented specifically for
+     * Apple app/key attestation.
+     */
     @Throws(AttestedKeyException::class)
-    override suspend fun attest(identifier: String, challenge: List<UByte>): AttestationData = longRunning {
+    override suspend fun attest(identifier: String, challenge: List<UByte>): AttestationData = withContext(Dispatchers.IO) {
+        val signingKey = createKey(identifier, challenge)
         try {
-            val signingKey = createKey(identifier, challenge)
-            val challengeResponse = signingKey.sign(challenge)
             val certificateChain =
                 signingKey.getCertificateChain()?.asSequence()?.map { it.encoded.toUByteList() }?.toList()
                     ?: throw AttestedKeyException.Other("failed to get certificate chain")
 
-            AttestationData.Google(certificateChain, challengeResponse)
+            val appAttestationToken = emptyList<UByte>() // TODO fix when implementing app attestation
+            AttestationData.Google(certificateChain, appAttestationToken)
         } catch (e: Exception) {
+            // Try to undo the creation of the signing key
+            try {
+                delete(identifier)
+            } catch (ex: Exception) {
+                Log.w(this::class.qualifiedName, "attest: failed to delete key with id '$identifier'", ex)
+            }
             when (e) {
                 is AttestedKeyException -> throw e
-                is KeyStoreException.KeyException -> throw AttestedKeyException.Other("failed to create key: ${e.message}")
                 is java.security.KeyStoreException -> throw AttestedKeyException.Other("failed to get certificate chain: ${e.message}")
                 else -> throw AttestedKeyException.Other("unexpected failure: ${e.message}")
             }
@@ -49,7 +64,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
     }
 
     @Throws(AttestedKeyException::class)
-    override suspend fun sign(identifier: String, payload: List<UByte>): List<UByte> = longRunning {
+    override suspend fun sign(identifier: String, payload: List<UByte>): List<UByte> = withContext(Dispatchers.IO) {
         try {
             getKey(identifier.keyAlias()).sign(payload)
         } catch (e: Exception) {
@@ -61,7 +76,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         }
     }
 
-    override suspend fun publicKey(identifier: String): List<UByte> = longRunning {
+    override suspend fun publicKey(identifier: String): List<UByte> = withContext(Dispatchers.IO) {
         try {
             getKey(identifier.keyAlias()).publicKey()
         } catch (e: Exception) {
@@ -73,7 +88,12 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         }
     }
 
-    override suspend fun delete(identifier: String) = longRunning {
+    /**
+     * Delete key with [identifier] if it exists.
+     * If no key with [identifier] exists, this method will not throw an exception.
+     * @throws AttestedKeyException if the entry cannot be removed.
+     */
+    override suspend fun delete(identifier: String) = withContext(Dispatchers.IO) {
         try {
             keyStore.deleteEntry(identifier.keyAlias())
         } catch (e: java.security.KeyStoreException) {
@@ -109,6 +129,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         return SigningKey(keyAlias)
     }
 
+    @VisibleForTesting
     override fun clean() =
         keyStore.aliases().asSequence().filter { it.startsWith(ATTESTED_KEY_PREFIX) }.forEach(::deleteEntry)
 }
