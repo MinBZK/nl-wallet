@@ -910,6 +910,7 @@ pub mod mock {
         (account_server, apple_mock_ca)
     }
 
+    #[derive(Debug)]
     pub enum MockHardwareKey {
         Ecdsa(SigningKey),
         Apple(MockAppleAttestedKey),
@@ -1047,7 +1048,7 @@ mod tests {
         pin_privkey: &SigningKey,
         mock_apple_ca: &MockAttestationCa,
         attestation_type: AttestationType,
-    ) -> (WalletCertificate, MockHardwareKey) {
+    ) -> Result<(WalletCertificate, MockHardwareKey), RegistrationError> {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
             .await
@@ -1083,7 +1084,7 @@ mod tests {
             .returning(|| Ok(MockTransaction));
         wallet_user_repo.expect_create_wallet_user().returning(|_, _| Ok(()));
 
-        let wallet_certificate = account_server
+        account_server
             .register(
                 certificate_signing_key,
                 &FixedUuidGenerator,
@@ -1092,9 +1093,7 @@ mod tests {
                 registration_message,
             )
             .await
-            .expect("Could not process registration message at account server");
-
-        (wallet_certificate, hw_privkey)
+            .map(|wallet_certificate| (wallet_certificate, hw_privkey))
     }
 
     async fn setup_and_do_registration(
@@ -1117,7 +1116,8 @@ mod tests {
             &apple_mock_ca,
             attestation_type,
         )
-        .await;
+        .await
+        .expect("Could not process registration message at account server");
 
         let apple_assertion_counter = match attestation_type {
             AttestationType::Apple => Some(1),
@@ -1326,6 +1326,83 @@ mod tests {
         )
         .await
         .unwrap();
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_register_invalid_apple_attestation() {
+        let setup = WalletCertificateSetup::new().await;
+        let (account_server, _apple_mock_ca) = mock::setup_account_server(&setup.signing_pubkey);
+
+        // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
+        let other_apple_mock_ca = MockAttestationCa::generate();
+
+        let error = do_registration(
+            &account_server,
+            get_global_hsm().await,
+            &setup.signing_key,
+            &setup.pin_privkey,
+            &other_apple_mock_ca,
+            AttestationType::Apple,
+        )
+        .await
+        .expect_err("registering with an invalid Apple attestation should fail");
+
+        assert_matches!(error, RegistrationError::AppleAttestation(_));
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_challenge_request_error_signature_type_mismatch(
+        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+    ) {
+        let (_setup, account_server, _hw_privkey, cert, repo) = setup_and_do_registration(attestation_type).await;
+
+        // Create a hardware key that is the opposite type of the one used during registration.
+        let wrong_hw_privkey = match attestation_type {
+            AttestationType::Apple => MockHardwareKey::Ecdsa(SigningKey::random(&mut OsRng)),
+            AttestationType::None => MockHardwareKey::Apple(MockAppleAttestedKey::new_random(
+                account_server.apple_config.app_identifier.clone(),
+            )),
+        };
+
+        let error = do_instruction_challenge::<CheckPin>(
+            &account_server,
+            &repo,
+            &wrong_hw_privkey,
+            cert,
+            43,
+            get_global_hsm().await,
+        )
+        .await
+        .expect_err("requesting a challenge with a different signature type than used during registration should fail");
+
+        assert_matches!(
+            error,
+            ChallengeError::Validation(wallet_common::account::errors::Error::SignatureTypeMismatch { .. })
+        )
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_challenge_request_error_apple_assertion_counter() {
+        let (_setup, account_server, hw_privkey, cert, mut repo) =
+            setup_and_do_registration(AttestationType::Apple).await;
+        repo.apple_assertion_counter = Some(200);
+
+        let error =
+            do_instruction_challenge::<CheckPin>(&account_server, &repo, &hw_privkey, cert, 43, get_global_hsm().await)
+                .await
+                .expect_err(
+                    "requesting a challenge with a different signature type than used during registration should fail",
+                );
+
+        assert_matches!(
+            error,
+            ChallengeError::Validation(wallet_common::account::errors::Error::AssertionVerification(
+                AssertionError::Validation(AssertionValidationError::CounterTooLow { .. })
+            ))
+        )
     }
 
     #[tokio::test]
