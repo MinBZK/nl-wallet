@@ -124,8 +124,8 @@ account.
 
 Our mobile apps require at least the following operating system versions:
 
-- Android 7 (API-level 27)
-- iOS 12.0
+- Android 7.0 (API-level 24)
+- iOS 14.0
 
 The app does not put a particulary heavy load on the device, so CPU and memory
 requirements are low to average. Note that this is subject to change.
@@ -347,6 +347,7 @@ are installed successfully:
 
 You should now be able to launch an Android Emulator or iOS Simulator and run
 the app by following these steps:
+
 - `cd wallet_app`
 - `flutter pub get`
 - `flutter run`! 🎉
@@ -401,7 +402,6 @@ cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml
 
 The generated code is currently checked in, so that generation only has to be
 performed when the API changes.
-
 
 ## Conventions
 
@@ -472,15 +472,15 @@ Below you'll find a collection of links which we reference to through the entire
 text. Note that they don't display when rendered within a website, you need to
 read the text in a regular text editor or pager to see them.
 
-[1]:  https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
-[2]:  https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte-eer-eidas/alles-wat-u-moet-weten-over-eidas/
-[3]:  https://www.figma.com/design/CPMQrCx6QBr4oLYjDvhY3g/20241015_Release_UI_NLWallet?node-id=27602-6&t=DUBHU8KUCwhougZo-1/
-[4]:  https://github.com/MinBZK/nl-wallet/
-[5]:  https://edi.pleio.nl/
-[6]:  mailto:edi@minbzk.nl?subject=Feedback%20or%20ideas
-[7]:  releases
-[8]:  ./LICENSES/EUPL-1.2.txt
-[9]:  ./.reuse/dep5
+[1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
+[2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte-eer-eidas/alles-wat-u-moet-weten-over-eidas/
+[3]: https://www.figma.com/design/CPMQrCx6QBr4oLYjDvhY3g/20241015_Release_UI_NLWallet?node-id=27602-6&t=DUBHU8KUCwhougZo-1/
+[4]: https://github.com/MinBZK/nl-wallet/
+[5]: https://edi.pleio.nl/
+[6]: mailto:edi@minbzk.nl?subject=Feedback%20or%20ideas
+[7]: releases
+[8]: ./LICENSES/EUPL-1.2.txt
+[9]: ./.reuse/dep5
 [10]: https://reuse.software/spec/
 [11]: mailto:edi@minbzk.nl?subject=Contribution%20via%20GitHub
 [12]: https://edi.pleio.nl/events/
