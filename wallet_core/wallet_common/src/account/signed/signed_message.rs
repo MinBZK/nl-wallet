@@ -175,7 +175,7 @@ impl<T> SignedMessage<T> {
         let signature = self
             .signature
             .ecdsa_signature(r#type)
-            .ok_or_else(|| Error::TypeMismatch {
+            .ok_or_else(|| Error::SignatureTypeMismatch {
                 expected: SignatureType::Ecdsa(r#type),
                 received: self.signature.signature_type(),
             })?;
@@ -201,7 +201,7 @@ impl<T> SignedMessage<T> {
         let parsed = ParsedValueWithSource::try_from(&self.signed)?;
 
         let MessageSignature::AppleAssertion { assertion } = &self.signature else {
-            return Err(Error::TypeMismatch {
+            return Err(Error::SignatureTypeMismatch {
                 expected: SignatureType::AppleAssertion,
                 received: self.signature.signature_type(),
             });
@@ -480,7 +480,7 @@ mod tests {
 
         assert_matches!(
             error,
-            Error::TypeMismatch {
+            Error::SignatureTypeMismatch {
                 expected,
                 received
             } if expected == verify_signature_type && received == signature_type

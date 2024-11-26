@@ -14,7 +14,7 @@ pub enum Error {
     AssertionVerification(#[source] AssertionError),
     #[error("incorrect signing type (expected: {expected:?}, received: {received:?})")]
     #[category(critical)]
-    TypeMismatch {
+    SignatureTypeMismatch {
         expected: SignatureType,
         received: SignatureType,
     },
