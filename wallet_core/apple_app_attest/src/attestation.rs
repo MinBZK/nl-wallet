@@ -239,10 +239,7 @@ impl VerifiedAttestation {
 }
 
 #[cfg(feature = "mock")]
-pub use mock::MockAttestationCa;
-
-#[cfg(feature = "mock")]
-mod mock {
+pub mod mock {
     use coset::iana::EllipticCurve;
     use coset::CoseKeyBuilder;
     use der::Encode;
