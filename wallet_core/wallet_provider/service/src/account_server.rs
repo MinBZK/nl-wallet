@@ -235,6 +235,17 @@ pub struct AppleAttestationConfiguration {
     pub environment: AttestationEnvironment,
 }
 
+impl AppleAttestationConfiguration {
+    pub fn new(team_identifier: String, bundle_identifier: String, environment: AttestationEnvironment) -> Self {
+        let app_identifier = AppIdentifier::new(team_identifier, bundle_identifier);
+
+        Self {
+            app_identifier,
+            environment,
+        }
+    }
+}
+
 pub struct AccountServer {
     instruction_challenge_timeout: Duration,
 
@@ -255,12 +266,13 @@ impl AccountServer {
         encryption_key_identifier: String,
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
-        apple_der_certificates: Vec<&[u8]>,
+        apple_der_certificates: Vec<impl AsRef<[u8]>>,
     ) -> Result<Self, AccountServerInitError> {
         let apple_trust_anchors = apple_der_certificates
             .into_iter()
             .map(|der_certificate| {
-                webpki::anchor_from_trusted_cert(&CertificateDer::from(der_certificate)).map(|anchor| anchor.to_owned())
+                webpki::anchor_from_trusted_cert(&CertificateDer::from(der_certificate.as_ref()))
+                    .map(|anchor| anchor.to_owned())
             })
             .collect::<Result<_, _>>()?;
 

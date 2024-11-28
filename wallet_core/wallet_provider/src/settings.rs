@@ -8,15 +8,14 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use serde::Deserialize;
+use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
 
-use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;
 use wallet_provider_database_settings::Database;
-use wallet_provider_service::account_server::AppleAttestationConfiguration;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -71,12 +70,15 @@ pub struct Hsm {
     pub max_session_lifetime: Duration,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Ios {
     pub team_identifier: String,
     pub bundle_identifier: String,
     #[serde(default)]
     pub environment: AppleEnvironment,
+    #[serde_as(as = "Vec<Base64>")]
+    pub root_certificates: Vec<Vec<u8>>,
 }
 
 #[derive(Clone, Copy, Default, Deserialize)]
@@ -128,29 +130,11 @@ impl Settings {
     }
 }
 
-impl From<Ios> for AppIdentifier {
-    fn from(value: Ios) -> Self {
-        Self::new(value.team_identifier, value.bundle_identifier)
-    }
-}
-
 impl From<AppleEnvironment> for AttestationEnvironment {
     fn from(value: AppleEnvironment) -> Self {
         match value {
             AppleEnvironment::Development => Self::Development,
             AppleEnvironment::Production => Self::Production,
-        }
-    }
-}
-
-impl From<Ios> for AppleAttestationConfiguration {
-    fn from(value: Ios) -> Self {
-        let environment = AttestationEnvironment::from(value.environment);
-        let app_identifier = AppIdentifier::from(value);
-
-        Self {
-            app_identifier,
-            environment,
         }
     }
 }

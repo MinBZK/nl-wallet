@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use apple_app_attest::APPLE_ROOT_CA;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -17,6 +16,7 @@ use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
+use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::ValidateInstruction;
@@ -60,14 +60,20 @@ impl RouterState {
 
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
 
+        let apple_config = AppleAttestationConfiguration::new(
+            settings.ios.team_identifier,
+            settings.ios.bundle_identifier,
+            settings.ios.environment.into(),
+        );
+
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
             "account_server".into(),
             (&certificate_signing_pubkey).into(),
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
-            settings.ios.into(),
-            vec![&APPLE_ROOT_CA],
+            apple_config,
+            settings.ios.root_certificates,
         )?;
 
         let db = Db::new(
