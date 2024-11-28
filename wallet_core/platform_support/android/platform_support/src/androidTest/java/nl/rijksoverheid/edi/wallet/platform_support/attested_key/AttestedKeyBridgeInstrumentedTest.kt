@@ -1,6 +1,7 @@
 package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 
 import android.security.keystore.KeyProperties
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -26,8 +27,11 @@ import org.junit.runner.RunWith
 import uniffi.platform_support.AttestationData
 import uniffi.platform_support.AttestedKeyException
 import uniffi.platform_support.AttestedKeyType
+import java.io.ByteArrayInputStream
 import java.security.KeyFactory
 import java.security.Signature
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 import java.security.spec.X509EncodedKeySpec
 
 @RunWith(AndroidJUnit4::class)
@@ -35,6 +39,8 @@ import java.security.spec.X509EncodedKeySpec
 @ExperimentalCoroutinesApi // Needed for `newSingleThreadContext`, `Dispatchers.setMain` and `Dispatchers.resetMain`
 class AttestedKeyBridgeInstrumentedTest {
     companion object {
+        const val CHALLENGE: String = "test-challenge"
+
         @JvmStatic
         external fun attested_key_test()
     }
@@ -42,6 +48,9 @@ class AttestedKeyBridgeInstrumentedTest {
     private lateinit var attestedKeyBridge: AttestedKeyBridge
 
     private val mainThreadSurrogate = newSingleThreadContext("UI thread")
+
+    private val keyFactory: KeyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_EC)
+    private val certFactory: CertificateFactory = CertificateFactory.getInstance("X.509")
 
     @Before
     fun setUp() {
@@ -81,7 +90,7 @@ class AttestedKeyBridgeInstrumentedTest {
     @Test
     fun test_attest() = runTest {
         val id = "id"
-        val challenge = "challenge".toByteArray().toUByteList()
+        val challenge = CHALLENGE.toByteArray().toUByteList()
 
         // Generate a new key using `attest`
         val attestationData = attestedKeyBridge.attest(id, challenge)
@@ -92,7 +101,13 @@ class AttestedKeyBridgeInstrumentedTest {
             // TODO: fix when implementing app attestation
             assert(attestationData.appAttestationToken.isEmpty())
             // Verify that the certificate chain is not empty
-            assert(attestationData.certificateChain.isNotEmpty()) { "expected a certificate chain" }
+            assert(attestationData.certificateChain.size >= 2) {
+                "expected at least the root certificate and the key's certificate"
+            }
+            // Check that the certificate's public key equals the public key as obtained from the attestedKeyBridge
+            val certificate = parseCertificate(attestationData.certificateChain[0])
+            val publicKeyBytes = certificate.publicKey.encoded.toUByteList()
+            assertEquals(publicKeyBytes, attestedKeyBridge.publicKey(id))
         } else {
             fail("This should never occur on Android")
         }
@@ -101,7 +116,7 @@ class AttestedKeyBridgeInstrumentedTest {
     @Test
     fun test_attest_for_existing_key_should_fail() = runTest {
         val id = "id"
-        val challenge = "challenge".toByteArray().toUByteList()
+        val challenge = CHALLENGE.toByteArray().toUByteList()
 
         attestedKeyBridge.attest(id, challenge)
         assertFails<AttestedKeyException.Other>(
@@ -114,7 +129,7 @@ class AttestedKeyBridgeInstrumentedTest {
     @Test
     fun test_delete() = runTest {
         val id = "id"
-        val challenge = "challenge".toByteArray().toUByteList()
+        val challenge = CHALLENGE.toByteArray().toUByteList()
 
         // Verify public key for 'id' does not exist
         assertFails<AttestedKeyException.Other>("reason=precondition failed: Key not found for alias: `ecdsa_id`") {
@@ -128,7 +143,6 @@ class AttestedKeyBridgeInstrumentedTest {
         val publicKeyBytes = attestedKeyBridge.publicKey(id).toByteArray()
         // Verify publicKey is an X.509 Ecdsa key
         val x509EncodedKeySpec = X509EncodedKeySpec(publicKeyBytes)
-        val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_EC)
         val publicKey = keyFactory.generatePublic(x509EncodedKeySpec)
         assertEquals("X.509", publicKey.format)
         assertEquals("EC", publicKey.algorithm)
@@ -158,7 +172,7 @@ class AttestedKeyBridgeInstrumentedTest {
     @Test
     fun test_sign() = runTest {
         val id = "id"
-        val challenge = "challenge".toByteArray().toUByteList()
+        val challenge = CHALLENGE.toByteArray().toUByteList()
         val valueToSign = "value to sign".toByteArray().toUByteList()
 
         // Generate a new key
@@ -193,21 +207,27 @@ class AttestedKeyBridgeInstrumentedTest {
        // The Rust code will panic if this test fails.
        attested_key_test()
    }
+
+    private fun parseCertificate(certificateBytes: List<UByte>): X509Certificate {
+        val certificateInputStream = ByteArrayInputStream(certificateBytes.toByteArray())
+        val certificate = certFactory.generateCertificate(certificateInputStream)
+        return certificate as X509Certificate
+    }
+
+    private fun isValidSignature(
+        signatureBytes: ByteArray,
+        payload: ByteArray,
+        publicKeyBytes: ByteArray,
+    ): Boolean {
+        val x509EncodedKeySpec = X509EncodedKeySpec(publicKeyBytes)
+        val publicKey = keyFactory.generatePublic(x509EncodedKeySpec)
+        val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
+        signature.initVerify(publicKey)
+        signature.update(payload)
+        return signature.verify(signatureBytes)
+    }
 }
 
-private fun isValidSignature(
-    signatureBytes: ByteArray,
-    payload: ByteArray,
-    publicKeyBytes: ByteArray,
-): Boolean {
-    val x509EncodedKeySpec = X509EncodedKeySpec(publicKeyBytes)
-    val keyFactory: KeyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_EC)
-    val publicKey = keyFactory.generatePublic(x509EncodedKeySpec)
-    val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
-    signature.initVerify(publicKey)
-    signature.update(payload)
-    return signature.verify(signatureBytes)
-}
 
 private suspend inline fun <reified T> assertFails(
     expectedMessage: String? = null,
