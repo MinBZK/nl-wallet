@@ -43,3 +43,7 @@ wte_issuer_identifier = "wte-issuer.example.com"
 [hsm]
 library_path = "/usr/lib/softhsm/libsofthsm2.so"
 user_pin = "12345678"
+
+[ios]
+team_identifier = "123ABC321A"
+bundle_identifier = "com.example.wallet-app"
