@@ -26,7 +26,6 @@ mod mock_apple_attested_key {
     use std::convert::Infallible;
     use std::sync::atomic::AtomicU32;
     use std::sync::atomic::Ordering;
-    use std::sync::Arc;
 
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -40,11 +39,11 @@ mod mock_apple_attested_key {
     use super::AppleAssertion;
     use super::AppleAttestedKey;
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct MockAppleAttestedKey {
         pub signing_key: SigningKey,
         pub app_identifier: AppIdentifier,
-        pub next_counter: Arc<AtomicU32>,
+        pub next_counter: AtomicU32,
     }
 
     impl MockAppleAttestedKey {
@@ -52,7 +51,7 @@ mod mock_apple_attested_key {
             Self {
                 signing_key,
                 app_identifier,
-                next_counter: Arc::new(AtomicU32::new(1)),
+                next_counter: AtomicU32::new(1),
             }
         }
 
