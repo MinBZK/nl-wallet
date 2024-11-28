@@ -10,6 +10,8 @@ import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
 import nl.rijksoverheid.edi.wallet.platform_support.util.DeviceUtils.isRunningOnEmulator
 import java.security.KeyStore
+import java.security.KeyStoreException
+import java.security.cert.Certificate
 
 abstract class KeyStoreKey(val keyAlias: String) {
 
@@ -47,6 +49,12 @@ abstract class KeyStoreKey(val keyAlias: String) {
                 }
             }.getOrNull()
         }
+
+    /**
+     * Returns the certificate chain of this key.
+     */
+    @Throws(KeyStoreException::class)
+    fun getCertificateChain(): Array<out Certificate>? = keyStore.getCertificateChain(keyAlias)
 
     val isConsideredValid: Boolean
         @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)

@@ -21,7 +21,16 @@ mock = ["mock_hw_keystore", "mock_utils"]
 # Enable helper code for integration tests
 integration_test = ["wallet_common/integration_test", "tokio/fs", "tokio/io-util"]
 # Enable helper code for iOS and Android integration tests
-hardware_integration_test = ["integration_test", "dep:apple_app_attest", "dep:chrono", "dep:jni", "tokio/rt"]
+hardware_integration_test = [
+    "integration_test",
+    "dep:android_logger",
+    "dep:apple_app_attest",
+    "dep:cfg-if",
+    "dep:chrono",
+    "dep:jni",
+    "dep:log",
+    "tokio/rt"
+]
 
 [dependencies]
 async-trait.workspace = true
@@ -31,7 +40,9 @@ parking_lot.workspace = true
 thiserror.workspace = true
 uniffi.workspace = true
 
+cfg-if = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true, features = ["now"] }
+log = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 
 error_category.path = "../error_category"
@@ -40,6 +51,7 @@ wallet_common = { path = "../wallet_common", features = ["axum"] }
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
+android_logger = { workspace = true, optional = true }
 jni = { workspace = true, optional = true }
 
 [dev-dependencies]
