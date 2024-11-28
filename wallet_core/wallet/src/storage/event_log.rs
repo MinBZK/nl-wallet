@@ -13,7 +13,7 @@ use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::utils::cose::CoseError;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::DataElementIdentifier;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::DocType;
@@ -79,7 +79,7 @@ pub enum WalletEvent {
         id: Uuid,
         documents: Option<EventDocuments>,
         timestamp: DateTime<Utc>,
-        reader_certificate: Certificate,
+        reader_certificate: Box<BorrowingCertificate>,
         status: EventStatus,
         r#type: DisclosureType,
     },
@@ -96,7 +96,7 @@ impl WalletEvent {
 
     pub fn new_disclosure(
         documents: Option<EventDocuments>,
-        reader_certificate: Certificate,
+        reader_certificate: BorrowingCertificate,
         status: EventStatus,
         r#type: DisclosureType,
     ) -> Self {
@@ -104,7 +104,7 @@ impl WalletEvent {
             id: Uuid::new_v4(),
             documents,
             timestamp: Utc::now(),
-            reader_certificate,
+            reader_certificate: Box::new(reader_certificate),
             status,
             r#type,
         }
@@ -142,7 +142,7 @@ impl TryFrom<disclosure_history_event::Model> for WalletEvent {
             r#type: DisclosureType::from(&event),
             documents: event.attributes.map(serde_json::from_value).transpose()?,
             timestamp: event.timestamp,
-            reader_certificate: event.relying_party_certificate.into(),
+            reader_certificate: Box::new(BorrowingCertificate::from_der(&event.relying_party_certificate).unwrap()), /* Unwrapping here is safe since the certificate has been parsed before */
         };
         Ok(result)
     }
@@ -186,7 +186,7 @@ impl TryFrom<WalletEvent> for WalletEventModel {
                 attributes: documents.map(serde_json::to_value).transpose()?,
                 id,
                 timestamp,
-                relying_party_certificate: reader_certificate.into(),
+                relying_party_certificate: reader_certificate.to_vec(),
                 status: status.into(),
                 r#type: r#type.into(),
             }),
@@ -197,12 +197,12 @@ impl TryFrom<WalletEvent> for WalletEventModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EventAttributes {
-    pub issuer: Certificate,
+    pub issuer: BorrowingCertificate,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
 }
 
-impl From<(Certificate, IndexMap<NameSpace, Vec<Entry>>)> for EventAttributes {
-    fn from((issuer, attributes): (Certificate, IndexMap<NameSpace, Vec<Entry>>)) -> Self {
+impl From<(BorrowingCertificate, IndexMap<NameSpace, Vec<Entry>>)> for EventAttributes {
+    fn from((issuer, attributes): (BorrowingCertificate, IndexMap<NameSpace, Vec<Entry>>)) -> Self {
         Self {
             issuer,
             attributes: attributes
@@ -274,6 +274,7 @@ impl From<ProposedAttributes> for EventDocuments {
 #[cfg(test)]
 mod test {
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+    use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 
     use crate::document::create_full_unsigned_address_mdoc;
     use crate::document::create_full_unsigned_pid_mdoc;
@@ -285,7 +286,7 @@ mod test {
     fn from_unsigned_mdocs_filtered(
         docs: Vec<UnsignedMdoc>,
         doc_types: &[&str],
-        issuer_certificate: &Certificate,
+        issuer_certificate: &BorrowingCertificate,
     ) -> EventDocuments {
         let map = docs
             .into_iter()
@@ -304,7 +305,7 @@ mod test {
         pub fn issuance_from_str(
             doc_types: &[&str],
             timestamp: DateTime<Utc>,
-            issuer_certificate: &Certificate,
+            issuer_certificate: &BorrowingCertificate,
         ) -> Self {
             let docs = vec![create_full_unsigned_pid_mdoc(), create_full_unsigned_address_mdoc()];
             let mdocs = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate);
@@ -318,8 +319,8 @@ mod test {
         pub fn disclosure_from_str(
             doc_types: &[&str],
             timestamp: DateTime<Utc>,
-            reader_certificate: Certificate,
-            issuer_certificate: &Certificate,
+            reader_certificate: BorrowingCertificate,
+            issuer_certificate: &BorrowingCertificate,
         ) -> Self {
             let docs = vec![
                 create_minimal_unsigned_pid_mdoc(),
@@ -330,7 +331,7 @@ mod test {
                 id: Uuid::new_v4(),
                 documents,
                 timestamp,
-                reader_certificate,
+                reader_certificate: Box::new(reader_certificate),
                 status: EventStatus::Success,
                 r#type: DisclosureType::Regular,
             }
@@ -339,8 +340,8 @@ mod test {
         pub fn disclosure_error_from_str(
             doc_types: &[&str],
             timestamp: DateTime<Utc>,
-            reader_certificate: Certificate,
-            issuer_certificate: &Certificate,
+            reader_certificate: BorrowingCertificate,
+            issuer_certificate: &BorrowingCertificate,
         ) -> Self {
             let docs = vec![
                 create_minimal_unsigned_pid_mdoc(),
@@ -351,29 +352,29 @@ mod test {
                 id: Uuid::new_v4(),
                 documents,
                 timestamp,
-                reader_certificate,
+                reader_certificate: Box::new(reader_certificate),
                 status: EventStatus::Error,
                 r#type: DisclosureType::Regular,
             }
         }
 
-        pub fn disclosure_cancel(timestamp: DateTime<Utc>, reader_certificate: Certificate) -> Self {
+        pub fn disclosure_cancel(timestamp: DateTime<Utc>, reader_certificate: BorrowingCertificate) -> Self {
             Self::Disclosure {
                 id: Uuid::new_v4(),
                 documents: None,
                 timestamp,
-                reader_certificate,
+                reader_certificate: Box::new(reader_certificate),
                 status: EventStatus::Cancelled,
                 r#type: DisclosureType::Regular,
             }
         }
 
-        pub fn disclosure_error(timestamp: DateTime<Utc>, reader_certificate: Certificate) -> Self {
+        pub fn disclosure_error(timestamp: DateTime<Utc>, reader_certificate: BorrowingCertificate) -> Self {
             Self::Disclosure {
                 id: Uuid::new_v4(),
                 documents: None,
                 timestamp,
-                reader_certificate,
+                reader_certificate: Box::new(reader_certificate),
                 status: EventStatus::Error,
                 r#type: DisclosureType::Regular,
             }

@@ -41,10 +41,7 @@ impl IssuerSigned {
         };
 
         let headers = HeaderBuilder::new()
-            .value(
-                COSE_X5CHAIN_HEADER_LABEL,
-                Value::Bytes(key.certificate().as_bytes().to_vec()),
-            )
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))
             .build();
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
@@ -71,6 +68,7 @@ mod tests {
 
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::holder::Mdoc;
     use crate::server_keys::KeyPair;
@@ -90,7 +88,8 @@ mod tests {
     async fn it_works() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-        let trust_anchors = &[ca.certificate().try_into().unwrap()];
+        let trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let trust_anchors = &[(&trust_anchor).into()];
 
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),

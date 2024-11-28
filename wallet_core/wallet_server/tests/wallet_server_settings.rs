@@ -4,10 +4,10 @@ use std::collections::HashMap;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
-use wallet_common::trust_anchor::ParsedTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_server::settings::CertificateVerificationError;
 use wallet_server::settings::Settings;
 use wallet_server::settings::VerifierUseCase;
@@ -19,10 +19,12 @@ fn to_use_case(key_pair: KeyPair) -> VerifierUseCase {
     }
 }
 
-fn certificates_to_trust_anchors(trust_anchors: &[Certificate]) -> Result<Vec<ParsedTrustAnchor>, CertificateError> {
+fn certificates_to_trust_anchors(
+    trust_anchors: &[BorrowingCertificate],
+) -> Result<Vec<BorrowingTrustAnchor>, CertificateError> {
     trust_anchors
         .iter()
-        .map(TryInto::try_into)
+        .map(|cert| Ok(BorrowingTrustAnchor::from_der(cert.as_ref())?))
         .collect::<Result<Vec<_>, CertificateError>>()
 }
 
@@ -55,7 +57,7 @@ fn test_settings_success() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![BorrowingTrustAnchor::from_der(reader_ca.certificate().as_ref()).unwrap()];
 
     settings.verify_key_pairs().expect("should succeed");
 }
@@ -89,7 +91,7 @@ fn test_settings_no_issuer_trust_anchors() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![BorrowingTrustAnchor::from_der(reader_ca.certificate().as_ref()).unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::MissingTrustAnchors);
@@ -163,7 +165,7 @@ fn test_settings_no_reader_registration() {
     usecases.insert("no_registration".to_string(), to_use_case(reader_cert_no_registration));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![BorrowingTrustAnchor::from_der(reader_ca.certificate().as_ref()).unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::IncompleteCertificateType(key) if key == "no_registration");
@@ -202,7 +204,7 @@ fn test_settings_wrong_reader_ca() {
     usecases.insert("wrong_ca".to_string(), to_use_case(reader_cert_wrong_ca));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![BorrowingTrustAnchor::from_der(reader_ca.certificate().as_ref()).unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key) if key == "wrong_ca");
@@ -244,7 +246,7 @@ fn test_settings_no_issuer_registration() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![BorrowingTrustAnchor::from_der(reader_ca.certificate().as_ref()).unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::IncompleteCertificateType(key) if key == "com.example.no_registration");
@@ -286,7 +288,7 @@ fn test_settings_wrong_issuer_ca() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![BorrowingTrustAnchor::from_der(reader_ca.certificate().as_ref()).unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key) if key == "com.example.wrong_ca");

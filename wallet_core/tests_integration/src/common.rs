@@ -136,7 +136,7 @@ pub async fn setup_wallet_and_env(
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
-    let certificates = ws_settings.issuer.certificates();
+    let certificates = ws_settings.issuer.certificates().unwrap();
 
     start_config_server(cs_settings, &cs_root_ca).await;
     start_wallet_provider(wp_settings, &wp_root_ca).await;
@@ -391,7 +391,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
     wallet
 }
 
-pub struct MockAttributeService(pub IndexMap<String, x509::Certificate>);
+pub struct MockAttributeService(pub IndexMap<String, x509::BorrowingCertificate>);
 
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;

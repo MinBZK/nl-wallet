@@ -1192,7 +1192,7 @@ mod tests {
     fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
         // Initialize server state
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![BorrowingTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
+        let trust_anchors = vec![BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap()];
         let reader_registration = Some(ReaderRegistration::new_mock());
 
         let use_cases = HashMap::from([

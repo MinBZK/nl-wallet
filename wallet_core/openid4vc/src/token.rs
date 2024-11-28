@@ -15,7 +15,7 @@ use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
@@ -138,7 +138,7 @@ pub struct TokenResponse {
 /// A [`TokenResponse`] with an extra field for the credential previews.
 /// This is an custom field so other implementations might not send it. For now however we assume that it is always
 /// present so it is not an [`Option`].
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
@@ -150,7 +150,7 @@ pub struct TokenResponseWithPreviews {
 pub enum CredentialPreview {
     MsoMdoc {
         unsigned_mdoc: UnsignedMdoc,
-        issuer: Certificate,
+        issuer: BorrowingCertificate,
     },
 }
 

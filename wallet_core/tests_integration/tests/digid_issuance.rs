@@ -38,7 +38,7 @@ async fn test_pid_issuance_digid_bridge() {
         HttpBrpClient::new(settings.issuer.brp_server.clone()),
         &settings.issuer.digid.bsn_privkey,
         settings.issuer.digid.http_config.clone(),
-        settings.issuer.certificates(),
+        settings.issuer.certificates().unwrap(),
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
@@ -92,9 +92,5 @@ async fn test_pid_issuance_digid_bridge() {
 }
 
 fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {
-    wallet_conf
-        .mdoc_trust_anchors
-        .iter()
-        .map(|a| (&a.owned_trust_anchor).into())
-        .collect()
+    wallet_conf.mdoc_trust_anchors.iter().map(|a| a.into()).collect()
 }

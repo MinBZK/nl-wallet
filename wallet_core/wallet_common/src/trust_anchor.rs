@@ -26,12 +26,6 @@ type YokedTrustAnchor = Yoke<ParsedTrustAnchor<'static>, Arc<CertificateDer<'sta
 #[derive(Debug, Clone)]
 pub struct BorrowingTrustAnchor(YokedTrustAnchor);
 
-impl Hash for BorrowingTrustAnchor {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.backing_cart().hash(state);
-    }
-}
-
 impl BorrowingTrustAnchor {
     pub fn from_der(der_bytes: impl Into<Vec<u8>>) -> Result<Self, Error> {
         let certificate_der = CertificateDer::from(der_bytes.into());
@@ -43,12 +37,12 @@ impl BorrowingTrustAnchor {
         Ok(BorrowingTrustAnchor(yoke))
     }
 
-    pub fn get(&self) -> &TrustAnchor {
+    pub fn trust_anchor(&self) -> &TrustAnchor {
         &self.0.get().trust_anchor
     }
 
     pub fn trust_anchor_names(&self) -> Result<Vec<String>, x509_parser::nom::Err<X509Error>> {
-        let (_, names) = RelativeDistinguishedName::from_der(self.get().subject.as_ref())?;
+        let (_, names) = RelativeDistinguishedName::from_der(self.trust_anchor().subject.as_ref())?;
 
         let names = names
             .iter()
@@ -56,6 +50,12 @@ impl BorrowingTrustAnchor {
             .collect();
 
         Ok(names)
+    }
+}
+
+impl Hash for BorrowingTrustAnchor {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.backing_cart().hash(state);
     }
 }
 
@@ -74,19 +74,14 @@ impl PartialEq for BorrowingTrustAnchor {
 impl Eq for BorrowingTrustAnchor {}
 
 impl<'a> From<&'a BorrowingTrustAnchor> for TrustAnchor<'a> {
-    fn from(value: &'a BorrowingTrustAnchor) -> Self {
-        value.get().clone()
+    fn from(trust_anchor: &'a BorrowingTrustAnchor) -> Self {
+        trust_anchor.trust_anchor().clone()
     }
 }
 
 impl Serialize for BorrowingTrustAnchor {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let cert = self.as_ref();
-        if serializer.is_human_readable() {
-            BASE64_STANDARD.encode(cert).serialize(serializer)
-        } else {
-            cert.serialize(serializer)
-        }
+        serialize_bytes_as_ref(&self, serializer)
     }
 }
 
@@ -101,6 +96,18 @@ impl<'de> Deserialize<'de> for BorrowingTrustAnchor {
         }?;
 
         BorrowingTrustAnchor::from_der(der_bytes).map_err(serde::de::Error::custom)
+    }
+}
+
+pub fn serialize_bytes_as_ref<B: AsRef<[u8]>, S: serde::Serializer>(
+    bytes: &B,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    let cert = bytes.as_ref();
+    if serializer.is_human_readable() {
+        BASE64_STANDARD.encode(cert).serialize(serializer)
+    } else {
+        cert.serialize(serializer)
     }
 }
 

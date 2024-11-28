@@ -22,7 +22,7 @@ use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::identifiers::AttributeIdentifier;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ValidationError;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use wallet_common::jwt::Jwt;
@@ -385,7 +385,7 @@ pub struct DisclosureProposal<H, I> {
 #[derive(Debug)]
 struct CommonDisclosureData<H> {
     client: H,
-    certificate: Certificate,
+    certificate: BorrowingCertificate,
     reader_registration: ReaderRegistration,
     auth_request: IsoVpAuthorizationRequest,
     session_type: SessionType,
@@ -536,7 +536,7 @@ where
     /// including checking whether or not we have the requested attributes.
     async fn process_request<'a, S>(
         auth_request: &IsoVpAuthorizationRequest,
-        certificate: &Certificate,
+        certificate: &BorrowingCertificate,
         session_transcript: &SessionTranscript,
         request_uri_object: &VpRequestUriObject,
         mdoc_data_source: &S,
@@ -618,7 +618,7 @@ where
         &self.data().reader_registration
     }
 
-    pub fn verifier_certificate(&self) -> &Certificate {
+    pub fn verifier_certificate(&self) -> &BorrowingCertificate {
         &self.data().certificate
     }
 
@@ -743,6 +743,7 @@ mod tests {
     use nl_wallet_mdoc::holder::ProposedDocument;
     use nl_wallet_mdoc::identifiers::AttributeIdentifier;
     use nl_wallet_mdoc::identifiers::AttributeIdentifierHolder;
+    use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::utils::cose::ClonePayload;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
     use nl_wallet_mdoc::utils::reader_auth::ValidationError;
@@ -1479,10 +1480,12 @@ mod tests {
 
         let mdoc_nonce = random_string(32);
 
+        let mock_key_pair = KeyPair::generate_reader_mock_ca().unwrap();
+
         let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
             data: CommonDisclosureData {
                 client,
-                certificate: vec![].into(),
+                certificate: mock_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_type,
                 auth_request: iso_auth_request(),
@@ -1524,10 +1527,11 @@ mod tests {
     where
         F: Fn() -> Option<VpMessageClientError>,
     {
+        let mock_key_pair = KeyPair::generate_reader_mock_ca().unwrap();
         DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,
-                certificate: vec![].into(),
+                certificate: mock_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_type: SessionType::SameDevice,
                 auth_request: iso_auth_request(),

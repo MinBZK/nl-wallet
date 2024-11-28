@@ -10,6 +10,7 @@ use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwk::Jwk;
 use josekit::jwt::JwtPayload;
 use josekit::JoseError;
+use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::formats::PreferOne;
@@ -20,7 +21,7 @@ use serde_with::OneOrMany;
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use nl_wallet_mdoc::verifier::ItemsRequests;
@@ -218,7 +219,6 @@ pub struct WalletRequest {
     pub wallet_nonce: Option<String>,
 }
 
-use nutype::nutype;
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
     validate(predicate = |u| JwePublicKey::validate(u).is_ok()),
@@ -306,7 +306,7 @@ impl VpAuthorizationRequest {
     pub fn try_new(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(VpAuthorizationRequest, Certificate), AuthRequestValidationError> {
+    ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
         Ok(jwt::verify_against_trust_anchors(
             jws,
             &[VpAuthorizationRequestAudience::SelfIssued],
@@ -325,7 +325,7 @@ impl VpAuthorizationRequest {
     /// contains only the fields we need and use.
     pub fn validate(
         self,
-        rp_cert: &Certificate,
+        rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
     ) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
@@ -369,7 +369,7 @@ pub struct IsoVpAuthorizationRequest {
 impl IsoVpAuthorizationRequest {
     pub fn new(
         items_requests: &ItemsRequests,
-        rp_certificate: &Certificate,
+        rp_certificate: &BorrowingCertificate,
         nonce: String,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
@@ -762,11 +762,6 @@ mod tests {
     use josekit::jwk::alg::ec::EcKeyPair;
     use serde_json::json;
 
-    use wallet_common::keys::examples::Examples;
-    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-
     use nl_wallet_mdoc::examples::example_items_requests;
     use nl_wallet_mdoc::examples::Example;
     use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
@@ -782,6 +777,11 @@ mod tests {
     use nl_wallet_mdoc::DeviceSigned;
     use nl_wallet_mdoc::Document;
     use nl_wallet_mdoc::SessionTranscript;
+    use wallet_common::keys::examples::Examples;
+    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::openid4vp::IsoVpAuthorizationRequest;
     use crate::AuthorizationErrorCode;
@@ -860,8 +860,10 @@ mod tests {
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
+        let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
         let (auth_request, cert) =
-            VpAuthorizationRequest::try_new(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
+            VpAuthorizationRequest::try_new(&auth_request_jwt, &[borrowing_trust_anchor.trust_anchor().clone()])
+                .unwrap();
         auth_request.validate(&cert, None).unwrap();
     }
 

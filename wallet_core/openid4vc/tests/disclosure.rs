@@ -72,6 +72,7 @@ use wallet_common::urls::BaseUrl;
 async fn disclosure_direct() {
     let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
     let auth_keypair = ca.generate_reader_mock(None).unwrap();
+    let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
@@ -90,7 +91,7 @@ async fn disclosure_direct() {
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
-    let jwe = disclosure_jwe(auth_request_jws, &[ca.certificate().try_into().unwrap()]).await;
+    let jwe = disclosure_jwe(auth_request_jws, &[borrowing_trust_anchor.trust_anchor().clone()]).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
@@ -149,7 +150,8 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 #[tokio::test]
 async fn disclosure_using_message_client() {
     let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-    let trust_anchors = &[ca.certificate().try_into().unwrap()];
+    let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+    let trust_anchors = &[(&borrowing_trust_anchor).into()];
     let rp_keypair = ca
         .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
             &example_items_requests(),
@@ -679,13 +681,13 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, Borrowi
     let verifier = Arc::new(MockVerifier::new(
         usecases,
         MemorySessionStore::default(),
-        vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_bytes()).unwrap()],
+        vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap()],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     ));
 
     (
         verifier,
-        BorrowingTrustAnchor::from_der(rp_ca.certificate().as_bytes()).unwrap(),
+        BorrowingTrustAnchor::from_der(rp_ca.certificate().as_ref()).unwrap(),
         issuer_ca,
     )
 }
@@ -721,7 +723,7 @@ async fn start_disclosure_session(
         request_uri,
         uri_source,
         &mdocs,
-        &[(trust_anchor).into()],
+        &[trust_anchor.trust_anchor().clone()],
     )
     .await
     .map(|session| (session, key_factory))

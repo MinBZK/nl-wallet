@@ -18,7 +18,7 @@ use crate::utils::reader_auth::ReaderRegistration;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
 use crate::utils::serialization::{self};
-use crate::utils::x509::Certificate;
+use crate::utils::x509::BorrowingCertificate;
 use crate::utils::x509::CertificateType;
 use crate::utils::x509::CertificateUsage;
 use crate::ItemsRequest;
@@ -34,7 +34,7 @@ impl DeviceRequest {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<(Certificate, ReaderRegistration)>> {
+    ) -> Result<Option<(BorrowingCertificate, ReaderRegistration)>> {
         // If there are no doc requests or none of them have reader authentication, return `None`.
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
@@ -70,7 +70,7 @@ impl DeviceRequest {
         // Extract `ReaderRegistration` from the one certificate.
         let reader_registration = match CertificateType::from_certificate(&certificate).map_err(HolderError::from)? {
             CertificateType::ReaderAuth(Some(reader_registration)) => *reader_registration,
-            _ => return Err(HolderError::NoReaderRegistration(certificate).into()),
+            _ => return Err(HolderError::NoReaderRegistration(Box::new(certificate)).into()),
         };
 
         // Verify that the requested attributes are included in the reader authentication.
@@ -101,7 +101,7 @@ impl DocRequest {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<Certificate>> {
+    ) -> Result<Option<BorrowingCertificate>> {
         // If reader authentication is present, verify it and return the certificate.
         self.reader_auth
             .as_ref()
@@ -169,7 +169,7 @@ mod tests {
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let der_trust_anchors = [BorrowingTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
+        let der_trust_anchors = [BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap()];
         let reader_registration = ReaderRegistration::new_mock();
         let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
         let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
@@ -186,15 +186,18 @@ mod tests {
         ]);
 
         // Verifying this `DeviceRequest` should succeed and return the `ReaderRegistration`.
-        let trust_anchors = der_trust_anchors.iter().map(|anchor| anchor.into()).collect::<Vec<_>>();
+        let trust_anchors = der_trust_anchors
+            .iter()
+            .map(|anchor| anchor.trust_anchor().clone())
+            .collect::<Vec<_>>();
 
         let verified_reader_registration = device_request
             .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert_eq!(
-            verified_reader_registration,
-            Some((private_key1.certificate().clone(), reader_registration))
+            verified_reader_registration.map(|(c, r)| (c.to_vec(), r)),
+            Some((private_key1.certificate().to_vec(), reader_registration))
         );
 
         // Verifying a `DeviceRequest` that has no reader auth at all should succeed and return `None`.
@@ -227,7 +230,7 @@ mod tests {
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let private_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
-        let der_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap();
+        let der_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
@@ -242,8 +245,7 @@ mod tests {
         assert_matches!(certificate, Some(cert) if cert == private_key.into());
 
         let other_ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let other_der_trust_anchor =
-            BorrowingTrustAnchor::from_der(other_ca.certificate().as_bytes().to_vec()).unwrap();
+        let other_der_trust_anchor = BorrowingTrustAnchor::from_der(other_ca.certificate().as_ref()).unwrap();
         let error = doc_request
             .verify(&session_transcript, &TimeGenerator, &[(&other_der_trust_anchor).into()])
             .expect_err("Verifying DeviceRequest should have resulted in an error");

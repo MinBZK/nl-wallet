@@ -148,12 +148,12 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnc
     let issuer_key_pair = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
         .unwrap();
-    let issuer_trust_anchor = issuer_ca.certificate().try_into().unwrap();
+    let issuer_trust_anchor = BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap();
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
     let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor = BorrowingTrustAnchor::from_der(rp_ca.certificate().as_bytes()).unwrap();
+    let rp_trust_anchor = BorrowingTrustAnchor::from_der(rp_ca.certificate().as_ref()).unwrap();
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
         &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
     ));
@@ -165,7 +165,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnc
         VerifierUseCase {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: wallet_server::settings::KeyPair {
-                certificate: usecase_keypair.certificate().as_bytes().to_vec(),
+                certificate: usecase_keypair.certificate().to_vec(),
                 private_key: usecase_keypair
                     .private_key()
                     .to_pkcs8_der()
@@ -213,7 +213,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnc
             allow_origins: None,
         },
         #[cfg(feature = "disclosure")]
-        reader_trust_anchors: vec![rp_ca.certificate().try_into().unwrap()],
+        reader_trust_anchors: vec![rp_trust_anchor.clone()],
     };
 
     (settings, issuer_key_pair, rp_trust_anchor)

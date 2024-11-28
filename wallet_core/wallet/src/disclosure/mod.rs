@@ -8,7 +8,7 @@ use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::identifiers::AttributeIdentifier;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::disclosure_session::DisclosureError;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
@@ -57,7 +57,7 @@ pub trait MdocDisclosureSession<D> {
     where
         Self: Sized;
 
-    fn rp_certificate(&self) -> &Certificate;
+    fn rp_certificate(&self) -> &BorrowingCertificate;
     fn reader_registration(&self) -> &ReaderRegistration;
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
     fn session_type(&self) -> SessionType;
@@ -121,7 +121,7 @@ where
         Ok(session)
     }
 
-    fn rp_certificate(&self) -> &Certificate {
+    fn rp_certificate(&self) -> &BorrowingCertificate {
         self.verifier_certificate()
     }
 
@@ -255,7 +255,7 @@ mod mock {
     #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri_source: DisclosureUriSource,
-        pub certificate: Certificate,
+        pub certificate: BorrowingCertificate,
         pub reader_registration: ReaderRegistration,
         pub session_state: SessionState,
         pub was_terminated: Arc<AtomicBool>,
@@ -359,7 +359,7 @@ mod mock {
             Ok(self.terminate_return_url)
         }
 
-        fn rp_certificate(&self) -> &Certificate {
+        fn rp_certificate(&self) -> &BorrowingCertificate {
             &self.certificate
         }
 

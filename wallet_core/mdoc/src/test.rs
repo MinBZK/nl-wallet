@@ -5,6 +5,8 @@ use ciborium::Value;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
+
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::device_retrieval::DeviceRequest;
@@ -182,11 +184,12 @@ impl TestDocument {
             .await
             .unwrap();
 
+        let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
         Mdoc::new::<KF::Key>(
             mdoc_key.identifier().to_string(),
             issuer_signed,
             &TimeGenerator,
-            &[(ca.certificate().try_into().unwrap())],
+            &[(&borrowing_trust_anchor).into()],
         )
         .unwrap()
     }

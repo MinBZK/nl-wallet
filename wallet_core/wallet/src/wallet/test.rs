@@ -102,10 +102,11 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: ca.certificate().try_into().unwrap(),
+        trust_anchor,
     }
 });
 
@@ -113,10 +114,11 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(None).unwrap();
+    let trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: ca.certificate().try_into().unwrap(),
+        trust_anchor,
     }
 });
 

@@ -20,7 +20,7 @@ use serde_with::serde_as;
 use url::Url;
 
 use nl_wallet_mdoc::holder::TrustAnchor;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
@@ -156,7 +156,7 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
     fn try_from(value: &KeyPair) -> Result<Self, Self::Error> {
         Ok(Self::new_from_signing_key(
             SigningKey::from_pkcs8_der(&value.private_key)?,
-            Certificate::from(&value.certificate),
+            BorrowingCertificate::from_der(&value.certificate)?,
         )?)
     }
 }
@@ -166,7 +166,7 @@ impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
     type Error = KeyPairError;
     fn try_from(source: nl_wallet_mdoc::server_keys::KeyPair) -> Result<Self, Self::Error> {
         let private_key = source.private_key().to_pkcs8_der()?.as_bytes().to_vec();
-        let certificate = source.certificate().as_bytes().to_vec();
+        let certificate = source.certificate().to_vec();
 
         Ok(Self {
             certificate,

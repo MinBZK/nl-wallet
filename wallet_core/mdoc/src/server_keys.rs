@@ -1,24 +1,22 @@
-use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::utils::x509::Certificate;
+use crate::utils::x509::BorrowingCertificate;
 use crate::utils::x509::CertificateError;
 
 #[derive(Debug)]
 pub struct KeyPair<S = SigningKey> {
-    #[debug(skip)]
     private_key: S,
-    certificate: Certificate,
+    certificate: BorrowingCertificate,
 }
 
 impl KeyPair {
     pub fn new_from_signing_key(
         private_key: SigningKey,
-        certificate: Certificate,
+        certificate: BorrowingCertificate,
     ) -> Result<KeyPair, CertificateError> {
         if certificate.public_key()? != *private_key.verifying_key() {
             return Err(CertificateError::KeyMismatch);
@@ -32,7 +30,7 @@ impl KeyPair {
 }
 
 impl<S: EcdsaKey> KeyPair<S> {
-    pub async fn new(private_key: S, certificate: Certificate) -> Result<KeyPair<S>, CertificateError> {
+    pub async fn new(private_key: S, certificate: BorrowingCertificate) -> Result<KeyPair<S>, CertificateError> {
         if certificate.public_key()?
             != private_key
                 .verifying_key()
@@ -54,13 +52,13 @@ impl<S> KeyPair<S> {
         &self.private_key
     }
 
-    pub fn certificate(&self) -> &Certificate {
+    pub fn certificate(&self) -> &BorrowingCertificate {
         &self.certificate
     }
 }
 
-impl<S> From<KeyPair<S>> for Certificate {
-    fn from(source: KeyPair<S>) -> Certificate {
+impl<S> From<KeyPair<S>> for BorrowingCertificate {
+    fn from(source: KeyPair<S>) -> BorrowingCertificate {
         source.certificate
     }
 }
@@ -121,6 +119,7 @@ mod generate {
     use x509_parser::nom::AsBytes;
 
     use crate::server_keys::KeyPair;
+    use crate::utils::x509::BorrowingCertificate;
     use crate::utils::x509::CertificateConfiguration;
     use crate::utils::x509::CertificateError;
     use crate::utils::x509::CertificateType;
@@ -139,9 +138,13 @@ mod generate {
             ca_params.distinguished_name.push(DnType::CommonName, common_name);
             let key_pair = rcgen::KeyPair::generate()?;
             let certificate = ca_params.self_signed(&key_pair)?;
-            let privkey = Self::rcgen_cert_privkey(&key_pair)?;
+            let private_key = Self::rcgen_cert_privkey(&key_pair)?;
 
-            Self::new_from_signing_key(privkey, certificate.der().into())
+            let key_pair_from_signing_key = Self::new_from_signing_key(
+                private_key,
+                BorrowingCertificate::from_der(certificate.der().as_bytes())?,
+            )?;
+            Ok(key_pair_from_signing_key)
         }
 
         /// Generate a new key pair signed with the specified CA.
@@ -168,14 +171,18 @@ mod generate {
                     .into(),
                 &PKCS_ECDSA_P256_SHA256,
             )?;
-            let ca = rcgen::CertificateParams::from_ca_cert_der(&self.certificate().as_bytes().into())?
+            let ca = rcgen::CertificateParams::from_ca_cert_der(&self.certificate().as_ref().into())?
                 .self_signed(&ca_keypair)?;
 
             let cert_key_pair = rcgen::KeyPair::generate()?;
             let certificate = cert_params.signed_by(&cert_key_pair, &ca, &ca_keypair)?;
             let private_key = Self::rcgen_cert_privkey(&cert_key_pair)?;
 
-            Self::new_from_signing_key(private_key, certificate.der().as_bytes().as_bytes().into())
+            let key_pair_from_signing_key = Self::new_from_signing_key(
+                private_key,
+                BorrowingCertificate::from_der(certificate.der().as_bytes())?,
+            )?;
+            Ok(key_pair_from_signing_key)
         }
 
         fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateError> {

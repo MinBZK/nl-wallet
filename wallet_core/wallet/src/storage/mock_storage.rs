@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::DocType;
 use openid4vc::credential::MdocCopies;
 
@@ -237,12 +237,12 @@ impl Storage for MockStorage {
         Ok(events)
     }
 
-    async fn did_share_data_with_relying_party(&self, certificate: &Certificate) -> StorageResult<bool> {
+    async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool> {
         self.check_query_error()?;
 
         let exists = self.event_log.iter().any(|event| match event {
             WalletEvent::Issuance { .. } => false,
-            WalletEvent::Disclosure { reader_certificate, .. } => reader_certificate == certificate,
+            WalletEvent::Disclosure { reader_certificate, .. } => &**reader_certificate == certificate,
         });
         Ok(exists)
     }

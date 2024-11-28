@@ -2646,6 +2646,7 @@ dependencies = [
  "url",
  "wallet_common",
  "x509-parser",
+ "yoke",
 ]
 
 [[package]]

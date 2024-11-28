@@ -26,7 +26,10 @@ pub struct WalletConfiguration {
 
 impl WalletConfiguration {
     pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect()
+        self.mdoc_trust_anchors
+            .iter()
+            .map(Into::<TrustAnchor<'_>>::into)
+            .collect()
     }
 
     pub fn to_hash(&self) -> u64 {
@@ -92,6 +95,9 @@ pub struct DisclosureConfiguration {
 
 impl DisclosureConfiguration {
     pub fn rp_trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.rp_trust_anchors.iter().map(|anchor| anchor.into()).collect()
+        self.rp_trust_anchors
+            .iter()
+            .map(Into::<TrustAnchor<'_>>::into)
+            .collect()
     }
 }

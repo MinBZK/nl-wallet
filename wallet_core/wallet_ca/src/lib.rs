@@ -13,11 +13,11 @@ use pem::LineEnding;
 use pem::Pem;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 
-fn read_certificate(input: CachedInput) -> Result<Certificate> {
+fn read_certificate(input: CachedInput) -> Result<BorrowingCertificate> {
     let input_string = io::read_to_string(input)?;
-    let crt = Certificate::from_pem(&input_string)?;
+    let crt = BorrowingCertificate::from_pem(&input_string)?;
     Ok(crt)
 }
 
@@ -57,8 +57,8 @@ fn assert_not_exists(file_path: &Path, force: bool) -> Result<()> {
     Ok(())
 }
 
-fn write_certificate(file_path: &Path, certificate: &Certificate) -> Result<()> {
-    let crt_pem = Pem::new("CERTIFICATE", certificate.as_bytes());
+fn write_certificate(file_path: &Path, certificate: &BorrowingCertificate) -> Result<()> {
+    let crt_pem = Pem::new("CERTIFICATE", certificate.as_ref());
     fs::write(
         file_path,
         pem::encode_config(&crt_pem, EncodeConfig::new().set_line_ending(LineEnding::LF)),

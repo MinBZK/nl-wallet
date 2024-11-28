@@ -1,7 +1,8 @@
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Created;
 use openid4vc::oidc;
@@ -38,16 +39,18 @@ pub enum Error {
     NoAttributesFound,
     #[error("missing certificate for issuance of doctype {0}")]
     MissingCertificate(String),
+    #[error("error handling certificate {0}")]
+    Certificate(#[from] CertificateError),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
 }
 
 pub struct AttributeCertificates {
-    certificates: IndexMap<String, Certificate>,
+    certificates: IndexMap<String, BorrowingCertificate>,
 }
 
 impl AttributeCertificates {
-    pub fn new(certificates: IndexMap<String, Certificate>) -> Self {
+    pub fn new(certificates: IndexMap<String, BorrowingCertificate>) -> Self {
         Self { certificates }
     }
 
@@ -75,7 +78,7 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
-        certificates: IndexMap<String, Certificate>,
+        certificates: IndexMap<String, BorrowingCertificate>,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
