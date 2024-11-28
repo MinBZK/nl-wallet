@@ -2,6 +2,7 @@
 package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import android.content.Context
+import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
@@ -23,7 +24,6 @@ import java.security.Signature
 import java.security.UnrecoverableKeyException
 import java.security.spec.ECGenParameterSpec
 
-
 @VisibleForTesting
 const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
 
@@ -35,11 +35,16 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
             NoSuchAlgorithmException::class,
             IllegalStateException::class
         )
-        fun createKey(context: Context, keyAlias: String) {
+        fun createKey(context: Context, keyAlias: String, challenge: List<UByte>? = null) {
             val spec = KeyGenParameterSpec.Builder(keyAlias, KeyProperties.PURPOSE_SIGN)
                 .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
                 .setDigests(KeyProperties.DIGEST_SHA256)
                 .setStrongBoxBackedCompat(context, true)
+                .also { spec ->
+                    challenge?.let {
+                        spec.setAttestationChallenge(it.toByteArray())
+                    }
+                }
 
             KeyPairGenerator.getInstance(
                 KeyProperties.KEY_ALGORITHM_EC,
@@ -63,11 +68,12 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
     @Throws(KeyException::class)
     fun sign(payload: List<UByte>): List<UByte> {
         try {
-            val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
             val privateKey = keyStore.getKey(keyAlias, null) as PrivateKey
-            signature.initSign(privateKey)
-            signature.update(payload.toByteArray())
-            return signature.sign().toUByteList()
+            return Signature.getInstance(SIGNATURE_ALGORITHM).run {
+                initSign(privateKey)
+                update(payload.toByteArray())
+                sign().toUByteList()
+            }
         } catch (ex: Exception) {
             when (ex) {
                 is UnrecoverableKeyException,
