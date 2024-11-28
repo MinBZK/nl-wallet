@@ -21,6 +21,7 @@ path = "tests/attestation.rs"
 
 [features]
 serialize = []
+mock_ca = ["rcgen?/x509-parser"]
 mock = ["serialize", "dep:rand", "dep:rcgen", "derive_more/debug"]
 
 [dependencies]

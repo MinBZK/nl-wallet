@@ -276,7 +276,7 @@ pub mod mock {
     pub struct MockAttestationCa {
         #[debug(skip)]
         certificate: Certificate,
-        der: CertificateDer<'static>,
+        certificate_der: CertificateDer<'static>,
     }
 
     impl MockAttestationCa {
@@ -285,19 +285,57 @@ pub mod mock {
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
 
             let certificate = Certificate::from_params(params).unwrap();
-            let der = CertificateDer::from(certificate.serialize_der().unwrap()).to_owned();
+            let der = CertificateDer::from(certificate.serialize_der().unwrap());
 
-            Self { certificate, der }
+            Self {
+                certificate,
+                certificate_der: der,
+            }
         }
 
         pub fn trust_anchor(&self) -> TrustAnchor {
-            webpki::anchor_from_trusted_cert(&self.der).unwrap()
+            webpki::anchor_from_trusted_cert(&self.certificate_der).unwrap()
+        }
+    }
+
+    #[cfg(feature = "mock_ca")]
+    mod mock_ca {
+        use rcgen::Certificate;
+        use rcgen::CertificateParams;
+        use rcgen::KeyPair;
+        use rcgen::RcgenError;
+        use webpki::types::CertificateDer;
+
+        use crate::MOCK_APPLE_ROOT_CA;
+        use crate::MOCK_APPLE_ROOT_CA_KEY;
+
+        use super::MockAttestationCa;
+
+        impl MockAttestationCa {
+            fn from_static_der(certificate_der: &'static [u8], key_der: &'static [u8]) -> Result<Self, RcgenError> {
+                let key_pair = KeyPair::from_der(key_der)?;
+                let params = CertificateParams::from_ca_cert_der(certificate_der, key_pair)?;
+                let certificate = Certificate::from_params(params)?;
+                let certificate_der = CertificateDer::from(certificate_der);
+
+                let ca = Self {
+                    certificate,
+                    certificate_der,
+                };
+
+                Ok(ca)
+            }
+
+            pub fn new_mock() -> Self {
+                Self::from_static_der(&MOCK_APPLE_ROOT_CA, &MOCK_APPLE_ROOT_CA_KEY)
+                    .expect("could not decode mock Apple root CA")
+            }
         }
     }
 
     impl AsRef<[u8]> for MockAttestationCa {
         fn as_ref(&self) -> &[u8] {
-            self.der.as_ref()
+            self.certificate_der.as_ref()
         }
     }
 
@@ -361,7 +399,7 @@ pub mod mock {
             // this and the CA certificate into a DER certificate chain.
             let x509_certificates = vec![
                 certificate.serialize_der_with_signer(&ca.certificate).unwrap(),
-                ca.der.as_ref().to_vec(),
+                ca.certificate_der.as_ref().to_vec(),
             ]
             .try_into()
             .unwrap();
