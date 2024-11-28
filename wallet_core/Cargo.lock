@@ -3126,6 +3126,7 @@ dependencies = [
  "android_logger",
  "apple_app_attest",
  "async-trait",
+ "cfg-if",
  "chrono",
  "derive_more",
  "error_category",

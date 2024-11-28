@@ -47,6 +47,7 @@ error_category.path = "../error_category"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
+cfg-if = "1.0.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = { workspace = true, optional = true }
