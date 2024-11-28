@@ -176,6 +176,8 @@ where
             log::info!("Obtain verifying key");
             let verifying_key2 = key.verifying_key().await.expect("could not get verifying key");
 
+            assert_eq!(verifying_key1, verifying_key2);
+
             log::info!("Verify signature with verifying key");
             verifying_key2.verify(&payload, &signature2).expect("could not verify");
         }
