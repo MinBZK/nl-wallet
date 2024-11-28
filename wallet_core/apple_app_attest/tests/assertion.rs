@@ -1,6 +1,7 @@
 use std::convert::Infallible;
 use std::sync::LazyLock;
 
+use apple_app_attest::VerifiedAssertion;
 use assert_matches::assert_matches;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -60,7 +61,7 @@ impl Default for AssertionParameters {
             message: "This is a message.".to_string(),
             challenge: challenge.clone(),
         };
-        let app_identifier = AppIdentifier::new("1234567890", "com.example.app");
+        let app_identifier = AppIdentifier::new_mock();
         let counter = 1337;
 
         Self {
@@ -85,17 +86,14 @@ impl AssertionParameters {
 #[once]
 fn assertion_data() -> Vec<u8> {
     let parameters = AssertionParameters::default();
-    let assertion = Assertion::new_mock(
+    let assertion_bytes = Assertion::new_mock_bytes(
         &parameters.private_key,
         &parameters.app_identifier,
         parameters.counter,
         parameters.client_data.hash_data().unwrap().as_ref(),
     );
 
-    let mut bytes = Vec::<u8>::new();
-    ciborium::into_writer(&assertion, &mut bytes).unwrap();
-
-    bytes
+    assertion_bytes
 }
 
 // Vary the default parameters for different error scenarios.
@@ -164,7 +162,7 @@ fn test_assertion<F>(
 ) where
     F: FnOnce(AssertionError),
 {
-    let result = Assertion::parse_and_verify(
+    let result = VerifiedAssertion::parse_and_verify(
         assertion_data,
         &parameters.client_data,
         parameters.verifying_key(),

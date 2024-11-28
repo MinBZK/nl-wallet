@@ -1,9 +1,13 @@
+use assert_matches::assert_matches;
 use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::EncodePublicKey;
 use uuid::Uuid;
 
 use wallet_common::generator::Generator;
 use wallet_common::utils::random_string;
 use wallet_provider_domain::model::encrypted::Encrypted;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
+use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::EpochGenerator;
 use wallet_provider_persistence::database::Db;
@@ -11,8 +15,10 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::transaction;
 use wallet_provider_persistence::wallet_user::clear_instruction_challenge;
 use wallet_provider_persistence::wallet_user::commit_pin_change;
+use wallet_provider_persistence::wallet_user::find_wallet_user_by_wallet_id;
 use wallet_provider_persistence::wallet_user::register_unsuccessful_pin_entry;
 use wallet_provider_persistence::wallet_user::rollback_pin_change;
+use wallet_provider_persistence::wallet_user::update_apple_assertion_counter;
 
 use crate::common::encrypted_pin_key;
 
@@ -37,6 +43,47 @@ async fn create_test_user() -> (Db, Uuid, String, wallet_user::Model) {
 async fn test_create_wallet_user() {
     let (_db, _wallet_user_id, wallet_id, wallet_user) = create_test_user().await;
     assert_eq!(wallet_id, wallet_user.wallet_id);
+}
+
+#[tokio::test]
+async fn test_find_wallet_user_by_wallet_id() {
+    let (db, wallet_user_id, wallet_id, wallet_user_model) = create_test_user().await;
+
+    // A wallet user that does not have an instruction challenge associated with it should be found.
+    let wallet_user_result = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .expect("finding wallet user by wallet id should succeed");
+
+    assert_matches!(wallet_user_result, WalletUserQueryResult::Found(_));
+
+    let WalletUserQueryResult::Found(wallet_user) = wallet_user_result else {
+        panic!();
+    };
+
+    assert_eq!(wallet_user.id, wallet_user_id);
+    assert_eq!(wallet_user.wallet_id, wallet_id);
+    assert_eq!(
+        wallet_user.hw_pubkey.0.to_public_key_der().unwrap().as_bytes(),
+        &wallet_user_model.hw_pubkey_der
+    );
+    assert!(wallet_user.instruction_challenge.is_none());
+    assert!(!wallet_user.has_wte);
+    assert_matches!(wallet_user.attestation, Some(WalletUserAttestation::Apple { .. }));
+
+    // After generating a random instruction challenge, this should be found together with the user.
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
+
+    let wallet_user_result = find_wallet_user_by_wallet_id(&db, &wallet_id)
+        .await
+        .expect("finding wallet user by wallet id should succeed");
+
+    assert_matches!(wallet_user_result, WalletUserQueryResult::Found(_));
+
+    let WalletUserQueryResult::Found(wallet_user) = wallet_user_result else {
+        panic!();
+    };
+
+    assert!(wallet_user.instruction_challenge.is_some());
 }
 
 #[tokio::test]
@@ -91,20 +138,20 @@ async fn test_create_wallet_user_transaction_rollback() {
 async fn test_insert_instruction_challenge_on_conflict() {
     let (db, wallet_user_id, wallet_id, _wallet_user) = create_test_user().await;
 
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert!(challenges.is_empty());
 
     // insert an instruction challenge for the first time, we should only find that one afterwards
-    common::create_instruction_challenge_with_random_data(&db, wallet_id.clone()).await;
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id.clone());
 
     let og_id = challenges[0].id;
-    common::create_instruction_challenge_with_random_data(&db, wallet_id.clone()).await;
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
 
     // insert another instruction challenge, this should update the bytes and expiration date in the first one
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id);
     // as the challenge should be updated, its ID stays the same
@@ -115,13 +162,13 @@ async fn test_insert_instruction_challenge_on_conflict() {
         .expect("Could not clear instruction challenges");
 
     // after clearing it, we should not find any challenges anymore
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 0);
 
-    common::create_instruction_challenge_with_random_data(&db, wallet_id.clone()).await;
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
 
     // insert an instruction challenge for the second time, we should only find that one afterwards
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id);
     // this time a new challenge is injected, so the ID should be changed
@@ -132,20 +179,20 @@ async fn test_insert_instruction_challenge_on_conflict() {
     let wallet_id2 = random_string(32);
     common::create_wallet_user_with_random_keys(&db, wallet_user_id2, wallet_id2.clone()).await;
 
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id.clone());
 
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id2.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id2).await;
     assert!(challenges.is_empty());
 
     // insert an instruction challenge for our second wallet, we should only find one per wallet
-    common::create_instruction_challenge_with_random_data(&db, wallet_id2.clone()).await;
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id2.clone()).await;
+    common::create_instruction_challenge_with_random_data(&db, &wallet_id2).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id2).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id2.clone());
 
-    let challenges = common::find_instruction_challenges_by_wallet_id(&db, wallet_id.clone()).await;
+    let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id.clone());
 }
@@ -224,4 +271,51 @@ async fn test_rollback_pin() {
         before_pin_change.encrypted_pin_pubkey_sec1
     );
     assert_eq!(after_rollback.pin_pubkey_iv, before_pin_change.pin_pubkey_iv);
+}
+
+#[tokio::test]
+async fn test_update_apple_assertion_counter() {
+    let (db, _wallet_user_id, wallet_id, _wallet_user_model) = create_test_user().await;
+    let (_, _, other_wallet_id, _) = create_test_user().await;
+
+    // Each of the two users created above should start out with an assertion counter of 0.
+    let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
+    let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
+
+    match (wallet_user, other_wallet_user) {
+        (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
+            assert_matches!(
+                wallet_user.attestation,
+                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+            );
+            assert_matches!(
+                other_wallet_user.attestation,
+                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+            );
+        }
+        _ => panic!(),
+    };
+
+    // After updating the assertion counter for the first user it
+    // should be changed, while the other one should remain at 0.
+    update_apple_assertion_counter(&db, &wallet_id, 1337)
+        .await
+        .expect("updating apple assertion could succeed");
+
+    let wallet_user = find_wallet_user_by_wallet_id(&db, &wallet_id).await.unwrap();
+    let other_wallet_user = find_wallet_user_by_wallet_id(&db, &other_wallet_id).await.unwrap();
+
+    match (wallet_user, other_wallet_user) {
+        (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
+            assert_matches!(
+                wallet_user.attestation,
+                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 1337
+            );
+            assert_matches!(
+                other_wallet_user.attestation,
+                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+            );
+        }
+        _ => panic!(),
+    };
 }

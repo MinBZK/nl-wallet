@@ -1,13 +1,15 @@
+use apple_app_attest::MockAttestationCa;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
+use rstest::rstest;
 use uuid::Uuid;
 
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::account::messages::instructions::CheckPin;
-use wallet_common::account::messages::instructions::InstructionChallengeRequest;
 use wallet_common::account::signed::ChallengeResponse;
+use wallet_common::apple::MockAppleAttestedKey;
 use wallet_common::generator::Generator;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
@@ -19,10 +21,16 @@ use wallet_provider_domain::EpochGenerator;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::mock;
+use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::account_server::AccountServer;
 use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
+
+enum AttestationType {
+    Apple,
+    None,
+}
 
 struct UuidGenerator;
 impl Generator<Uuid> for UuidGenerator {
@@ -47,18 +55,40 @@ async fn do_registration(
     account_server: &AccountServer,
     hsm: &MockPkcs11Client<HsmError>,
     certificate_signing_key: &impl WalletCertificateSigningKey,
-    hw_privkey: &SigningKey,
     pin_privkey: &SigningKey,
     repos: &Repositories,
-) -> (WalletCertificate, WalletCertificateClaims) {
+    apple_mock_ca: &MockAttestationCa,
+    attestation_type: AttestationType,
+) -> (WalletCertificate, MockHardwareKey, WalletCertificateClaims) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
         .await
         .expect("Could not get registration challenge");
 
-    let registration_message = ChallengeResponse::<Registration>::new_signed(hw_privkey, pin_privkey, challenge)
-        .await
-        .expect("Could not sign new registration");
+    let (registration_message, hw_privkey) = match attestation_type {
+        AttestationType::Apple => {
+            let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
+                apple_mock_ca,
+                account_server.apple_config.app_identifier.clone(),
+                &challenge,
+            );
+            let registration_message =
+                ChallengeResponse::<Registration>::new_apple(&attested_key, attestation_data, pin_privkey, challenge)
+                    .await
+                    .expect("Could not sign new Apple attested registration");
+
+            (registration_message, MockHardwareKey::Apple(attested_key))
+        }
+        AttestationType::None => {
+            let signing_key = SigningKey::random(&mut OsRng);
+            let registration_message =
+                ChallengeResponse::<Registration>::new_unattested(&signing_key, pin_privkey, challenge)
+                    .await
+                    .expect("Could not sign new unattested registration");
+
+            (registration_message, MockHardwareKey::Ecdsa(signing_key))
+        }
+    };
 
     let certificate = account_server
         .register(
@@ -75,7 +105,7 @@ async fn do_registration(
         .parse_and_verify_with_sub(&(&certificate_signing_key.verifying_key().await.unwrap()).into())
         .expect("Could not parse and verify wallet certificate");
 
-    (certificate, cert_data)
+    (certificate, hw_privkey, cert_data)
 }
 
 async fn assert_instruction_data(
@@ -98,7 +128,10 @@ async fn assert_instruction_data(
 }
 
 #[tokio::test]
-async fn test_instruction_challenge() {
+#[rstest]
+async fn test_instruction_challenge(
+    #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+) {
     let db = db_from_env().await.expect("Could not connect to database");
     let repos = Repositories::new(db);
 
@@ -106,30 +139,25 @@ async fn test_instruction_challenge() {
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
     let hsm = wallet_certificate::mock::setup_hsm().await;
-    let account_server = mock::setup_account_server(certificate_signing_pubkey);
-    let hw_privkey = SigningKey::random(&mut OsRng);
+    let (account_server, apple_mock_ca) = mock::setup_account_server(certificate_signing_pubkey);
     let pin_privkey = SigningKey::random(&mut OsRng);
 
-    let (certificate, cert_data) = do_registration(
+    let (certificate, hw_privkey, cert_data) = do_registration(
         &account_server,
         &hsm,
         &certificate_signing_key,
-        &hw_privkey,
         &pin_privkey,
         &repos,
+        &apple_mock_ca,
+        attestation_type,
     )
     .await;
 
     let challenge1 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(
-                cert_data.wallet_id.clone(),
-                1,
-                &hw_privkey,
-                certificate.clone(),
-            )
-            .await
-            .unwrap(),
+            hw_privkey
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone(), 1, certificate.clone())
+                .await,
             &repos,
             &EpochGenerator,
             &hsm,
@@ -141,14 +169,9 @@ async fn test_instruction_challenge() {
 
     let challenge2 = account_server
         .instruction_challenge(
-            InstructionChallengeRequest::new_signed::<CheckPin>(
-                cert_data.wallet_id.clone(),
-                2,
-                &hw_privkey,
-                certificate,
-            )
-            .await
-            .unwrap(),
+            hw_privkey
+                .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone(), 2, certificate)
+                .await,
             &repos,
             &EpochGenerator,
             &hsm,

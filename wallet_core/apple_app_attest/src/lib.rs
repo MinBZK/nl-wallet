@@ -5,6 +5,9 @@ pub use self::auth_data::*;
 pub use self::certificates::*;
 pub use self::root_ca::*;
 
+#[cfg(feature = "mock")]
+pub use self::attestation::mock::MockAttestationCa;
+
 pub mod passkey_types {
     pub use passkey_types::ctap2::Aaguid;
     pub use passkey_types::ctap2::AttestedCredentialData;

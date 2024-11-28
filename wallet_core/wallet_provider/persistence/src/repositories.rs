@@ -157,6 +157,15 @@ impl WalletUserRepository for Repositories {
     ) -> Result<(), PersistenceError> {
         wallet_user::save_wte_issued(transaction, wallet_id).await
     }
+
+    async fn update_apple_assertion_counter(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        assertion_counter: u32,
+    ) -> Result<(), PersistenceError> {
+        wallet_user::update_apple_assertion_counter(transaction, wallet_id, assertion_counter).await
+    }
 }
 
 #[cfg(feature = "mock")]
@@ -177,6 +186,7 @@ pub mod mock {
     use wallet_provider_domain::model::encrypted::Encrypted;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUser;
+    use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -277,6 +287,13 @@ pub mod mock {
                 transaction: &MockTransaction,
                 wallet_id: &str
             ) -> Result<(), PersistenceError>;
+
+            async fn update_apple_assertion_counter(
+                &self,
+                transaction: &MockTransaction,
+                wallet_id: &str,
+                assertion_counter: u32,
+            ) -> Result<(), PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -293,6 +310,7 @@ pub mod mock {
         pub previous_encrypted_pin_pubkey: Option<Encrypted<VerifyingKey>>,
         pub challenge: Option<Vec<u8>>,
         pub instruction_sequence_number: u64,
+        pub apple_assertion_counter: Option<u32>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -325,6 +343,9 @@ pub mod mock {
                 }),
                 instruction_sequence_number: self.instruction_sequence_number,
                 has_wte: false,
+                attestation: self
+                    .apple_assertion_counter
+                    .map(|assertion_counter| WalletUserAttestation::Apple { assertion_counter }),
             })))
         }
 
@@ -429,6 +450,15 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn update_apple_assertion_counter(
+            &self,
+            _transaction: &MockTransaction,
+            _wallet_id: &str,
+            _assertion_counter: u32,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

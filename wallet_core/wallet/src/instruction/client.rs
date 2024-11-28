@@ -83,7 +83,7 @@ where
     {
         let challenge_request = self
             .with_sequence_number(storage, |seq_num| {
-                InstructionChallengeRequest::new_signed::<I>(
+                InstructionChallengeRequest::new_ecdsa::<I>(
                     self.registration.wallet_id.clone(),
                     seq_num,
                     self.hw_privkey,
@@ -123,7 +123,7 @@ where
 
         let instruction = self
             .with_sequence_number(&mut storage, |seq_num| {
-                Instruction::new_signed(
+                Instruction::new_ecdsa(
                     instruction,
                     challenge,
                     seq_num,

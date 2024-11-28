@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 
+use crate::m20230616_000001_create_wallet_user_table::WalletUser;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -26,7 +28,7 @@ impl MigrationTrait for Migration {
                     .index(
                         Index::create()
                             .unique()
-                            .name("uk_identifier_wallet_user_id")
+                            .name("wallet_user_key_unique_identifier_wallet_user_id")
                             .col(WalletUserKey::Identifier)
                             .col(WalletUserKey::WalletUserId),
                     )
@@ -46,10 +48,4 @@ enum WalletUserKey {
     Identifier,
     EncryptedPrivateKey,
     PublicKey,
-}
-
-#[derive(Iden)]
-enum WalletUser {
-    Table,
-    Id,
 }

@@ -57,6 +57,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
+apple_app_attest.path = "../apple_app_attest"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"

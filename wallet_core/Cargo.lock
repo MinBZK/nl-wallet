@@ -198,11 +198,14 @@ dependencies = [
  "ciborium",
  "const-decoder",
  "coset",
+ "der",
  "derive_more",
  "nutype",
  "p256",
  "passkey-types",
+ "rand",
  "rand_core",
+ "rcgen",
  "rstest",
  "rustls-webpki",
  "serde",
@@ -1240,6 +1243,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f55bf8e7b65898637379c1b74eb1551107c8294ed26d855ceb9fd1a09cfc9bc0"
 dependencies = [
  "const-oid",
+ "der_derive",
  "pem-rfc7468",
  "zeroize",
 ]
@@ -1256,6 +1260,17 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "rusticata-macros",
+]
+
+[[package]]
+name = "der_derive"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8034092389675178f570469e6c3b0465d3d30b4505c294a6550db47f3c17ad18"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.79",
 ]
 
 [[package]]
@@ -3125,7 +3140,6 @@ version = "0.2.3-dev"
 dependencies = [
  "apple_app_attest",
  "async-trait",
- "chrono",
  "derive_more",
  "error_category",
  "jni",
@@ -5677,6 +5691,7 @@ dependencies = [
 name = "wallet_provider"
 version = "0.2.3-dev"
 dependencies = [
+ "apple_app_attest",
  "axum",
  "axum-server",
  "chrono",
@@ -5744,6 +5759,7 @@ dependencies = [
 name = "wallet_provider_persistence"
 version = "0.2.3-dev"
 dependencies = [
+ "assert_matches",
  "chrono",
  "ctor",
  "mockall",
@@ -5765,6 +5781,7 @@ name = "wallet_provider_service"
 version = "0.2.3-dev"
 dependencies = [
  "anyhow",
+ "apple_app_attest",
  "assert_matches",
  "base64 0.22.1",
  "chrono",
@@ -5780,6 +5797,7 @@ dependencies = [
  "rand",
  "rand_core",
  "rstest",
+ "rustls-webpki",
  "sec1",
  "serde",
  "serde_json",

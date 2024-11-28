@@ -16,6 +16,7 @@ use serde_json::Value;
 pub enum AccountError {
     Unexpected,
     ChallengeValidation,
+    AttestationValidation,
     RegistrationParsing,
     #[category(expected)]
     IncorrectPin(IncorrectPinData),
@@ -71,6 +72,7 @@ impl AccountError {
         let account_error = match r#type {
             AccountErrorType::Unexpected => Self::Unexpected,
             AccountErrorType::ChallengeValidation => Self::ChallengeValidation,
+            AccountErrorType::AttestationValidation => Self::AttestationValidation,
             AccountErrorType::RegistrationParsing => Self::RegistrationParsing,
             AccountErrorType::IncorrectPin => Self::IncorrectPin(serde_json::from_value(data)?),
             AccountErrorType::PinTimeout => Self::PinTimeout(serde_json::from_value(data)?),

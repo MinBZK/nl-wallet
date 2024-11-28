@@ -21,6 +21,7 @@ use wallet_provider_domain::model::encrypted::Encrypted;
 use wallet_provider_domain::model::encrypter::Encrypter;
 use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::database::Db;
@@ -67,6 +68,10 @@ where
             wallet_id,
             hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
             encrypted_pin_pubkey: encrypted_pin_key("key1").await,
+            attestation: Some(WalletUserAttestationCreate::Apple {
+                data: random_bytes(64),
+                assertion_counter: 0,
+            }),
         },
     )
     .await
@@ -85,14 +90,14 @@ where
         .expect("Could not fetch wallet user")
 }
 
-pub async fn create_instruction_challenge_with_random_data<S, T>(db: &T, wallet_id: String)
+pub async fn create_instruction_challenge_with_random_data<S, T>(db: &T, wallet_id: &str)
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     update_instruction_challenge_and_sequence_number(
         db,
-        &wallet_id,
+        wallet_id,
         InstructionChallenge {
             expiration_date_time: Utc::now(), // irrelevant for these tests
             bytes: random_bytes(32),
@@ -111,10 +116,7 @@ pub struct InstructionChallengeResult {
     pub expiration_date_time: DateTime<Utc>,
 }
 
-pub async fn find_instruction_challenges_by_wallet_id<S, T>(
-    db: &T,
-    wallet_id: String,
-) -> Vec<InstructionChallengeResult>
+pub async fn find_instruction_challenges_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Vec<InstructionChallengeResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
