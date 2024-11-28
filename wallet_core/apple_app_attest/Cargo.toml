@@ -20,9 +20,12 @@ name = "attestation"
 path = "tests/attestation.rs"
 
 [features]
+# Have the main crate types implement serde::Serialize in addition to serde::Deserialize.
 serialize = []
-mock_ca = ["rcgen?/x509-parser"]
+# Include mock constructors for for the main crate types for use in testing.
 mock = ["serialize", "dep:rand", "dep:rcgen", "derive_more/debug"]
+# Include support for the self-signed mock Apple CA (see the assets dir).
+mock_ca = ["rcgen?/x509-parser"]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
