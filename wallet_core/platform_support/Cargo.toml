@@ -25,6 +25,7 @@ hardware_integration_test = [
     "integration_test",
     "dep:android_logger",
     "dep:apple_app_attest",
+    "dep:cfg-if",
     "dep:chrono",
     "dep:jni",
     "dep:log",
@@ -39,6 +40,7 @@ parking_lot.workspace = true
 thiserror.workspace = true
 uniffi.workspace = true
 
+cfg-if = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true, features = ["now"] }
 log = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
@@ -47,7 +49,6 @@ error_category.path = "../error_category"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
-cfg-if = "1.0.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = { workspace = true, optional = true }
