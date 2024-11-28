@@ -5,14 +5,13 @@ use p256::ecdsa::VerifyingKey;
 
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
-use wallet_common::keys::WithIdentifier;
 use wallet_provider_domain::model::hsm::Hsm;
 
 use crate::hsm::HsmError;
 use crate::hsm::Pkcs11Hsm;
 
-pub trait WalletCertificateSigningKey: SecureEcdsaKey + WithIdentifier {}
-pub trait InstructionResultSigningKey: SecureEcdsaKey + WithIdentifier {}
+pub trait WalletCertificateSigningKey: SecureEcdsaKey {}
+pub trait InstructionResultSigningKey: SecureEcdsaKey {}
 
 pub struct WalletCertificateSigning(pub WalletProviderEcdsaKey);
 pub struct InstructionResultSigning(pub WalletProviderEcdsaKey);
@@ -42,18 +41,8 @@ impl EcdsaKey for InstructionResultSigning {
 }
 
 impl SecureEcdsaKey for WalletCertificateSigning {}
-impl WithIdentifier for WalletCertificateSigning {
-    fn identifier(&self) -> &str {
-        &self.0.identifier
-    }
-}
 
 impl SecureEcdsaKey for InstructionResultSigning {}
-impl WithIdentifier for InstructionResultSigning {
-    fn identifier(&self) -> &str {
-        &self.0.identifier
-    }
-}
 
 impl WalletCertificateSigningKey for WalletCertificateSigning {}
 impl InstructionResultSigningKey for InstructionResultSigning {}
@@ -81,21 +70,15 @@ impl EcdsaKey for WalletProviderEcdsaKey {
     }
 }
 
-impl WithIdentifier for WalletProviderEcdsaKey {
-    fn identifier(&self) -> &str {
-        &self.identifier
-    }
-}
-
 impl SecureEcdsaKey for WalletProviderEcdsaKey {}
 
-#[cfg(any(test, feature = "software_keys"))]
+#[cfg(any(test, feature = "mock_secure_keys"))]
 pub mod mock {
-    use wallet_common::keys::software::SoftwareEcdsaKey;
+    use p256::ecdsa::SigningKey;
 
-    use crate::keys::InstructionResultSigningKey;
-    use crate::keys::WalletCertificateSigningKey;
+    use super::InstructionResultSigningKey;
+    use super::WalletCertificateSigningKey;
 
-    impl WalletCertificateSigningKey for SoftwareEcdsaKey {}
-    impl InstructionResultSigningKey for SoftwareEcdsaKey {}
+    impl WalletCertificateSigningKey for SigningKey {}
+    impl InstructionResultSigningKey for SigningKey {}
 }

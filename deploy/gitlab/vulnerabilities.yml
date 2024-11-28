@@ -51,14 +51,11 @@ dependency-check-rust:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
   before_script:
-    - mkdir $CI_PROJECT_DIR/dependency_check_data
+    - mkdir -p $CI_PROJECT_DIR/.cargo
+    - cp $CI_PROJECT_DIR/deploy/dependencies/cargo-audit.toml $CI_PROJECT_DIR/.cargo/audit.toml
   script:
-    # Note: RUSTSEC-2023-0071 is currently unfixable, a false positive and irrelevant for us, therefore we ignore it
-    # Note: RUSTSEC-2024-0363 will be fixed when we upgrade `sea-orm` 1.1.0, which is not released yet
     - |
       cargo audit \
-        --ignore RUSTSEC-2023-0071 \
-        --ignore RUSTSEC-2024-0363 \
         --file wallet_core/Cargo.lock \
         --json | tee audit.json | jq
   artifacts:

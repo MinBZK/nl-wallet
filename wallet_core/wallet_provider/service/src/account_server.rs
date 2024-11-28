@@ -803,7 +803,6 @@ mod tests {
     use wallet_common::account::messages::instructions::ChangePinCommit;
     use wallet_common::account::messages::instructions::CheckPin;
     use wallet_common::account::messages::instructions::InstructionChallengeRequest;
-    use wallet_common::keys::software::SoftwareEcdsaKey;
     use wallet_common::keys::EcdsaKey;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
@@ -924,7 +923,7 @@ mod tests {
         repo: WalletUserTestRepo,
         wallet_certificate_setup: &WalletCertificateSetup,
         wallet_certificate: WalletCertificate,
-        instruction_result_signing_key: &SoftwareEcdsaKey,
+        instruction_result_signing_key: &SigningKey,
     ) -> Result<InstructionResult<()>, anyhow::Error> {
         let challenge = do_instruction_challenge::<CheckPin>(
             account_server,
@@ -1003,7 +1002,7 @@ mod tests {
         repo: &WalletUserTestRepo,
         wallet_certificate_setup: &WalletCertificateSetup,
         wallet_certificate: WalletCertificate,
-        instruction_result_signing_key: &SoftwareEcdsaKey,
+        instruction_result_signing_key: &SigningKey,
     ) -> (SigningKey, VerifyingKey, Encrypted<VerifyingKey>, WalletCertificate) {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
@@ -1060,7 +1059,7 @@ mod tests {
             .expect("should return instruction result");
 
         let new_certificate = new_certificate_result
-            .parse_and_verify_with_sub(&(&instruction_result_signing_key.verifying_key().await.unwrap()).into())
+            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result")
             .result;
 
@@ -1077,7 +1076,7 @@ mod tests {
         let (setup, account_server, cert, repo) = setup_and_do_registration().await;
 
         let cert_data = cert
-            .parse_and_verify_with_sub(&(&setup.signing_key.verifying_key().await.unwrap()).into())
+            .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.0, setup.hw_pubkey);
@@ -1247,7 +1246,7 @@ mod tests {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
         repo.instruction_sequence_number = 42;
 
-        let instruction_result_signing_key = SoftwareEcdsaKey::new_random("instruction_result_signing_key".to_string());
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
         let challenge_error = do_instruction_challenge::<CheckPin>(
             &account_server,
@@ -1270,7 +1269,7 @@ mod tests {
             .expect("should return unit instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&(&instruction_result_signing_key.verifying_key().await.unwrap()).into())
+            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result");
     }
 
@@ -1279,7 +1278,7 @@ mod tests {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
         repo.instruction_sequence_number = 42;
 
-        let instruction_result_signing_key = SoftwareEcdsaKey::new_random("instruction_result_signing_key".to_string());
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
         let (new_pin_privkey, new_pin_pubkey, encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
             &account_server,
@@ -1381,7 +1380,7 @@ mod tests {
             .expect("should return instruction result");
 
         instruction_result
-            .parse_and_verify_with_sub(&(&instruction_result_signing_key.verifying_key().await.unwrap()).into())
+            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result");
 
         account_server
@@ -1432,7 +1431,7 @@ mod tests {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
         repo.instruction_sequence_number = 42;
 
-        let instruction_result_signing_key = SoftwareEcdsaKey::new_random("instruction_result_signing_key".to_string());
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
@@ -1491,7 +1490,7 @@ mod tests {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
         repo.instruction_sequence_number = 42;
 
-        let instruction_result_signing_key = SoftwareEcdsaKey::new_random("instruction_result_signing_key".to_string());
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
         let (new_pin_privkey, new_pin_pubkey, encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
             &account_server,
@@ -1589,7 +1588,7 @@ mod tests {
             .expect("should return instruction result for old pin");
 
         instruction_result
-            .parse_and_verify_with_sub(&(&instruction_result_signing_key.verifying_key().await.unwrap()).into())
+            .parse_and_verify_with_sub(&instruction_result_signing_key.verifying_key().into())
             .expect("Could not parse and verify instruction result");
 
         do_check_pin(
@@ -1628,7 +1627,7 @@ mod tests {
     async fn test_change_pin_no_other_instructions_allowed() {
         let (setup, account_server, cert, mut repo) = setup_and_do_registration().await;
         repo.instruction_sequence_number = 42;
-        let instruction_result_signing_key = SoftwareEcdsaKey::new_random("instruction_result_signing_key".to_string());
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
         let (_new_pin_privkey, _new_pin_pubkey, encrypted_new_pin_pubkey, _new_cert) = do_pin_change_start(
             &account_server,

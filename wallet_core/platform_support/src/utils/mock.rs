@@ -6,9 +6,9 @@ use tokio::task;
 use super::PlatformUtilities;
 use super::UtilitiesError;
 
-pub struct SoftwareUtilities;
+pub struct MockHardwareUtilities;
 
-impl PlatformUtilities for SoftwareUtilities {
+impl PlatformUtilities for MockHardwareUtilities {
     async fn storage_path() -> Result<PathBuf, UtilitiesError> {
         // This should not panic and does not error,
         // so we don't need to use `spawn::blocking()`.
@@ -27,6 +27,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_storage_path() {
-        test::get_and_verify_storage_path::<SoftwareUtilities>().await;
+        test::get_and_verify_storage_path::<MockHardwareUtilities>().await;
     }
 }

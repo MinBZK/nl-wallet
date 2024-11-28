@@ -45,7 +45,7 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insec
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "dep:serial_test", "openid4vc/test"]
+db_test = ["postgres", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
 # Enable issuance
 issuance = [
     "axum/form",
@@ -128,5 +128,5 @@ rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "examples", "mock", "mock_time"] }
-wallet_common = { path = "../wallet_common", features = ["software_key_factory", "insecure_http_client"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "mock_time"] }
+wallet_common = { path = "../wallet_common", features = ["mock_remote_key", "insecure_http_client"] }

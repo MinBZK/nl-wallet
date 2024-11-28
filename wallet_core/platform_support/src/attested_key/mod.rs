@@ -10,7 +10,7 @@
 //!    See the documenting comments in the UDL file mentioned for additional information.
 //! 2. The traits and types in this crate, that provide a generic interface wrapping the functionality
 //!    provided by the bridging types. This allows switching between the real hardware backed
-//!    implementation and a fake "software" implementation, which is used during testing.
+//!    implementation and a fake "mock" implementation, which is used during testing.
 //!    It also makes the interface of the bridged types a bit more rusty, as the types described in
 //!    UDL have certain restrictions.
 //! 3. The concrete implementations of the traits, both the ones wrapping the bridging types in the
@@ -55,7 +55,7 @@
 //! * The key types make use of an internal helper type `HardwareAttestedKey`, which encapsulates
 //!   shared functionality between these types.
 //!
-//! ## Mock ("software") implementation
+//! ## Mock implementation
 //!
 //! TBD
 
