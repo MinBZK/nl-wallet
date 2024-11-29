@@ -21,6 +21,14 @@ mock_apple_attested_key = [
     "apple_app_attest/mock_ca",
     "wallet_common/mock_apple_attested_key",
 ]
+persistent_mock_apple_attested_key = [
+    "mock_apple_attested_key",
+    "dep:futures",
+    "dep:serde",
+    "dep:serde_json",
+    "tokio/fs",
+    "tokio/sync",
+]
 # Include the MockHardwareUtilities type for use in tests
 mock_utils = ["dep:tokio"]
 # Include all mock implementations for use in tests
@@ -47,7 +55,11 @@ thiserror.workspace = true
 uniffi.workspace = true
 
 cfg-if = { workspace = true, optional = true }
+futures = { workspace = true, optional = true, features = ["std"] }
 log = { workspace = true, optional = true }
+serde = { workspace = true, optional = true, features = ["derive", "rc"] }
+serde_json = { workspace = true, optional = true }
+serde_with = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 uuid = { workspace = true, optional = true, features = ["v4"] }
 
