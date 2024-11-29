@@ -1,20 +1,36 @@
 use tokio::runtime;
 
+use apple_app_attest::AppIdentifier;
+
 use crate::attested_key::hardware::HardwareAttestedKeyHolder;
 use crate::attested_key::test;
 
 #[no_mangle]
-extern "C" fn attested_key_test() {
+extern "C" fn attested_key_test(has_xcode_env: bool) {
     let challenge = b"this_is_a_challenge_string";
     let payload = b"This is a message that will be signed.";
 
     super::print_panic(|| {
+        let app_identifier = has_xcode_env.then(|| {
+            // When Xcode compiles the crate as part of the integration tests,
+            // the environment variables below should be set.
+            let (Some(team_id), Some(bundle_id)) = (
+                option_env!("DEVELOPMENT_TEAM"),
+                option_env!("PRODUCT_BUNDLE_IDENTIFIER"),
+            ) else {
+                panic!("Xcode environment variables are not defined")
+            };
+
+            AppIdentifier::new(team_id, bundle_id)
+        });
+
         let rt = runtime::Builder::new_current_thread().enable_all().build().unwrap();
 
         let holder = HardwareAttestedKeyHolder::default();
 
         rt.block_on(test::create_and_verify_attested_key(
             &holder,
+            app_identifier.as_ref(),
             challenge.to_vec(),
             payload.to_vec(),
         ));
@@ -37,6 +53,6 @@ mod android {
             Config::default().with_max_level(LevelFilter::Trace),
         );
         log::info!("Begin attested key test");
-        super::attested_key_test();
+        super::attested_key_test(false);
     }
 }

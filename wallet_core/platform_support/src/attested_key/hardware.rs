@@ -102,11 +102,9 @@ impl From<AttestedKeyError> for HardwareAttestedKeyError {
 
 impl From<AttestedKeyError> for AttestationError<HardwareAttestedKeyError> {
     fn from(value: AttestedKeyError) -> Self {
-        let retryable = matches!(value, AttestedKeyError::ServerUnreachable { .. });
-
-        Self {
-            error: value.into(),
-            retryable,
+        match value {
+            AttestedKeyError::ServerUnreachable { .. } => Self::new_retryable(value.into()),
+            _ => Self::new_unretryable(value.into()),
         }
     }
 }

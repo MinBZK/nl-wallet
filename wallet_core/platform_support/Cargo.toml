@@ -14,10 +14,17 @@ doctest = false
 [features]
 # Implement the platform key traits on mock hardware key types from `wallet_common`
 mock_hw_keystore = ["wallet_common/mock_hardware_keys"]
+# Include the MockAppleHardwareAttestedKeyHolder type for use in tests
+mock_apple_attested_key = [
+    "dep:apple_app_attest",
+    "dep:uuid",
+    "apple_app_attest/mock_ca",
+    "wallet_common/mock_apple_attested_key",
+]
 # Include the MockHardwareUtilities type for use in tests
 mock_utils = ["dep:tokio"]
 # Include all mock implementations for use in tests
-mock = ["mock_hw_keystore", "mock_utils"]
+mock = ["mock_hw_keystore", "mock_apple_attested_key", "mock_utils"]
 # Enable helper code for iOS and Android integration tests
 hardware_integration_test = [
     "dep:android_logger",
@@ -42,6 +49,7 @@ uniffi.workspace = true
 cfg-if = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
+uuid = { workspace = true, optional = true, features = ["v4"] }
 
 error_category.path = "../error_category"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
@@ -53,6 +61,8 @@ android_logger = { workspace = true, optional = true }
 jni = { workspace = true, optional = true }
 
 [dev-dependencies]
+cfg-if.workspace = true
+log.workspace = true
 tokio = { workspace = true, features = ["macros", "fs", "io-util"] }
 
 [build-dependencies]

@@ -18,12 +18,19 @@ pub const MOCK_APPLE_ROOT_CA: [u8; 524] = Pem::decode(include_bytes!("../assets/
 #[cfg(feature = "mock_ca")]
 pub const MOCK_APPLE_ROOT_CA_KEY: [u8; 185] = Pem::decode(include_bytes!("../assets/mock_ca.key.pem"));
 
-pub static APPLE_TRUST_ANCHORS: LazyLock<Vec<TrustAnchor>> = LazyLock::new(|| {
-    let cert = Box::new(CertificateDer::from(APPLE_ROOT_CA.as_slice()));
+fn static_trust_anchors(der: &[u8]) -> Vec<TrustAnchor> {
+    let certificate = Box::new(CertificateDer::from(der));
 
     // As this happens at most once, leaking the `CertificateDer` to make it static should
     // be acceptable, as is panicking if this hardcoded certificate fails to parse.
-    let trust_anchor = webpki::anchor_from_trusted_cert(Box::leak(cert)).unwrap();
+    let trust_anchor = webpki::anchor_from_trusted_cert(Box::leak(certificate)).unwrap();
 
     vec![trust_anchor]
-});
+}
+
+pub static APPLE_TRUST_ANCHORS: LazyLock<Vec<TrustAnchor>> =
+    LazyLock::new(|| static_trust_anchors(APPLE_ROOT_CA.as_slice()));
+
+#[cfg(feature = "mock_ca")]
+pub static MOCK_APPLE_TRUST_ANCHORS: LazyLock<Vec<TrustAnchor>> =
+    LazyLock::new(|| static_trust_anchors(MOCK_APPLE_ROOT_CA.as_slice()));

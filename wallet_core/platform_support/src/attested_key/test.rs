@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::fmt::Debug;
 use std::mem;
 
+use cfg_if::cfg_if;
 use p256::ecdsa::signature::Verifier;
 
 use apple_app_attest::AppIdentifier;
@@ -9,7 +10,6 @@ use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
 use apple_app_attest::VerifiedAttestation;
-use apple_app_attest::APPLE_TRUST_ANCHORS;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::utils;
 
@@ -45,8 +45,12 @@ impl<'a> ClientData for SimpleClientData<'a> {
     }
 }
 
-pub async fn create_and_verify_attested_key<H>(holder: &H, challenge: Vec<u8>, payload: Vec<u8>)
-where
+pub async fn create_and_verify_attested_key<H>(
+    holder: &H,
+    app_identifier: Option<&AppIdentifier>,
+    challenge: Vec<u8>,
+    payload: Vec<u8>,
+) where
     H: AttestedKeyHolder,
     <H as AttestedKeyHolder>::AppleKey: Debug,
     <H as AttestedKeyHolder>::GoogleKey: Debug,
@@ -65,22 +69,26 @@ where
 
     match key_with_attestation {
         KeyWithAttestation::Apple { key, attestation_data } => {
-            // When Xcode compiles the crate as part of the integration tests,
-            // the environment variables below should be set.
-            let (Some(team_id), Some(bundle_id)) = (
-                option_env!("DEVELOPMENT_TEAM"),
-                option_env!("PRODUCT_BUNDLE_IDENTIFIER"),
-            ) else {
-                panic!("Xcode environment variables are not defined")
+            let Some(app_identifier) = app_identifier else {
+                panic!("app identifier should be provided to test");
             };
-            let app_identifier = AppIdentifier::new(team_id, bundle_id);
+
+            // If the `mock_apple_attested_key` feature is enabled, assume that
+            // the attestation is generated using the mock Apple root CA.
+            cfg_if! {
+                if #[cfg(feature = "mock_apple_attested_key")] {
+                    let trust_anchors = &apple_app_attest::MOCK_APPLE_TRUST_ANCHORS;
+                } else {
+                    let trust_anchors = &apple_app_attest::APPLE_TRUST_ANCHORS;
+                }
+            }
 
             // Perform the server side check of the attestation here.
             let (_, public_key) = VerifiedAttestation::parse_and_verify(
                 &attestation_data,
-                &APPLE_TRUST_ANCHORS,
+                trust_anchors,
                 &challenge,
-                &app_identifier,
+                app_identifier,
                 AttestationEnvironment::Development, // Assume that tests use the AppAttest sandbox
             )
             .expect("could not verify attestation");
@@ -94,7 +102,7 @@ where
                 assertion1.as_ref(),
                 &client_data1,
                 &public_key,
-                &app_identifier,
+                app_identifier,
                 0,
                 &client_data1.challenge,
             )
@@ -126,7 +134,7 @@ where
                 assertion2.as_ref(),
                 &client_data2,
                 &public_key,
-                &app_identifier,
+                app_identifier,
                 1,
                 &client_data2.challenge,
             )
