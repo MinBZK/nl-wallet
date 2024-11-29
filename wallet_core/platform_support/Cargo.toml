@@ -18,17 +18,17 @@ mock_hw_keystore = ["wallet_common/mock_hardware_keys"]
 mock_utils = ["dep:tokio"]
 # Include all mock implementations for use in tests
 mock = ["mock_hw_keystore", "mock_utils"]
-# Enable helper code for integration tests
-integration_test = ["wallet_common/integration_test", "tokio/fs", "tokio/io-util"]
 # Enable helper code for iOS and Android integration tests
 hardware_integration_test = [
-    "integration_test",
     "dep:android_logger",
     "dep:apple_app_attest",
     "dep:cfg-if",
     "dep:jni",
     "dep:log",
+    "tokio/fs",
+    "tokio/io-util",
     "tokio/rt",
+    "wallet_common/integration_test",
 ]
 
 [dependencies]
