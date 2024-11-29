@@ -361,6 +361,11 @@ render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-co
 echo
 echo -e "${SECTION}Configure HSM${NC}"
 
+if [[ ! -f "$HSM_LIBRARY_PATH" ]]; then
+    error "No valid HSM library path configured: $HSM_LIBRARY_PATH"
+    exit 1
+fi
+
 mkdir -p "${HOME}/.config/softhsm2"
 if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
   mkdir -p "${DEFAULT_HSM_TOKEN_DIR}"

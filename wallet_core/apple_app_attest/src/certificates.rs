@@ -120,7 +120,7 @@ pub struct AppleAnonymousAttestationExtension<'a> {
 #[derive(Debug, AsRef)]
 pub struct CredentialCertificate<'a>(X509Certificate<'a>);
 
-impl<'a> CredentialCertificate<'a> {
+impl CredentialCertificate<'_> {
     pub fn public_key(&self) -> Result<VerifyingKey, CertificateError> {
         let public_key = VerifyingKey::from_public_key_der(self.as_ref().public_key().raw)
             .map_err(CertificateError::PublicKeyParsing)?;
