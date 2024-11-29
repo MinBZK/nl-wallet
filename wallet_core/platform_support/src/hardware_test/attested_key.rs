@@ -14,7 +14,7 @@ extern "C" fn attested_key_test() {
         let holder = HardwareAttestedKeyHolder::default();
 
         rt.block_on(test::create_and_verify_attested_key(
-            holder,
+            &holder,
             challenge.to_vec(),
             payload.to_vec(),
         ));

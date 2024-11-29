@@ -18,14 +18,14 @@ use super::AttestedKey;
 use super::AttestedKeyHolder;
 use super::KeyWithAttestation;
 
-/// This simply wraps a [`Vec<u8>`] as hash data and a generated challenge.
-struct SimpleClientData {
-    hash_data: Vec<u8>,
+/// This simply wraps a byte slice as hash data and a randomly generated challenge.
+struct SimpleClientData<'a> {
+    hash_data: &'a [u8],
     challenge: Vec<u8>,
 }
 
-impl SimpleClientData {
-    pub fn new(hash_data: Vec<u8>) -> Self {
+impl<'a> SimpleClientData<'a> {
+    pub fn new(hash_data: &'a [u8]) -> Self {
         Self {
             hash_data,
             challenge: utils::random_bytes(32),
@@ -33,11 +33,11 @@ impl SimpleClientData {
     }
 }
 
-impl ClientData for SimpleClientData {
+impl<'a> ClientData for SimpleClientData<'a> {
     type Error = Infallible;
 
     fn hash_data(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
-        Ok(&self.hash_data)
+        Ok(self.hash_data)
     }
 
     fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
@@ -45,7 +45,7 @@ impl ClientData for SimpleClientData {
     }
 }
 
-pub async fn create_and_verify_attested_key<H>(holder: H, challenge: Vec<u8>, payload: Vec<u8>)
+pub async fn create_and_verify_attested_key<H>(holder: &H, challenge: Vec<u8>, payload: Vec<u8>)
 where
     H: AttestedKeyHolder,
     <H as AttestedKeyHolder>::AppleKey: Debug,
@@ -87,7 +87,7 @@ where
 
             // Create an assertion for the payload and perform the server side check,
             // using the public key extracted during attestation in the previous step.
-            let client_data1 = SimpleClientData::new(payload.clone());
+            let client_data1 = SimpleClientData::new(&payload);
             let assertion1 = key.sign(payload.clone()).await.expect("could not sign payload");
 
             VerifiedAssertion::parse_and_verify(
@@ -116,8 +116,11 @@ where
                 panic!("expected Apple attested key");
             };
 
-            let client_data2 = SimpleClientData::new(payload.clone());
-            let assertion2 = key.sign(payload).await.expect("could not sign payload a second time");
+            let client_data2 = SimpleClientData::new(&payload);
+            let assertion2 = key
+                .sign(payload.clone())
+                .await
+                .expect("could not sign payload a second time");
 
             VerifiedAssertion::parse_and_verify(
                 assertion2.as_ref(),
