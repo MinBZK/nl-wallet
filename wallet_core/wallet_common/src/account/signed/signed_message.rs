@@ -31,7 +31,7 @@ struct ParsedValueWithSource<'a, T> {
     source: &'a [u8],
 }
 
-impl<'a, T> ParsedValueWithSource<'a, T> {
+impl<T> ParsedValueWithSource<'_, T> {
     fn into_value(self) -> T {
         self.value
     }
