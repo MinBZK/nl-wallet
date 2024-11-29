@@ -54,8 +54,7 @@ export DB_NAME="${DB_NAME:-wallet_provider}"
 export PGADMIN_DEFAULT_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-admin}"
 
 # HSM properties, with defaults
-HSM_LIBRARY_PATH=$(detect_softhsm)
-export HSM_LIBRARY_PATH
+export HSM_LIBRARY_PATH="${HSM_LIBRARY_PATH:-$(detect_softhsm)}"
 export HSM_SO_PIN=${HSM_SO_PIN:-12345678}
 export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
 export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
