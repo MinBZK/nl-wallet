@@ -15,17 +15,13 @@ doctest = false
 # Implement the platform key traits on mock hardware key types from `wallet_common`
 mock_hw_keystore = ["wallet_common/mock_hardware_keys"]
 # Include the MockAppleHardwareAttestedKeyHolder type for use in tests
-mock_apple_attested_key = [
-    "dep:apple_app_attest",
-    "dep:uuid",
-    "apple_app_attest/mock_ca",
-    "wallet_common/mock_apple_attested_key",
-]
+mock_apple_attested_key = ["dep:apple_app_attest", "dep:uuid", "wallet_common/mock_apple_attested_key"]
 persistent_mock_apple_attested_key = [
     "mock_apple_attested_key",
     "dep:futures",
     "dep:serde",
     "dep:serde_json",
+    "apple_app_attest/mock_ca",
     "tokio/fs",
     "tokio/sync",
 ]
@@ -40,6 +36,7 @@ hardware_integration_test = [
     "dep:cfg-if",
     "dep:jni",
     "dep:log",
+    "dep:rustls-webpki",
     "tokio/fs",
     "tokio/io-util",
     "tokio/rt",
@@ -60,6 +57,7 @@ log = { workspace = true, optional = true }
 serde = { workspace = true, optional = true, features = ["derive", "rc"] }
 serde_json = { workspace = true, optional = true }
 serde_with = { workspace = true, optional = true }
+rustls-webpki = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 uuid = { workspace = true, optional = true, features = ["v4"] }
 
@@ -73,7 +71,7 @@ android_logger = { workspace = true, optional = true }
 jni = { workspace = true, optional = true }
 
 [dev-dependencies]
-cfg-if.workspace = true
+rustls-webpki.workspace = true
 log.workspace = true
 tokio = { workspace = true, features = ["macros", "fs", "io-util"] }
 

@@ -2,8 +2,8 @@ use std::convert::Infallible;
 use std::fmt::Debug;
 use std::mem;
 
-use cfg_if::cfg_if;
 use p256::ecdsa::signature::Verifier;
+use webpki::types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -45,9 +45,14 @@ impl<'a> ClientData for SimpleClientData<'a> {
     }
 }
 
-pub async fn create_and_verify_attested_key<H>(
-    holder: &H,
-    app_identifier: Option<&AppIdentifier>,
+pub struct AppleTestData<'a> {
+    pub app_identifier: &'a AppIdentifier,
+    pub trust_anchors: &'a [TrustAnchor<'a>],
+}
+
+pub async fn create_and_verify_attested_key<'a, H>(
+    holder: &'a H,
+    apple_test_data: Option<AppleTestData<'a>>,
     challenge: Vec<u8>,
     payload: Vec<u8>,
 ) where
@@ -69,26 +74,16 @@ pub async fn create_and_verify_attested_key<H>(
 
     match key_with_attestation {
         KeyWithAttestation::Apple { key, attestation_data } => {
-            let Some(app_identifier) = app_identifier else {
-                panic!("app identifier should be provided to test");
+            let Some(apple_test_data) = apple_test_data else {
+                panic!("apple test data should be provided to test");
             };
-
-            // If the `mock_apple_attested_key` feature is enabled, assume that
-            // the attestation is generated using the mock Apple root CA.
-            cfg_if! {
-                if #[cfg(feature = "mock_apple_attested_key")] {
-                    let trust_anchors = &apple_app_attest::MOCK_APPLE_TRUST_ANCHORS;
-                } else {
-                    let trust_anchors = &apple_app_attest::APPLE_TRUST_ANCHORS;
-                }
-            }
 
             // Perform the server side check of the attestation here.
             let (_, public_key) = VerifiedAttestation::parse_and_verify(
                 &attestation_data,
-                trust_anchors,
+                apple_test_data.trust_anchors,
                 &challenge,
-                app_identifier,
+                apple_test_data.app_identifier,
                 AttestationEnvironment::Development, // Assume that tests use the AppAttest sandbox
             )
             .expect("could not verify attestation");
@@ -102,7 +97,7 @@ pub async fn create_and_verify_attested_key<H>(
                 assertion1.as_ref(),
                 &client_data1,
                 &public_key,
-                app_identifier,
+                apple_test_data.app_identifier,
                 0,
                 &client_data1.challenge,
             )
@@ -134,7 +129,7 @@ pub async fn create_and_verify_attested_key<H>(
                 assertion2.as_ref(),
                 &client_data2,
                 &public_key,
-                app_identifier,
+                apple_test_data.app_identifier,
                 1,
                 &client_data2.challenge,
             )

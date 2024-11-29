@@ -3149,6 +3149,7 @@ dependencies = [
  "log",
  "p256",
  "parking_lot",
+ "rustls-webpki",
  "serde",
  "serde_json",
  "serde_with",

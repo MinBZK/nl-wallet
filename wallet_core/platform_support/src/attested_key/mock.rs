@@ -54,21 +54,17 @@ pub enum MockAppleHardwareAttestedKeyError {
 /// types, based on the mock root CA included in the [`apple_app_attest`] crate.
 pub struct MockAppleHardwareAttestedKeyHolder {
     key_states: &'static RwLock<HashMap<String, AttestedKeyState>>,
-    ca: MockAttestationCa,
-    app_identifier: AppIdentifier,
+    pub ca: MockAttestationCa,
+    pub app_identifier: AppIdentifier,
 }
 
 impl MockAppleHardwareAttestedKeyHolder {
-    fn new_mock_key_states(key_states: &'static RwLock<HashMap<String, AttestedKeyState>>) -> Self {
+    pub fn generate(app_identifier: AppIdentifier) -> Self {
         Self {
-            key_states,
-            ca: MockAttestationCa::new_mock(),
-            app_identifier: AppIdentifier::new_mock(),
+            key_states: &KEY_STATES,
+            ca: MockAttestationCa::generate(),
+            app_identifier,
         }
-    }
-
-    pub fn new_mock() -> Self {
-        Self::new_mock_key_states(&KEY_STATES)
     }
 }
 
@@ -265,10 +261,14 @@ mod persistent {
             *key_states_file = Some(file_path);
         }
 
-        pub fn new_mock() -> Self {
-            Self(MockAppleHardwareAttestedKeyHolder::new_mock_key_states(
-                &PERSISTENT_KEY_STATES,
-            ))
+        pub fn new_mock(app_identifier: AppIdentifier) -> Self {
+            let holder = MockAppleHardwareAttestedKeyHolder {
+                key_states: &PERSISTENT_KEY_STATES,
+                ca: MockAttestationCa::new_mock(),
+                app_identifier,
+            };
+
+            Self(holder)
         }
 
         /// Helper function that wraps an async operation. Before the operation a lock on the
@@ -365,9 +365,13 @@ mod persistent {
 
     #[cfg(all(test, feature = "mock_utils"))]
     mod tests {
+        use apple_app_attest::AppIdentifier;
+        use apple_app_attest::MOCK_APPLE_TRUST_ANCHORS;
+
+        use crate::attested_key::test;
+        use crate::attested_key::test::AppleTestData;
         use crate::utils::mock::MockHardwareUtilities;
 
-        use super::super::super::test;
         use super::PersistentMockAppleHardwareAttestedKeyHolder;
         use super::KEY_STATES_FILE;
 
@@ -380,13 +384,19 @@ mod persistent {
                 KEY_STATES_FILE.lock().await.as_deref().unwrap().to_string_lossy()
             );
 
-            let mock_holder = PersistentMockAppleHardwareAttestedKeyHolder::new_mock();
+            let app_identifier = AppIdentifier::new_mock();
+            let mock_holder = PersistentMockAppleHardwareAttestedKeyHolder::new_mock(app_identifier);
             let challenge = b"this_is_a_challenge_string";
             let payload = b"This is a message that will be signed by the persistent mock key.";
 
+            let apple_test_data = AppleTestData {
+                app_identifier: &mock_holder.0.app_identifier,
+                trust_anchors: &MOCK_APPLE_TRUST_ANCHORS,
+            };
+
             test::create_and_verify_attested_key(
                 &mock_holder,
-                Some(&mock_holder.0.app_identifier),
+                Some(apple_test_data),
                 challenge.to_vec(),
                 payload.to_vec(),
             )
@@ -397,18 +407,28 @@ mod persistent {
 
 #[cfg(test)]
 mod tests {
-    use super::super::test;
+    use apple_app_attest::AppIdentifier;
+
+    use crate::attested_key::test;
+    use crate::attested_key::test::AppleTestData;
+
     use super::MockAppleHardwareAttestedKeyHolder;
 
     #[tokio::test]
     async fn test_mock_apple_hardware_attested_key_holder() {
-        let mock_holder = MockAppleHardwareAttestedKeyHolder::new_mock();
+        let app_identifier = AppIdentifier::new_mock();
+        let mock_holder = MockAppleHardwareAttestedKeyHolder::generate(app_identifier);
         let challenge = b"this_is_a_challenge_string";
         let payload = b"This is a message that will be signed by the mock key.";
 
+        let apple_test_data = AppleTestData {
+            app_identifier: &mock_holder.app_identifier,
+            trust_anchors: &[mock_holder.ca.trust_anchor()],
+        };
+
         test::create_and_verify_attested_key(
             &mock_holder,
-            Some(&mock_holder.app_identifier),
+            Some(apple_test_data),
             challenge.to_vec(),
             payload.to_vec(),
         )
