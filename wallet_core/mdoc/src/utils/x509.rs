@@ -302,7 +302,7 @@ pub const EXTENDED_KEY_USAGE_READER_AUTH: &[u8] = &[40, 129, 140, 93, 5, 1, 6];
 pub const EKU_MDL_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_MDL);
 pub const EKU_READER_AUTH_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_READER_AUTH);
 
-const fn oid_from_bytes(bytes: &'static [u8]) -> Oid {
+const fn oid_from_bytes(bytes: &'static [u8]) -> Oid<'static> {
     Oid::new(Cow::Borrowed(bytes))
 }
 
