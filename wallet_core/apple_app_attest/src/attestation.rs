@@ -245,9 +245,7 @@ pub mod mock {
     use der::Encode;
     use derive_more::Debug;
     use p256::ecdsa::SigningKey;
-    use p256::ecdsa::VerifyingKey;
     use p256::pkcs8::DecodePrivateKey;
-    use p256::pkcs8::DecodePublicKey;
     use passkey_types::ctap2::AttestedCredentialData;
     use passkey_types::ctap2::AuthenticatorData;
     use rand::RngCore;
@@ -257,9 +255,10 @@ pub mod mock {
     use rcgen::CustomExtension;
     use rcgen::IsCa;
     use rcgen::KeyPair;
+    use rcgen::PKCS_ECDSA_P256_SHA256;
+    use rcgen::PKCS_ECDSA_P384_SHA384;
     use sha2::Digest;
     use sha2::Sha256;
-    use webpki::types::CertificateDer;
     use webpki::types::TrustAnchor;
 
     use crate::app_identifier::AppIdentifier;
@@ -274,30 +273,30 @@ pub mod mock {
 
     #[derive(Debug)]
     pub struct MockAttestationCa {
-        #[debug(skip)]
+        #[debug("{:?}", certificate.der())]
         certificate: Certificate,
-        der: CertificateDer<'static>,
+        key_pair: KeyPair,
     }
 
     impl MockAttestationCa {
         pub fn generate() -> Self {
+            let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P384_SHA384).unwrap();
+
             let mut params = CertificateParams::default();
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+            let certificate = params.self_signed(&key_pair).unwrap();
 
-            let certificate = Certificate::from_params(params).unwrap();
-            let der = CertificateDer::from(certificate.serialize_der().unwrap()).to_owned();
-
-            Self { certificate, der }
+            Self { certificate, key_pair }
         }
 
         pub fn trust_anchor(&self) -> TrustAnchor {
-            webpki::anchor_from_trusted_cert(&self.der).unwrap()
+            webpki::anchor_from_trusted_cert(self.certificate.der()).unwrap()
         }
     }
 
     impl AsRef<[u8]> for MockAttestationCa {
         fn as_ref(&self) -> &[u8] {
-            self.der.as_ref()
+            self.certificate.der().as_ref()
         }
     }
 
@@ -307,12 +306,9 @@ pub mod mock {
             challenge: &[u8],
             app_identifier: &AppIdentifier,
         ) -> (Self, SigningKey) {
-            let mut params = CertificateParams::default();
-
             // Generate an ECDSA key pair and get both the private and public key from it.
-            let key_pair = KeyPair::generate(params.alg).unwrap();
+            let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap();
             let signing_key = SigningKey::from_pkcs8_der(key_pair.serialized_der()).unwrap();
-            let verifying_key = VerifyingKey::from_public_key_der(&key_pair.public_key_der()).unwrap();
 
             // Build `AuthenticatorData` with the following contents:
             // * The app identifier string as RP ID.
@@ -324,6 +320,7 @@ pub mod mock {
 
             let aaguid = AttestationEnvironment::Development.aaguid();
 
+            let verifying_key = signing_key.verifying_key();
             let encoded_point = verifying_key.to_encoded_point(false);
             let credential_id = Sha256::digest(encoded_point).to_vec();
 
@@ -349,22 +346,19 @@ pub mod mock {
             let extension = AppleAnonymousAttestationExtension { nonce: &nonce };
             let mut extension_content = Vec::new();
             extension.encode_to_vec(&mut extension_content).unwrap();
+
+            let mut params = CertificateParams::default();
             params.custom_extensions = vec![CustomExtension::from_oid_content(
                 &APPLE_ANONYMOUS_ATTESTATION_OID,
                 extension_content,
             )];
-
-            params.key_pair = Some(key_pair);
-            let certificate = Certificate::from_params(params).unwrap();
+            let certificate = params.signed_by(&key_pair, &ca.certificate, &ca.key_pair).unwrap();
 
             // Sign the X.509 certificate with the CA private key, then serialize
             // this and the CA certificate into a DER certificate chain.
-            let x509_certificates = vec![
-                certificate.serialize_der_with_signer(&ca.certificate).unwrap(),
-                ca.der.as_ref().to_vec(),
-            ]
-            .try_into()
-            .unwrap();
+            let x509_certificates = vec![certificate.der().to_vec(), ca.certificate.der().to_vec()]
+                .try_into()
+                .unwrap();
 
             // Generate random receipt data, as this is not validated.
             let mut receipt = vec![0u8; 32];
