@@ -296,34 +296,45 @@ pub mod mock {
 
     #[cfg(feature = "mock_ca")]
     mod mock_ca {
-        use rcgen::Certificate;
         use rcgen::CertificateParams;
         use rcgen::KeyPair;
-        use rcgen::RcgenError;
+        use rcgen::PKCS_ECDSA_P384_SHA384;
         use webpki::types::CertificateDer;
+        use webpki::types::PrivateKeyDer;
 
         use crate::MOCK_APPLE_ROOT_CA;
         use crate::MOCK_APPLE_ROOT_CA_KEY;
 
         use super::MockAttestationCa;
 
-        impl MockAttestationCa {
-            fn from_static_der(certificate_der: &'static [u8], key_der: &'static [u8]) -> Result<Self, RcgenError> {
-                let key_pair = KeyPair::from_der(key_der)?;
-                let params = CertificateParams::from_ca_cert_der(certificate_der, key_pair)?;
-                let certificate = Certificate::from_params(params)?;
-                let certificate_der = CertificateDer::from(certificate_der);
+        #[derive(Debug, thiserror::Error)]
+        enum MockAttestationCaDerError {
+            #[error("could not decode private key DER: {0}")]
+            KeyDer(&'static str),
+            #[error("could not parse certificate and private key DER: {0}")]
+            RcGen(#[from] rcgen::Error),
+        }
 
-                let ca = Self {
-                    certificate,
-                    certificate_der,
-                };
+        impl MockAttestationCa {
+            fn from_der(certificate_der: &[u8], key_der: &[u8]) -> Result<Self, MockAttestationCaDerError> {
+                let key_der = PrivateKeyDer::try_from(key_der).map_err(MockAttestationCaDerError::KeyDer)?;
+                let key_pair = KeyPair::from_der_and_sign_algo(&key_der, &PKCS_ECDSA_P384_SHA384)?;
+
+                let certificate_der = CertificateDer::from(certificate_der);
+                let params = CertificateParams::from_ca_cert_der(&certificate_der)?;
+                // This generates a new self-signed certificate that is different from the one provided as
+                // input to this function. Unfortunately this is necessary for now, as there is no way to
+                // create a `Certificate` type from DER, only `CertificateParams`.
+                // See: https://github.com/rustls/rcgen/issues/274#issuecomment-2121969453
+                let certificate = params.self_signed(&key_pair)?;
+
+                let ca = Self { certificate, key_pair };
 
                 Ok(ca)
             }
 
             pub fn new_mock() -> Self {
-                Self::from_static_der(&MOCK_APPLE_ROOT_CA, &MOCK_APPLE_ROOT_CA_KEY)
+                Self::from_der(&MOCK_APPLE_ROOT_CA, &MOCK_APPLE_ROOT_CA_KEY)
                     .expect("could not decode mock Apple root CA")
             }
         }
