@@ -57,7 +57,7 @@ pub enum CertificateError {
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate creation failed: {0}")]
     #[category(unexpected)]
-    GeneratingFailed(#[from] rcgen::RcgenError),
+    GeneratingFailed(#[from] rcgen::Error),
     #[error("failed to parse certificate public key: {0}")]
     KeyParsingFailed(p256::pkcs8::spki::Error),
     #[error("EKU count incorrect ({0})")]
