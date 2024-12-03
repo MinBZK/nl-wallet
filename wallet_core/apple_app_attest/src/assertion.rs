@@ -1,6 +1,8 @@
 use std::error::Error;
 
 use derive_more::AsRef;
+use derive_more::Deref;
+use derive_more::From;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -77,6 +79,9 @@ impl From<DerSignature> for Vec<u8> {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, From, Deref)]
+pub struct AssertionCounter(u32);
+
 #[derive(Debug, Clone, AsRef)]
 pub struct VerifiedAssertion(Assertion);
 
@@ -105,9 +110,9 @@ impl VerifiedAssertion {
         client_data: &impl ClientData,
         public_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
-        previous_counter: u32,
+        previous_counter: AssertionCounter,
         expected_challenge: &[u8],
-    ) -> Result<(Self, u32), AssertionError> {
+    ) -> Result<(Self, AssertionCounter), AssertionError> {
         let assertion = Assertion::parse(bytes)?;
 
         // The steps below are listed at:
@@ -150,9 +155,9 @@ impl VerifiedAssertion {
             .as_ref()
             .counter
             .ok_or(AssertionDecodingError::CounterMissing)?;
-        if counter <= previous_counter {
+        if counter <= *previous_counter {
             return Err(AssertionValidationError::CounterTooLow {
-                previous: previous_counter,
+                previous: *previous_counter,
                 received: counter,
             })?;
         }
@@ -168,7 +173,7 @@ impl VerifiedAssertion {
             return Err(AssertionValidationError::ChallengeMismatch)?;
         }
 
-        Ok((VerifiedAssertion(assertion), counter))
+        Ok((VerifiedAssertion(assertion), AssertionCounter(counter)))
     }
 }
 
@@ -184,17 +189,18 @@ mod mock {
     use crate::auth_data::AuthenticatorDataWithSource;
 
     use super::Assertion;
+    use super::AssertionCounter;
 
     impl Assertion {
         /// Generate a mock [`Assertion`] based on a private key and other parameters.
         pub fn new_mock(
             private_key: &SigningKey,
             app_identifier: &AppIdentifier,
-            counter: u32,
+            counter: AssertionCounter,
             client_data: &[u8],
         ) -> Self {
             let authenticator_data =
-                AuthenticatorDataWithSource::from(AuthenticatorData::new(app_identifier.as_ref(), Some(counter)));
+                AuthenticatorDataWithSource::from(AuthenticatorData::new(app_identifier.as_ref(), Some(*counter)));
 
             let nonce = Sha256::new()
                 .chain_update(authenticator_data.source())
@@ -211,7 +217,7 @@ mod mock {
         pub fn new_mock_bytes(
             private_key: &SigningKey,
             app_identifier: &AppIdentifier,
-            counter: u32,
+            counter: AssertionCounter,
             client_data: &[u8],
         ) -> Vec<u8> {
             let assertion = Self::new_mock(private_key, app_identifier, counter, client_data);

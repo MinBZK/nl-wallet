@@ -1,10 +1,12 @@
-use apple_app_attest::AppIdentifier;
 use p256::ecdsa::VerifyingKey;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::AssertionCounter;
 
 use crate::apple::AppleAttestedKey;
 use crate::keys::EphemeralEcdsaKey;
@@ -138,8 +140,8 @@ impl ChallengeRequest {
         sequence_number_comparison: SequenceNumberComparison,
         verifying_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
-        previous_counter: u32,
-    ) -> Result<(ChallengeRequestPayload, u32)> {
+        previous_counter: AssertionCounter,
+    ) -> Result<(ChallengeRequestPayload, AssertionCounter)> {
         let (request, counter) =
             self.0
                 .parse_and_verify_apple(verifying_key, app_identifier, previous_counter, wallet_id.as_bytes())?;
@@ -299,9 +301,9 @@ impl<T> ChallengeResponse<T> {
         sequence_number_comparison: SequenceNumberComparison,
         apple_verifying_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
-        previous_counter: u32,
+        previous_counter: AssertionCounter,
         pin_verifying_key: &VerifyingKey,
-    ) -> Result<(ChallengeResponsePayload<T>, u32)>
+    ) -> Result<(ChallengeResponsePayload<T>, AssertionCounter)>
     where
         T: DeserializeOwned,
     {
@@ -422,7 +424,7 @@ mod tests {
                 SequenceNumberComparison::EqualTo(sequence_number),
                 attested_key.verifying_key(),
                 &attested_key.app_identifier,
-                0,
+                AssertionCounter::default(),
             )
             .expect_err("verifying SignedChallengeRequest should return an error");
 
@@ -435,7 +437,7 @@ mod tests {
                 SequenceNumberComparison::LargerThan(sequence_number),
                 attested_key.verifying_key(),
                 &attested_key.app_identifier,
-                0,
+                AssertionCounter::default(),
             )
             .expect_err("verifying SignedChallengeRequest should return an error");
 
@@ -448,13 +450,13 @@ mod tests {
                 SequenceNumberComparison::EqualTo(sequence_number),
                 attested_key.verifying_key(),
                 &attested_key.app_identifier,
-                0,
+                AssertionCounter::default(),
             )
             .expect("SignedChallengeRequest should be valid");
 
         assert_eq!(request.sequence_number, sequence_number);
         assert_eq!(request.instruction_name, instruction_name);
-        assert_eq!(counter, 1);
+        assert_eq!(*counter, 1);
     }
 
     #[tokio::test]
@@ -537,7 +539,7 @@ mod tests {
                 SequenceNumberComparison::LargerThan(sequence_number - 1),
                 attested_key.verifying_key(),
                 &attested_key.app_identifier,
-                0,
+                AssertionCounter::default(),
                 pin_privkey.verifying_key(),
             )
             .expect_err("verifying SignedChallengeResponse should return an error");
@@ -551,7 +553,7 @@ mod tests {
                 SequenceNumberComparison::EqualTo(42),
                 attested_key.verifying_key(),
                 &attested_key.app_identifier,
-                0,
+                AssertionCounter::default(),
                 pin_privkey.verifying_key(),
             )
             .expect_err("verifying SignedChallengeResponse should return an error");
@@ -565,12 +567,12 @@ mod tests {
                 SequenceNumberComparison::LargerThan(sequence_number - 1),
                 attested_key.verifying_key(),
                 &attested_key.app_identifier,
-                0,
+                AssertionCounter::default(),
                 pin_privkey.verifying_key(),
             )
             .expect("SignedChallengeResponse should be valid");
 
         assert_eq!(ToyMessage::default(), verified.payload);
-        assert_eq!(counter, 1)
+        assert_eq!(*counter, 1)
     }
 }

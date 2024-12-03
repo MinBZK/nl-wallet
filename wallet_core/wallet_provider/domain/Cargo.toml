@@ -27,4 +27,5 @@ sha2 = { workspace = true, optional = true }
 thiserror.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
+apple_app_attest.path = "../../apple_app_attest"
 wallet_common.path = "../../wallet_common"

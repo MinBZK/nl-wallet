@@ -6,6 +6,7 @@ use p256::ecdsa::VerifyingKey;
 use uuid::Uuid;
 use uuid::{self};
 
+use apple_app_attest::AssertionCounter;
 use wallet_provider_domain::model::encrypted::Encrypted;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
@@ -162,7 +163,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-        assertion_counter: u32,
+        assertion_counter: AssertionCounter,
     ) -> Result<(), PersistenceError> {
         wallet_user::update_apple_assertion_counter(transaction, wallet_id, assertion_counter).await
     }
@@ -182,6 +183,7 @@ pub mod mock {
     use uuid::uuid;
     use uuid::Uuid;
 
+    use apple_app_attest::AssertionCounter;
     use wallet_common::account::serialization::DerVerifyingKey;
     use wallet_provider_domain::model::encrypted::Encrypted;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
@@ -292,7 +294,7 @@ pub mod mock {
                 &self,
                 transaction: &MockTransaction,
                 wallet_id: &str,
-                assertion_counter: u32,
+                assertion_counter: AssertionCounter,
             ) -> Result<(), PersistenceError>;
         }
 
@@ -310,7 +312,7 @@ pub mod mock {
         pub previous_encrypted_pin_pubkey: Option<Encrypted<VerifyingKey>>,
         pub challenge: Option<Vec<u8>>,
         pub instruction_sequence_number: u64,
-        pub apple_assertion_counter: Option<u32>,
+        pub apple_assertion_counter: Option<AssertionCounter>,
     }
 
     impl WalletUserRepository for WalletUserTestRepo {
@@ -458,7 +460,7 @@ pub mod mock {
             &self,
             _transaction: &MockTransaction,
             _wallet_id: &str,
-            _assertion_counter: u32,
+            _assertion_counter: AssertionCounter,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

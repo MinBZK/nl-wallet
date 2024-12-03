@@ -6,6 +6,7 @@ use p256::ecdsa::signature::Verifier;
 use webpki::types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
+use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
@@ -98,7 +99,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
                 &client_data1,
                 &public_key,
                 apple_test_data.app_identifier,
-                0,
+                AssertionCounter::default(),
                 &client_data1.challenge,
             )
             .expect("could not verify first assertion");
@@ -130,7 +131,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
                 &client_data2,
                 &public_key,
                 apple_test_data.app_identifier,
-                1,
+                AssertionCounter::from(1),
                 &client_data2.challenge,
             )
             .expect("could not verify second assertion");

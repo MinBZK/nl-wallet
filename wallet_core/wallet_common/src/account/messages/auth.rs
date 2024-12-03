@@ -121,12 +121,14 @@ pub struct Certificate {
 
 #[cfg(test)]
 mod tests {
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
     use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AssertionCounter;
     use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::MockAttestationCa;
     use apple_app_attest::VerifiedAttestation;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
 
     use crate::{
         account::{
@@ -182,7 +184,7 @@ mod tests {
             SequenceNumberComparison::EqualTo(0),
             &public_key,
             &app_identifier,
-            0,
+            AssertionCounter::default(),
             &unverified.payload.pin_pubkey.0,
         )
         .expect("apple registration should verify successfully");

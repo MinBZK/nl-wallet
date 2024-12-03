@@ -3,6 +3,7 @@ use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use uuid::Uuid;
 
+use apple_app_attest::AssertionCounter;
 use wallet_common::generator::Generator;
 use wallet_common::utils::random_string;
 use wallet_provider_domain::model::encrypted::Encrypted;
@@ -286,11 +287,11 @@ async fn test_update_apple_assertion_counter() {
         (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
             assert_matches!(
                 wallet_user.attestation,
-                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+                Some(WalletUserAttestation::Apple { assertion_counter }) if *assertion_counter == 0
             );
             assert_matches!(
                 other_wallet_user.attestation,
-                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+                Some(WalletUserAttestation::Apple { assertion_counter }) if *assertion_counter == 0
             );
         }
         _ => panic!(),
@@ -298,7 +299,7 @@ async fn test_update_apple_assertion_counter() {
 
     // After updating the assertion counter for the first user it
     // should be changed, while the other one should remain at 0.
-    update_apple_assertion_counter(&db, &wallet_id, 1337)
+    update_apple_assertion_counter(&db, &wallet_id, AssertionCounter::from(1337))
         .await
         .expect("updating apple assertion could succeed");
 
@@ -309,11 +310,11 @@ async fn test_update_apple_assertion_counter() {
         (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
             assert_matches!(
                 wallet_user.attestation,
-                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 1337
+                Some(WalletUserAttestation::Apple { assertion_counter }) if *assertion_counter == 1337
             );
             assert_matches!(
                 other_wallet_user.attestation,
-                Some(WalletUserAttestation::Apple { assertion_counter }) if assertion_counter == 0
+                Some(WalletUserAttestation::Apple { assertion_counter }) if *assertion_counter == 0
             );
         }
         _ => panic!(),

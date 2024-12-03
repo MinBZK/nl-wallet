@@ -4,6 +4,8 @@ use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 
+use apple_app_attest::AssertionCounter;
+
 use crate::model::encrypted::Encrypted;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::WalletUserCreate;
@@ -80,7 +82,7 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         wallet_id: &str,
-        assertion_counter: u32,
+        assertion_counter: AssertionCounter,
     ) -> Result<()>;
 }
 
@@ -199,7 +201,7 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_id: &str,
-            _assertion_counter: u32,
+            _assertion_counter: AssertionCounter,
         ) -> Result<()> {
             Ok(())
         }

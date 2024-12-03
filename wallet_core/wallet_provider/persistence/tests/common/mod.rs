@@ -15,6 +15,7 @@ use sea_orm::FromQueryResult;
 use sea_orm::QueryFilter;
 use uuid::Uuid;
 
+use apple_app_attest::AssertionCounter;
 use wallet_common::utils::random_bytes;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::encrypted::Encrypted;
@@ -70,7 +71,7 @@ where
             encrypted_pin_pubkey: encrypted_pin_key("key1").await,
             attestation: Some(WalletUserAttestationCreate::Apple {
                 data: random_bytes(64),
-                assertion_counter: 0,
+                assertion_counter: AssertionCounter::default(),
             }),
         },
     )

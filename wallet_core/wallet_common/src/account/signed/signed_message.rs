@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use apple_app_attest::VerifiedAssertion;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -9,7 +8,9 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use apple_app_attest::AppIdentifier;
+use apple_app_attest::AssertionCounter;
 use apple_app_attest::ClientData;
+use apple_app_attest::VerifiedAssertion;
 
 use crate::apple::AppleAssertion;
 use crate::apple::AppleAttestedKey;
@@ -192,9 +193,9 @@ impl<T> SignedMessage<T> {
         &self,
         verifying_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
-        previous_counter: u32,
+        previous_counter: AssertionCounter,
         expected_challenge: &[u8],
-    ) -> Result<(T, u32)>
+    ) -> Result<(T, AssertionCounter)>
     where
         T: DeserializeOwned + ContainsChallenge,
     {
@@ -319,9 +320,9 @@ impl<T> SignedSubjectMessage<T> {
         &self,
         verifying_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
-        previous_counter: u32,
+        previous_counter: AssertionCounter,
         expected_challenge: &[u8],
-    ) -> Result<(T, u32)>
+    ) -> Result<(T, AssertionCounter)>
     where
         T: DeserializeOwned + ContainsChallenge + SubjectPayload,
     {
@@ -398,11 +399,16 @@ mod tests {
             .expect("should sign message with Apple attested key");
 
         let (output_payload, counter) = signed_message
-            .parse_and_verify_apple(key.verifying_key(), &key.app_identifier, 0, &input_payload.challenge)
+            .parse_and_verify_apple(
+                key.verifying_key(),
+                &key.app_identifier,
+                AssertionCounter::default(),
+                &input_payload.challenge,
+            )
             .expect("should parse and verify SignedMessage successfully using its Apple assertion");
 
         assert_eq!(output_payload.string, "Some payload.");
-        assert_eq!(counter, 1);
+        assert_eq!(*counter, 1);
     }
 
     #[tokio::test]
@@ -431,7 +437,12 @@ mod tests {
 
         // Verifying with a wrong challenge should return a `Error::AssertionVerification`.
         let error = signed_message
-            .parse_and_verify_apple(key.verifying_key(), &key.app_identifier, 0, b"wrong_challenge")
+            .parse_and_verify_apple(
+                key.verifying_key(),
+                &key.app_identifier,
+                AssertionCounter::default(),
+                b"wrong_challenge",
+            )
             .expect_err("verifying SignedMessage should return an error");
 
         assert_matches!(error, Error::AssertionVerification(_));
@@ -471,7 +482,7 @@ mod tests {
                 .parse_and_verify_apple(
                     attested_key.verifying_key(),
                     &attested_key.app_identifier,
-                    0,
+                    AssertionCounter::default(),
                     &payload.challenge,
                 )
                 .map(|(payload, _)| payload),
@@ -510,11 +521,16 @@ mod tests {
             .expect("should sign message successfully");
 
         let (output_payload, counter) = signed_message
-            .parse_and_verify_apple(key.verifying_key(), &key.app_identifier, 0, &input_payload.challenge)
+            .parse_and_verify_apple(
+                key.verifying_key(),
+                &key.app_identifier,
+                AssertionCounter::default(),
+                &input_payload.challenge,
+            )
             .expect("should parse and verify SignedSubjectMessage successfully using its Apple assertion");
 
         assert_eq!(output_payload.string, "Some payload.");
-        assert_eq!(counter, 1);
+        assert_eq!(*counter, 1);
     }
 
     #[rstest]
@@ -565,7 +581,7 @@ mod tests {
                 .parse_and_verify_apple(
                     attested_key.verifying_key(),
                     &attested_key.app_identifier,
-                    0,
+                    AssertionCounter::default(),
                     &payload.challenge,
                 )
                 .map(|(payload, _)| payload),

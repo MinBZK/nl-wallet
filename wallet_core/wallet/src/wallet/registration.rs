@@ -199,6 +199,7 @@ mod tests {
     use http::StatusCode;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+
     use wallet_common::account::messages::auth::RegistrationAttestation;
     use wallet_common::account::serialization::DerVerifyingKey;
     use wallet_common::account::signed::SequenceNumberComparison;

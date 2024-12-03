@@ -33,7 +33,7 @@ ciborium.workspace = true
 const-decoder.workspace = true
 coset.workspace = true
 der = { workspace = true, features = ["std", "derive"] }
-derive_more = { workspace = true, features = ["as_ref", "display"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from", "deref"] }
 nutype.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
 passkey-types.workspace = true

@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
+use sea_orm_migration::schema::*;
 
 use crate::m20230616_000001_create_wallet_user_table::WalletUser;
 
@@ -13,35 +14,18 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(WalletUserAppleAttestation::Table)
+                    .col(pk_uuid(WalletUserAppleAttestation::Id))
+                    .col(uuid(WalletUserAppleAttestation::WalletUserId))
                     .col(
-                        ColumnDef::new(WalletUserAppleAttestation::Id)
-                            .uuid()
-                            .not_null()
-                            .primary_key(),
+                        big_integer(WalletUserAppleAttestation::AssertionCounter).check(
+                            // Emulate a u32 with a CHECK constraint, since
+                            // PostgreSQL does not support unsigned integers.
+                            Expr::col(WalletUserAppleAttestation::AssertionCounter)
+                                .gte(0)
+                                .and(Expr::col(WalletUserAppleAttestation::AssertionCounter).lte(u32::MAX)),
+                        ),
                     )
-                    .col(
-                        ColumnDef::new(WalletUserAppleAttestation::WalletUserId)
-                            .uuid()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(WalletUserAppleAttestation::AssertionCounter)
-                            .big_integer()
-                            .not_null()
-                            .default(0)
-                            .check(
-                                // Emulate a u32 with a CHECK constraint, since
-                                // PostgreSQL does not support unsigned integers.
-                                Expr::col(WalletUserAppleAttestation::AssertionCounter)
-                                    .gte(0)
-                                    .and(Expr::col(WalletUserAppleAttestation::AssertionCounter).lte(u32::MAX)),
-                            ),
-                    )
-                    .col(
-                        ColumnDef::new(WalletUserAppleAttestation::AttestationData)
-                            .binary()
-                            .not_null(),
-                    )
+                    .col(binary(WalletUserAppleAttestation::AttestationData))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_id")

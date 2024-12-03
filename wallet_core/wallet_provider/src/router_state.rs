@@ -7,6 +7,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
+use webpki::types::CertificateDer;
 
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
@@ -66,6 +67,16 @@ impl RouterState {
             settings.ios.environment.into(),
         );
 
+        let apple_trust_anchors = settings
+            .ios
+            .root_certificates
+            .into_iter()
+            .map(|der_certificate| {
+                webpki::anchor_from_trusted_cert(&CertificateDer::from(der_certificate.as_ref()))
+                    .map(|anchor| anchor.to_owned())
+            })
+            .collect::<Result<_, _>>()?;
+
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
             "account_server".into(),
@@ -73,7 +84,7 @@ impl RouterState {
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
             apple_config,
-            settings.ios.root_certificates,
+            apple_trust_anchors,
         )?;
 
         let db = Db::new(

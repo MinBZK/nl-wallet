@@ -12,10 +12,10 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
-use webpki::types::CertificateDer;
 use webpki::types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
+use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::AttestationError;
 use apple_app_attest::VerifiedAttestation;
@@ -266,16 +266,8 @@ impl AccountServer {
         encryption_key_identifier: String,
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
-        apple_der_certificates: Vec<impl AsRef<[u8]>>,
+        apple_trust_anchors: Vec<TrustAnchor<'static>>,
     ) -> Result<Self, AccountServerInitError> {
-        let apple_trust_anchors = apple_der_certificates
-            .into_iter()
-            .map(|der_certificate| {
-                webpki::anchor_from_trusted_cert(&CertificateDer::from(der_certificate.as_ref()))
-                    .map(|anchor| anchor.to_owned())
-            })
-            .collect::<Result<_, _>>()?;
-
         Ok(AccountServer {
             instruction_challenge_timeout,
             name,
@@ -370,7 +362,7 @@ impl AccountServer {
                     sequence_number_comparison,
                     &hw_pubkey,
                     &self.apple_config.app_identifier,
-                    0,
+                    AssertionCounter::default(),
                     &pin_pubkey,
                 )
                 .map(|(_, assertion_counter)| {
@@ -834,7 +826,7 @@ impl AccountServer {
         wallet_user: &WalletUser,
         time_generator: &impl Generator<DateTime<Utc>>,
         verifying_key_decrypter: &D,
-    ) -> Result<(ChallengeResponsePayload<I>, Option<u32>), InstructionValidationError>
+    ) -> Result<(ChallengeResponsePayload<I>, Option<AssertionCounter>), InstructionValidationError>
     where
         I: InstructionAndResult,
         D: Decrypter<VerifyingKey, Error = HsmError>,
@@ -915,7 +907,7 @@ pub mod mock {
                 app_identifier: AppIdentifier::new_mock(),
                 environment: AttestationEnvironment::Development,
             },
-            vec![apple_mock_ca.as_ref()],
+            vec![apple_mock_ca.trust_anchor().to_owned()],
         )
         .unwrap();
 
@@ -1010,9 +1002,6 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use apple_app_attest::AssertionError;
-    use apple_app_attest::AssertionValidationError;
-    use apple_app_attest::MockAttestationCa;
     use assert_matches::assert_matches;
     use chrono::TimeZone;
     use hmac::digest::crypto_common::rand_core::OsRng;
@@ -1020,6 +1009,10 @@ mod tests {
     use rstest::rstest;
     use tokio::sync::OnceCell;
 
+    use apple_app_attest::AssertionCounter;
+    use apple_app_attest::AssertionError;
+    use apple_app_attest::AssertionValidationError;
+    use apple_app_attest::MockAttestationCa;
     use wallet_common::account::messages::instructions::ChangePinCommit;
     use wallet_common::account::messages::instructions::CheckPin;
     use wallet_common::apple::MockAppleAttestedKey;
@@ -1132,7 +1125,7 @@ mod tests {
         .expect("Could not process registration message at account server");
 
         let apple_assertion_counter = match attestation_type {
-            AttestationType::Apple => Some(1),
+            AttestationType::Apple => Some(AssertionCounter::from(1)),
             AttestationType::None => None,
         };
         let repo = WalletUserTestRepo {
@@ -1193,7 +1186,7 @@ mod tests {
             challenge: Some(challenge.clone()),
             apple_assertion_counter: match hw_privkey {
                 MockHardwareKey::Ecdsa(_) => None,
-                MockHardwareKey::Apple(attested_key) => Some(attested_key.next_counter() - 1),
+                MockHardwareKey::Apple(attested_key) => Some(AssertionCounter::from(*attested_key.next_counter() - 1)),
             },
             ..repo
         };
@@ -1400,7 +1393,7 @@ mod tests {
     async fn test_challenge_request_error_apple_assertion_counter() {
         let (_setup, account_server, hw_privkey, cert, mut repo) =
             setup_and_do_registration(AttestationType::Apple).await;
-        repo.apple_assertion_counter = Some(200);
+        repo.apple_assertion_counter = Some(AssertionCounter::from(200));
 
         let error =
             do_instruction_challenge::<CheckPin>(&account_server, &repo, &hw_privkey, cert, 43, get_global_hsm().await)
