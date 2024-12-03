@@ -91,7 +91,7 @@ async fn disclosure_direct() {
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
-    let jwe = disclosure_jwe(auth_request_jws, &[borrowing_trust_anchor.trust_anchor().clone()]).await;
+    let jwe = disclosure_jwe(auth_request_jws, &[(&borrowing_trust_anchor).into()]).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();

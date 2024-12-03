@@ -602,12 +602,8 @@ mod tests {
         assert_eq!(issuer_key_pair.certificate().as_ref(), header_cert.as_ref());
 
         let trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
-        cose.verify_against_trust_anchors(
-            CertificateUsage::Mdl,
-            &TimeGenerator,
-            &[trust_anchor.trust_anchor().clone()],
-        )
-        .unwrap();
+        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[(&trust_anchor).into()])
+            .unwrap();
     }
 
     #[tokio::test]

@@ -186,18 +186,15 @@ mod tests {
         ]);
 
         // Verifying this `DeviceRequest` should succeed and return the `ReaderRegistration`.
-        let trust_anchors = der_trust_anchors
-            .iter()
-            .map(|anchor| anchor.trust_anchor().clone())
-            .collect::<Vec<_>>();
+        let trust_anchors = der_trust_anchors.iter().map(Into::into).collect::<Vec<_>>();
 
         let verified_reader_registration = device_request
             .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert_eq!(
-            verified_reader_registration.map(|(c, r)| (c.to_vec(), r)),
-            Some((private_key1.certificate().to_vec(), reader_registration))
+            verified_reader_registration,
+            Some((private_key1.certificate().clone(), reader_registration))
         );
 
         // Verifying a `DeviceRequest` that has no reader auth at all should succeed and return `None`.

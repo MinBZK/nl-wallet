@@ -862,8 +862,7 @@ mod tests {
 
         let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
         let (auth_request, cert) =
-            VpAuthorizationRequest::try_new(&auth_request_jwt, &[borrowing_trust_anchor.trust_anchor().clone()])
-                .unwrap();
+            VpAuthorizationRequest::try_new(&auth_request_jwt, &[(&borrowing_trust_anchor).into()]).unwrap();
         auth_request.validate(&cert, None).unwrap();
     }
 

@@ -242,7 +242,7 @@ impl Storage for MockStorage {
 
         let exists = self.event_log.iter().any(|event| match event {
             WalletEvent::Issuance { .. } => false,
-            WalletEvent::Disclosure { reader_certificate, .. } => &**reader_certificate == certificate,
+            WalletEvent::Disclosure { reader_certificate, .. } => reader_certificate.as_ref() == certificate,
         });
         Ok(exists)
     }

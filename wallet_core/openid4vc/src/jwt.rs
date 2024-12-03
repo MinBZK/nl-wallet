@@ -223,8 +223,7 @@ mod tests {
         let audience: &[String] = &[];
         let trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
         let (deserialized, leaf_cert) =
-            verify_against_trust_anchors(&jwt, audience, &[trust_anchor.trust_anchor().clone()], &TimeGenerator)
-                .unwrap();
+            verify_against_trust_anchors(&jwt, audience, &[(&trust_anchor).into()], &TimeGenerator).unwrap();
 
         assert_eq!(deserialized, payload);
         assert_eq!(leaf_cert, *keypair.certificate());
