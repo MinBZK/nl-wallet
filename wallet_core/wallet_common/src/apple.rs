@@ -34,6 +34,7 @@ mod mock_apple_attested_key {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::Assertion;
+    use apple_app_attest::AssertionCounter;
     use apple_app_attest::Attestation;
     use apple_app_attest::MockAttestationCa;
 
@@ -75,8 +76,8 @@ mod mock_apple_attested_key {
             self.signing_key.verifying_key()
         }
 
-        pub fn next_counter(&self) -> u32 {
-            self.next_counter.load(Ordering::Relaxed)
+        pub fn next_counter(&self) -> AssertionCounter {
+            AssertionCounter::from(self.next_counter.load(Ordering::Relaxed))
         }
     }
 
@@ -87,7 +88,7 @@ mod mock_apple_attested_key {
             let assertion_bytes = Assertion::new_mock_bytes(
                 &self.signing_key,
                 &self.app_identifier,
-                self.next_counter.fetch_add(1, Ordering::Relaxed),
+                AssertionCounter::from(self.next_counter.fetch_add(1, Ordering::Relaxed)),
                 &payload,
             );
 

@@ -5696,6 +5696,7 @@ dependencies = [
 name = "wallet_provider_domain"
 version = "0.2.3-dev"
 dependencies = [
+ "apple_app_attest",
  "chrono",
  "dashmap",
  "derive_more",
@@ -5724,6 +5725,7 @@ dependencies = [
 name = "wallet_provider_persistence"
 version = "0.2.3-dev"
 dependencies = [
+ "apple_app_attest",
  "assert_matches",
  "chrono",
  "ctor",

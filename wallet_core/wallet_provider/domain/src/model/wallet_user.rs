@@ -5,6 +5,7 @@ use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use uuid::Uuid;
 
+use apple_app_attest::AssertionCounter;
 use wallet_common::account::serialization::DerVerifyingKey;
 
 use crate::model::encrypted::Encrypted;
@@ -31,7 +32,7 @@ pub struct WalletUser {
 
 #[derive(Debug)]
 pub enum WalletUserAttestation {
-    Apple { assertion_counter: u32 },
+    Apple { assertion_counter: AssertionCounter },
 }
 
 impl WalletUser {
@@ -65,7 +66,10 @@ pub struct WalletUserCreate {
 
 #[derive(Debug)]
 pub enum WalletUserAttestationCreate {
-    Apple { data: Vec<u8>, assertion_counter: u32 },
+    Apple {
+        data: Vec<u8>,
+        assertion_counter: AssertionCounter,
+    },
 }
 
 #[derive(Clone)]

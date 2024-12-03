@@ -21,6 +21,7 @@ use sea_orm::QuerySelect;
 use sea_orm::RelationTrait;
 use uuid::Uuid;
 
+use apple_app_attest::AssertionCounter;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider_domain::model::encrypted::Encrypted;
 use wallet_provider_domain::model::encrypted::InitializationVector;
@@ -72,7 +73,7 @@ where
         wallet_user_apple_attestation::ActiveModel {
             id: Set(Uuid::new_v4()),
             wallet_user_id: Set(user.id),
-            assertion_counter: Set(assertion_counter.into()),
+            assertion_counter: Set((*assertion_counter).into()),
             attestation_data: Set(data),
         }
         .insert(connection)
@@ -174,7 +175,7 @@ where
                     .apple_assertion_counter
                     .map(|counter| WalletUserAttestation::Apple {
                         // This is guaranteed to succeed because of the CHECK constraint on the column.
-                        assertion_counter: counter.try_into().unwrap(),
+                        assertion_counter: AssertionCounter::from(u32::try_from(counter).unwrap()),
                     });
 
                 let wallet_user = WalletUser {
@@ -456,7 +457,11 @@ where
     update_fields(db, wallet_id, vec![(wallet_user::Column::HasWte, Expr::value(true))]).await
 }
 
-pub async fn update_apple_assertion_counter<S, T>(db: &T, wallet_id: &str, assertion_counter: u32) -> Result<()>
+pub async fn update_apple_assertion_counter<S, T>(
+    db: &T,
+    wallet_id: &str,
+    assertion_counter: AssertionCounter,
+) -> Result<()>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -464,7 +469,7 @@ where
     wallet_user_apple_attestation::Entity::update_many()
         .col_expr(
             wallet_user_apple_attestation::Column::AssertionCounter,
-            Expr::value(i64::from(assertion_counter)),
+            Expr::value(i64::from(*assertion_counter)),
         )
         .filter(
             wallet_user_apple_attestation::Column::WalletUserId.in_subquery(

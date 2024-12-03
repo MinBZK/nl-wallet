@@ -5,6 +5,7 @@ use std::mem;
 use p256::ecdsa::signature::Verifier;
 
 use apple_app_attest::AppIdentifier;
+use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
@@ -95,7 +96,7 @@ where
                 &client_data1,
                 &public_key,
                 &app_identifier,
-                0,
+                AssertionCounter::default(),
                 &client_data1.challenge,
             )
             .expect("could not verify first assertion");
@@ -124,7 +125,7 @@ where
                 &client_data2,
                 &public_key,
                 &app_identifier,
-                1,
+                AssertionCounter::from(1),
                 &client_data2.challenge,
             )
             .expect("could not verify second assertion");
