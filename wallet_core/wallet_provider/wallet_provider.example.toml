@@ -47,3 +47,5 @@ user_pin = "12345678"
 [ios]
 team_identifier = "123ABC321A"
 bundle_identifier = "com.example.wallet-app"
+# The "environment" can be either "development" or "production", the latter being the default.
+# environment = production
