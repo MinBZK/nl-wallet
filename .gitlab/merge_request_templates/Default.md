@@ -26,4 +26,8 @@ RATIONALE AND/OR IMPORTANT IMPLEMENTATION DECISIONS FOR THE REVIEWER
     - Sensitive internal details that are not yet ready for publication
     - Other unexpected, strange or inappropriate things, that we don't want to make public
 - [ ] This MR is implemented according to our Definition Of Done
-    - TODO: imagine DoD here
+    - The source code is in compliance with the coding standards
+    - The source code does not contain ‘blocker’ and ‘critical’ violations (Sonar)
+    - The source code does not contain ‘major’ violations (Sonar) unless accepted by quality manager and is planned for solving
+    - Security findings have been resolved, or at least provided with impact and/or resolution time
+    - Incurred technical debt has been documented
