@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
+use sea_orm_migration::schema::*;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -11,41 +12,18 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(WalletUser::Table)
-                    .col(ColumnDef::new(WalletUser::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(WalletUser::WalletId).string().not_null().unique_key())
-                    .col(ColumnDef::new(WalletUser::HwPubkeyDer).binary().not_null())
-                    .col(ColumnDef::new(WalletUser::EncryptedPinPubkeySec1).binary().not_null())
-                    .col(ColumnDef::new(WalletUser::PinPubkeyIv).binary().not_null())
-                    .col(
-                        ColumnDef::new(WalletUser::EncryptedPreviousPinPubkeySec1)
-                            .binary()
-                            .null(),
-                    )
-                    .col(ColumnDef::new(WalletUser::PreviousPinPubkeyIv).binary().null())
-                    .col(
-                        ColumnDef::new(WalletUser::InstructionSequenceNumber)
-                            .unsigned()
-                            .not_null()
-                            .default(0),
-                    )
-                    .col(
-                        ColumnDef::new(WalletUser::PinEntries)
-                            .small_unsigned()
-                            .not_null()
-                            .default(0),
-                    )
-                    .col(
-                        ColumnDef::new(WalletUser::LastUnsuccessfulPin)
-                            .timestamp_with_time_zone()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(WalletUser::IsBlocked)
-                            .boolean()
-                            .not_null()
-                            .default(false),
-                    )
-                    .col(ColumnDef::new(WalletUser::HasWte).boolean().not_null().default(false))
+                    .col(pk_uuid(WalletUser::Id))
+                    .col(string_uniq(WalletUser::WalletId))
+                    .col(binary(WalletUser::HwPubkeyDer))
+                    .col(binary(WalletUser::EncryptedPinPubkeySec1))
+                    .col(binary(WalletUser::PinPubkeyIv))
+                    .col(binary_null(WalletUser::EncryptedPreviousPinPubkeySec1))
+                    .col(binary_null(WalletUser::PreviousPinPubkeyIv))
+                    .col(unsigned(WalletUser::InstructionSequenceNumber).default(0))
+                    .col(small_unsigned(WalletUser::PinEntries).default(0))
+                    .col(timestamp_with_time_zone_null(WalletUser::LastUnsuccessfulPin))
+                    .col(boolean(WalletUser::IsBlocked).default(false))
+                    .col(boolean(WalletUser::HasWte).default(false))
                     .to_owned(),
             )
             .await?;

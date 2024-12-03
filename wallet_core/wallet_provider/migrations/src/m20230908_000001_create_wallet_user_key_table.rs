@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
+use sea_orm_migration::schema::*;
 
 use crate::m20230616_000001_create_wallet_user_table::WalletUser;
 
@@ -13,11 +14,11 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(WalletUserKey::Table)
-                    .col(ColumnDef::new(WalletUserKey::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(WalletUserKey::WalletUserId).uuid().not_null())
-                    .col(ColumnDef::new(WalletUserKey::Identifier).string().not_null())
-                    .col(ColumnDef::new(WalletUserKey::EncryptedPrivateKey).binary().not_null())
-                    .col(ColumnDef::new(WalletUserKey::PublicKey).binary().not_null())
+                    .col(pk_uuid(WalletUserKey::Id))
+                    .col(uuid(WalletUserKey::WalletUserId))
+                    .col(string(WalletUserKey::Identifier))
+                    .col(binary(WalletUserKey::EncryptedPrivateKey))
+                    .col(binary(WalletUserKey::PublicKey))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_id")
