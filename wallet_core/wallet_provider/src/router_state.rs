@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use apple_app_attest::APPLE_ROOT_CA;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -9,6 +8,7 @@ use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
 
+use apple_app_attest::APPLE_ROOT_CA;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;

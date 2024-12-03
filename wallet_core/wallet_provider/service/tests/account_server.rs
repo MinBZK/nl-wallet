@@ -1,9 +1,9 @@
-use apple_app_attest::MockAttestationCa;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use rstest::rstest;
 use uuid::Uuid;
 
+use apple_app_attest::MockAttestationCa;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;

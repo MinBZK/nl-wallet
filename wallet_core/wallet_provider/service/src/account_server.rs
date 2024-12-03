@@ -998,9 +998,6 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use apple_app_attest::AssertionError;
-    use apple_app_attest::AssertionValidationError;
-    use apple_app_attest::MockAttestationCa;
     use assert_matches::assert_matches;
     use chrono::TimeZone;
     use hmac::digest::crypto_common::rand_core::OsRng;
@@ -1008,6 +1005,9 @@ mod tests {
     use rstest::rstest;
     use tokio::sync::OnceCell;
 
+    use apple_app_attest::AssertionError;
+    use apple_app_attest::AssertionValidationError;
+    use apple_app_attest::MockAttestationCa;
     use wallet_common::account::messages::instructions::ChangePinCommit;
     use wallet_common::account::messages::instructions::CheckPin;
     use wallet_common::apple::MockAppleAttestedKey;
