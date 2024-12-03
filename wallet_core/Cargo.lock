@@ -5760,6 +5760,7 @@ dependencies = [
  "chrono",
  "cryptoki",
  "der",
+ "derive_more",
  "futures",
  "hmac",
  "indexmap 2.2.6",
