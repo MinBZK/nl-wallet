@@ -8,7 +8,7 @@ use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
 
-use apple_app_attest::APPLE_ROOT_CA;
+use apple_app_attest::APPLE_TRUST_ANCHORS;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;
@@ -67,7 +67,7 @@ impl RouterState {
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
             settings.ios.into(),
-            vec![&APPLE_ROOT_CA],
+            APPLE_TRUST_ANCHORS.clone(),
         )?;
 
         let db = Db::new(
