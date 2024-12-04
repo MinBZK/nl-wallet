@@ -192,8 +192,8 @@ mod mock {
     type SessionState = MdocDisclosureSessionState<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
     type MockFields = (ReaderRegistration, SessionState, Option<Url>);
 
-    pub static NEXT_START_ERROR: LazyLock<Mutex<Option<MdocDisclosureError>>> = LazyLock::new(|| Mutex::new(None));
-    pub static NEXT_MOCK_FIELDS: LazyLock<Mutex<Option<MockFields>>> = LazyLock::new(|| Mutex::new(None));
+    pub static NEXT_START_ERROR: Mutex<Option<MdocDisclosureError>> = Mutex::new(None);
+    pub static NEXT_MOCK_FIELDS: Mutex<Option<MockFields>> = Mutex::new(None);
 
     // For convenience, the default `SessionState` is a proposal.
     impl Default for SessionState {
