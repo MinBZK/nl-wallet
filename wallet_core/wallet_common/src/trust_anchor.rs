@@ -10,9 +10,6 @@ use serde::Serialize;
 use webpki::anchor_from_trusted_cert;
 use webpki::types::TrustAnchor;
 use webpki::Error;
-use x509_parser::error::X509Error;
-use x509_parser::prelude::FromDer;
-use x509_parser::x509::RelativeDistinguishedName;
 use yoke::Yoke;
 use yoke::Yokeable;
 
@@ -39,17 +36,6 @@ impl BorrowingTrustAnchor {
 
     pub fn trust_anchor(&self) -> &TrustAnchor {
         &self.0.get().trust_anchor
-    }
-
-    pub fn trust_anchor_names(&self) -> Result<Vec<String>, x509_parser::nom::Err<X509Error>> {
-        let (_, names) = RelativeDistinguishedName::from_der(self.trust_anchor().subject.as_ref())?;
-
-        let names = names
-            .iter()
-            .filter_map(|name| name.as_str().ok().map(str::to_string))
-            .collect();
-
-        Ok(names)
     }
 }
 
