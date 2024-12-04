@@ -116,7 +116,6 @@ mod generate {
     use rcgen::SanType;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use time::OffsetDateTime;
-    use x509_parser::nom::AsBytes;
 
     use crate::server_keys::KeyPair;
     use crate::utils::x509::BorrowingCertificate;
@@ -140,10 +139,8 @@ mod generate {
             let certificate = ca_params.self_signed(&key_pair)?;
             let private_key = Self::rcgen_cert_privkey(&key_pair)?;
 
-            let key_pair_from_signing_key = Self::new_from_signing_key(
-                private_key,
-                BorrowingCertificate::from_der(certificate.der().as_bytes())?,
-            )?;
+            let key_pair_from_signing_key =
+                Self::new_from_signing_key(private_key, BorrowingCertificate::from_der(certificate.der().as_ref())?)?;
             Ok(key_pair_from_signing_key)
         }
 
@@ -178,10 +175,8 @@ mod generate {
             let certificate = cert_params.signed_by(&cert_key_pair, &ca, &ca_keypair)?;
             let private_key = Self::rcgen_cert_privkey(&cert_key_pair)?;
 
-            let key_pair_from_signing_key = Self::new_from_signing_key(
-                private_key,
-                BorrowingCertificate::from_der(certificate.der().as_bytes())?,
-            )?;
+            let key_pair_from_signing_key =
+                Self::new_from_signing_key(private_key, BorrowingCertificate::from_der(certificate.der().as_ref())?)?;
             Ok(key_pair_from_signing_key)
         }
 
