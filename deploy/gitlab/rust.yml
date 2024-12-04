@@ -13,7 +13,7 @@
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -26,7 +26,7 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
   cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
@@ -35,7 +35,7 @@ test-rust:
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:5da1ca66c23dca82ce706ecd0250118e86e688ce4405830c6ab7e775fd2dfa0e"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:f9b5a6e8517e9f666f2a238484528a99efe2dd1e676a9e94fc668b702951a453"
       alias: postgres
       variables:
         POSTGRES_USER: "postgres"
@@ -67,7 +67,7 @@ test-rust:
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a18d15cc70eba96f4178776721d251e0edec9cba4d2730b4a64748a5e40435ed"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:e7d15ca08ac783d73ea0d375eafa593633cde7fd411d2713573b5eb8d51920a1"
   script:
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
@@ -75,14 +75,14 @@ test-rust-compilation-ios:
   extends: .test-rust-compilation
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.3
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
 
 .build-binary:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
   cache: !reference [.rust-cache, cache]
   needs:
     - job: test-rust
