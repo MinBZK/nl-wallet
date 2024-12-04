@@ -65,10 +65,6 @@ spec:
                   key: password
             - name: PID_ISSUER_STORAGE__URL
               value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-pi-rw:5432/pid_issuer"
-            - name: PID_ISSUER_SENTRY__DSN
-              value: ${SENTRY_DSN}
-            - name: PID_ISSUER_SENTRY__ENVIRONMENT
-              value: ${SENTRY_ENVIRONMENT}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

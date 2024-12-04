@@ -246,12 +246,6 @@ then
 
     cd "${MOCK_RELYING_PARTY_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export MOCK_RELYING_PARTY_SENTRY__DSN="${SENTRY_DSN}"
-        export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
 
     if [ "${STOP}" == "0" ]
     then
@@ -278,12 +272,6 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export PID_ISSUER_SENTRY__DSN="${SENTRY_DSN}"
-        export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
 
     if [ "${STOP}" == "0" ]
     then
@@ -316,12 +304,6 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export VERIFICATION_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-        export VERIFICATION_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
 
     if [ "${STOP}" == "0" ]
     then
@@ -353,12 +335,6 @@ then
 
     cd "${WP_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export WALLET_PROVIDER_SENTRY__DSN="${SENTRY_DSN}"
-        export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
 
     if [ "${STOP}" == "0" ]
     then
@@ -390,12 +366,6 @@ then
 
     cd "${CS_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export CONFIG_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-        export CONFIG_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
 
     if [ "${STOP}" == "0" ]
     then
@@ -443,12 +413,6 @@ then
 
     cd "${GBA_HC_CONVERTER_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export GBA_HC_CONVERTER_SENTRY__DSN="${SENTRY_DSN}"
-        export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
 
     if [ "${STOP}" == "0" ]
     then

@@ -57,10 +57,6 @@ spec:
               value: "${UNIVERSAL_LINK_BASE}"
             - name: VERIFICATION_SERVER_STRUCTURED_LOGGING
               value: "true"
-            - name: VERIFICATION_SERVER_SENTRY__DSN
-              value: ${SENTRY_DSN}
-            - name: VERIFICATION_SERVER_SENTRY__ENVIRONMENT
-              value: ${SENTRY_ENVIRONMENT}
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
