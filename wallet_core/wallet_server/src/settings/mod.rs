@@ -246,6 +246,9 @@ impl Settings {
         #[cfg(feature = "disclosure")]
         let environment_parser = environment_parser.with_list_parse_key("reader_trust_anchors");
 
+        #[cfg(feature = "issuance")]
+        let environment_parser = environment_parser.with_list_parse_key("issuer.digid.http_config.trust_anchors");
+
         let environment_parser = environment_parser.try_parsing(true);
 
         let config = config_builder
