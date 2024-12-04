@@ -241,6 +241,8 @@ impl PartialEq for BorrowingCertificate {
     }
 }
 
+impl Eq for BorrowingCertificate {}
+
 // Use base64 when we (de)serialize to JSON
 impl Serialize for BorrowingCertificate {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {

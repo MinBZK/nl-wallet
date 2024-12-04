@@ -16,7 +16,7 @@ use x509_parser::x509::RelativeDistinguishedName;
 use yoke::Yoke;
 use yoke::Yokeable;
 
-#[derive(Yokeable, Debug, Clone, Eq, PartialEq)]
+#[derive(Yokeable, Debug, Clone)]
 struct ParsedTrustAnchor<'a> {
     trust_anchor: TrustAnchor<'a>,
 }
@@ -67,7 +67,7 @@ impl AsRef<[u8]> for BorrowingTrustAnchor {
 
 impl PartialEq for BorrowingTrustAnchor {
     fn eq(&self, other: &Self) -> bool {
-        self.0.get() == other.0.get()
+        self.as_ref() == other.as_ref()
     }
 }
 
