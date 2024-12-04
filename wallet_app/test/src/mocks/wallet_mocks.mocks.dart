@@ -81,6 +81,7 @@ import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dar
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart' as _i72;
 import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart' as _i70;
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i39;
+import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart' as _i88;
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart' as _i57;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i41;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i42;
@@ -2214,6 +2215,28 @@ class MockTypedWalletCore extends _i1.Mock implements _i30.TypedWalletCore {
       ) as _i9.Future<void>);
 
   @override
+  _i9.Future<String> getVersionString() => (super.noSuchMethod(
+        Invocation.method(
+          #getVersionString,
+          [],
+        ),
+        returnValue: _i9.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #getVersionString,
+            [],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #getVersionString,
+            [],
+          ),
+        )),
+      ) as _i9.Future<String>);
+
+  @override
   _i9.Future<T> call<T>(_i9.Future<T> Function(_i7.WalletCore)? runnable) => (super.noSuchMethod(
         Invocation.method(
           #call,
@@ -3265,6 +3288,33 @@ class MockIsBiometricLoginEnabledUseCase extends _i1.Mock implements _i87.IsBiom
       ) as _i9.Future<bool>);
 }
 
+/// A class which mocks [GetVersionStringUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetVersionStringUseCase extends _i1.Mock implements _i88.GetVersionStringUseCase {
+  @override
+  _i9.Future<String> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i9.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #invoke,
+            [],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #invoke,
+            [],
+          ),
+        )),
+      ) as _i9.Future<String>);
+}
+
 /// A class which mocks [WalletCore].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -3708,6 +3758,19 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
         returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_15(
           this,
           Invocation.getter(#kResetWalletConstMeta),
+        ),
+      ) as _i7.FlutterRustBridgeTaskConstMeta);
+
+  @override
+  _i7.FlutterRustBridgeTaskConstMeta get kGetVersionStringConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kGetVersionStringConstMeta),
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_15(
+          this,
+          Invocation.getter(#kGetVersionStringConstMeta),
+        ),
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_15(
+          this,
+          Invocation.getter(#kGetVersionStringConstMeta),
         ),
       ) as _i7.FlutterRustBridgeTaskConstMeta);
 
@@ -4337,4 +4400,29 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
+
+  @override
+  _i9.Future<String> getVersionString({dynamic hint}) => (super.noSuchMethod(
+        Invocation.method(
+          #getVersionString,
+          [],
+          {#hint: hint},
+        ),
+        returnValue: _i9.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #getVersionString,
+            [],
+            {#hint: hint},
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<String>.value(_i14.dummyValue<String>(
+          this,
+          Invocation.method(
+            #getVersionString,
+            [],
+            {#hint: hint},
+          ),
+        )),
+      ) as _i9.Future<String>);
 }

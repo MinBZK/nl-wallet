@@ -171,6 +171,11 @@ pub extern "C" fn wire_reset_wallet(port_: i64) {
     wire_reset_wallet_impl(port_)
 }
 
+#[no_mangle]
+pub extern "C" fn wire_get_version_string(port_: i64) {
+    wire_get_version_string_impl(port_)
+}
+
 // Section: allocate functions
 
 #[no_mangle]

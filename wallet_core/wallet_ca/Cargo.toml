@@ -19,8 +19,8 @@ itertools.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem"] }
 pem.workspace = true
 serde_json.workspace = true
-thiserror.workspace = true
 x509-parser.workspace = true
+wallet_common = { path = "../wallet_common" }
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
 

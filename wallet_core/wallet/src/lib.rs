@@ -53,6 +53,7 @@ pub mod openid4vc {
 }
 
 pub mod wallet_common {
+    pub use wallet_common::built_info::version_string;
     pub use wallet_common::config::wallet_config::AccountServerConfiguration;
     pub use wallet_common::config::wallet_config::DisclosureConfiguration;
     pub use wallet_common::config::wallet_config::LockTimeoutConfiguration;

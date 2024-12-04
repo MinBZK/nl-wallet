@@ -6,12 +6,12 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/config_version_text.dart';
 import '../common/widget/mock_indicator_text.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text_with_link.dart';
-import '../common/widget/version_text.dart';
+import '../common/widget/version/config_version_text.dart';
+import '../common/widget/version/string_version_text.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import '../menu/widget/menu_row.dart';
 
@@ -64,8 +64,10 @@ class AboutScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              VersionText(),
+              StringVersionText(),
+              SizedBox(height: 8),
               ConfigVersionText(),
+              SizedBox(height: 8),
               MockIndicatorText(),
             ],
           ),
