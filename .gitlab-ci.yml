@@ -175,7 +175,7 @@ build-wallet-web:
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:bbb57ef5a98486308c6875efb0d765abc6674a3053c27e2bbc6b0bf516be27c7"
   variables:
-    VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_ACC
+    VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
   script:
     - set -euxo pipefail
     - (cd wallet_web; npm ci && npm run type-check && npm run coverage -- --run)
