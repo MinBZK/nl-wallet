@@ -48,7 +48,7 @@ test-rust:
     - cd wallet_core
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
-    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
+    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
     - RUST_BACKTRACE=1 cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
@@ -149,10 +149,10 @@ build-wallet-server-binary:
 build-wallet-server-migrations-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_server_migration" --bin wallet_server_migration
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_server_migrations" --bin wallet_server_migrations
   artifacts:
     paths:
-      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_server_migration
+      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_server_migrations
 
 build-demo-relying-party-binary:
   extends: .build-binary

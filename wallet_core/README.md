@@ -15,7 +15,7 @@ This contains the "shared core" part of the app.
 
 Because of the different contexts in which each of these crates operate, error handling has been implemented according to the needs of these context.
 
-As the `wallet_common` crate provides a library of functionality to both `wallet` and `wallet_provder`, all errors have been consolidated into a single Error type, i.e. `wallet_common::errors::Error`.
+As the `wallet_common` crate provides a library of functionality to both `wallet` and `wallet_provider`, all errors have been consolidated into a single Error type, i.e. `wallet_common::errors::Error`.
 For convenience, a `wallet_common::errors:Result` type is also provided.
 
 The `platform_support` crate also acts as a library to the `wallet` crate, however is functionality is separated into distinct modules.

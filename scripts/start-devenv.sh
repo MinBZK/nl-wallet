@@ -282,7 +282,7 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running pid_issuer database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migration -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
@@ -314,7 +314,7 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running verification_server database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --bin wallet_server_migration -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"

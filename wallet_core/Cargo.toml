@@ -14,7 +14,7 @@ members = [
     "tests_integration",
     "wallet",
     "wallet/entity",
-    "wallet/migration",
+    "wallet/migrations",
     "wallet_ca",
     "wallet_common",
     "wallet_provider",
@@ -24,7 +24,7 @@ members = [
     "wallet_provider/persistence",
     "wallet_provider/service",
     "wallet_server",
-    "wallet_server/migration",
+    "wallet_server/migrations",
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
@@ -48,6 +48,7 @@ unused_async = "warn"
 unused_self = "warn"
 
 [workspace.dependencies]
+built = "0.7"
 accept-language = "3.1.0"
 aes-gcm = "0.10.3"
 android_logger = { version = "0.14.1", default-features = false }

@@ -25,7 +25,6 @@ class CoreWalletRepository implements WalletRepository {
   Future<void> validatePin(String pin) async {
     final result = await _walletCore.isValidPin(pin);
     final error = _pinValidationErrorMapper.map(result);
-
     if (error != null) {
       throw error;
     }

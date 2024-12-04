@@ -3,6 +3,7 @@ name = "wallet_common"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+build = "build.rs"
 
 [lints]
 workspace = true
@@ -31,6 +32,9 @@ integration_test = []
 # Various test related functionality
 insecure_http_client = []
 
+[build-dependencies]
+built = { workspace = true, features = ["chrono", "git2"] }
+
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 base64.workspace = true
@@ -41,7 +45,6 @@ derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"]
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
-indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true

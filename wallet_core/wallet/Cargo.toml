@@ -58,7 +58,7 @@ mockall = { workspace = true, optional = true }
 
 entity.path = "entity"
 error_category = { path = "../error_category", features = ["sentry"] }
-migration.path = "migration"
+migration.path = "migrations"
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
