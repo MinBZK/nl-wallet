@@ -71,10 +71,6 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-hsm-config
                   key: user_pin
-            - name: WALLET_PROVIDER_SENTRY__DSN
-              value: ${SENTRY_DSN}
-            - name: WALLET_PROVIDER_SENTRY__ENVIRONMENT
-              value: ${SENTRY_ENVIRONMENT}
             - name: CS_PKCS11_R3_CFG
               value: "/cs_pkcs11_R3.cfg"
       volumes:
