@@ -504,18 +504,18 @@ build-sbom:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:8216c77dcb0e2867776211d4c2980025d166d12fd8687acb232ef3cfbd95ad2c"
   script:
     ## Rust
-    - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
     ## NPM
     - cd wallet_web
-    - cyclonedx-npm --output-format json --output-file bom.json --package-lock-only
+    - cyclonedx-npm --spec-version 1.5 --output-format json --output-file bom.json --package-lock-only
     # only keep bundled dependencies
     - jq '.components |= map(select(.properties|any(.name == "cdx:npm:package:bundled")))' bom.json > bom-bundled.json
     - mv bom-bundled.json bom.json
     - cd ..
     ## Flutter
-    - cd wallet_app; cdxgen --type dart --output bom.json; cd -
+    - cd wallet_app; cdxgen --spec-version 1.5 --type dart --output bom.json; cd -
     ## iOS
     # does not support json, so converting to it (we need it to be able to merge)
     - bundle install
@@ -524,16 +524,16 @@ build-sbom:
     - flutter precache --ios
     - cd ios
     - bundle exec pod install --allow-root
-    - cyclonedx-cocoapods
-    - cyclonedx convert --input-file bom.xml --output-file bom.json
+    - cyclonedx-cocoapods # only supports spec version 1.4
+    - cyclonedx convert --output-version v1_5 --input-file bom.xml --output-file bom.json
     - cd ../..
     ## Android
-    - cd wallet_app/android/app; cdxgen --type gradle --output bom.json; cd -
-    - cd wallet_core/platform_support/android/platform_support; cdxgen --type gradle --output bom.json; cd -
+    - cd wallet_app/android/app; cdxgen --spec-version 1.5 --type gradle --output bom.json; cd -
+    - cd wallet_core/platform_support/android/platform_support; cdxgen --spec-version 1.5 --type gradle --output bom.json; cd -
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
-    - cyclonedx merge --input-files `find . -name bom.json` --output-file bom.json
+    - cyclonedx merge --output-version v1_5 --input-files `find . -name bom.json` --output-file bom.json
     # converting it to xml does work
-    - cyclonedx convert --input-file bom.json --output-file bom.xml
+    - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
