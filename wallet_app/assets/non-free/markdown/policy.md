@@ -1,29 +1,29 @@
-## The Privacy Statement is currently only available in Dutch.
+## Privacy Statement is only available in Dutch.
 
 <!-- # Privacyverklaring Publieke Wallet (eerste beproevingsperiode) -->
 <!-- title is set in wallet_app/lib/src/feature/privacy_policy/privacy_policy_screen.dart -->
 
-###### 16 september 2024
+###### 4 december 2024
 
 ## 1. Wie is verantwoordelijk voor de verwerking van uw persoonsgegevens?
 
-De Minister van Binnenlandse Zaken en Koninkrijksrelaties (BZK) stelt de Publieke Wallet
-beschikbaar. Deze app werkt op Apple en Android-apparaten. De Minister van BZK is verantwoordelijk
-voor het verwerken van uw persoonsgegevens bij het in gebruik nemen van de Publieke Wallet, het
-plaatsen van uw gegevens in de Publieke Wallet en het borgen van de betrouwbaarheid van de
-gegevensuitwisseling bij het gebruik van de Publieke Wallet.
+De Minister van Binnenlandse Zaken en Koninkrijksrelaties (BZK) stelt voor deze beproeving tijdelijk
+de Publieke Wallet beschikbaar. Deze app werkt op Apple- en Android-apparaten. De Minister van BZK
+is verantwoordelijk voor het verwerken van uw persoonsgegevens bij het in gebruik nemen van de
+Publieke Wallet, het plaatsen van uw gegevens in de Publieke Wallet en het borgen van de
+betrouwbaarheid van de gegevensuitwisseling bij het gebruik van de Publieke Wallet.
 
 Tijdens de eerste beproeving wordt samengewerkt met dienstverleners. Zij bieden diensten aan waarbij
 u de Publieke Wallet kunt gebruiken. Deze dienstverleners zijn zelf verantwoordelijk voor de
 verwerking van uw persoonsgegevens die zij van u ontvangen.
 
 U bent zelf verantwoordelijk voor het delen van uw gegevens met behulp van de Publieke Wallet. U
-beslist zelf welke gegevens u deelt en met wie u deze gegevens deelt.
+beslist zelf of u gegevens deelt met de deelnemende dienstverlener en zo ja, welke gegevens u deelt.
 
 ## 2. Waarom worden uw persoonsgegevens verwerkt?
 
-Voordat u kunt deelnemen aan de beproeving wordt u gevraagd een toestemmingsverklaring op papier te
-ondertekenen. Vervolgens wordt u gevraagd zich te legitimeren. U moet daarom een geldig
+Voordat u kunt deelnemen aan de beproeving wordt u gevraagd om een toestemmingsverklaring op papier
+te ondertekenen. Vervolgens wordt u gevraagd zich te legitimeren. U moet daarom een geldig
 legitimatiebewijs meenemen. Een legitimatiebewijs op een mobiel apparaat of een foto van een
 legitimatiebewijs is niet toegestaan.
 
@@ -37,23 +37,27 @@ beproeving.
 
 Vervolgens wordt u gevraagd om de Publieke Wallet-app op uw telefoon te installeren. Hierin vindt u
 deze privacyverklaring ook terug. Voordat u de Publieke Wallet-app kunt gebruiken, moet u een
-pincode instellen. Daarna logt u in op DigiD Hoog zodat met zekerheid vastgesteld kan worden dat u
+pincode instellen. Daarna logt u in met DigiD zodat met zekerheid vastgesteld kan worden dat u
 degene bent die de Publieke Wallet-app gebruikt. Na het inloggen worden uw uit de BRP opgehaalde en
 tijdelijk opgeslagen persoonsgegevens in uw Publieke Wallet geplaatst. Daarna bent u klaar om de
 Publieke Wallet te gebruiken bij een van de deelnemende dienstverleners.
 
 Onder verantwoordelijkheid van de Minister van BZK worden uw persoonsgegevens verwerkt om u in staat
-te stellen uw persoonsgegevens, als en wanneer u dat wilt, zelf te verstrekken aan dienstverleners
-die deelnemen aan de beproeving. Onder verantwoordelijkheid van de Minister van BZK worden uw
+te stellen uw persoonsgegevens, als u dat wilt, zelf te verstrekken aan dienstverleners die
+deelnemen aan de beproeving. Onder verantwoordelijkheid van de Minister van BZK worden uw
 persoonsgegevens verwerkt voor de volgende doeleinden:
 
-- het ophalen van persoonsgegevens uit de Basisregistratie Personen (BRP), zodat deze in uw Publieke
-Wallet kunnen worden geplaatst;
-- de inrichting, beschikbaarstelling, instandhouding en (adequate) werking van de Publieke Wallet;
-- de deelnemende dienstverleners in staat stellen u te identificeren en uw gegevens te valideren;
-- de (informatie)beveiliging van de Publieke Wallet en de analyse van eventuele (beveiligings-)
-incidenten, en
-- met behulp van een evaluatiegesprek leren van uw ervaringen met de Publieke Wallet.
+- het vaststellen van uw identiteit; 
+- het ophalen van persoonsgegevens uit de Basisregistratie
+  Personen (BRP), zodat deze in uw Publieke Wallet kunnen worden geplaatst; 
+- de inrichting, beschikbaarstelling, instandhouding en (adequate) werking van de Publieke Wallet; 
+- de deelnemende dienstverleners in staat stellen de in uw Wallet geplaatste gegevens te valideren, 
+  en 
+- de (informatie)beveiliging van uw gegevens, de Publieke Wallet en ondersteunende voorzieningen en 
+  de analyse van eventuele (beveiligings-) incidente
+
+Uw gegevens worden niet verwerkt om op geautomatiseerde wijze besluiten te nemen waaraan voor u
+rechtsgevolgen zijn verbonden of die u anderszins in aanmerkelijke mate treffen
 
 ## 3. Grondslag voor het verwerken van persoonsgegevens
 
@@ -61,29 +65,24 @@ Ten aanzien van de verwerking van uw persoonsgegevens geldt uw toestemming als g
 toestemming door voorafgaand aan de beproeving een toestemmingsverklaring te ondertekenen. Voor de
 verwerking van uw burgerservicenummer geldt een andere grondslag. De Minister van BZK heeft als
 overheidsorgaan de bevoegdheid om uw burgerservicenummer te verwerken bij de uitvoering van een
-publieke taak. In het kader van de beproeving is de publieke taak van de Minister van BZK gelegen in
-het volgende:
-
-(a) de wettelijke taak om Nederlandse burgers te voorzien van een online identiteit;
-
-(b) het voldoen aan de toekomstige verplichting om tenminste één wallet beschikbaar te stellen aan
-burgers in Nederland, en
-
-(c) het op een goede en zorgvuldige manier ontwikkelen van een veilig en goed functionerende Publieke
-Wallet.
+publieke taak.
 
 ## 4. Welke persoonsgegevens worden verwerkt?
 
-<!-- flutter_markdown does not support html, as such we can't embed
-lists within markdown tables, resulting in the setup below. -->
+<!-- flutter_markdown does not support html, as such we can't embed lists within markdown tables,
+resulting in the setup below. -->
 
 | Fase 1: Voorbereiding |
 |---|
 
 ### **Persoonsgegevens**
 
-- Contactgegevens (mailadres en telefoonnummer)
-- Voor- en achternaam
+- Contactgegevens (uw e-mailadres en telefoonnummer)
+- Voor- en achternaam 
+- Gegevens om te bepalen of u aan de beproeving kunt meedoen (of u een Apple- of Android-telefoon
+  gebruikt, of u een identiteitskaart hebt en of deze recent genoeg is, of u inwoner bent van een 
+  deelnemende gemeente, of u de DigiD-app gebruikt en of u deze weleens met uw identiteitskaart of 
+  rijbewijs hebt gebruikt)
 
 ### **Grondslagen**
 
@@ -91,33 +90,36 @@ lists within markdown tables, resulting in the setup below. -->
 
 ### **Doeleinden**
 
-- Contact kunnen opnemen met u om u te informeren over de beproeving.
+- Contact kunnen opnemen met u om u te informeren over de beproeving 
+- Uw e-mailadres registreren we in de Apple App Store of Google Play Store, zodat u de Wallet-app 
+  kunt downloaden en installeren.
+- Bepalen of u kunt deelnemen aan de beproeving.
 
 | Fase 2: Ingebruikname |
 |---|
 
 ### **Persoonsgegevens**
 
-- Afgeleide van uw pincode
+- Afgeleide van uw pincode 
 - Voor- en achternaam
 - Geboortedatum
 - Adres
 - Postcode
-- Woonplaats
-- IP-adres van uw mobiele apparaat
-- Unieke digitale beveiligingssleutels voor uw gegevens
+- Woonplaats 
+- IP-adres van uw mobiele apparaat 
+- Unieke digitale beveiligingssleutels voor uw gegevens 
 - **BSN**
 
 ### **Grondslagen**
 
-- Toestemming
-- **Wettelijke taak**
+- Toestemming 
+- **Wettelijke taak (uitsluitend bij het BSN)**
 
 ### **Doeleinden**
 
 - Zorgen dat alleen u toegang heeft tot uw gegevens in uw Publieke Wallet-app.
-- Uw persoonlijke gegevens worden in uw Publieke Wallet-app geplaatst zodat u deze met dienstverleners kun
-t delen.
+- Uw persoonlijke gegevens worden in uw Publieke Wallet-app geplaatst zodat u deze met 
+  dienstverleners kunt delen.
 
 | Fase 3: Aan dienstverleners verstrekken van gegevens uit de Publieke Wallet |
 |---|
@@ -132,14 +134,14 @@ t delen.
 
 ### **Doeleinden**
 
-- Zorgen dat dienstverleners kunnen valideren dat aan hen verstrekte gegevens op u betrekking hebben.
+- Zorgen dat dienstverleners kunnen valideren dat aan hen verstrekte gegevens op u betrekking
+  hebben.
 
 Na afloop van de specifieke beproeving willen wij u graag uitnodigen voor een evaluatie. We zijn
-benieuwd naar uw ervaring met de Publieke Wallet . Deze evaluatie vindt direct na afloop van de
-beproeving plaats. De evaluatie is bedoeld om de Publieke Wallet te verbeteren en is na de dag van
-de beproeving niet meer tot u te herleiden. Het uitgangspunt is dat bij de evaluatie geen
-persoonsgegevens van u worden verwerkt. Wij raden u daarom aan geen informatie te delen bij de
-evaluatie die na de beproeving nog tot u te herleiden is.
+benieuwd naar uw ervaring met de Publieke Wallet. Deze evaluatie vindt direct na afloop van de
+beproeving plaats. Het uitgangspunt is dat bij de evaluatie geen persoonsgegevens van u worden
+verwerkt. Wij raden u daarom aan geen informatie te delen bij de evaluatie die na de beproeving nog
+tot u te herleiden is.
 
 ## 5. Vastlegging van uw gebruik
 
@@ -152,7 +154,7 @@ Publieke Wallet op te sporen.
 
 We verstrekken uw persoonsgegevens uitsluitend aan uzelf. We verstrekken geen persoonsgegevens aan
 de dienstverleners of andere derden. U kunt met de Publieke Wallet zelf wel gegevens verstrekken aan
-anderen.
+de dienstverleners.
 
 Uitzonderingen hierop zijn wettelijke verplichtingen om gegevens te verstrekken (zoals de wettelijke
 plicht om op verzoek gegevens te verstrekken aan opsporingsdiensten), of het verstrekken van
@@ -168,6 +170,7 @@ voorkomen en te doen beëindigen.
 
 Uw persoonsgegevens worden aan het eind van de dag waarop u deelneemt aan een beproeving direct
 gewist. Ook de toestemmingsformulieren worden aan het einde van de dag van de beproeving vernietigd.
+U wordt gevraagd de gegevens in uw wallet aan het einde van de beproeving te verwijderen.
 
 ## 8. Uw rechten ten aanzien van uw persoonsgegevens
 
@@ -176,16 +179,16 @@ diensten van de deelnemende dienstverleners heeft voor u geen rechtsgevolgen. In
 bijvoorbeeld de aanvraag van een parkeervergunning nagebootst worden, maar deze aanvraag zal dan
 niet werkelijk gedaan en niet in behandeling genomen worden.
 
-Wel verwerkt de Minister van BZK uw persoonsgegevens ten behoeve van de beproevingen. U heeft
-daardoor de volgende rechten.
+Wel verwerkt de Minister van BZK uw persoonsgegevens ten behoeve van de beproeving. U heeft daardoor
+de volgende rechten.
 
 U kunt als gebruiker van de Publieke Wallet uw persoonsgegevens inzien door in te loggen op de
 Publieke Wallet-app. Daarnaast kunt u de volgende rechten uitoefenen:
 
 - uw toestemming ter plaatse intrekken, waarna we uw persoonsgegevens die we verwerken in het kader
-van de NL Wallet app zullen vernietigen;
+  van beproeving zullen vernietigen; 
 - verzoeken om uw persoonsgegevens te verbeteren, aan te vullen of de verwerking ervan te beperken,
-rekening houdende met de hiervoor omschreven doeleinden;
+  rekening houdende met de hiervoor omschreven doeleinden; 
 - verzoeken om uw persoonsgegevens te vernietigen voordat de beproeving eindigt.
 
 U kunt uw verzoek onder vermelding van uw naam en onder verwijzing naar uw deelname aan de
@@ -204,7 +207,7 @@ zullen wij u zo snel mogelijk, en uiterlijk binnen één maand, informeren of we
 voldoen. Als uw verzoek wordt geweigerd, zullen wij de redenen hiervoor schriftelijk aan u
 mededelen.
 
-Doordat alle persoonsgegevens na de dag van uw deelname aan debeproeving niet meer tot u te
+Doordat alle persoonsgegevens na de dag van uw deelname aan de beproeving niet meer tot u te
 herleiden zijn, zal het voor de Minister van BZK niet meer mogelijk zijn om aan uw verzoek te
 voldoen.
 
@@ -212,7 +215,6 @@ voldoen.
 
 Wij hechten veel waarde aan een goede beveiliging van uw persoonsgegevens. Wij treffen dan ook
 passende technische en organisatorische maatregelen om uw persoonsgegevens adequaat te beveiligen.
-Hierbij houden wij ons aan de standaarden die voor overheidsdiensten gelden.
 
 Om misbruik en oneigenlijk gebruik van de Publieke Wallet te kunnen signaleren en beëindigen, voeren
 we controles uit. Bij beveiligingsincidenten zullen we maatregelen nemen, waardoor we de
@@ -230,6 +232,6 @@ intern toezicht op de bescherming van uw persoonsgegevens. U kunt contact opneme
 <postbusfg@minbzk.nl>.
 
 De Autoriteit Persoonsgegevens houdt extern toezicht op de naleving van de privacywetgeving. U heeft
-het recht om bij de autoriteit een klacht over Logius in te dienen. Dat kan
-online [autoriteitpersoonsgegevens.nl](https://autoriteitpersoonsgegevens.nl/een-tip-of-klacht-indienen-bij-de-ap), of bel 088 -
-180 52 50.
+het recht om bij de autoriteit een klacht over Logius in te dienen. Dat kan online
+[autoriteitpersoonsgegevens.nl](https://autoriteitpersoonsgegevens.nl/een-tip-of-klacht-indienen-bij-de-ap),
+of bel 088 - 180 52 50.

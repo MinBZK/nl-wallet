@@ -1,13 +1,17 @@
 use anyhow::Result;
 use tokio::net::TcpListener;
-use tracing::debug;
+use tracing::info;
+
+use wallet_common::built_info::version_string;
 
 use crate::app::create_router;
 use crate::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<()> {
     let listener = TcpListener::bind((settings.webserver.ip, settings.webserver.port)).await?;
-    debug!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
+    info!("{}", version_string());
+
+    info!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
 
     let app = create_router(settings);
 

@@ -52,6 +52,7 @@ import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dar
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart';
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
+import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
@@ -144,6 +145,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<SetBiometricsUseCase>()])
 @GenerateNiceMocks([MockSpec<GetSupportedBiometricsUseCase>()])
 @GenerateNiceMocks([MockSpec<IsBiometricLoginEnabledUseCase>()])
+@GenerateNiceMocks([MockSpec<GetVersionStringUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])
@@ -225,6 +227,7 @@ class Mocks {
     sl.registerFactory<SetBiometricsUseCase>(MockSetBiometricsUseCase.new);
     sl.registerFactory<GetSupportedBiometricsUseCase>(MockGetSupportedBiometricsUseCase.new);
     sl.registerFactory<IsBiometricLoginEnabledUseCase>(MockIsBiometricLoginEnabledUseCase.new);
+    sl.registerFactory<GetVersionStringUseCase>(MockGetVersionStringUseCase.new);
 
     // Repositories
     sl.registerFactory<PidRepository>(getMockPidRepository);

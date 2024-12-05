@@ -7,7 +7,7 @@ use tracing::error;
 pub fn init_panic_logger() {
     panic::set_hook(Box::new(|panic_info| {
         // Invoke the Sentry panic handler, since this one replaces the previous error panic handler.
-        sentry_panic::panic_handler(panic_info);
+        sentry::integrations::panic::panic_handler(panic_info);
 
         // Unfortunately, std::backtrace::Backtrace does not work on Android.
         // This is why we use the "backtrace" crate instead.

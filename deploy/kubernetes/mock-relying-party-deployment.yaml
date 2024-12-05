@@ -56,10 +56,6 @@ spec:
               value: "${WALLET_WEB_FILENAME}"
             - name: MOCK_RELYING_PARTY_WALLET_WEB__SHA256
               value: "${WALLET_WEB_SHA256}"
-            - name: MOCK_RELYING_PARTY_SENTRY__DSN
-              value: ${SENTRY_DSN}
-            - name: MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT
-              value: ${SENTRY_ENVIRONMENT}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

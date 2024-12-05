@@ -1,7 +1,9 @@
 use std::error::Error;
 use std::net::SocketAddr;
 
-use tracing::debug;
+use tracing::info;
+
+use wallet_common::built_info::version_string;
 
 use super::router;
 use super::router_state::RouterState;
@@ -9,7 +11,8 @@ use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     let socket = SocketAddr::new(settings.webserver.ip, settings.webserver.port);
-    debug!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
+    info!("{}", version_string());
+    info!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
 
     let tls_config = settings.tls_config.clone();
     let router_state = RouterState::new_from_settings(settings).await?;

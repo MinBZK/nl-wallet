@@ -275,6 +275,9 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
 
   @override
   Future<WalletInstructionResult> checkPin({required String pin, hint}) async => _pinManager.checkPin(pin);
+
+  @override
+  Future<String> getVersionString({hint}) async => kMockVersionString;
 }
 
 /// Helper class to make [WalletCoreMock] satisfy [WalletCore]
@@ -349,4 +352,6 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kContinueChangePinConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kCheckPinConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kGetVersionStringConstMeta => throw UnimplementedError();
 }

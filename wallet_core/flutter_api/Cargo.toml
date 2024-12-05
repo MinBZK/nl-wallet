@@ -18,15 +18,7 @@ backtrace.workspace = true
 flutter_rust_bridge.workspace = true
 itertools.workspace = true
 parking_lot.workspace = true
-sentry = { workspace = true, features = [
-    "backtrace",
-    "contexts",
-    "panic",
-    "debug-images",
-    "reqwest",
-    "rustls",
-] }
-sentry-panic.workspace = true
+sentry = { workspace = true, features = ["backtrace", "contexts", "panic", "debug-images", "reqwest", "rustls"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with.workspace = true

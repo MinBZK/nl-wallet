@@ -165,7 +165,7 @@ async fn check_auth(
 ) -> StdResult<Response, (StatusCode, &'static str)> {
     // This assumes an ingress/reverse proxy that uses mutual TLS and sets the `Cert-Serial` header with the value
     // from the client certificate. This is an extra safeguard against using this endpoint directly.
-    if !cert_serial.is_some_and(|s| !s.into_inner().is_empty()) {
+    if cert_serial.is_none_or(|s| s.into_inner().is_empty()) {
         return Err((StatusCode::FORBIDDEN, "client certificate missing"));
     }
     let response = next.run(request).await;

@@ -143,6 +143,8 @@ class TypedWalletCore {
 
   Future<void> unlockWithBiometrics() => call((core) => core.unlockWalletWithBiometrics());
 
+  Future<String> getVersionString() => call((core) => core.getVersionString());
+
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.
   Future<T> call<T>(Future<T> Function(WalletCore) runnable) async {

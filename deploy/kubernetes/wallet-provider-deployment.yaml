@@ -71,10 +71,6 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-hsm-config
                   key: user_pin
-            - name: WALLET_PROVIDER_SENTRY__DSN
-              value: ${SENTRY_DSN}
-            - name: WALLET_PROVIDER_SENTRY__ENVIRONMENT
-              value: ${SENTRY_ENVIRONMENT}
             - name: WALLET_PROVIDER_IOS__TEAM_IDENTIFIER
               value: ${IOS_TEAM_IDENTIFIER}
             - name: WALLET_PROVIDER_IOS__BUNDLE_IDENTIFIER

@@ -5,9 +5,9 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/feature/common/sheet/help_sheet.dart';
-import 'package:wallet/src/feature/common/widget/config_version_text.dart';
-import 'package:wallet/src/feature/common/widget/os_version_text.dart';
-import 'package:wallet/src/feature/common/widget/version_text.dart';
+import 'package:wallet/src/feature/common/widget/version/app_version_text.dart';
+import 'package:wallet/src/feature/common/widget/version/config_version_text.dart';
+import 'package:wallet/src/feature/common/widget/version/os_version_text.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.dart';
@@ -74,7 +74,7 @@ void main() {
       expect(supportCodeFinder, findsOneWidget);
 
       // Validate version widgets
-      expect(find.byType(VersionText), findsOneWidget);
+      expect(find.byType(AppVersionText), findsOneWidget);
       expect(find.byType(OsVersionText), findsOneWidget);
       expect(find.byType(ConfigVersionText), findsOneWidget);
     });
