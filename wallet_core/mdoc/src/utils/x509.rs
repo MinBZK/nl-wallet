@@ -120,6 +120,8 @@ impl BorrowingCertificate {
     }
 
     pub fn from_pem(pem: &str) -> Result<Self, CertificateError> {
+        const PEM_CERTIFICATE_HEADER: &str = "CERTIFICATE";
+
         let (_, pem) = pem::parse_x509_pem(pem.as_bytes())?;
         if pem.label == PEM_CERTIFICATE_HEADER {
             Ok(BorrowingCertificate::from_der(pem.contents)?)
@@ -263,8 +265,6 @@ impl<'de> Deserialize<'de> for BorrowingCertificate {
         BorrowingCertificate::from_der(der_bytes).map_err(serde::de::Error::custom)
     }
 }
-
-const PEM_CERTIFICATE_HEADER: &str = "CERTIFICATE";
 
 fn x509_common_names(x509name: &X509Name) -> Result<Vec<String>, CertificateError> {
     x509name
