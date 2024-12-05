@@ -53,6 +53,20 @@ jobs:
       evidence: ""
       evidenceRegex: false
       methods: []
+# TODO: PVW-3692: Blocked until https://github.com/zaproxy/zap-extensions/pull/5957 gets merged and released. The rule is still in beta and the finding has low risk, therefore it is acceptable to ignore it for now.
+    - ruleId: "90004"
+      ruleName: "Insufficient Site Isolation Against Spectre Vulnerability (20012)"
+      context: ""
+      newRisk: "TODO Low"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
 # False positive analysis in pwv-3375 showed that this is not a vulnerability
     - ruleId: "40025"
       ruleName: "Proxy Disclosure (40025)"
