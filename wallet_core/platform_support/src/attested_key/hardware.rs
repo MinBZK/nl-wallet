@@ -22,6 +22,7 @@ use super::GoogleAttestedKey;
 use super::KeyWithAttestation;
 
 use key::HardwareAttestedKey;
+use key::UniqueCreatedResult;
 
 mod key {
     use std::collections::HashSet;
@@ -42,6 +43,11 @@ mod key {
         identifier: String,
     }
 
+    pub(super) enum UniqueCreatedResult<T> {
+        Created(T),
+        Duplicate(String),
+    }
+
     /// A generic attested key that encapsulates the following behaviour:
     /// * Only one instance of the type for each identifier can be constructed.
     /// * Provide access to (blocking) methods on the bridge that require an identifier.
@@ -49,14 +55,17 @@ mod key {
     /// Note that this is contained within its own submodule so that the
     /// `new()` constructor is the only way of instantiating the type.
     impl HardwareAttestedKey {
-        pub fn new(bridge: &'static dyn AttestedKeyBridge, identifier: String) -> Option<Self> {
+        pub fn new(bridge: &'static dyn AttestedKeyBridge, identifier: String) -> UniqueCreatedResult<Self> {
             let mut identifiers = UNIQUE_IDENTIFIERS.lock();
 
-            (!identifiers.contains(&identifier)).then(|| {
-                identifiers.insert(identifier.clone());
+            match identifiers.contains(&identifier) {
+                true => UniqueCreatedResult::Duplicate(identifier),
+                false => {
+                    identifiers.insert(identifier.clone());
 
-                Self { bridge, identifier }
-            })
+                    UniqueCreatedResult::Created(Self { bridge, identifier })
+                }
+            }
         }
 
         pub async fn sign(&self, payload: Vec<u8>) -> Result<Vec<u8>, AttestedKeyError> {
@@ -161,11 +170,15 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
         // Claim the identifier before performing attestation, if it does not exist already within the process.
         // If an error occurs within this method, the `Drop` implementation on this type will relinquish it again.
-        let inner_key =
-            HardwareAttestedKey::new(self.bridge, key_identifier.clone()).ok_or_else(|| AttestationError {
-                error: HardwareAttestedKeyError::IdentifierInUse(key_identifier.clone()),
-                retryable: false,
-            })?;
+        let inner_key = match HardwareAttestedKey::new(self.bridge, key_identifier.clone()) {
+            UniqueCreatedResult::Created(inner_key) => inner_key,
+            UniqueCreatedResult::Duplicate(identifier) => {
+                return Err(AttestationError {
+                    error: HardwareAttestedKeyError::IdentifierInUse(identifier),
+                    retryable: false,
+                })
+            }
+        };
 
         // Perform key/app attestation and convert the resulting attestation data to the corresponding key type.
         let attestation_data = self.bridge.attest(key_identifier, challenge).await?;
@@ -180,8 +193,12 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
         key_identifier: String,
     ) -> Result<AttestedKey<Self::AppleKey, Self::GoogleKey>, Self::Error> {
         // Return a wrapped `HardwareAttestedKey`, if the identifier is not already in use.
-        let inner_key = HardwareAttestedKey::new(self.bridge, key_identifier.clone())
-            .ok_or_else(|| HardwareAttestedKeyError::IdentifierInUse(key_identifier.clone()))?;
+        let inner_key = match HardwareAttestedKey::new(self.bridge, key_identifier) {
+            UniqueCreatedResult::Created(inner_key) => inner_key,
+            UniqueCreatedResult::Duplicate(identifier) => {
+                return Err(HardwareAttestedKeyError::IdentifierInUse(identifier))
+            }
+        };
 
         // In order to have a single source of truth, ask the native implementation what the
         // platform type is, instead of having the Rust compiler determine it.
