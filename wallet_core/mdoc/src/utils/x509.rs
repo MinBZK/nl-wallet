@@ -16,6 +16,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 use webpki::ring::ECDSA_P256_SHA256;
+use webpki::types::pem::PemObject;
 use webpki::types::CertificateDer;
 use webpki::types::TrustAnchor;
 use webpki::types::UnixTime;
@@ -24,7 +25,6 @@ use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom::AsBytes;
 use x509_parser::nom::{self};
-use x509_parser::pem;
 use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
@@ -47,9 +47,11 @@ pub enum CertificateError {
     #[error("certificate verification failed: {0}")]
     Verification(#[source] webpki::Error),
     #[error("certificate parsing for validation failed: {0}")]
-    ValidationParsing(#[from] webpki::Error),
+    EndEntityCertificateParsing(#[from] webpki::Error),
     #[error("certificate content parsing failed: {0}")]
-    ContentParsing(#[from] x509_parser::nom::Err<X509Error>),
+    X509CertificateParsing(#[from] x509_parser::nom::Err<X509Error>),
+    #[error("pem parsing failed: {0}")]
+    PemParsing(#[from] webpki::types::pem::Error),
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate private key generation failed: {0}")]
     #[category(unexpected)]
@@ -105,10 +107,19 @@ pub struct BorrowingCertificate(YokedCertificate);
 impl BorrowingCertificate {
     pub fn from_der(der_bytes: impl Into<Vec<u8>>) -> Result<Self, CertificateError> {
         let certificate_der = CertificateDer::from(der_bytes.into());
+        Self::from_certificate_der(certificate_der)
+    }
+
+    pub fn from_pem(pem: impl AsRef<[u8]>) -> Result<Self, CertificateError> {
+        let certificate_der = CertificateDer::from_pem_slice(pem.as_ref()).map_err(CertificateError::PemParsing)?;
+        Self::from_certificate_der(certificate_der)
+    }
+
+    pub fn from_certificate_der(certificate_der: CertificateDer<'static>) -> Result<Self, CertificateError> {
         let yoke = Yoke::try_attach_to_cart(Arc::from(certificate_der), |cert| {
-            let end_entity_cert = cert.try_into().map_err(CertificateError::ValidationParsing)?;
+            let end_entity_cert = cert.try_into().map_err(CertificateError::EndEntityCertificateParsing)?;
             let (_, x509_cert) =
-                X509Certificate::from_der(cert.as_bytes()).map_err(CertificateError::ContentParsing)?;
+                X509Certificate::from_der(cert.as_bytes()).map_err(CertificateError::X509CertificateParsing)?;
 
             Ok::<_, CertificateError>(ParsedCertificate {
                 end_entity_cert,
@@ -117,20 +128,6 @@ impl BorrowingCertificate {
         })?;
 
         Ok(BorrowingCertificate(yoke))
-    }
-
-    pub fn from_pem(pem: &str) -> Result<Self, CertificateError> {
-        const PEM_CERTIFICATE_HEADER: &str = "CERTIFICATE";
-
-        let (_, pem) = pem::parse_x509_pem(pem.as_bytes())?;
-        if pem.label == PEM_CERTIFICATE_HEADER {
-            Ok(BorrowingCertificate::from_der(pem.contents)?)
-        } else {
-            Err(CertificateError::UnexpectedPemHeader {
-                found: pem.label,
-                expected: PEM_CERTIFICATE_HEADER.to_string(),
-            })
-        }
     }
 
     /// Verify the certificate against the specified trust anchors.

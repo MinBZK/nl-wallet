@@ -17,7 +17,7 @@ use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 
 fn read_certificate(input: CachedInput) -> Result<BorrowingCertificate> {
     let input_string = io::read_to_string(input)?;
-    let crt = BorrowingCertificate::from_pem(&input_string)?;
+    let crt = BorrowingCertificate::from_pem(input_string.as_bytes())?;
     Ok(crt)
 }
 
