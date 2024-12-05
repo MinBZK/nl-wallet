@@ -29,10 +29,12 @@ pub struct TlsServerConfig {
     pub key: Vec<u8>,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct TlsPinningConfig {
     pub base_url: BaseUrl,
     #[debug(skip)]
+    #[serde_as(as = "Vec<Base64>")]
     pub trust_anchors: Vec<BorrowingTrustAnchor>,
 }
 

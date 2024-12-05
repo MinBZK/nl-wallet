@@ -54,6 +54,7 @@ pub struct Urls {
     pub universal_link_base_url: BaseUrl,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
@@ -77,6 +78,7 @@ pub struct Settings {
 
     /// Issuer trust anchors are used to validate the keys and certificates in the `issuer.private_keys` configuration
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
+    #[serde_as(as = "Vec<Base64>")]
     pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
 
     #[cfg(feature = "disclosure")]
@@ -85,6 +87,7 @@ pub struct Settings {
     /// Reader trust anchors are used to verify the keys and certificates in the `verifier.usecases` configuration on
     /// application startup.
     #[cfg(feature = "disclosure")]
+    #[serde_as(as = "Vec<Base64>")]
     pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 }
 

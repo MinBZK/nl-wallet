@@ -141,7 +141,10 @@ impl Default for ConfigServerConfiguration {
 fn parse_trust_anchors(source: &str) -> Vec<BorrowingTrustAnchor> {
     source
         .split('|')
-        .map(|anchor| serde_json::from_str(format!("\"{}\"", anchor).as_str()).expect("failed to parse trust anchor"))
+        .map(|anchor| {
+            BorrowingTrustAnchor::from_der(BASE64_STANDARD.decode(anchor).unwrap())
+                .expect("failed to parse trust anchor")
+        })
         .collect()
 }
 

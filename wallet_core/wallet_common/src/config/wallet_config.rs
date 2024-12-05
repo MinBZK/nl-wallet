@@ -7,6 +7,8 @@ use etag::EntityTag;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
 use crate::account::serialization::DerVerifyingKey;
 use crate::config::digid::DigidApp2AppConfiguration;
@@ -14,12 +16,15 @@ use crate::config::http::TlsPinningConfig;
 use crate::trust_anchor::BorrowingTrustAnchor;
 use crate::urls::BaseUrl;
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct WalletConfiguration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
     pub pid_issuance: PidIssuanceConfiguration,
     pub disclosure: DisclosureConfiguration,
+    #[debug(skip)]
+    #[serde_as(as = "Vec<Base64>")]
     pub mdoc_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub version: u64,
 }
@@ -87,9 +92,11 @@ pub struct PidIssuanceConfiguration {
     pub digid_http_config: TlsPinningConfig,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct DisclosureConfiguration {
     #[debug(skip)]
+    #[serde_as(as = "Vec<Base64>")]
     pub rp_trust_anchors: Vec<BorrowingTrustAnchor>,
 }
 
