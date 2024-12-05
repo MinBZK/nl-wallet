@@ -142,7 +142,7 @@ impl TryFrom<disclosure_history_event::Model> for WalletEvent {
             r#type: DisclosureType::from(&event),
             documents: event.attributes.map(serde_json::from_value).transpose()?,
             timestamp: event.timestamp,
-            reader_certificate: Box::new(BorrowingCertificate::from_der(&event.relying_party_certificate).unwrap()), /* Unwrapping here is safe since the certificate has been parsed before */
+            reader_certificate: Box::new(BorrowingCertificate::from_der(event.relying_party_certificate).unwrap()), /* Unwrapping here is safe since the certificate has been parsed before */
         };
         Ok(result)
     }

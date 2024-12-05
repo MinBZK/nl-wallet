@@ -137,7 +137,7 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
         .into_iter()
         .map(|cert_base64| {
             let cert = BorrowingCertificate::from_der(
-                &BASE64_STANDARD
+                BASE64_STANDARD
                     .decode(cert_base64)
                     .map_err(JwtX5cError::CertificateBase64)?,
             )

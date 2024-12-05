@@ -156,7 +156,7 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
     fn try_from(value: &KeyPair) -> Result<Self, Self::Error> {
         Ok(Self::new_from_signing_key(
             SigningKey::from_pkcs8_der(&value.private_key)?,
-            BorrowingCertificate::from_der(&value.certificate)?,
+            BorrowingCertificate::from_der(value.certificate.to_vec())?,
         )?)
     }
 }

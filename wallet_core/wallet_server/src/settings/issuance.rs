@@ -43,7 +43,12 @@ impl Issuer {
     pub fn certificates(&self) -> Result<IndexMap<String, BorrowingCertificate>, CertificateError> {
         self.private_keys
             .iter()
-            .map(|(doctype, privkey)| Ok((doctype.clone(), BorrowingCertificate::from_der(&privkey.certificate)?)))
+            .map(|(doctype, privkey)| {
+                Ok((
+                    doctype.clone(),
+                    BorrowingCertificate::from_der(privkey.certificate.to_vec())?,
+                ))
+            })
             .collect::<Result<_, _>>()
     }
 }

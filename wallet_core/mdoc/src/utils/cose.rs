@@ -232,7 +232,7 @@ impl<T> MdocCose<CoseSign1, T> {
         // The standard defining the above COSE header label (https://datatracker.ietf.org/doc/draft-ietf-cose-x509/)
         // allows multiple certificates being present in the header, but ISO 18013-5 doesn't.
         // So we can parse the bytes as a certificate.
-        let cert = BorrowingCertificate::from_der(cert_bts)?;
+        let cert = BorrowingCertificate::from_der(cert_bts.to_vec())?;
         Ok(cert)
     }
 

@@ -103,8 +103,8 @@ type YokedCertificate = Yoke<ParsedCertificate<'static>, Arc<CertificateDer<'sta
 pub struct BorrowingCertificate(YokedCertificate);
 
 impl BorrowingCertificate {
-    pub fn from_der(der_bytes: &[u8]) -> Result<Self, CertificateError> {
-        let certificate_der = CertificateDer::from(der_bytes).into_owned();
+    pub fn from_der(der_bytes: impl Into<Vec<u8>>) -> Result<Self, CertificateError> {
+        let certificate_der = CertificateDer::from(der_bytes.into());
         let yoke = Yoke::try_attach_to_cart(Arc::from(certificate_der), |cert| {
             let end_entity_cert = cert.try_into().map_err(CertificateError::ValidationParsing)?;
             let (_, x509_cert) =
@@ -122,7 +122,7 @@ impl BorrowingCertificate {
     pub fn from_pem(pem: &str) -> Result<Self, CertificateError> {
         let (_, pem) = pem::parse_x509_pem(pem.as_bytes())?;
         if pem.label == PEM_CERTIFICATE_HEADER {
-            Ok(BorrowingCertificate::from_der(&pem.contents)?)
+            Ok(BorrowingCertificate::from_der(pem.contents)?)
         } else {
             Err(CertificateError::UnexpectedPemHeader {
                 found: pem.label,
@@ -225,7 +225,7 @@ impl BorrowingCertificate {
 impl Clone for BorrowingCertificate {
     fn clone(&self) -> Self {
         // Unwrap is safe here since the der bytes have been parsed before
-        BorrowingCertificate::from_der(self.0.backing_cart().as_ref()).unwrap()
+        BorrowingCertificate::from_der(self.0.backing_cart().to_vec()).unwrap()
     }
 }
 
@@ -260,7 +260,7 @@ impl<'de> Deserialize<'de> for BorrowingCertificate {
             Deserialize::deserialize(deserializer)
         }?;
 
-        BorrowingCertificate::from_der(&der_bytes).map_err(serde::de::Error::custom)
+        BorrowingCertificate::from_der(der_bytes).map_err(serde::de::Error::custom)
     }
 }
 
@@ -290,7 +290,7 @@ pub const EXTENDED_KEY_USAGE_READER_AUTH: &[u8] = &[40, 129, 140, 93, 5, 1, 6];
 pub const EKU_MDL_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_MDL);
 pub const EKU_READER_AUTH_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_READER_AUTH);
 
-const fn oid_from_bytes(bytes: &'static [u8]) -> Oid {
+const fn oid_from_bytes(bytes: &'static [u8]) -> Oid<'static> {
     Oid::new(Cow::Borrowed(bytes))
 }
 
