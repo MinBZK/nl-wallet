@@ -4,6 +4,7 @@ use derive_more::From;
 use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::base64::Base64;
 use serde_with::formats::SpaceSeparator;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
@@ -145,11 +146,13 @@ pub struct TokenResponseWithPreviews {
     pub credential_previews: NonEmpty<Vec<CredentialPreview>>,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialPreview {
     MsoMdoc {
         unsigned_mdoc: UnsignedMdoc,
+        #[serde_as(as = "Base64")]
         issuer: BorrowingCertificate,
     },
 }

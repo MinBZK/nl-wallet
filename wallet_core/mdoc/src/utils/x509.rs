@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::sync::Arc;
 use std::time::Duration;
 
-use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
@@ -36,7 +35,6 @@ use yoke::Yokeable;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
-use wallet_common::trust_anchor::serialize_bytes_as_ref;
 
 use super::issuer_auth::IssuerRegistration;
 use super::reader_auth::ReaderRegistration;
@@ -155,10 +153,6 @@ impl BorrowingCertificate {
             .map_err(CertificateError::Verification)
     }
 
-    pub fn to_vec(&self) -> Vec<u8> {
-        self.as_ref().to_vec()
-    }
-
     pub fn end_entity_certificate(&self) -> &EndEntityCert {
         &self.0.get().end_entity_cert
     }
@@ -234,6 +228,20 @@ impl AsRef<[u8]> for BorrowingCertificate {
     }
 }
 
+impl TryFrom<Vec<u8>> for BorrowingCertificate {
+    type Error = CertificateError;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        BorrowingCertificate::from_der(value.as_slice())
+    }
+}
+
+impl From<BorrowingCertificate> for Vec<u8> {
+    fn from(value: BorrowingCertificate) -> Self {
+        value.as_ref().to_vec()
+    }
+}
+
 impl PartialEq for BorrowingCertificate {
     fn eq(&self, other: &Self) -> bool {
         self.as_ref() == other.as_ref()
@@ -241,27 +249,6 @@ impl PartialEq for BorrowingCertificate {
 }
 
 impl Eq for BorrowingCertificate {}
-
-// Use base64 when we (de)serialize to JSON
-impl Serialize for BorrowingCertificate {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serialize_bytes_as_ref(&self, serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for BorrowingCertificate {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let der_bytes = if deserializer.is_human_readable() {
-            BASE64_STANDARD
-                .decode(String::deserialize(deserializer)?)
-                .map_err(serde::de::Error::custom)
-        } else {
-            Deserialize::deserialize(deserializer)
-        }?;
-
-        BorrowingCertificate::from_der(der_bytes).map_err(serde::de::Error::custom)
-    }
-}
 
 fn x509_common_names(x509name: &X509Name) -> Result<Vec<String>, CertificateError> {
     x509name

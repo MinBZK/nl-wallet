@@ -4,6 +4,10 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
+use serde_with::IfIsHumanReadable;
+use serde_with::TryFromInto;
 use uuid::Uuid;
 
 pub use entity::disclosure_history_event;
@@ -186,7 +190,7 @@ impl TryFrom<WalletEvent> for WalletEventModel {
                 attributes: documents.map(serde_json::to_value).transpose()?,
                 id,
                 timestamp,
-                relying_party_certificate: reader_certificate.to_vec(),
+                relying_party_certificate: (*reader_certificate).into(),
                 status: status.into(),
                 r#type: r#type.into(),
             }),
@@ -195,8 +199,10 @@ impl TryFrom<WalletEvent> for WalletEventModel {
     }
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EventAttributes {
+    #[serde_as(as = "IfIsHumanReadable<Base64, TryFromInto<Vec<u8>>>")]
     pub issuer: BorrowingCertificate,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
 }
