@@ -13,7 +13,7 @@ doctest = false
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
-clap = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["derive", "string"] }
 clio = { workspace = true, features = ["clap-parse"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem"] }
