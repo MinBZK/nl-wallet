@@ -440,6 +440,16 @@ fn wire_reset_wallet_impl(port_: MessagePort) {
         move || move |task_callback| reset_wallet(),
     )
 }
+fn wire_get_version_string_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, String, _>(
+        WrapInfo {
+            debug_name: "get_version_string",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| Result::<_, ()>::Ok(get_version_string()),
+    )
+}
 // Section: wrapper structs
 
 // Section: static checks

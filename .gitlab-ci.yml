@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:5c5495f178c5b44b89b038f402b9062f6b9ba0b3f86f88e0ffeb81dd3ce27c02"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:5776b7ff404573a51a03e680d556dbbd70b27d5e053001e2f7144fa553b41d70"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
@@ -115,7 +115,7 @@ variables:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:e91e97e25b1f9c9fdd25fe9df28880e54c7878bdf7ee61f879f605a9957c02e8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:0826233b542eb8cf19bfff6585a67c43b93e1bd9463ae3a6e60f629acc3c4653"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -132,7 +132,7 @@ test-flutter-ui:
   when: manual
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.3
   artifacts:
     name: "ui-test-failures"
     when: on_failure
@@ -147,7 +147,7 @@ test-flutter-ui:
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:e91e97e25b1f9c9fdd25fe9df28880e54c7878bdf7ee61f879f605a9957c02e8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:0826233b542eb8cf19bfff6585a67c43b93e1bd9463ae3a6e60f629acc3c4653"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -159,7 +159,7 @@ verify-flutter-localizations:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:f106eae7f5fdd9489cfc548d67a6b61f761f112907c638b6436d21b763cbcb4d"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:a220cb6b7f8161982d62dcb17e544ce09892c5f57564cd06f599d95d05e596fa"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -173,9 +173,9 @@ test-codegen:
 build-wallet-web:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:bbb57ef5a98486308c6875efb0d765abc6674a3053c27e2bbc6b0bf516be27c7"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:668558bdce476733f02766e5e393942eeb8420e1ba31def4c98e7326b12232bf"
   variables:
-    VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_ACC
+    VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
   script:
     - set -euxo pipefail
     - (cd wallet_web; npm ci && npm run type-check && npm run coverage -- --run)
@@ -250,8 +250,6 @@ deploy-wallet-provider-ont:
   variables:
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_ONT
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_ONT
-    SENTRY_DSN: "${SENTRY_DSN_ONT}"
-    SENTRY_ENVIRONMENT: "ont"
     APP_IDENTIFIER: "${INTERNAL_APP_IDENTIFIER}.latest"
 
 deploy-wallet-provider-demo:
@@ -264,8 +262,6 @@ deploy-wallet-provider-demo:
   variables:
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_DEMO
-    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
-    SENTRY_ENVIRONMENT: "demo"
     APP_IDENTIFIER: "${INTERNAL_APP_IDENTIFIER}.demo"
 
 .run-mrp-vs-migrations:
@@ -333,8 +329,6 @@ deploy-mock-relying-party-ont:
     MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_ONT
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
-    SENTRY_DSN: "${SENTRY_DSN_ONT}"
-    SENTRY_ENVIRONMENT: "ont"
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
@@ -349,8 +343,6 @@ deploy-mock-relying-party-demo:
     MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
-    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
-    SENTRY_ENVIRONMENT: "demo"
 
 .run-pi-migrations:
   needs:
@@ -395,8 +387,6 @@ deploy-pid-issuer-ont:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_ONT
     PID_ISSUER_INTERNAL_HOSTNAME: $PID_ISSUER_INTERNAL_HOSTNAME_ONT
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
-    SENTRY_DSN: "${SENTRY_DSN_ONT}"
-    SENTRY_ENVIRONMENT: "ont"
 
 deploy-pid-issuer-demo:
   extends: [.env-demo-k8s, .deploy-pid-issuer]
@@ -410,8 +400,6 @@ deploy-pid-issuer-demo:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_DEMO
     PID_ISSUER_INTERNAL_HOSTNAME: $PID_ISSUER_INTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
-    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
-    SENTRY_ENVIRONMENT: "demo"
 
 .deploy-gba-hc-converter:
   needs:
@@ -515,21 +503,21 @@ deploy-gba-fetch-frontend-demo:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:6eec67d53367780d54d1a66fdbaceab1dcf06dbd5be4d6c587ebc67b329cf545"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:8216c77dcb0e2867776211d4c2980025d166d12fd8687acb232ef3cfbd95ad2c"
   script:
     ## Rust
-    - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
     ## NPM
     - cd wallet_web
-    - cyclonedx-npm --output-format json --output-file bom.json --package-lock-only
+    - cyclonedx-npm --spec-version 1.5 --output-format json --output-file bom.json --package-lock-only
     # only keep bundled dependencies
     - jq '.components |= map(select(.properties|any(.name == "cdx:npm:package:bundled")))' bom.json > bom-bundled.json
     - mv bom-bundled.json bom.json
     - cd ..
     ## Flutter
-    - cd wallet_app; cdxgen --type dart --output bom.json; cd -
+    - cd wallet_app; cdxgen --spec-version 1.5 --type dart --output bom.json; cd -
     ## iOS
     # does not support json, so converting to it (we need it to be able to merge)
     - bundle install
@@ -538,16 +526,16 @@ build-sbom:
     - flutter precache --ios
     - cd ios
     - bundle exec pod install --allow-root
-    - cyclonedx-cocoapods
-    - cyclonedx convert --input-file bom.xml --output-file bom.json
+    - cyclonedx-cocoapods # only supports spec version 1.4
+    - cyclonedx convert --output-version v1_5 --input-file bom.xml --output-file bom.json
     - cd ../..
     ## Android
-    - cd wallet_app/android/app; cdxgen --type gradle --output bom.json; cd -
-    - cd wallet_core/platform_support/android/platform_support; cdxgen --type gradle --output bom.json; cd -
+    - cd wallet_app/android/app; cdxgen --spec-version 1.5 --type gradle --output bom.json; cd -
+    - cd wallet_core/platform_support/android/platform_support; cdxgen --spec-version 1.5 --type gradle --output bom.json; cd -
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
-    - cyclonedx merge --input-files `find . -name bom.json` --output-file bom.json
+    - cyclonedx merge --output-version v1_5 --input-files `find . -name bom.json` --output-file bom.json
     # converting it to xml does work
-    - cyclonedx convert --input-file bom.json --output-file bom.xml
+    - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"

@@ -25,10 +25,11 @@ use http::HeaderValue;
 use tokio::net::TcpListener;
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::TraceLayer;
-use tracing::debug;
-use tracing::error;
 use tracing::level_filters::LevelFilter;
+use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
+
+use wallet_common::built_info::version_string;
 
 use crate::log_requests::log_request_response;
 use crate::settings::Server;
@@ -96,22 +97,21 @@ async fn listen(
 
     requester_router = secure_requester_router(&requester_server, requester_router);
 
+    info!("{}", version_string());
+
     match requester_listener {
         Some(requester_listener) => {
             wallet_router = decorate_router(wallet_router, log_requests);
             requester_router = decorate_router(requester_router, log_requests);
 
-            debug!(
-                "listening for requester on {}",
-                requester_listener.local_addr().unwrap()
-            );
+            info!("listening for requester on {}", requester_listener.local_addr()?);
             let requester_server = tokio::spawn(async move {
                 axum::serve(requester_listener, requester_router)
                     .await
                     .expect("requester server should be started");
             });
 
-            debug!("listening for wallet on {}", wallet_listener.local_addr().unwrap());
+            info!("listening for wallet on {}", wallet_listener.local_addr()?);
             let wallet_server = tokio::spawn(async move {
                 axum::serve(wallet_listener, wallet_router)
                     .await
@@ -122,9 +122,9 @@ async fn listen(
         }
         None => {
             wallet_router = decorate_router(wallet_router.merge(requester_router), log_requests);
-            debug!(
+            info!(
                 "listening for wallet and requester on {}",
-                wallet_listener.local_addr().unwrap()
+                wallet_listener.local_addr()?
             );
             axum::serve(wallet_listener, wallet_router)
                 .await
@@ -141,7 +141,9 @@ async fn listen_wallet_only(wallet_server: Server, mut wallet_router: Router, lo
 
     let wallet_listener = create_wallet_listener(wallet_server).await?;
 
-    debug!("listening for wallet on {}", wallet_listener.local_addr().unwrap());
+    info!("{}", version_string());
+
+    info!("listening for wallet on {}", wallet_listener.local_addr()?);
     axum::serve(wallet_listener, wallet_router)
         .await
         .expect("wallet server should be started");

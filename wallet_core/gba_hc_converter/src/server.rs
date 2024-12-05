@@ -9,9 +9,9 @@ use axum::Router;
 use http::StatusCode;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
-use tracing::debug;
 use tracing::info;
 
+use wallet_common::built_info::version_string;
 use wallet_common::http_error::HttpJsonError;
 
 use crate::error::Error;
@@ -31,7 +31,8 @@ where
     T: GbavClient + Send + Sync + 'static,
 {
     let listener = TcpListener::bind((ip, port)).await?;
-    debug!("listening on {}:{}", ip, port);
+    info! {"{}", version_string()}
+    info!("listening on {}:{}", ip, port);
 
     let app_state = Arc::new(ApplicationState { gbav_client });
 
@@ -61,14 +62,14 @@ async fn personen<T>(
 where
     T: GbavClient + Sync,
 {
-    info!("Received personen request");
+    info!("received personen request");
 
     // We can safely unwrap here, because the brpproxy already guarantees there is at least one burgerservicenummer.
     let body = request_personen(&state.gbav_client, payload.bsn.first().unwrap())
         .await
         .inspect_err(|error| info!("error handling request: {:?}", error))?;
 
-    info!("Sending personen response");
+    info!("sending personen response");
 
     Ok((StatusCode::OK, body.into()))
 }

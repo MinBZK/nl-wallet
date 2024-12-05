@@ -14,7 +14,7 @@ members = [
     "tests_integration",
     "wallet",
     "wallet/entity",
-    "wallet/migration",
+    "wallet/migrations",
     "wallet_ca",
     "wallet_common",
     "wallet_provider",
@@ -24,7 +24,7 @@ members = [
     "wallet_provider/persistence",
     "wallet_provider/service",
     "wallet_server",
-    "wallet_server/migration",
+    "wallet_server/migrations",
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
@@ -32,7 +32,7 @@ resolver = "2"
 [workspace.package]
 version = "0.2.3-dev"
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.83"
 
 [workspace.lints.rust]
 async_fn_in_trait = "allow"
@@ -48,6 +48,7 @@ unused_async = "warn"
 unused_self = "warn"
 
 [workspace.dependencies]
+built = "0.7"
 accept-language = "3.1.0"
 aes-gcm = "0.10.3"
 android_logger = { version = "0.14.1", default-features = false }
@@ -123,8 +124,7 @@ sea-orm = { version = "1.1.1", default-features = false }
 sea-orm-migration = { version = "1.1.1", default-features = false }
 sea-query = { version = "0.32.0", default-features = false }
 sec1 = "0.7.3"
-sentry = { version = "0.34", default-features = false }
-sentry-panic = "0.34"
+sentry = { version = "0.35", default-features = false }
 serde = "1.0.193"
 serde-aux = "4.2.0"
 serde_bytes = "0.11.7"

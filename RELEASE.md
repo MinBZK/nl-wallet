@@ -248,12 +248,12 @@ When you have these zip files and sha256sum texts, and you made sure they're
 named correctly, you are ready to create the release notes. We will upload the
 zip files and sha256sum texts as artifacts of the release.
 
-Note on other binaries like `wallet_server_migration` and schema changes in
+Note on other binaries like `wallet_server_migrations` and schema changes in
 general: When any of our binaries that use a database backend require schema
 changes in the database, we can provide either documentation that instruct how
-someone can effect the necessary changes, or a `wallet_server_migration` utility
+someone can effect the necessary changes, or a `wallet_server_migrations` utility
 and clear instructions with regards to how-to-use. When we as a team decide to
-provide a `wallet_server_migration` binary, make sure that binary is included in
+provide a `wallet_server_migrations` binary, make sure that binary is included in
 the verification server zip files, with instructions on how to use (i.e., an
 end-user must be able to update the schema using the provided utility by
 following the additionally supplied read-me or other installation instructions).
