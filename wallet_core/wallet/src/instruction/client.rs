@@ -28,12 +28,7 @@ pub struct InstructionClient<'a, S, K, A> {
     instruction_result_public_key: &'a EcdsaDecodingKey,
 }
 
-impl<'a, S, K, A> InstructionClient<'a, S, K, A>
-where
-    S: Storage,
-    K: PlatformEcdsaKey,
-    A: AccountProviderClient,
-{
+impl<'a, S, K, A> InstructionClient<'a, S, K, A> {
     /// Creates an [`InstructionClient`].
     /// In most cases this function should not be used directly, as the wallet must try to finalize
     /// a PIN change if it is in progress. [`Wallet::new_instruction_client`] will do this before
@@ -58,12 +53,9 @@ where
         }
     }
 
-    async fn with_sequence_number<F, O, R>(
-        &self,
-        storage: &mut RwLockWriteGuard<'_, S>,
-        f: F,
-    ) -> Result<R, InstructionError>
+    async fn with_sequence_number<F, O, R>(storage: &mut RwLockWriteGuard<'_, S>, f: F) -> Result<R, InstructionError>
     where
+        S: Storage,
         F: FnOnce(u64) -> O,
         O: Future<Output = Result<R, wallet_common::account::errors::Error>>,
     {
@@ -76,21 +68,27 @@ where
             .await
             .map_err(InstructionError::Signing)
     }
+}
 
+impl<'a, S, K, A> InstructionClient<'a, S, K, A>
+where
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
+{
     async fn instruction_challenge<I>(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError>
     where
         I: InstructionAndResult,
     {
-        let challenge_request = self
-            .with_sequence_number(storage, |seq_num| {
-                InstructionChallengeRequest::new_ecdsa::<I>(
-                    self.registration.wallet_id.clone(),
-                    seq_num,
-                    self.hw_privkey,
-                    self.registration.wallet_certificate.clone(),
-                )
-            })
-            .await?;
+        let challenge_request = Self::with_sequence_number(storage, |seq_num| {
+            InstructionChallengeRequest::new_ecdsa::<I>(
+                self.registration.wallet_id.clone(),
+                seq_num,
+                self.hw_privkey,
+                self.registration.wallet_certificate.clone(),
+            )
+        })
+        .await?;
 
         let result = self
             .account_provider_client
@@ -121,18 +119,17 @@ where
 
         let instruction = construct(challenge.clone()).await?;
 
-        let instruction = self
-            .with_sequence_number(&mut storage, |seq_num| {
-                Instruction::new_ecdsa(
-                    instruction,
-                    challenge,
-                    seq_num,
-                    self.hw_privkey,
-                    &pin_key,
-                    self.registration.wallet_certificate.clone(),
-                )
-            })
-            .await?;
+        let instruction = Self::with_sequence_number(&mut storage, |seq_num| {
+            Instruction::new_ecdsa(
+                instruction,
+                challenge,
+                seq_num,
+                self.hw_privkey,
+                &pin_key,
+                self.registration.wallet_certificate.clone(),
+            )
+        })
+        .await?;
 
         let signed_result = self
             .account_provider_client
@@ -179,12 +176,7 @@ impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
 
     /// Creates an [`InstructionClient`].
     /// See [`InstructionClient::new`].
-    pub fn create(&self, pin: String) -> InstructionClient<'a, S, K, A>
-    where
-        S: Storage,
-        K: PlatformEcdsaKey,
-        A: AccountProviderClient,
-    {
+    pub fn create(&self, pin: String) -> InstructionClient<'a, S, K, A> {
         InstructionClient::new(
             pin,
             self.storage,
