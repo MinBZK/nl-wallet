@@ -254,8 +254,7 @@ impl<T> MdocCose<CoseSign1, T> {
             .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
-        let issuer_pk = cert.public_key().map_err(CoseError::Certificate)?;
-        self.verify_and_parse(&issuer_pk)
+        self.verify_and_parse(cert.public_key())
     }
 }
 

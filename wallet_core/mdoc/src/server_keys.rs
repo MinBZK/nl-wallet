@@ -18,7 +18,7 @@ impl KeyPair {
         private_key: SigningKey,
         certificate: BorrowingCertificate,
     ) -> Result<KeyPair, CertificateError> {
-        if certificate.public_key()? != *private_key.verifying_key() {
+        if certificate.public_key() != private_key.verifying_key() {
             return Err(CertificateError::KeyMismatch);
         }
 
@@ -31,8 +31,8 @@ impl KeyPair {
 
 impl<S: EcdsaKey> KeyPair<S> {
     pub async fn new(private_key: S, certificate: BorrowingCertificate) -> Result<KeyPair<S>, CertificateError> {
-        if certificate.public_key()?
-            != private_key
+        if certificate.public_key()
+            != &private_key
                 .verifying_key()
                 .await
                 .map_err(|e| CertificateError::PublicKeyFromPrivate(Box::new(e)))?

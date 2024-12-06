@@ -59,7 +59,7 @@ pub enum CertificateError {
     #[category(unexpected)]
     GeneratingFailed(#[from] rcgen::Error),
     #[error("failed to parse certificate public key: {0}")]
-    KeyParsingFailed(p256::pkcs8::spki::Error),
+    PublicKeyParsing(p256::pkcs8::spki::Error),
     #[error("EKU count incorrect ({0})")]
     #[category(critical)]
     IncorrectEkuCount(usize),
@@ -95,6 +95,7 @@ struct ParsedCertificate<'a> {
     #[debug(skip)]
     end_entity_cert: EndEntityCert<'a>,
     x509_cert: X509Certificate<'a>,
+    public_key: VerifyingKey,
 }
 
 type YokedCertificate = Yoke<ParsedCertificate<'static>, Arc<CertificateDer<'static>>>;
@@ -118,10 +119,13 @@ impl BorrowingCertificate {
             let end_entity_cert = cert.try_into().map_err(CertificateError::EndEntityCertificateParsing)?;
             let (_, x509_cert) =
                 X509Certificate::from_der(cert.as_bytes()).map_err(CertificateError::X509CertificateParsing)?;
+            let public_key = VerifyingKey::from_public_key_der(x509_cert.public_key().raw)
+                .map_err(CertificateError::PublicKeyParsing)?;
 
             Ok::<_, CertificateError>(ParsedCertificate {
                 end_entity_cert,
                 x509_cert,
+                public_key,
             })
         })?;
 
@@ -161,9 +165,8 @@ impl BorrowingCertificate {
         &self.0.get().x509_cert
     }
 
-    pub fn public_key(&self) -> Result<VerifyingKey, CertificateError> {
-        VerifyingKey::from_public_key_der(self.x509_certificate().public_key().raw)
-            .map_err(CertificateError::KeyParsingFailed)
+    pub fn public_key(&self) -> &VerifyingKey {
+        &self.0.get().public_key
     }
 
     pub fn subject(&self) -> Result<IndexMap<String, String>, CertificateError> {

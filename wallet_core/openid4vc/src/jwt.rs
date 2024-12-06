@@ -154,7 +154,7 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
         .map_err(JwtX5cError::CertificateValidation)?;
 
     // The leaf certificate is trusted, we can now use its public key to verify the JWS.
-    let pubkey = leaf_cert.public_key().map_err(JwtX5cError::CertificatePublicKey)?;
+    let pubkey = leaf_cert.public_key();
 
     let validation_options = {
         let mut validation = Validation::new(Algorithm::ES256);
@@ -165,7 +165,7 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
         validation
     };
 
-    let payload = jwt.parse_and_verify(&DerVerifyingKey(pubkey).into(), &validation_options)?;
+    let payload = jwt.parse_and_verify(&DerVerifyingKey(*pubkey).into(), &validation_options)?;
 
     Ok((payload, leaf_cert))
 }
@@ -274,7 +274,7 @@ mod tests {
         let (cred, claims) = JwtCredential::new::<MockRemoteEcdsaKey>(
             holder_key_id.to_string(),
             jwt,
-            &issuer_keypair.certificate().public_key().unwrap(),
+            issuer_keypair.certificate().public_key(),
         )
         .unwrap();
 

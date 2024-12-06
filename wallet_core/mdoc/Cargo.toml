@@ -71,7 +71,7 @@ assert_matches.workspace = true
 hex-literal.workspace = true
 http.workspace = true
 parking_lot.workspace = true
-rcgen = { workspace = true, features = ["x509-parser"] }
+rcgen = { workspace = true, features = ["x509-parser", "crypto", "ring"] }
 regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
