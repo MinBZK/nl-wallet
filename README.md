@@ -45,7 +45,7 @@ secure, we can fill it with real data and pilot it in real life scenarios.
 
 ## Current release
 
-See the [releases page][7] for the latest release. You can follow the latest
+See the [releases page][7]for the latest release. You can follow the latest
 work by subscribing to the releases of this GitHub repository at the top of this
 page.
 
@@ -236,7 +236,8 @@ After installation, make sure to add the following targets:
 
 - For iOS: `rustup target add aarch64-apple-ios x86_64-apple-ios`
 - For iOS simulator: `rustup target add aarch64-apple-ios-sim`
-- For Android: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
+- For Android:
+  `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 
 #### Android
 
@@ -254,7 +255,8 @@ system. Likely the easiest way to do so is:
    available in your path and automatically picks up the NDK version you
    installed in the previous step
 4. Tell `gradle` where it can find the NDK by updating your `gradle.properties`
-   e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
+   e.g.
+   `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
 5. Run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code
    for Android
 6. Optional: let Android Studio use Flutter SDK installed via FVM by following
@@ -473,30 +475,57 @@ text. Note that they don't display when rendered within a website, you need to
 read the text in a regular text editor or pager to see them.
 
 [1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
+
 [2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte-eer-eidas/alles-wat-u-moet-weten-over-eidas/
-[3]: https://www.figma.com/design/CPMQrCx6QBr4oLYjDvhY3g/20241015_Release_UI_NLWallet?node-id=27602-6&t=DUBHU8KUCwhougZo-1/
+
+[3]: https://www.figma.com/design/4efsEQFFJqenB80OKqfmdl/20241126_Release_UI_NLWallet?node-id=1-3716&t=HhqTBGpCrSVcW8ku-1
+
 [4]: https://github.com/MinBZK/nl-wallet/
+
 [5]: https://edi.pleio.nl/
+
 [6]: mailto:edi@minbzk.nl?subject=Feedback%20or%20ideas
+
 [7]: releases
+
 [8]: ./LICENSES/EUPL-1.2.txt
+
 [9]: ./.reuse/dep5
+
 [10]: https://reuse.software/spec/
+
 [11]: mailto:edi@minbzk.nl?subject=Contribution%20via%20GitHub
+
 [12]: https://edi.pleio.nl/events/
+
 [13]: ./wallet_app/README.md
+
 [14]: ./wallet_core/README.md
+
 [15]: ./wallet_web/README.md
+
 [16]: ./wallet_core/wallet_provider/README.md
+
 [17]: https://flutter.dev/docs/get-started/install
+
 [18]: https://fvm.app/documentation/getting-started/installation
+
 [19]: ./wallet_app/.fvm/fvm_config.json
+
 [20]: https://www.rust-lang.org/tools/install
+
 [21]: https://developer.android.com/studio
+
 [22]: https://fvm.app/documentation/getting-started/configuration
+
 [23]: https://apps.apple.com/us/app/xcode/id497799835?mt=12
+
 [24]: https://github.com/firecow/gitlab-ci-local#installation
+
 [25]: https://docs.docker.com/get-started/get-docker/
+
 [26]: ./documentation/index.md
+
 [27]: https://github.com/minvws/nl-rdo-max
+
 [28]: https://github.com/BRP-API/Haal-Centraal-BRP-bevragen
