@@ -63,7 +63,7 @@ variables:
       variables:
         CACHE_POLICY: pull
     - if: $DEPLOY_DEMO_OVERRIDE == "true"
-      when: manual
+      when: on_success
 
 .merge-request:
   rules:
