@@ -45,7 +45,7 @@ secure, we can fill it with real data and pilot it in real life scenarios.
 
 ## Current release
 
-See the [releases page][7]for the latest release. You can follow the latest
+See the [releases page][7] for the latest release. You can follow the latest
 work by subscribing to the releases of this GitHub repository at the top of this
 page.
 
