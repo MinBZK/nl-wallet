@@ -4,7 +4,7 @@ description: EDI - NL Public Reference Wallet
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
 
-version: 0.2.3-dev
+version: 0.2.3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
