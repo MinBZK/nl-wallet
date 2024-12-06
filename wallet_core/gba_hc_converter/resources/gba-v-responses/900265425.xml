@@ -67,7 +67,11 @@
                       </ns2:item>
                       <ns2:item>
                         <ns2:nummer>1120</ns2:nummer>
-                        <ns2:waarde>61 e</ns2:waarde>
+                        <ns2:waarde>61</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
+                        <ns2:nummer>1130</ns2:nummer>
+                        <ns2:waarde>e</ns2:waarde>
                       </ns2:item>
                       <ns2:item>
                         <ns2:nummer>1160</ns2:nummer>
