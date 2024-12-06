@@ -83,6 +83,8 @@ pub fn initialize_eager() {
 pub enum Error {
     #[error("GBA-V error: {0}")]
     Gba(#[from] gba::error::Error),
+    #[error("house number is not an integer")]
+    HouseNumber,
 }
 
 fn read_csv(name: &str) -> Result<HashMap<String, String>, csv::Error> {
@@ -358,7 +360,7 @@ impl TryFrom<&Categorievoorkomen> for GbaAddress {
             short_street_name: value.elementen.get_mandatory(Element::Straatnaam.code())?,
             official_street_name: value.elementen.get_mandatory(Element::NaamOpenbareRuimte.code())?,
             house_number: u32::from_str(&value.elementen.get_mandatory(Element::Huisnummer.code())?)
-                .expect("housenumber should be an integer"),
+                .map_err(|_| Error::HouseNumber)?,
             house_letter: value.elementen.get_optional(Element::Huisletter.code()),
             house_number_addition: value.elementen.get_optional(Element::Huisnummertoevoeging.code()),
             postal_code: value.elementen.get_optional(Element::Postcode.code()),

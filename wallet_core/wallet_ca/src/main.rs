@@ -18,7 +18,7 @@ use wallet_common::built_info::version_string;
 /// NOTE: Do NOT use in production environments, as the certificates lifetime is incredibly large, and no revocation is
 /// implemented.
 #[derive(Parser)]
-#[command(author, version = version_string(), about, long_about)]
+#[command(author, version=version_string(), about, long_about)]
 struct Cli {
     #[command(subcommand)]
     command: Command,

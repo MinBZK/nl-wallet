@@ -406,7 +406,7 @@ pub async fn reset_wallet() -> Result<()> {
 }
 
 pub fn get_version_string() -> String {
-    version_string().into()
+    version_string()
 }
 
 #[cfg(test)]

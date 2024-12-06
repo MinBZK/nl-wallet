@@ -17,7 +17,7 @@ askama.workspace = true
 axum = { workspace = true, features = ["http1", "json", "form", "tokio", "tower-log", "tracing"] }
 axum_csrf = { workspace = true, features = ["layer"] }
 base64.workspace = true
-clap = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["derive", "string"] }
 clio = { workspace = true, features = ["clap-parse"] }
 config = { workspace = true, features = ["toml"] }
 crypto-common.workspace = true
