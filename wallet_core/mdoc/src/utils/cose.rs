@@ -176,7 +176,7 @@ pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
 
 pub fn new_certificate_header(cert: &BorrowingCertificate) -> Header {
     HeaderBuilder::new()
-        .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.as_ref().to_vec()))
+        .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.clone().into()))
         .build()
 }
 
