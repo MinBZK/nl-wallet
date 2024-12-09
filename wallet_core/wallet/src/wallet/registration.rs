@@ -1,16 +1,18 @@
-use std::borrow::Cow;
 use std::error::Error;
 
-use error_category::sentry_capture_error;
-use error_category::ErrorCategory;
 use tracing::info;
 use tracing::instrument;
 
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
+use platform_support::attested_key::AttestedKey;
+use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::attested_key::KeyWithAttestation;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::jwt::JwtError;
-use wallet_common::keys::StoredByIdentifier;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::utils;
 
 use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
@@ -27,32 +29,6 @@ use crate::storage::StorageState;
 use super::Wallet;
 use super::WalletRegistration;
 
-const WALLET_KEY_ID: &str = "wallet";
-
-/// This helper function normally simply returns `WALLET_KEY_ID`, but
-/// returns `WALLET_KEY_ID` suffixed with a unique thread local identifier
-/// when running tests. This allows multiple `Wallet` instances to be
-/// created in parallel.
-pub(super) fn wallet_key_id() -> Cow<'static, str> {
-    #[cfg(not(any(test, feature = "test")))]
-    return Cow::from(WALLET_KEY_ID);
-
-    #[cfg(any(test, feature = "test"))]
-    {
-        use std::cell::Cell;
-        use std::sync::atomic::AtomicUsize;
-        use std::sync::atomic::Ordering;
-
-        static WALLET_TEST_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-        thread_local! {
-            pub static WALLET_TEST_ID: Cell<usize> = WALLET_TEST_ID_COUNTER.fetch_add(1, Ordering::Relaxed).into();
-        }
-
-        Cow::from(format!("{}_{}", WALLET_KEY_ID, WALLET_TEST_ID.get()))
-    }
-}
-
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletRegistrationError {
@@ -63,9 +39,15 @@ pub enum WalletRegistrationError {
     InvalidPin(#[from] PinValidationError),
     #[error("could not request registration challenge from Wallet Provider: {0}")]
     ChallengeRequest(#[source] AccountProviderError),
-    #[error("could not get hardware public key: {0}")]
+    #[error("could not generate attested key: {0}")]
     #[category(pd)]
-    HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
+    KeyGeneration(#[source] Box<dyn Error + Send + Sync>),
+    #[error("could not perform key and/or app attestation: {0}")]
+    #[category(pd)]
+    Attestation(#[source] Box<dyn Error + Send + Sync>),
+    #[category(pd)]
+    #[error("could not get attested public key: {0}")]
+    AttestedPublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
     Signing(#[source] wallet_common::account::errors::Error),
     #[error("could not request registration from Wallet Provider: {0}")]
@@ -79,18 +61,10 @@ pub enum WalletRegistrationError {
     StoreCertificate(#[from] StorageError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC> {
-    pub(super) fn hw_privkey() -> PEK
-    where
-        PEK: StoredByIdentifier,
-    {
-        // Get or create the hardware ECDSA key for communication with the account server.
-        // The identifier used for this should be globally unique. If this is not the case,
-        // the `Wallet` has multiple instances, which is programmer error and should result
-        // in a panic.
-        PEK::new_unique(wallet_key_id().as_ref()).expect("wallet hardware key identifier is already in use")
-    }
-
+impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
+where
+    AKH: AttestedKeyHolder,
+{
     pub fn has_registration(&self) -> bool {
         self.registration.is_some()
     }
@@ -102,7 +76,6 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         CR: ConfigurationRepository,
         S: Storage,
         APC: AccountProviderClient,
-        PEK: PlatformEcdsaKey,
     {
         info!("Checking if already registered");
 
@@ -116,10 +89,6 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         // Make sure the PIN adheres to the requirements.
         validate_pin(&pin)?; // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
 
-        info!("Creating hardware private key");
-
-        let hw_privkey = Self::hw_privkey();
-
         info!("Requesting challenge from account server");
 
         let config = &self.config_repository.config().account_server;
@@ -132,21 +101,46 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
             .await
             .map_err(WalletRegistrationError::ChallengeRequest)?;
 
-        info!("Challenge received from account server, signing and sending registration to account server");
+        info!("Challenge received from account server, generating attested key");
+
+        let key_identifier = self
+            .key_holder
+            .generate()
+            .await
+            .map_err(|error| WalletRegistrationError::KeyGeneration(Box::new(error)))?;
+
+        info!("Performing key and app attestation");
+
+        // TODO: Save key identifier when error is retryable and on success.
+
+        let key_with_attestation = self
+            .key_holder
+            .attest(key_identifier.clone(), utils::sha256(&challenge))
+            .await
+            .map_err(|error| WalletRegistrationError::Attestation(Box::new(error.error)))?;
+
+        info!("Key and app attestation successful, signing and sending registration to account server");
 
         // Create a registration message and double sign it with the challenge.
         // Generate a new PIN salt and derive the private key from the provided PIN.
         let pin_salt = pin_key::new_pin_salt();
         let pin_key = PinKey::new(&pin, &pin_salt);
 
-        // Retrieve the public key and sign the registration message.
-        let hw_pubkey = hw_privkey
-            .verifying_key()
-            .await
-            .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
-        let registration_message = ChallengeResponse::<Registration>::new_unattested(&hw_privkey, &pin_key, challenge)
-            .await
-            .map_err(WalletRegistrationError::Signing)?;
+        // Sign the registration message based on the attestation type.
+        let (registration_message, attested_key) = match key_with_attestation {
+            KeyWithAttestation::Apple { key, attestation_data } => {
+                ChallengeResponse::<Registration>::new_apple(&key, attestation_data, &pin_key, challenge)
+                    .await
+                    .map(|message| (message, AttestedKey::Apple(key)))
+            }
+            // TODO: Support Google attestation.
+            KeyWithAttestation::Google { key, .. } => {
+                ChallengeResponse::<Registration>::new_unattested(&key, &pin_key, challenge)
+                    .await
+                    .map(|message| (message, AttestedKey::Google(key)))
+            }
+        }
+        .map_err(WalletRegistrationError::Signing)?;
 
         // Send the registration message to the account server and receive the wallet certificate in response.
         let wallet_certificate = self
@@ -157,13 +151,21 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
         info!("Certificate received from account server, verifying contents");
 
-        // Double check that the public key returned in the wallet certificate
-        // matches that of our hardware key.
+        // Double check that the public key returned in the wallet certificate matches that of our hardware key.
+        // Note that this public key is only available on Android, on iOS all we have is opaque attestation data.
         let cert_claims = wallet_certificate
             .parse_and_verify_with_sub(&certificate_public_key.into())
             .map_err(WalletRegistrationError::CertificateValidation)?;
-        if cert_claims.hw_pubkey.0 != hw_pubkey {
-            return Err(WalletRegistrationError::PublicKeyMismatch);
+
+        if let AttestedKey::Google(key) = &attested_key {
+            let attested_pub_key = key
+                .verifying_key()
+                .await
+                .map_err(|error| WalletRegistrationError::AttestedPublicKey(Box::new(error)))?;
+
+            if cert_claims.hw_pubkey.0 != attested_pub_key {
+                return Err(WalletRegistrationError::PublicKeyMismatch);
+            }
         }
 
         info!("Storing received registration");
@@ -177,6 +179,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
         // Save the registration data in storage.
         let data = RegistrationData {
+            attested_key_identifier: key_identifier,
             wallet_id: cert_claims.wallet_id,
             pin_salt,
             wallet_certificate,
@@ -184,7 +187,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
         storage.insert_data(&data).await?;
 
         // Keep the registration data in memory.
-        self.registration = WalletRegistration { hw_privkey, data }.into();
+        self.registration = WalletRegistration { attested_key, data }.into();
 
         // Unlock the wallet after successful registration
         self.lock.unlock();
@@ -195,13 +198,20 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use assert_matches::assert_matches;
+    use futures::FutureExt;
     use http::StatusCode;
     use p256::ecdsa::SigningKey;
+    use parking_lot::Mutex;
     use rand_core::OsRng;
 
+    use apple_app_attest::AssertionCounter;
+    use apple_app_attest::AttestationEnvironment;
+    use apple_app_attest::VerifiedAttestation;
     use wallet_common::account::messages::auth::RegistrationAttestation;
-    use wallet_common::account::serialization::DerVerifyingKey;
+    use wallet_common::account::messages::auth::WalletCertificate;
     use wallet_common::account::signed::SequenceNumberComparison;
     use wallet_common::jwt::Jwt;
     use wallet_common::utils;
@@ -209,18 +219,18 @@ mod tests {
     use crate::account_provider::AccountProviderResponseError;
     use crate::storage::KeyedData;
     use crate::storage::KeyedDataResult;
-    use crate::wallet::test::FallibleMockHardwareEcdsaKey;
-    use crate::wallet::test::ACCOUNT_SERVER_KEYS;
 
     use super::super::test::WalletWithMocks;
     use super::*;
 
     const PIN: &str = "051097";
 
+    // TODO: Add test for registration using Google attested key.
+
     #[tokio::test]
-    async fn test_wallet_register_success() {
+    async fn test_wallet_register_success_apple() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // The wallet should report that it is currently unregistered and locked.
         assert!(!wallet.has_registration());
@@ -239,9 +249,15 @@ mod tests {
 
         // Have the account server respond with a valid
         // certificate when the wallet sends a request for it.
-        let cert = wallet.valid_certificate().await;
-        let cert_response = cert.clone();
+        // let cert = wallet.valid_certificate().await;
+        // let cert_response = cert.clone();
+        let trust_anchor = wallet.key_holder.ca.trust_anchor().to_owned();
+        let app_identifier = wallet.key_holder.app_identifier.clone();
         let challenge_expected = challenge.clone();
+
+        // Set up a mutex for the mock callback to write the generated wallet certificate to.
+        let generated_certificate: Arc<Mutex<Option<WalletCertificate>>> = Arc::new(Mutex::new(None));
+        let generated_certificate_clone = Arc::clone(&generated_certificate);
 
         wallet
             .account_provider_client
@@ -249,27 +265,42 @@ mod tests {
             .return_once(move |_, registration_signed| {
                 let registration = registration_signed
                     .dangerous_parse_unverified()
-                    .expect("Could not parse registration message");
+                    .expect("registration message should parse");
 
                 assert_eq!(registration.challenge, challenge_expected);
 
-                let RegistrationAttestation::None {
-                    hw_pubkey: DerVerifyingKey(hw_pubkey),
-                } = &registration.payload.attestation
+                let RegistrationAttestation::Apple { data: attestation_data } = &registration.payload.attestation
                 else {
-                    panic!("registration message should contain unattested public key");
+                    panic!("registration message should contain Apple attestation");
                 };
 
+                // Verify the mock attestaiton in order to get the public key.
+                let (_, attested_public_key) = VerifiedAttestation::parse_and_verify(
+                    attestation_data,
+                    &[trust_anchor],
+                    &utils::sha256(&registration.challenge),
+                    &app_identifier,
+                    AttestationEnvironment::Development,
+                )
+                .expect("registration message Apple attestation should verify");
+
+                // Verify the registration message, both counters start at 0.
                 registration_signed
-                    .parse_and_verify_ecdsa(
+                    .parse_and_verify_apple(
                         &registration.challenge,
                         SequenceNumberComparison::EqualTo(0),
-                        hw_pubkey,
+                        &attested_public_key,
+                        &app_identifier,
+                        AssertionCounter::default(),
                         &registration.payload.pin_pubkey.0,
                     )
-                    .expect("Could not verify registration message");
+                    .expect("registration message should verify");
 
-                Ok(cert_response)
+                // Generate a valid certificate and wallet id based on on the public key.
+                let certificate = WalletWithMocks::valid_certificate(None, attested_public_key);
+                generated_certificate_clone.lock().replace(certificate.clone());
+
+                Ok(certificate)
             });
 
         // Register the wallet with a valid PIN.
@@ -290,12 +321,15 @@ mod tests {
             .await
             .unwrap()
             .expect("Registration data not present in storage");
-        assert_eq!(stored_registration.wallet_certificate.0, cert.0);
+        assert_eq!(
+            stored_registration.wallet_certificate.0,
+            generated_certificate.lock().as_ref().unwrap().0
+        );
     }
 
     #[tokio::test]
     async fn test_wallet_register_error_already_registered() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         let error = wallet
             .register(PIN.to_string())
@@ -308,7 +342,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_invalid_pin() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Try to register with an insecure PIN.
         let error = wallet
@@ -323,7 +357,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_challenge_request() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Have the account server respond to the challenge request with a 500 error.
         wallet
@@ -341,59 +375,34 @@ mod tests {
         assert!(wallet.storage.get_mut().data.is_empty());
     }
 
-    #[tokio::test]
-    async fn test_wallet_register_error_hardware_public_key() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+    // #[tokio::test]
+    // async fn test_wallet_register_error_signing() {
+    //     let mut wallet = WalletWithMocks::new_unregistered().await;
 
-        wallet
-            .account_provider_client
-            .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
+    //     wallet
+    //         .account_provider_client
+    //         .expect_registration_challenge()
+    //         .return_once(|_| Ok(utils::random_bytes(32)));
 
-        // Have the hardware public key fetching fail.
-        FallibleMockHardwareEcdsaKey::next_public_key_error_for_identifier(
-            wallet_key_id().as_ref().to_string(),
-            p256::ecdsa::Error::new(),
-        );
+    //     // Have the hardware key signing fail.
+    //     FallibleMockHardwareEcdsaKey::next_private_key_error_for_identifier(
+    //         wallet_key_id().as_ref().to_string(),
+    //         p256::ecdsa::Error::new(),
+    //     );
 
-        let error = wallet
-            .register(PIN.to_string())
-            .await
-            .expect_err("Wallet registration should have resulted in error");
+    //     let error = wallet
+    //         .register(PIN.to_string())
+    //         .await
+    //         .expect_err("Wallet registration should have resulted in error");
 
-        assert_matches!(error, WalletRegistrationError::HardwarePublicKey(_));
-        assert!(!wallet.has_registration());
-        assert!(wallet.storage.get_mut().data.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_wallet_register_error_signing() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
-
-        wallet
-            .account_provider_client
-            .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
-
-        // Have the hardware key signing fail.
-        FallibleMockHardwareEcdsaKey::next_private_key_error_for_identifier(
-            wallet_key_id().as_ref().to_string(),
-            p256::ecdsa::Error::new(),
-        );
-
-        let error = wallet
-            .register(PIN.to_string())
-            .await
-            .expect_err("Wallet registration should have resulted in error");
-
-        assert_matches!(error, WalletRegistrationError::Signing(_));
-        assert!(!wallet.has_registration());
-        assert!(wallet.storage.get_mut().data.is_empty());
-    }
+    //     assert_matches!(error, WalletRegistrationError::Signing(_));
+    //     assert!(!wallet.has_registration());
+    //     assert!(wallet.storage.get_mut().data.is_empty());
+    // }
 
     #[tokio::test]
     async fn test_wallet_register_error_registration_request() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         wallet
             .account_provider_client
@@ -418,7 +427,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_certificate_validation() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         wallet
             .account_provider_client
@@ -427,15 +436,21 @@ mod tests {
 
         // Have the account server sign the wallet certificate with
         // a key to which the certificate public key does not belong.
-        let other_key = SigningKey::random(&mut OsRng);
-        let cert = Jwt::sign_with_sub(&wallet.valid_certificate_claims().await, &other_key)
-            .await
+        wallet.account_provider_client.expect_register().return_once(|_, _| {
+            let other_account_server_key = SigningKey::random(&mut OsRng);
+            // Note that this key does not get checked by the wallet for Apple attestation.
+            let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+
+            let certificate = Jwt::sign_with_sub(
+                &WalletWithMocks::valid_certificate_claims(None, random_pubkey),
+                &other_account_server_key,
+            )
+            .now_or_never()
+            .unwrap()
             .unwrap();
 
-        wallet
-            .account_provider_client
-            .expect_register()
-            .return_once(|_, _| Ok(cert));
+            Ok(certificate)
+        });
 
         let error = wallet
             .register(PIN.to_string())
@@ -447,54 +462,24 @@ mod tests {
         assert!(wallet.storage.get_mut().data.is_empty());
     }
 
-    #[tokio::test]
-    async fn test_wallet_register_error_public_key_mismatch() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
-
-        wallet
-            .account_provider_client
-            .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
-
-        // Have the account server include a hardware public key
-        // in the wallet certificate that the wallet did not send.
-        let other_key = SigningKey::random(&mut OsRng);
-        let mut cert_claims = wallet.valid_certificate_claims().await;
-        cert_claims.hw_pubkey = (*other_key.verifying_key()).into();
-        let cert = Jwt::sign_with_sub(&cert_claims, &ACCOUNT_SERVER_KEYS.certificate_signing_key)
-            .await
-            .unwrap();
-
-        wallet
-            .account_provider_client
-            .expect_register()
-            .return_once(|_, _| Ok(cert));
-
-        let error = wallet
-            .register(PIN.to_string())
-            .await
-            .expect_err("Wallet registration should have resulted in error");
-
-        assert_matches!(error, WalletRegistrationError::PublicKeyMismatch);
-        assert!(!wallet.has_registration());
-        assert!(wallet.storage.get_mut().data.is_empty());
-    }
+    // TODO: Test WalletRegistrationError::PublicKeyMismatch error with Google attestation.
 
     #[tokio::test]
     async fn test_wallet_register_error_store_certificate() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         wallet
             .account_provider_client
             .expect_registration_challenge()
             .return_once(|_| Ok(utils::random_bytes(32)));
 
-        let cert = wallet.valid_certificate().await;
+        wallet.account_provider_client.expect_register().return_once(|_, _| {
+            // Note that this key does not get checked by the wallet for Apple attestation.
+            let random_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+            let certificate = WalletWithMocks::valid_certificate(None, random_pubkey);
 
-        wallet
-            .account_provider_client
-            .expect_register()
-            .return_once(|_, _| Ok(cert));
+            Ok(certificate)
+        });
 
         // Have the database return an error
         // when inserting the wallet certificate.

@@ -5,12 +5,14 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
+use apple_app_attest::AppIdentifier;
 use nl_wallet_mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
+use platform_support::attested_key::mock::MockAppleHardwareAttestedKeyHolder;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use wallet::mock::default_configuration;
@@ -24,7 +26,6 @@ use wallet::wallet_deps::UpdateableConfigurationRepository;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
 use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 use wallet_server::verifier::StartDisclosureRequest;
 use wallet_server::verifier::StartDisclosureResponse;
 use wallet_server::verifier::StatusParams;
@@ -43,6 +44,9 @@ async fn main() {
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
     let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
 
+    let team_identifier = option_env!("TEAM_IDENTIFIER").unwrap_or("XGL6UKBPLP");
+    let bundle_identifier = option_env!("BUNDLE_IDENTIFIER").unwrap_or("nl.ictu.edi.wallet.latest");
+
     let config_server_config = ConfigServerConfiguration::default();
     let wallet_config = default_configuration();
 
@@ -60,7 +64,7 @@ async fn main() {
     let mut wallet: Wallet<
         HttpConfigurationRepository<TlsPinningConfig>,
         MockStorage,
-        MockHardwareEcdsaKey,
+        MockAppleHardwareAttestedKeyHolder,
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,
@@ -68,6 +72,7 @@ async fn main() {
     > = Wallet::init_registration(
         config_repository,
         MockStorage::default(),
+        MockAppleHardwareAttestedKeyHolder::new_mock(AppIdentifier::new(team_identifier, bundle_identifier)),
         HttpAccountProviderClient::default(),
     )
     .await

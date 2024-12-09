@@ -4,7 +4,9 @@ use tracing::warn;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use wallet_common::keys::StoredByIdentifier;
+use platform_support::attested_key::AttestedKey;
+use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::attested_key::GoogleAttestedKey;
 
 use crate::storage::Storage;
 
@@ -19,10 +21,10 @@ pub enum ResetError {
 
 type ResetResult<T> = std::result::Result<T, ResetError>;
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
-    PEK: StoredByIdentifier,
+    AKH: AttestedKeyHolder,
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
         // Only reset if we actually have a registration.
@@ -32,9 +34,14 @@ where
             // Clear the database and its encryption key.
             self.storage.get_mut().clear().await;
 
-            // Delete the hardware private key, log any potential error.
-            if let Err(error) = registration.hw_privkey.delete().await {
-                warn!("Could not delete hardware private key: {0}", error);
+            // Delete the hardware attested key if we are on Android, log any potential error.
+            match registration.attested_key {
+                AttestedKey::Apple(_) => {}
+                AttestedKey::Google(key) => {
+                    if let Err(error) = key.delete().await {
+                        warn!("Could not delete hardware attested key: {0}", error);
+                    };
+                }
             };
 
             self.issuance_session.take();
@@ -79,21 +86,21 @@ mod tests {
     use assert_matches::assert_matches;
 
     use openid4vc::mock::MockIssuanceSession;
-    use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 
     use crate::disclosure::MockMdocDisclosureSession;
     use crate::storage::StorageState;
 
     use super::super::issuance::PidIssuanceSession;
-    use super::super::registration;
     use super::super::test::WalletWithMocks;
     use super::super::test::{self};
     use super::*;
 
+    // TODO: Test key deletion for Google attested key.
+
     #[tokio::test]
     async fn test_wallet_reset() {
         // Test resetting a registered and unlocked Wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Register callbacks for both documents and history events and clear anything received on them.
         let documents = test::setup_mock_documents_callback(&mut wallet)
@@ -105,11 +112,6 @@ mod tests {
 
         documents.lock().clear();
         events.lock().clear();
-
-        // Double check that the hardware private key exists.
-        assert!(MockHardwareEcdsaKey::identifier_exists(
-            registration::wallet_key_id().as_ref()
-        ));
 
         // Check that the hardware key exists.
         wallet
@@ -124,9 +126,6 @@ mod tests {
             wallet.storage.get_mut().state().await.unwrap(),
             StorageState::Uninitialized
         );
-        assert!(!MockHardwareEcdsaKey::identifier_exists(
-            registration::wallet_key_id().as_ref()
-        ));
         assert!(wallet.is_locked());
 
         // We should have received both an empty documents and history events callback during the reset.
@@ -142,14 +141,9 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_reset_full() {
         // Create the impossible Wallet that is doing everything at once and reset it.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
         wallet.issuance_session = PidIssuanceSession::Openid4vci(MockIssuanceSession::default()).into();
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
-
-        // Check that the hardware key exists.
-        assert!(MockHardwareEcdsaKey::identifier_exists(
-            registration::wallet_key_id().as_ref()
-        ));
 
         wallet
             .reset()
@@ -162,9 +156,6 @@ mod tests {
             wallet.storage.get_mut().state().await.unwrap(),
             StorageState::Uninitialized
         );
-        assert!(!MockHardwareEcdsaKey::identifier_exists(
-            registration::wallet_key_id().as_ref()
-        ));
         assert!(wallet.issuance_session.is_none());
         assert!(wallet.disclosure_session.is_none());
         assert!(wallet.is_locked());
@@ -172,7 +163,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_reset_error_not_registered() {
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Attempting to reset an unregistered Wallet should result in an error.
         let error = wallet

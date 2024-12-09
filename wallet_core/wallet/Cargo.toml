@@ -76,6 +76,7 @@ tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
 wiremock.workspace = true
 
+apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
 nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "test"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 # enable the "mock" feature for platform_support when running tests

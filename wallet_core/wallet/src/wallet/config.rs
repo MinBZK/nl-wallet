@@ -1,12 +1,15 @@
+use platform_support::attested_key::AttestedKeyHolder;
+
 pub use crate::config::ConfigCallback;
 
 use crate::config::ObservableConfigurationRepository;
 
 use super::Wallet;
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     CR: ObservableConfigurationRepository,
+    AKH: AttestedKeyHolder,
 {
     pub fn set_config_callback(&self, mut callback: ConfigCallback) -> Option<ConfigCallback> {
         callback(self.config_repository.config());
@@ -35,7 +38,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_set_clear_config_callback() {
         // Prepare an unregistered wallet.
-        let wallet = WalletWithMocks::new_unregistered().await;
+        let wallet = WalletWithMocks::new_unregistered();
 
         // Wrap a `Vec<Configuration>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.

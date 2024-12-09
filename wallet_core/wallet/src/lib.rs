@@ -80,6 +80,7 @@ pub mod wallet_deps {
     pub use crate::issuance::DigidSession;
     pub use crate::issuance::HttpDigidSession;
     pub use crate::storage::Storage;
+    pub use crate::wte::WpWteIssuanceClient;
 }
 
 #[cfg(feature = "mock")]

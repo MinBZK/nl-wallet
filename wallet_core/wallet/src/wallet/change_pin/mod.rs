@@ -3,7 +3,7 @@ mod storage;
 
 use tracing::info;
 
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::account::serialization::DerVerifyingKey;
 
 use crate::account_provider::AccountProviderClient;
@@ -17,11 +17,11 @@ use crate::Wallet;
 
 const CHANGE_PIN_RETRIES: u8 = 3;
 
-impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
+impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     CR: ConfigurationRepository,
     S: Storage,
-    PEK: PlatformEcdsaKey,
+    AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
     WIC: Default,
 {
@@ -44,15 +44,17 @@ where
         let instruction_result_public_key = instruction_result_public_key.into();
         let DerVerifyingKey(certificate_public_key) = &config.certificate_public_key;
 
-        let hw_pubkey = registration
-            .hw_privkey
-            .verifying_key()
-            .await
-            .map_err(|e| ChangePinError::HardwarePublicKey(e.into()))?;
+        // Extract the public key belonging to the hardware attested key from the current certificate.
+        let DerVerifyingKey(hw_pubkey) = registration
+            .data
+            .wallet_certificate
+            .parse_and_verify_with_sub(&certificate_public_key.into())
+            .expect("stored wallet certificate should be valid")
+            .hw_pubkey;
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
-            &registration.hw_privkey,
+            &registration.attested_key,
             &self.account_provider_client,
             &registration.data,
             &config.http_config,
@@ -62,7 +64,7 @@ where
         let session = BeginChangePinOperation::new(
             &instruction_client,
             &self.storage,
-            &registration.data.wallet_id,
+            &registration.data,
             certificate_public_key,
             &hw_pubkey,
         );
@@ -93,7 +95,7 @@ where
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
-            &registration.hw_privkey,
+            &registration.attested_key,
             &self.account_provider_client,
             &registration.data,
             &config.http_config,
@@ -113,9 +115,11 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use futures::FutureExt;
     use serde::de::DeserializeOwned;
     use serde::Serialize;
 
+    use platform_support::attested_key::AttestedKey;
     use wallet_common::account::messages::instructions::ChangePinCommit;
     use wallet_common::account::messages::instructions::ChangePinStart;
     use wallet_common::account::messages::instructions::Instruction;
@@ -128,7 +132,7 @@ mod tests {
     use crate::wallet::test::WalletWithMocks;
     use crate::wallet::test::ACCOUNT_SERVER_KEYS;
 
-    async fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
+    fn create_wp_result<T>(result: T) -> Jwt<InstructionResultClaims<T>>
     where
         T: Serialize + DeserializeOwned,
     {
@@ -138,13 +142,14 @@ mod tests {
             iat: jsonwebtoken::get_current_timestamp(),
         };
         Jwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("could not sign instruction result")
     }
 
     #[tokio::test]
     async fn test_wallet_begin_and_continue_change_pin() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet
             .account_provider_client
@@ -152,7 +157,15 @@ mod tests {
             .times(2)
             .returning(|_, _| Ok(utils::random_bytes(32)));
 
-        let wp_result = create_wp_result(wallet.valid_certificate().await).await;
+        let registration = wallet.registration.as_ref().unwrap();
+        let AttestedKey::Apple(attested_key) = &registration.attested_key else {
+            unreachable!();
+        };
+
+        let wp_result = create_wp_result(WalletWithMocks::valid_certificate(
+            Some(registration.data.wallet_id.clone()),
+            *attested_key.verifying_key(),
+        ));
 
         wallet
             .account_provider_client
@@ -172,7 +185,7 @@ mod tests {
             .expect("could not read change_pin_state");
         assert_eq!(change_pin_state, Some(State::Commit));
 
-        let wp_result = create_wp_result(()).await;
+        let wp_result = create_wp_result(());
 
         wallet
             .account_provider_client

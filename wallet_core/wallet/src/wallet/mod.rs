@@ -20,7 +20,9 @@ use uuid::Uuid;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
-use platform_support::hw_keystore::hardware::HardwareEcdsaKey;
+use platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
+use platform_support::attested_key::AttestedKey;
+use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 
 use crate::account_provider::HttpAccountProviderClient;
@@ -53,29 +55,33 @@ pub use self::uri::UriType;
 
 use self::issuance::PidIssuanceSession;
 
-struct WalletRegistration<K> {
-    hw_privkey: K,
+struct WalletRegistration<A, G> {
+    attested_key: AttestedKey<A, G>,
     data: RegistrationData,
 }
 
 pub struct Wallet<
     CR = UpdatingFileHttpConfigurationRepository, // ConfigurationRepository
     S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
-    PEK = HardwareEcdsaKey,                       // PlatformEcdsaKey
+    AKH = HardwareAttestedKeyHolder,              // AttestedKeyHolder
     APC = HttpAccountProviderClient,              // AccountProviderClient
     DS = HttpDigidSession,                        // DigidSession
-    IC = HttpIssuanceSession,                     // IssuanceSession
+    IS = HttpIssuanceSession,                     // IssuanceSession
     MDS = DisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
     WIC = WpWteIssuanceClient,                    // WteIssuanceClient
-> {
+> where
+    AKH: AttestedKeyHolder,
+{
     config_repository: CR,
     storage: RwLock<S>,
+    key_holder: AKH,
+    registration:
+        Option<WalletRegistration<<AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey>>,
     account_provider_client: APC,
-    issuance_session: Option<PidIssuanceSession<DS, IC>>,
+    issuance_session: Option<PidIssuanceSession<DS, IS>>,
     disclosure_session: Option<MDS>,
+    wte_issuance_client: WIC,
     lock: WalletLock,
-    registration: Option<WalletRegistration<PEK>>,
     documents_callback: Option<DocumentsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,
-    wte_issuance_client: WIC,
 }

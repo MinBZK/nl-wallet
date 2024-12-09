@@ -17,7 +17,7 @@ use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::Certificate;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
@@ -128,9 +128,10 @@ impl From<MdocDisclosureError> for DisclosureError {
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     CR: ConfigurationRepository,
+    AKH: AttestedKeyHolder,
     MDS: MdocDisclosureSession<Self>,
     S: Storage,
 {
@@ -336,7 +337,6 @@ where
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
-        PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: Default,
     {
@@ -479,9 +479,10 @@ where
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> MdocDataSource for Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, AKH, APC, DS, IS, MDS, WIC> MdocDataSource for Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
+    AKH: AttestedKeyHolder,
 {
     type MdocIdentifier = Uuid;
     type Error = StorageError;
@@ -575,7 +576,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let reader_registration = ReaderRegistration::new_mock();
@@ -628,7 +629,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_locked() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet.lock();
 
@@ -645,7 +646,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Starting disclosure on an unregistered wallet should result in an error.
         let error = wallet
@@ -659,7 +660,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_session_state() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Start an active disclosure session.
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
@@ -676,7 +677,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_disclosure_uri() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Starting disclosure on a wallet with a malformed disclosure URI should result in an error.
         // (The `MockMdocDisclosureSession` used by `WalletWithMocks` rejects URLs containing an `invalid`
@@ -696,7 +697,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_disclosure_session() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Set up an `MdocDisclosureSession` start to return the following error.
         MockMdocDisclosureSession::next_start_error(VpClientError::MissingSessionType.into());
@@ -717,7 +718,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_return_url() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Set up an `MdocDisclosureSession` start to return the following error.
         let return_url = Url::parse("https://example.com/return/here").unwrap();
@@ -748,7 +749,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_attributes_not_available() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Set up an `MdocDisclosureSession` start to return that attributes are not available.
         let missing_attributes = vec!["com.example.pid/com.example.pid/age_over_18".parse().unwrap()];
@@ -786,7 +787,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_mdoc_attributes_not_available() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Set up an `MdocDisclosureSession` start to return that attributes are not available.
         let missing_attributes = vec!["com.example.pid/com.example.pid/foobar".parse().unwrap()];
@@ -823,7 +824,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_mdoc_attributes() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let proposed_attributes =
@@ -861,7 +862,7 @@ mod tests {
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_cancel_disclosure() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
@@ -926,7 +927,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_cancel_disclosure_missing_attributes() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
@@ -991,7 +992,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_locked() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
 
@@ -1010,7 +1011,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Cancelling disclosure on an unregistered wallet should result in an error.
         let error = wallet
@@ -1025,7 +1026,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_session_state() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Cancelling disclosure on a wallet without an active
         // disclosure session should result in an error.
@@ -1043,7 +1044,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
@@ -1126,7 +1127,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_error_locked() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
 
@@ -1158,7 +1159,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Accepting disclosure on an unregistered wallet should result in an error.
         let error = wallet
@@ -1177,7 +1178,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_error_session_state_no_session() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Accepting disclosure on a wallet without an active
         // disclosure session should result in an error.
@@ -1194,7 +1195,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_error_session_state_missing_attributes() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::MissingAttributes(Default::default()),
@@ -1223,7 +1224,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_error_disclosure_session() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
@@ -1368,7 +1369,7 @@ mod tests {
         #[case] expect_history_log: bool,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
@@ -1476,7 +1477,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_error_holder_attributes_are_shared() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
@@ -1551,7 +1552,7 @@ mod tests {
     #[tokio::test]
     async fn test_mdoc_by_doc_types() {
         // Prepare a wallet in initial state.
-        let wallet = WalletWithMocks::new_unregistered().await;
+        let wallet = WalletWithMocks::new_unregistered();
 
         // Create some fake `Mdoc` entries to place into wallet storage.
         let mdoc1 = Mdoc::new_example_mock();
@@ -1602,7 +1603,7 @@ mod tests {
     #[tokio::test]
     async fn test_mdoc_by_doc_types_empty() {
         // Prepare a wallet in initial state.
-        let wallet = WalletWithMocks::new_unregistered().await;
+        let wallet = WalletWithMocks::new_unregistered();
 
         // Calling the `MdocDataSource.mdoc_by_doc_types()` method
         // on the `Wallet` should return an empty result.
@@ -1617,7 +1618,7 @@ mod tests {
     #[tokio::test]
     async fn test_mdoc_by_doc_types_error() {
         // Prepare a wallet in initial state.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Set up `MockStorage` to return an error when performing a query.
         wallet.storage.get_mut().has_query_error = true;

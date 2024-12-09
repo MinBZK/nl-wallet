@@ -755,6 +755,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_database_keyed_storage() {
         let registration = RegistrationData {
+            attested_key_identifier: "key_id".to_string(),
             pin_salt: vec![1, 2, 3, 4],
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
@@ -800,6 +801,7 @@ pub(crate) mod tests {
         // Upsert registration
         let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
+            attested_key_identifier: "key_id".to_string(),
             pin_salt: new_salt,
             wallet_id: registration.wallet_id.clone(),
             wallet_certificate: registration.wallet_certificate.clone(),

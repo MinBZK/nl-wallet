@@ -20,6 +20,7 @@ use tokio::time;
 use url::Url;
 use uuid::Uuid;
 
+use apple_app_attest::AppIdentifier;
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::utils::x509;
@@ -32,6 +33,7 @@ use openid4vc::oidc;
 use openid4vc::server_state::SessionState;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
+use platform_support::attested_key::mock::MockAppleHardwareAttestedKeyHolder;
 use platform_support::utils::mock::MockHardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use wallet::mock::default_configuration;
@@ -41,15 +43,18 @@ use wallet::wallet_deps::ConfigServerConfiguration;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::UpdateableConfigurationRepository;
+use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
 use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
+use wallet_provider::settings::AppleEnvironment;
+use wallet_provider::settings::Ios;
+use wallet_provider::settings::RootCertificate;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::pid::mock::MockAttributesLookup;
@@ -95,11 +100,12 @@ pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
 pub type WalletWithMocks = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     MockStorage,
-    MockHardwareEcdsaKey,
+    MockAppleHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     MockDigidSession,
     HttpIssuanceSession,
     DisclosureSession<HttpVpMessageClient, Uuid>,
+    WpWteIssuanceClient,
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
@@ -114,9 +120,17 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
     (mut cs_settings, cs_root_ca): (CsSettings, DerTrustAnchor),
-    (wp_settings, wp_root_ca): (WpSettings, DerTrustAnchor),
+    (mut wp_settings, wp_root_ca): (WpSettings, DerTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
+    let key_holder = MockAppleHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock());
+    wp_settings.ios = Ios {
+        team_identifier: key_holder.app_identifier.prefix().to_string(),
+        bundle_identifier: key_holder.app_identifier.bundle_identifier().to_string(),
+        environment: AppleEnvironment::Development,
+        root_certificates: vec![RootCertificate::from(key_holder.ca.trust_anchor().to_owned())],
+    };
+
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_config_base_url(&cs_settings.port),
@@ -155,6 +169,7 @@ pub async fn setup_wallet_and_env(
     Wallet::init_registration(
         config_repository,
         MockStorage::default(),
+        key_holder,
         HttpAccountProviderClient::default(),
     )
     .await

@@ -3,10 +3,12 @@ use std::future::Future;
 use tokio::sync::RwLock;
 use tokio::sync::RwLockWriteGuard;
 
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::attested_key::AttestedKey;
+use platform_support::attested_key::GoogleAttestedKey;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionChallengeRequest;
+use wallet_common::apple::AppleAttestedKey;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::EcdsaDecodingKey;
 
@@ -18,17 +20,17 @@ use crate::storage::Storage;
 
 use super::InstructionError;
 
-pub struct InstructionClient<'a, S, K, A> {
+pub struct InstructionClient<'a, S, AK, GK, A> {
     pin: String,
     storage: &'a RwLock<S>,
-    hw_privkey: &'a K,
+    attested_key: &'a AttestedKey<AK, GK>,
     account_provider_client: &'a A,
     registration: &'a RegistrationData,
     client_config: &'a TlsPinningConfig,
     instruction_result_public_key: &'a EcdsaDecodingKey,
 }
 
-impl<'a, S, K, A> InstructionClient<'a, S, K, A> {
+impl<'a, S, AK, GK, A> InstructionClient<'a, S, AK, GK, A> {
     /// Creates an [`InstructionClient`].
     /// In most cases this function should not be used directly, as the wallet must try to finalize
     /// a PIN change if it is in progress. [`Wallet::new_instruction_client`] will do this before
@@ -36,7 +38,7 @@ impl<'a, S, K, A> InstructionClient<'a, S, K, A> {
     pub fn new(
         pin: String,
         storage: &'a RwLock<S>,
-        hw_privkey: &'a K,
+        attested_key: &'a AttestedKey<AK, GK>,
         account_provider_client: &'a A,
         registration: &'a RegistrationData,
         client_config: &'a TlsPinningConfig,
@@ -45,7 +47,7 @@ impl<'a, S, K, A> InstructionClient<'a, S, K, A> {
         Self {
             pin,
             storage,
-            hw_privkey,
+            attested_key,
             account_provider_client,
             registration,
             client_config,
@@ -70,23 +72,29 @@ impl<'a, S, K, A> InstructionClient<'a, S, K, A> {
     }
 }
 
-impl<'a, S, K, A> InstructionClient<'a, S, K, A>
+impl<'a, S, AK, GK, A> InstructionClient<'a, S, AK, GK, A>
 where
     S: Storage,
-    K: PlatformEcdsaKey,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
     async fn instruction_challenge<I>(&self, storage: &mut RwLockWriteGuard<'_, S>) -> Result<Vec<u8>, InstructionError>
     where
         I: InstructionAndResult,
     {
-        let challenge_request = Self::with_sequence_number(storage, |seq_num| {
-            InstructionChallengeRequest::new_ecdsa::<I>(
-                self.registration.wallet_id.clone(),
-                seq_num,
-                self.hw_privkey,
-                self.registration.wallet_certificate.clone(),
-            )
+        let wallet_id = self.registration.wallet_id.clone();
+        let wallet_certificate = self.registration.wallet_certificate.clone();
+
+        let challenge_request = Self::with_sequence_number(storage, |seq_num| async move {
+            match self.attested_key {
+                AttestedKey::Apple(key) => {
+                    InstructionChallengeRequest::new_apple::<I>(wallet_id, seq_num, key, wallet_certificate).await
+                }
+                AttestedKey::Google(key) => {
+                    InstructionChallengeRequest::new_ecdsa::<I>(wallet_id, seq_num, key, wallet_certificate).await
+                }
+            }
         })
         .await?;
 
@@ -119,15 +127,17 @@ where
 
         let instruction = construct(challenge.clone()).await?;
 
-        let instruction = Self::with_sequence_number(&mut storage, |seq_num| {
-            Instruction::new_ecdsa(
-                instruction,
-                challenge,
-                seq_num,
-                self.hw_privkey,
-                &pin_key,
-                self.registration.wallet_certificate.clone(),
-            )
+        let wallet_certificate = self.registration.wallet_certificate.clone();
+
+        let instruction = Self::with_sequence_number(&mut storage, |seq_num| async move {
+            match self.attested_key {
+                AttestedKey::Apple(key) => {
+                    Instruction::new_apple(instruction, challenge, seq_num, key, &pin_key, wallet_certificate).await
+                }
+                AttestedKey::Google(key) => {
+                    Instruction::new_ecdsa(instruction, challenge, seq_num, key, &pin_key, wallet_certificate).await
+                }
+            }
         })
         .await?;
 
@@ -146,19 +156,19 @@ where
     }
 }
 
-pub struct InstructionClientFactory<'a, S, K, A> {
+pub struct InstructionClientFactory<'a, S, AK, GK, A> {
     storage: &'a RwLock<S>,
-    hw_privkey: &'a K,
+    attested_key: &'a AttestedKey<AK, GK>,
     account_provider_client: &'a A,
     registration: &'a RegistrationData,
     client_config: &'a TlsPinningConfig,
     instruction_result_public_key: &'a EcdsaDecodingKey,
 }
 
-impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
+impl<'a, S, AK, GK, A> InstructionClientFactory<'a, S, AK, GK, A> {
     pub fn new(
         storage: &'a RwLock<S>,
-        hw_privkey: &'a K,
+        attested_key: &'a AttestedKey<AK, GK>,
         account_provider_client: &'a A,
         registration: &'a RegistrationData,
         client_config: &'a TlsPinningConfig,
@@ -166,7 +176,7 @@ impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
     ) -> Self {
         Self {
             storage,
-            hw_privkey,
+            attested_key,
             account_provider_client,
             registration,
             client_config,
@@ -176,11 +186,11 @@ impl<'a, S, K, A> InstructionClientFactory<'a, S, K, A> {
 
     /// Creates an [`InstructionClient`].
     /// See [`InstructionClient::new`].
-    pub fn create(&self, pin: String) -> InstructionClient<'a, S, K, A> {
+    pub fn create(&self, pin: String) -> InstructionClient<'a, S, AK, GK, A> {
         InstructionClient::new(
             pin,
             self.storage,
-            self.hw_privkey,
+            self.attested_key,
             self.account_provider_client,
             self.registration,
             self.client_config,

@@ -7,6 +7,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use derive_more::From;
 use derive_more::Into;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -92,7 +93,7 @@ pub enum AppleEnvironment {
     Production,
 }
 
-#[derive(Clone, Into)]
+#[derive(Clone, From, Into)]
 pub struct RootCertificate(TrustAnchor<'static>);
 
 impl Settings {

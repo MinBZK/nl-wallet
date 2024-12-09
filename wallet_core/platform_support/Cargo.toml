@@ -16,12 +16,13 @@ doctest = false
 mock_hw_keystore = ["wallet_common/mock_hardware_keys"]
 # Include the MockAppleHardwareAttestedKeyHolder type for use in tests
 mock_apple_attested_key = ["dep:apple_app_attest", "dep:uuid", "wallet_common/mock_apple_attested_key"]
+mock_apple_ca = ["apple_app_attest/mock_ca"]
 persistent_mock_apple_attested_key = [
     "mock_apple_attested_key",
+    "mock_apple_ca",
     "dep:futures",
     "dep:serde",
     "dep:serde_json",
-    "apple_app_attest/mock_ca",
     "tokio/fs",
     "tokio/sync",
 ]

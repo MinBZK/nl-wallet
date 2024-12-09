@@ -1,4 +1,4 @@
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::EcdsaDecodingKey;
 
@@ -12,11 +12,11 @@ use crate::storage::Storage;
 use super::Wallet;
 use super::WalletRegistration;
 
-impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
+impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     CR: ConfigurationRepository,
     S: Storage,
-    PEK: PlatformEcdsaKey,
+    AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
     WIC: Default,
 {
@@ -26,10 +26,16 @@ where
     pub(super) async fn new_instruction_client<'a>(
         &'a self,
         pin: String,
-        registration: &'a WalletRegistration<PEK>,
+        registration: &'a WalletRegistration<
+            <AKH as AttestedKeyHolder>::AppleKey,
+            <AKH as AttestedKeyHolder>::GoogleKey,
+        >,
         client_config: &'a TlsPinningConfig,
         instruction_result_public_key: &'a EcdsaDecodingKey,
-    ) -> Result<InstructionClient<'a, S, PEK, APC>, ChangePinError> {
+    ) -> Result<
+        InstructionClient<'a, S, <AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey, APC>,
+        ChangePinError,
+    > {
         tracing::info!("Try to finalize PIN change if it is in progress");
 
         if self.storage.get_change_pin_state().await?.is_some() {
@@ -39,7 +45,7 @@ where
         let client = InstructionClient::new(
             pin,
             &self.storage,
-            &registration.hw_privkey,
+            &registration.attested_key,
             &self.account_provider_client,
             &registration.data,
             client_config,

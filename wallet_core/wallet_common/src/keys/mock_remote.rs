@@ -42,7 +42,7 @@ pub enum MockRemoteKeyFactoryError {
 pub struct MockRemoteEcdsaKey {
     identifier: String,
     #[debug(skip)]
-    key: SigningKey,
+    pub key: SigningKey,
 }
 
 impl MockRemoteEcdsaKey {
@@ -52,6 +52,10 @@ impl MockRemoteEcdsaKey {
 
     pub fn new_random(identifier: String) -> Self {
         Self::new(identifier, SigningKey::random(&mut OsRng))
+    }
+
+    pub fn verifying_key(&self) -> &VerifyingKey {
+        self.key.verifying_key()
     }
 }
 

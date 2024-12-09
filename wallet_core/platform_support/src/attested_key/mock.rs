@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::RwLock;
 use uuid::Uuid;
@@ -66,6 +67,53 @@ impl MockAppleHardwareAttestedKeyHolder {
             app_identifier,
         }
     }
+
+    #[cfg(feature = "mock_apple_ca")]
+    pub fn new_mock(app_identifier: AppIdentifier) -> Self {
+        Self {
+            key_states: &KEY_STATES,
+            ca: MockAttestationCa::new_mock(),
+            app_identifier,
+        }
+    }
+
+    /// Populate a particular identifier within the global state with a signing key and counter.
+    pub fn populate_key_identifier(key_identifier: String, signing_key: SigningKey, next_counter: u32) {
+        let existing_state = KEY_STATES.write().insert(
+            key_identifier,
+            AttestedKeyState::Attested {
+                signing_key: DerSigningKey(signing_key),
+                next_counter: Arc::new(AtomicU32::from(next_counter)),
+            },
+        );
+
+        if existing_state.is_some() {
+            panic!("key identifier is already populated")
+        }
+    }
+
+    fn state_from_key(key: &MockAppleAttestedKey) -> AttestedKeyState {
+        AttestedKeyState::Attested {
+            signing_key: DerSigningKey(key.signing_key.clone()),
+            next_counter: Arc::clone(&key.next_counter),
+        }
+    }
+
+    /// Insert a new random key into the global state, bypassing attestation.
+    pub fn random_key(&self) -> (MockAppleAttestedKey, String) {
+        let key_identifier = Uuid::new_v4().to_string();
+        let key = MockAppleAttestedKey::new_random(self.app_identifier.clone());
+
+        let existing_state = self
+            .key_states
+            .write()
+            .insert(key_identifier.clone(), Self::state_from_key(&key));
+
+        // Sanity check, this only happens on a key collision.
+        assert!(existing_state.is_none());
+
+        (key, key_identifier)
+    }
 }
 
 impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
@@ -114,13 +162,7 @@ impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
             MockAppleAttestedKey::new_with_attestation(&self.ca, self.app_identifier.clone(), &challenge);
 
         // Update the global key state with both the key's private key and counter.
-        key_states.insert(
-            key_identifier,
-            AttestedKeyState::Attested {
-                signing_key: DerSigningKey(key.signing_key.clone()),
-                next_counter: Arc::clone(&key.next_counter),
-            },
-        );
+        key_states.insert(key_identifier, Self::state_from_key(&key));
 
         let key_with_attestation = KeyWithAttestation::Apple { key, attestation_data };
 

@@ -2,8 +2,9 @@ use tokio::sync::RwLock;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
+use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
-use platform_support::hw_keystore::PlatformEcdsaKey;
 use platform_support::utils::hardware::HardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
@@ -41,6 +42,7 @@ impl Wallet {
     pub async fn init_all() -> Result<Self, WalletInitError> {
         init_universal_link_base_url();
 
+        let key_holder = HardwareAttestedKeyHolder::default();
         let storage_path = HardwareUtilities::storage_path().await?;
         let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
@@ -50,39 +52,54 @@ impl Wallet {
         )
         .await?;
 
-        Self::init_registration(config_repository, storage, HttpAccountProviderClient::default()).await
+        Self::init_registration(
+            config_repository,
+            storage,
+            key_holder,
+            HttpAccountProviderClient::default(),
+        )
+        .await
     }
 }
 
-impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
+impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     CR: ConfigurationRepository,
     S: Storage,
-    PEK: PlatformEcdsaKey,
+    AKH: AttestedKeyHolder,
     WIC: Default,
 {
     pub(super) fn new(
         config_repository: CR,
         storage: S,
+        key_holder: AKH,
         account_provider_client: APC,
         registration_data: Option<RegistrationData>,
     ) -> Self {
-        let registration = registration_data.map(|data| WalletRegistration {
-            hw_privkey: Self::hw_privkey(),
-            data,
+        let registration = registration_data.map(|data| {
+            // If the database contains a registration, an attested key
+            // already exists and we can reference it by its identifier.
+            // If a reference to this key already exists within the process
+            // this is programmer error and should result in a panic.
+            let attested_key = key_holder
+                .attested_key(data.attested_key_identifier.clone())
+                .expect("should be able to instantiate hardware attested key");
+
+            WalletRegistration { attested_key, data }
         });
 
         Wallet {
             config_repository,
             storage: RwLock::new(storage),
+            key_holder,
+            registration,
             account_provider_client,
             issuance_session: None,
             disclosure_session: None,
+            wte_issuance_client: WIC::default(),
             lock: WalletLock::new(true),
-            registration,
             documents_callback: None,
             recent_history_callback: None,
-            wte_issuance_client: WIC::default(),
         }
     }
 
@@ -90,11 +107,18 @@ where
     pub async fn init_registration(
         config_repository: CR,
         mut storage: S,
+        key_holder: AKH,
         account_provider_client: APC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
 
-        let wallet = Self::new(config_repository, storage, account_provider_client, registration);
+        let wallet = Self::new(
+            config_repository,
+            storage,
+            key_holder,
+            account_provider_client,
+            registration,
+        );
 
         Ok(wallet)
     }
@@ -116,13 +140,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
-    use wallet_common::keys::EcdsaKey;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
+    use platform_support::attested_key::mock::MockAppleHardwareAttestedKeyHolder;
 
     use crate::pin::key as pin_key;
     use crate::storage::MockStorage;
 
-    use super::super::registration;
     use super::super::test::WalletWithMocks;
     use super::*;
 
@@ -175,10 +200,17 @@ mod tests {
     // Tests the initialization logic on a wallet with a database file that contains a registration.
     #[tokio::test]
     async fn test_wallet_init_fetch_with_registration() {
+        MockAppleHardwareAttestedKeyHolder::populate_key_identifier(
+            "key_id_123".to_string(),
+            SigningKey::random(&mut OsRng),
+            1,
+        );
         let pin_salt = pin_key::new_pin_salt();
+
         let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(
             StorageState::Unopened,
             Some(RegistrationData {
+                attested_key_identifier: "key_id_123".to_string(),
                 pin_salt: pin_salt.clone(),
                 wallet_id: "wallet_123".to_string(),
                 wallet_certificate: "thisisjwt".to_string().into(),
@@ -199,52 +231,18 @@ mod tests {
         assert_eq!(wallet.registration.unwrap().data.pin_salt, pin_salt);
     }
 
-    // Tests that the Wallet can be initialized multiple times and uses the same hardware key every time.
     #[tokio::test]
-    async fn test_wallet_init_hw_privkey() {
-        // The hardware private key should not exist at this point in the test.
-        // In a real life scenario it does, as this test models a `Wallet` with
-        // a pre-existing registration in its database.
-        assert!(!MockHardwareEcdsaKey::identifier_exists(
-            registration::wallet_key_id().as_ref()
-        ));
-
-        // Create a `Wallet` with `MockStorage`, then drop that `Wallet` again, while stealing
-        // said `MockStorage` and getting the public key of the hardware private key.
-        let (storage, hw_pubkey) = {
-            let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(
-                StorageState::Unopened,
-                Some(RegistrationData {
-                    pin_salt: pin_key::new_pin_salt(),
-                    wallet_id: "wallet_123".to_string(),
-                    wallet_certificate: "thisisjwt".to_string().into(),
-                }),
-            ))
-            .await
-            .expect("Could not initialize wallet");
-
-            let registration = wallet.registration.expect("Wallet should have registration");
-
-            (
-                wallet.storage.into_inner(),
-                registration.hw_privkey.verifying_key().await.unwrap(),
-            )
-        };
-
-        // The hardware private key should now exist.
-        assert!(MockHardwareEcdsaKey::identifier_exists(
-            registration::wallet_key_id().as_ref()
-        ));
-
-        // We should be able to create a new `Wallet`,
-        // based on the contents of the `MockStorage`.
-        let wallet = WalletWithMocks::init_registration_mocks_with_storage(storage)
-            .await
-            .expect("Could not initialize wallet a second time");
-        let registration = wallet.registration.expect("Second Wallet should have registration");
-
-        // The public keys of the hardware private key should match
-        // that of the hardware private key of the previous instance.
-        assert_eq!(registration.hw_privkey.verifying_key().await.unwrap(), hw_pubkey);
+    #[should_panic]
+    async fn test_wallet_init_fetch_with_registration_panic() {
+        let _ = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(
+            StorageState::Unopened,
+            Some(RegistrationData {
+                attested_key_identifier: "key_id_321".to_string(),
+                pin_salt: pin_key::new_pin_salt(),
+                wallet_id: "wallet_123".to_string(),
+                wallet_certificate: "thisisjwt".to_string().into(),
+            }),
+        ))
+        .await;
     }
 }

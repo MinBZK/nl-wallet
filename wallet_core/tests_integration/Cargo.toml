@@ -54,6 +54,7 @@ logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
     "logging",
+    "dep:apple_app_attest",
     "dep:ctor",
     "dep:indexmap",
     "dep:jsonwebtoken",
@@ -104,6 +105,7 @@ performance_test = [
     "logging",
     "fake_digid",
     "dep:ctor",
+    "dep:apple_app_attest",
     "dep:indexmap",
     "dep:reqwest",
     "dep:tokio",
@@ -119,10 +121,12 @@ performance_test = [
     "dep:wallet_common",
     "dep:wallet_server",
     "dep:dotenvy",
+    "platform_support/mock_apple_ca",
 ]
 gba_pid_test = [
     "logging",
     "fake_digid",
+    "dep:apple_app_attest",
     "dep:ctor",
     "dep:dotenvy",
     "dep:indexmap",
@@ -142,6 +146,7 @@ gba_pid_test = [
     "dep:wallet",
     "dep:wallet_common",
     "dep:wallet_server",
+    "platform_support/mock_apple_ca",
     "wallet/snapshot_test",
 ]
 
@@ -180,6 +185,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 
+apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
