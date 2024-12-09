@@ -103,7 +103,7 @@ where
         let request_uri_object = request_uri_object(
             verifier_url.join_base_url("request_uri").into_inner(),
             session_type,
-            key_pair.certificate().san_dns_name().unwrap().unwrap(),
+            String::from(key_pair.certificate().san_dns_name().unwrap().unwrap()),
         );
         let items_requests = vec![ItemsRequest::new_example()].into();
 
@@ -123,7 +123,7 @@ where
         }
     }
 
-    pub fn client_id(&self) -> String {
+    pub fn client_id(&self) -> &str {
         self.key_pair.certificate().san_dns_name().unwrap().unwrap()
     }
 

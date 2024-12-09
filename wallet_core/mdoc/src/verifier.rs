@@ -228,8 +228,8 @@ impl IssuerSigned {
         Ok((
             DocumentDisclosedAttributes {
                 attributes: attrs,
-                issuer: issuer_cns.pop().unwrap(),
-                ca: ca_cns.pop().unwrap(),
+                issuer: String::from(issuer_cns.pop().unwrap()),
+                ca: String::from(ca_cns.pop().unwrap()),
                 validity_info: mso.validity_info.clone(),
             },
             mso,

@@ -169,40 +169,40 @@ impl BorrowingCertificate {
         &self.0.get().public_key
     }
 
-    pub fn subject(&self) -> Result<IndexMap<String, String>, CertificateError> {
+    pub fn subject(&self) -> Result<IndexMap<String, &str>, CertificateError> {
         self.x509_certificate()
             .subject
             .iter_attributes()
             .map(|attr| {
                 Ok((
                     x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
-                        .map_or(attr.attr_type().to_id_string(), |v| v.to_string()),
-                    attr.as_str()?.to_string(),
+                        .map_or(attr.attr_type().to_id_string(), String::from),
+                    attr.as_str()?,
                 ))
             })
             .collect::<Result<_, _>>()
     }
 
-    pub fn issuer_common_names(&self) -> Result<Vec<String>, CertificateError> {
+    pub fn issuer_common_names(&self) -> Result<Vec<&str>, CertificateError> {
         x509_common_names(&self.x509_certificate().issuer)
     }
 
-    pub fn common_names(&self) -> Result<Vec<String>, CertificateError> {
+    pub fn common_names(&self) -> Result<Vec<&str>, CertificateError> {
         x509_common_names(&self.x509_certificate().subject)
     }
 
     /// Returns the first DNS SAN, if any, from the certificate.
-    pub fn san_dns_name(&self) -> Result<Option<String>, CertificateError> {
+    pub fn san_dns_name(&self) -> Result<Option<&str>, CertificateError> {
         let san = self.x509_certificate().subject_alternative_name()?.and_then(|ext| {
             ext.value.general_names.iter().find_map(|name| match name {
-                GeneralName::DNSName(name) => Some(name.to_string()),
+                GeneralName::DNSName(name) => Some(*name),
                 _ => None,
             })
         });
         Ok(san)
     }
 
-    pub(crate) fn extract_custom_ext<'a, T: Deserialize<'a>>(
+    pub(crate) fn parse_and_extract_custom_ext<'a, T: Deserialize<'a>>(
         &'a self,
         oid: &Oid,
     ) -> Result<Option<T>, CertificateError> {
@@ -253,10 +253,10 @@ impl PartialEq for BorrowingCertificate {
 
 impl Eq for BorrowingCertificate {}
 
-fn x509_common_names(x509name: &X509Name) -> Result<Vec<String>, CertificateError> {
+fn x509_common_names<'a>(x509name: &'a X509Name) -> Result<Vec<&'a str>, CertificateError> {
     x509name
         .iter_common_name()
-        .map(|cn| cn.as_str().map(ToOwned::to_owned).map_err(CertificateError::X509Error))
+        .map(|cn| cn.as_str().map_err(CertificateError::X509Error))
         .collect()
 }
 
@@ -361,7 +361,7 @@ where
     fn from_certificate(source: &BorrowingCertificate) -> Result<Option<Self>, CertificateError> {
         // unwrap() is safe here, because we process a fixed value
         let oid = Oid::from(Self::OID).unwrap();
-        source.extract_custom_ext(&oid)
+        source.parse_and_extract_custom_ext(&oid)
     }
 
     #[cfg(any(test, feature = "generate"))]

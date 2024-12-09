@@ -332,7 +332,7 @@ impl VpAuthorizationRequest {
         if dns_san != self.oauth_request.client_id {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
                 client_id: self.oauth_request.client_id,
-                dns_san,
+                dns_san: String::from(dns_san),
             });
         }
 
@@ -378,10 +378,12 @@ impl IsoVpAuthorizationRequest {
         let encryption_pubkey = encryption_pubkey.into_inner();
 
         Ok(Self {
-            client_id: rp_certificate
-                .san_dns_name()
-                .map_err(AuthRequestError::CertificateParsing)?
-                .ok_or(AuthRequestError::MissingSAN)?,
+            client_id: String::from(
+                rp_certificate
+                    .san_dns_name()
+                    .map_err(AuthRequestError::CertificateParsing)?
+                    .ok_or(AuthRequestError::MissingSAN)?,
+            ),
             nonce,
             encryption_pubkey: encryption_pubkey.clone(),
             response_uri,

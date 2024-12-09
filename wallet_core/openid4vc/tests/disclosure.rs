@@ -236,7 +236,7 @@ impl DirectMockVpMessageClient {
     fn start_session(&self) -> String {
         serde_urlencoded::to_string(VpRequestUriObject {
             request_uri: self.request_uri.clone(),
-            client_id: self.auth_keypair.certificate().san_dns_name().unwrap().unwrap(),
+            client_id: String::from(self.auth_keypair.certificate().san_dns_name().unwrap().unwrap()),
             request_uri_method: Default::default(),
         })
         .unwrap()

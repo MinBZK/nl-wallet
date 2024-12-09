@@ -464,10 +464,12 @@ impl UseCase {
         key_pair: KeyPair,
         session_type_return_url: SessionTypeReturnUrl,
     ) -> Result<Self, UseCaseCertificateError> {
-        let client_id = key_pair
-            .certificate()
-            .san_dns_name()?
-            .ok_or(UseCaseCertificateError::MissingSAN)?;
+        let client_id = String::from(
+            key_pair
+                .certificate()
+                .san_dns_name()?
+                .ok_or(UseCaseCertificateError::MissingSAN)?,
+        );
         let use_case = Self {
             key_pair,
             client_id,
