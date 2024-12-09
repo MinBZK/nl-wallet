@@ -191,7 +191,7 @@ checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
 
 [[package]]
 name = "apple_app_attest"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "chrono",
@@ -902,7 +902,7 @@ dependencies = [
 
 [[package]]
 name = "configuration_server"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-server",
@@ -1402,7 +1402,7 @@ checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "entity"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "chrono",
  "sea-orm",
@@ -1436,7 +1436,7 @@ dependencies = [
 
 [[package]]
 name = "error_category"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "error_category_derive",
  "rstest",
@@ -1447,7 +1447,7 @@ dependencies = [
 
 [[package]]
 name = "error_category_derive"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "error_category",
  "proc-macro2",
@@ -1543,7 +1543,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "android_logger",
  "anyhow",
@@ -1568,7 +1568,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api_macros"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "quote",
  "syn 2.0.79",
@@ -1757,7 +1757,7 @@ dependencies = [
 
 [[package]]
 name = "gba_hc_converter"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -2553,7 +2553,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "migration"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -2603,7 +2603,7 @@ dependencies = [
 
 [[package]]
 name = "mock_relying_party"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "accept-language",
  "anyhow",
@@ -2661,7 +2661,7 @@ dependencies = [
 
 [[package]]
 name = "nl_wallet_mdoc"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -2854,7 +2854,7 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "openid4vc"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "axum",
@@ -3178,7 +3178,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "platform_support"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "android_logger",
  "apple_app_attest",
@@ -4817,7 +4817,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
 name = "tests_integration"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "apple_app_attest",
  "assert_matches",
@@ -5601,7 +5601,7 @@ dependencies = [
 
 [[package]]
 name = "wallet"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
@@ -5652,7 +5652,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_ca"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -5673,7 +5673,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_common"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -5721,7 +5721,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-server",
@@ -5751,7 +5751,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_database_settings"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "config",
  "serde",
@@ -5760,7 +5760,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_domain"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "chrono",
  "dashmap",
@@ -5778,7 +5778,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_migrations"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -5788,7 +5788,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_persistence"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "chrono",
  "ctor",
@@ -5808,7 +5808,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_service"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5844,7 +5844,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5887,7 +5887,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server_migrations"
-version = "0.2.3"
+version = "0.3.0-dev"
 dependencies = [
  "sea-orm-migration",
  "tokio",
