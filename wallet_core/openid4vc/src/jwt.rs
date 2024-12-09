@@ -148,7 +148,7 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
 
     // Verify the certificate chain against the trust anchors.
     let leaf_cert = certs.pop().ok_or(JwtX5cError::MissingCertificates)?;
-    let intermediate_certs = certs.iter().map(|cert| cert.as_ref()).collect_vec();
+    let intermediate_certs = certs.iter().collect_vec();
     leaf_cert
         .verify(CertificateUsage::ReaderAuth, &intermediate_certs, time, trust_anchors)
         .map_err(JwtX5cError::CertificateValidation)?;

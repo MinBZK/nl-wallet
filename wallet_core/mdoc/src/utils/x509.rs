@@ -90,6 +90,7 @@ pub enum CertificateError {
 /// - signing and generating: `rcgen`
 #[derive(Yokeable, Debug)]
 struct ParsedCertificate<'a> {
+    certificate_der: CertificateDer<'a>,
     #[debug(skip)]
     end_entity_cert: EndEntityCert<'a>,
     x509_cert: X509Certificate<'a>,
@@ -112,8 +113,8 @@ impl BorrowingCertificate {
         Self::from_certificate_der(certificate_der)
     }
 
-    pub fn from_certificate_der(certificate_der: CertificateDer<'static>) -> Result<Self, CertificateError> {
-        let yoke = Yoke::try_attach_to_cart(Arc::from(certificate_der), |cert| {
+    pub fn from_certificate_der(certificate_der: CertificateDer<'_>) -> Result<Self, CertificateError> {
+        let yoke = Yoke::try_attach_to_cart(Arc::from(certificate_der.into_owned()), |cert| {
             let end_entity_cert = cert.try_into().map_err(CertificateError::EndEntityCertificateParsing)?;
             let (_, x509_cert) =
                 X509Certificate::from_der(cert.as_bytes()).map_err(CertificateError::X509CertificateParsing)?;
@@ -121,6 +122,7 @@ impl BorrowingCertificate {
                 .map_err(CertificateError::PublicKeyParsing)?;
 
             Ok::<_, CertificateError>(ParsedCertificate {
+                certificate_der: CertificateDer::from(cert.as_bytes()),
                 end_entity_cert,
                 x509_cert,
                 public_key,
@@ -134,7 +136,7 @@ impl BorrowingCertificate {
     pub fn verify(
         &self,
         usage: CertificateUsage,
-        intermediate_certs: &[&[u8]],
+        intermediate_certs: &[&BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(), CertificateError> {
@@ -144,7 +146,7 @@ impl BorrowingCertificate {
                 trust_anchors,
                 &intermediate_certs
                     .iter()
-                    .map(|der| CertificateDer::from(*der))
+                    .map(|der| der.certificate_der().clone())
                     .collect::<Vec<_>>(),
                 UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())), // unwrap is safe here because we assume the time that is generated lies after the epoch
                 webpki::KeyUsage::required(usage.eku()),
@@ -165,6 +167,10 @@ impl BorrowingCertificate {
 
     pub fn public_key(&self) -> &VerifyingKey {
         &self.0.get().public_key
+    }
+
+    pub(crate) fn certificate_der(&self) -> &CertificateDer {
+        &self.0.get().certificate_der
     }
 
     pub fn subject(&self) -> Result<IndexMap<String, &str>, CertificateError> {
