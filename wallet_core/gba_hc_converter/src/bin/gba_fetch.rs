@@ -8,6 +8,8 @@ use anyhow::Result;
 use clap::Parser;
 use clio::ClioPath;
 
+use wallet_common::built_info::version_string;
+
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::client::HttpGbavClient;
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
@@ -17,7 +19,7 @@ use gba_hc_converter::settings::RunMode;
 use gba_hc_converter::settings::Settings;
 
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version=version_string(), about, long_about = None)]
 struct Cli {
     /// Directory to store encrypted file and nonce in
     #[clap(long, short, value_parser = clap::value_parser!(ClioPath).exists().is_dir(), default_value = ".")]
