@@ -1,3 +1,4 @@
+use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 
@@ -9,6 +10,7 @@ use crate::utils::x509::CertificateError;
 
 #[derive(Debug)]
 pub struct KeyPair<S = SigningKey> {
+    #[debug(skip)]
     private_key: S,
     certificate: BorrowingCertificate,
 }
