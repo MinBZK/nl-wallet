@@ -2,14 +2,14 @@ use std::convert::Infallible;
 use std::fmt::Debug;
 use std::mem;
 
-use chrono::Utc;
 use p256::ecdsa::signature::Verifier;
 
 use apple_app_attest::AppIdentifier;
-use apple_app_attest::Assertion;
-use apple_app_attest::Attestation;
+use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::ClientData;
+use apple_app_attest::VerifiedAssertion;
+use apple_app_attest::VerifiedAttestation;
 use apple_app_attest::APPLE_TRUST_ANCHORS;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::utils;
@@ -77,10 +77,9 @@ where
             let app_identifier = AppIdentifier::new(team_id, bundle_id);
 
             // Perform the server side check of the attestation here.
-            let (_, public_key) = Attestation::parse_and_verify(
+            let (_, public_key) = VerifiedAttestation::parse_and_verify(
                 &attestation_data,
                 &APPLE_TRUST_ANCHORS,
-                Utc::now(),
                 &challenge,
                 &app_identifier,
                 AttestationEnvironment::Development, // Assume that tests use the AppAttest sandbox
@@ -92,12 +91,12 @@ where
             let client_data1 = SimpleClientData::new(payload.clone());
             let assertion1 = key.sign(payload.clone()).await.expect("could not sign payload");
 
-            Assertion::parse_and_verify(
+            VerifiedAssertion::parse_and_verify(
                 assertion1.as_ref(),
                 &client_data1,
                 &public_key,
                 &app_identifier,
-                0,
+                AssertionCounter::default(),
                 &client_data1.challenge,
             )
             .expect("could not verify first assertion");
@@ -121,12 +120,12 @@ where
             let client_data2 = SimpleClientData::new(payload.clone());
             let assertion2 = key.sign(payload).await.expect("could not sign payload a second time");
 
-            Assertion::parse_and_verify(
+            VerifiedAssertion::parse_and_verify(
                 assertion2.as_ref(),
                 &client_data2,
                 &public_key,
                 &app_identifier,
-                1,
+                AssertionCounter::from(1),
                 &client_data2.challenge,
             )
             .expect("could not verify second assertion");

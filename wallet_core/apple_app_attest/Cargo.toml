@@ -21,14 +21,15 @@ path = "tests/attestation.rs"
 
 [features]
 serialize = []
-mock = ["serialize"]
+mock = ["serialize", "dep:rand", "dep:rcgen", "derive_more/debug"]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
 ciborium.workspace = true
 const-decoder.workspace = true
 coset.workspace = true
-derive_more = { workspace = true, features = ["as_ref"] }
+der = { workspace = true, features = ["std", "derive"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from", "deref"] }
 nutype.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
 passkey-types.workspace = true
@@ -38,6 +39,9 @@ sha2.workspace = true
 thiserror.workspace = true
 x509-parser.workspace = true
 rustls-webpki.workspace = true
+
+rand = { workspace = true, optional = true }
+rcgen = { workspace = true, optional = true, features = ["ring"] }
 
 [dev-dependencies]
 assert_matches.workspace = true

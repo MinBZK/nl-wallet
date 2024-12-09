@@ -111,13 +111,14 @@ mod generate {
     use p256::pkcs8::EncodePrivateKey;
     use p256::pkcs8::ObjectIdentifier;
     use rcgen::BasicConstraints;
-    use rcgen::Certificate as RcgenCertificate;
     use rcgen::CertificateParams;
     use rcgen::CustomExtension;
     use rcgen::DnType;
     use rcgen::IsCa;
     use rcgen::SanType;
+    use rcgen::PKCS_ECDSA_P256_SHA256;
     use time::OffsetDateTime;
+    use x509_parser::nom::AsBytes;
 
     use crate::server_keys::KeyPair;
     use crate::utils::x509::CertificateConfiguration;
@@ -136,11 +137,11 @@ mod generate {
             let mut ca_params = CertificateParams::from(configuration);
             ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
             ca_params.distinguished_name.push(DnType::CommonName, common_name);
+            let key_pair = rcgen::KeyPair::generate()?;
+            let certificate = ca_params.self_signed(&key_pair)?;
+            let privkey = Self::rcgen_cert_privkey(&key_pair)?;
 
-            let certificate = RcgenCertificate::from_params(ca_params)?;
-            let privkey = Self::rcgen_cert_privkey(&certificate)?;
-
-            Self::new_from_signing_key(privkey, certificate.serialize_der()?.into())
+            Self::new_from_signing_key(privkey, certificate.der().into())
         }
 
         /// Generate a new key pair signed with the specified CA.
@@ -155,32 +156,30 @@ mod generate {
             cert_params.distinguished_name.push(DnType::CommonName, common_name);
             cert_params
                 .subject_alt_names
-                .push(SanType::DnsName(common_name.to_string()));
+                .push(SanType::DnsName(common_name.try_into()?));
             cert_params.custom_extensions.extend(certificate_type.to_custom_exts()?);
-            let cert_unsigned =
-                RcgenCertificate::from_params(cert_params).map_err(CertificateError::GeneratingFailed)?;
 
-            let ca_keypair = rcgen::KeyPair::from_der(
+            let ca_keypair = rcgen::KeyPair::from_pkcs8_der_and_sign_algo(
                 &self
                     .private_key()
                     .to_pkcs8_der()
                     .map_err(CertificateError::GeneratingPrivateKey)?
-                    .to_bytes(),
+                    .as_bytes()
+                    .into(),
+                &PKCS_ECDSA_P256_SHA256,
             )?;
-            let ca = RcgenCertificate::from_params(rcgen::CertificateParams::from_ca_cert_der(
-                self.certificate().as_bytes(),
-                ca_keypair,
-            )?)?;
+            let ca = rcgen::CertificateParams::from_ca_cert_der(&self.certificate().as_bytes().into())?
+                .self_signed(&ca_keypair)?;
 
-            let certificate = cert_unsigned.serialize_der_with_signer(&ca)?;
-            let private_key = Self::rcgen_cert_privkey(&cert_unsigned)?;
+            let cert_key_pair = rcgen::KeyPair::generate()?;
+            let certificate = cert_params.signed_by(&cert_key_pair, &ca, &ca_keypair)?;
+            let private_key = Self::rcgen_cert_privkey(&cert_key_pair)?;
 
-            Self::new_from_signing_key(private_key, certificate.into())
+            Self::new_from_signing_key(private_key, certificate.der().as_bytes().as_bytes().into())
         }
 
-        fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {
-            SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der())
-                .map_err(CertificateError::GeneratingPrivateKey)
+        fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateError> {
+            SigningKey::from_pkcs8_der(keypair.serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
         }
     }
 

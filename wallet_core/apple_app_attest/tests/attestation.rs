@@ -1,3 +1,4 @@
+use apple_app_attest::VerifiedAttestation;
 use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
@@ -6,7 +7,6 @@ use rstest::fixture;
 use rstest::rstest;
 
 use apple_app_attest::AppIdentifier;
-use apple_app_attest::Attestation;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::AttestationError;
 use apple_app_attest::AttestationValidationError;
@@ -112,7 +112,7 @@ fn test_attestation<F>(
 ) where
     F: FnOnce(AttestationError),
 {
-    let result = Attestation::parse_and_verify(
+    let result = VerifiedAttestation::parse_and_verify_with_time(
         attestation_data,
         &APPLE_TRUST_ANCHORS,
         parameters.time,
@@ -128,4 +128,25 @@ fn test_attestation<F>(
 
         error_matcher(error);
     }
+}
+
+#[cfg(feature = "mock")]
+#[test]
+fn test_mock_attestation() {
+    use apple_app_attest::Attestation;
+    use apple_app_attest::MockAttestationCa;
+
+    let app_identifier = AppIdentifier::new_mock();
+    let challenge = b"mock_attestation_challenge";
+    let mock_ca = MockAttestationCa::generate();
+    let (attestation_bytes, _signing_key) = Attestation::new_mock_bytes(&mock_ca, challenge, &app_identifier);
+
+    VerifiedAttestation::parse_and_verify(
+        &attestation_bytes,
+        &[mock_ca.trust_anchor()],
+        challenge,
+        &app_identifier,
+        AttestationEnvironment::Development,
+    )
+    .expect("mock attestation should validate successfully");
 }

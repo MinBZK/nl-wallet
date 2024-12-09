@@ -3,5 +3,6 @@
 pub mod prelude;
 
 pub mod wallet_user;
+pub mod wallet_user_apple_attestation;
 pub mod wallet_user_instruction_challenge;
 pub mod wallet_user_key;

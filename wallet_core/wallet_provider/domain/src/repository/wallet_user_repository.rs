@@ -4,6 +4,8 @@ use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 
+use apple_app_attest::AssertionCounter;
+
 use crate::model::encrypted::Encrypted;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::WalletUserCreate;
@@ -75,6 +77,13 @@ pub trait WalletUserRepository {
     async fn rollback_pin_change(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
 
     async fn save_wte_issued(&self, transaction: &Self::TransactionType, wallet_id: &str) -> Result<()>;
+
+    async fn update_apple_assertion_counter(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_id: &str,
+        assertion_counter: AssertionCounter,
+    ) -> Result<()>;
 }
 
 #[cfg(feature = "mock")]
@@ -185,6 +194,15 @@ pub mod mock {
         }
 
         async fn save_wte_issued(&self, _transaction: &Self::TransactionType, _wallet_id: &str) -> Result<()> {
+            Ok(())
+        }
+
+        async fn update_apple_assertion_counter(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_id: &str,
+            _assertion_counter: AssertionCounter,
+        ) -> Result<()> {
             Ok(())
         }
     }

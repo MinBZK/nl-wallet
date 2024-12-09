@@ -11,8 +11,12 @@ use serde::Deserialize;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
+
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;
 use wallet_provider_database_settings::Database;
+use wallet_provider_service::account_server::AppleAttestationConfiguration;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -34,6 +38,8 @@ pub struct Settings {
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]
     pub instruction_challenge_timeout: Duration,
+
+    pub ios: Ios,
 }
 
 #[derive(Clone, Deserialize)]
@@ -63,6 +69,22 @@ pub struct Hsm {
     #[serde(rename = "max_session_lifetime_in_sec")]
     #[serde_as(as = "DurationSeconds")]
     pub max_session_lifetime: Duration,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Ios {
+    pub team_identifier: String,
+    pub bundle_identifier: String,
+    #[serde(default)]
+    pub environment: AppleEnvironment,
+}
+
+#[derive(Clone, Copy, Default, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AppleEnvironment {
+    Development,
+    #[default]
+    Production,
 }
 
 impl Settings {
@@ -103,5 +125,32 @@ impl Settings {
             )
             .build()?
             .try_deserialize()
+    }
+}
+
+impl From<Ios> for AppIdentifier {
+    fn from(value: Ios) -> Self {
+        Self::new(value.team_identifier, value.bundle_identifier)
+    }
+}
+
+impl From<AppleEnvironment> for AttestationEnvironment {
+    fn from(value: AppleEnvironment) -> Self {
+        match value {
+            AppleEnvironment::Development => Self::Development,
+            AppleEnvironment::Production => Self::Production,
+        }
+    }
+}
+
+impl From<Ios> for AppleAttestationConfiguration {
+    fn from(value: Ios) -> Self {
+        let environment = AttestationEnvironment::from(value.environment);
+        let app_identifier = AppIdentifier::from(value);
+
+        Self {
+            app_identifier,
+            environment,
+        }
     }
 }

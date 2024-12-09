@@ -71,6 +71,12 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-hsm-config
                   key: user_pin
+            - name: WALLET_PROVIDER_IOS__TEAM_IDENTIFIER
+              value: ${IOS_TEAM_IDENTIFIER}
+            - name: WALLET_PROVIDER_IOS__BUNDLE_IDENTIFIER
+              value: ${APP_IDENTIFIER}
+            - name: WALLET_PROVIDER_IOS__ENVIRONMENT
+              value: "development"
             - name: CS_PKCS11_R3_CFG
               value: "/cs_pkcs11_R3.cfg"
       volumes:
