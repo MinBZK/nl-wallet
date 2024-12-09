@@ -146,7 +146,7 @@ impl BorrowingCertificate {
                     .iter()
                     .map(|der| CertificateDer::from(*der))
                     .collect::<Vec<_>>(),
-                UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp() as u64)),
+                UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())), // unwrap is safe here because we assume the time that is generated lies after the epoch
                 webpki::KeyUsage::required(usage.eku()),
                 None,
                 None,
