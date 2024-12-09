@@ -28,12 +28,6 @@
 #     brew install gnu-sed
 #
 # Before running this script
-# - Start postgresql
-#
-#   This can be either an own managed instance, or one can use our docker compose script:
-#
-#     docker compose -f wallet_core/wallet_provider/docker-compose.yml up
-#
 # - Android Emulator configuration
 #
 #     ./scripts/map_android_ports.sh
