@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -24,6 +23,7 @@ use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom::AsBytes;
 use x509_parser::nom::{self};
+use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
@@ -82,8 +82,6 @@ pub enum CertificateError {
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
-
-pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
 
 /// An x509 certificate, unifying functionality from the following crates:
 ///
@@ -269,20 +267,11 @@ pub enum CertificateUsage {
     ReaderAuth,
 }
 
-/// OID 1.0.18013.5.1.2
-pub const EXTENDED_KEY_USAGE_MDL: &[u8] = &[40, 129, 140, 93, 5, 1, 2];
-/// OID 1.0.18013.5.1.6
-pub const EXTENDED_KEY_USAGE_READER_AUTH: &[u8] = &[40, 129, 140, 93, 5, 1, 6];
-
-pub const EKU_MDL_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_MDL);
-pub const EKU_READER_AUTH_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_READER_AUTH);
-
-const fn oid_from_bytes(bytes: &'static [u8]) -> Oid<'static> {
-    Oid::new(Cow::Borrowed(bytes))
-}
+pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013 .5 .1 .2);
+pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013 .5 .1 .6);
 
 impl CertificateUsage {
-    pub fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateError> {
+    fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateError> {
         let usage = cert
             .extended_key_usage()?
             .map(|eku| Self::from_key_usage(eku.value))
@@ -300,9 +289,9 @@ impl CertificateUsage {
         let key_usage_oid = ext_key_usage.other.first().unwrap();
 
         // Unfortunately we cannot use a match statement here.
-        if key_usage_oid == &EKU_MDL_OID {
+        if key_usage_oid == EXTENDED_KEY_USAGE_MDL {
             return Ok(Self::Mdl);
-        } else if key_usage_oid == &EKU_READER_AUTH_OID {
+        } else if key_usage_oid == EXTENDED_KEY_USAGE_READER_AUTH {
             return Ok(Self::ReaderAuth);
         }
 
@@ -314,6 +303,7 @@ impl CertificateUsage {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
         }
+        .as_bytes()
     }
 }
 
@@ -356,12 +346,10 @@ pub trait MdocCertificateExtension
 where
     Self: Serialize + DeserializeOwned + Sized,
 {
-    const OID: &'static [u64];
+    const OID: Oid<'static>;
 
     fn from_certificate(source: &BorrowingCertificate) -> Result<Option<Self>, CertificateError> {
-        // unwrap() is safe here, because we process a fixed value
-        let oid = Oid::from(Self::OID).unwrap();
-        source.parse_and_extract_custom_ext(&oid)
+        source.parse_and_extract_custom_ext(&Self::OID)
     }
 
     #[cfg(any(test, feature = "generate"))]
@@ -370,7 +358,10 @@ where
 
         let json_string = serde_json::to_string(self)?;
         let string = Utf8StringRef::new(&json_string)?;
-        let ext = rcgen::CustomExtension::from_oid_content(Self::OID, string.to_der()?);
+
+        // unwrap is safe here because the OID is constructed from u8 and thus will fit in u64
+        let sub_identifiers = Self::OID.iter().unwrap().collect::<Vec<_>>();
+        let ext = rcgen::CustomExtension::from_oid_content(sub_identifiers.as_slice(), string.to_der()?);
         Ok(ext)
     }
 }

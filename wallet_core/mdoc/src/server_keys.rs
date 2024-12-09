@@ -124,7 +124,6 @@ mod generate {
     use crate::utils::x509::CertificateType;
     use crate::utils::x509::CertificateUsage;
     use crate::utils::x509::MdocCertificateExtension;
-    use crate::utils::x509::OID_EXT_KEY_USAGE;
 
     impl KeyPair {
         /// Generate a new self-signed CA key pair.
@@ -204,6 +203,8 @@ mod generate {
 
     impl CertificateUsage {
         fn to_custom_ext(self) -> CustomExtension {
+            const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
+
             // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but
             // [`CertificateParams`] only supports a whitelist of key usages that it is aware of. So we
             // DER-serialize it manually and add it to the custom extensions.
