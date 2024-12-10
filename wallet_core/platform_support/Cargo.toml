@@ -14,11 +14,11 @@ doctest = false
 [features]
 # Implement the platform key traits on mock hardware key types from `wallet_common`
 mock_hw_keystore = ["wallet_common/mock_hardware_keys"]
-# Include the MockAppleHardwareAttestedKeyHolder type for use in tests
-mock_apple_attested_key = ["dep:apple_app_attest", "dep:uuid", "wallet_common/mock_apple_attested_key"]
+# Include the MockHardwareAttestedKeyHolder type for use in tests
+mock_attested_key = ["dep:apple_app_attest", "dep:uuid", "wallet_common/mock_apple_attested_key"]
 mock_apple_ca = ["apple_app_attest/mock_ca"]
 persistent_mock_apple_attested_key = [
-    "mock_apple_attested_key",
+    "mock_attested_key",
     "mock_apple_ca",
     "dep:futures",
     "dep:serde",
@@ -29,7 +29,7 @@ persistent_mock_apple_attested_key = [
 # Include the MockHardwareUtilities type for use in tests
 mock_utils = ["dep:tokio"]
 # Include all mock implementations for use in tests
-mock = ["mock_hw_keystore", "mock_apple_attested_key", "mock_utils"]
+mock = ["mock_hw_keystore", "mock_attested_key", "mock_utils"]
 # Enable helper code for iOS and Android integration tests
 hardware_integration_test = [
     "dep:android_logger",

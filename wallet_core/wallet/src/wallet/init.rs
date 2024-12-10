@@ -143,7 +143,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use platform_support::attested_key::mock::MockAppleHardwareAttestedKeyHolder;
+    use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 
     use crate::pin::key as pin_key;
     use crate::storage::MockStorage;
@@ -200,7 +200,7 @@ mod tests {
     // Tests the initialization logic on a wallet with a database file that contains a registration.
     #[tokio::test]
     async fn test_wallet_init_fetch_with_registration() {
-        MockAppleHardwareAttestedKeyHolder::populate_key_identifier(
+        MockHardwareAttestedKeyHolder::populate_key_identifier(
             "key_id_123".to_string(),
             SigningKey::random(&mut OsRng),
             1,

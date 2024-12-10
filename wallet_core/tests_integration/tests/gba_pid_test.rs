@@ -9,7 +9,7 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
-use platform_support::attested_key::mock::MockAppleHardwareAttestedKeyHolder;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::errors::PidIssuanceError;
 use wallet::mock::default_configuration;
@@ -122,7 +122,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let mut wallet: Wallet<
         LocalConfigurationRepository,
         MockStorage,
-        MockAppleHardwareAttestedKeyHolder,
+        MockHardwareAttestedKeyHolder,
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,
@@ -130,7 +130,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     > = Wallet::init_registration(
         config_repository,
         MockStorage::default(),
-        MockAppleHardwareAttestedKeyHolder::new_mock(AppIdentifier::new("XGL6UKBPLP", "nl.ictu.edi.wallet.latest")),
+        MockHardwareAttestedKeyHolder::new_mock(AppIdentifier::new("XGL6UKBPLP", "nl.ictu.edi.wallet.latest")),
         HttpAccountProviderClient::default(),
     )
     .await

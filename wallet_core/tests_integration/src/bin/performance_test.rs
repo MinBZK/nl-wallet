@@ -12,7 +12,7 @@ use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
-use platform_support::attested_key::mock::MockAppleHardwareAttestedKeyHolder;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use wallet::mock::default_configuration;
@@ -64,7 +64,7 @@ async fn main() {
     let mut wallet: Wallet<
         HttpConfigurationRepository<TlsPinningConfig>,
         MockStorage,
-        MockAppleHardwareAttestedKeyHolder,
+        MockHardwareAttestedKeyHolder,
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,
@@ -72,7 +72,7 @@ async fn main() {
     > = Wallet::init_registration(
         config_repository,
         MockStorage::default(),
-        MockAppleHardwareAttestedKeyHolder::new_mock(AppIdentifier::new(team_identifier, bundle_identifier)),
+        MockHardwareAttestedKeyHolder::new_mock(AppIdentifier::new(team_identifier, bundle_identifier)),
         HttpAccountProviderClient::default(),
     )
     .await

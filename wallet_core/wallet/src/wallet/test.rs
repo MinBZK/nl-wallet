@@ -15,7 +15,7 @@ use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
-use platform_support::attested_key::mock::MockAppleHardwareAttestedKeyHolder;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
@@ -65,7 +65,7 @@ pub struct IssuerKey {
 pub type WalletWithMocks = Wallet<
     UpdatingConfigurationRepository<LocalConfigurationRepository>,
     MockStorage,
-    MockAppleHardwareAttestedKeyHolder,
+    MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
     MockDigidSession,
     MockIssuanceSession,
@@ -161,7 +161,7 @@ impl WalletWithMocks {
         Wallet::new(
             config_repository,
             MockStorage::default(),
-            MockAppleHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
+            MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),
             None,
         )
@@ -239,7 +239,7 @@ impl WalletWithMocks {
         Wallet::init_registration(
             config_repository,
             storage,
-            MockAppleHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
+            MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),
         )
         .await

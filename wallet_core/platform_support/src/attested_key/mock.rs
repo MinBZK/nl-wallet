@@ -23,7 +23,7 @@ use super::AttestedKeyHolder;
 use super::GoogleAttestedKey;
 use super::KeyWithAttestation;
 
-/// The global state of all keys managed by [`MockAppleHardwareAttestedKeyError`] instances.
+/// The global state of all keys managed by [`MockHardwareAttestedKeyError`] instances.
 static KEY_STATES: LazyLock<RwLock<HashMap<String, AttestedKeyState>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
 
 #[derive(Debug)]
@@ -41,7 +41,7 @@ enum AttestedKeyState {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum MockAppleHardwareAttestedKeyError {
+pub enum MockHardwareAttestedKeyError {
     #[error("identifier was not generated or attested")]
     UnknownIdentifier,
     #[error("key with identifier was already attested")]
@@ -61,17 +61,19 @@ pub enum KeyHolderErrorScenario {
     RetryableAttestationError,
 }
 
-/// Implements [`AttestedKeyHolder`] and always returns [`MockAppleAttestedKey`],
-/// types, based on the mock root CA included in the [`apple_app_attest`] crate.
+// TODO: Make this type support mock Google attested keys once those are implemented.
+
+/// Implements [`AttestedKeyHolder`] and returns [`MockAppleAttestedKey`] types,
+/// based on the mock root CA included in the [`apple_app_attest`] crate.
 #[derive(Debug)]
-pub struct MockAppleHardwareAttestedKeyHolder {
+pub struct MockHardwareAttestedKeyHolder {
     key_states: &'static RwLock<HashMap<String, AttestedKeyState>>,
     pub ca: MockAttestationCa,
     pub app_identifier: AppIdentifier,
     pub error_scenario: KeyHolderErrorScenario,
 }
 
-impl MockAppleHardwareAttestedKeyHolder {
+impl MockHardwareAttestedKeyHolder {
     pub fn generate(app_identifier: AppIdentifier) -> Self {
         Self {
             key_states: &KEY_STATES,
@@ -130,8 +132,8 @@ impl MockAppleHardwareAttestedKeyHolder {
     }
 }
 
-impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
-    type Error = MockAppleHardwareAttestedKeyError;
+impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
+    type Error = MockHardwareAttestedKeyError;
     type AppleKey = MockAppleAttestedKey;
     type GoogleKey = DeadGoogleAttestedKey;
 
@@ -157,12 +159,10 @@ impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
         match self.error_scenario {
             KeyHolderErrorScenario::UnretryableAttestationError => {
-                return Err(AttestationError::new_unretryable(
-                    MockAppleHardwareAttestedKeyError::Mock,
-                ))
+                return Err(AttestationError::new_unretryable(MockHardwareAttestedKeyError::Mock))
             }
             KeyHolderErrorScenario::RetryableAttestationError => {
-                return Err(AttestationError::new_retryable(MockAppleHardwareAttestedKeyError::Mock))
+                return Err(AttestationError::new_retryable(MockHardwareAttestedKeyError::Mock))
             }
             _ => {}
         };
@@ -175,11 +175,11 @@ impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
             key_states
                 .get(&key_identifier)
                 .ok_or(AttestationError::new_unretryable(
-                    MockAppleHardwareAttestedKeyError::UnknownIdentifier,
+                    MockHardwareAttestedKeyError::UnknownIdentifier,
                 ))?
         {
             return Err(AttestationError::new_unretryable(
-                MockAppleHardwareAttestedKeyError::KeyAttested,
+                MockHardwareAttestedKeyError::KeyAttested,
             ));
         }
 
@@ -204,9 +204,9 @@ impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
         // The key's current state should be `AttestedKeyState::Attested`.
         match key_states
             .get(&key_identifier)
-            .ok_or(MockAppleHardwareAttestedKeyError::UnknownIdentifier)?
+            .ok_or(MockHardwareAttestedKeyError::UnknownIdentifier)?
         {
-            AttestedKeyState::Generated => Err(MockAppleHardwareAttestedKeyError::KeyNotAttested),
+            AttestedKeyState::Generated => Err(MockHardwareAttestedKeyError::KeyNotAttested),
             AttestedKeyState::Attested {
                 signing_key: DerSigningKey(signing_key),
                 next_counter,
@@ -214,7 +214,7 @@ impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
                 // Use the Arc's reference counter as a proxy to determine if a `MockAppleAttestedKey`
                 // already exists within memory, as this would own the second reference to it.
                 if Arc::strong_count(next_counter) > 1 {
-                    return Err(MockAppleHardwareAttestedKeyError::IdentifierInUse);
+                    return Err(MockHardwareAttestedKeyError::IdentifierInUse);
                 }
 
                 // Construct a `MockAppleAttestedKey` based on the private key and counter.
@@ -276,19 +276,19 @@ mod persistent {
     use super::*;
 
     /// The global state of all keys managed by [`PersistentMockAppleHardwareAttestedKeyHolder`] instances.
-    /// Note that this is distinct from the keys managed by [`MockAppleHardwareAttestedKeyHolder`].
+    /// Note that this is distinct from the keys managed by [`MockHardwareAttestedKeyHolder`].
     static PERSISTENT_KEY_STATES: LazyLock<RwLock<HashMap<String, AttestedKeyState>>> =
         LazyLock::new(|| RwLock::new(HashMap::new()));
     /// Async mutex around the filesystem backing store that holds [`PERSISTENT_KEY_STATES`].
     static KEY_STATES_FILE: Mutex<Option<PathBuf>> = Mutex::const_new(None);
 
-    /// A wrapper around [`MockAppleHardwareAttestedKeyHolder`] that synchronizes the global key state
+    /// A wrapper around [`MockHardwareAttestedKeyHolder`] that synchronizes the global key state
     /// with a JSON file on the filesystem. As the iOS simulator does not support attested keys, this
     /// type can be used in place of of `HardwareAttestedKeyHolder` in order to emulate generation and
     /// attestation of and signing by attested keys that survive termination and relaunch of the
     /// application. As it is specifically meant for use of the iOS simulator, the storage path is
     /// determined using [`PlatformUtilities`].
-    pub struct PersistentMockAppleHardwareAttestedKeyHolder(MockAppleHardwareAttestedKeyHolder);
+    pub struct PersistentMockAppleHardwareAttestedKeyHolder(MockHardwareAttestedKeyHolder);
 
     impl PersistentMockAppleHardwareAttestedKeyHolder {
         const FILE_NAME: &str = "mock_apple_attested_keys.json";
@@ -331,7 +331,7 @@ mod persistent {
         }
 
         pub fn new_mock(app_identifier: AppIdentifier) -> Self {
-            let holder = MockAppleHardwareAttestedKeyHolder {
+            let holder = MockHardwareAttestedKeyHolder {
                 key_states: &PERSISTENT_KEY_STATES,
                 ca: MockAttestationCa::new_mock(),
                 app_identifier,
@@ -369,7 +369,7 @@ mod persistent {
     }
 
     impl AttestedKeyHolder for PersistentMockAppleHardwareAttestedKeyHolder {
-        type Error = MockAppleHardwareAttestedKeyError;
+        type Error = MockHardwareAttestedKeyError;
         type AppleKey = PersistentMockAppleAttestedKey;
         type GoogleKey = DeadGoogleAttestedKey;
 
@@ -482,12 +482,12 @@ mod tests {
     use crate::attested_key::test;
     use crate::attested_key::test::AppleTestData;
 
-    use super::MockAppleHardwareAttestedKeyHolder;
+    use super::MockHardwareAttestedKeyHolder;
 
     #[tokio::test]
     async fn test_mock_apple_hardware_attested_key_holder() {
         let app_identifier = AppIdentifier::new_mock();
-        let mock_holder = MockAppleHardwareAttestedKeyHolder::generate(app_identifier);
+        let mock_holder = MockHardwareAttestedKeyHolder::generate(app_identifier);
         let challenge = b"this_is_a_challenge_string";
         let payload = b"This is a message that will be signed by the mock key.";
 

@@ -61,12 +61,9 @@
 
 pub mod hardware;
 
-#[cfg(feature = "mock_apple_attested_key")]
+#[cfg(feature = "mock_attested_key")]
 pub mod mock;
-#[cfg(any(
-    all(feature = "mock_apple_attested_key", test),
-    feature = "hardware_integration_test"
-))]
+#[cfg(any(all(feature = "mock_attested_key", test), feature = "hardware_integration_test"))]
 pub mod test;
 
 use std::error::Error;

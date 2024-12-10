@@ -33,7 +33,7 @@ use openid4vc::oidc;
 use openid4vc::server_state::SessionState;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
-use platform_support::attested_key::mock::MockAppleHardwareAttestedKeyHolder;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::utils::mock::MockHardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use wallet::mock::default_configuration;
@@ -100,7 +100,7 @@ pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
 pub type WalletWithMocks = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     MockStorage,
-    MockAppleHardwareAttestedKeyHolder,
+    MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     MockDigidSession,
     HttpIssuanceSession,
@@ -123,7 +123,7 @@ pub async fn setup_wallet_and_env(
     (mut wp_settings, wp_root_ca): (WpSettings, DerTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
-    let key_holder = MockAppleHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock());
+    let key_holder = MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock());
     wp_settings.ios = Ios {
         team_identifier: key_holder.app_identifier.prefix().to_string(),
         bundle_identifier: key_holder.app_identifier.bundle_identifier().to_string(),
