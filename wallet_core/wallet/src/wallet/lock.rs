@@ -498,29 +498,25 @@ mod tests {
         assert_matches!(error, WalletUnlockError::Instruction(InstructionError::ServerError(_)));
     }
 
-    // #[tokio::test]
-    // async fn test_wallet_unlock_error_instruction_signing() {
-    //     let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+    #[tokio::test]
+    async fn test_wallet_unlock_error_instruction_signing() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
-    //     wallet.lock();
+        wallet.lock();
 
-    //     // Have the hardware key signing fail.
-    //     wallet
-    //         .registration
-    //         .as_mut()
-    //         .unwrap()
-    //         .hw_privkey
-    //         .next_private_key_error
-    //         .get_mut()
-    //         .replace(p256::ecdsa::Error::new());
+        // Have the hardware key signing fail.
+        match &mut wallet.registration.as_mut().unwrap().attested_key {
+            AttestedKey::Apple(attested_key) => attested_key.has_error = true,
+            AttestedKey::Google(_) => unreachable!(),
+        };
 
-    //     let error = wallet
-    //         .unlock(PIN.to_string())
-    //         .await
-    //         .expect_err("Wallet unlocking should have resulted in error");
+        let error = wallet
+            .unlock(PIN.to_string())
+            .await
+            .expect_err("Wallet unlocking should have resulted in error");
 
-    //     assert_matches!(error, WalletUnlockError::Instruction(InstructionError::Signing(_)));
-    // }
+        assert_matches!(error, WalletUnlockError::Instruction(InstructionError::Signing(_)));
+    }
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_result_validation() {

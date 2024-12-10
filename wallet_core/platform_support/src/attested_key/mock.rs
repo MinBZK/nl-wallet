@@ -26,6 +26,7 @@ use super::KeyWithAttestation;
 /// The global state of all keys managed by [`MockAppleHardwareAttestedKeyError`] instances.
 static KEY_STATES: LazyLock<RwLock<HashMap<String, AttestedKeyState>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
 
+#[derive(Debug)]
 #[cfg_attr(
     feature = "persistent_mock_apple_attested_key",
     derive(serde::Serialize, serde::Deserialize)
@@ -49,14 +50,25 @@ pub enum MockAppleHardwareAttestedKeyError {
     KeyNotAttested,
     #[error("identifier is already in use in this process")]
     IdentifierInUse,
+    #[error("mock error to be used in tests")]
+    Mock,
+}
+
+#[derive(Debug)]
+pub enum KeyHolderErrorScenario {
+    NoError,
+    UnretryableAttestationError,
+    RetryableAttestationError,
 }
 
 /// Implements [`AttestedKeyHolder`] and always returns [`MockAppleAttestedKey`],
 /// types, based on the mock root CA included in the [`apple_app_attest`] crate.
+#[derive(Debug)]
 pub struct MockAppleHardwareAttestedKeyHolder {
     key_states: &'static RwLock<HashMap<String, AttestedKeyState>>,
     pub ca: MockAttestationCa,
     pub app_identifier: AppIdentifier,
+    pub error_scenario: KeyHolderErrorScenario,
 }
 
 impl MockAppleHardwareAttestedKeyHolder {
@@ -65,6 +77,7 @@ impl MockAppleHardwareAttestedKeyHolder {
             key_states: &KEY_STATES,
             ca: MockAttestationCa::generate(),
             app_identifier,
+            error_scenario: KeyHolderErrorScenario::NoError,
         }
     }
 
@@ -74,6 +87,7 @@ impl MockAppleHardwareAttestedKeyHolder {
             key_states: &KEY_STATES,
             ca: MockAttestationCa::new_mock(),
             app_identifier,
+            error_scenario: KeyHolderErrorScenario::NoError,
         }
     }
 
@@ -141,6 +155,18 @@ impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
         key_identifier: String,
         challenge: Vec<u8>,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
+        match self.error_scenario {
+            KeyHolderErrorScenario::UnretryableAttestationError => {
+                return Err(AttestationError::new_unretryable(
+                    MockAppleHardwareAttestedKeyError::Mock,
+                ))
+            }
+            KeyHolderErrorScenario::RetryableAttestationError => {
+                return Err(AttestationError::new_retryable(MockAppleHardwareAttestedKeyError::Mock))
+            }
+            _ => {}
+        };
+
         let mut key_states = self.key_states.write();
 
         // The key's current state should be `AttestedKeyState::Generated`,
@@ -196,6 +222,7 @@ impl AttestedKeyHolder for MockAppleHardwareAttestedKeyHolder {
                     app_identifier: self.app_identifier.clone(),
                     signing_key: signing_key.clone(),
                     next_counter: Arc::clone(next_counter),
+                    has_error: false,
                 };
 
                 Ok(AttestedKey::Apple(key))
@@ -308,6 +335,7 @@ mod persistent {
                 key_states: &PERSISTENT_KEY_STATES,
                 ca: MockAttestationCa::new_mock(),
                 app_identifier,
+                error_scenario: KeyHolderErrorScenario::NoError,
             };
 
             Self(holder)
@@ -398,7 +426,7 @@ mod persistent {
     pub struct PersistentMockAppleAttestedKey(MockAppleAttestedKey);
 
     impl AppleAttestedKey for PersistentMockAppleAttestedKey {
-        type Error = Infallible;
+        type Error = <MockAppleAttestedKey as AppleAttestedKey>::Error;
 
         async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error> {
             PersistentMockAppleHardwareAttestedKeyHolder::with_key_state_write(self.0.sign(payload)).await

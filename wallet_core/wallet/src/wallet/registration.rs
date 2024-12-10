@@ -210,6 +210,7 @@ mod tests {
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::VerifiedAttestation;
+    use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use wallet_common::account::messages::auth::RegistrationAttestation;
     use wallet_common::account::messages::auth::WalletCertificate;
     use wallet_common::account::signed::SequenceNumberComparison;
@@ -375,30 +376,27 @@ mod tests {
         assert!(wallet.storage.get_mut().data.is_empty());
     }
 
-    // #[tokio::test]
-    // async fn test_wallet_register_error_signing() {
-    //     let mut wallet = WalletWithMocks::new_unregistered().await;
+    #[tokio::test]
+    async fn test_wallet_register_error_attestation() {
+        let mut wallet = WalletWithMocks::new_unregistered();
 
-    //     wallet
-    //         .account_provider_client
-    //         .expect_registration_challenge()
-    //         .return_once(|_| Ok(utils::random_bytes(32)));
+        wallet
+            .account_provider_client
+            .expect_registration_challenge()
+            .return_once(|_| Ok(utils::random_bytes(32)));
 
-    //     // Have the hardware key signing fail.
-    //     FallibleMockHardwareEcdsaKey::next_private_key_error_for_identifier(
-    //         wallet_key_id().as_ref().to_string(),
-    //         p256::ecdsa::Error::new(),
-    //     );
+        // Have the hardware key signing fail.
+        wallet.key_holder.error_scenario = KeyHolderErrorScenario::UnretryableAttestationError;
 
-    //     let error = wallet
-    //         .register(PIN.to_string())
-    //         .await
-    //         .expect_err("Wallet registration should have resulted in error");
+        let error = wallet
+            .register(PIN.to_string())
+            .await
+            .expect_err("Wallet registration should have resulted in error");
 
-    //     assert_matches!(error, WalletRegistrationError::Signing(_));
-    //     assert!(!wallet.has_registration());
-    //     assert!(wallet.storage.get_mut().data.is_empty());
-    // }
+        assert_matches!(error, WalletRegistrationError::Attestation(_));
+        assert!(!wallet.has_registration());
+        assert!(wallet.storage.get_mut().data.is_empty());
+    }
 
     #[tokio::test]
     async fn test_wallet_register_error_registration_request() {

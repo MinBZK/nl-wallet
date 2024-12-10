@@ -19,11 +19,10 @@ pub trait AppleAttestedKey {
 }
 
 #[cfg(any(test, feature = "mock_apple_attested_key"))]
-pub use mock_apple_attested_key::MockAppleAttestedKey;
+pub use mock_apple_attested_key::*;
 
 #[cfg(any(test, feature = "mock_apple_attested_key"))]
 mod mock_apple_attested_key {
-    use std::convert::Infallible;
     use std::sync::atomic::AtomicU32;
     use std::sync::atomic::Ordering;
     use std::sync::Arc;
@@ -41,11 +40,16 @@ mod mock_apple_attested_key {
     use super::AppleAssertion;
     use super::AppleAttestedKey;
 
+    #[derive(Debug, thiserror::Error)]
+    #[error("mock error to be used in tests")]
+    pub struct MockAppleAttestedKeyError {}
+
     #[derive(Debug)]
     pub struct MockAppleAttestedKey {
         pub app_identifier: AppIdentifier,
         pub signing_key: SigningKey,
         pub next_counter: Arc<AtomicU32>,
+        pub has_error: bool,
     }
 
     impl MockAppleAttestedKey {
@@ -54,6 +58,7 @@ mod mock_apple_attested_key {
                 signing_key,
                 app_identifier,
                 next_counter: Arc::new(AtomicU32::new(1)),
+                has_error: false,
             }
         }
 
@@ -82,9 +87,13 @@ mod mock_apple_attested_key {
     }
 
     impl AppleAttestedKey for MockAppleAttestedKey {
-        type Error = Infallible;
+        type Error = MockAppleAttestedKeyError;
 
         async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error> {
+            if self.has_error {
+                return Err(MockAppleAttestedKeyError {});
+            }
+
             let assertion_bytes = Assertion::new_mock_bytes(
                 &self.signing_key,
                 &self.app_identifier,
