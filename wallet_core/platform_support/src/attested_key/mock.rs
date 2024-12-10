@@ -368,6 +368,13 @@ mod persistent {
         }
     }
 
+    #[cfg(feature = "xcode_env")]
+    impl Default for PersistentMockAppleHardwareAttestedKeyHolder {
+        fn default() -> Self {
+            Self::new_mock(AppIdentifier::default())
+        }
+    }
+
     impl AttestedKeyHolder for PersistentMockAppleHardwareAttestedKeyHolder {
         type Error = MockHardwareAttestedKeyError;
         type AppleKey = PersistentMockAppleAttestedKey;

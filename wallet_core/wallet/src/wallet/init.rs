@@ -2,20 +2,19 @@ use tokio::sync::RwLock;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::hardware::HardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
 
-use crate::account_provider::HttpAccountProviderClient;
 use crate::config::default_configuration;
 use crate::config::init_universal_link_base_url;
 use crate::config::ConfigServerConfiguration;
 use crate::config::ConfigurationError;
 use crate::config::ConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
+use crate::config::UpdatingFileHttpConfigurationRepository;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
@@ -37,12 +36,33 @@ pub enum WalletInitError {
     Database(#[from] StorageError),
 }
 
-impl Wallet {
+#[cfg(feature = "fake_attestation")]
+static KEY_HOLDER_ONCE: tokio::sync::OnceCell<()> = tokio::sync::OnceCell::const_new();
+
+impl<AKH, APC, DS, IS, MDS, WIC>
+    Wallet<UpdatingFileHttpConfigurationRepository, DatabaseStorage<HardwareEncryptionKey>, AKH, APC, DS, IS, MDS, WIC>
+where
+    AKH: AttestedKeyHolder + Default,
+    APC: Default,
+    WIC: Default,
+{
     #[sentry_capture_error]
     pub async fn init_all() -> Result<Self, WalletInitError> {
         init_universal_link_base_url();
 
-        let key_holder = HardwareAttestedKeyHolder::default();
+        // When using fake attestations, initialize the key holder, but make sure this happens only once.
+        #[cfg(feature = "fake_attestation")]
+        {
+            use platform_support::attested_key::mock::PersistentMockAppleHardwareAttestedKeyHolder;
+
+            KEY_HOLDER_ONCE
+                .get_or_init(|| async {
+                    PersistentMockAppleHardwareAttestedKeyHolder::init::<HardwareUtilities>().await;
+                })
+                .await;
+        }
+
+        let key_holder = AKH::default();
         let storage_path = HardwareUtilities::storage_path().await?;
         let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
@@ -52,13 +72,7 @@ impl Wallet {
         )
         .await?;
 
-        Self::init_registration(
-            config_repository,
-            storage,
-            key_holder,
-            HttpAccountProviderClient::default(),
-        )
-        .await
+        Self::init_registration(config_repository, storage, key_holder, APC::default()).await
     }
 }
 

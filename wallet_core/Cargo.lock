@@ -5589,6 +5589,7 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "base64 0.22.1",
+ "cfg-if",
  "chrono",
  "ciborium",
  "derive_more",

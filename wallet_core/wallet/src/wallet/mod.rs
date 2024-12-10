@@ -14,13 +14,13 @@ mod uri;
 #[cfg(test)]
 mod test;
 
+use cfg_if::cfg_if;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
-use platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
@@ -55,6 +55,14 @@ pub use self::uri::UriType;
 
 use self::issuance::PidIssuanceSession;
 
+cfg_if! {
+    if #[cfg(feature = "fake_attestation")] {
+        type KeyHolderType = platform_support::attested_key::mock::PersistentMockAppleHardwareAttestedKeyHolder;
+    } else {
+        type KeyHolderType = platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
+    }
+}
+
 struct WalletRegistration<A, G> {
     attested_key: AttestedKey<A, G>,
     data: RegistrationData,
@@ -63,7 +71,7 @@ struct WalletRegistration<A, G> {
 pub struct Wallet<
     CR = UpdatingFileHttpConfigurationRepository, // ConfigurationRepository
     S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
-    AKH = HardwareAttestedKeyHolder,              // AttestedKeyHolder
+    AKH = KeyHolderType,                          // AttestedKeyHolder
     APC = HttpAccountProviderClient,              // AccountProviderClient
     DS = HttpDigidSession,                        // DigidSession
     IS = HttpIssuanceSession,                     // IssuanceSession
