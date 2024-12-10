@@ -47,7 +47,7 @@ use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
+use wallet_common::reqwest::ReqwestTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_provider::settings::Settings as WpSettings;
@@ -113,8 +113,8 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
 
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
-    (mut cs_settings, cs_root_ca): (CsSettings, BorrowingTrustAnchor),
-    (wp_settings, wp_root_ca): (WpSettings, BorrowingTrustAnchor),
+    (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
+    (wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
     let config_server_config = ConfigServerConfiguration {
@@ -138,8 +138,8 @@ pub async fn setup_wallet_and_env(
 
     let certificates = ws_settings.issuer.certificates().unwrap();
 
-    start_config_server(cs_settings, &cs_root_ca).await;
-    start_wallet_provider(wp_settings, &wp_root_ca).await;
+    start_config_server(cs_settings, cs_root_ca).await;
+    start_wallet_provider(wp_settings, wp_root_ca).await;
     start_wallet_server(ws_settings, MockAttributeService(certificates)).await;
 
     let config_repository = HttpConfigurationRepository::new(
@@ -176,14 +176,14 @@ pub fn find_listener_port() -> u16 {
         .port()
 }
 
-pub fn config_server_settings() -> (CsSettings, BorrowingTrustAnchor) {
+pub fn config_server_settings() -> (CsSettings, ReqwestTrustAnchor) {
     let port = find_listener_port();
 
     let mut settings = CsSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.port = port;
 
-    let root_ca = BorrowingTrustAnchor::from_der(read_file("cs.ca.crt.der")).unwrap();
+    let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
@@ -202,7 +202,7 @@ pub fn config_jwt(wallet_config: &WalletConfiguration) -> String {
     .unwrap()
 }
 
-pub fn wallet_provider_settings() -> (WpSettings, BorrowingTrustAnchor) {
+pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
     let port = find_listener_port();
 
     let mut settings = WpSettings::new().expect("Could not read settings");
@@ -210,12 +210,12 @@ pub fn wallet_provider_settings() -> (WpSettings, BorrowingTrustAnchor) {
     settings.webserver.port = port;
     settings.pin_policy.timeouts = vec![200, 400, 600].into_iter().map(Duration::from_millis).collect();
 
-    let root_ca = BorrowingTrustAnchor::from_der(read_file("wp.ca.crt.der")).unwrap();
+    let root_ca = read_file("wp.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
 
-pub async fn start_config_server(settings: CsSettings, trust_anchor: &BorrowingTrustAnchor) {
+pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_config_base_url(&settings.port);
 
     tokio::spawn(async {
@@ -225,14 +225,10 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: &BorrowingT
         }
     });
 
-    wait_for_server(
-        remove_path(&base_url),
-        vec![Certificate::from_der(trust_anchor.as_ref()).unwrap()],
-    )
-    .await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into()]).await;
 }
 
-pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: &BorrowingTrustAnchor) {
+pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_wp_base_url(&settings.webserver.port);
 
     tokio::spawn(async {
@@ -243,11 +239,7 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: &Borrowin
         }
     });
 
-    wait_for_server(
-        remove_path(&base_url),
-        vec![Certificate::from_der(trust_anchor.as_ref()).unwrap()],
-    )
-    .await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into()]).await;
 }
 
 pub fn wallet_server_settings() -> WsSettings {
