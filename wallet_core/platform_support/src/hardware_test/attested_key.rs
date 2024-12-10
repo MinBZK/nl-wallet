@@ -13,18 +13,7 @@ extern "C" fn attested_key_test(has_xcode_env: bool) {
 
     super::print_panic(|| {
         // Prepare Apple test data if we are executed from Xcode.
-        let app_identifier = has_xcode_env.then(|| {
-            // When Xcode compiles the crate as part of the integration tests,
-            // the environment variables below should be set.
-            let (Some(team_id), Some(bundle_id)) = (
-                option_env!("DEVELOPMENT_TEAM"),
-                option_env!("PRODUCT_BUNDLE_IDENTIFIER"),
-            ) else {
-                panic!("Xcode environment variables are not defined")
-            };
-
-            AppIdentifier::new(team_id, bundle_id)
-        });
+        let app_identifier = has_xcode_env.then(AppIdentifier::default);
         let apple_test_data = app_identifier.as_ref().map(|app_identifier| AppleTestData {
             app_identifier,
             trust_anchors: &APPLE_TRUST_ANCHORS,

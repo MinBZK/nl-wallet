@@ -41,6 +41,7 @@ hardware_integration_test = [
     "tokio/fs",
     "tokio/io-util",
     "tokio/rt",
+    "apple_app_attest/xcode_env",
     "wallet_common/integration_test",
 ]
 

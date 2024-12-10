@@ -41,6 +41,22 @@ impl AppIdentifier {
     }
 }
 
+#[cfg(feature = "xcode_env")]
+impl Default for AppIdentifier {
+    fn default() -> Self {
+        // When this crate is compiled as part of an Xcode build
+        // chain the environment variables below should be set.
+        let (Some(team_id), Some(bundle_id)) = (
+            option_env!("DEVELOPMENT_TEAM"),
+            option_env!("PRODUCT_BUNDLE_IDENTIFIER"),
+        ) else {
+            panic!("Xcode environment variables are not defined")
+        };
+
+        Self::new(team_id, bundle_id)
+    }
+}
+
 #[cfg(feature = "mock")]
 mod mock {
     use super::AppIdentifier;
