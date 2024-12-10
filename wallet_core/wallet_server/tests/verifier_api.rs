@@ -148,12 +148,12 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnc
     let issuer_key_pair = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
         .unwrap();
-    let issuer_trust_anchor = BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap();
+    let issuer_trust_anchor = issuer_ca.trust_anchor().unwrap();
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
     let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor = BorrowingTrustAnchor::from_der(rp_ca.certificate().as_ref()).unwrap();
+    let rp_trust_anchor = rp_ca.trust_anchor().unwrap();
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
         &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
     ));

@@ -93,7 +93,7 @@ where
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap()];
+        let trust_anchors = vec![ca.trust_anchor().unwrap()];
         let key_pair = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
         // Generate some OpenID4VP specific session material.

@@ -391,7 +391,6 @@ mod test {
     use x509_parser::certificate::X509Certificate;
 
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::server_keys::KeyPair;
     use crate::utils::issuer_auth::IssuerRegistration;
@@ -450,7 +449,7 @@ mod test {
         let mdl = IssuerRegistration::new_mock().into();
 
         let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
-        let ca_trustanchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let ca_trustanchor = ca.trust_anchor().unwrap();
         issuer_key_pair
             .certificate()
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[(&ca_trustanchor).into()])
@@ -484,7 +483,7 @@ mod test {
 
         let issuer_key_pair = ca.generate("mycert", &mdl, Default::default()).unwrap();
 
-        let ca_trustanchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let ca_trustanchor = ca.trust_anchor().unwrap();
         issuer_key_pair
             .certificate()
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[(&ca_trustanchor).into()])
@@ -514,7 +513,7 @@ mod test {
 
         let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
 
-        let ca_trustanchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let ca_trustanchor = ca.trust_anchor().unwrap();
         issuer_key_pair
             .certificate()
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[(&ca_trustanchor).into()])
@@ -536,7 +535,7 @@ mod test {
 
         let reader_key_pair = ca.generate("mycert", &reader_auth, Default::default()).unwrap();
 
-        let ca_trustanchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let ca_trustanchor = ca.trust_anchor().unwrap();
         reader_key_pair
             .certificate()
             .verify(
@@ -571,7 +570,7 @@ mod test {
 
         let reader_key_pair = ca.generate("mycert", &reader_auth, config).unwrap();
 
-        let ca_trustanchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let ca_trustanchor = ca.trust_anchor().unwrap();
         reader_key_pair
             .certificate()
             .verify(

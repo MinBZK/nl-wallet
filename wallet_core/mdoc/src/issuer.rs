@@ -71,7 +71,6 @@ mod tests {
 
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::holder::Mdoc;
     use crate::server_keys::KeyPair;
@@ -91,7 +90,7 @@ mod tests {
     async fn it_works() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-        let trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let trust_anchor = ca.trust_anchor().unwrap();
         let trust_anchors = &[(&trust_anchor).into()];
 
         let unsigned = UnsignedMdoc {

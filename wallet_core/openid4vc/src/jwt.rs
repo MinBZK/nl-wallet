@@ -204,7 +204,6 @@ mod tests {
     use wallet_common::jwt::JwtCredentialClaims;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::EcdsaKey;
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::jwt::sign_with_certificate;
     use crate::jwt::JwtCredential;
@@ -221,7 +220,7 @@ mod tests {
         let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
 
         let audience: &[String] = &[];
-        let trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let trust_anchor = ca.trust_anchor().unwrap();
         let (deserialized, leaf_cert) =
             verify_against_trust_anchors(&jwt, audience, &[(&trust_anchor).into()], &TimeGenerator).unwrap();
 
@@ -240,7 +239,7 @@ mod tests {
         let other_ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
 
         let audience: &[String] = &[];
-        let trust_anchor = BorrowingTrustAnchor::from_der(other_ca.certificate().as_ref()).unwrap();
+        let trust_anchor = other_ca.trust_anchor().unwrap();
         let err = verify_against_trust_anchors(&jwt, audience, &[(&trust_anchor).into()], &TimeGenerator).unwrap_err();
         assert_matches!(
             err,

@@ -486,7 +486,6 @@ mod tests {
     use serde::Serialize;
 
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::server_keys::KeyPair;
     use crate::utils::cose::CoseError;
@@ -600,7 +599,7 @@ mod tests {
         let header_cert = cose.signing_cert().unwrap();
         assert_eq!(issuer_key_pair.certificate().as_ref(), header_cert.as_ref());
 
-        let trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let trust_anchor = ca.trust_anchor().unwrap();
         cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[(&trust_anchor).into()])
             .unwrap();
     }

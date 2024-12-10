@@ -783,7 +783,6 @@ mod tests {
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::openid4vp::IsoVpAuthorizationRequest;
     use crate::AuthorizationErrorCode;
@@ -862,7 +861,7 @@ mod tests {
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
-        let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let borrowing_trust_anchor = ca.trust_anchor().unwrap();
         let (auth_request, cert) =
             VpAuthorizationRequest::try_new(&auth_request_jwt, &[(&borrowing_trust_anchor).into()]).unwrap();
         auth_request.validate(&cert, None).unwrap();

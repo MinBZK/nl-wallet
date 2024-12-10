@@ -901,7 +901,7 @@ mod tests {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = MockRemoteKeyFactory::default();
-        let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let borrowing_trust_anchor = ca.trust_anchor().unwrap();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
         let preview = CredentialPreview::MsoMdoc {

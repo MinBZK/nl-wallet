@@ -1138,7 +1138,6 @@ mod tests {
     use nl_wallet_mdoc::ItemsRequest;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionToken;
@@ -1194,7 +1193,7 @@ mod tests {
     fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
         // Initialize server state
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap()];
+        let trust_anchors = vec![ca.trust_anchor().unwrap()];
         let reader_registration = Some(ReaderRegistration::new_mock());
 
         let use_cases = HashMap::from([

@@ -119,6 +119,8 @@ mod generate {
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use time::OffsetDateTime;
 
+    use wallet_common::trust_anchor::BorrowingTrustAnchor;
+
     use crate::server_keys::KeyPair;
     use crate::utils::x509::BorrowingCertificate;
     use crate::utils::x509::CertificateConfiguration;
@@ -187,6 +189,10 @@ mod generate {
 
         fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateError> {
             SigningKey::from_pkcs8_der(keypair.serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
+        }
+
+        pub fn trust_anchor(&self) -> Result<BorrowingTrustAnchor, webpki::Error> {
+            BorrowingTrustAnchor::from_der(self.certificate().as_ref())
         }
     }
 

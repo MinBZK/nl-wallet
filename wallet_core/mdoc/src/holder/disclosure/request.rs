@@ -127,7 +127,6 @@ mod tests {
     use assert_matches::assert_matches;
 
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
@@ -169,7 +168,7 @@ mod tests {
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let der_trust_anchors = [BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap()];
+        let der_trust_anchors = [ca.trust_anchor().unwrap()];
         let reader_registration = ReaderRegistration::new_mock();
         let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
         let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
@@ -227,7 +226,7 @@ mod tests {
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let private_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
-        let der_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let der_trust_anchor = ca.trust_anchor().unwrap();
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
@@ -242,7 +241,7 @@ mod tests {
         assert_matches!(certificate, Some(cert) if cert == private_key.into());
 
         let other_ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let other_der_trust_anchor = BorrowingTrustAnchor::from_der(other_ca.certificate().as_ref()).unwrap();
+        let other_der_trust_anchor = other_ca.trust_anchor().unwrap();
         let error = doc_request
             .verify(&session_transcript, &TimeGenerator, &[(&other_der_trust_anchor).into()])
             .expect_err("Verifying DeviceRequest should have resulted in an error");
