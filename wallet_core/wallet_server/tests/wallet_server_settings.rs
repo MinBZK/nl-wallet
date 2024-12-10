@@ -1,10 +1,10 @@
-use assert_matches::assert_matches;
 use std::collections::HashMap;
+
+use assert_matches::assert_matches;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
@@ -17,15 +17,6 @@ fn to_use_case(key_pair: KeyPair) -> VerifierUseCase {
         session_type_return_url: SessionTypeReturnUrl::Both,
         key_pair: key_pair.try_into().unwrap(),
     }
-}
-
-fn certificates_to_trust_anchors(
-    trust_anchors: &[BorrowingCertificate],
-) -> Result<Vec<BorrowingTrustAnchor>, CertificateError> {
-    trust_anchors
-        .iter()
-        .map(|cert| Ok(BorrowingTrustAnchor::from_der(cert.as_ref())?))
-        .collect::<Result<Vec<_>, CertificateError>>()
 }
 
 #[test]
@@ -44,9 +35,7 @@ fn test_settings_success() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -78,9 +67,7 @@ fn test_settings_no_issuer_trust_anchors() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -113,9 +100,7 @@ fn test_settings_no_reader_trust_anchors() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -151,9 +136,7 @@ fn test_settings_no_reader_registration() {
         .generate_reader_mock(None)
         .expect("generate reader cert without reader registration");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -190,9 +173,7 @@ fn test_settings_wrong_reader_ca() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate reader cert on issuer CA");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -229,8 +210,7 @@ fn test_settings_no_issuer_registration() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
+    settings.issuer_trust_anchors = vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap()];
 
     settings.issuer.private_keys.clear();
     settings
@@ -271,9 +251,7 @@ fn test_settings_wrong_issuer_ca() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![BorrowingTrustAnchor::from_der(issuer_ca.certificate().as_ref()).unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
