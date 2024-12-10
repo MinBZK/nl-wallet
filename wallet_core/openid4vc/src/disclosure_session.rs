@@ -870,7 +870,7 @@ mod tests {
 
         let session_transcript = SessionTranscript::new_oid4vp(
             &verifier_session.response_uri,
-            &verifier_session.client_id(),
+            verifier_session.client_id(),
             verifier_session.nonce.clone(),
             &mdoc_nonce,
         );
