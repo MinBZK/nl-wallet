@@ -2,7 +2,6 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Created;
 use openid4vc::oidc;
@@ -39,8 +38,6 @@ pub enum Error {
     NoAttributesFound,
     #[error("missing certificate for issuance of doctype {0}")]
     MissingCertificate(String),
-    #[error("error handling certificate {0}")]
-    Certificate(#[from] CertificateError),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
 }

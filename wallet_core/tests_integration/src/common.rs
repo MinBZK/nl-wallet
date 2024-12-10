@@ -136,7 +136,7 @@ pub async fn setup_wallet_and_env(
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
-    let certificates = ws_settings.issuer.certificates().unwrap();
+    let certificates = ws_settings.issuer.certificates();
 
     start_config_server(cs_settings, cs_root_ca).await;
     start_wallet_provider(wp_settings, wp_root_ca).await;

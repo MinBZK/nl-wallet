@@ -40,16 +40,11 @@ pub struct Digid {
 }
 
 impl Issuer {
-    pub fn certificates(&self) -> Result<IndexMap<String, BorrowingCertificate>, CertificateError> {
+    pub fn certificates(&self) -> IndexMap<String, BorrowingCertificate> {
         self.private_keys
             .iter()
-            .map(|(doctype, privkey)| {
-                Ok((
-                    doctype.clone(),
-                    BorrowingCertificate::from_der(privkey.certificate.to_vec())?,
-                ))
-            })
-            .collect::<Result<_, _>>()
+            .map(|(doctype, privkey)| (doctype.clone(), privkey.certificate.clone()))
+            .collect()
     }
 }
 
@@ -61,7 +56,7 @@ impl TryFrom<&Issuer> for BrpPidAttributeService {
             HttpBrpClient::new(issuer.brp_server.clone()),
             &issuer.digid.bsn_privkey,
             issuer.digid.http_config.clone(),
-            issuer.certificates()?,
+            issuer.certificates(),
         )
     }
 }

@@ -130,7 +130,7 @@ pub struct Storage {
 #[derive(Clone, Deserialize)]
 pub struct KeyPair {
     #[serde_as(as = "Base64")]
-    pub certificate: Vec<u8>,
+    pub certificate: BorrowingCertificate,
     #[serde_as(as = "Base64")]
     pub private_key: Vec<u8>,
 }
@@ -159,7 +159,7 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
     fn try_from(value: &KeyPair) -> Result<Self, Self::Error> {
         Ok(Self::new_from_signing_key(
             SigningKey::from_pkcs8_der(&value.private_key)?,
-            BorrowingCertificate::from_der(value.certificate.to_vec())?,
+            value.certificate.clone(),
         )?)
     }
 }
