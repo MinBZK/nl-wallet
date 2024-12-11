@@ -165,7 +165,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnc
         VerifierUseCase {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: wallet_server::settings::KeyPair {
-                certificate: usecase_keypair.certificate().clone().into(),
+                certificate: usecase_keypair.certificate().clone(),
                 private_key: usecase_keypair
                     .private_key()
                     .to_pkcs8_der()
