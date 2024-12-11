@@ -117,7 +117,7 @@ where
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(PidIssuanceError::NotRegistered);
         }
 
@@ -163,7 +163,7 @@ where
         info!("Checking for active PID issuance session");
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(PidIssuanceError::NotRegistered);
         }
 
@@ -183,7 +183,7 @@ where
         info!("PID issuance cancelled / rejected");
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(PidIssuanceError::NotRegistered);
         }
 
@@ -209,7 +209,7 @@ where
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(PidIssuanceError::NotRegistered);
         }
 
@@ -279,9 +279,9 @@ where
         info!("Accepting PID issuance");
 
         info!("Checking if registered");
-        let registration = self
+        let (attested_key, registration_data) = self
             .registration
-            .as_ref()
+            .as_key_and_registration_data()
             .ok_or_else(|| PidIssuanceError::NotRegistered)?;
 
         info!("Checking if locked");
@@ -302,7 +302,8 @@ where
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                registration,
+                attested_key,
+                registration_data,
                 &config.account_server.http_config,
                 &instruction_result_public_key,
             )

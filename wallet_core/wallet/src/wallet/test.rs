@@ -190,11 +190,10 @@ impl WalletWithMocks {
             <RegistrationData as KeyedData>::KEY,
             KeyedDataResult::Data(serde_json::to_string(&registration_data).unwrap()),
         );
-        wallet.registration = WalletRegistration {
+        wallet.registration = WalletRegistration::Registered {
             attested_key: AttestedKey::Apple(attested_key),
             data: registration_data,
-        }
-        .into();
+        };
         wallet.lock.unlock();
 
         wallet

@@ -63,9 +63,30 @@ cfg_if! {
     }
 }
 
-struct WalletRegistration<A, G> {
-    attested_key: AttestedKey<A, G>,
-    data: RegistrationData,
+#[derive(Debug, Default)]
+enum WalletRegistration<A, G> {
+    #[default]
+    Unregistered,
+    Registered {
+        attested_key: AttestedKey<A, G>,
+        data: RegistrationData,
+    },
+}
+
+impl<A, G> WalletRegistration<A, G> {
+    fn is_registered(&self) -> bool {
+        match self {
+            Self::Unregistered => false,
+            Self::Registered { .. } => true,
+        }
+    }
+
+    fn as_key_and_registration_data(&self) -> Option<(&AttestedKey<A, G>, &RegistrationData)> {
+        match self {
+            Self::Unregistered => None,
+            Self::Registered { attested_key, data } => Some((attested_key, data)),
+        }
+    }
 }
 
 pub struct Wallet<
@@ -83,8 +104,7 @@ pub struct Wallet<
     config_repository: CR,
     storage: RwLock<S>,
     key_holder: AKH,
-    registration:
-        Option<WalletRegistration<<AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey>>,
+    registration: WalletRegistration<<AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey>,
     account_provider_client: APC,
     issuance_session: Option<PidIssuanceSession<DS, IS>>,
     disclosure_session: Option<MDS>,

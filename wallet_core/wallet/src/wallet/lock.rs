@@ -111,9 +111,9 @@ where
     {
         info!("Checking if registered");
 
-        let registration = self
+        let (attested_key, registration_data) = self
             .registration
-            .as_ref()
+            .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
         let config = self.config_repository.config();
@@ -122,7 +122,8 @@ where
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                registration,
+                attested_key,
+                registration_data,
                 &config.account_server.http_config,
                 &instruction_result_public_key,
             )
@@ -225,6 +226,7 @@ mod tests {
 
     use super::super::test::WalletWithMocks;
     use super::super::test::ACCOUNT_SERVER_KEYS;
+    use super::super::WalletRegistration;
     use super::*;
 
     const PIN: &str = "051097";
@@ -252,11 +254,11 @@ mod tests {
 
         // Set up the instruction challenge.
         let challenge_response = challenge.clone();
-        let registration = wallet.registration.as_ref().unwrap();
-        let wallet_cert = registration.data.wallet_certificate.clone();
-        let wallet_id = registration.data.wallet_id.clone();
+        let (attested_key, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
+        let wallet_cert = registration_data.wallet_certificate.clone();
+        let wallet_id = registration_data.wallet_id.clone();
 
-        let AttestedKey::Apple(attested_key) = &registration.attested_key else {
+        let AttestedKey::Apple(attested_key) = attested_key else {
             unreachable!();
         };
         let attested_public_key = *attested_key.verifying_key();
@@ -288,11 +290,11 @@ mod tests {
             });
 
         // Set up the instruction.
-        let wallet_cert = registration.data.wallet_certificate.clone();
+        let wallet_cert = registration_data.wallet_certificate.clone();
         let app_identifier = attested_key.app_identifier.clone();
         let next_counter = attested_key.next_counter();
 
-        let pin_key = PinKey::new(PIN, &registration.data.pin_salt);
+        let pin_key = PinKey::new(PIN, &registration_data.pin_salt);
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
         let result_claims = InstructionResultClaims {
@@ -505,10 +507,13 @@ mod tests {
         wallet.lock();
 
         // Have the hardware key signing fail.
-        match &mut wallet.registration.as_mut().unwrap().attested_key {
-            AttestedKey::Apple(attested_key) => attested_key.has_error = true,
-            AttestedKey::Google(_) => unreachable!(),
-        };
+        match &mut wallet.registration {
+            WalletRegistration::Registered {
+                attested_key: AttestedKey::Apple(attested_key),
+                ..
+            } => attested_key.has_error = true,
+            _ => unreachable!(),
+        }
 
         let error = wallet
             .unlock(PIN.to_string())

@@ -145,7 +145,7 @@ where
         info!("Performing disclosure based on received URI: {}", uri);
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(DisclosureError::NotRegistered);
         }
 
@@ -279,7 +279,7 @@ where
         info!("Checking for active disclosure session");
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(DisclosureError::NotRegistered);
         }
 
@@ -299,7 +299,7 @@ where
         info!("Cancelling disclosure");
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(DisclosureError::NotRegistered);
         }
 
@@ -343,9 +343,9 @@ where
         info!("Accepting disclosure");
 
         info!("Checking if registered");
-        let registration = self
+        let (attested_key, registration_data) = self
             .registration
-            .as_ref()
+            .as_key_and_registration_data()
             .ok_or_else(|| DisclosureError::NotRegistered)?;
 
         info!("Checking if locked");
@@ -397,7 +397,8 @@ where
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                registration,
+                attested_key,
+                registration_data,
                 &config.account_server.http_config,
                 &instruction_result_public_key,
             )

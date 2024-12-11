@@ -15,6 +15,8 @@ use crate::pin::change::FinishChangePinOperation;
 use crate::storage::Storage;
 use crate::Wallet;
 
+use super::WalletRegistration;
+
 const CHANGE_PIN_RETRIES: u8 = 3;
 
 impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -29,10 +31,10 @@ where
         info!("Begin PIN change");
 
         info!("Checking if registered");
-        let registration = self
-            .registration
-            .as_mut()
-            .ok_or_else(|| ChangePinError::NotRegistered)?;
+        let (attested_key, registration_data) = match &mut self.registration {
+            WalletRegistration::Registered { attested_key, data } => (attested_key, data),
+            WalletRegistration::Unregistered => return Err(ChangePinError::NotRegistered),
+        };
 
         info!("Checking if locked");
         if self.lock.is_locked() {
@@ -45,8 +47,7 @@ where
         let DerVerifyingKey(certificate_public_key) = &config.certificate_public_key;
 
         // Extract the public key belonging to the hardware attested key from the current certificate.
-        let DerVerifyingKey(hw_pubkey) = registration
-            .data
+        let DerVerifyingKey(hw_pubkey) = registration_data
             .wallet_certificate
             .parse_and_verify_with_sub(&certificate_public_key.into())
             .expect("stored wallet certificate should be valid")
@@ -54,9 +55,9 @@ where
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
-            &registration.attested_key,
+            attested_key,
             &self.account_provider_client,
-            &registration.data,
+            registration_data,
             &config.http_config,
             &instruction_result_public_key,
         );
@@ -64,14 +65,14 @@ where
         let session = BeginChangePinOperation::new(
             &instruction_client,
             &self.storage,
-            &registration.data,
+            registration_data,
             certificate_public_key,
             &hw_pubkey,
         );
         let (new_pin_salt, new_wallet_certificate) = session.begin_change_pin(old_pin, new_pin).await?;
 
-        registration.data.pin_salt = new_pin_salt;
-        registration.data.wallet_certificate = new_wallet_certificate;
+        registration_data.pin_salt = new_pin_salt;
+        registration_data.wallet_certificate = new_wallet_certificate;
 
         info!("PIN change started");
 
@@ -82,9 +83,9 @@ where
         info!("Continue PIN change");
 
         info!("Checking if registered");
-        let registration = self
+        let (attested_key, registration_data) = self
             .registration
-            .as_ref()
+            .as_key_and_registration_data()
             .ok_or_else(|| ChangePinError::NotRegistered)?;
 
         // Wallet does not need to be unlocked, see [`Wallet::unlock`].
@@ -95,9 +96,9 @@ where
 
         let instruction_client = InstructionClientFactory::new(
             &self.storage,
-            &registration.attested_key,
+            attested_key,
             &self.account_provider_client,
-            &registration.data,
+            registration_data,
             &config.http_config,
             &instruction_result_public_key,
         );
@@ -157,13 +158,13 @@ mod tests {
             .times(2)
             .returning(|_, _| Ok(utils::random_bytes(32)));
 
-        let registration = wallet.registration.as_ref().unwrap();
-        let AttestedKey::Apple(attested_key) = &registration.attested_key else {
+        let (attested_key, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
+        let AttestedKey::Apple(attested_key) = attested_key else {
             unreachable!();
         };
 
         let wp_result = create_wp_result(WalletWithMocks::valid_certificate(
-            Some(registration.data.wallet_id.clone()),
+            Some(registration_data.wallet_id.clone()),
             *attested_key.verifying_key(),
         ));
 

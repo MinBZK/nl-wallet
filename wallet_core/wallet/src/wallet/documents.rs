@@ -81,7 +81,7 @@ where
     ) -> Result<Option<DocumentsCallback>, DocumentsError> {
         let previous_callback = self.documents_callback.replace(callback);
 
-        if self.registration.is_some() {
+        if self.registration.is_registered() {
             self.emit_documents().await?;
         }
 

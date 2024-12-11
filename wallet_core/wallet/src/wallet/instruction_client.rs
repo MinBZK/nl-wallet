@@ -1,3 +1,4 @@
+use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::EcdsaDecodingKey;
@@ -7,10 +8,10 @@ use crate::config::ConfigurationRepository;
 use crate::errors::ChangePinError;
 use crate::instruction::InstructionClient;
 use crate::pin::change::ChangePinStorage;
+use crate::storage::RegistrationData;
 use crate::storage::Storage;
 
 use super::Wallet;
-use super::WalletRegistration;
 
 impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
 where
@@ -26,10 +27,8 @@ where
     pub(super) async fn new_instruction_client<'a>(
         &'a self,
         pin: String,
-        registration: &'a WalletRegistration<
-            <AKH as AttestedKeyHolder>::AppleKey,
-            <AKH as AttestedKeyHolder>::GoogleKey,
-        >,
+        attested_key: &'a AttestedKey<<AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey>,
+        registration_data: &'a RegistrationData,
         client_config: &'a TlsPinningConfig,
         instruction_result_public_key: &'a EcdsaDecodingKey,
     ) -> Result<
@@ -45,9 +44,9 @@ where
         let client = InstructionClient::new(
             pin,
             &self.storage,
-            &registration.attested_key,
+            attested_key,
             &self.account_provider_client,
-            &registration.data,
+            registration_data,
             client_config,
             instruction_result_public_key,
         );

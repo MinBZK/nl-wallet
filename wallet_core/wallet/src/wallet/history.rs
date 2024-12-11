@@ -97,7 +97,7 @@ where
         info!("Retrieving history");
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(HistoryError::NotRegistered);
         }
 
@@ -119,7 +119,7 @@ where
         info!("Retrieving Card history");
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(HistoryError::NotRegistered);
         }
 
@@ -162,7 +162,7 @@ where
 
         // If the `Wallet` is not registered, the database will not be open.
         // In that case don't emit anything.
-        if self.registration.is_some() {
+        if self.registration.is_registered() {
             self.emit_recent_history().await?;
         }
 

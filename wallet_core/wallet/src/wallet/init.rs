@@ -90,17 +90,19 @@ where
         account_provider_client: APC,
         registration_data: Option<RegistrationData>,
     ) -> Self {
-        let registration = registration_data.map(|data| {
-            // If the database contains a registration, an attested key
-            // already exists and we can reference it by its identifier.
-            // If a reference to this key already exists within the process
-            // this is programmer error and should result in a panic.
-            let attested_key = key_holder
-                .attested_key(data.attested_key_identifier.clone())
-                .expect("should be able to instantiate hardware attested key");
+        let registration = registration_data
+            .map(|data| {
+                // If the database contains a registration, an attested key
+                // already exists and we can reference it by its identifier.
+                // If a reference to this key already exists within the process
+                // this is programmer error and should result in a panic.
+                let attested_key = key_holder
+                    .attested_key(data.attested_key_identifier.clone())
+                    .expect("should be able to instantiate hardware attested key");
 
-            WalletRegistration { attested_key, data }
-        });
+                WalletRegistration::Registered { attested_key, data }
+            })
+            .unwrap_or_default();
 
         Wallet {
             config_repository,
@@ -183,7 +185,7 @@ mod tests {
             .expect("Could not initialize wallet");
 
         // The wallet should have no registration, and no database should be opened.
-        assert!(wallet.registration.is_none());
+        assert!(!wallet.registration.is_registered());
         assert!(!wallet.has_registration());
         assert!(matches!(
             wallet.storage.read().await.state().await.unwrap(),
@@ -203,7 +205,7 @@ mod tests {
                 .expect("Could not initialize wallet");
 
         // The wallet should have no registration, the database should be opened.
-        assert!(wallet.registration.is_none());
+        assert!(!wallet.registration.is_registered());
         assert!(!wallet.has_registration());
         assert!(matches!(
             wallet.storage.read().await.state().await.unwrap(),
@@ -234,7 +236,7 @@ mod tests {
         .expect("Could not initialize wallet");
 
         // The wallet should have a registration, the database should be opened.
-        assert!(wallet.registration.is_some());
+        assert!(wallet.registration.is_registered());
         assert!(wallet.has_registration());
         assert!(matches!(
             wallet.storage.read().await.state().await.unwrap(),
@@ -242,7 +244,8 @@ mod tests {
         ));
 
         // The registration data should now be available.
-        assert_eq!(wallet.registration.unwrap().data.pin_salt, pin_salt);
+        let (_, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
+        assert_eq!(registration_data.pin_salt, pin_salt);
     }
 
     #[tokio::test]

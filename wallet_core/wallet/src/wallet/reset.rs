@@ -1,3 +1,5 @@
+use std::mem;
+
 use tracing::info;
 use tracing::instrument;
 use tracing::warn;
@@ -11,6 +13,7 @@ use platform_support::attested_key::GoogleAttestedKey;
 use crate::storage::Storage;
 
 use super::Wallet;
+use super::WalletRegistration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ResetError {
@@ -28,14 +31,14 @@ where
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
         // Only reset if we actually have a registration.
-        if let Some(registration) = self.registration.take() {
+        if let WalletRegistration::Registered { attested_key, .. } = mem::take(&mut self.registration) {
             info!("Resetting wallet to inital state and wiping all local data");
 
             // Clear the database and its encryption key.
             self.storage.get_mut().clear().await;
 
             // Delete the hardware attested key if we are on Android, log any potential error.
-            match registration.attested_key {
+            match attested_key {
                 AttestedKey::Apple(_) => {}
                 AttestedKey::Google(key) => {
                     if let Err(error) = key.delete().await {
@@ -121,7 +124,7 @@ mod tests {
 
         // The database should now be uninitialized, the hardware key should
         // be gone and the `Wallet` should be both unregistered and locked.
-        assert!(wallet.registration.is_none());
+        assert!(!wallet.registration.is_registered());
         assert_matches!(
             wallet.storage.get_mut().state().await.unwrap(),
             StorageState::Uninitialized
@@ -151,7 +154,7 @@ mod tests {
             .expect("resetting the Wallet should have succeeded");
 
         // The wallet should now be totally cleared, even though the PidIssuerClient returned an error.
-        assert!(wallet.registration.is_none());
+        assert!(!wallet.registration.is_registered());
         assert_matches!(
             wallet.storage.get_mut().state().await.unwrap(),
             StorageState::Uninitialized

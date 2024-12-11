@@ -66,7 +66,7 @@ where
     AKH: AttestedKeyHolder,
 {
     pub fn has_registration(&self) -> bool {
-        self.registration.is_some()
+        self.registration.is_registered()
     }
 
     #[instrument(skip_all)]
@@ -187,7 +187,7 @@ where
         storage.insert_data(&data).await?;
 
         // Keep the registration data in memory.
-        self.registration = WalletRegistration { attested_key, data }.into();
+        self.registration = WalletRegistration::Registered { attested_key, data };
 
         // Unlock the wallet after successful registration
         self.lock.unlock();
