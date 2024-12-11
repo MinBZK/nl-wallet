@@ -752,7 +752,9 @@ mod tests {
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::CborSeq;
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+    use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
     use nl_wallet_mdoc::utils::x509::CertificateError;
+    use nl_wallet_mdoc::utils::x509::CertificateType;
     use nl_wallet_mdoc::DeviceAuth;
     use nl_wallet_mdoc::DeviceAuthenticationKeyed;
     use nl_wallet_mdoc::ItemsRequest;
@@ -1480,7 +1482,14 @@ mod tests {
 
         let mdoc_nonce = random_string(32);
 
-        let mock_key_pair = KeyPair::generate_reader_mock_ca().unwrap();
+        let ca_key_pair = KeyPair::generate_ca("my_ca", CertificateConfiguration::default()).unwrap();
+        let mock_key_pair = ca_key_pair
+            .generate(
+                "mock_keypair",
+                &CertificateType::ReaderAuth(None),
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
 
         let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
             data: CommonDisclosureData {
