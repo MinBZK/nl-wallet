@@ -6,6 +6,8 @@ use tracing::warn;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use platform_support::attested_key::hardware::AttestedKeyError;
+use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
@@ -61,6 +63,22 @@ pub enum WalletRegistrationError {
     PublicKeyMismatch,
     #[error("could not store registration certificate in database: {0}")]
     StoreCertificate(#[from] StorageError),
+}
+
+impl WalletRegistrationError {
+    pub fn is_attestation_not_supported(&self) -> bool {
+        match self {
+            Self::KeyGeneration(error) | Self::Attestation(error) => {
+                matches!(
+                    error.downcast_ref::<HardwareAttestedKeyError>(),
+                    Some(HardwareAttestedKeyError::Platform(
+                        AttestedKeyError::AttestationNotSupported
+                    ))
+                )
+            }
+            _ => false,
+        }
+    }
 }
 
 impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
