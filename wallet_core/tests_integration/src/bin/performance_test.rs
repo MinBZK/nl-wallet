@@ -13,7 +13,7 @@ use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
-use wallet::mock::default_configuration;
+use wallet::mock::default_wallet_config;
 use wallet::mock::MockStorage;
 use wallet::wallet_deps::ConfigServerConfiguration;
 use wallet::wallet_deps::ConfigurationRepository;
@@ -44,7 +44,7 @@ async fn main() {
     let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
 
     let config_server_config = ConfigServerConfiguration::default();
-    let wallet_config = default_configuration();
+    let wallet_config = default_wallet_config();
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.http_config,

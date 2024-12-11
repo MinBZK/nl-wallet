@@ -93,7 +93,7 @@ mod tests {
     use wallet_common::jwt::EcdsaDecodingKey;
 
     use crate::config::config_file;
-    use crate::config::default_configuration;
+    use crate::config::default_wallet_config;
     use crate::config::ConfigurationError;
     use crate::config::ConfigurationRepository;
     use crate::config::ConfigurationUpdateState;
@@ -118,7 +118,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_store_config_to_filesystem() {
-        let mut initial_wallet_config = default_configuration();
+        let mut initial_wallet_config = default_wallet_config();
         initial_wallet_config.lock_timeouts.background_timeout = 500;
 
         let config_dir = tempfile::tempdir().unwrap();
@@ -161,7 +161,7 @@ mod tests {
         let verifying_key = *SigningKey::random(&mut OsRng).verifying_key();
         let config_decoding_key: EcdsaDecodingKey = (&verifying_key).into();
 
-        let mut initially_stored_wallet_config = default_configuration();
+        let mut initially_stored_wallet_config = default_wallet_config();
         initially_stored_wallet_config.version = 10;
 
         // store initial wallet config having version 10
@@ -175,13 +175,13 @@ mod tests {
                 base_url: "http://localhost".parse().unwrap(),
             },
             config_decoding_key.clone(),
-            default_configuration(),
+            default_wallet_config(),
         )
         .await
         .unwrap();
         assert_eq!(10, repo.config().version, "should use stored config");
 
-        let mut embedded_wallet_config = default_configuration();
+        let mut embedded_wallet_config = default_wallet_config();
         embedded_wallet_config.version = 20;
 
         let repo = FileStorageConfigurationRepository::init(

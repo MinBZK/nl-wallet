@@ -14,19 +14,20 @@ use tokio::fs;
 
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
-use wallet::mock::default_configuration;
-use wallet::wallet_deps::ConfigServerConfiguration;
+use wallet::mock::default_wallet_config;
+use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::ConfigurationRepository;
 use wallet::wallet_deps::ConfigurationUpdateState;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::UpdateableConfigurationRepository;
+use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::JwtError;
 
 #[tokio::test]
 #[serial]
 async fn test_wallet_config() {
-    let mut served_wallet_config = default_configuration();
+    let mut served_wallet_config = default_wallet_config();
     served_wallet_config.lock_timeouts.inactive_timeout = 1;
     served_wallet_config.lock_timeouts.background_timeout = 1;
     served_wallet_config.version = 2;
@@ -41,7 +42,7 @@ async fn test_wallet_config() {
             base_url: local_config_base_url(&port),
             trust_anchors: vec![cs_root_ca],
         },
-        ..Default::default()
+        ..default_config_server_config()
     };
 
     let storage_path = env::temp_dir();
@@ -51,9 +52,9 @@ async fn test_wallet_config() {
 
     let http_config = HttpConfigurationRepository::new(
         config_server_config.http_config,
-        (&config_server_config.signing_public_key).into(),
+        (&config_server_config.signing_public_key.0).into(),
         storage_path.clone(),
-        default_configuration(),
+        default_wallet_config(),
     )
     .await
     .unwrap();
@@ -81,7 +82,7 @@ async fn test_wallet_config() {
 async fn test_wallet_config_stale() {
     let (settings, _) = wallet_provider_settings();
 
-    let mut served_wallet_config = default_configuration();
+    let mut served_wallet_config = default_wallet_config();
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
@@ -94,14 +95,14 @@ async fn test_wallet_config_stale() {
             base_url: local_config_base_url(&port),
             trust_anchors: vec![cs_root_ca],
         },
-        ..Default::default()
+        ..default_config_server_config()
     };
 
     let http_config = HttpConfigurationRepository::new(
         config_server_config.http_config,
-        (&config_server_config.signing_public_key).into(),
+        (&config_server_config.signing_public_key.0).into(),
         env::temp_dir(),
-        default_configuration(),
+        default_wallet_config(),
     )
     .await
     .unwrap();
@@ -119,7 +120,7 @@ async fn test_wallet_config_stale() {
 async fn test_wallet_config_signature_verification_failed() {
     let (settings, _) = wallet_provider_settings();
 
-    let mut served_wallet_config = default_configuration();
+    let mut served_wallet_config = default_wallet_config();
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
     // set the wallet_config that will be return from the config server to a lower version number than
     // we already have in the default configuration
@@ -147,14 +148,14 @@ async fn test_wallet_config_signature_verification_failed() {
             base_url: local_config_base_url(&port),
             trust_anchors: vec![cs_root_ca],
         },
-        ..Default::default()
+        ..default_config_server_config()
     };
 
     let http_config = HttpConfigurationRepository::new(
         config_server_config.http_config,
-        (&config_server_config.signing_public_key).into(),
+        (&config_server_config.signing_public_key.0).into(),
         env::temp_dir(),
-        default_configuration(),
+        default_wallet_config(),
     )
     .await
     .unwrap();

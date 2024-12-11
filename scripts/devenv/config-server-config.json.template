@@ -1,0 +1,10 @@
+{
+  "http_config": {
+    "base_url": "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/config/v1/",
+    "trust_anchors": [
+      "${CONFIG_SERVER_CA_CRT}"
+    ]
+  },
+  "signing_public_key": "${CONFIG_SIGNING_PUBLIC_KEY}",
+  "update_frequency_in_sec": 3600
+}

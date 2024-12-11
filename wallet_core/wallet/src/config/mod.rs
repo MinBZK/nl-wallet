@@ -16,9 +16,9 @@ use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
 
-pub use self::data::default_configuration;
+pub use self::data::default_config_server_config;
+pub use self::data::default_wallet_config;
 pub use self::data::init_universal_link_base_url;
-pub use self::data::ConfigServerConfiguration;
 pub use self::data::UNIVERSAL_LINK_BASE_URL;
 pub use self::file_repository::FileStorageConfigurationRepository;
 pub use self::http_repository::HttpConfigurationRepository;

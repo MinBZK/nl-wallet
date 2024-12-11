@@ -9,10 +9,10 @@ use tokio::time::{self};
 use tracing::error;
 use tracing::info;
 
+use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use super::ConfigCallback;
-use super::ConfigServerConfiguration;
 use super::ConfigurationError;
 use super::ConfigurationRepository;
 use super::ConfigurationUpdateState;
@@ -36,7 +36,7 @@ impl UpdatingFileHttpConfigurationRepository {
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
             config.http_config,
-            (&config.signing_public_key).into(),
+            (&config.signing_public_key.0).into(),
             initial_config,
         )
         .await?;
@@ -136,7 +136,7 @@ mod tests {
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
-    use crate::config::default_configuration;
+    use crate::config::default_wallet_config;
     use crate::config::ConfigurationError;
     use crate::config::ConfigurationRepository;
     use crate::config::ConfigurationUpdateState;
@@ -162,7 +162,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_update_config() {
-        let initial_wallet_config = default_configuration();
+        let initial_wallet_config = default_wallet_config();
 
         // pause time so we can advance it later
         time::pause();
@@ -202,7 +202,7 @@ mod tests {
 
     #[tokio::test]
     async fn drop_should_abort_updating_task() {
-        let initial_wallet_config = default_configuration();
+        let initial_wallet_config = default_wallet_config();
 
         // pause time so we can advance it later
         time::pause();

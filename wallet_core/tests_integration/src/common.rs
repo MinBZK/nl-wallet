@@ -34,14 +34,15 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use platform_support::utils::mock::MockHardwareUtilities;
 use platform_support::utils::PlatformUtilities;
-use wallet::mock::default_configuration;
+use wallet::mock::default_wallet_config;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
-use wallet::wallet_deps::ConfigServerConfiguration;
+use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::UpdateableConfigurationRepository;
 use wallet::Wallet;
+use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
@@ -122,10 +123,10 @@ pub async fn setup_wallet_and_env(
             base_url: local_config_base_url(&cs_settings.port),
             trust_anchors: vec![cs_root_ca.clone()],
         },
-        ..Default::default()
+        ..default_config_server_config()
     };
 
-    let mut wallet_config = default_configuration();
+    let mut wallet_config = default_wallet_config();
     wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
 
@@ -144,7 +145,7 @@ pub async fn setup_wallet_and_env(
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.http_config,
-        (&config_server_config.signing_public_key).into(),
+        (&config_server_config.signing_public_key.0).into(),
         MockHardwareUtilities::storage_path().await.unwrap(),
         wallet_config,
     )

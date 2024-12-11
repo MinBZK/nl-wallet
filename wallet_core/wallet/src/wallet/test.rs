@@ -30,7 +30,7 @@ use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
-use crate::config::default_configuration;
+use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::disclosure::MockMdocDisclosureSession;
@@ -258,7 +258,7 @@ impl WalletWithMocks {
 
         // Override public key material in the `Configuration`.
         let config = {
-            let mut config = default_configuration();
+            let mut config = default_wallet_config();
 
             config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
             config.account_server.instruction_result_public_key =

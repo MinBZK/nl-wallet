@@ -9,9 +9,9 @@ use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
 
 use crate::account_provider::HttpAccountProviderClient;
-use crate::config::default_configuration;
+use crate::config::default_config_server_config;
+use crate::config::default_wallet_config;
 use crate::config::init_universal_link_base_url;
-use crate::config::ConfigServerConfiguration;
 use crate::config::ConfigurationError;
 use crate::config::ConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
@@ -45,8 +45,8 @@ impl Wallet {
         let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
             storage_path,
-            ConfigServerConfiguration::default(),
-            default_configuration(),
+            default_config_server_config(),
+            default_wallet_config(),
         )
         .await?;
 

@@ -88,10 +88,16 @@ if ! echo -n "${JWT_HEADER}.${JWT_PAYLOAD}" | openssl dgst -sha256 -verify "$CON
     exit 1
 fi
 
-# Output configuration JSON
+# Output wallet_configuration JSON
 base64_url_decode "$JWT_PAYLOAD" > "${BASE_DIR}/../wallet_core/wallet/wallet-config.json"
 
-echo "CONFIG_SERVER_BASE_URL=https://${STATIC_HOSTNAME}/config/v1/"
-echo "CONFIG_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")"
-echo "CONFIG_SERVER_SIGNING_PUBLIC_KEY=${CONFIG_PUBLIC_KEY}"
+# Output config_server_configuratino JSON
+jq -n \
+    --arg url "https://${STATIC_HOSTNAME}/config/v1/" \
+    --arg ca "$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")" \
+    --arg pubkey "${CONFIG_PUBLIC_KEY}" \
+    --arg freq 3600 \
+    '{"http_config":{"base_url":$url,"trust_anchors":[$ca]},"signing_public_key":$pubkey,"update_frequency_in_sec":$freq}' \
+    > "${BASE_DIR}/../wallet_core/wallet/config-server-config.json"
+
 echo "UNIVERSAL_LINK_BASE=https://${APP_HOSTNAME}/deeplink/"
