@@ -131,6 +131,8 @@ impl Settings {
                     .separator("__")
                     .prefix_separator("_")
                     .list_separator(",")
+                    .with_list_parse_key("ios.root_certificates")
+                    .try_parsing(true),
             )
             .build()?
             .try_deserialize()
