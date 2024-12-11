@@ -44,6 +44,7 @@ use crate::Document;
 use crate::HistoryEvent;
 
 use super::documents::DocumentsError;
+use super::init::RegistrationStatus;
 use super::HistoryError;
 use super::Wallet;
 use super::WalletInitError;
@@ -163,7 +164,7 @@ impl WalletWithMocks {
             MockStorage::default(),
             MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),
-            None,
+            RegistrationStatus::Unregistered,
         )
     }
 

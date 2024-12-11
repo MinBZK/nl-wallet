@@ -33,7 +33,9 @@ where
         info!("Checking if registered");
         let (attested_key, registration_data) = match &mut self.registration {
             WalletRegistration::Registered { attested_key, data } => (attested_key, data),
-            WalletRegistration::Unregistered => return Err(ChangePinError::NotRegistered),
+            WalletRegistration::Unregistered | WalletRegistration::KeyIdentifierGenerated(_) => {
+                return Err(ChangePinError::NotRegistered)
+            }
         };
 
         info!("Checking if locked");

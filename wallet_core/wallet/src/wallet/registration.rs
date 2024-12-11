@@ -2,6 +2,7 @@ use std::error::Error;
 
 use tracing::info;
 use tracing::instrument;
+use tracing::warn;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
@@ -21,6 +22,7 @@ use crate::pin::key::PinKey;
 use crate::pin::key::{self as pin_key};
 use crate::pin::validation::validate_pin;
 use crate::pin::validation::PinValidationError;
+use crate::storage::KeyData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
@@ -69,6 +71,36 @@ where
         self.registration.is_registered()
     }
 
+    async fn open_database_if_necessary(&mut self) -> Result<&mut S, WalletRegistrationError>
+    where
+        S: Storage,
+    {
+        let storage = self.storage.get_mut();
+        let storage_state = storage.state().await?;
+
+        if !matches!(storage_state, StorageState::Opened) {
+            storage.open().await?;
+        }
+
+        Ok(storage)
+    }
+
+    async fn set_registration_key_identifier(&mut self, key_identifier: String) -> Result<(), WalletRegistrationError>
+    where
+        S: Storage,
+    {
+        let storage = self.open_database_if_necessary().await?;
+
+        let key_data = KeyData {
+            identifier: key_identifier.clone(),
+        };
+        storage.insert_data(&key_data).await?;
+
+        self.registration = WalletRegistration::KeyIdentifierGenerated(key_identifier);
+
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn register(&mut self, pin: String) -> Result<(), WalletRegistrationError>
@@ -103,21 +135,54 @@ where
 
         info!("Challenge received from account server, generating attested key");
 
-        let key_identifier = self
-            .key_holder
-            .generate()
-            .await
-            .map_err(|error| WalletRegistrationError::KeyGeneration(Box::new(error)))?;
+        // If a reusable key identifier was already generated, use that instead of generating a new one.
+        let key_identifier = match &self.registration {
+            WalletRegistration::Unregistered => self
+                .key_holder
+                .generate()
+                .await
+                .map_err(|error| WalletRegistrationError::KeyGeneration(Box::new(error)))?,
+            WalletRegistration::KeyIdentifierGenerated(key_identifier) => key_identifier.clone(),
+            // This variant is not possible, as checked by self.has_registration() above.
+            WalletRegistration::Registered { .. } => unreachable!(),
+        };
 
         info!("Performing key and app attestation");
 
-        // TODO: Save key identifier when error is retryable and on success.
-
-        let key_with_attestation = self
+        let key_with_attestation_result = self
             .key_holder
             .attest(key_identifier.clone(), utils::sha256(&challenge))
-            .await
-            .map_err(|error| WalletRegistrationError::Attestation(Box::new(error.error)))?;
+            .await;
+
+        let key_with_attestation = match key_with_attestation_result {
+            Ok(key_with_attestation) => key_with_attestation,
+            Err(error) => {
+                // If the error indicates attestation is retryable and we did not do do so already,
+                // store the key identifier for later re-use, logging any potential errors.
+                if error.retryable && matches!(self.registration, WalletRegistration::Unregistered) {
+                    if let Err(storage_error) = self.set_registration_key_identifier(key_identifier.clone()).await {
+                        warn!("Could not store attested key identifier: {0}", storage_error);
+                    }
+                }
+
+                return Err(WalletRegistrationError::Attestation(Box::new(error.error)));
+            }
+        };
+
+        // If the attestation was successful, we should probably also store the key identifier
+        // for potential re-use, i.e. if registration fails. This would prevent creating too
+        // many keys on the device, as the Apple documentation recommends. However, performing
+        // attestation again using the same key identifier results in an error, which may be
+        // caused by the fact that we use the key to sign the registration message immediately
+        // after performing attestation.
+        //
+        // The fact that a succesfully attested key cannot be re-used also means we should
+        // clean up any lingering key identifier that is stored at this point.
+
+        if matches!(self.registration, WalletRegistration::KeyIdentifierGenerated(_)) {
+            self.storage.get_mut().delete_data::<KeyData>().await?;
+            self.registration = WalletRegistration::Unregistered;
+        }
 
         info!("Key and app attestation successful, signing and sending registration to account server");
 
@@ -170,12 +235,7 @@ where
 
         info!("Storing received registration");
 
-        // If the storage database does not exist, create it now.
-        let storage = self.storage.get_mut();
-        let storage_state = storage.state().await?;
-        if !matches!(storage_state, StorageState::Opened) {
-            storage.open().await?;
-        }
+        let storage = self.open_database_if_necessary().await?;
 
         // Save the registration data in storage.
         let data = RegistrationData {
@@ -377,7 +437,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_register_error_attestation() {
+    async fn test_wallet_register_error_attestation_unretryable() {
         let mut wallet = WalletWithMocks::new_unregistered();
 
         wallet
@@ -396,6 +456,40 @@ mod tests {
         assert_matches!(error, WalletRegistrationError::Attestation(_));
         assert!(!wallet.has_registration());
         assert!(wallet.storage.get_mut().data.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_wallet_register_error_attestation_retryable() {
+        let mut wallet = WalletWithMocks::new_unregistered();
+
+        wallet
+            .account_provider_client
+            .expect_registration_challenge()
+            .return_once(|_| Ok(utils::random_bytes(32)));
+
+        // Have the hardware key signing fail.
+        wallet.key_holder.error_scenario = KeyHolderErrorScenario::RetryableAttestationError;
+
+        let error = wallet
+            .register(PIN.to_string())
+            .await
+            .expect_err("Wallet registration should have resulted in error");
+
+        assert_matches!(error, WalletRegistrationError::Attestation(_));
+
+        // The storage should contain a key identifier for re-use, but not a registration.
+        assert!(!wallet.has_registration());
+        let key_data: KeyData = wallet
+            .storage
+            .get_mut()
+            .fetch_data()
+            .await
+            .unwrap()
+            .expect("KeyData data not present in storage");
+        assert_matches!(
+            wallet.registration,
+            WalletRegistration::KeyIdentifierGenerated(identifier) if identifier == key_data.identifier
+        );
     }
 
     #[tokio::test]

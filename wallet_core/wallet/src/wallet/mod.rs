@@ -67,6 +67,7 @@ cfg_if! {
 enum WalletRegistration<A, G> {
     #[default]
     Unregistered,
+    KeyIdentifierGenerated(String),
     Registered {
         attested_key: AttestedKey<A, G>,
         data: RegistrationData,
@@ -76,14 +77,14 @@ enum WalletRegistration<A, G> {
 impl<A, G> WalletRegistration<A, G> {
     fn is_registered(&self) -> bool {
         match self {
-            Self::Unregistered => false,
+            Self::Unregistered | Self::KeyIdentifierGenerated(_) => false,
             Self::Registered { .. } => true,
         }
     }
 
     fn as_key_and_registration_data(&self) -> Option<(&AttestedKey<A, G>, &RegistrationData)> {
         match self {
-            Self::Unregistered => None,
+            Self::Unregistered | Self::KeyIdentifierGenerated(_) => None,
             Self::Registered { attested_key, data } => Some((attested_key, data)),
         }
     }

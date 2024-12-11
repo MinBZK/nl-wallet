@@ -30,7 +30,8 @@ where
     AKH: AttestedKeyHolder,
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
-        // Only reset if we actually have a registration.
+        // Only reset if we actually have a registration. If we did generate a key but never
+        // finished attestation, we can re-use this identifier in a later registration.
         if let WalletRegistration::Registered { attested_key, .. } = mem::take(&mut self.registration) {
             info!("Resetting wallet to inital state and wiping all local data");
 

@@ -1,3 +1,4 @@
+use futures::try_join;
 use tokio::sync::RwLock;
 
 use error_category::sentry_capture_error;
@@ -17,6 +18,7 @@ use crate::config::UpdatingConfigurationRepository;
 use crate::config::UpdatingFileHttpConfigurationRepository;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
+use crate::storage::KeyData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
@@ -38,6 +40,12 @@ pub enum WalletInitError {
 
 #[cfg(feature = "fake_attestation")]
 static KEY_HOLDER_ONCE: tokio::sync::OnceCell<()> = tokio::sync::OnceCell::const_new();
+
+pub(super) enum RegistrationStatus {
+    Unregistered,
+    KeyIdentifierGenerated(String),
+    Registered(RegistrationData),
+}
 
 impl<AKH, APC, DS, IS, MDS, WIC>
     Wallet<UpdatingFileHttpConfigurationRepository, DatabaseStorage<HardwareEncryptionKey>, AKH, APC, DS, IS, MDS, WIC>
@@ -88,10 +96,14 @@ where
         storage: S,
         key_holder: AKH,
         account_provider_client: APC,
-        registration_data: Option<RegistrationData>,
+        registration_status: RegistrationStatus,
     ) -> Self {
-        let registration = registration_data
-            .map(|data| {
+        let registration = match registration_status {
+            RegistrationStatus::Unregistered => WalletRegistration::Unregistered,
+            RegistrationStatus::KeyIdentifierGenerated(key_identifier) => {
+                WalletRegistration::KeyIdentifierGenerated(key_identifier)
+            }
+            RegistrationStatus::Registered(data) => {
                 // If the database contains a registration, an attested key
                 // already exists and we can reference it by its identifier.
                 // If a reference to this key already exists within the process
@@ -101,8 +113,8 @@ where
                     .expect("should be able to instantiate hardware attested key");
 
                 WalletRegistration::Registered { attested_key, data }
-            })
-            .unwrap_or_default();
+            }
+        };
 
         Wallet {
             config_repository,
@@ -126,31 +138,41 @@ where
         key_holder: AKH,
         account_provider_client: APC,
     ) -> Result<Self, WalletInitError> {
-        let registration = Self::fetch_registration(&mut storage).await?;
+        let registration_status = Self::fetch_registration_status(&mut storage).await?;
 
         let wallet = Self::new(
             config_repository,
             storage,
             key_holder,
             account_provider_client,
-            registration,
+            registration_status,
         );
 
         Ok(wallet)
     }
 
     /// Attempts to fetch the initial data from storage, without creating a database if there is none.
-    async fn fetch_registration(storage: &mut S) -> Result<Option<RegistrationData>, StorageError> {
+    async fn fetch_registration_status(storage: &mut S) -> Result<RegistrationStatus, StorageError> {
         match storage.state().await? {
             // If there is no database file, we can conclude early that there is no registration.
-            StorageState::Uninitialized => return Ok(Default::default()),
+            StorageState::Uninitialized => return Ok(RegistrationStatus::Unregistered),
             // Open the database, if necessary.
             StorageState::Unopened => storage.open().await?,
             StorageState::Opened => (),
         }
 
-        let result = storage.fetch_data::<RegistrationData>().await?;
-        Ok(result)
+        let (key_data, registration_data) = try_join!(
+            storage.fetch_data::<KeyData>(),
+            storage.fetch_data::<RegistrationData>()
+        )?;
+
+        let registration_status = match (key_data, registration_data) {
+            (None, None) => RegistrationStatus::Unregistered,
+            (Some(key_data), None) => RegistrationStatus::KeyIdentifierGenerated(key_data.identifier),
+            (_, Some(registration_data)) => RegistrationStatus::Registered(registration_data),
+        };
+
+        Ok(registration_status)
     }
 }
 
