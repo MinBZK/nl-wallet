@@ -19,6 +19,8 @@ use crate::http_error::APPLICATION_PROBLEM_JSON;
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// Wrapper around a `reqwest::Certificate` implementing `PartialEq`, `Eq` and `Hash`. In addition, it implements
+/// the necessary `From`/`TryFrom` implementations so that it can be (de)serialised using `serde_with`.
 #[derive(Clone, AsRef, Into)]
 pub struct ReqwestTrustAnchor {
     #[as_ref([u8])]

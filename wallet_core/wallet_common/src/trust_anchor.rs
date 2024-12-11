@@ -19,6 +19,11 @@ struct ParsedTrustAnchor<'a> {
 
 type YokedTrustAnchor = Yoke<ParsedTrustAnchor<'static>, Arc<CertificateDer<'static>>>;
 
+/// The main struct for working with trust anchors. It represents the following type:
+///
+/// - webpki::types::TrustAnchor
+///
+/// It can be constructed using the `from_der` method. It is parsed on construction as a borrowed type.
 #[derive(Debug, Clone)]
 pub struct BorrowingTrustAnchor(YokedTrustAnchor);
 

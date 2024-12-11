@@ -169,7 +169,7 @@ impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
     type Error = KeyPairError;
     fn try_from(source: nl_wallet_mdoc::server_keys::KeyPair) -> Result<Self, Self::Error> {
         let private_key = source.private_key().to_pkcs8_der()?.as_bytes().to_vec();
-        let certificate = source.certificate().clone().into();
+        let certificate = source.certificate().clone();
 
         Ok(Self {
             certificate,

@@ -88,6 +88,7 @@ pub enum CertificateError {
 /// - parsing data: `x509_parser`
 /// - verification of certificate chains: `webpki`
 /// - signing and generating: `rcgen`
+/// - verification of ecdsa signatures: `ecdsa`
 #[derive(Yokeable, Debug)]
 struct ParsedCertificate<'a> {
     certificate_der: CertificateDer<'a>,
@@ -99,6 +100,14 @@ struct ParsedCertificate<'a> {
 
 type YokedCertificate = Yoke<ParsedCertificate<'static>, Arc<CertificateDer<'static>>>;
 
+/// The main struct for working with certificates. It represents the following types:
+///
+/// - webpki::end_entity::EndEntityCert
+/// - x509_parser::certificate::X509Certificate
+/// - p256::ecdsa::VerifyingKey
+///
+/// It can be constructed using the `from_der`, `from_pem` or `from_certificate_der` methods. The various types are
+/// parsed on construction as borrowed types.
 #[derive(Debug)]
 pub struct BorrowingCertificate(YokedCertificate);
 
