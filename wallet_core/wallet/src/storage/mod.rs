@@ -26,6 +26,7 @@ use openid4vc::credential::MdocCopies;
 
 pub use self::data::ChangePinData;
 pub use self::data::InstructionData;
+pub use self::data::KeyData;
 pub use self::data::KeyedData;
 pub use self::data::RegistrationData;
 pub use self::data::UnlockData;
@@ -96,6 +97,7 @@ pub trait Storage {
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
     async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
+    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()>;
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;
