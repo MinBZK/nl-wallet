@@ -89,3 +89,7 @@ wallet_common = { path = "../wallet_common", features = [
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+
+wallet_common = { path = "../wallet_common" }

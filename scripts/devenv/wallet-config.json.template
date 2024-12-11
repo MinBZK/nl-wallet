@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 1,
   "lock_timeouts": {
     "inactive_timeout": 300,
     "background_timeout": 300
@@ -24,7 +24,6 @@
     }
   },
   "disclosure": {
-    "uri_base_path": "disclosure",
     "rp_trust_anchors": ["${RP_CA_CRT}"]
   },
   "mdoc_trust_anchors": ["${PID_CA_CRT}"]

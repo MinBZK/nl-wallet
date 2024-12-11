@@ -4,6 +4,9 @@ set -e # break on error
 set -u # warn against undefined variables
 set -o pipefail # break on error in pipeline
 
+SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+BASE_DIR=$(dirname "${SCRIPTS_DIR}")
+
 # Source: https://gist.github.com/stokito/f2d7ea0b300f14638a9063559384ec89
 base64_padding()
 {
@@ -85,33 +88,10 @@ if ! echo -n "${JWT_HEADER}.${JWT_PAYLOAD}" | openssl dgst -sha256 -verify "$CON
     exit 1
 fi
 
-# Output the lines of the .env file based on the contents of the configuration JSON.
-CONFIG_JSON=$(base64_url_decode "$JWT_PAYLOAD")
+# Output configuration JSON
+base64_url_decode "$JWT_PAYLOAD" > "${BASE_DIR}/../wallet_core/wallet/wallet-config.json"
 
 echo "CONFIG_SERVER_BASE_URL=https://${STATIC_HOSTNAME}/config/v1/"
 echo "CONFIG_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")"
 echo "CONFIG_SERVER_SIGNING_PUBLIC_KEY=${CONFIG_PUBLIC_KEY}"
 echo "UNIVERSAL_LINK_BASE=https://${APP_HOSTNAME}/deeplink/"
-echo "WALLET_CONFIG_VERSION=$(echo "$CONFIG_JSON" | jq -r '.version' )"
-echo "WALLET_PROVIDER_BASE_URL=$(echo "$CONFIG_JSON" | jq -r '.account_server.http_config.base_url' )"
-echo "CERTIFICATE_PUBLIC_KEY=$(echo "$CONFIG_JSON" | jq -r '.account_server.certificate_public_key' )"
-echo "INSTRUCTION_RESULT_PUBLIC_KEY=$(echo "$CONFIG_JSON" | jq -r '.account_server.instruction_result_public_key' )"
-echo "WTE_PUBLIC_KEY=$(echo "$CONFIG_JSON" | jq -r '.account_server.wte_public_key' )"
-echo "PID_ISSUER_URL=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.pid_issuer_url' )"
-echo "DIGID_URL=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid_http_config.base_url' )"
-echo "DIGID_CLIENT_ID=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.client_id' )"
-echo "DIGID_APP2APP_ENV=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.env' )"
-echo "DIGID_APP2APP_HOST=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.host' )"
-echo "DIGID_APP2APP_UNIVERSAL_LINK=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.universal_link' )"
-
-mapfile -t WALLET_PROVIDER_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.account_server.http_config.trust_anchors[]')
-echo "WALLET_PROVIDER_TRUST_ANCHORS=$(IFS="|" ; echo "${WALLET_PROVIDER_TRUST_ANCHORS[*]}")"
-
-mapfile -t DIGID_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid_http_config.trust_anchors[]')
-echo "DIGID_TRUST_ANCHORS=$(IFS="|" ; echo "${DIGID_TRUST_ANCHORS[*]}")"
-
-mapfile -t RP_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.disclosure.rp_trust_anchors[]')
-echo "RP_TRUST_ANCHORS=$(IFS="|" ; echo "${RP_TRUST_ANCHORS[*]}")"
-
-mapfile -t MDOC_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.mdoc_trust_anchors[]')
-echo "MDOC_TRUST_ANCHORS=$(IFS="|" ; echo "${MDOC_TRUST_ANCHORS[*]}")"

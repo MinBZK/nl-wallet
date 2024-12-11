@@ -2,6 +2,10 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
+use serde::de::DeserializeOwned;
+
+use wallet_common::config::wallet_config::WalletConfiguration;
+
 /// Add a temporary workaround for compiling for the Android x86_64 target, which is missing a symbol required by
 /// "sqlite3-sys". The root cause of the issue is documented here: https://github.com/rust-lang/rust/issues/109717.
 ///
@@ -90,9 +94,16 @@ fn inject_dotenv_vars() {
     }
 }
 
+fn parse_json<T: DeserializeOwned>(file: &str, json_data: &str) {
+    serde_json::from_str::<T>(json_data).unwrap();
+    println!("cargo:rerun-if-changed={}", file);
+}
+
 fn main() {
     android_x86_64_workaround();
 
     #[cfg(feature = "env_config")]
     inject_dotenv_vars();
+
+    parse_json::<WalletConfiguration>("wallet-config.json", include_str!("wallet-config.json"));
 }
