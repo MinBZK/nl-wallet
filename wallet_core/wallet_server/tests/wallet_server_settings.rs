@@ -7,7 +7,6 @@ use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_server::settings::CertificateVerificationError;
 use wallet_server::settings::Settings;
 use wallet_server::settings::VerifierUseCase;
