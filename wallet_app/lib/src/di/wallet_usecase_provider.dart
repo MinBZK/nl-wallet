@@ -262,6 +262,7 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<SetBiometricsUseCase>(
           create: (context) => SetBiometricsUseCaseImpl(
             LocalAuthentication(),
+            context.theme.platform,
             context.read(),
             context.read(),
           ),
@@ -290,6 +291,7 @@ class WalletUseCaseProvider extends StatelessWidget {
             context.read(),
             context.read(),
             LocalAuthentication(),
+            context.theme.platform,
             context.read(),
           ),
         ),

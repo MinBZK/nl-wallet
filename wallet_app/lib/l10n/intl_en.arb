@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-11-07T12:20:41+01:00",
+    "@@last_modified": "2024-12-10T15:13:58+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -715,6 +715,8 @@
     "issuanceSuccessPageCloseCta": "To my overview",
     "issuanceSuccessPageTitle": "Success!",
     "localAuthMessageAndroidBiometricHint": "Use fingerprint or face scan",
+    "localAuthMessageAndroidBiometricHintFaceScanOnly": "Use face scan",
+    "localAuthMessageAndroidBiometricHintFingerPrintOnly": "Use fingerprint",
     "localAuthMessageAndroidBiometricNotRecognized": "Not recognized. Try again.",
     "localAuthMessageAndroidBiometricRequiredTitle": "Turn on fingerprint of face scan first",
     "localAuthMessageAndroidBiometricSuccess": "Success",
@@ -723,6 +725,8 @@
     "localAuthMessageAndroidDeviceCredentialsSetupDescription": "Turn on face scan or fingerprint first",
     "localAuthMessageAndroidGoToSettingsDescription": "Turn on face scan or fingerprint in Settings > Face Scan or Fingerprint.",
     "localAuthMessageAndroidSignInTitle": "Scan fingerprint or face",
+    "localAuthMessageAndroidSignInTitleFaceScanOnly": "Use your face scan",
+    "localAuthMessageAndroidSignInTitleFingerPrintOnly": "Use your fingerprint",
     "localAuthMessageGoToSettingsButton": "Go to Settings",
     "localAuthMessageiOSCancelButton": "Close",
     "localAuthMessageiOSGoToSettingsDescription": "Turn on Face ID first.",

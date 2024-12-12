@@ -15,12 +15,14 @@ class UnlockWalletWithBiometricsUseCaseImpl extends UnlockWalletWithBiometricsUs
   final BiometricRepository _biometricRepository;
   final ActiveLocaleProvider _localeProvider;
   final LocalAuthentication _localAuthentication;
+  final TargetPlatform _targetPlatform;
   final WalletRepository _walletRepository;
 
   UnlockWalletWithBiometricsUseCaseImpl(
     this._biometricRepository,
     this._localeProvider,
     this._localAuthentication,
+    this._targetPlatform,
     this._walletRepository,
   );
 
@@ -38,6 +40,7 @@ class UnlockWalletWithBiometricsUseCaseImpl extends UnlockWalletWithBiometricsUs
       final l10n = lookupAppLocalizations(_localeProvider.activeLocale);
       final authenticated = await LocalAuthenticationHelper.authenticate(
         _localAuthentication,
+        _targetPlatform,
         l10n,
         localizedReason: l10n.unlockWithBiometricsReason,
         useErrorDialogs: false, /* we never want to allow setup at this stage */
