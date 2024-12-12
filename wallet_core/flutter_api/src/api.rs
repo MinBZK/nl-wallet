@@ -7,6 +7,7 @@ use flutter_api_macros::async_runtime;
 use flutter_api_macros::flutter_api_error;
 use flutter_rust_bridge::StreamSink;
 use wallet::errors::WalletInitError;
+use wallet::wallet_common::version_string;
 use wallet::DisclosureUriSource;
 use wallet::UnlockMethod;
 use wallet::Wallet;
@@ -402,6 +403,10 @@ pub async fn reset_wallet() -> Result<()> {
     wallet().write().await.reset().await?;
 
     Ok(())
+}
+
+pub fn get_version_string() -> String {
+    version_string()
 }
 
 #[cfg(test)]

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
+import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/feature/about/about_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -25,6 +26,7 @@ void main() {
         deviceBuilder(tester),
         wrapper: walletAppWrapper(
           providers: [
+            RepositoryProvider<GetVersionStringUseCase>(create: (c) => Mocks.create()),
             RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
           ],
         ),
@@ -38,6 +40,7 @@ void main() {
         wrapper: walletAppWrapper(
           brightness: Brightness.dark,
           providers: [
+            RepositoryProvider<GetVersionStringUseCase>(create: (c) => Mocks.create()),
             RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
           ],
         ),
@@ -50,9 +53,9 @@ void main() {
     testWidgets('about the app title is visible', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
-        const AboutScreen().withDependency<ConfigurationRepository>(
-          (context) => MockConfigurationRepository(),
-        ),
+        const AboutScreen()
+            .withDependency<GetVersionStringUseCase>((context) => MockGetVersionStringUseCase())
+            .withDependency<ConfigurationRepository>((context) => MockConfigurationRepository()),
       );
 
       // Validate that the widget exists

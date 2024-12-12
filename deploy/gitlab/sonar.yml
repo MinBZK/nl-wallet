@@ -28,7 +28,7 @@ sonar-flutter:
     - job: dependency-check
       artifacts: true
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:1c71f773947eaa9c4d0e24b726bb7a1036e3c6f8b20dbc89dd4d19aaca88a8ef"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:848392228650417660eb1bd782a34bc524bb03c69ed57bb11a7f525b737faf59"
   variables:
     GIT_STRATEGY: clone
   before_script:

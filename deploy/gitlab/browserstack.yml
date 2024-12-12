@@ -1,7 +1,7 @@
 .upload-browserstack-android-app:
   extends: .ruby-cache
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:9a9c054e0734f2eda055beb55a818ce80185bc222abf01261d68973c97b086f7"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:4cbb65476169f12ed56a1a9db920d3e91fbdca263341471373e17dbbb8bfd6e0"
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"

@@ -28,11 +28,11 @@ use nutype::nutype;
 use serde::Deserialize;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
-use tracing::debug;
-use tracing::info;
 use tracing::level_filters::LevelFilter;
-use tracing::warn;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
+
+use wallet_common::built_info::version_string;
 
 use gba_hc_converter::fetch::askama_axum;
 use gba_hc_converter::gba::client::GbavClient;
@@ -92,7 +92,9 @@ struct ApplicationState {
 
 async fn serve(settings: Settings) -> anyhow::Result<()> {
     let listener = TcpListener::bind((settings.ip, settings.port)).await?;
-    debug!("listening on {}:{}", settings.ip, settings.port);
+    info!("{}", version_string());
+
+    info!("listening on {}:{}", settings.ip, settings.port);
 
     let RunMode::All {
         gbav: gbav_settings,
@@ -165,7 +167,7 @@ async fn check_auth(
 ) -> StdResult<Response, (StatusCode, &'static str)> {
     // This assumes an ingress/reverse proxy that uses mutual TLS and sets the `Cert-Serial` header with the value
     // from the client certificate. This is an extra safeguard against using this endpoint directly.
-    if !cert_serial.is_some_and(|s| !s.into_inner().is_empty()) {
+    if cert_serial.is_none_or(|s| s.into_inner().is_empty()) {
         return Err((StatusCode::FORBIDDEN, "client certificate missing"));
     }
     let response = next.run(request).await;

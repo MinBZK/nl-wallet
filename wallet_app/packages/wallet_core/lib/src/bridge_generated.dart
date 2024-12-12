@@ -149,6 +149,10 @@ abstract class WalletCore {
   Future<void> resetWallet({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta;
+
+  Future<String> getVersionString({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kGetVersionStringConstMeta;
 }
 
 @freezed
@@ -968,6 +972,22 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "reset_wallet",
+        argNames: [],
+      );
+
+  Future<String> getVersionString({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_get_version_string(port_),
+      parseSuccessData: _wire2api_String,
+      parseErrorData: null,
+      constMeta: kGetVersionStringConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kGetVersionStringConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "get_version_string",
         argNames: [],
       );
 
@@ -1912,6 +1932,18 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
 
   late final _wire_reset_walletPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_reset_wallet');
   late final _wire_reset_wallet = _wire_reset_walletPtr.asFunction<void Function(int)>();
+
+  void wire_get_version_string(
+    int port_,
+  ) {
+    return _wire_get_version_string(
+      port_,
+    );
+  }
+
+  late final _wire_get_version_stringPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_get_version_string');
+  late final _wire_get_version_string = _wire_get_version_stringPtr.asFunction<void Function(int)>();
 
   ffi.Pointer<wire_uint_8_list> new_uint_8_list_0(
     int len,

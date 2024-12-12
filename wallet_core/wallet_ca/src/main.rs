@@ -11,13 +11,14 @@ use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
 use wallet_ca::read_key_pair;
 use wallet_ca::write_key_pair;
+use wallet_common::built_info::version_string;
 
 /// Generate private keys and certificates
 ///
 /// NOTE: Do NOT use in production environments, as the certificates lifetime is incredibly large, and no revocation is
 /// implemented.
 #[derive(Parser)]
-#[command(author, version, about, long_about)]
+#[command(author, version=version_string(), about, long_about)]
 struct Cli {
     #[command(subcommand)]
     command: Command,

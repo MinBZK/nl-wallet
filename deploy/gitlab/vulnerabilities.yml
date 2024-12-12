@@ -2,7 +2,7 @@ dependency-check:
   extends: .env-ont-k8s
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:8d50280e3385c8439bba1e93baf5230cbcd3b01578c02b1f6ab18c4eace935f4"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:1eb7aa3a7e4d42c65c9eee0c5b588a906a522390a7519730896d6f9bf399efa9"
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - (cd wallet_web; npm ci)
@@ -49,7 +49,7 @@ osv-scanner:
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
   before_script:
     - mkdir -p $CI_PROJECT_DIR/.cargo
     - cp $CI_PROJECT_DIR/deploy/dependencies/cargo-audit.toml $CI_PROJECT_DIR/.cargo/audit.toml
@@ -82,7 +82,7 @@ dependency-check-images:
     - job: build-pid-issuer-image
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:1c71f773947eaa9c4d0e24b726bb7a1036e3c6f8b20dbc89dd4d19aaca88a8ef"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:848392228650417660eb1bd782a34bc524bb03c69ed57bb11a7f525b737faf59"
   variables:
     GIT_STRATEGY: none
   before_script:
@@ -101,6 +101,7 @@ dependency-check-images:
       "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
       "nl-rdo-max"
+      "nl-wallet-hsm-simulator"
       )
     - mkdir -p trivy
   script:

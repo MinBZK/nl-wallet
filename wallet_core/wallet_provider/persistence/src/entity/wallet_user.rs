@@ -28,10 +28,18 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_one = "super::wallet_user_apple_attestation::Entity")]
+    WalletUserAppleAttestation,
     #[sea_orm(has_one = "super::wallet_user_instruction_challenge::Entity")]
     WalletUserInstructionChallenge,
     #[sea_orm(has_many = "super::wallet_user_key::Entity")]
     WalletUserKey,
+}
+
+impl Related<super::wallet_user_apple_attestation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::WalletUserAppleAttestation.def()
+    }
 }
 
 impl Related<super::wallet_user_instruction_challenge::Entity> for Entity {

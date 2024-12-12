@@ -6,7 +6,7 @@ use webpki::types::TrustAnchor;
 use webpki::{self};
 
 // Source: https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem
-const APPLE_ROOT_CA: [u8; 549] = Pem::decode(include_bytes!("../assets/Apple_App_Attestation_Root_CA.pem"));
+pub const APPLE_ROOT_CA: [u8; 549] = Pem::decode(include_bytes!("../assets/Apple_App_Attestation_Root_CA.pem"));
 
 pub static APPLE_TRUST_ANCHORS: LazyLock<Vec<TrustAnchor>> = LazyLock::new(|| {
     let cert = Box::new(CertificateDer::from(APPLE_ROOT_CA.as_slice()));

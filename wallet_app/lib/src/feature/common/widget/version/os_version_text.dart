@@ -3,16 +3,18 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../environment.dart';
-import '../../../util/extension/build_context_extension.dart';
+import '../../../../../environment.dart';
+import '../../../../util/extension/build_context_extension.dart';
 
 class OsVersionText extends StatelessWidget {
   final TextStyle? prefixTextStyle;
   final TextStyle? valueTextStyle;
+  final bool alignHorizontal;
 
   const OsVersionText({
     this.prefixTextStyle,
     this.valueTextStyle,
+    this.alignHorizontal = true,
     super.key,
   });
 
@@ -42,18 +44,20 @@ class OsVersionText extends StatelessWidget {
   }
 
   Widget _buildOsVersionText(BuildContext context, String? versionName) {
-    return Row(
-      children: [
-        Text(
-          context.l10n.generalOsVersionText,
-          style: prefixTextStyle ?? context.textTheme.bodyMedium,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          versionName ?? '-',
-          style: valueTextStyle ?? context.textTheme.bodyMedium,
-        ),
-      ],
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: context.l10n.generalOsVersionText,
+            style: prefixTextStyle ?? context.textTheme.bodyMedium,
+          ),
+          alignHorizontal ? const TextSpan(text: ' ') : const TextSpan(text: '\n'),
+          TextSpan(
+            text: versionName ?? '-',
+            style: valueTextStyle ?? context.textTheme.bodyMedium,
+          ),
+        ],
+      ),
     );
   }
 }

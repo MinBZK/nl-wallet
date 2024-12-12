@@ -5,9 +5,9 @@ import '../../../util/extension/string_extension.dart';
 import '../screen/placeholder_screen.dart';
 import '../widget/button/bottom_close_button.dart';
 import '../widget/button/list_button.dart';
-import '../widget/config_version_text.dart';
-import '../widget/os_version_text.dart';
-import '../widget/version_text.dart';
+import '../widget/version/app_version_text.dart';
+import '../widget/version/config_version_text.dart';
+import '../widget/version/os_version_text.dart';
 import '../widget/wallet_scrollbar.dart';
 
 class HelpSheet extends StatelessWidget {
@@ -65,15 +65,18 @@ class HelpSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        VersionText(
+        AppVersionText(
           prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 4),
         OsVersionText(
           prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 4),
         ConfigVersionText(
           prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 4),
         errorCode == null
             ? const SizedBox.shrink()
             : Text(
@@ -81,6 +84,7 @@ class HelpSheet extends StatelessWidget {
                 style: context.textTheme.bodyMedium
                     ?.copyWith(fontWeight: FontWeight.bold, color: context.colorScheme.error),
               ),
+        if (supportCode != null) const SizedBox(height: 4),
         supportCode == null
             ? const SizedBox.shrink()
             : Text(
@@ -112,22 +116,5 @@ class HelpSheet extends StatelessWidget {
         );
       },
     );
-    // return showModalBottomSheet<void>(
-    //   context: context,
-    //   isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
-    //   isScrollControlled: true,
-    //   builder: (BuildContext context) {
-    //     return DraggableScrollableSheet(
-    //       expand: false,
-    //       builder: (context, scrollController) => SingleChildScrollView(
-    //         controller: scrollController,
-    //         child: HelpSheet(
-    //           errorCode: errorCode,
-    //           supportCode: supportCode,
-    //         ),
-    //       ),
-    //     );
-    //   },
-    // );
   }
 }

@@ -81,8 +81,8 @@ function detect_softhsm() {
 
   for location in "${locations[@]}"; do
       local library_path
-      if [ -n "$location" ]; then
-        library_path=$(find -L "$location" -maxdepth 3 -name "libsofthsm2.so" | head -n 1)
+      if [ -d "$location" ]; then
+        library_path=$(find -L "$location" -maxdepth 3 -name "libsofthsm2.so" -or -name "libsofthsm2.dylib" | head -n 1)
         if [ -n "$library_path" ]; then
             echo "$library_path"
             return

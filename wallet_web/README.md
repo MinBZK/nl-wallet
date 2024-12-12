@@ -63,7 +63,7 @@ For now, usage will be limited to the minimal setup. Therefore, a minimal `index
 </html>
 ```
 
-Clicking the button will open a dialog and start a session. `usecase` is what is communicated to the backend of the Relying Party when starting a session. See "starting a session" TODO
+Clicking the button will open a dialog and start a session. `usecase` is what is communicated to the backend of the Relying Party when starting a session. See "starting a session"
 
 ### Options
 

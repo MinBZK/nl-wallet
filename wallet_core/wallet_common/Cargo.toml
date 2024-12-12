@@ -3,6 +3,7 @@ name = "wallet_common"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+build = "build.rs"
 
 [lints]
 workspace = true
@@ -21,7 +22,7 @@ examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
 # Include MockAppleAttestedKey for generating Apple assertions in tests.
-mock_apple_attested_key = ["apple_app_attest/mock", "dep:ciborium", "dep:rand_core"]
+mock_apple_attested_key = ["apple_app_attest/mock", "dep:rand_core"]
 # Include MockHardwareEcdsaKey and MockHardwareEncryptionKey for use in tests
 mock_hardware_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
@@ -30,6 +31,9 @@ mock_remote_key = ["dep:parking_lot", "dep:rand_core"]
 integration_test = []
 # Various test related functionality
 insecure_http_client = []
+
+[build-dependencies]
+built = { workspace = true, features = ["chrono", "git2"] }
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -41,7 +45,6 @@ derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"]
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
-indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true
@@ -65,7 +68,6 @@ x509-parser.workspace = true
 yoke = { workspace = true, features = ["derive"] }
 
 anyhow = { workspace = true, optional = true }
-ciborium = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
 hex = { workspace = true, optional = true }

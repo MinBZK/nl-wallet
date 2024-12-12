@@ -27,6 +27,8 @@ import '../data/repository/sign/core/core_sign_repository.dart';
 import '../data/repository/sign/sign_repository.dart';
 import '../data/repository/uri/core/core_uri_repository.dart';
 import '../data/repository/uri/uri_repository.dart';
+import '../data/repository/version/core/core_version_string_repository.dart';
+import '../data/repository/version/version_string_repository.dart';
 import '../data/repository/wallet/core/core_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
 
@@ -99,6 +101,9 @@ class WalletRepositoryProvider extends StatelessWidget {
             context.read(),
             context.read(),
           ),
+        ),
+        RepositoryProvider<VersionStringRepository>(
+          create: (context) => CoreVersionStringRepository(context.read()),
         ),
       ],
       child: child,

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/bottom_close_button.dart';
-import '../widget/config_version_text.dart';
-import '../widget/os_version_text.dart';
-import '../widget/version_text.dart';
+import '../widget/version/config_version_text.dart';
+import '../widget/version/os_version_text.dart';
+import '../widget/version/string_version_text.dart';
 import '../widget/wallet_scrollbar.dart';
 
 class ErrorDetailsSheet extends StatelessWidget {
@@ -46,14 +46,19 @@ class ErrorDetailsSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        VersionText(
+        StringVersionText(
           prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          alignHorizontal: false,
         ),
+        const SizedBox(height: 4),
         OsVersionText(
           prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          alignHorizontal: false,
         ),
+        const SizedBox(height: 4),
         ConfigVersionText(
           prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          alignHorizontal: false,
         ),
       ],
     );

@@ -3,6 +3,7 @@ use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
+use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::sea_query::Expr;
 use sea_orm::sea_query::IntoIden;
 use sea_orm::sea_query::OnConflict;
@@ -13,19 +14,27 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
+use sea_orm::FromQueryResult;
+use sea_orm::JoinType;
 use sea_orm::QueryFilter;
+use sea_orm::QuerySelect;
+use sea_orm::RelationTrait;
 use uuid::Uuid;
 
+use apple_app_attest::AssertionCounter;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider_domain::model::encrypted::Encrypted;
 use wallet_provider_domain::model::encrypted::InitializationVector;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletUser;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::entity::wallet_user;
+use crate::entity::wallet_user_apple_attestation;
 use crate::entity::wallet_user_instruction_challenge;
 use crate::PersistenceConnection;
 
@@ -36,6 +45,8 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
+    let connection = db.connection();
+
     wallet_user::ActiveModel {
         id: Set(user.id),
         wallet_id: Set(user.wallet_id),
@@ -50,10 +61,46 @@ where
         is_blocked: Set(false),
         has_wte: Set(false),
     }
-    .insert(db.connection())
+    .insert(connection)
     .await
-    .map(|_| ())
-    .map_err(|e| PersistenceError::Execution(e.into()))
+    .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+    if let Some(WalletUserAttestationCreate::Apple {
+        data,
+        assertion_counter,
+    }) = user.attestation
+    {
+        wallet_user_apple_attestation::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            wallet_user_id: Set(user.id),
+            assertion_counter: Set((*assertion_counter).into()),
+            attestation_data: Set(data),
+        }
+        .insert(connection)
+        .await
+        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+    }
+
+    Ok(())
+}
+
+#[derive(FromQueryResult)]
+struct WalletUserJoinedModel {
+    is_blocked: bool,
+    id: Uuid,
+    wallet_id: String,
+    hw_pubkey_der: Vec<u8>,
+    encrypted_pin_pubkey_sec1: Vec<u8>,
+    pin_pubkey_iv: Vec<u8>,
+    encrypted_previous_pin_pubkey_sec1: Option<Vec<u8>>,
+    previous_pin_pubkey_iv: Option<Vec<u8>>,
+    pin_entries: i16,
+    last_unsuccessful_pin: Option<DateTimeWithTimeZone>,
+    instruction_challenge: Option<Vec<u8>>,
+    instruction_challenge_expiration_date_time: Option<DateTimeWithTimeZone>,
+    instruction_sequence_number: i32,
+    has_wte: bool,
+    apple_assertion_counter: Option<i64>,
 }
 
 pub async fn find_wallet_user_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Result<WalletUserQueryResult>
@@ -61,43 +108,96 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    let user_challenge = wallet_user::Entity::find()
-        .find_also_related(wallet_user_instruction_challenge::Entity)
+    let joined_model = wallet_user::Entity::find()
+        .select_only()
+        .column(wallet_user::Column::IsBlocked)
+        .column(wallet_user::Column::Id)
+        .column(wallet_user::Column::WalletId)
+        .column(wallet_user::Column::HwPubkeyDer)
+        .column(wallet_user::Column::EncryptedPinPubkeySec1)
+        .column(wallet_user::Column::PinPubkeyIv)
+        .column(wallet_user::Column::EncryptedPreviousPinPubkeySec1)
+        .column(wallet_user::Column::PreviousPinPubkeyIv)
+        .column(wallet_user::Column::PinEntries)
+        .column(wallet_user::Column::LastUnsuccessfulPin)
+        .column(wallet_user_instruction_challenge::Column::InstructionChallenge)
+        .column_as(
+            wallet_user_instruction_challenge::Column::ExpirationDateTime,
+            "instruction_challenge_expiration_date_time",
+        )
+        .column(wallet_user::Column::InstructionSequenceNumber)
+        .column(wallet_user::Column::HasWte)
+        .column_as(
+            wallet_user_apple_attestation::Column::AssertionCounter,
+            "apple_assertion_counter",
+        )
+        .join(
+            JoinType::LeftJoin,
+            wallet_user::Relation::WalletUserInstructionChallenge.def(),
+        )
+        .join(
+            JoinType::LeftJoin,
+            wallet_user::Relation::WalletUserAppleAttestation.def(),
+        )
         .filter(wallet_user::Column::WalletId.eq(wallet_id))
+        .into_model::<WalletUserJoinedModel>()
         .one(db.connection())
         .await
         .map_err(|e| PersistenceError::Execution(e.into()))?;
 
-    Ok(user_challenge
-        .map(|(wallet_user, challenge)| {
-            if wallet_user.is_blocked {
+    let query_result = joined_model
+        .map(|joined_model| {
+            if joined_model.is_blocked {
                 WalletUserQueryResult::Blocked
             } else {
-                WalletUserQueryResult::Found(Box::new(WalletUser {
-                    id: wallet_user.id,
-                    wallet_id: wallet_user.wallet_id,
-                    encrypted_pin_pubkey: Encrypted::new(
-                        wallet_user.encrypted_pin_pubkey_sec1,
-                        InitializationVector(wallet_user.pin_pubkey_iv),
-                    ),
-                    encrypted_previous_pin_pubkey: wallet_user.encrypted_previous_pin_pubkey_sec1.and_then(|sec1| {
-                        wallet_user
-                            .previous_pin_pubkey_iv
-                            .map(|iv| Encrypted::new(sec1, InitializationVector(iv)))
+                let encrypted_pin_pubkey = Encrypted::new(
+                    joined_model.encrypted_pin_pubkey_sec1,
+                    InitializationVector(joined_model.pin_pubkey_iv),
+                );
+                let encrypted_previous_pin_pubkey = match (
+                    joined_model.encrypted_previous_pin_pubkey_sec1,
+                    joined_model.previous_pin_pubkey_iv,
+                ) {
+                    (Some(sec1), Some(iv)) => Some(Encrypted::new(sec1, InitializationVector(iv))),
+                    _ => None,
+                };
+                let instruction_challenge = match (
+                    joined_model.instruction_challenge,
+                    joined_model.instruction_challenge_expiration_date_time,
+                ) {
+                    (Some(instruction_challenge), Some(expiration_date_time)) => Some(InstructionChallenge {
+                        bytes: instruction_challenge,
+                        expiration_date_time: DateTime::<Utc>::from(expiration_date_time),
                     }),
-                    hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&wallet_user.hw_pubkey_der).unwrap()),
-                    unsuccessful_pin_entries: wallet_user.pin_entries.try_into().ok().unwrap_or(u8::MAX),
-                    last_unsuccessful_pin_entry: wallet_user.last_unsuccessful_pin.map(DateTime::<Utc>::from),
-                    instruction_challenge: challenge.map(|c| InstructionChallenge {
-                        bytes: c.instruction_challenge,
-                        expiration_date_time: DateTime::<Utc>::from(c.expiration_date_time),
-                    }),
-                    instruction_sequence_number: u64::try_from(wallet_user.instruction_sequence_number).unwrap(),
-                    has_wte: wallet_user.has_wte,
-                }))
+                    _ => None,
+                };
+                let attestation = joined_model
+                    .apple_assertion_counter
+                    .map(|counter| WalletUserAttestation::Apple {
+                        // This is guaranteed to succeed because of the CHECK constraint on the column.
+                        assertion_counter: AssertionCounter::from(u32::try_from(counter).unwrap()),
+                    });
+
+                let wallet_user = WalletUser {
+                    id: joined_model.id,
+                    wallet_id: joined_model.wallet_id,
+                    encrypted_pin_pubkey,
+                    encrypted_previous_pin_pubkey,
+                    hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&joined_model.hw_pubkey_der).unwrap()),
+                    unsuccessful_pin_entries: joined_model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
+                    last_unsuccessful_pin_entry: joined_model.last_unsuccessful_pin.map(DateTime::<Utc>::from),
+                    instruction_challenge,
+                    instruction_sequence_number: u64::try_from(joined_model.instruction_sequence_number).unwrap(),
+                    has_wte: joined_model.has_wte,
+                    attestation,
+                };
+
+                WalletUserQueryResult::Found(Box::new(wallet_user))
             }
         })
-        .unwrap_or(WalletUserQueryResult::NotFound))
+        .unwrap_or(WalletUserQueryResult::NotFound);
+
+    Ok(query_result)
 }
 
 pub async fn clear_instruction_challenge<S, T>(db: &T, wallet_id: &str) -> Result<()>
@@ -355,4 +455,34 @@ where
     T: PersistenceConnection<S>,
 {
     update_fields(db, wallet_id, vec![(wallet_user::Column::HasWte, Expr::value(true))]).await
+}
+
+pub async fn update_apple_assertion_counter<S, T>(
+    db: &T,
+    wallet_id: &str,
+    assertion_counter: AssertionCounter,
+) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_apple_attestation::Entity::update_many()
+        .col_expr(
+            wallet_user_apple_attestation::Column::AssertionCounter,
+            Expr::value(i64::from(*assertion_counter)),
+        )
+        .filter(
+            wallet_user_apple_attestation::Column::WalletUserId.in_subquery(
+                Query::select()
+                    .column(wallet_user::Column::Id)
+                    .from(wallet_user::Entity)
+                    .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
+                    .to_owned(),
+            ),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+    Ok(())
 }

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:wallet/src/feature/common/widget/version_text.dart';
+import 'package:wallet/src/feature/common/widget/version/app_version_text.dart';
 
-import '../../../../wallet_app_test_widget.dart';
+import '../../../../../wallet_app_test_widget.dart';
 
 void main() {
   const kGoldenSize = Size(151, 20);
@@ -26,7 +26,7 @@ void main() {
       'light version text',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const VersionText(),
+          const AppVersionText(),
           surfaceSize: kGoldenSize,
         );
         await screenMatchesGolden(tester, 'version_text/light');
@@ -36,7 +36,7 @@ void main() {
       'dark version text',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          const VersionText(),
+          const AppVersionText(),
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
         );
@@ -48,7 +48,7 @@ void main() {
   group('widgets', () {
     testWidgets('version and buildNr are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const VersionText(),
+        const AppVersionText(),
       );
       await tester.pumpAndSettle();
 

@@ -47,13 +47,13 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('Policy was last updated 16/09/2024', (tester) async {
+    testWidgets('Policy was last updated 04/12/2024', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const PrivacyPolicyScreen(),
       );
       await tester.pumpAndSettle();
 
-      final dateFinder = find.textContaining('16 september 2024');
+      final dateFinder = find.textContaining('4 december 2024');
       expect(dateFinder, findsOneWidget);
     });
   });

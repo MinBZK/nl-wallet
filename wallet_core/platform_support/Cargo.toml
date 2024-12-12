@@ -26,10 +26,9 @@ hardware_integration_test = [
     "dep:android_logger",
     "dep:apple_app_attest",
     "dep:cfg-if",
-    "dep:chrono",
     "dep:jni",
     "dep:log",
-    "tokio/rt"
+    "tokio/rt",
 ]
 
 [dependencies]
@@ -41,7 +40,6 @@ thiserror.workspace = true
 uniffi.workspace = true
 
 cfg-if = { workspace = true, optional = true }
-chrono = { workspace = true, optional = true, features = ["now"] }
 log = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 

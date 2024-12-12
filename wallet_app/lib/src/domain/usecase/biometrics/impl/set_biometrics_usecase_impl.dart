@@ -1,4 +1,5 @@
 import 'package:fimber/fimber.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -9,10 +10,16 @@ import '../set_biometrics_usecase.dart';
 
 class SetBiometricsUseCaseImpl extends SetBiometricsUseCase {
   final LocalAuthentication _localAuthentication;
+  final TargetPlatform _targetPlatform;
   final ActiveLocaleProvider _localeProvider;
   final BiometricRepository _biometricRepository;
 
-  SetBiometricsUseCaseImpl(this._localAuthentication, this._localeProvider, this._biometricRepository);
+  SetBiometricsUseCaseImpl(
+    this._localAuthentication,
+    this._targetPlatform,
+    this._localeProvider,
+    this._biometricRepository,
+  );
 
   @override
   Future<void> invoke({required bool enable, required bool authenticateBeforeEnabling}) async {
@@ -23,6 +30,7 @@ class SetBiometricsUseCaseImpl extends SetBiometricsUseCase {
       final l10n = lookupAppLocalizations(_localeProvider.activeLocale);
       final authenticated = await LocalAuthenticationHelper.authenticate(
         _localAuthentication,
+        _targetPlatform,
         l10n,
       );
       if (!authenticated) throw Exception('Failed to enable biometrics, failed to authenticate');
