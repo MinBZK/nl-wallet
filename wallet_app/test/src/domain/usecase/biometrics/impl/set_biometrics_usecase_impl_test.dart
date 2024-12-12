@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/biometrics/impl/set_biometrics_usecase_impl.dart';
@@ -18,7 +19,12 @@ void main() {
     localeProvider = MockActiveLocaleProvider();
     when(localeProvider.activeLocale).thenReturn(const Locale('en'));
     biometricRepository = MockBiometricRepository();
-    setBiometricsUseCase = SetBiometricsUseCaseImpl(localAuthentication, localeProvider, biometricRepository);
+    setBiometricsUseCase = SetBiometricsUseCaseImpl(
+      localAuthentication,
+      TargetPlatform.android,
+      localeProvider,
+      biometricRepository,
+    );
   });
 
   test('Verify device is checked for compatibility when enabling', () async {
