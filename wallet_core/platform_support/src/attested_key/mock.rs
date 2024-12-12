@@ -57,8 +57,10 @@ pub enum MockHardwareAttestedKeyError {
 #[derive(Debug)]
 pub enum KeyHolderErrorScenario {
     NoError,
+    GenerateError,
     UnretryableAttestationError,
     RetryableAttestationError,
+    SigningError,
 }
 
 // TODO: Make this type support mock Google attested keys once those are implemented.
@@ -93,6 +95,10 @@ impl MockHardwareAttestedKeyHolder {
         }
     }
 
+    pub fn is_attested(key_identifier: &str) -> bool {
+        KEY_STATES.read().contains_key(key_identifier)
+    }
+
     /// Populate a particular identifier within the global state with a signing key and counter.
     pub fn populate_key_identifier(key_identifier: String, signing_key: SigningKey, next_counter: u32) {
         let existing_state = KEY_STATES.write().insert(
@@ -118,7 +124,7 @@ impl MockHardwareAttestedKeyHolder {
     /// Insert a new random key into the global state, bypassing attestation.
     pub fn random_key(&self) -> (MockAppleAttestedKey, String) {
         let key_identifier = Uuid::new_v4().to_string();
-        let key = MockAppleAttestedKey::new_random(self.app_identifier.clone());
+        let mut key = MockAppleAttestedKey::new_random(self.app_identifier.clone());
 
         let existing_state = self
             .key_states
@@ -127,6 +133,10 @@ impl MockHardwareAttestedKeyHolder {
 
         // Sanity check, this only happens on a key collision.
         assert!(existing_state.is_none());
+
+        if let KeyHolderErrorScenario::SigningError = self.error_scenario {
+            key.has_error = true;
+        }
 
         (key, key_identifier)
     }
@@ -138,6 +148,10 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
     type GoogleKey = DeadGoogleAttestedKey;
 
     async fn generate(&self) -> Result<String, Self::Error> {
+        if let KeyHolderErrorScenario::GenerateError = self.error_scenario {
+            return Err(MockHardwareAttestedKeyError::Mock);
+        }
+
         let key_identifier = Uuid::new_v4().to_string();
 
         // Reserve a key identifier without actually generating the private key.
@@ -184,8 +198,12 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
         }
 
         // Generate a new key and mock attestation data.
-        let (key, attestation_data) =
+        let (mut key, attestation_data) =
             MockAppleAttestedKey::new_with_attestation(&self.ca, self.app_identifier.clone(), &challenge);
+
+        if let KeyHolderErrorScenario::SigningError = self.error_scenario {
+            key.has_error = true;
+        }
 
         // Update the global key state with both the key's private key and counter.
         key_states.insert(key_identifier, Self::state_from_key(&key));
@@ -222,7 +240,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
                     app_identifier: self.app_identifier.clone(),
                     signing_key: signing_key.clone(),
                     next_counter: Arc::clone(next_counter),
-                    has_error: false,
+                    has_error: matches!(self.error_scenario, KeyHolderErrorScenario::SigningError),
                 };
 
                 Ok(AttestedKey::Apple(key))
