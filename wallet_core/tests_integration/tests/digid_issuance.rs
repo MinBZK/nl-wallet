@@ -38,7 +38,7 @@ async fn test_pid_issuance_digid_bridge() {
         HttpBrpClient::new(settings.issuer.brp_server.clone()),
         &settings.issuer.digid.bsn_privkey,
         settings.issuer.digid.http_config.clone(),
-        settings.issuer.certificates().unwrap(),
+        settings.issuer.certificates(),
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
