@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-12-10T15:13:58+01:00",
+    "@@last_modified": "2024-12-11T19:02:24+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -299,7 +299,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Only the following data is shared. Nothing more.} other {Only the following {count} pieces of data are shared. Nothing more.}}",
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Only the following detail will be shared. Nothing more.} other {Only the following {count} details will be shared. Nothing more.}}",
     "@disclosureConfirmDataAttributesSharedAttributesInfo": {
         "placeholders": {
             "count": {
@@ -559,7 +559,7 @@
     "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
     "historyDetailScreenPurposeTitle": "Sharing reason",
     "historyDetailScreenReportIssueCta": "Would you like to report a problem?",
-    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Only the following data was shared. Nothing more.} other {Only the following {count} pieces of data were shared. Nothing more.}}",
+    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Only the following detail was shared. Nothing more.} other {Only the following {count} details were shared. Nothing more.}}",
     "@historyDetailScreenSharedAttributesSubtitle": {
         "placeholders": {
             "count": {
@@ -935,7 +935,7 @@
     "reportOptionUnreasonableTerms": "I disagree with the terms",
     "reportOptionUntrusted": "I do not trust this",
     "requestDetailScreenTitle": "Request details",
-    "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Only the following data was requested. Nothing more.} other {Only the following {count} pieces of data were requested. Nothing more.}}",
+    "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Only the following detail was requested. Nothing more.} other {Only the following {count} details were requested. Nothing more.}}",
     "@requestDetailsScreenAttributesSubtitle": {
         "placeholders": {
             "count": {
