@@ -98,6 +98,16 @@ test-configuration-server-compilation:
   script:
     - cargo check --locked --release --package configuration_server --bin configuration_server
 
+build-update-policy-server-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "update_policy_server" --bin update_policy_server
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "update_policy_server" --bin update_policy_server
+  artifacts:
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/update_policy_server
+      - wallet_core/target/x86_64-unknown-linux-musl/release/update_policy_server
+
 build-wallet-provider-binary:
   extends: .build-binary
   script:

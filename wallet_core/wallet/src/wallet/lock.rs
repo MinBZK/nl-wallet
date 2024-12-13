@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::info;
 use tracing::instrument;
@@ -5,23 +7,31 @@ use tracing::instrument;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use wallet_common::account::messages::instructions::CheckPin;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::update_policy::VersionState;
 
 pub use crate::lock::LockCallback;
 pub use crate::storage::UnlockMethod;
 
 use crate::account_provider::AccountProviderClient;
-use crate::config::ConfigurationRepository;
 use crate::errors::ChangePinError;
 use crate::errors::StorageError;
 use crate::instruction::InstructionError;
+use crate::repository::Repository;
+use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::UnlockData;
+use crate::update_policy::UpdatePolicyError;
 
 use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletUnlockError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -37,9 +47,11 @@ pub enum WalletUnlockError {
     UnlockMethodStorage(#[source] StorageError),
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
+    #[error("error fetching update policy: {0}")]
+    UpdatePolicy(#[from] UpdatePolicyError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC> {
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()
     }
@@ -81,8 +93,19 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
     pub async fn set_unlock_method(&mut self, method: UnlockMethod) -> Result<(), WalletUnlockError>
     where
         S: Storage,
+        UR: Repository<VersionState>,
     {
         info!("Setting unlock method to: {}", method);
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(WalletUnlockError::VersionBlocked);
+        }
+
+        info!("Checking if locked");
+        if !self.lock.is_locked() {
+            return Err(WalletUnlockError::NotLocked);
+        }
 
         let data = UnlockData { method };
         self.storage
@@ -101,20 +124,31 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
     async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
     where
-        CR: ConfigurationRepository,
+        CR: Repository<Arc<WalletConfiguration>>,
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: Default,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
-        info!("Checking if registered");
+        let config = &self.config_repository.get();
 
+        info!("Fetching update policy");
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(WalletUnlockError::VersionBlocked);
+        }
+
+        info!("Checking if registered");
         let registration = self
             .registration
             .as_ref()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
-        let config = self.config_repository.config();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
         let remote_instruction = self
@@ -137,13 +171,19 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
     #[sentry_capture_error]
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError>
     where
-        CR: ConfigurationRepository,
+        CR: Repository<Arc<WalletConfiguration>>,
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: Default,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
         info!("Unlocking wallet with pin");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(WalletUnlockError::VersionBlocked);
+        }
 
         info!("Checking if locked");
         if !self.lock.is_locked() {
@@ -162,12 +202,18 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
     #[instrument(skip_all)]
     pub async fn check_pin(&self, pin: String) -> Result<(), WalletUnlockError>
     where
-        CR: ConfigurationRepository,
+        CR: Repository<Arc<WalletConfiguration>>,
         S: Storage,
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: Default,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(WalletUnlockError::VersionBlocked);
+        }
+
         info!("Checking pin");
         self.send_check_pin_instruction(pin).await
     }
@@ -175,9 +221,22 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
     #[instrument(skip_all)]
     pub async fn unlock_without_pin(&mut self) -> Result<(), WalletUnlockError>
     where
+        CR: Repository<Arc<WalletConfiguration>>,
         S: Storage,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
         info!("Unlocking wallet without pin");
+        let config = &self.config_repository.get();
+
+        info!("Fetching update policy");
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(WalletUnlockError::VersionBlocked);
+        }
 
         info!("Checking if locked");
         if !self.lock.is_locked() {
@@ -261,7 +320,7 @@ mod tests {
             .account_provider_client
             .expect_instruction_challenge()
             .with(
-                eq(wallet.config_repository.config().account_server.http_config.clone()),
+                eq(wallet.config_repository.get().account_server.http_config.clone()),
                 always(),
             )
             .return_once(move |_, challenge_request| {
@@ -295,7 +354,7 @@ mod tests {
             .account_provider_client
             .expect_instruction()
             .with(
-                eq(wallet.config_repository.config().account_server.http_config.clone()),
+                eq(wallet.config_repository.get().account_server.http_config.clone()),
                 always(),
             )
             .return_once(move |_, instruction: Instruction<CheckPin>| {

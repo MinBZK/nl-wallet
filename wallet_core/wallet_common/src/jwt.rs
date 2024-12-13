@@ -54,6 +54,14 @@ impl<T, S: Into<String>> From<S> for Jwt<T> {
     }
 }
 
+impl<T> FromStr for Jwt<T> {
+    type Err = JwtError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Jwt(s.into(), PhantomData))
+    }
+}
+
 /// A verified JWS, along with its header and payload.
 pub struct VerifiedJwt<T> {
     header: Header,

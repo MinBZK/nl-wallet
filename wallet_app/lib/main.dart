@@ -14,6 +14,7 @@ import 'src/feature/common/widget/flutter_app_configuration_provider.dart';
 import 'src/feature/common/widget/privacy_cover.dart';
 import 'src/feature/lock/auto_lock_observer.dart';
 import 'src/feature/root/root_checker.dart';
+import 'src/feature/update/update_checker.dart';
 import 'src/wallet_app.dart';
 import 'src/wallet_app_bloc_observer.dart';
 import 'src/wallet_error_handler.dart';
@@ -73,9 +74,11 @@ void mainImpl() async {
         child: FlutterAppConfigurationProvider(
           builder: (config) => AutoLockObserver(
             configuration: config,
-            child: PrivacyCover(
-              child: WalletApp(
-                navigatorKey: _navigatorKey,
+            child: UpdateChecker(
+              child: PrivacyCover(
+                child: WalletApp(
+                  navigatorKey: _navigatorKey,
+                ),
               ),
             ),
           ),

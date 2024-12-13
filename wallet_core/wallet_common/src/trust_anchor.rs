@@ -70,6 +70,14 @@ impl<'a> From<&'a OwnedTrustAnchor> for TrustAnchor<'a> {
     }
 }
 
+impl TryFrom<&DerTrustAnchor> for reqwest::Certificate {
+    type Error = reqwest::Error;
+
+    fn try_from(anchor: &DerTrustAnchor) -> Result<Self, Self::Error> {
+        reqwest::Certificate::from_der(&anchor.der_bytes)
+    }
+}
+
 pub fn trust_anchor_names(trust_anchor: &TrustAnchor) -> Result<Vec<String>, x509_parser::nom::Err<X509Error>> {
     let (_, names) = RelativeDistinguishedName::from_der(trust_anchor.subject.as_ref())?;
 

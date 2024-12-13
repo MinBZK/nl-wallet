@@ -10,6 +10,7 @@ pub mod nonempty;
 pub mod reqwest;
 pub mod spawn;
 pub mod trust_anchor;
+pub mod update_policy;
 pub mod urls;
 pub mod utils;
 pub mod wte;

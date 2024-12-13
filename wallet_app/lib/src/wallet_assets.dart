@@ -25,6 +25,8 @@ class WalletAssets {
   static const svg_rijks_card_bg_light = 'assets/non-free/svg/rijks_card_bg_light.svg';
   static const svg_rijks_card_bg_dark = 'assets/non-free/svg/rijks_card_bg_dark.svg';
   static const svg_qr_button = 'assets/non-free/svg/qr_button.svg';
+  static const svg_app_store = 'assets/non-free/svg/app_store_logo.svg';
+  static const svg_play_store = 'assets/non-free/svg/play_store_logo.svg';
 
   static const svg_blocked_final = 'assets/non-free/svg/NL_WALLET_blocked_final.svg';
   static const svg_blocked_temporary = 'assets/non-free/svg/NL_WALLET_blocked_temporary.svg';
@@ -47,6 +49,7 @@ class WalletAssets {
   static const svg_placeholder = 'assets/non-free/svg/NL_WALLET_placeholder.svg';
   static const svg_biometrics_finger = 'assets/non-free/svg/NL_WALLET_biometrics_finger.svg';
   static const svg_biometrics_face = 'assets/non-free/svg/NL_WALLET_biometrics_face.svg';
+  static const svg_update_app = 'assets/non-free/svg/NL_WALLET_update_app.svg';
 
   static const svg_icon_face_id = 'assets/non-free/svg/icon_face_id.svg';
 

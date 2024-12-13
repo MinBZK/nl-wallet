@@ -1,14 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:root_jailbreak_sniffer/rjsniffer.dart';
 
-import '../../data/store/active_locale_provider.dart';
-import '../../data/store/impl/active_localization_delegate.dart';
-import '../../theme/wallet_theme.dart';
+import '../common/widget/minimal_wallet_app.dart';
 import 'root_detected_screen.dart';
 
 /// Signature to replace the built-in root check (useful for testing). Return
@@ -56,25 +51,8 @@ class _RootCheckerState extends State<RootChecker> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: _hasRoot,
-      builder: (c, value, child) {
-        if (value) {
-          // Needed since the [SplashScreen], which normally handles this might not be reached yet.
-          FlutterNativeSplash.remove();
-          // We don't have anything provided at this stage, make sure this is tested and using basic Widgets.
-          final localizationDelegate = ActiveLocalizationDelegate();
-          return RepositoryProvider<ActiveLocaleProvider>(
-            create: (c) => localizationDelegate,
-            child: MaterialApp(
-              theme: WalletTheme.light,
-              darkTheme: WalletTheme.dark,
-              localizationsDelegates: [
-                localizationDelegate,
-                ...AppLocalizations.localizationsDelegates,
-              ],
-              home: const RootDetectedScreen(),
-            ),
-          );
-        }
+      builder: (c, hasRoot, child) {
+        if (hasRoot) return const MinimalWalletApp(child: RootDetectedScreen());
         return child!;
       },
       child: widget.child,

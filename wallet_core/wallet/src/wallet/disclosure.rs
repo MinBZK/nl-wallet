@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use indexmap::IndexMap;
 use tracing::error;
@@ -18,10 +19,12 @@ use nl_wallet_mdoc::utils::x509::Certificate;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::hw_keystore::PlatformEcdsaKey;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
-use crate::config::ConfigurationRepository;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::disclosure::DisclosureUriError;
 use crate::disclosure::DisclosureUriSource;
@@ -35,9 +38,12 @@ use crate::document::DisclosureType;
 use crate::document::DocumentMdocError;
 use crate::document::MissingDisclosureAttributes;
 use crate::errors::ChangePinError;
+use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
+use crate::repository::Repository;
+use crate::repository::UpdateableRepository;
 use crate::storage::EventStatus;
 use crate::storage::Storage;
 use crate::storage::StorageError;
@@ -59,6 +65,9 @@ pub struct DisclosureProposal {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DisclosureError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -92,6 +101,8 @@ pub enum DisclosureError {
     EventStorage(#[source] EventStorageError),
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
+    #[error("error fetching update policy: {0}")]
+    UpdatePolicy(#[from] UpdatePolicyError),
 }
 
 impl DisclosureError {
@@ -128,11 +139,12 @@ impl From<MdocDisclosureError> for DisclosureError {
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
 where
-    CR: ConfigurationRepository,
+    CR: Repository<Arc<WalletConfiguration>>,
     MDS: MdocDisclosureSession<Self>,
     S: Storage,
+    UR: Repository<VersionState>,
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
@@ -142,6 +154,11 @@ where
         source: DisclosureUriSource,
     ) -> Result<DisclosureProposal, DisclosureError> {
         info!("Performing disclosure based on received URI: {}", uri);
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(DisclosureError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         if self.registration.is_none() {
@@ -158,7 +175,7 @@ where
             return Err(DisclosureError::SessionState);
         }
 
-        let config = &self.config_repository.config().disclosure;
+        let config = &self.config_repository.get().disclosure;
 
         let disclosure_uri = MDS::parse_url(uri, urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref())
             .map_err(DisclosureError::DisclosureUri)?;
@@ -277,6 +294,11 @@ where
     pub fn has_active_disclosure_session(&self) -> Result<bool, DisclosureError> {
         info!("Checking for active disclosure session");
 
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(DisclosureError::VersionBlocked);
+        }
+
         info!("Checking if registered");
         if self.registration.is_none() {
             return Err(DisclosureError::NotRegistered);
@@ -296,6 +318,11 @@ where
     #[sentry_capture_error]
     pub async fn cancel_disclosure(&mut self) -> Result<Option<Url>, DisclosureError> {
         info!("Cancelling disclosure");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(DisclosureError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         if self.registration.is_none() {
@@ -339,8 +366,19 @@ where
         PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: Default,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
         info!("Accepting disclosure");
+
+        let config = &self.config_repository.get().update_policy_server;
+
+        info!("Fetching update policy");
+        self.update_policy_repository.fetch(&config.http_config).await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(DisclosureError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         let registration = self
@@ -390,7 +428,7 @@ where
         }
 
         // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
-        let config = self.config_repository.config();
+        let config = self.config_repository.get();
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
@@ -479,7 +517,7 @@ where
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> MdocDataSource for Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> MdocDataSource for Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
 where
     S: Storage,
 {

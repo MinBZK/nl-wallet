@@ -103,6 +103,7 @@ echo "DIGID_CLIENT_ID=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.client_
 echo "DIGID_APP2APP_ENV=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.env' )"
 echo "DIGID_APP2APP_HOST=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.host' )"
 echo "DIGID_APP2APP_UNIVERSAL_LINK=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.universal_link' )"
+echo "UPDATE_POLICY_SERVER_BASE_URL=$(echo $CONFIG_JSON | jq -r '.update_policy_server.base_url' )"
 
 mapfile -t WALLET_PROVIDER_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.account_server.http_config.trust_anchors[]')
 echo "WALLET_PROVIDER_TRUST_ANCHORS=$(IFS="|" ; echo "${WALLET_PROVIDER_TRUST_ANCHORS[*]}")"
@@ -115,3 +116,6 @@ echo "RP_TRUST_ANCHORS=$(IFS="|" ; echo "${RP_TRUST_ANCHORS[*]}")"
 
 mapfile -t MDOC_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.mdoc_trust_anchors[]')
 echo "MDOC_TRUST_ANCHORS=$(IFS="|" ; echo "${MDOC_TRUST_ANCHORS[*]}")"
+
+mapfile -t UPDATE_POLICY_SERVER_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.update_policy_server.trust_anchors[]')
+echo "UPDATE_POLICY_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${UPDATE_POLICY_SERVER_TRUST_ANCHORS[*]}")"

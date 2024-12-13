@@ -12,6 +12,7 @@ use wallet_common::jwt::JwtError;
 use crate::errors::InstructionError;
 use crate::errors::PinValidationError;
 use crate::errors::StorageError;
+use crate::errors::UpdatePolicyError;
 use crate::pin::key::{self as pin_key};
 use crate::validate_pin;
 
@@ -60,6 +61,9 @@ pub trait ChangePinStorage {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum ChangePinError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -78,6 +82,8 @@ pub enum ChangePinError {
     Instruction(#[from] InstructionError),
     #[error("storage error: {0}")]
     Storage(#[from] StorageError),
+    #[error("error fetching update policy: {0}")]
+    UpdatePolicy(#[from] UpdatePolicyError),
     #[error("could not get hardware public key: {0}")]
     #[category(pd)]
     HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
