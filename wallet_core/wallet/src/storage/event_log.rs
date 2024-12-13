@@ -6,8 +6,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-use serde_with::IfIsHumanReadable;
-use serde_with::TryFromInto;
 use uuid::Uuid;
 
 pub use entity::disclosure_history_event;
@@ -202,7 +200,7 @@ impl TryFrom<WalletEvent> for WalletEventModel {
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EventAttributes {
-    #[serde_as(as = "IfIsHumanReadable<Base64, TryFromInto<Vec<u8>>>")]
+    #[serde_as(as = "Base64")]
     pub issuer: BorrowingCertificate,
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
 }
