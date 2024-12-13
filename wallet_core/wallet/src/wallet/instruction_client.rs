@@ -27,14 +27,11 @@ where
     pub(super) async fn new_instruction_client<'a>(
         &'a self,
         pin: String,
-        attested_key: &'a AttestedKey<<AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey>,
+        attested_key: &'a AttestedKey<AKH::AppleKey, AKH::GoogleKey>,
         registration_data: &'a RegistrationData,
         client_config: &'a TlsPinningConfig,
         instruction_result_public_key: &'a EcdsaDecodingKey,
-    ) -> Result<
-        InstructionClient<'a, S, <AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey, APC>,
-        ChangePinError,
-    > {
+    ) -> Result<InstructionClient<'a, S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError> {
         tracing::info!("Try to finalize PIN change if it is in progress");
 
         if self.storage.get_change_pin_state().await?.is_some() {

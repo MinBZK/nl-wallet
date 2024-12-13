@@ -105,7 +105,7 @@ pub struct Wallet<
     config_repository: CR,
     storage: RwLock<S>,
     key_holder: AKH,
-    registration: WalletRegistration<<AKH as AttestedKeyHolder>::AppleKey, <AKH as AttestedKeyHolder>::GoogleKey>,
+    registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: APC,
     issuance_session: Option<PidIssuanceSession<DS, IS>>,
     disclosure_session: Option<MDS>,

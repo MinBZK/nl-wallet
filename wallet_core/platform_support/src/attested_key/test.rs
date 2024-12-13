@@ -58,8 +58,8 @@ pub async fn create_and_verify_attested_key<'a, H>(
     payload: Vec<u8>,
 ) where
     H: AttestedKeyHolder,
-    <H as AttestedKeyHolder>::AppleKey: Debug,
-    <H as AttestedKeyHolder>::GoogleKey: Debug,
+    H::AppleKey: Debug,
+    H::GoogleKey: Debug,
 {
     // Generate an identifier for the attested key, which on iOS also actually generates a key pair.
     let identifier = holder
