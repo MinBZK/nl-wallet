@@ -57,7 +57,7 @@ use self::issuance::PidIssuanceSession;
 
 cfg_if! {
     if #[cfg(feature = "fake_attestation")] {
-        type KeyHolderType = platform_support::attested_key::mock::PersistentMockAppleHardwareAttestedKeyHolder;
+        type KeyHolderType = platform_support::attested_key::mock::PersistentMockAttestedKeyHolder;
     } else {
         type KeyHolderType = platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
     }

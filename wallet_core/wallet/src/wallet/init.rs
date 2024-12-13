@@ -61,11 +61,11 @@ where
         // When using fake attestations, initialize the key holder, but make sure this happens only once.
         #[cfg(feature = "fake_attestation")]
         {
-            use platform_support::attested_key::mock::PersistentMockAppleHardwareAttestedKeyHolder;
+            use platform_support::attested_key::mock::PersistentMockAttestedKeyHolder;
 
             KEY_HOLDER_ONCE
                 .get_or_init(|| async {
-                    PersistentMockAppleHardwareAttestedKeyHolder::init::<HardwareUtilities>().await;
+                    PersistentMockAttestedKeyHolder::init::<HardwareUtilities>().await;
                 })
                 .await;
         }

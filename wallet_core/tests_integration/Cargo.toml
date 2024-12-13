@@ -207,6 +207,6 @@ dotenvy = { workspace = true, optional = true }
 # * hsm_test
 # * db_test
 openid4vc = { path = "../openid4vc", features = ["integration"] }
-platform_support = { path = "../platform_support", features = ["persistent_mock_apple_attested_key"] }
+platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
 wallet_provider_service.path = "../wallet_provider/service"
 wallet_server = { path = "../wallet_server", features = ["issuance"] }
