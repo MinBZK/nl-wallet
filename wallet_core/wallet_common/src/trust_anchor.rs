@@ -2,10 +2,8 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::sync::Arc;
 
-use base64::prelude::*;
 use derive_more::Debug;
 use rustls_pki_types::CertificateDer;
-use serde::Serialize;
 use webpki::anchor_from_trusted_cert;
 use webpki::types::TrustAnchor;
 use webpki::Error;
@@ -80,17 +78,5 @@ impl<'a> From<&'a BorrowingTrustAnchor> for TrustAnchor<'a> {
 impl From<BorrowingTrustAnchor> for Vec<u8> {
     fn from(value: BorrowingTrustAnchor) -> Self {
         value.as_ref().to_vec()
-    }
-}
-
-pub fn serialize_bytes_as_ref<B: AsRef<[u8]>, S: serde::Serializer>(
-    bytes: &B,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
-    let cert = bytes.as_ref();
-    if serializer.is_human_readable() {
-        BASE64_STANDARD.encode(cert).serialize(serializer)
-    } else {
-        cert.serialize(serializer)
     }
 }
