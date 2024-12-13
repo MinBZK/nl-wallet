@@ -6,7 +6,9 @@ mod instruction;
 mod issuance;
 mod lock;
 mod pin;
+mod repository;
 mod storage;
+mod update_policy;
 mod wallet;
 mod wte;
 
@@ -27,7 +29,6 @@ pub use crate::document::DocumentType;
 pub use crate::document::GenderAttributeValue;
 pub use crate::document::MissingDisclosureAttributes;
 pub use crate::pin::validation::validate_pin;
-pub use crate::wallet::ConfigCallback;
 pub use crate::wallet::DisclosureProposal;
 pub use crate::wallet::DocumentsCallback;
 pub use crate::wallet::EventStatus;
@@ -59,6 +60,7 @@ pub mod wallet_common {
     pub use wallet_common::config::wallet_config::LockTimeoutConfiguration;
     pub use wallet_common::config::wallet_config::PidIssuanceConfiguration;
     pub use wallet_common::config::wallet_config::WalletConfiguration;
+    pub use wallet_common::update_policy::VersionState;
     pub use wallet_common::urls::BaseUrl;
 }
 
@@ -67,19 +69,23 @@ pub mod wallet_deps {
     pub use crate::account_provider::AccountProviderClient;
     pub use crate::account_provider::HttpAccountProviderClient;
     pub use crate::config::default_config_server_config;
-    pub use crate::config::ConfigurationRepository;
-    pub use crate::config::ConfigurationUpdateState;
     pub use crate::config::FileStorageConfigurationRepository;
     pub use crate::config::HttpConfigurationRepository;
-    pub use crate::config::UpdateableConfigurationRepository;
-    pub use crate::config::UpdatingFileHttpConfigurationRepository;
+    pub use crate::config::WalletConfigurationRepository;
     pub use crate::disclosure::MdocDisclosureMissingAttributes;
     pub use crate::disclosure::MdocDisclosureProposal;
     pub use crate::disclosure::MdocDisclosureSession;
     pub use crate::disclosure::MdocDisclosureSessionState;
     pub use crate::issuance::DigidSession;
     pub use crate::issuance::HttpDigidSession;
+    pub use crate::repository::BackgroundUpdateableRepository;
+    pub use crate::repository::Repository;
+    pub use crate::repository::RepositoryUpdateState;
+    pub use crate::repository::UpdateableRepository;
     pub use crate::storage::Storage;
+    pub use crate::update_policy::HttpUpdatePolicyRepository;
+    pub use crate::update_policy::UpdatePolicyRepository;
+    pub use crate::wte::WpWteIssuanceClient;
 }
 
 #[cfg(feature = "mock")]
@@ -92,4 +98,5 @@ pub mod mock {
     pub use crate::disclosure::MockMdocDisclosureSession;
     pub use crate::issuance::MockDigidSession;
     pub use crate::storage::MockStorage;
+    pub use crate::update_policy::MockUpdatePolicyRepository;
 }

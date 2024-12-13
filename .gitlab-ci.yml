@@ -227,6 +227,34 @@ run-wp-migrations-demo:
   extends: [.env-demo-k8s, .run-wp-migrations]
   rules: !reference [.release-tag, rules]
 
+.deploy-update-policy-server:
+  needs:
+    - job: build-update-policy-server-image
+      artifacts: false
+  variables:
+    UPDATE_POLICY_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-update-policy-server:${CI_COMMIT_SHORT_SHA}
+  script:
+    - envsubst < deploy/kubernetes/update-policy-server-deployment.yaml | kubectl apply -f -
+    - envsubst < deploy/kubernetes/update-policy-server-ingress.yaml | kubectl apply -f -
+    - kubectl apply -f deploy/kubernetes/update-policy-server-service.yaml
+    - kubectl rollout status deployment/update-policy-server
+
+deploy-update-policy-server-ont:
+  extends: [.env-ont-k8s, .deploy-update-policy-server]
+  rules: !reference [.default-or-merge-request, rules]
+  needs:
+    - !reference [.deploy-update-policy-server, needs]
+  variables:
+    UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME: $UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME_ONT
+
+deploy-update-policy-server-demo:
+  extends: [.env-demo-k8s, .deploy-update-policy-server]
+  rules: !reference [.release-tag, rules]
+  needs:
+    - !reference [.deploy-update-policy-server, needs]
+  variables:
+    UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME: $UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME_DEMO
+
 .deploy-wallet-provider:
   needs:
     - job: build-wallet-provider-image

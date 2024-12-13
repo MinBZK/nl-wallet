@@ -16,10 +16,10 @@ use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
 use wallet::mock::default_wallet_config;
 use wallet::wallet_deps::default_config_server_config;
-use wallet::wallet_deps::ConfigurationRepository;
-use wallet::wallet_deps::ConfigurationUpdateState;
 use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::UpdateableConfigurationRepository;
+use wallet::wallet_deps::Repository;
+use wallet::wallet_deps::RepositoryUpdateState;
+use wallet::wallet_deps::UpdateableRepository;
 use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::JwtError;
@@ -46,12 +46,11 @@ async fn test_wallet_config() {
     };
 
     let storage_path = env::temp_dir();
-    let etag_file = storage_path.join("latest-configuration-etag.txt");
+    let etag_file = storage_path.join("wallet-config.etag");
     // make sure there are no storage files from previous test runs
     let _ = fs::remove_file(etag_file.as_path()).await;
 
     let http_config = HttpConfigurationRepository::new(
-        config_server_config.http_config,
         (&config_server_config.signing_public_key.0).into(),
         storage_path.clone(),
         default_wallet_config(),
@@ -59,11 +58,11 @@ async fn test_wallet_config() {
     .await
     .unwrap();
 
-    let before = http_config.config();
-    let result = http_config.fetch().await.unwrap();
-    let after = http_config.config();
+    let before = http_config.get();
+    let result = http_config.fetch(&config_server_config.http_config).await.unwrap();
+    let after = http_config.get();
 
-    assert_matches!(result, ConfigurationUpdateState::Updated);
+    assert_matches!(result, RepositoryUpdateState::Updated { .. });
     assert_ne!(before.lock_timeouts, after.lock_timeouts);
 
     let content = fs::read(etag_file.as_path()).await.unwrap();
@@ -73,8 +72,8 @@ async fn test_wallet_config() {
     assert!(quoted_hash_regex.is_match(header_value.to_str().unwrap()));
 
     // Second fetch should use earlier etag
-    let result = http_config.fetch().await.unwrap();
-    assert_matches!(result, ConfigurationUpdateState::Unmodified);
+    let result = http_config.fetch(&config_server_config.http_config).await.unwrap();
+    assert_matches!(result, RepositoryUpdateState::Unmodified(_));
 }
 
 #[tokio::test]
@@ -99,7 +98,6 @@ async fn test_wallet_config_stale() {
     };
 
     let http_config = HttpConfigurationRepository::new(
-        config_server_config.http_config,
         (&config_server_config.signing_public_key.0).into(),
         env::temp_dir(),
         default_wallet_config(),
@@ -107,11 +105,11 @@ async fn test_wallet_config_stale() {
     .await
     .unwrap();
 
-    let before = http_config.config();
-    let result = http_config.fetch().await.unwrap();
-    let after = http_config.config();
+    let before = http_config.get();
+    let result = http_config.fetch(&config_server_config.http_config).await.unwrap();
+    let after = http_config.get();
 
-    assert_matches!(result, ConfigurationUpdateState::Unmodified);
+    assert_matches!(result, RepositoryUpdateState::Unmodified(_));
     assert_eq!(before.version, after.version);
 }
 
@@ -152,7 +150,6 @@ async fn test_wallet_config_signature_verification_failed() {
     };
 
     let http_config = HttpConfigurationRepository::new(
-        config_server_config.http_config,
         (&config_server_config.signing_public_key.0).into(),
         env::temp_dir(),
         default_wallet_config(),
@@ -161,7 +158,7 @@ async fn test_wallet_config_signature_verification_failed() {
     .unwrap();
 
     let result = http_config
-        .fetch()
+        .fetch(&config_server_config.http_config)
         .await
         .expect_err("Expecting invalid signature error");
 

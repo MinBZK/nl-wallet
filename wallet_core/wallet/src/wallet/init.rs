@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use tokio::sync::RwLock;
 
 use error_category::sentry_capture_error;
@@ -7,20 +9,26 @@ use platform_support::hw_keystore::PlatformEcdsaKey;
 use platform_support::utils::hardware::HardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::update_policy::VersionState;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::config::init_universal_link_base_url;
 use crate::config::ConfigurationError;
-use crate::config::ConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
+use crate::errors::UpdatePolicyError;
 use crate::lock::WalletLock;
+use crate::repository::BackgroundUpdateableRepository;
+use crate::repository::Repository;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StorageState;
+use crate::update_policy::UpdatePolicyRepository;
 
 use super::Wallet;
 use super::WalletRegistration;
@@ -30,6 +38,8 @@ use super::WalletRegistration;
 pub enum WalletInitError {
     #[error("wallet configuration error")]
     Configuration(#[from] ConfigurationError),
+    #[error("wallet configuration error")]
+    UpdatePolicy(#[from] UpdatePolicyError),
     #[error("platform utilities error: {0}")]
     Utilities(#[from] UtilitiesError),
     #[error("could not initialize database: {0}")]
@@ -44,28 +54,38 @@ impl Wallet {
         let storage_path = HardwareUtilities::storage_path().await?;
         let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
-            storage_path,
+            storage_path.clone(),
             default_config_server_config(),
             default_wallet_config(),
         )
         .await?;
 
-        Self::init_registration(config_repository, storage, HttpAccountProviderClient::default()).await
+        let update_policy_repository = UpdatePolicyRepository::init();
+
+        Self::init_registration(
+            config_repository,
+            storage,
+            HttpAccountProviderClient::default(),
+            update_policy_repository,
+        )
+        .await
     }
 }
 
-impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
+impl<CR, S, PEK, APC, DS, IC, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC, UR>
 where
-    CR: ConfigurationRepository,
+    CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,
     PEK: PlatformEcdsaKey,
     WIC: Default,
+    UR: BackgroundUpdateableRepository<VersionState, TlsPinningConfig>,
 {
     pub(super) fn new(
         config_repository: CR,
         storage: S,
         account_provider_client: APC,
         registration_data: Option<RegistrationData>,
+        update_policy_repository: UR,
     ) -> Self {
         let registration = registration_data.map(|data| WalletRegistration {
             hw_privkey: Self::hw_privkey(),
@@ -83,6 +103,7 @@ where
             documents_callback: None,
             recent_history_callback: None,
             wte_issuance_client: WIC::default(),
+            update_policy_repository,
         }
     }
 
@@ -91,14 +112,32 @@ where
         config_repository: CR,
         mut storage: S,
         account_provider_client: APC,
+        update_policy_repository: UR,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
 
-        let wallet = Self::new(config_repository, storage, account_provider_client, registration);
+        let http_config = config_repository.get().update_policy_server.http_config.clone();
+        update_policy_repository.fetch_in_background(http_config);
+
+        let wallet = Self::new(
+            config_repository,
+            storage,
+            account_provider_client,
+            registration,
+            update_policy_repository,
+        );
 
         Ok(wallet)
     }
+}
 
+impl<CR, S, PEK, APC, DS, IC, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC, UR>
+where
+    CR: Repository<Arc<WalletConfiguration>>,
+    S: Storage,
+    PEK: PlatformEcdsaKey,
+    WIC: Default,
+{
     /// Attempts to fetch the initial data from storage, without creating a database if there is none.
     async fn fetch_registration(storage: &mut S) -> Result<Option<RegistrationData>, StorageError> {
         match storage.state().await? {

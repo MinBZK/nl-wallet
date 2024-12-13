@@ -1,20 +1,50 @@
-pub use crate::config::ConfigCallback;
+use std::sync::Arc;
 
-use crate::config::ObservableConfigurationRepository;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::update_policy::VersionState;
+
+use crate::repository::ObservableRepository;
+use crate::repository::Repository;
+use crate::repository::RepositoryCallback;
 
 use super::Wallet;
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
 where
-    CR: ObservableConfigurationRepository,
+    UR: Repository<VersionState>,
 {
-    pub fn set_config_callback(&self, mut callback: ConfigCallback) -> Option<ConfigCallback> {
-        callback(self.config_repository.config());
+    pub fn is_blocked(&self) -> bool {
+        self.update_policy_repository.get() == VersionState::Block
+    }
+}
+
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
+where
+    CR: ObservableRepository<Arc<WalletConfiguration>>,
+    UR: ObservableRepository<VersionState>,
+{
+    pub fn set_config_callback(
+        &self,
+        mut callback: RepositoryCallback<Arc<WalletConfiguration>>,
+    ) -> Option<RepositoryCallback<Arc<WalletConfiguration>>> {
+        callback(self.config_repository.get());
         self.config_repository.register_callback_on_update(callback)
     }
 
-    pub fn clear_config_callback(&self) -> Option<ConfigCallback> {
+    pub fn clear_config_callback(&self) -> Option<RepositoryCallback<Arc<WalletConfiguration>>> {
         self.config_repository.clear_callback()
+    }
+
+    pub fn set_version_state_callback(
+        &self,
+        mut callback: RepositoryCallback<VersionState>,
+    ) -> Option<RepositoryCallback<VersionState>> {
+        callback(self.update_policy_repository.get());
+        self.update_policy_repository.register_callback_on_update(callback)
+    }
+
+    pub fn clear_version_state_callback(&self) -> Option<RepositoryCallback<VersionState>> {
+        self.update_policy_repository.clear_callback()
     }
 }
 

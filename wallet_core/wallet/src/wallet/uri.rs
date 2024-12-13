@@ -1,14 +1,17 @@
+use std::sync::Arc;
+
 use tracing::info;
 use tracing::instrument;
 use url::Url;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::urls;
 
-use crate::config::ConfigurationRepository;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::issuance::DigidSession;
+use crate::repository::Repository;
 use crate::wallet::PidIssuanceSession;
 
 use super::Wallet;
@@ -29,9 +32,9 @@ pub enum UriIdentificationError {
     Unknown,
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
 where
-    CR: ConfigurationRepository,
+    CR: Repository<Arc<WalletConfiguration>>,
     DS: DigidSession,
 {
     #[instrument(skip_all)]

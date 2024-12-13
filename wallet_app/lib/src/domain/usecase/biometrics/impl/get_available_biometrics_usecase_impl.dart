@@ -13,14 +13,8 @@ class GetAvailableBiometricsUseCaseImpl extends GetAvailableBiometricsUseCase {
 
   @override
   Future<Biometrics> invoke() async {
-    final List<BiometricType> availableBiometrics = await _localAuthentication.getAvailableBiometrics();
-    Fimber.d('Supported biometrics: $availableBiometrics');
-    // Require strong type biometrics (android only)
-    if (_platform == TargetPlatform.android && !availableBiometrics.supportsStrongType) return Biometrics.none;
-    if (availableBiometrics.supportsFingerprintAndFaceType) return Biometrics.some;
-    if (availableBiometrics.supportsFingerprintType) return Biometrics.fingerprint;
-    if (availableBiometrics.supportsFaceType) return Biometrics.face;
-    if (availableBiometrics.supportsStrongType) return Biometrics.some;
-    return Biometrics.none;
+    final List<BiometricType> availableBiometricTypes = await _localAuthentication.getAvailableBiometrics();
+    Fimber.d('Supported biometrics: $availableBiometricTypes');
+    return availableBiometricTypes.toBiometrics(targetPlatform: _platform);
   }
 }

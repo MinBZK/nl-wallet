@@ -37,6 +37,16 @@ pub extern "C" fn wire_clear_configuration_stream(port_: i64) {
 }
 
 #[no_mangle]
+pub extern "C" fn wire_set_version_state_stream(port_: i64) {
+    wire_set_version_state_stream_impl(port_)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_clear_version_state_stream(port_: i64) {
+    wire_clear_version_state_stream_impl(port_)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_set_cards_stream(port_: i64) {
     wire_set_cards_stream_impl(port_)
 }

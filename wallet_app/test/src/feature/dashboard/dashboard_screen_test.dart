@@ -4,9 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
-import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/dashboard/dashboard_screen.dart';
+import 'package:wallet/src/util/extension/localized_text_extension.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
@@ -90,6 +91,7 @@ void main() {
         ),
         providers: [
           RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+          RepositoryProvider<ObserveVersionStateUsecase>(create: (c) => MockObserveVersionStateUsecase()),
         ],
       );
 

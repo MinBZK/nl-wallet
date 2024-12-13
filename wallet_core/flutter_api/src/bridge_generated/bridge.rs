@@ -41,6 +41,7 @@ use crate::models::instruction::WalletInstructionError;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::uri::IdentifyUriResult;
+use crate::models::version_state::FlutterVersionState;
 use crate::models::wallet_event::WalletEvent;
 
 // Section: wire functions
@@ -122,6 +123,32 @@ fn wire_clear_configuration_stream_impl(port_: MessagePort) {
             mode: FfiCallMode::Normal,
         },
         move || move |task_callback| Result::<_, ()>::Ok(clear_configuration_stream()),
+    )
+}
+fn wire_set_version_state_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+        WrapInfo {
+            debug_name: "set_version_state_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || {
+            move |task_callback| {
+                Result::<_, ()>::Ok(set_version_state_stream(
+                    task_callback.stream_sink::<_, FlutterVersionState>(),
+                ))
+            }
+        },
+    )
+}
+fn wire_clear_version_state_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+        WrapInfo {
+            debug_name: "clear_version_state_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| Result::<_, ()>::Ok(clear_version_state_stream()),
     )
 }
 fn wire_set_cards_stream_impl(port_: MessagePort) {
@@ -649,6 +676,25 @@ impl support::IntoDart for FlutterConfiguration {
 }
 impl support::IntoDartExceptPrimitive for FlutterConfiguration {}
 impl rust2dart::IntoIntoDart<FlutterConfiguration> for FlutterConfiguration {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
+impl support::IntoDart for FlutterVersionState {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Ok => vec![0.into_dart()],
+            Self::Notify => vec![1.into_dart()],
+            Self::Recommend => vec![2.into_dart()],
+            Self::Warn { expires_in_seconds } => vec![3.into_dart(), expires_in_seconds.into_into_dart().into_dart()],
+            Self::Block => vec![4.into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for FlutterVersionState {}
+impl rust2dart::IntoIntoDart<FlutterVersionState> for FlutterVersionState {
     fn into_into_dart(self) -> Self {
         self
     }

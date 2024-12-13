@@ -1321,6 +1321,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.11.1"
+  store_redirect:
+    dependency: "direct main"
+    description:
+      name: store_redirect
+      sha256: "72f111f6616cf8ac353449d5b79bbe10e5f7a1b3a47b338f8936a826d4ea6366"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.2"
   stream_channel:
     dependency: transitive
     description:
