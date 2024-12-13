@@ -1,17 +1,24 @@
 mod instruction;
 mod storage;
 
+use std::sync::Arc;
+
 use tracing::info;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::update_policy::VersionState;
 
 use crate::account_provider::AccountProviderClient;
-use crate::config::ConfigurationRepository;
+use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClientFactory;
 use crate::pin::change::BeginChangePinOperation;
 use crate::pin::change::ChangePinError;
 use crate::pin::change::FinishChangePinOperation;
+use crate::repository::Repository;
+use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::Wallet;
 
@@ -19,16 +26,30 @@ use super::WalletRegistration;
 
 const CHANGE_PIN_RETRIES: u8 = 3;
 
-impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
-    CR: ConfigurationRepository,
+    CR: Repository<Arc<WalletConfiguration>>,
+    UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
     WIC: Default,
 {
-    pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError> {
+    pub async fn begin_change_pin(&mut self, old_pin: String, new_pin: String) -> Result<(), ChangePinError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
         info!("Begin PIN change");
+
+        let config = &self.config_repository.get().update_policy_server;
+
+        info!("Fetching update policy");
+        self.update_policy_repository.fetch(&config.http_config).await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(ChangePinError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         let (attested_key, registration_data) = match &mut self.registration {
@@ -43,7 +64,7 @@ where
             return Err(ChangePinError::Locked);
         }
 
-        let config = &self.config_repository.config().account_server;
+        let config = &self.config_repository.get().account_server;
         let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
         let instruction_result_public_key = instruction_result_public_key.into();
         let DerVerifyingKey(certificate_public_key) = &config.certificate_public_key;
@@ -84,6 +105,11 @@ where
     pub async fn continue_change_pin(&self, pin: String) -> Result<(), ChangePinError> {
         info!("Continue PIN change");
 
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(ChangePinError::VersionBlocked);
+        }
+
         info!("Checking if registered");
         let (attested_key, registration_data) = self
             .registration
@@ -92,7 +118,7 @@ where
 
         // Wallet does not need to be unlocked, see [`Wallet::unlock`].
 
-        let config = &self.config_repository.config().account_server;
+        let config = &self.config_repository.get().account_server;
         let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
         let instruction_result_public_key = instruction_result_public_key.into();
 

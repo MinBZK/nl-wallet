@@ -46,6 +46,11 @@ name = "registration"
 path = "tests/registration.rs"
 required-features = ["integration_test"]
 
+[[test]]
+name = "update_policy_server"
+path = "tests/update_policy_server.rs"
+required-features = ["integration_test"]
+
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc?/allow_insecure_url", "wallet_common?/allow_insecure_url"]
@@ -67,6 +72,9 @@ test_common = [
     "dep:nl_wallet_mdoc",
     "dep:openid4vc",
     "dep:platform_support",
+    "dep:semver",
+    "dep:tempfile",
+    "dep:update_policy_server",
     "dep:uuid",
     "dep:url",
     "dep:wallet",
@@ -164,6 +172,7 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-uuid",
     "debug-print",
 ] }
+semver = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true, features = ["pkcs8"] }
@@ -191,6 +200,7 @@ gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
 platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
+update_policy_server = { path = "../update_policy_server", optional = true }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "env_config", "test"] }
 wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }
 wallet_provider = { path = "../wallet_provider", optional = true }

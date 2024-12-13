@@ -121,6 +121,19 @@ void main() {
     });
   });
 
+  group('observeVersionState', () {
+    test('version state is fetched through core by setting the version state stream', () async {
+      when(core.setVersionStateStream()).thenAnswer(
+        (_) => Stream.value(const FlutterVersionState.ok()),
+      );
+      // Verify we don't observe the stream pre-emptively
+      verifyNever(core.setVersionStateStream());
+      // But make sure we do call into the core once we check the version state stream
+      await typedWalletCore.observeVersionState().first;
+      verify(core.setVersionStateStream()).called(1);
+    });
+  });
+
   group('acceptOfferedPid', () {
     test('accept offered pid is passed on to core', () async {
       await typedWalletCore.acceptOfferedPid(_kSamplePin);

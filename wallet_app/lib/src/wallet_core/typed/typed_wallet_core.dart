@@ -9,7 +9,6 @@ import 'package:wallet_core/core.dart';
 
 import '../../util/mapper/mapper.dart';
 import '../error/core_error.dart';
-import '../error/flutter_api_error.dart';
 
 /// Wraps the [WalletCore].
 /// Adds auto initialization, pass through of the locked
@@ -20,6 +19,7 @@ class TypedWalletCore {
   final Completer _isInitialized = Completer();
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
   final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();
+  final BehaviorSubject<FlutterVersionState> _flutterVersionState = BehaviorSubject();
   final BehaviorSubject<List<WalletEvent>> _recentHistory = BehaviorSubject();
   final BehaviorSubject<List<Card>> _cards = BehaviorSubject();
 
@@ -27,6 +27,7 @@ class TypedWalletCore {
     _initWalletCore();
     _setupLockedStream();
     _setupConfigurationStream();
+    _setupVersionStateStream();
     _setupCardsStream();
     _setupRecentHistoryStream();
   }
@@ -43,6 +44,7 @@ class TypedWalletCore {
       // as they can contain references to the previous Flutter engine.
       await _walletCore.clearLockStream();
       await _walletCore.clearConfigurationStream();
+      await _walletCore.clearVersionStateStream();
       await _walletCore.clearCardsStream();
       await _walletCore.clearRecentHistoryStream();
       // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
@@ -65,6 +67,14 @@ class TypedWalletCore {
       _walletCore.setConfigurationStream().listen(_flutterConfig.add);
     };
     _flutterConfig.onCancel = _walletCore.clearConfigurationStream;
+  }
+
+  void _setupVersionStateStream() {
+    _flutterVersionState.onListen = () async {
+      await _isInitialized.future;
+      _walletCore.setVersionStateStream().listen(_flutterVersionState.add);
+    };
+    _flutterVersionState.onCancel = _walletCore.clearVersionStateStream;
   }
 
   Future<void> _setupCardsStream() async {
@@ -104,6 +114,8 @@ class TypedWalletCore {
   Stream<bool> get isLocked => _isLocked;
 
   Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;
+
+  Stream<FlutterVersionState> observeVersionState() => _flutterVersionState.stream;
 
   Future<String> createPidIssuanceRedirectUri() => call((core) => core.createPidIssuanceRedirectUri());
 

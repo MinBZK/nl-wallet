@@ -26,14 +26,14 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 
 use crate::account_provider::HttpAccountProviderClient;
-use crate::config::UpdatingFileHttpConfigurationRepository;
+use crate::config::WalletConfigurationRepository;
 use crate::issuance::HttpDigidSession;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
+use crate::update_policy::UpdatePolicyRepository;
 use crate::wte::WpWteIssuanceClient;
 
-pub use self::config::ConfigCallback;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposal;
 pub use self::documents::DocumentsCallback;
@@ -91,18 +91,20 @@ impl<A, G> WalletRegistration<A, G> {
 }
 
 pub struct Wallet<
-    CR = UpdatingFileHttpConfigurationRepository, // ConfigurationRepository
-    S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
-    AKH = KeyHolderType,                          // AttestedKeyHolder
-    APC = HttpAccountProviderClient,              // AccountProviderClient
-    DS = HttpDigidSession,                        // DigidSession
-    IS = HttpIssuanceSession,                     // IssuanceSession
+    CR = WalletConfigurationRepository,                 // Repository<WalletConfiguration>
+    UR = UpdatePolicyRepository,                        // Repository<VersionState>
+    S = DatabaseStorage<HardwareEncryptionKey>,         // Storage
+    AKH = KeyHolderType,                                // AttestedKeyHolder
+    APC = HttpAccountProviderClient,                    // AccountProviderClient
+    DS = HttpDigidSession,                              // DigidSession
+    IS = HttpIssuanceSession,                           // IssuanceSession
     MDS = DisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
-    WIC = WpWteIssuanceClient,                    // WteIssuanceClient
+    WIC = WpWteIssuanceClient,                          // WteIssuanceClient
 > where
     AKH: AttestedKeyHolder,
 {
     config_repository: CR,
+    update_policy_repository: UR,
     storage: RwLock<S>,
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,

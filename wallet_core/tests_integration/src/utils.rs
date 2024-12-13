@@ -10,7 +10,7 @@ pub(crate) fn path_from_root(file_name: &str) -> PathBuf {
         .join(file_name)
 }
 
-pub(crate) fn read_file(file_name: &str) -> Vec<u8> {
+pub fn read_file(file_name: &str) -> Vec<u8> {
     std::fs::read(path_from_root(file_name)).unwrap()
 }
 

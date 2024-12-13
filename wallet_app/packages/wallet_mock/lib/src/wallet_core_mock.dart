@@ -129,6 +129,11 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
+  Future<void> clearVersionStateStream({hint}) async {
+    // Stub only, no need to clear it on the mock
+  }
+
+  @override
   Future<void> clearLockStream({hint}) async {
     // Stub only, no need to clear it on the mock
   }
@@ -209,11 +214,16 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   Stream<FlutterConfiguration> setConfigurationStream({hint}) {
     return Stream.value(
       FlutterConfiguration(
-        backgroundLockTimeout: Duration(seconds: 5).inSeconds,
-        inactiveLockTimeout: Duration(seconds: 60).inSeconds,
+        backgroundLockTimeout: Duration(seconds: 20).inSeconds,
+        inactiveLockTimeout: Duration(minutes: 3).inSeconds,
         version: 1,
       ),
     );
+  }
+
+  @override
+  Stream<FlutterVersionState> setVersionStateStream({hint}) {
+    return Stream.value(FlutterVersionState.ok());
   }
 
   @override
@@ -295,6 +305,8 @@ class _FlutterRustBridgeTasksMeta {
 
   FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta => throw UnimplementedError();
 
+  FlutterRustBridgeTaskConstMeta get kClearVersionStateStreamConstMeta => throw UnimplementedError();
+
   FlutterRustBridgeTaskConstMeta get kClearLockStreamConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kContinuePidIssuanceConstMeta => throw UnimplementedError();
@@ -322,6 +334,8 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kSetCardsStreamConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kSetConfigurationStreamConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kSetVersionStateStreamConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kSetLockStreamConstMeta => throw UnimplementedError();
 

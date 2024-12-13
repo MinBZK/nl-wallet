@@ -85,6 +85,8 @@ import '../domain/usecase/sign/impl/reject_sign_agreement_usecase_impl.dart';
 import '../domain/usecase/sign/impl/start_sign_usecase_impl.dart';
 import '../domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import '../domain/usecase/sign/start_sign_usecase.dart';
+import '../domain/usecase/update/impl/observe_version_state_usecase_impl.dart';
+import '../domain/usecase/update/observe_version_state_usecase.dart';
 import '../domain/usecase/uri/decode_uri_usecase.dart';
 import '../domain/usecase/uri/impl/decode_uri_usecase_impl.dart';
 import '../domain/usecase/version/get_version_string_usecase.dart';
@@ -262,6 +264,7 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<SetBiometricsUseCase>(
           create: (context) => SetBiometricsUseCaseImpl(
             LocalAuthentication(),
+            context.theme.platform,
             context.read(),
             context.read(),
           ),
@@ -290,6 +293,12 @@ class WalletUseCaseProvider extends StatelessWidget {
             context.read(),
             context.read(),
             LocalAuthentication(),
+            context.theme.platform,
+            context.read(),
+          ),
+        ),
+        RepositoryProvider<ObserveVersionStateUsecase>(
+          create: (context) => ObserveVersionStateUsecaseImpl(
             context.read(),
           ),
         ),

@@ -16,9 +16,11 @@ use wallet::errors::ChangePinError;
 use wallet::errors::DigidSessionError;
 use wallet::errors::DisclosureError;
 use wallet::errors::HistoryError;
+use wallet::errors::HttpClientError;
 use wallet::errors::InstructionError;
 use wallet::errors::PidIssuanceError;
 use wallet::errors::ResetError;
+use wallet::errors::UpdatePolicyError;
 use wallet::errors::UriIdentificationError;
 use wallet::errors::WalletInitError;
 use wallet::errors::WalletRegistrationError;
@@ -41,6 +43,9 @@ pub struct FlutterApiError {
 
 #[derive(Debug, Serialize)]
 enum FlutterApiErrorType {
+    /// This version of the app is blocked.
+    VersionBlocked,
+
     /// A network connection has timed-out, was unable to connect or something else went wrong during the request.
     Networking,
 
@@ -146,9 +151,11 @@ impl FlutterApiErrorFields for WalletRegistrationError {
         }
 
         match self {
+            WalletRegistrationError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             WalletRegistrationError::AlreadyRegistered => FlutterApiErrorType::WalletState,
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
+            WalletRegistrationError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -157,12 +164,14 @@ impl FlutterApiErrorFields for WalletRegistrationError {
 impl FlutterApiErrorFields for WalletUnlockError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            WalletUnlockError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             WalletUnlockError::NotRegistered
             | WalletUnlockError::NotLocked
             | WalletUnlockError::BiometricsUnlockingNotEnabled => FlutterApiErrorType::WalletState,
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
-            WalletUnlockError::UnlockMethodStorage(_) => FlutterApiErrorType::Generic,
             WalletUnlockError::ChangePin(e) => e.typ(),
+            WalletUnlockError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            WalletUnlockError::UnlockMethodStorage(_) => FlutterApiErrorType::Generic,
         }
     }
 }
@@ -189,14 +198,13 @@ impl FlutterApiErrorFields for PidIssuanceError {
         }
 
         match self {
+            PidIssuanceError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             PidIssuanceError::NotRegistered | PidIssuanceError::Locked | PidIssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-
             PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
-
             PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(_))
             | PidIssuanceError::PidIssuer(IssuanceSessionError::CredentialRequest(_))
             | PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RedirectUriError(_)))
@@ -206,6 +214,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
             | PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
                 FlutterApiErrorType::Server
             }
+            PidIssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -233,6 +242,7 @@ struct DisclosureErrorData<'a> {
 impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            DisclosureError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
@@ -248,6 +258,7 @@ impl FlutterApiErrorFields for DisclosureError {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
+            DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -317,9 +328,31 @@ impl From<&InstructionError> for FlutterApiErrorType {
     }
 }
 
+impl From<&UpdatePolicyError> for FlutterApiErrorType {
+    fn from(value: &UpdatePolicyError) -> Self {
+        match value {
+            UpdatePolicyError::HttpClient(e) => FlutterApiErrorType::from(e),
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+}
+
+impl From<&HttpClientError> for FlutterApiErrorType {
+    fn from(value: &HttpClientError) -> Self {
+        match value {
+            HttpClientError::Parse(_) | HttpClientError::EmptyBody | HttpClientError::Response(_, _) => {
+                FlutterApiErrorType::Server
+            }
+            HttpClientError::Networking(_) => FlutterApiErrorType::Networking,
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+}
+
 impl FlutterApiErrorFields for HistoryError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            HistoryError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             HistoryError::NotRegistered | HistoryError::Locked => FlutterApiErrorType::WalletState,
             _ => FlutterApiErrorType::Generic,
         }
@@ -329,6 +362,7 @@ impl FlutterApiErrorFields for HistoryError {
 impl FlutterApiErrorFields for ResetError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            ResetError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             ResetError::NotRegistered => FlutterApiErrorType::WalletState,
         }
     }
@@ -337,10 +371,12 @@ impl FlutterApiErrorFields for ResetError {
 impl FlutterApiErrorFields for ChangePinError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             Self::NotRegistered | Self::Locked | Self::ChangePinAlreadyInProgress | Self::NoChangePinInProgress => {
                 FlutterApiErrorType::WalletState
             }
             Self::Instruction(e) => FlutterApiErrorType::from(e),
+            Self::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             Self::Storage(_)
             | Self::PinValidation(_)
             | Self::CertificateValidation(_)

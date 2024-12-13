@@ -14,7 +14,7 @@ use crate::config::http::TlsPinningConfig;
 use crate::trust_anchor::DerTrustAnchor;
 use crate::urls::BaseUrl;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WalletConfiguration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
@@ -22,6 +22,7 @@ pub struct WalletConfiguration {
     pub disclosure: DisclosureConfiguration,
     pub mdoc_trust_anchors: Vec<DerTrustAnchor>,
     pub version: u64,
+    pub update_policy_server: UpdatePolicyServerConfiguration,
 }
 
 impl WalletConfiguration {
@@ -45,7 +46,7 @@ impl From<&WalletConfiguration> for EntityTag {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct LockTimeoutConfiguration {
     /// App inactivity lock timeout in seconds
     pub inactive_timeout: u16,
@@ -62,7 +63,7 @@ impl Default for LockTimeoutConfiguration {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AccountServerConfiguration {
     pub http_config: TlsPinningConfig,
     #[debug(skip)]
@@ -73,11 +74,10 @@ pub struct AccountServerConfiguration {
     pub wte_public_key: DerVerifyingKey,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct DigidConfiguration {
-    pub client_id: String,
-    #[serde(default)]
-    pub app2app: Option<DigidApp2AppConfiguration>,
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct UpdatePolicyServerConfiguration {
+    #[serde(flatten)]
+    pub http_config: TlsPinningConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
@@ -87,7 +87,14 @@ pub struct PidIssuanceConfiguration {
     pub digid_http_config: TlsPinningConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct DigidConfiguration {
+    pub client_id: String,
+    #[serde(default)]
+    pub app2app: Option<DigidApp2AppConfiguration>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DisclosureConfiguration {
     #[debug(skip)]
     pub rp_trust_anchors: Vec<DerTrustAnchor>,

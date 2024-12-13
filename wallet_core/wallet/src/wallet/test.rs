@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use std::sync::LazyLock;
-use std::time::Duration;
 
 use futures::future::FutureExt;
 use p256::ecdsa::SigningKey;
@@ -28,6 +27,7 @@ use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
 use crate::config::default_configuration;
+use crate::config::ConfigServerConfiguration;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::disclosure::MockMdocDisclosureSession;
@@ -39,6 +39,7 @@ use crate::storage::KeyedDataResult;
 use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::StorageState;
+use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wte::tests::MockWteIssuanceClient;
 use crate::Document;
 use crate::HistoryEvent;
@@ -65,6 +66,7 @@ pub struct IssuerKey {
 /// An alias for the `Wallet<>` with all mock dependencies.
 pub type WalletWithMocks = Wallet<
     UpdatingConfigurationRepository<LocalConfigurationRepository>,
+    MockUpdatePolicyRepository,
     MockStorage,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
@@ -154,13 +156,15 @@ impl WalletWithMocks {
             config
         };
 
+        let config_server_config = ConfigServerConfiguration::default();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), Duration::from_secs(300))
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), config_server_config)
                 .now_or_never()
                 .unwrap();
 
         Wallet::new(
             config_repository,
+            MockUpdatePolicyRepository::default(),
             MockStorage::default(),
             MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),
@@ -232,12 +236,13 @@ impl WalletWithMocks {
 
     /// Creates mocks and calls `Wallet::init_registration()`, except for the `MockStorage` instance.
     pub async fn init_registration_mocks_with_storage(storage: MockStorage) -> Result<Self, WalletInitError> {
+        let config_server_config = ConfigServerConfiguration::default();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), Duration::from_secs(300))
-                .await;
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
 
         Wallet::init_registration(
             config_repository,
+            MockUpdatePolicyRepository::default(),
             storage,
             MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),

@@ -22,6 +22,7 @@ class RequestBiometricsUsecaseImpl extends RequestBiometricsUsecase {
     try {
       final authenticated = await LocalAuthenticationHelper.authenticate(
         _localAuthentication,
+        _targetPlatform,
         l10n,
       );
       if (authenticated) return BiometricAuthenticationResult.success;

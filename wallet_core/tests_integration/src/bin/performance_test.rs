@@ -19,11 +19,13 @@ use tests_integration::logging::init_logging;
 use wallet::mock::default_configuration;
 use wallet::mock::MockStorage;
 use wallet::wallet_deps::ConfigServerConfiguration;
-use wallet::wallet_deps::ConfigurationRepository;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::HttpDigidSession;
-use wallet::wallet_deps::UpdateableConfigurationRepository;
+use wallet::wallet_deps::Repository;
+use wallet::wallet_deps::UpdatePolicyRepository;
+use wallet::wallet_deps::UpdateableRepository;
+use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
 use wallet_common::config::http::TlsPinningConfig;
@@ -36,10 +38,22 @@ fn init() {
     init_logging();
 }
 
+type PerformanceTestWallet = Wallet<
+    HttpConfigurationRepository<TlsPinningConfig>,
+    UpdatePolicyRepository,
+    MockStorage,
+    MockHardwareAttestedKeyHolder,
+    HttpAccountProviderClient,
+    HttpDigidSession,
+    HttpIssuanceSession,
+    DisclosureSession<HttpVpMessageClient, Uuid>,
+    WpWteIssuanceClient,
+>;
+
 #[instrument(name = "", fields(pid = std::process::id()))]
 #[tokio::main]
 async fn main() {
-    let temp_path = tempfile::tempdir().unwrap();
+    let temp_path = tempfile::tempdir().unwrap().into_path();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
@@ -60,26 +74,22 @@ async fn main() {
     let wallet_config = default_configuration();
 
     let config_repository = HttpConfigurationRepository::new(
-        config_server_config.http_config,
         (&config_server_config.signing_public_key).into(),
-        temp_path.into_path(),
+        temp_path.clone(),
         wallet_config,
     )
     .await
     .unwrap();
-    config_repository.fetch().await.unwrap();
-    let pid_issuance_config = &config_repository.config().pid_issuance;
+    config_repository
+        .fetch(&config_server_config.http_config)
+        .await
+        .unwrap();
+    let pid_issuance_config = &config_repository.get().pid_issuance;
+    let update_policy_repository = UpdatePolicyRepository::init();
 
-    let mut wallet: Wallet<
-        HttpConfigurationRepository<TlsPinningConfig>,
-        MockStorage,
-        MockHardwareAttestedKeyHolder,
-        HttpAccountProviderClient,
-        HttpDigidSession,
-        HttpIssuanceSession,
-        DisclosureSession<HttpVpMessageClient, Uuid>,
-    > = Wallet::init_registration(
+    let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
+        update_policy_repository,
         MockStorage::default(),
         MockHardwareAttestedKeyHolder::new_mock(app_identifier),
         HttpAccountProviderClient::default(),

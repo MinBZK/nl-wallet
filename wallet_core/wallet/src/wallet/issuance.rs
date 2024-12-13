@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
@@ -18,23 +20,28 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::jwt::JwtCredentialError;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
 use wallet_common::reqwest::default_reqwest_client_builder;
+use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
-use crate::config::ConfigurationRepository;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::document::Document;
 use crate::document::DocumentMdocError;
 use crate::document::PID_DOCTYPE;
 use crate::errors::ChangePinError;
+use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
 use crate::issuance::DigidSession;
 use crate::issuance::DigidSessionError;
 use crate::issuance::HttpDigidSession;
+use crate::repository::Repository;
+use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::WalletEvent;
@@ -52,6 +59,9 @@ pub(super) enum PidIssuanceSession<DS = HttpDigidSession, IS = HttpIssuanceSessi
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum PidIssuanceError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -100,11 +110,14 @@ pub enum PidIssuanceError {
     ChangePin(#[from] ChangePinError),
     #[error("JWT credential error: {0}")]
     JwtCredential(#[from] JwtCredentialError),
+    #[error("error fetching update policy: {0}")]
+    UpdatePolicy(#[from] UpdatePolicyError),
 }
 
-impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
-    CR: ConfigurationRepository,
+    CR: Repository<Arc<WalletConfiguration>>,
+    UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
     DS: DigidSession,
     IS: IssuanceSession,
@@ -115,6 +128,11 @@ where
     #[sentry_capture_error]
     pub async fn create_pid_issuance_auth_url(&mut self) -> Result<Url, PidIssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -142,7 +160,7 @@ where
             return Err(PidIssuanceError::PidAlreadyPresent);
         }
 
-        let pid_issuance_config = &self.config_repository.config().pid_issuance;
+        let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let (session, auth_url) = DS::start(
             pid_issuance_config.digid.clone(),
             &pid_issuance_config.digid_http_config,
@@ -161,6 +179,11 @@ where
     #[sentry_capture_error]
     pub fn has_active_pid_issuance_session(&self) -> Result<bool, PidIssuanceError> {
         info!("Checking for active PID issuance session");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -181,6 +204,11 @@ where
     #[sentry_capture_error]
     pub async fn cancel_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
         info!("PID issuance cancelled / rejected");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -207,6 +235,11 @@ where
     #[sentry_capture_error]
     pub async fn continue_pid_issuance(&mut self, redirect_uri: Url) -> Result<Vec<Document>, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -241,8 +274,7 @@ where
             )]))
             .build()
             .expect("Could not build reqwest HTTP client");
-
-        let config = self.config_repository.config();
+        let config = self.config_repository.get();
 
         let (pid_issuer, attestation_previews) = IS::start_issuance(
             pid_issuer_http_client.into(),
@@ -272,11 +304,22 @@ where
     #[sentry_capture_error]
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
         APC: AccountProviderClient,
         WIC: WteIssuanceClient + Default,
     {
         info!("Accepting PID issuance");
+
+        let config = &self.config_repository.get().update_policy_server;
+
+        info!("Fetching update policy");
+        self.update_policy_repository.fetch(&config.http_config).await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
@@ -295,7 +338,7 @@ where
             PidIssuanceSession::Openid4vci(pid_issuer) => pid_issuer,
         };
 
-        let config = self.config_repository.config();
+        let config = self.config_repository.get();
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 

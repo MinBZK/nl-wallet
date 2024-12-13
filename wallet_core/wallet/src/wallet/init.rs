@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::try_join;
 use tokio::sync::RwLock;
 
@@ -8,21 +10,27 @@ use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::hardware::HardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::update_policy::VersionState;
 
 use crate::config::default_configuration;
 use crate::config::init_universal_link_base_url;
 use crate::config::ConfigServerConfiguration;
 use crate::config::ConfigurationError;
-use crate::config::ConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
-use crate::config::UpdatingFileHttpConfigurationRepository;
+use crate::config::WalletConfigurationRepository;
+use crate::errors::UpdatePolicyError;
 use crate::lock::WalletLock;
+use crate::repository::BackgroundUpdateableRepository;
+use crate::repository::Repository;
 use crate::storage::DatabaseStorage;
 use crate::storage::KeyData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StorageState;
+use crate::update_policy::UpdatePolicyRepository;
 
 use super::Wallet;
 use super::WalletRegistration;
@@ -32,6 +40,8 @@ use super::WalletRegistration;
 pub enum WalletInitError {
     #[error("wallet configuration error")]
     Configuration(#[from] ConfigurationError),
+    #[error("wallet configuration error")]
+    UpdatePolicy(#[from] UpdatePolicyError),
     #[error("platform utilities error: {0}")]
     Utilities(#[from] UtilitiesError),
     #[error("could not initialize database: {0}")]
@@ -48,7 +58,17 @@ pub(super) enum RegistrationStatus {
 }
 
 impl<AKH, APC, DS, IS, MDS, WIC>
-    Wallet<UpdatingFileHttpConfigurationRepository, DatabaseStorage<HardwareEncryptionKey>, AKH, APC, DS, IS, MDS, WIC>
+    Wallet<
+        WalletConfigurationRepository,
+        UpdatePolicyRepository,
+        DatabaseStorage<HardwareEncryptionKey>,
+        AKH,
+        APC,
+        DS,
+        IS,
+        MDS,
+        WIC,
+    >
 where
     AKH: AttestedKeyHolder + Default,
     APC: Default,
@@ -70,29 +90,37 @@ where
                 .await;
         }
 
+        let update_policy_repository = UpdatePolicyRepository::init();
         let key_holder = AKH::default();
+
         let storage_path = HardwareUtilities::storage_path().await?;
         let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
-            storage_path,
+            storage_path.clone(),
             ConfigServerConfiguration::default(),
             default_configuration(),
         )
         .await?;
 
-        Self::init_registration(config_repository, storage, key_holder, APC::default()).await
+        Self::init_registration(
+            config_repository,
+            update_policy_repository,
+            storage,
+            key_holder,
+            APC::default(),
+        )
+        .await
     }
 }
 
-impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
-    CR: ConfigurationRepository,
-    S: Storage,
     AKH: AttestedKeyHolder,
     WIC: Default,
 {
     pub(super) fn new(
         config_repository: CR,
+        update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
         account_provider_client: APC,
@@ -118,6 +146,7 @@ where
 
         Wallet {
             config_repository,
+            update_policy_repository,
             storage: RwLock::new(storage),
             key_holder,
             registration,
@@ -134,14 +163,24 @@ where
     /// Initialize the wallet by loading initial state.
     pub async fn init_registration(
         config_repository: CR,
+        update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
         account_provider_client: APC,
-    ) -> Result<Self, WalletInitError> {
+    ) -> Result<Self, WalletInitError>
+    where
+        CR: Repository<Arc<WalletConfiguration>>,
+        UR: BackgroundUpdateableRepository<VersionState, TlsPinningConfig>,
+        S: Storage,
+    {
+        let http_config = config_repository.get().update_policy_server.http_config.clone();
+        update_policy_repository.fetch_in_background(http_config);
+
         let registration_status = Self::fetch_registration_status(&mut storage).await?;
 
         let wallet = Self::new(
             config_repository,
+            update_policy_repository,
             storage,
             key_holder,
             account_provider_client,
@@ -150,7 +189,13 @@ where
 
         Ok(wallet)
     }
+}
 
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+where
+    S: Storage,
+    AKH: AttestedKeyHolder,
+{
     /// Attempts to fetch the initial data from storage, without creating a database if there is none.
     async fn fetch_registration_status(storage: &mut S) -> Result<RegistrationStatus, StorageError> {
         match storage.state().await? {

@@ -42,6 +42,14 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta;
 
+  Stream<FlutterVersionState> setVersionStateStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kSetVersionStateStreamConstMeta;
+
+  Future<void> clearVersionStateStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kClearVersionStateStreamConstMeta;
+
   Stream<List<Card>> setCardsStream({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kSetCardsStreamConstMeta;
@@ -253,6 +261,17 @@ class FlutterConfiguration {
     required this.backgroundLockTimeout,
     required this.version,
   });
+}
+
+@freezed
+class FlutterVersionState with _$FlutterVersionState {
+  const factory FlutterVersionState.ok() = FlutterVersionState_Ok;
+  const factory FlutterVersionState.notify() = FlutterVersionState_Notify;
+  const factory FlutterVersionState.recommend() = FlutterVersionState_Recommend;
+  const factory FlutterVersionState.warn({
+    required int expiresInSeconds,
+  }) = FlutterVersionState_Warn;
+  const factory FlutterVersionState.block() = FlutterVersionState_Block;
 }
 
 enum GenderCardValue {
@@ -526,6 +545,38 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "clear_configuration_stream",
+        argNames: [],
+      );
+
+  Stream<FlutterVersionState> setVersionStateStream({dynamic hint}) {
+    return _platform.executeStream(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_set_version_state_stream(port_),
+      parseSuccessData: _wire2api_flutter_version_state,
+      parseErrorData: null,
+      constMeta: kSetVersionStateStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kSetVersionStateStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "set_version_state_stream",
+        argNames: [],
+      );
+
+  Future<void> clearVersionStateStream({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_clear_version_state_stream(port_),
+      parseSuccessData: _wire2api_unit,
+      parseErrorData: null,
+      constMeta: kClearVersionStateStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kClearVersionStateStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "clear_version_state_stream",
         argNames: [],
       );
 
@@ -1136,6 +1187,25 @@ class WalletCoreImpl implements WalletCore {
     );
   }
 
+  FlutterVersionState _wire2api_flutter_version_state(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return FlutterVersionState_Ok();
+      case 1:
+        return FlutterVersionState_Notify();
+      case 2:
+        return FlutterVersionState_Recommend();
+      case 3:
+        return FlutterVersionState_Warn(
+          expiresInSeconds: _wire2api_u64(raw[1]),
+        );
+      case 4:
+        return FlutterVersionState_Block();
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
   GenderCardValue _wire2api_gender_card_value(dynamic raw) {
     return GenderCardValue.values[raw as int];
   }
@@ -1563,6 +1633,30 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_clear_configuration_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_configuration_stream');
   late final _wire_clear_configuration_stream = _wire_clear_configuration_streamPtr.asFunction<void Function(int)>();
+
+  void wire_set_version_state_stream(
+    int port_,
+  ) {
+    return _wire_set_version_state_stream(
+      port_,
+    );
+  }
+
+  late final _wire_set_version_state_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_set_version_state_stream');
+  late final _wire_set_version_state_stream = _wire_set_version_state_streamPtr.asFunction<void Function(int)>();
+
+  void wire_clear_version_state_stream(
+    int port_,
+  ) {
+    return _wire_clear_version_state_stream(
+      port_,
+    );
+  }
+
+  late final _wire_clear_version_state_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_version_state_stream');
+  late final _wire_clear_version_state_stream = _wire_clear_version_state_streamPtr.asFunction<void Function(int)>();
 
   void wire_set_cards_stream(
     int port_,

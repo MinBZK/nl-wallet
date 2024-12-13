@@ -120,6 +120,7 @@ async fn test_disclosure_usecases_ok(
     let pin = "112233".to_string();
     let mut wallet = setup_wallet_and_env(
         config_server_settings(),
+        update_policy_server_settings(),
         wallet_provider_settings(),
         ws_settings.clone(),
     )
@@ -245,6 +246,7 @@ async fn test_disclosure_without_pid() {
     let pin = "112233".to_string();
     let mut wallet = setup_wallet_and_env(
         config_server_settings(),
+        update_policy_server_settings(),
         wallet_provider_settings(),
         ws_settings.clone(),
     )

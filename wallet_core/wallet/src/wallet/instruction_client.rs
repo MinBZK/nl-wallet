@@ -1,21 +1,26 @@
+use std::sync::Arc;
+
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::update_policy::VersionState;
 
 use crate::account_provider::AccountProviderClient;
-use crate::config::ConfigurationRepository;
 use crate::errors::ChangePinError;
 use crate::instruction::InstructionClient;
 use crate::pin::change::ChangePinStorage;
+use crate::repository::Repository;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 
 use super::Wallet;
 
-impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
-    CR: ConfigurationRepository,
+    CR: Repository<Arc<WalletConfiguration>>,
+    UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,

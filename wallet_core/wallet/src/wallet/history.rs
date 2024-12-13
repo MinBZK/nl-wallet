@@ -11,12 +11,15 @@ use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use platform_support::attested_key::AttestedKeyHolder;
+use wallet_common::update_policy::VersionState;
+
+pub use crate::storage::EventStatus;
 
 use crate::document::DisclosureType;
 use crate::document::DocumentMdocError;
 use crate::errors::StorageError;
+use crate::repository::Repository;
 use crate::storage::EventDocuments;
-pub use crate::storage::EventStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
 use crate::DisclosureDocument;
@@ -28,6 +31,9 @@ use super::Wallet;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum HistoryError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -78,9 +84,10 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<HistoryEvent>) + Send + Sync>;
 
-impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
+    UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
 {
     pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), EventStorageError> {
@@ -95,6 +102,11 @@ where
     #[sentry_capture_error]
     pub async fn get_history(&self) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving history");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(HistoryError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         if !self.registration.is_registered() {
@@ -117,6 +129,11 @@ where
     #[sentry_capture_error]
     pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving Card history");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(HistoryError::VersionBlocked);
+        }
 
         info!("Checking if registered");
         if !self.registration.is_registered() {

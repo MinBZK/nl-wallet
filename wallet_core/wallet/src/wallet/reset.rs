@@ -9,7 +9,9 @@ use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
+use wallet_common::update_policy::VersionState;
 
+use crate::repository::Repository;
 use crate::storage::Storage;
 
 use super::Wallet;
@@ -17,6 +19,9 @@ use super::WalletRegistration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ResetError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -24,8 +29,9 @@ pub enum ResetError {
 
 type ResetResult<T> = std::result::Result<T, ResetError>;
 
-impl<CR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
+    UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
 {
@@ -73,6 +79,11 @@ where
     #[sentry_capture_error]
     pub async fn reset(&mut self) -> ResetResult<()> {
         info!("Resetting of wallet requested");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(ResetError::VersionBlocked);
+        }
 
         // Note that this method can be called even if the Wallet is locked!
 
