@@ -185,17 +185,16 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
 
         // The key's current state should be `AttestedKeyState::Generated`,
         // return the relevant error if this is not the case.
-        if let AttestedKeyState::Attested { .. } =
-            key_states
-                .get(&key_identifier)
-                .ok_or(AttestationError::new_unretryable(
-                    MockHardwareAttestedKeyError::UnknownIdentifier,
-                ))?
-        {
+        let AttestedKeyState::Generated = key_states
+            .get(&key_identifier)
+            .ok_or(AttestationError::new_unretryable(
+                MockHardwareAttestedKeyError::UnknownIdentifier,
+            ))?
+        else {
             return Err(AttestationError::new_unretryable(
                 MockHardwareAttestedKeyError::KeyAttested,
             ));
-        }
+        };
 
         // Generate a new key and mock attestation data.
         let (mut key, attestation_data) =
