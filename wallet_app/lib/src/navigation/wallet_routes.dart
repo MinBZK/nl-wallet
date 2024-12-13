@@ -58,6 +58,7 @@ import '../feature/sign/sign_screen.dart';
 import '../feature/splash/bloc/splash_bloc.dart';
 import '../feature/splash/splash_screen.dart';
 import '../feature/theme/theme_screen.dart';
+import '../feature/update/update_info_screen.dart';
 import '../feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../feature/wallet/personalize/wallet_personalize_screen.dart';
 import '../util/cast_util.dart';
@@ -84,6 +85,7 @@ class WalletRoutes {
     changeLanguageRoute,
     changePinRoute,
     privacyPolicyRoute,
+    updateInfoRoute,
   ];
 
   static const splashRoute = '/';
@@ -116,6 +118,7 @@ class WalletRoutes {
   static const loginDetailRoute = '/login_detail';
   static const biometricsSettingsRoute = '/settings/biometrics';
   static const privacyPolicyRoute = '/privacy_policy';
+  static const updateInfoRoute = '/update_info';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     final WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -200,6 +203,8 @@ class WalletRoutes {
         return _createBiometricsSettingsScreenBuilder;
       case WalletRoutes.privacyPolicyRoute:
         return _createPrivacyPolicyScreenBuilder;
+      case WalletRoutes.updateInfoRoute:
+        return _createUpdateInfoScreenBuilder;
       default:
         throw UnsupportedError('Unknown route: ${settings.name}');
     }
@@ -469,3 +474,5 @@ Widget _createBiometricsSettingsScreenBuilder(BuildContext context) => BlocProvi
     );
 
 Widget _createPrivacyPolicyScreenBuilder(BuildContext context) => const PrivacyPolicyScreen();
+
+Widget _createUpdateInfoScreenBuilder(BuildContext context) => const UpdateInfoScreen();

@@ -12,6 +12,7 @@ use wallet_common::config::wallet_config::DigidConfiguration;
 use wallet_common::config::wallet_config::DisclosureConfiguration;
 use wallet_common::config::wallet_config::LockTimeoutConfiguration;
 use wallet_common::config::wallet_config::PidIssuanceConfiguration;
+use wallet_common::config::wallet_config::UpdatePolicyServerConfiguration;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_common::urls::BaseUrl;
@@ -88,6 +89,26 @@ const RP_TRUST_ANCHORS: &str = "MIIBlDCCATqgAwIBAgIUMmfPjx+jkrbY6twjDTCNHtnoPB4w
                                 NqhPN569XKLTR6rVdwIhANOMtj2LwDUG2YcLkSBPSdhh/i/iCgTeuZQpOI8y+kBw";
 
 const UNIVERSAL_LINK_BASE: &str = DEFAULT_UNIVERSAL_LINK_BASE;
+
+const UPDATE_POLICY_SERVER_BASE_URL: &str = "https://localhost:3009/update/v1/";
+
+const UPDATE_POLICY_SERVER_TRUST_ANCHORS: &str = "MIIDTTCCAjWgAwIBAgIUeMgUF0TsrJXCGw5cqmPUw5llilswDQYJKoZIhvcNAQELBQAw\
+                                                  NjELMAkGA1UEBhMCTkwxJzAlBgNVBAMMHm5sLXdhbGxldC11cGRhdGUtcG9saWN5LXNl\
+                                                  cnZlcjAeFw0yNDEwMDExODIzMDdaFw0yOTA5MzAxODIzMDdaMDYxCzAJBgNVBAYTAk5M\
+                                                  MScwJQYDVQQDDB5ubC13YWxsZXQtdXBkYXRlLXBvbGljeS1zZXJ2ZXIwggEiMA0GCSqG\
+                                                  SIb3DQEBAQUAA4IBDwAwggEKAoIBAQC+3t5V4fOtQyP9X5/r/q9SmMbZMZzvSuOG14Ri\
+                                                  7bF0KFYSsvOF208tQs1NNgZul4UmZaFZVp9tehVAL3fHtrfCjV91fM04EIELgT4FHUb8\
+                                                  DDF6GClfP+4TyHn9y6ETtbgbUDgp6oJZo9nXW7Zfw+L6Ws3BIgSSDCqsOhlRX3LNNhb+\
+                                                  k/PQf1HR7ChdbdotNCWu+EMpwjtsYHE7lB7Sa5KWL3yVlqIyBbGccnroNQ/+1WBo0/YK\
+                                                  0vlVT3CFF/VMas8vUxdwE7qCs6AyhYa28/8sI5uPahFaTciTnrBs4srdXFtpzRrYM9qw\
+                                                  IvIrcZ9e0IwTn9TMbK5KbQAiloAfomVJAgMBAAGjUzBRMB0GA1UdDgQWBBRB17Lzkw2v\
+                                                  YffZcTypFdIjv/4C0DAfBgNVHSMEGDAWgBRB17Lzkw2vYffZcTypFdIjv/4C0DAPBgNV\
+                                                  HRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQCwxsu6okRIlTyNXXoelpUkLxaI\
+                                                  NvInCrAUwqxecQn3GVxc2gj416DCTiCDq+wZZKNgLmIsc4UBHGBWfpGzhL5HqE7XR/z+\
+                                                  OPRL7ySTJRgigqU5sWkew32zzoJFSA6h4jQcFItE0gwxyma/1SvFMjmb+2+kPR7vT51L\
+                                                  EhurwKFVn9oQ9+Xgs2hynu3UIjLB0MgB8ob/HwB11pVcEryFgQYvFdETHOyE0juseYKK\
+                                                  ZQ05rKQSCsX9UGAviSeLRwLaJKPqdMC/wwi5Nva8coVVzVkXvtfdnelWhZl7R0YWY5J1\
+                                                  iV7i3tbb5T7+bpB/Z9GB3aiq1+Qz/RSunrx3Bto00M4I";
 
 macro_rules! config_default {
     ($name:ident) => {
@@ -187,5 +208,11 @@ pub fn default_configuration() -> WalletConfiguration {
             rp_trust_anchors: parse_trust_anchors(config_default!(RP_TRUST_ANCHORS)),
         },
         mdoc_trust_anchors: parse_trust_anchors(config_default!(MDOC_TRUST_ANCHORS)),
+        update_policy_server: UpdatePolicyServerConfiguration {
+            http_config: TlsPinningConfig {
+                base_url: config_default!(UPDATE_POLICY_SERVER_BASE_URL).parse().unwrap(),
+                trust_anchors: parse_trust_anchors(config_default!(UPDATE_POLICY_SERVER_TRUST_ANCHORS)),
+            },
+        },
     }
 }

@@ -1,0 +1,40 @@
+[package]
+name = "update_policy_server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "update_policy_server"
+
+[lib]
+doctest = false
+
+[dependencies]
+anyhow.workspace = true
+axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
+axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
+chrono.workspace = true
+config = { workspace = true, features = ["toml"] }
+etag.workspace = true
+http.workspace = true
+postcard = { workspace = true, features = ["use-std"] }
+semver.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["base64"] }
+strum.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["std", "env-filter", "fmt", "json"] }
+
+wallet_common = { path = "../wallet_common" }
+
+[dev-dependencies]
+indexmap.workspace = true
+rstest.workspace = true
+serde_json.workspace = true
+
+wallet_common = { path = "../wallet_common", features = ["mock_time"] }

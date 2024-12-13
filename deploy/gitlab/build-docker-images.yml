@@ -23,6 +23,15 @@
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
       --cache=true
 
+build-update-policy-server-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-update-policy-server-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/update_policy_server/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-update-policy-server
+
 build-wallet-provider-image:
   extends: .build-docker-image
   needs:

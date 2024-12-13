@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/subjects.dart';
 
+import '../../domain/model/update/update_notification.dart';
 import '../../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import '../../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
+import '../../feature/common/dialog/update_notification_dialog.dart';
 import '../../navigation/wallet_routes.dart';
 
 class NavigationService {
@@ -15,6 +18,9 @@ class NavigationService {
   /// not in a state where it can be handled) maximum 1 [NavigationRequest] is queued
   /// here to be handled when [processQueue] is called.
   NavigationRequest? _queuedRequest;
+
+  /// Stream that emits whether the update notification dialog is visible.
+  final BehaviorSubject<bool> _updateNotificationDialogVisible = BehaviorSubject.seeded(false);
 
   final CheckNavigationPrerequisitesUseCase _checkNavigationPrerequisitesUseCase;
   final PerformPreNavigationActionsUseCase _performPreNavigationActionsUseCase;
@@ -87,4 +93,26 @@ class NavigationService {
     _queuedRequest = null;
     if (queuedRequest != null) await handleNavigationRequest(queuedRequest);
   }
+
+  Future<void> processUpdateNotification(UpdateNotification notification) async {
+    final context = _navigatorKey.currentState?.context;
+    if (context == null || !context.mounted) return;
+
+    // Register that the dialog is visible
+    _updateNotificationDialogVisible.add(true);
+
+    // Show the dialog
+    try {
+      await switch (notification) {
+        RecommendUpdateNotification() => UpdateNotificationDialog.show(context),
+        WarnUpdateNotification() =>
+          UpdateNotificationDialog.show(context, timeUntilBlocked: notification.timeUntilBlocked),
+      };
+    } finally {
+      // Register that the dialog is no longer visible
+      _updateNotificationDialogVisible.add(false);
+    }
+  }
+
+  Stream<bool> observeUpdateNotificationDialogVisible() => _updateNotificationDialogVisible.stream.distinct();
 }

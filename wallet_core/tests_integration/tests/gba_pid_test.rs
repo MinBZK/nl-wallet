@@ -13,9 +13,11 @@ use wallet::errors::PidIssuanceError;
 use wallet::mock::default_configuration;
 use wallet::mock::LocalConfigurationRepository;
 use wallet::mock::MockStorage;
-use wallet::wallet_deps::ConfigurationRepository;
+use wallet::mock::MockUpdatePolicyRepository;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpDigidSession;
+use wallet::wallet_deps::Repository;
+use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
 use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 
@@ -116,7 +118,7 @@ async fn test_gba_pid_success(
 
 async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let config_repository = LocalConfigurationRepository::new(default_configuration());
-    let pid_issuance_config = &config_repository.config().pid_issuance;
+    let pid_issuance_config = &config_repository.get().pid_issuance;
 
     let mut wallet: Wallet<
         LocalConfigurationRepository,
@@ -126,10 +128,13 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         HttpDigidSession,
         HttpIssuanceSession,
         DisclosureSession<HttpVpMessageClient, Uuid>,
+        WpWteIssuanceClient,
+        MockUpdatePolicyRepository,
     > = Wallet::init_registration(
         config_repository,
         MockStorage::default(),
         HttpAccountProviderClient::default(),
+        MockUpdatePolicyRepository::default(),
     )
     .await
     .expect("Could not create test wallet");

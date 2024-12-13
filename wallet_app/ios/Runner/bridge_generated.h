@@ -40,6 +40,10 @@ void wire_set_configuration_stream(int64_t port_);
 
 void wire_clear_configuration_stream(int64_t port_);
 
+void wire_set_version_state_stream(int64_t port_);
+
+void wire_clear_version_state_stream(int64_t port_);
+
 void wire_set_cards_stream(int64_t port_);
 
 void wire_clear_cards_stream(int64_t port_);
@@ -111,6 +115,8 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_clear_lock_stream);
     dummy_var ^= ((int64_t) (void*) wire_set_configuration_stream);
     dummy_var ^= ((int64_t) (void*) wire_clear_configuration_stream);
+    dummy_var ^= ((int64_t) (void*) wire_set_version_state_stream);
+    dummy_var ^= ((int64_t) (void*) wire_clear_version_state_stream);
     dummy_var ^= ((int64_t) (void*) wire_set_cards_stream);
     dummy_var ^= ((int64_t) (void*) wire_clear_cards_stream);
     dummy_var ^= ((int64_t) (void*) wire_set_recent_history_stream);

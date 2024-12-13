@@ -25,11 +25,13 @@ snapshot_test = []
 test = []
 
 [dependencies]
+thiserror.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
+hex.workspace = true
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
@@ -40,14 +42,16 @@ parking_lot.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring = { workspace = true, features = ["std"] }
+sanitize-filename.workspace = true
 sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-uuid"] }
 sea-query.workspace = true
+semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
+sha2.workspace = true
 strum = { workspace = true, features = ["derive"] }
-thiserror.workspace = true
 tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true

@@ -28,6 +28,7 @@ import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text_with_link.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
+import '../update/widget/update_banner.dart';
 import 'argument/dashboard_screen_argument.dart';
 import 'bloc/dashboard_bloc.dart';
 
@@ -141,6 +142,21 @@ class DashboardScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            sliver: SliverToBoxAdapter(
+              child: StreamBuilder<bool>(
+                stream: context.read<NavigationService>().observeUpdateNotificationDialogVisible(),
+                builder: (context, snapshot) {
+                  // Only show the update banner when stream returns data and the dialog is not visible.
+                  final dialogVisibleData = snapshot.data;
+                  return (dialogVisibleData != null && dialogVisibleData)
+                      ? const SizedBox.shrink()
+                      : const UpdateBanner();
+                },
+              ),
+            ),
+          ),
           SliverToBoxAdapter(
             child: Container(
               height: 250,

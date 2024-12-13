@@ -17,6 +17,7 @@ import '../domain/model/organization.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/policy/organization_policy.dart';
 import '../domain/model/policy/policy.dart';
+import '../domain/model/update/version_state.dart';
 import '../domain/model/wallet_card.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
@@ -41,6 +42,7 @@ import '../util/mapper/pid/pid_attribute_mapper.dart';
 import '../util/mapper/pin/pin_validation_error_mapper.dart';
 import '../util/mapper/policy/policy_body_text_mapper.dart';
 import '../util/mapper/policy/request_policy_mapper.dart';
+import '../util/mapper/version/flutter_version_state_mapper.dart';
 import '../wallet_core/error/core_error.dart';
 import '../wallet_core/error/core_error_mapper.dart';
 
@@ -139,6 +141,11 @@ class WalletMapperProvider extends StatelessWidget {
             context.read(),
             context.read(),
           ),
+        ),
+
+        /// Version state mapper
+        RepositoryProvider<Mapper<core.FlutterVersionState, VersionState>>(
+          create: (context) => FlutterVersionStateMapper(),
         ),
       ],
       child: child,

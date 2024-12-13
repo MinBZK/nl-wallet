@@ -50,6 +50,7 @@ Where:
     mrp, mock_relying_party:    Start the mock_relying_party.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
+    ups, update_policy_server:  Start the update policy server
     brp:                        Start the Haal-Centraal BRP proxy with GBA HC converter.
     brpproxy:                   Start the Haal-Centraal BRP proxy.
     gba, gba_hc_converter:      Start the GBA HC converter.
@@ -81,6 +82,7 @@ PID_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
 CONFIG_SERVER=1
+UPDATE_POLICY_SERVER=1
 BRP_PROXY=1
 GBA_HC=1
 POSTGRES=1
@@ -126,6 +128,10 @@ do
             CONFIG_SERVER=0
             shift
             ;;
+        ups|update_policy_server)
+            UPDATE_POLICY_SERVER=0
+            shift
+            ;;
         brp)
             BRP_PROXY=0
             GBA_HC=0
@@ -150,6 +156,7 @@ do
             PID_ISSUER=0
             WALLET_PROVIDER=0
             CONFIG_SERVER=0
+            UPDATE_POLICY_SERVER=0
             BRP_PROXY=0
             GBA_HC=0
             shift # past argument
@@ -163,6 +170,7 @@ do
             WALLET_PROVIDER=0
             WALLET=0
             CONFIG_SERVER=0
+            UPDATE_POLICY_SERVER=0
             BRP_PROXY=0
             GBA_HC=0
 
@@ -246,7 +254,6 @@ then
 
     cd "${MOCK_RELYING_PARTY_DIR}"
 
-
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}mock_relying_party${NC}"
@@ -271,7 +278,6 @@ then
     echo -e "${SECTION}Manage pid_issuer${NC}"
 
     cd "${WALLET_SERVER_DIR}"
-
 
     if [ "${STOP}" == "0" ]
     then
@@ -304,7 +310,6 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}verification_server${NC}"
@@ -334,7 +339,6 @@ then
     echo -e "${SECTION}Manage wallet_provider${NC}"
 
     cd "${WP_DIR}"
-
 
     if [ "${STOP}" == "0" ]
     then
@@ -366,7 +370,6 @@ then
 
     cd "${CS_DIR}"
 
-
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}configuration_server${NC}"
@@ -378,6 +381,30 @@ then
         RUST_LOG=debug cargo run --bin configuration_server > "${TARGET_DIR}/configuration_server.log" 2>&1 &
 
         echo -e "configuration_server logs can be found at ${CYAN}${TARGET_DIR}/configuration_server.log${NC}"
+    fi
+fi
+
+########################################################################
+# Manage update_policy_server
+
+if [ "${UPDATE_POLICY_SERVER}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage update_policy_server${NC}"
+
+    cd "${UPS_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}update_policy_server${NC}"
+        killall update_policy_server || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "${INFO}Start ${ORANGE}update_policy_server${NC}"
+        RUST_LOG=debug cargo run --bin update_policy_server > "${TARGET_DIR}/update_policy_server.log" 2>&1 &
+
+        echo -e "update_policy_server logs can be found at ${CYAN}${TARGET_DIR}/update_policy_server.log${NC}"
     fi
 fi
 
@@ -412,7 +439,6 @@ then
     echo -e "${SECTION}Manage gba_hc_converter${NC}"
 
     cd "${GBA_HC_CONVERTER_DIR}"
-
 
     if [ "${STOP}" == "0" ]
     then

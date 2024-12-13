@@ -41,6 +41,7 @@ async fn test_block() {
 
     let mut wallet = setup_wallet_and_env(
         config_server_settings(),
+        update_policy_server_settings(),
         (settings, wp_root_ca),
         wallet_server_settings(),
     )

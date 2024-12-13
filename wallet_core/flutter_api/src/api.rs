@@ -22,6 +22,7 @@ use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::uri::IdentifyUriResult;
+use crate::models::version_state::FlutterVersionState;
 use crate::models::wallet_event::WalletEvent;
 use crate::models::wallet_event::WalletEvents;
 use crate::sentry::init_sentry;
@@ -119,6 +120,21 @@ pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) {
 #[async_runtime]
 pub async fn clear_configuration_stream() {
     wallet().read().await.clear_config_callback();
+}
+
+#[async_runtime]
+pub async fn set_version_state_stream(sink: StreamSink<FlutterVersionState>) {
+    let sink = ClosingStreamSink::from(sink);
+
+    wallet()
+        .read()
+        .await
+        .set_version_state_callback(Box::new(move |state| sink.add(state.into())));
+}
+
+#[async_runtime]
+pub async fn clear_version_state_stream() {
+    wallet().read().await.clear_version_state_callback();
 }
 
 #[async_runtime]
