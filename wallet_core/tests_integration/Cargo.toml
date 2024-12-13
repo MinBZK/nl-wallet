@@ -106,7 +106,7 @@ integration_test = [
     "tokio/sync",
 ]
 # Optional feature for running integration tests that depend on the DigiD connector
-digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter"]
+digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter", "dep:rustls-pki-types"]
 # Should be enabled when building the performance_test binary
 performance_test = [
     "logging",
@@ -174,6 +174,7 @@ p256 = { workspace = true, optional = true, features = ["pkcs8"] }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
+rustls-pki-types = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }

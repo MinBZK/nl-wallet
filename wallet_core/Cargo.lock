@@ -5002,6 +5002,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rstest",
+ "rustls-pki-types",
  "sea-orm",
  "semver",
  "serde_json",

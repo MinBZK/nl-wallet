@@ -1,10 +1,10 @@
+use rustls_pki_types::TrustAnchor;
+
 use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::oidc::HttpOidcClient;
-
-use nl_wallet_mdoc::holder::TrustAnchor;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::mock::default_configuration;
