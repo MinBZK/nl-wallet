@@ -232,7 +232,7 @@ run-wp-migrations-demo:
     - job: build-update-policy-server-image
       artifacts: false
   variables:
-    WALLET_PROVIDER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-update-policy-server:${CI_COMMIT_SHORT_SHA}
+    UPDATE_POLICY_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-update-policy-server:${CI_COMMIT_SHORT_SHA}
   script:
     - envsubst < deploy/kubernetes/update-policy-server-deployment.yaml | kubectl apply -f -
     - envsubst < deploy/kubernetes/update-policy-server-ingress.yaml | kubectl apply -f -
