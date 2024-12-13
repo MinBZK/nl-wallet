@@ -85,7 +85,6 @@ pub struct UpdatePolicyServerConfiguration {
     pub http_config: TlsPinningConfig,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: BaseUrl,
