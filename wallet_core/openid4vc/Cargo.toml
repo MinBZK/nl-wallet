@@ -49,6 +49,7 @@ rand_core.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
+rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true

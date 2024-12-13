@@ -1,11 +1,11 @@
 mod uri;
 
+use rustls_pki_types::TrustAnchor;
 use url::Url;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::MdocDataSource;
 use nl_wallet_mdoc::holder::ProposedAttributes;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::identifiers::AttributeIdentifier;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;

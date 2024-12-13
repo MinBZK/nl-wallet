@@ -37,6 +37,7 @@ p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
 rand_core.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
+rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde-aux.workspace = true

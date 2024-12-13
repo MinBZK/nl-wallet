@@ -16,6 +16,7 @@ use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwk::Jwk;
 use josekit::JoseError;
 use ring::hmac;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::hex::Hex;
@@ -26,7 +27,6 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;

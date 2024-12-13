@@ -14,12 +14,12 @@ use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 #[cfg(feature = "integration_test")]
 use p256::pkcs8::EncodePrivateKey;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;

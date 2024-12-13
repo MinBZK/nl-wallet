@@ -5,6 +5,7 @@ use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
 use p256::SecretKey;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
@@ -12,7 +13,6 @@ use serde_with::FromInto;
 use serde_with::IfIsHumanReadable;
 use tracing::debug;
 use tracing::warn;
-use webpki::types::TrustAnchor;
 
 use wallet_common::generator::Generator;
 

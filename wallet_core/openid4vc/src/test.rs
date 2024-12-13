@@ -7,13 +7,13 @@ use derive_more::Debug;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use parking_lot::Mutex;
+use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
 use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
 use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::iso::device_retrieval::ItemsRequest;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;

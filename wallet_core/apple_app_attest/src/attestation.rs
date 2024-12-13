@@ -3,12 +3,12 @@ use chrono::Utc;
 use derive_more::derive::AsRef;
 use p256::ecdsa::VerifyingKey;
 use passkey_types::ctap2::Aaguid;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::serde_as;
 use serde_with::TryFromInto;
 use sha2::Digest;
 use sha2::Sha256;
-use webpki::types::TrustAnchor;
 
 use crate::app_identifier::AppIdentifier;
 use crate::auth_data::FullAuthenticatorDataWithSource;
@@ -257,9 +257,9 @@ pub mod mock {
     use rcgen::KeyPair;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PKCS_ECDSA_P384_SHA384;
+    use rustls_pki_types::TrustAnchor;
     use sha2::Digest;
     use sha2::Sha256;
-    use webpki::types::TrustAnchor;
 
     use crate::app_identifier::AppIdentifier;
     use crate::auth_data::FullAuthenticatorDataWithSource;

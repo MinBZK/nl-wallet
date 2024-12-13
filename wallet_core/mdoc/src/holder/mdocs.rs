@@ -4,9 +4,9 @@ use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
-use webpki::types::TrustAnchor;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;

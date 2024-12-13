@@ -21,9 +21,9 @@ use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use ring::hmac;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use webpki::types::TrustAnchor;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;

@@ -38,6 +38,7 @@ serde_with.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
 x509-parser.workspace = true
+rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 
 rand = { workspace = true, optional = true }

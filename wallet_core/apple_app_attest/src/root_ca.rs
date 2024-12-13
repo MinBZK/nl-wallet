@@ -1,8 +1,8 @@
 use std::sync::LazyLock;
 
 use const_decoder::Pem;
-use webpki::types::CertificateDer;
-use webpki::types::TrustAnchor;
+use rustls_pki_types::CertificateDer;
+use rustls_pki_types::TrustAnchor;
 use webpki::{self};
 
 // Source: https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem

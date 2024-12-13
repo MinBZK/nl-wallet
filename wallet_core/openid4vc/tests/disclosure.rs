@@ -14,6 +14,7 @@ use josekit::jwk::alg::ec::EcKeyPair;
 use ring::hmac;
 use ring::rand;
 use rstest::rstest;
+use rustls_pki_types::TrustAnchor;
 
 use nl_wallet_mdoc::examples::example_items_requests;
 use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
@@ -22,7 +23,6 @@ use nl_wallet_mdoc::holder::DisclosureRequestMatch;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::holder::MdocDataSource;
 use nl_wallet_mdoc::holder::StoredMdoc;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::test::data::addr_street;
 use nl_wallet_mdoc::test::data::pid_full_name;

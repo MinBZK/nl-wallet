@@ -24,6 +24,7 @@ use rand_core::OsRng;
 use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
+use rustls_pki_types::TrustAnchor;
 use tokio::time;
 use url::Url;
 
@@ -34,7 +35,6 @@ use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
 use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
 use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;

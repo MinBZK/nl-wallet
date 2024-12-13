@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexSet;
-use webpki::types::TrustAnchor;
+use rustls_pki_types::TrustAnchor;
 
 use wallet_common::generator::Generator;
 

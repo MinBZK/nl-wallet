@@ -11,6 +11,7 @@ use josekit::jwk::Jwk;
 use josekit::jwt::JwtPayload;
 use josekit::JoseError;
 use nutype::nutype;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::formats::PreferOne;
@@ -19,7 +20,6 @@ use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use derive_more::From;
 use indexmap::IndexSet;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -13,7 +14,6 @@ use serde_with::StringWithSeparator;
 use url::Url;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
