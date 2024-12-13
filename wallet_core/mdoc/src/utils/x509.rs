@@ -123,7 +123,11 @@ impl BorrowingCertificate {
     }
 
     pub fn from_certificate_der(certificate_der: CertificateDer<'_>) -> Result<Self, CertificateError> {
-        let yoke = Yoke::try_attach_to_cart(Arc::from(certificate_der.into_owned()), |cert| {
+        Self::from_certificate_der_arc(Arc::from(certificate_der.into_owned()))
+    }
+
+    fn from_certificate_der_arc(certificate_der: Arc<CertificateDer<'static>>) -> Result<Self, CertificateError> {
+        let yoke = Yoke::try_attach_to_cart(certificate_der, |cert| {
             let end_entity_cert = cert.try_into().map_err(CertificateError::EndEntityCertificateParsing)?;
             let (_, x509_cert) =
                 X509Certificate::from_der(cert.as_bytes()).map_err(CertificateError::X509CertificateParsing)?;
@@ -234,7 +238,7 @@ impl BorrowingCertificate {
 impl Clone for BorrowingCertificate {
     fn clone(&self) -> Self {
         // Unwrap is safe here since the der bytes have been parsed before
-        BorrowingCertificate::from_der(self.0.backing_cart().to_vec()).unwrap()
+        BorrowingCertificate::from_certificate_der_arc(Arc::clone(self.0.backing_cart())).unwrap()
     }
 }
 
