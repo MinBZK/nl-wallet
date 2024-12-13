@@ -144,7 +144,7 @@ run-performance-test-ont:
       artifacts: false
     - job: deploy-pid-issuer-ont
       artifacts: false
-    - job: wallet-env-config-ont
+    - job: wallet-config-ont
       artifacts: true
   variables:
     RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"

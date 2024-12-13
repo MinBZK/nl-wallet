@@ -75,7 +75,7 @@
   rules: !reference [.default-branch, rules]
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-ont
+    - job: wallet-config-ont
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
@@ -131,7 +131,7 @@ build-android-app-mock:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-demo
+    - job: wallet-config-demo
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
@@ -159,7 +159,7 @@ build-android-app-acceptance:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-acceptance
+    - job: wallet-config-acceptance
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
@@ -176,7 +176,7 @@ build-android-app-preproduction:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-preproduction
+    - job: wallet-config-preproduction
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
@@ -193,7 +193,7 @@ build-android-app-production:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-production
+    - job: wallet-config-production
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: ""
