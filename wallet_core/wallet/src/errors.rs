@@ -14,7 +14,6 @@ pub mod openid4vc {
 pub use crate::account_provider::AccountProviderError;
 pub use crate::account_provider::AccountProviderResponseError;
 pub use crate::config::ConfigurationError;
-pub use crate::config::FileStorageError;
 pub use crate::disclosure::DisclosureUriError;
 pub use crate::document::AttributeValueType;
 pub use crate::document::DocumentMdocError;
@@ -24,8 +23,10 @@ pub use crate::issuance::DigidSessionError;
 pub use crate::pin::change::ChangePinError;
 pub use crate::pin::key::PinKeyError;
 pub use crate::pin::validation::PinValidationError;
+pub use crate::repository::HttpClientError;
 pub use crate::storage::KeyFileError;
 pub use crate::storage::StorageError;
+pub use crate::update_policy::UpdatePolicyError;
 pub use crate::wallet::DisclosureError;
 pub use crate::wallet::EventConversionError;
 pub use crate::wallet::EventStorageError;

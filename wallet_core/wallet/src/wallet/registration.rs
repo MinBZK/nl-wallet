@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::error::Error;
+use std::sync::Arc;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
@@ -9,16 +10,21 @@ use tracing::instrument;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::signed::ChallengeResponse;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
 use wallet_common::keys::StoredByIdentifier;
+use wallet_common::update_policy::VersionState;
 
 use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
-use crate::config::ConfigurationRepository;
+use crate::errors::UpdatePolicyError;
 use crate::pin::key::PinKey;
 use crate::pin::key::{self as pin_key};
 use crate::pin::validation::validate_pin;
 use crate::pin::validation::PinValidationError;
+use crate::repository::Repository;
+use crate::repository::UpdateableRepository;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
@@ -56,6 +62,9 @@ pub(super) fn wallet_key_id() -> Cow<'static, str> {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletRegistrationError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is already registered")]
     #[category(expected)]
     AlreadyRegistered,
@@ -73,13 +82,16 @@ pub enum WalletRegistrationError {
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
     CertificateValidation(#[source] JwtError),
     #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
-    #[category(expected)] // This error can happen during development, but should not happen in production
+    #[category(expected)]
+    // This error can happen during development, but should not happen in production
     PublicKeyMismatch,
     #[error("could not store registration certificate in database: {0}")]
     StoreCertificate(#[from] StorageError),
+    #[error("error fetching update policy: {0}")]
+    UpdatePolicy(#[from] UpdatePolicyError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC> {
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> {
     pub(super) fn hw_privkey() -> PEK
     where
         PEK: StoredByIdentifier,
@@ -99,13 +111,23 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
     #[sentry_capture_error]
     pub async fn register(&mut self, pin: String) -> Result<(), WalletRegistrationError>
     where
-        CR: ConfigurationRepository,
+        CR: Repository<Arc<WalletConfiguration>>,
         S: Storage,
         APC: AccountProviderClient,
         PEK: PlatformEcdsaKey,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
-        info!("Checking if already registered");
+        let config = &self.config_repository.get().update_policy_server;
 
+        info!("Fetching update policy");
+        self.update_policy_repository.fetch(&config.http_config).await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(WalletRegistrationError::VersionBlocked);
+        }
+
+        info!("Checking if already registered");
         // Registration is only allowed if we do not currently have a registration on record.
         if self.has_registration() {
             return Err(WalletRegistrationError::AlreadyRegistered);
@@ -122,7 +144,7 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC
 
         info!("Requesting challenge from account server");
 
-        let config = &self.config_repository.config().account_server;
+        let config = &self.config_repository.get().account_server;
         let certificate_public_key = config.certificate_public_key.clone();
 
         // Retrieve a challenge from the account server

@@ -17,7 +17,7 @@ use crate::trust_anchor::BorrowingTrustAnchor;
 use crate::urls::BaseUrl;
 
 #[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WalletConfiguration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
@@ -27,6 +27,7 @@ pub struct WalletConfiguration {
     #[serde_as(as = "Vec<Base64>")]
     pub mdoc_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub version: u64,
+    pub update_policy_server: UpdatePolicyServerConfiguration,
 }
 
 impl WalletConfiguration {
@@ -50,7 +51,7 @@ impl From<&WalletConfiguration> for EntityTag {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct LockTimeoutConfiguration {
     /// App inactivity lock timeout in seconds
     pub inactive_timeout: u16,
@@ -67,7 +68,7 @@ impl Default for LockTimeoutConfiguration {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AccountServerConfiguration {
     pub http_config: TlsPinningConfig,
     #[debug(skip)]
@@ -78,6 +79,20 @@ pub struct AccountServerConfiguration {
     pub wte_public_key: DerVerifyingKey,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct UpdatePolicyServerConfiguration {
+    #[serde(flatten)]
+    pub http_config: TlsPinningConfig,
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct PidIssuanceConfiguration {
+    pub pid_issuer_url: BaseUrl,
+    pub digid: DigidConfiguration,
+    pub digid_http_config: TlsPinningConfig,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct DigidConfiguration {
     pub client_id: String,
@@ -85,15 +100,8 @@ pub struct DigidConfiguration {
     pub app2app: Option<DigidApp2AppConfiguration>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct PidIssuanceConfiguration {
-    pub pid_issuer_url: BaseUrl,
-    pub digid: DigidConfiguration,
-    pub digid_http_config: TlsPinningConfig,
-}
-
 #[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DisclosureConfiguration {
     #[debug(skip)]
     #[serde_as(as = "Vec<Base64>")]

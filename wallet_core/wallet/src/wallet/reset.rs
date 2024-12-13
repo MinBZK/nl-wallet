@@ -5,13 +5,18 @@ use tracing::warn;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use wallet_common::keys::StoredByIdentifier;
+use wallet_common::update_policy::VersionState;
 
+use crate::repository::Repository;
 use crate::storage::Storage;
 
 use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ResetError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -19,10 +24,11 @@ pub enum ResetError {
 
 type ResetResult<T> = std::result::Result<T, ResetError>;
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
 where
     S: Storage,
     PEK: StoredByIdentifier,
+    UR: Repository<VersionState>,
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
         // Only reset if we actually have a registration.
@@ -62,6 +68,11 @@ where
     #[sentry_capture_error]
     pub async fn reset(&mut self) -> ResetResult<()> {
         info!("Resetting of wallet requested");
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(ResetError::VersionBlocked);
+        }
 
         // Note that this method can be called even if the Wallet is locked!
 

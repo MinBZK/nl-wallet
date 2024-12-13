@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: update-policy-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: update-policy-server
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: update-policy-server
+        tier: vertrouwd
+        egress-frontoffice-policy: allow
+        ingress-controller-frontoffice-policy: allow
+    spec:
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: update-policy-server
+          image: $UPDATE_POLICY_SERVER_IMAGE
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "400m"
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+          ports:
+            - name: ups-port
+              containerPort: 3009
+          volumeMounts:
+            - name: config-volume
+              mountPath: /update_policy_server.toml
+              subPath: config.toml
+          env:
+            - name: UPDATE_POLICY_SERVER_PORT
+              value: "3009"
+            - name: UPDATE_POLICY_SERVER_STRUCTURED_LOGGING
+              value: "true"
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: nl-wallet-update-policy-server-data

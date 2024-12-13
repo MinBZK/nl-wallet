@@ -32,15 +32,16 @@ use openid4vc::oidc;
 use openid4vc::server_state::SessionState;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
-use platform_support::utils::mock::MockHardwareUtilities;
-use platform_support::utils::PlatformUtilities;
+use update_policy_server::settings::Settings as UpsSettings;
 use wallet::mock::default_configuration;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
 use wallet::wallet_deps::ConfigServerConfiguration;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::UpdateableConfigurationRepository;
+use wallet::wallet_deps::UpdatePolicyRepository;
+use wallet::wallet_deps::UpdateableRepository;
+use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
@@ -77,13 +78,19 @@ pub fn local_wp_base_url(port: &u16) -> BaseUrl {
 pub fn local_config_base_url(port: &u16) -> BaseUrl {
     format!("https://localhost:{}/config/v1/", port)
         .parse()
-        .expect("hardcode values should always parse successfully")
+        .expect("hardcoded values should always parse successfully")
+}
+
+pub fn local_ups_base_url(port: &u16) -> BaseUrl {
+    format!("https://localhost:{}/update/v1/", port)
+        .parse()
+        .expect("hardcoded values should always parse successfully")
 }
 
 pub fn local_pid_base_url(port: &u16) -> BaseUrl {
     format!("http://localhost:{}/issuance/", port)
         .parse()
-        .expect("hardcode values should always parse successfully")
+        .expect("hardcoded values should always parse successfully")
 }
 
 pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
@@ -100,11 +107,14 @@ pub type WalletWithMocks = Wallet<
     MockDigidSession,
     HttpIssuanceSession,
     DisclosureSession<HttpVpMessageClient, Uuid>,
+    WpWteIssuanceClient,
+    UpdatePolicyRepository,
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
     setup_wallet_and_env(
         config_server_settings(),
+        update_policy_server_settings(),
         wallet_provider_settings(),
         wallet_server_settings(),
     )
@@ -114,6 +124,7 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
     (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
+    (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
@@ -128,34 +139,44 @@ pub async fn setup_wallet_and_env(
     let mut wallet_config = default_configuration();
     wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
+    wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
+    wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
     served_wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
+    served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
+    served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
     let certificates = ws_settings.issuer.certificates();
 
     start_config_server(cs_settings, cs_root_ca).await;
+    start_update_policy_server(ups_settings, ups_root_ca).await;
     start_wallet_provider(wp_settings, wp_root_ca).await;
     start_wallet_server(ws_settings, MockAttributeService(certificates)).await;
 
     let config_repository = HttpConfigurationRepository::new(
-        config_server_config.http_config,
         (&config_server_config.signing_public_key).into(),
-        MockHardwareUtilities::storage_path().await.unwrap(),
+        tempfile::tempdir().unwrap().into_path(),
         wallet_config,
     )
     .await
     .unwrap();
-    config_repository.fetch().await.unwrap();
+    config_repository
+        .fetch(&config_server_config.http_config)
+        .await
+        .unwrap();
+
+    let update_policy_repository = UpdatePolicyRepository::init();
 
     Wallet::init_registration(
         config_repository,
         MockStorage::default(),
         HttpAccountProviderClient::default(),
+        update_policy_repository,
     )
     .await
     .expect("Could not create test wallet")
@@ -184,6 +205,18 @@ pub fn config_server_settings() -> (CsSettings, ReqwestTrustAnchor) {
     settings.port = port;
 
     let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
+
+    (settings, root_ca)
+}
+
+pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
+    let port = find_listener_port();
+
+    let mut settings = UpsSettings::new().expect("Could not read settings");
+    settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
+    settings.port = port;
+
+    let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
@@ -221,6 +254,19 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrus
     tokio::spawn(async {
         if let Err(error) = configuration_server::server::serve(settings).await {
             println!("Could not start config_server: {:?}", error);
+            process::exit(1);
+        }
+    });
+
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into()]).await;
+}
+
+pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) {
+    let base_url = local_ups_base_url(&settings.port);
+
+    tokio::spawn(async {
+        if let Err(error) = update_policy_server::server::serve(settings).await {
+            println!("Could not start update_policy_server: {:?}", error);
             process::exit(1);
         }
     });

@@ -1,3 +1,6 @@
+use std::hash::DefaultHasher;
+use std::hash::Hash;
+use std::hash::Hasher;
 #[cfg(feature = "axum")]
 use std::io;
 use std::path::Path;
@@ -17,6 +20,7 @@ use crate::reqwest::ClientBuilder;
 use crate::reqwest::JsonClientBuilder;
 use crate::reqwest::JsonReqwestBuilder;
 use crate::reqwest::RequestBuilder;
+use crate::reqwest::ReqwestBuilder;
 use crate::reqwest::ReqwestTrustAnchor;
 use crate::urls::BaseUrl;
 
@@ -29,6 +33,9 @@ pub struct TlsServerConfig {
     pub key: Vec<u8>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct TlsPinningConfigHash(u64);
+
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct TlsPinningConfig {
@@ -36,6 +43,14 @@ pub struct TlsPinningConfig {
     #[debug(skip)]
     #[serde_as(as = "Vec<Base64>")]
     pub trust_anchors: Vec<ReqwestTrustAnchor>,
+}
+
+impl TlsPinningConfig {
+    pub fn to_hash(&self) -> TlsPinningConfigHash {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        TlsPinningConfigHash(hasher.finish())
+    }
 }
 
 impl ClientBuilder for TlsPinningConfig {
@@ -57,6 +72,8 @@ impl RequestBuilder for TlsPinningConfig {
         client.request(method, self.base_url.join(&path.as_ref().to_string_lossy()))
     }
 }
+
+impl ReqwestBuilder for TlsPinningConfig {}
 
 impl JsonReqwestBuilder for TlsPinningConfig {}
 

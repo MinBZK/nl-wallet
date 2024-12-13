@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-12-10T15:13:58+01:00",
+    "@@last_modified": "2024-12-11T19:02:24+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -17,6 +17,9 @@
     "activitySummarySharedWithMultiple": "gedeeld met {organizations} en {organization}",
     "activitySummarySharedWithOthers": "nog {nrOrganizations} organisaties",
     "activitySummaryToday": "Activiteiten vandaag",
+    "appBlockedScreenDescription": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de Play Store op de app bij te werken.",
+    "appBlockedScreenDescriptioniOSVariant": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de App Store op de app bij te werken.",
+    "appBlockedScreenTitle": "Een nieuwe app versie is vereist",
     "appTitle": "NL Wallet",
     "biometricSettingsScreenDescription": "Hiermee open je de NL Wallet sneller. Je gebruikt jouw {supportedBiometrics} in plaats van jouw pincode.\nZet {supportedBiometrics} aan en bevestig met jouw pincode.",
     "@biometricSettingsScreenDescription": {
@@ -295,7 +298,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Alleen het volgende gegeven wordt gedeeld. Niet meer.} other {Alleen deze volgende {count} gegevens worden gedeeld. Niet meer.}}",
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Alleen het volgende gegeven wordt gedeeld. Niet meer.} other {Alleen de volgende {count} gegevens worden gedeeld. Niet meer.}}",
     "@disclosureConfirmDataAttributesSharedAttributesInfo": {
         "placeholders": {
             "count": {
@@ -411,6 +414,8 @@
     "forgotPinScreenCta": "Verwijder Wallet",
     "forgotPinScreenDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
     "forgotPinScreenTitle": "Pincode vergeten?",
+    "generalAppStoreAndroid": "Play Store",
+    "generalAppStoreiOS": "App Store",
     "generalBottomBackCta": "Terug",
     "generalCancelCta": "Annuleren",
     "generalClose": "Sluiten",
@@ -443,6 +448,7 @@
             }
         }
     },
+    "generalNeedHelpCta": "Hulp nodig?",
     "generalOff": "Uit",
     "generalOkCta": "OK",
     "generalOn": "Aan",
@@ -477,6 +483,8 @@
     "generalShowDetailsCta": "Bekijk details",
     "generalTimeAgo": "geleden",
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
+    "generalToAppStoreCta": "Naar App Store",
+    "generalToPlayStoreCta": "Naar Play Store",
     "generalVersionText": "Appversie:",
     "generalWCAGBack": "Terug",
     "generalWCAGChangeLanguage": "Taal te selecteren",
@@ -555,7 +563,7 @@
     "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
     "historyDetailScreenPurposeTitle": "Reden voor delen",
     "historyDetailScreenReportIssueCta": "Wil je een probleem melden?",
-    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven werd gedeeld. Niet meer.} other {Alleen deze volgende {count} gegevens werden gedeeld. Niet meer.}}",
+    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven is gedeeld. Niet meer.} other {Alleen deze volgende {count} gegevens zijn gedeeld. Niet meer.}}",
     "@historyDetailScreenSharedAttributesSubtitle": {
         "placeholders": {
             "count": {
@@ -1034,6 +1042,46 @@
     "signSuccessPageHistoryCta": "Activiteiten",
     "signSuccessPageTitle": "Gelukt!",
     "unlockWithBiometricsReason": "Open de NL Wallet",
+    "updateBannerNotifyDescription": "Hiermee krijg je de beste ervaring.",
+    "updateBannerNotifyTitle": "Update de app",
+    "updateBannerRecommendDescription": "Hiermee los je de problemen op.",
+    "updateBannerRecommendTitle": "Update nodig",
+    "updateBannerWarnDescription": "Deze app-versie stopt binnen {time_left}.",
+    "@updateBannerWarnDescription": {
+        "placeholders": {
+            "time_left": {
+                "example": "3 days",
+                "type": "String"
+            }
+        }
+    },
+    "updateBannerWarnTitle": "Update nodig",
+    "updateInfoScreenDescription": "Er zijn problemen met deze versie van de app. Haal de laatste versie uit de Play Store voor een betere ervaring.",
+    "updateInfoScreenDescriptioniOSVariant": "Er zijn problemen met deze versie van de app. Haal de laatste versie uit de App Store voor een betere ervaring.",
+    "updateInfoScreenTitle": "Update vereist",
+    "updateNotificationDialogCountdownDescription": "Binnen {time_left} stopt deze app-versie. Werk de app bij via de {app_store} om deze te blijven gebruiken.",
+    "@updateNotificationDialogCountdownDescription": {
+        "placeholders": {
+            "app_store": {
+                "example": "Play Store",
+                "type": "String"
+            },
+            "time_left": {
+                "example": "3 days",
+                "type": "String"
+            }
+        }
+    },
+    "updateNotificationDialogDescription": "Er zijn problemen gevonden in deze versie van de app. Werk de app bij in de {app_store} om ze op te lossen.",
+    "@updateNotificationDialogDescription": {
+        "placeholders": {
+            "app_store": {
+                "example": "Play Store",
+                "type": "String"
+            }
+        }
+    },
+    "updateNotificationDialogTitle": "Update nodig",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Toevoegen",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",

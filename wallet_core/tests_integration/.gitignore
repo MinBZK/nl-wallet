@@ -1,10 +1,12 @@
+/config_server.toml
+/gba_hc_converter.toml
 /pid_issuer.toml
+/update_policy_server.toml
 /wallet.toml
 /wallet_provider.toml
 /wallet_server.toml
-/config_server.toml
-/gba_hc_converter.toml
 /wallet-config.json
+/*.der
 /*.pem
 /*.der
 *.snap.new

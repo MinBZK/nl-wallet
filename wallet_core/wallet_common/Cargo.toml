@@ -21,6 +21,8 @@ examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
+# Include MockTimeGenerator
+mock_time = ["dep:parking_lot"]
 # Include MockAppleAttestedKey for generating Apple assertions in tests.
 mock_apple_attested_key = ["apple_app_attest/mock", "dep:rand_core"]
 # Include MockHardwareEcdsaKey and MockHardwareEncryptionKey for use in tests
@@ -45,6 +47,7 @@ derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"]
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
+indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true
@@ -55,6 +58,8 @@ reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 ring.workspace = true
 rustls-webpki.workspace = true
 rustls-pki-types.workspace = true
+sanitize-filename.workspace = true
+semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }

@@ -108,6 +108,7 @@ mkdir -p "${TARGET_DIR}"
 mkdir -p "${TARGET_DIR}/configuration_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
 mkdir -p "${TARGET_DIR}/mock_relying_party"
+mkdir -p "${TARGET_DIR}/update_policy_server"
 mkdir -p "${TARGET_DIR}/wallet_provider"
 
 ########################################################################
@@ -296,6 +297,40 @@ render_template "${DEVENV}/pid_issuer.toml.template" "${WALLET_SERVER_DIR}/pid_i
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 
 ########################################################################
+# Configure update-policy-server
+
+echo
+echo -e "${SECTION}Configure update-policy-server${NC}"
+
+cd "${BASE_DIR}"
+
+# Generate root CA
+if [ ! -f "${TARGET_DIR}/update_policy_server/ca.key.pem" ]; then
+    generate_root_ca "${TARGET_DIR}/update_policy_server" "nl-wallet-update-policy-server"
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/update_policy_server/ca.key.pem' already exists, not (re-)generating root CA"
+fi
+
+generate_ssl_key_pair_with_san "${TARGET_DIR}/update_policy_server" update_policy_server "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${TARGET_DIR}/update_policy_server/ca.key.pem"
+
+cp "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.pem"
+cp "${TARGET_DIR}/update_policy_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.der"
+UPDATE_POLICY_SERVER_CA_CRT=$(< "${TARGET_DIR}/update_policy_server/ca.crt.der" ${BASE64})
+export UPDATE_POLICY_SERVER_CA_CRT
+
+UPDATE_POLICY_SERVER_CERT=$(< "${TARGET_DIR}/update_policy_server/update_policy_server.crt.der" ${BASE64})
+export UPDATE_POLICY_SERVER_CERT
+
+UPDATE_POLICY_SERVER_KEY=$(< "${TARGET_DIR}/update_policy_server/update_policy_server.key.der" ${BASE64})
+export UPDATE_POLICY_SERVER_KEY
+
+UPDATE_POLICY_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${UPDATE_POLICY_SERVER_CERT[*]}")
+export UPDATE_POLICY_SERVER_TRUST_ANCHORS
+
+render_template "${DEVENV}/update_policy_server.toml.template" "${UPS_DIR}/update_policy_server.toml"
+cp "${UPS_DIR}/update_policy_server.toml" "${BASE_DIR}/wallet_core/tests_integration/update_policy_server.toml"
+
+########################################################################
 # Configure wallet_provider
 ########################################################################
 
@@ -382,7 +417,6 @@ p11tool --login --write \
   --provider="${HSM_LIBRARY_PATH}" \
   "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
 
-
 ########################################################################
 # Configure configuration-server
 ########################################################################
@@ -436,7 +470,6 @@ export WALLET_CONFIG_JWT
 
 render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
 cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
-
 
 ########################################################################
 # Configure gba-hc-converter
