@@ -43,7 +43,7 @@ pub enum UnlockMethod {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChangePinData {
-    pub state: Option<State>,
+    pub state: State,
 }
 
 impl UnlockMethod {

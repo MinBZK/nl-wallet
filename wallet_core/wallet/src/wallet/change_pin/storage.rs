@@ -16,19 +16,18 @@ where
     async fn get_change_pin_state(&self) -> Result<Option<State>, StorageError> {
         let storage = self.read().await;
         let change_pin_data: Option<ChangePinData> = storage.fetch_data().await?;
-        Ok(change_pin_data.and_then(|data| data.state))
+        Ok(change_pin_data.map(|data| data.state))
     }
 
     async fn store_change_pin_state(&self, state: State) -> Result<(), StorageError> {
         let mut storage = self.write().await;
-        let data = ChangePinData { state: Some(state) };
+        let data = ChangePinData { state };
         storage.upsert_data(&data).await
     }
 
     async fn clear_change_pin_state(&self) -> Result<(), StorageError> {
         let mut storage = self.write().await;
-        let data = ChangePinData { state: None };
-        storage.upsert_data(&data).await
+        storage.delete_data::<ChangePinData>().await
     }
 
     async fn change_pin(
