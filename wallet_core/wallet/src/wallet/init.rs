@@ -20,7 +20,6 @@ use crate::config::ConfigServerConfiguration;
 use crate::config::ConfigurationError;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::WalletConfigurationRepository;
-use crate::errors::UpdatePolicyError;
 use crate::lock::WalletLock;
 use crate::repository::BackgroundUpdateableRepository;
 use crate::repository::Repository;
@@ -40,8 +39,6 @@ use super::WalletRegistration;
 pub enum WalletInitError {
     #[error("wallet configuration error")]
     Configuration(#[from] ConfigurationError),
-    #[error("wallet configuration error")]
-    UpdatePolicy(#[from] UpdatePolicyError),
     #[error("platform utilities error: {0}")]
     Utilities(#[from] UtilitiesError),
     #[error("could not initialize database: {0}")]
