@@ -28,7 +28,6 @@ use crate::storage::KeyData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StorageState;
 
 use super::Wallet;
 use super::WalletRegistration;
@@ -89,25 +88,12 @@ where
         self.registration.is_registered()
     }
 
-    async fn open_database_if_necessary(&mut self) -> Result<&mut S, StorageError>
-    where
-        S: Storage,
-    {
-        let storage = self.storage.get_mut();
-        let storage_state = storage.state().await?;
-
-        if !matches!(storage_state, StorageState::Opened) {
-            storage.open().await?;
-        }
-
-        Ok(storage)
-    }
-
     async fn set_registration_key_identifier(&mut self, key_identifier: String) -> Result<(), StorageError>
     where
         S: Storage,
     {
-        let storage = self.open_database_if_necessary().await?;
+        let storage = self.storage.get_mut();
+        storage.open_if_needed().await?;
 
         let key_data = KeyData {
             identifier: key_identifier.clone(),
@@ -257,8 +243,9 @@ where
 
         info!("Storing received registration");
 
-        let storage = self
-            .open_database_if_necessary()
+        let storage = self.storage.get_mut();
+        storage
+            .open_if_needed()
             .await
             .map_err(WalletRegistrationError::StoreRegistrationState)?;
 

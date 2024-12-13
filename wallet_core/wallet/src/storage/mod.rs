@@ -94,6 +94,14 @@ pub trait Storage {
     async fn open(&mut self) -> StorageResult<()>;
     async fn clear(&mut self);
 
+    async fn open_if_needed(&mut self) -> StorageResult<()> {
+        let StorageState::Opened = self.state().await? else {
+            return self.open().await;
+        };
+
+        Ok(())
+    }
+
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
     async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
