@@ -11,18 +11,20 @@ use webpki::types::TrustAnchor;
 use crate::account::serialization::DerVerifyingKey;
 use crate::config::digid::DigidApp2AppConfiguration;
 use crate::config::http::TlsPinningConfig;
+use crate::config::EnvironmentSpecific;
 use crate::trust_anchor::DerTrustAnchor;
 use crate::urls::BaseUrl;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct WalletConfiguration {
+    pub environment: String,
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
     pub pid_issuance: PidIssuanceConfiguration,
     pub disclosure: DisclosureConfiguration,
     pub mdoc_trust_anchors: Vec<DerTrustAnchor>,
-    pub version: u64,
     pub update_policy_server: UpdatePolicyServerConfiguration,
+    pub version: u64,
 }
 
 impl WalletConfiguration {
@@ -37,6 +39,12 @@ impl WalletConfiguration {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
         hasher.finish()
+    }
+}
+
+impl EnvironmentSpecific for WalletConfiguration {
+    fn environment(&self) -> &str {
+        &self.environment
     }
 }
 

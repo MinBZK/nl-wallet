@@ -15,7 +15,7 @@ use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use wallet::mock::default_wallet_config;
 use wallet::mock::MockStorage;
-use wallet::wallet_deps::ConfigServerConfiguration;
+use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::HttpDigidSession;
@@ -57,11 +57,11 @@ async fn main() {
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
     let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
 
-    let config_server_config = ConfigServerConfiguration::default();
+    let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
 
     let config_repository = HttpConfigurationRepository::new(
-        (&config_server_config.signing_public_key).into(),
+        (&config_server_config.signing_public_key.0).into(),
         temp_path.clone(),
         wallet_config,
     )

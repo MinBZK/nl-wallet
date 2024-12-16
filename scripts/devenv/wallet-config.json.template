@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "environment": "dev",
   "lock_timeouts": {
     "inactive_timeout": 300,
     "background_timeout": 300

@@ -59,7 +59,7 @@ source "${SCRIPTS_DIR}/utils.sh"
 
 # Use gsed on macOS, sed on others
 is_macos && SED="gsed" || SED="sed"
-have cargo jq tr xxd openssl softhsm2-util p11tool ${SED}
+have cargo jq tr xxd openssl p11tool softhsm2-util "${SED}"
 
 # Check if openssl is "real" OpenSSL
 check_openssl
@@ -183,13 +183,13 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
     export VITE_HELP_BASE_URL
     npm ci && npm run build
-    WALLET_WEB_SHA256=$(cat dist/nl-wallet-web.iife.js | openssl sha256 -binary | ${BASE64})
+    WALLET_WEB_SHA256=$(< dist/nl-wallet-web.iife.js openssl sha256 -binary | ${BASE64})
     export WALLET_WEB_SHA256
-    WALLET_WEB_SHA256_FILENAME=$(cat dist/nl-wallet-web.iife.js | openssl sha256 -binary | base64_url_encode) # url safe to prevent '/' to appear in filename
+    WALLET_WEB_SHA256_FILENAME=$(< dist/nl-wallet-web.iife.js openssl sha256 -binary | base64_url_encode) # url safe to prevent '/' to appear in filename
     export WALLET_WEB_SHA256_FILENAME
     WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
     export WALLET_WEB_FILENAME
-    cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME}
+    cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/"${WALLET_WEB_FILENAME}"
 fi
 
 
@@ -269,10 +269,10 @@ export MOCK_RELYING_PARTY_KEY_MONKEY_BIKE
 MOCK_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_bike.crt.der" ${BASE64})
 export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
 
-if [[ -z "${SKIP_MOCK_RELYING_PARTY:-}" ]]; then
+if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     WALLET_WEB_FILENAME="${WALLET_WEB_FILENAME:-nl-wallet-web.iife.js}"
     export WALLET_WEB_FILENAME
-    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(cat ../wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME} | openssl sha256 -binary | ${BASE64})}"
+    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(< ../wallet_core/mock_relying_party/assets/"${WALLET_WEB_FILENAME}" openssl sha256 -binary | ${BASE64})}"
     export WALLET_WEB_SHA256
     render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
 fi
@@ -493,7 +493,6 @@ echo -e "${SECTION}Configure wallet${NC}"
 
 render_template "${DEVENV}/config-server-config.json.template" "${BASE_DIR}/wallet_core/wallet/config-server-config.json"
 render_template "${DEVENV}/wallet-config.json.template" "${BASE_DIR}/wallet_core/wallet/wallet-config.json"
-render_template "${DEVENV}/wallet.env.template" "${BASE_DIR}/wallet_core/wallet/.env"
 
 ########################################################################
 # Configure Android Emulator

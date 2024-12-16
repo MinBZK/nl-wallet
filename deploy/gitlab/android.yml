@@ -82,6 +82,7 @@
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
+    CONFIG_ENV: "ont"
 
 build-android-app-ont:
   extends: .build-android-app-ont
@@ -137,6 +138,7 @@ build-android-app-mock:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
+    CONFIG_ENV: "demo"
 
 build-android-app-demo:
   extends: .build-android-app-demo
@@ -165,6 +167,7 @@ build-android-app-acceptance:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
     APP_NAME: "NL Wallet (acceptance)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ACC}"
+    CONFIG_ENV: "acceptance"
     SENTRY_DSN: "${SENTRY_DSN_ACC}"
     SENTRY_ENVIRONMENT: "acceptance"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
@@ -182,6 +185,7 @@ build-android-app-preproduction:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
     APP_NAME: "NL Wallet (pre-production)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PREPROD}"
+    CONFIG_ENV: "preproduction"
     SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
     SENTRY_ENVIRONMENT: "preproduction"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
@@ -199,6 +203,7 @@ build-android-app-production:
     APP_PACKAGE_IDENTIFIER_SUFFIX: ""
     APP_NAME: "NL Wallet (production)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PROD}"
+    CONFIG_ENV: "production"
     SENTRY_DSN: "${SENTRY_DSN_PROD}"
     SENTRY_ENVIRONMENT: "production"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"

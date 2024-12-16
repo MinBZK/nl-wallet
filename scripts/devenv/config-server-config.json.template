@@ -1,4 +1,5 @@
 {
+  "environment": "dev",
   "http_config": {
     "base_url": "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/config/v1/",
     "trust_anchors": [
