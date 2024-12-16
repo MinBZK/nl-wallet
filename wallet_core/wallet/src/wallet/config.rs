@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::update_policy::VersionState;
 
@@ -9,19 +10,21 @@ use crate::repository::RepositoryCallback;
 
 use super::Wallet;
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     UR: Repository<VersionState>,
+    AKH: AttestedKeyHolder,
 {
     pub fn is_blocked(&self) -> bool {
         self.update_policy_repository.get() == VersionState::Block
     }
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     CR: ObservableRepository<Arc<WalletConfiguration>>,
     UR: ObservableRepository<VersionState>,
+    AKH: AttestedKeyHolder,
 {
     pub fn set_config_callback(
         &self,
@@ -65,7 +68,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_set_clear_config_callback() {
         // Prepare an unregistered wallet.
-        let wallet = WalletWithMocks::new_unregistered().await;
+        let wallet = WalletWithMocks::new_unregistered();
 
         // Wrap a `Vec<Configuration>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.

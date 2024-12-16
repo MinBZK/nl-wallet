@@ -14,7 +14,14 @@ pub trait KeyedData: Serialize + DeserializeOwned {
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyData {
+    pub identifier: String,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegistrationData {
+    pub attested_key_identifier: String,
     #[serde_as(as = "Base64")]
     pub pin_salt: Vec<u8>,
     pub wallet_id: String,
@@ -36,7 +43,7 @@ pub enum UnlockMethod {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChangePinData {
-    pub state: Option<State>,
+    pub state: State,
 }
 
 impl UnlockMethod {
@@ -51,6 +58,10 @@ impl UnlockMethod {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct UnlockData {
     pub method: UnlockMethod,
+}
+
+impl KeyedData for KeyData {
+    const KEY: &'static str = "key";
 }
 
 impl KeyedData for RegistrationData {

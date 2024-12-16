@@ -1,9 +1,10 @@
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::attested_key::GoogleAttestedKey;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::instructions::ChangePinCommit;
 use wallet_common::account::messages::instructions::ChangePinRollback;
 use wallet_common::account::messages::instructions::ChangePinStart;
+use wallet_common::apple::AppleAttestedKey;
 use wallet_common::keys::EcdsaKey;
 
 use crate::account_provider::AccountProviderClient;
@@ -53,10 +54,11 @@ impl ChangePinClientError for AccountProviderResponseError {
     }
 }
 
-impl<'a, S, K, A> ChangePinClient for InstructionClientFactory<'a, S, K, A>
+impl<'a, S, AK, GK, A> ChangePinClient for InstructionClientFactory<'a, S, AK, GK, A>
 where
     S: Storage,
-    K: PlatformEcdsaKey,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
     type Error = InstructionError;
@@ -69,7 +71,7 @@ where
     ) -> Result<WalletCertificate, Self::Error> {
         let new_pin_key = PinKey::new(new_pin, new_pin_salt);
 
-        let client: InstructionClient<S, K, A> = self.create(old_pin.to_string());
+        let client: InstructionClient<S, AK, GK, A> = self.create(old_pin.to_string());
 
         client
             .construct_and_send(|challenge| async move {
@@ -90,12 +92,12 @@ where
     }
 
     async fn commit_new_pin(&self, new_pin: &str) -> Result<(), Self::Error> {
-        let client: InstructionClient<S, K, A> = self.create(new_pin.to_string());
+        let client: InstructionClient<S, AK, GK, A> = self.create(new_pin.to_string());
         client.send(ChangePinCommit {}).await
     }
 
     async fn rollback_new_pin(&self, old_pin: &str) -> Result<(), Self::Error> {
-        let client: InstructionClient<S, K, A> = self.create(old_pin.to_string());
+        let client: InstructionClient<S, AK, GK, A> = self.create(old_pin.to_string());
         client.send(ChangePinRollback {}).await
     }
 }

@@ -61,7 +61,9 @@
 
 pub mod hardware;
 
-#[cfg(feature = "hardware_integration_test")]
+#[cfg(feature = "mock_attested_key")]
+pub mod mock;
+#[cfg(any(all(feature = "mock_attested_key", test), feature = "hardware_integration_test"))]
 pub mod test;
 
 use std::error::Error;
@@ -80,6 +82,22 @@ where
     #[source]
     pub error: E,
     pub retryable: bool,
+}
+
+impl<E> AttestationError<E>
+where
+    E: Error,
+{
+    pub fn new_unretryable(error: E) -> Self {
+        Self {
+            error,
+            retryable: false,
+        }
+    }
+
+    pub fn new_retryable(error: E) -> Self {
+        Self { error, retryable: true }
+    }
 }
 
 /// Either a generic Apple or Google attested key.

@@ -146,10 +146,13 @@ impl FlutterApiErrorFields for WalletInitError {}
 
 impl FlutterApiErrorFields for WalletRegistrationError {
     fn typ(&self) -> FlutterApiErrorType {
+        if self.is_attestation_not_supported() {
+            return FlutterApiErrorType::HardwareKeyUnsupported;
+        }
+
         match self {
             WalletRegistrationError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             WalletRegistrationError::AlreadyRegistered => FlutterApiErrorType::WalletState,
-            WalletRegistrationError::HardwarePublicKey(_) => FlutterApiErrorType::HardwareKeyUnsupported,
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
@@ -376,7 +379,6 @@ impl FlutterApiErrorFields for ChangePinError {
             Self::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             Self::Storage(_)
             | Self::PinValidation(_)
-            | Self::HardwarePublicKey(_)
             | Self::CertificateValidation(_)
             | Self::PublicKeyMismatch
             | Self::WalletIdMismatch => FlutterApiErrorType::Generic,

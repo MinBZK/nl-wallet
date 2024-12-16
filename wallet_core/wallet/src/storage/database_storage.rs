@@ -400,6 +400,16 @@ where
         Ok(())
     }
 
+    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()> {
+        let database = self.database()?;
+
+        keyed_data::Entity::delete_by_id(D::KEY.to_string())
+            .exec(database.connection())
+            .await?;
+
+        Ok(())
+    }
+
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
         // Construct a vec of tuples of 1 `mdoc` and 1 or more `mdoc_copy` models,
         // based on the unique `MdocCopies`, to be inserted into the database.
@@ -755,6 +765,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_database_keyed_storage() {
         let registration = RegistrationData {
+            attested_key_identifier: "key_id".to_string(),
             pin_salt: vec![1, 2, 3, 4],
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
@@ -800,6 +811,7 @@ pub(crate) mod tests {
         // Upsert registration
         let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
+            attested_key_identifier: "key_id".to_string(),
             pin_salt: new_salt,
             wallet_id: registration.wallet_id.clone(),
             wallet_certificate: registration.wallet_certificate.clone(),
@@ -823,6 +835,17 @@ pub(crate) mod tests {
             fetched_after_update_registration.wallet_certificate.0,
             registration.wallet_certificate.0
         );
+
+        // Delete registration
+        storage
+            .delete_data::<RegistrationData>()
+            .await
+            .expect("Could not delete registration");
+        let no_registration = storage
+            .fetch_data::<RegistrationData>()
+            .await
+            .expect("Could not get registration");
+        assert!(no_registration.is_none());
 
         // Clear database, state should be uninitialized.
         storage.clear().await;

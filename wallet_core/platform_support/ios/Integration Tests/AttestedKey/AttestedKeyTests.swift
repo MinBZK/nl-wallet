@@ -22,7 +22,7 @@ final class AttestedKeyTests: XCTestCase {
     #if !targetEnvironment(simulator)
         func testHardwareSignature() {
             // The Rust code will panic if this test fails.
-            attested_key_test()
+            attested_key_test(true)
         }
     #endif
 }

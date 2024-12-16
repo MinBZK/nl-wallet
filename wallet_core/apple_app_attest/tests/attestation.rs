@@ -130,23 +130,43 @@ fn test_attestation<F>(
     }
 }
 
+// These tests are optional, depending on the feature flags enabled.
 #[cfg(feature = "mock")]
-#[test]
-fn test_mock_attestation() {
+mod mock {
+    use apple_app_attest::AppIdentifier;
     use apple_app_attest::Attestation;
+    use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::MockAttestationCa;
+    use apple_app_attest::VerifiedAttestation;
+    use webpki::types::TrustAnchor;
 
-    let app_identifier = AppIdentifier::new_mock();
-    let challenge = b"mock_attestation_challenge";
-    let mock_ca = MockAttestationCa::generate();
-    let (attestation_bytes, _signing_key) = Attestation::new_mock_bytes(&mock_ca, challenge, &app_identifier);
+    fn test_mock_attestation(mock_ca: &MockAttestationCa, trust_anchors: &[TrustAnchor]) {
+        let app_identifier = AppIdentifier::new_mock();
+        let challenge = b"generated_mock_attestation_challenge";
+        let (attestation_bytes, _signing_key) = Attestation::new_mock_bytes(mock_ca, challenge, &app_identifier);
 
-    VerifiedAttestation::parse_and_verify(
-        &attestation_bytes,
-        &[mock_ca.trust_anchor()],
-        challenge,
-        &app_identifier,
-        AttestationEnvironment::Development,
-    )
-    .expect("mock attestation should validate successfully");
+        VerifiedAttestation::parse_and_verify(
+            &attestation_bytes,
+            trust_anchors,
+            challenge,
+            &app_identifier,
+            AttestationEnvironment::Development,
+        )
+        .expect("mock attestation should validate successfully");
+    }
+
+    #[test]
+    fn test_generated_mock_attestation() {
+        let mock_ca = MockAttestationCa::generate();
+
+        test_mock_attestation(&mock_ca, &[mock_ca.trust_anchor()]);
+    }
+
+    #[cfg(feature = "mock_ca")]
+    #[test]
+    fn test_static_mock_attestation() {
+        let mock_ca = MockAttestationCa::new_mock();
+
+        test_mock_attestation(&mock_ca, &apple_app_attest::MOCK_APPLE_TRUST_ANCHORS);
+    }
 }

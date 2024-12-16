@@ -30,7 +30,7 @@ static ENCRYPTION_CIPHERS: LazyLock<Mutex<HashMap<String, Arc<Aes256Gcm>>>> =
 /// To be used in tests in place of `HardwareEcdsaKey`. It implements the [`EcdsaKey`],
 /// [`SecureEcdsaKey`], [`WithIdentifier`] and [`StoredByIdentifier`] traits, mocking
 /// the behaviour of keys that are stored in secure hardware on a device.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockHardwareEcdsaKey {
     identifier: String,
     #[debug(skip)]

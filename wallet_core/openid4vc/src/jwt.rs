@@ -197,7 +197,6 @@ mod tests {
     use wallet_common::generator::TimeGenerator;
     use wallet_common::jwt::JwtCredentialClaims;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::EcdsaKey;
 
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -257,7 +256,7 @@ mod tests {
 
         // Produce a JWT with `JwtCredentialClaims` in it
         let jwt = JwtCredentialClaims::new_signed(
-            &holder_keypair.verifying_key().await.unwrap(),
+            holder_keypair.verifying_key(),
             issuer_keypair.private_key(),
             issuer_keypair
                 .certificate()

@@ -8,6 +8,8 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use tests_integration::default_deployed_app_identifier;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::errors::PidIssuanceError;
 use wallet::mock::default_configuration;
@@ -19,7 +21,6 @@ use wallet::wallet_deps::HttpDigidSession;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
-use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 
 #[derive(Debug, Eq, PartialEq)]
 enum TestError {
@@ -122,19 +123,20 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
 
     let mut wallet: Wallet<
         LocalConfigurationRepository,
+        MockUpdatePolicyRepository,
         MockStorage,
-        MockHardwareEcdsaKey,
+        MockHardwareAttestedKeyHolder,
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,
         DisclosureSession<HttpVpMessageClient, Uuid>,
         WpWteIssuanceClient,
-        MockUpdatePolicyRepository,
     > = Wallet::init_registration(
         config_repository,
-        MockStorage::default(),
-        HttpAccountProviderClient::default(),
         MockUpdatePolicyRepository::default(),
+        MockStorage::default(),
+        MockHardwareAttestedKeyHolder::new_mock(default_deployed_app_identifier()),
+        HttpAccountProviderClient::default(),
     )
     .await
     .expect("Could not create test wallet");

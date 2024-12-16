@@ -23,7 +23,7 @@ impl PlatformUtilities for MockHardwareUtilities {
 #[cfg(test)]
 mod tests {
     use super::super::test;
-    use super::*;
+    use super::MockHardwareUtilities;
 
     #[tokio::test]
     async fn test_storage_path() {

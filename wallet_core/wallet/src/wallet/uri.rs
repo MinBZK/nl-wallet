@@ -6,6 +6,7 @@ use url::Url;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::urls;
 
@@ -32,9 +33,10 @@ pub enum UriIdentificationError {
     Unknown,
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
+    AKH: AttestedKeyHolder,
     DS: DigidSession,
 {
     #[instrument(skip_all)]
@@ -77,7 +79,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_identify_redirect_uri() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Set up some URLs to work with.
         let example_uri = "https://example.com";

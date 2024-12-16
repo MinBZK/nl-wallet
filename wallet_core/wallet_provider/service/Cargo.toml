@@ -37,6 +37,7 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
+derive_more = { workspace = true, features = ["into"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 indexmap.workspace = true
 itertools.workspace = true
