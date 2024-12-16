@@ -1,3 +1,4 @@
+use apple_app_attest::AttestationEnvironment;
 use ctor::ctor;
 use indexmap::IndexMap;
 use reqwest::StatusCode;
@@ -13,7 +14,7 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use tests_integration::default_deployed_app_identifier;
+use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use wallet::mock::default_configuration;
@@ -59,15 +60,24 @@ async fn main() {
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
     let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
 
+    let apple_attestation_environment = option_env!("APPLE_ATTESTATION_ENVIRONMENT");
     let team_identifier = option_env!("TEAM_IDENTIFIER");
     let bundle_identifier = option_env!("BUNDLE_IDENTIFIER");
+
+    let apple_attestation_environment = apple_attestation_environment
+        .map(|environment| match environment {
+            "development" => AttestationEnvironment::Development,
+            "production" => AttestationEnvironment::Production,
+            _ => panic!("Invalid Apple attestation environment"),
+        })
+        .unwrap_or_else(default::attestation_environment);
 
     // Create an iOS app identifier if both environment variables are provided, otherwise fall back to the default.
     let app_identifier = if let (Some(team_identifier), Some(bundle_identifier)) = (team_identifier, bundle_identifier)
     {
         AppIdentifier::new(team_identifier, bundle_identifier)
     } else {
-        default_deployed_app_identifier()
+        default::app_identifier()
     };
 
     let config_server_config = ConfigServerConfiguration::default();
@@ -91,7 +101,7 @@ async fn main() {
         config_repository,
         update_policy_repository,
         MockStorage::default(),
-        MockHardwareAttestedKeyHolder::new_mock(app_identifier),
+        MockHardwareAttestedKeyHolder::new_mock(apple_attestation_environment, app_identifier),
         HttpAccountProviderClient::default(),
     )
     .await

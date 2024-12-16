@@ -101,8 +101,8 @@ fn different_environment_parameters() -> AttestationParameters {
     |error| assert_matches!(error, AttestationError::Validation(AttestationValidationError::EnvironmentMismatch {
         expected,
         received
-    }) if expected == AttestationEnvironment::Development.aaguid()
-        && received == AttestationEnvironment::Production.aaguid())
+    }) if expected == AttestationEnvironment::Development.to_aaguid()
+        && received == AttestationEnvironment::Production.to_aaguid())
 )]
 fn test_attestation<F>(
     attestation_data: &[u8],
@@ -150,14 +150,14 @@ mod mock {
             trust_anchors,
             challenge,
             &app_identifier,
-            AttestationEnvironment::Development,
+            mock_ca.environment,
         )
         .expect("mock attestation should validate successfully");
     }
 
     #[test]
     fn test_generated_mock_attestation() {
-        let mock_ca = MockAttestationCa::generate();
+        let mock_ca = MockAttestationCa::generate(AttestationEnvironment::Development);
 
         test_mock_attestation(&mock_ca, &[mock_ca.trust_anchor()]);
     }
@@ -165,7 +165,7 @@ mod mock {
     #[cfg(feature = "mock_ca")]
     #[test]
     fn test_static_mock_attestation() {
-        let mock_ca = MockAttestationCa::new_mock();
+        let mock_ca = MockAttestationCa::new_mock(AttestationEnvironment::Production);
 
         test_mock_attestation(&mock_ca, &apple_app_attest::MOCK_APPLE_TRUST_ANCHORS);
     }

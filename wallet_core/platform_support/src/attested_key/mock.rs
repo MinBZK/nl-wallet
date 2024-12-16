@@ -11,6 +11,7 @@ use parking_lot::RwLock;
 use uuid::Uuid;
 
 use apple_app_attest::AppIdentifier;
+use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use wallet_common::account::serialization::DerSigningKey;
 use wallet_common::apple::MockAppleAttestedKey;
@@ -76,20 +77,20 @@ pub struct MockHardwareAttestedKeyHolder {
 }
 
 impl MockHardwareAttestedKeyHolder {
-    pub fn generate(app_identifier: AppIdentifier) -> Self {
+    pub fn generate(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
         Self {
             key_states: &KEY_STATES,
-            ca: MockAttestationCa::generate(),
+            ca: MockAttestationCa::generate(environment),
             app_identifier,
             error_scenario: KeyHolderErrorScenario::NoError,
         }
     }
 
     #[cfg(feature = "mock_apple_ca")]
-    pub fn new_mock(app_identifier: AppIdentifier) -> Self {
+    pub fn new_mock(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
         Self {
             key_states: &KEY_STATES,
-            ca: MockAttestationCa::new_mock(),
+            ca: MockAttestationCa::new_mock(environment),
             app_identifier,
             error_scenario: KeyHolderErrorScenario::NoError,
         }
@@ -347,10 +348,10 @@ mod persistent {
             *key_states_file = Some(file_path);
         }
 
-        pub fn new_mock(app_identifier: AppIdentifier) -> Self {
+        pub fn new_mock(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
             let holder = MockHardwareAttestedKeyHolder {
                 key_states: &PERSISTENT_KEY_STATES,
-                ca: MockAttestationCa::new_mock(),
+                ca: MockAttestationCa::new_mock(environment),
                 app_identifier,
                 error_scenario: KeyHolderErrorScenario::NoError,
             };
@@ -383,12 +384,10 @@ mod persistent {
                 })
                 .await
         }
-    }
 
-    #[cfg(feature = "xcode_env")]
-    impl Default for PersistentMockAttestedKeyHolder {
-        fn default() -> Self {
-            Self::new_mock(AppIdentifier::default())
+        #[cfg(feature = "xcode_env")]
+        pub fn new_mock_xcode(environment: AttestationEnvironment) -> Self {
+            Self::new_mock(environment, AppIdentifier::default())
         }
     }
 
@@ -460,6 +459,7 @@ mod persistent {
     #[cfg(all(test, feature = "mock_utils"))]
     mod tests {
         use apple_app_attest::AppIdentifier;
+        use apple_app_attest::AttestationEnvironment;
         use apple_app_attest::MOCK_APPLE_TRUST_ANCHORS;
 
         use crate::attested_key::test;
@@ -479,7 +479,8 @@ mod persistent {
             );
 
             let app_identifier = AppIdentifier::new_mock();
-            let mock_holder = PersistentMockAttestedKeyHolder::new_mock(app_identifier);
+            let mock_holder =
+                PersistentMockAttestedKeyHolder::new_mock(AttestationEnvironment::Development, app_identifier);
             let challenge = b"this_is_a_challenge_string";
             let payload = b"This is a message that will be signed by the persistent mock key.";
 
@@ -501,7 +502,7 @@ mod persistent {
 
 #[cfg(test)]
 mod tests {
-    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::{AppIdentifier, AttestationEnvironment};
 
     use crate::attested_key::test;
     use crate::attested_key::test::AppleTestData;
@@ -511,7 +512,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_apple_hardware_attested_key_holder() {
         let app_identifier = AppIdentifier::new_mock();
-        let mock_holder = MockHardwareAttestedKeyHolder::generate(app_identifier);
+        let mock_holder = MockHardwareAttestedKeyHolder::generate(AttestationEnvironment::Development, app_identifier);
         let challenge = b"this_is_a_challenge_string";
         let payload = b"This is a message that will be signed by the mock key.";
 

@@ -8,6 +8,7 @@ use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
+use apple_app_attest::AttestationEnvironment;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
@@ -166,7 +167,7 @@ impl WalletWithMocks {
             config_repository,
             MockUpdatePolicyRepository::default(),
             MockStorage::default(),
-            MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
+            MockHardwareAttestedKeyHolder::generate(AttestationEnvironment::Development, AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),
             RegistrationStatus::Unregistered,
         )
@@ -244,7 +245,7 @@ impl WalletWithMocks {
             config_repository,
             MockUpdatePolicyRepository::default(),
             storage,
-            MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
+            MockHardwareAttestedKeyHolder::generate(AttestationEnvironment::Development, AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),
         )
         .await

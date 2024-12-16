@@ -147,7 +147,7 @@ mod tests {
 
         // Generate a mock assertion, a mock attested key and a mock PIN siging key.
         let app_identifier = AppIdentifier::new_mock();
-        let mock_ca = MockAttestationCa::generate();
+        let mock_ca = MockAttestationCa::generate(AttestationEnvironment::Development);
         let (attested_key, attestation) =
             MockAppleAttestedKey::new_with_attestation(&mock_ca, app_identifier.clone(), challenge);
         let pin_signing_key = SigningKey::random(&mut OsRng);
@@ -174,7 +174,7 @@ mod tests {
             &[mock_ca.trust_anchor()],
             challenge,
             &app_identifier,
-            AttestationEnvironment::Development,
+            mock_ca.environment,
         )
         .expect("apple attestation should validate succesfully");
 

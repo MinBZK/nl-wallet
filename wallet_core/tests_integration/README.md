@@ -42,6 +42,7 @@ In addition, it requires an `test_integration/.env` file containing these keys:
   used by the relying party server.
 - `PUBLIC_WALLET_SERVER_URL`: The public URL of the Wallet Server where the status for the session can be retrieved.
   Normally used by the wallet_web frontend.
+- `APPLE_ATTESTATION_ENVIRONMENT`: The Apple attestation environment to be used for Apple key and app attestation that is configured in the Wallet Provider. Valid values are `development` and `production`, defaulting to the former if not provided.
 - `TEAM_IDENTIFIER`: The Apple Team Identifier to be used for Apple key and app attestation that is configured in the Wallet Provider. Note that this needs to be provided together with `BUNDLE_IDENTIFIER`.
 - `BUNDLE_IDENTIFIER`: The Bundle Identifier of the wallet app to be used for Apple key and app attestation that is configured in the Wallet Provider. Note that this needs to be provided together with `TEAM_IDENTIFIER`.
 

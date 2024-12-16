@@ -10,7 +10,16 @@ pub mod utils;
 pub mod fake_digid;
 
 #[cfg(any(feature = "performance_test", feature = "gba_pid_test"))]
-pub fn default_deployed_app_identifier() -> apple_app_attest::AppIdentifier {
-    // This is the default iOS team and bundle identifier configured for the Wallet Provider.
-    apple_app_attest::AppIdentifier::new("XGL6UKBPLP", "nl.ictu.edi.wallet.latest")
+pub mod default {
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AttestationEnvironment;
+
+    pub fn attestation_environment() -> AttestationEnvironment {
+        AttestationEnvironment::Development
+    }
+
+    pub fn app_identifier() -> AppIdentifier {
+        // This is the default iOS team and bundle identifier configured for the Wallet Provider.
+        AppIdentifier::new("XGL6UKBPLP", "nl.ictu.edi.wallet.latest")
+    }
 }
