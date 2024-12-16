@@ -66,7 +66,6 @@ use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-use wallet_common::keys::EcdsaKey;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
@@ -895,7 +894,7 @@ async fn prepare_example_holder_mocks(
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
-    let mdoc_public_key = (&mdoc_private_key.verifying_key().await.unwrap()).try_into().unwrap();
+    let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
     let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, issuer_key_pair)
         .await
         .unwrap();

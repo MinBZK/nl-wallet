@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::mem;
 
 use p256::ecdsa::signature::Verifier;
+use webpki::types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
@@ -10,7 +11,6 @@ use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
 use apple_app_attest::VerifiedAttestation;
-use apple_app_attest::APPLE_TRUST_ANCHORS;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::utils;
 
@@ -19,14 +19,14 @@ use super::AttestedKey;
 use super::AttestedKeyHolder;
 use super::KeyWithAttestation;
 
-/// This simply wraps a [`Vec<u8>`] as hash data and a generated challenge.
-struct SimpleClientData {
-    hash_data: Vec<u8>,
+/// This simply wraps a byte slice as hash data and a randomly generated challenge.
+struct SimpleClientData<'a> {
+    hash_data: &'a [u8],
     challenge: Vec<u8>,
 }
 
-impl SimpleClientData {
-    pub fn new(hash_data: Vec<u8>) -> Self {
+impl<'a> SimpleClientData<'a> {
+    pub fn new(hash_data: &'a [u8]) -> Self {
         Self {
             hash_data,
             challenge: utils::random_bytes(32),
@@ -34,11 +34,11 @@ impl SimpleClientData {
     }
 }
 
-impl ClientData for SimpleClientData {
+impl<'a> ClientData for SimpleClientData<'a> {
     type Error = Infallible;
 
     fn hash_data(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
-        Ok(&self.hash_data)
+        Ok(self.hash_data)
     }
 
     fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
@@ -46,11 +46,20 @@ impl ClientData for SimpleClientData {
     }
 }
 
-pub async fn create_and_verify_attested_key<H>(holder: H, challenge: Vec<u8>, payload: Vec<u8>)
-where
+pub struct AppleTestData<'a> {
+    pub app_identifier: &'a AppIdentifier,
+    pub trust_anchors: &'a [TrustAnchor<'a>],
+}
+
+pub async fn create_and_verify_attested_key<'a, H>(
+    holder: &'a H,
+    apple_test_data: Option<AppleTestData<'a>>,
+    challenge: Vec<u8>,
+    payload: Vec<u8>,
+) where
     H: AttestedKeyHolder,
-    <H as AttestedKeyHolder>::AppleKey: Debug,
-    <H as AttestedKeyHolder>::GoogleKey: Debug,
+    H::AppleKey: Debug,
+    H::GoogleKey: Debug,
 {
     // Generate an identifier for the attested key, which on iOS also actually generates a key pair.
     let identifier = holder
@@ -66,36 +75,30 @@ where
 
     match key_with_attestation {
         KeyWithAttestation::Apple { key, attestation_data } => {
-            // When Xcode compiles the crate as part of the integration tests,
-            // the environment variables below should be set.
-            let (Some(team_id), Some(bundle_id)) = (
-                option_env!("DEVELOPMENT_TEAM"),
-                option_env!("PRODUCT_BUNDLE_IDENTIFIER"),
-            ) else {
-                panic!("Xcode environment variables are not defined")
+            let Some(apple_test_data) = apple_test_data else {
+                panic!("apple test data should be provided to test");
             };
-            let app_identifier = AppIdentifier::new(team_id, bundle_id);
 
             // Perform the server side check of the attestation here.
             let (_, public_key) = VerifiedAttestation::parse_and_verify(
                 &attestation_data,
-                &APPLE_TRUST_ANCHORS,
+                apple_test_data.trust_anchors,
                 &challenge,
-                &app_identifier,
+                apple_test_data.app_identifier,
                 AttestationEnvironment::Development, // Assume that tests use the AppAttest sandbox
             )
             .expect("could not verify attestation");
 
             // Create an assertion for the payload and perform the server side check,
             // using the public key extracted during attestation in the previous step.
-            let client_data1 = SimpleClientData::new(payload.clone());
+            let client_data1 = SimpleClientData::new(&payload);
             let assertion1 = key.sign(payload.clone()).await.expect("could not sign payload");
 
             VerifiedAssertion::parse_and_verify(
                 assertion1.as_ref(),
                 &client_data1,
                 &public_key,
-                &app_identifier,
+                apple_test_data.app_identifier,
                 AssertionCounter::default(),
                 &client_data1.challenge,
             )
@@ -117,14 +120,17 @@ where
                 panic!("expected Apple attested key");
             };
 
-            let client_data2 = SimpleClientData::new(payload.clone());
-            let assertion2 = key.sign(payload).await.expect("could not sign payload a second time");
+            let client_data2 = SimpleClientData::new(&payload);
+            let assertion2 = key
+                .sign(payload.clone())
+                .await
+                .expect("could not sign payload a second time");
 
             VerifiedAssertion::parse_and_verify(
                 assertion2.as_ref(),
                 &client_data2,
                 &public_key,
-                &app_identifier,
+                apple_test_data.app_identifier,
                 AssertionCounter::from(1),
                 &client_data2.challenge,
             )

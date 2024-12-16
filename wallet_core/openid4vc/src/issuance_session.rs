@@ -872,7 +872,6 @@ mod tests {
     use wallet_common::keys::factory::KeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::keys::EcdsaKey;
     use wallet_common::nonempty::NonEmpty;
     use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
@@ -910,8 +909,8 @@ mod tests {
         };
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
-        let mdoc_public_key = mdoc_key.verifying_key().await.unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned_mdoc, (&mdoc_public_key).try_into().unwrap(), &issuance_key)
+        let mdoc_public_key = mdoc_key.verifying_key();
+        let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key.try_into().unwrap(), &issuance_key)
             .await
             .unwrap();
         let credential_response = CredentialResponse::MsoMdoc {
@@ -922,7 +921,7 @@ mod tests {
             credential_response,
             preview,
             borrowing_trust_anchor,
-            mdoc_public_key,
+            *mdoc_public_key,
             key_factory,
         )
     }

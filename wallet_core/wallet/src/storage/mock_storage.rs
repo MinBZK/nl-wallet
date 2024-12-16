@@ -128,6 +128,12 @@ impl Storage for MockStorage {
         Ok(())
     }
 
+    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()> {
+        self.data.remove(D::KEY);
+
+        Ok(())
+    }
+
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
         self.check_query_error()?;
 
@@ -294,6 +300,9 @@ mod tests {
 
         let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
         assert_eq!(updated, fetched);
+
+        storage.delete_data::<Data>().await.unwrap();
+        assert!(storage.fetch_data::<Data>().await.unwrap().is_none());
     }
 
     #[tokio::test]

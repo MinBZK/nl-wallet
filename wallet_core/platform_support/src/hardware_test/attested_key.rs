@@ -1,20 +1,31 @@
 use tokio::runtime;
 
+use apple_app_attest::{AppIdentifier, APPLE_TRUST_ANCHORS};
+
 use crate::attested_key::hardware::HardwareAttestedKeyHolder;
-use crate::attested_key::test;
+use crate::attested_key::test::AppleTestData;
+use crate::attested_key::test::{self};
 
 #[no_mangle]
-extern "C" fn attested_key_test() {
+extern "C" fn attested_key_test(has_xcode_env: bool) {
     let challenge = b"this_is_a_challenge_string";
     let payload = b"This is a message that will be signed.";
 
     super::print_panic(|| {
+        // Prepare Apple test data if we are executed from Xcode.
+        let app_identifier = has_xcode_env.then(AppIdentifier::default);
+        let apple_test_data = app_identifier.as_ref().map(|app_identifier| AppleTestData {
+            app_identifier,
+            trust_anchors: &APPLE_TRUST_ANCHORS,
+        });
+
         let rt = runtime::Builder::new_current_thread().enable_all().build().unwrap();
 
         let holder = HardwareAttestedKeyHolder::default();
 
         rt.block_on(test::create_and_verify_attested_key(
-            holder,
+            &holder,
+            apple_test_data,
             challenge.to_vec(),
             payload.to_vec(),
         ));
@@ -37,6 +48,6 @@ mod android {
             Config::default().with_max_level(LevelFilter::Trace),
         );
         log::info!("Begin attested key test");
-        super::attested_key_test();
+        super::attested_key_test(false);
     }
 }

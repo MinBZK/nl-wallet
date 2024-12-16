@@ -42,8 +42,7 @@ use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtError;
 use wallet_common::jwt::JwtSubject;
 use wallet_common::keys::poa::PoaError;
-use wallet_common::utils::random_bytes;
-use wallet_common::utils::random_string;
+use wallet_common::utils;
 use wallet_provider_domain::model::encrypted::Encrypted;
 use wallet_provider_domain::model::encrypter::Decrypter;
 use wallet_provider_domain::model::encrypter::Encrypter;
@@ -235,6 +234,17 @@ pub struct AppleAttestationConfiguration {
     pub environment: AttestationEnvironment,
 }
 
+impl AppleAttestationConfiguration {
+    pub fn new(team_identifier: String, bundle_identifier: String, environment: AttestationEnvironment) -> Self {
+        let app_identifier = AppIdentifier::new(team_identifier, bundle_identifier);
+
+        Self {
+            app_identifier,
+            environment,
+        }
+    }
+}
+
 pub struct AccountServer {
     instruction_challenge_timeout: Duration,
 
@@ -276,8 +286,8 @@ impl AccountServer {
     ) -> Result<Vec<u8>, ChallengeError> {
         let challenge = Jwt::sign_with_sub(
             &RegistrationChallengeClaims {
-                wallet_id: random_string(32),
-                random: random_bytes(32),
+                wallet_id: utils::random_string(32),
+                random: utils::random_bytes(32),
                 exp: jsonwebtoken::get_current_timestamp() + 60,
             },
             certificate_signing_key,
@@ -327,7 +337,7 @@ impl AccountServer {
                 let (_, hw_pubkey) = VerifiedAttestation::parse_and_verify(
                     &data,
                     &self.apple_trust_anchors,
-                    challenge,
+                    &utils::sha256(challenge),
                     &self.apple_config.app_identifier,
                     self.apple_config.environment,
                 )?;
@@ -461,7 +471,7 @@ impl AccountServer {
 
         debug!("Challenge request valid, persisting generated challenge and incremented sequence number");
         let challenge = InstructionChallenge {
-            bytes: random_bytes(32),
+            bytes: utils::random_bytes(32),
             expiration_date_time: time_generator.generate() + self.instruction_challenge_timeout,
         };
 
@@ -1054,7 +1064,7 @@ mod tests {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                     mock_apple_ca,
                     account_server.apple_config.app_identifier.clone(),
-                    &challenge,
+                    &utils::sha256(&challenge),
                 );
                 let registration_message =
                     ChallengeResponse::new_apple(&attested_key, attestation_data, pin_privkey, challenge)
@@ -1459,7 +1469,7 @@ mod tests {
             .await
             .unwrap();
 
-        repo.challenge = Some(random_bytes(32));
+        repo.challenge = Some(utils::random_bytes(32));
 
         let tx = repo.begin_transaction().await.unwrap();
         let wallet_user = repo.find_wallet_user_by_wallet_id(&tx, "0").await.unwrap();
@@ -1760,7 +1770,10 @@ mod tests {
         .await
         .unwrap();
 
-        let pop_pin_pubkey = new_pin_privkey.try_sign(random_bytes(32).as_slice()).await.unwrap();
+        let pop_pin_pubkey = new_pin_privkey
+            .try_sign(utils::random_bytes(32).as_slice())
+            .await
+            .unwrap();
 
         let error = account_server
             .handle_change_pin_start_instruction(

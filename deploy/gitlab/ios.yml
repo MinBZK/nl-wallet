@@ -14,6 +14,7 @@ test-ios:
       - "fastlane/test_output/*"
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
+    BUNDLE_FROZEN: "true"
   script:
     - bundle install
     - bundle exec fastlane ios test
@@ -43,6 +44,7 @@ test-ios:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
+    BUNDLE_FROZEN: "true"
   before_script:
     - !reference [.env-macos-runner, before_script]
     - !reference [.ruby-cache-macos, before_script]
@@ -51,7 +53,7 @@ test-ios:
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
     - export MATCH_PASSWORD
     - (git config --global url.https://gitlab-ci-token:$CI_JOB_TOKEN@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST)
-    - HTTP_PROXY="" HTTPS_PROXY="" bundle install --retry=10
+    - HTTP_PROXY="" HTTPS_PROXY="" bundle install
     - bundle exec fastlane disable_flutter_analytics
     - |
       bundle exec fastlane ios ci_build \
@@ -205,6 +207,7 @@ build-ios-app-production:
   image: sonoma-wallet:0.1.3
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
+    BUNDLE_FROZEN: "true"
   before_script:
     - !reference [.env-macos-runner, before_script]
     - !reference [.ruby-cache-macos, before_script]

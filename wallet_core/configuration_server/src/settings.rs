@@ -32,7 +32,7 @@ impl Settings {
                 Environment::with_prefix("config_server")
                     .separator("__")
                     .prefix_separator("_")
-                    .list_separator("|"),
+                    .list_separator(","),
             )
             .build()?
             .try_deserialize()

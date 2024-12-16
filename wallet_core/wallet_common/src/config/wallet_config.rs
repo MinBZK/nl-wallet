@@ -81,7 +81,6 @@ pub struct AccountServerConfiguration {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UpdatePolicyServerConfiguration {
-    #[serde(flatten)]
     pub http_config: TlsPinningConfig,
 }
 

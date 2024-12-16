@@ -8,7 +8,6 @@ use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
 
-use apple_app_attest::APPLE_TRUST_ANCHORS;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;
@@ -17,6 +16,7 @@ use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
+use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::ValidateInstruction;
@@ -60,14 +60,20 @@ impl RouterState {
 
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
 
+        let apple_config = AppleAttestationConfiguration::new(
+            settings.ios.team_identifier,
+            settings.ios.bundle_identifier,
+            settings.ios.environment.into(),
+        );
+
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
             "account_server".into(),
             (&certificate_signing_pubkey).into(),
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
-            settings.ios.into(),
-            APPLE_TRUST_ANCHORS.clone(),
+            apple_config,
+            settings.ios.root_certificates.into_iter().map(Into::into).collect(),
         )?;
 
         let db = Db::new(

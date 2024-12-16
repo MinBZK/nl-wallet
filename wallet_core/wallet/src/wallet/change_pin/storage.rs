@@ -16,34 +16,33 @@ where
     async fn get_change_pin_state(&self) -> Result<Option<State>, StorageError> {
         let storage = self.read().await;
         let change_pin_data: Option<ChangePinData> = storage.fetch_data().await?;
-        Ok(change_pin_data.and_then(|data| data.state))
+        Ok(change_pin_data.map(|data| data.state))
     }
 
     async fn store_change_pin_state(&self, state: State) -> Result<(), StorageError> {
         let mut storage = self.write().await;
-        let data = ChangePinData { state: Some(state) };
+        let data = ChangePinData { state };
         storage.upsert_data(&data).await
     }
 
     async fn clear_change_pin_state(&self) -> Result<(), StorageError> {
         let mut storage = self.write().await;
-        let data = ChangePinData { state: None };
-        storage.upsert_data(&data).await
+        storage.delete_data::<ChangePinData>().await
     }
 
     async fn change_pin(
         &self,
-        wallet_id: String,
+        current_registration_data: RegistrationData,
         new_pin_salt: Vec<u8>,
         new_pin_certificate: WalletCertificate,
     ) -> Result<(), StorageError> {
         let mut storage = self.write().await;
-        let data = RegistrationData {
+        let registration_data = RegistrationData {
             pin_salt: new_pin_salt,
-            wallet_id,
             wallet_certificate: new_pin_certificate,
+            ..current_registration_data
         };
-        storage.upsert_data(&data).await
+        storage.upsert_data(&registration_data).await
     }
 }
 
@@ -78,10 +77,18 @@ mod tests {
             assert_matches!(storage.fetch_data::<RegistrationData>().await, Ok(None));
         }
 
-        let wallet_certificate = WalletCertificate::from("thisisdefinitelyvalid");
+        let registration_data = RegistrationData {
+            attested_key_identifier: "key_id".to_string(),
+            pin_salt: b"pin_salt_1234_old".to_vec(),
+            wallet_id: "wallet_123".to_string(),
+            wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid_current"),
+        };
+        let new_pin_salt = b"pin_salt_1234_new".to_vec();
+        let new_wallet_certificate = WalletCertificate::from("thisisdefinitelyvalid_new");
+
         assert_matches!(
             change_pin_storage
-                .change_pin("wallet_123".to_string(), vec![1, 2, 3], wallet_certificate)
+                .change_pin(registration_data, new_pin_salt, new_wallet_certificate)
                 .await,
             Ok(())
         );
@@ -93,7 +100,7 @@ mod tests {
                 .await
                 .expect("database error")
                 .expect("no registation data found");
-            assert_eq!(actual.pin_salt, vec![1, 2, 3]);
+            assert_eq!(actual.pin_salt, b"pin_salt_1234_new");
         }
     }
 }

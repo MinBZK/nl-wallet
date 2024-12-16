@@ -7,16 +7,19 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use derive_more::From;
+use derive_more::Into;
 use serde::Deserialize;
+use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
+use webpki::types::CertificateDer;
+use webpki::types::TrustAnchor;
 
-use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;
 use wallet_provider_database_settings::Database;
-use wallet_provider_service::account_server::AppleAttestationConfiguration;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -71,12 +74,15 @@ pub struct Hsm {
     pub max_session_lifetime: Duration,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Ios {
     pub team_identifier: String,
     pub bundle_identifier: String,
     #[serde(default)]
     pub environment: AppleEnvironment,
+    #[serde_as(as = "Vec<Base64>")]
+    pub root_certificates: Vec<RootCertificate>,
 }
 
 #[derive(Clone, Copy, Default, Deserialize)]
@@ -86,6 +92,9 @@ pub enum AppleEnvironment {
     #[default]
     Production,
 }
+
+#[derive(Clone, From, Into)]
+pub struct RootCertificate(TrustAnchor<'static>);
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
@@ -121,16 +130,12 @@ impl Settings {
                 Environment::with_prefix("wallet_provider")
                     .separator("__")
                     .prefix_separator("_")
-                    .list_separator("|"),
+                    .list_separator(",")
+                    .with_list_parse_key("ios.root_certificates")
+                    .try_parsing(true),
             )
             .build()?
             .try_deserialize()
-    }
-}
-
-impl From<Ios> for AppIdentifier {
-    fn from(value: Ios) -> Self {
-        Self::new(value.team_identifier, value.bundle_identifier)
     }
 }
 
@@ -143,14 +148,12 @@ impl From<AppleEnvironment> for AttestationEnvironment {
     }
 }
 
-impl From<Ios> for AppleAttestationConfiguration {
-    fn from(value: Ios) -> Self {
-        let environment = AttestationEnvironment::from(value.environment);
-        let app_identifier = AppIdentifier::from(value);
+impl TryFrom<Vec<u8>> for RootCertificate {
+    type Error = webpki::Error;
 
-        Self {
-            app_identifier,
-            environment,
-        }
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        let trust_anchor = webpki::anchor_from_trusted_cert(&CertificateDer::from(value))?.to_owned();
+
+        Ok(Self(trust_anchor))
     }
 }
