@@ -93,7 +93,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::JwtDecodingFailed(_)
                 | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MissingCredentialRequestPoP
-                | CredentialRequestError::Poa(_)
                 | CredentialRequestError::PoaVerification(_) => CredentialErrorCode::InvalidProof,
                 CredentialRequestError::CredentialTypeMismatch
                 | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,

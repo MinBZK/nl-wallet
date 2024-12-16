@@ -28,7 +28,6 @@ use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::VerifiedJwt;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::PoaError;
 use wallet_common::keys::poa::PoaVerificationError;
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
@@ -150,8 +149,6 @@ pub enum CredentialRequestError {
     WteAlreadyUsed,
     #[error("missing PoA")]
     MissingPoa,
-    #[error("PoA error: {0}")]
-    Poa(#[from] PoaError),
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
 }
