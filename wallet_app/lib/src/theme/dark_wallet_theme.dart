@@ -20,6 +20,7 @@ class DarkWalletTheme {
     primaryContainer: Color(0xFF2F3444),
     onPrimaryContainer: textColor,
     secondaryContainer: Color(0xFF004785),
+    tertiaryContainer: _Colors.pageGutter,
     onPrimary: Color(0xFF002C71),
     onSurface: primaryColorDark,
     onSurfaceVariant: Color(0xFF8292CC),
