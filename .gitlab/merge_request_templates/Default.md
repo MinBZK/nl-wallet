@@ -16,7 +16,7 @@ RATIONALE AND/OR IMPORTANT IMPLEMENTATION DECISIONS FOR THE REVIEWER
 - [ ] Deployment files and CI/CD pipelines are updated
     - including Gitlab variables
     - including deployment configuration and secrets
-- [ ] [Release Notes](./documentation/release_notes/) for the upcoming version contains an entry for this MR
+- [ ] [Release Notes](./documentation/release-notes/) for the upcoming version contains an entry for this MR
     - Breaking Changes
     - Upgrade Steps
 - [ ] This MR does not contain commits with code or commit messages that contain any of the following
