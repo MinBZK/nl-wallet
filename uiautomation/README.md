@@ -31,8 +31,7 @@ This framework is for automating the Android and iOS NL-Wallet app in a single c
 
 1. Install [Appium](https://appium.io/docs/en/2.0/quickstart/install/): `npm i --location=global appium`
 2. Install [Appium Flutter Driver](https://github.com/appium-userland/appium-flutter-driver): `appium driver install --source=npm appium-flutter-driver`
-3. Install [Appium Doctor](https://github.com/appium/appium-doctor): `npm install -g appium-doctor`
-4. Verify setup by running: `appium-doctor`
+3. Verify setup by running: `appium driver doctor flutter`
 
 ## Run Automation Tests
 

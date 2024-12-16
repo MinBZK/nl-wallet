@@ -6,12 +6,10 @@ import io.appium.java_client.service.local.flags.GeneralServerFlag
 
 object AppiumServiceProvider {
     var service: AppiumDriverLocalService? = null
+        private set
 
     fun startService() {
         if (service != null) throw UnsupportedOperationException("Service already running!")
-
-        val environment = HashMap<String, String>()
-        environment["PATH"] = "/usr/local/bin:" + System.getenv("PATH")
 
         val serviceBuilder = AppiumServiceBuilder()
             .usingAnyFreePort() // Use any port, in case the default 4723 is already taken
@@ -20,10 +18,10 @@ object AppiumServiceProvider {
             .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
             .withArgument(GeneralServerFlag.RELAXED_SECURITY)
             .withArgument(GeneralServerFlag.SESSION_OVERRIDE)
-            .withEnvironment(environment)
 
-        service = AppiumDriverLocalService.buildService(serviceBuilder)
-        service?.start()
+        val built = AppiumDriverLocalService.buildService(serviceBuilder)
+            ?: throw IllegalStateException("Appium driver is not started!")
+        service = built.also { it.start() }
     }
 
     fun stopService() {

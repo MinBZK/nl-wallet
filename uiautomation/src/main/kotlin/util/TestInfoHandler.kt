@@ -23,7 +23,7 @@ class TestInfoHandler {
         }
 
         private fun setupLanguage(tags: Set<String>) {
-            setDutchLanguage() // Default to dutch when no language tag is set
+            setDutchLanguage() // Default to Dutch when no language tag is set
             tags.forEach { tag ->
                 when (tag) {
                     ENGLISH_LANGUAGE_TAG -> setEnglishLanguage()

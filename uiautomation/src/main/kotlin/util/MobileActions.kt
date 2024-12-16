@@ -15,10 +15,10 @@ import java.time.Duration
 
 open class MobileActions {
 
-    protected val find = FlutterFinder(getWebDriver() as RemoteWebDriver)
-    protected val l10n = LocalizationHelper()
-
     private val driver = getWebDriver() as RemoteWebDriver
+
+    protected val find = FlutterFinder(driver)
+    protected val l10n = LocalizationHelper()
 
     /**
      * Checks if the given element is visible.
@@ -122,7 +122,7 @@ open class MobileActions {
 
                 // Wait for the web view context to be available
                 val wait = WebDriverWait(androidDriver, Duration.ofMillis(WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS))
-                wait.until { androidDriver.contextHandles.firstOrNull { it.contains(WEB_VIEW_CONTEXT_PREFIX) } != null }
+                wait.until { androidDriver.contextHandles.any { it.contains(WEB_VIEW_CONTEXT_PREFIX) } }
 
                 // Switch to the web view context
                 androidDriver.context(androidDriver.contextHandles.first { it.contains(WEB_VIEW_CONTEXT_PREFIX) })
