@@ -14,7 +14,6 @@ use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::update_policy::VersionState;
 
-use crate::account_provider::HttpAccountProviderClient;
 use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::config::init_universal_link_base_url;

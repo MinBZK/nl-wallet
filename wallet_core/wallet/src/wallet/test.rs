@@ -49,12 +49,7 @@ use crate::wte::tests::MockWteIssuanceClient;
 use crate::Document;
 use crate::HistoryEvent;
 
-use super::documents::DocumentsError;
 use super::init::RegistrationStatus;
-use super::HistoryError;
-use super::Wallet;
-use super::WalletInitError;
-use super::WalletRegistration;
 
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {
