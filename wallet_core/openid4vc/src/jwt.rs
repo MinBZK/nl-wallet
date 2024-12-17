@@ -26,7 +26,6 @@ use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::jwk_to_p256;
 use wallet_common::jwt::validations;
@@ -165,7 +164,7 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
         validation
     };
 
-    let payload = jwt.parse_and_verify(&DerVerifyingKey(*pubkey).into(), &validation_options)?;
+    let payload = jwt.parse_and_verify(&pubkey.into(), &validation_options)?;
 
     Ok((payload, leaf_cert))
 }
