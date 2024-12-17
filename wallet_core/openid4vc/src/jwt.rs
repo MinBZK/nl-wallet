@@ -118,8 +118,6 @@ pub enum JwtX5cError {
     CertificateParsing(#[source] CertificateError),
     #[error("error verifying certificate: {0}")]
     CertificateValidation(#[source] CertificateError),
-    #[error("error parsing public key from certificate: {0}")]
-    CertificatePublicKey(#[source] CertificateError),
 }
 
 /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT header.
