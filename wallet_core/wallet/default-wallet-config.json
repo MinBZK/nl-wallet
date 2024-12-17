@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 0,
   "environment": "dev",
   "lock_timeouts": {
     "inactive_timeout": 300,
