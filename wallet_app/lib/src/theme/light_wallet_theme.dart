@@ -19,6 +19,7 @@ class LightWalletTheme {
     primaryContainer: Color(0xFFF1F5FF),
     onPrimaryContainer: textColor,
     secondaryContainer: Color(0xFFF3F4F7),
+    tertiaryContainer: _Colors.pageGutter,
     onPrimary: Color(0xFFFCFCFC),
     onSurface: primaryColorDark,
     onSurfaceVariant: Color(0xFF445581),

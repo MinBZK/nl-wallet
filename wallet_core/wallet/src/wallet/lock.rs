@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::info;
 use tracing::instrument;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::account::messages::instructions::CheckPin;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
@@ -51,7 +51,10 @@ pub enum WalletUnlockError {
     UpdatePolicy(#[from] UpdatePolicyError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> {
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+where
+    AKH: AttestedKeyHolder,
+{
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()
     }
@@ -92,8 +95,8 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS,
     #[instrument(skip_all)]
     pub async fn set_unlock_method(&mut self, method: UnlockMethod) -> Result<(), WalletUnlockError>
     where
-        S: Storage,
         UR: Repository<VersionState>,
+        S: Storage,
     {
         info!("Setting unlock method to: {}", method);
 
@@ -125,11 +128,10 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS,
     async fn send_check_pin_instruction(&self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
-        PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: Default,
-        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
         let config = &self.config_repository.get();
 
@@ -144,9 +146,9 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS,
         }
 
         info!("Checking if registered");
-        let registration = self
+        let (attested_key, registration_data) = self
             .registration
-            .as_ref()
+            .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
@@ -154,7 +156,8 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS,
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                registration,
+                attested_key,
+                registration_data,
                 &config.account_server.http_config,
                 &instruction_result_public_key,
             )
@@ -172,11 +175,10 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS,
     pub async fn unlock(&mut self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
-        PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: Default,
-        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
         info!("Unlocking wallet with pin");
 
@@ -203,11 +205,10 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS,
     pub async fn check_pin(&self, pin: String) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
-        PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: Default,
-        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     {
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -222,8 +223,8 @@ impl<CR, S, PEK, APC, DS, IS, MDS, WIC, UR> Wallet<CR, S, PEK, APC, DS, IS, MDS,
     pub async fn unlock_without_pin(&mut self) -> Result<(), WalletUnlockError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
-        S: Storage,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+        S: Storage,
     {
         info!("Unlocking wallet without pin");
         let config = &self.config_repository.get();
@@ -261,10 +262,12 @@ mod tests {
     use assert_matches::assert_matches;
     use http::StatusCode;
     use mockall::predicate::*;
-
     use p256::ecdsa::SigningKey;
     use parking_lot::Mutex;
     use rand_core::OsRng;
+
+    use apple_app_attest::AssertionCounter;
+    use platform_support::attested_key::AttestedKey;
     use wallet_common::account::messages::errors::AccountError;
     use wallet_common::account::messages::errors::IncorrectPinData;
     use wallet_common::account::messages::errors::PinTimeoutData;
@@ -273,7 +276,6 @@ mod tests {
     use wallet_common::account::messages::instructions::InstructionResultClaims;
     use wallet_common::account::signed::SequenceNumberComparison;
     use wallet_common::jwt::Jwt;
-    use wallet_common::keys::EcdsaKey;
     use wallet_common::utils;
 
     use crate::account_provider::AccountProviderResponseError;
@@ -283,14 +285,14 @@ mod tests {
 
     use super::super::test::WalletWithMocks;
     use super::super::test::ACCOUNT_SERVER_KEYS;
+    use super::super::WalletRegistration;
     use super::*;
 
     const PIN: &str = "051097";
 
-    // Tests both setting and clearing the lock callback.
     #[tokio::test]
-    async fn test_wallet_lock_unlock_callback() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+    async fn test_wallet_lock_unlock_apple() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Wrap a `Vec<bool>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
@@ -311,10 +313,16 @@ mod tests {
 
         // Set up the instruction challenge.
         let challenge_response = challenge.clone();
-        let registration = wallet.registration.as_ref().unwrap();
-        let wallet_cert = registration.data.wallet_certificate.clone();
-        let wallet_id = registration.data.wallet_id.clone();
-        let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
+        let (attested_key, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
+        let wallet_cert = registration_data.wallet_certificate.clone();
+        let wallet_id = registration_data.wallet_id.clone();
+
+        let AttestedKey::Apple(attested_key) = attested_key else {
+            unreachable!();
+        };
+        let attested_public_key = *attested_key.verifying_key();
+        let app_identifier = attested_key.app_identifier.clone();
+        let next_counter = attested_key.next_counter();
 
         wallet
             .account_provider_client
@@ -328,17 +336,24 @@ mod tests {
 
                 challenge_request
                     .request
-                    .parse_and_verify_ecdsa(&wallet_id, SequenceNumberComparison::EqualTo(1), &hw_pubkey)
+                    .parse_and_verify_apple(
+                        &wallet_id,
+                        SequenceNumberComparison::EqualTo(1),
+                        &attested_public_key,
+                        &app_identifier,
+                        AssertionCounter::from(*next_counter - 1),
+                    )
                     .expect("challenge request should be valid");
 
                 Ok(challenge_response)
             });
 
         // Set up the instruction.
-        let wallet_cert = registration.data.wallet_certificate.clone();
-        let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
+        let wallet_cert = registration_data.wallet_certificate.clone();
+        let app_identifier = attested_key.app_identifier.clone();
+        let next_counter = attested_key.next_counter();
 
-        let pin_key = PinKey::new(PIN, &registration.data.pin_salt);
+        let pin_key = PinKey::new(PIN, &registration_data.pin_salt);
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
         let result_claims = InstructionResultClaims {
@@ -362,10 +377,12 @@ mod tests {
 
                 instruction
                     .instruction
-                    .parse_and_verify_ecdsa(
+                    .parse_and_verify_apple(
                         &challenge,
                         SequenceNumberComparison::LargerThan(1),
-                        &hw_pubkey,
+                        &attested_public_key,
+                        &app_identifier,
+                        AssertionCounter::from(*next_counter - 1),
                         &pin_pubkey,
                     )
                     .expect("Could not verify check pin instruction");
@@ -402,7 +419,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_unlock_error_not_registered() {
         // Prepare an unregistered wallet
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered();
 
         // Unlocking an unregistered `Wallet` should result in an error.
         let error = wallet
@@ -415,7 +432,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_not_locked() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         // Unlocking an already unlocked `Wallet` should result in an error.
         let error = wallet
@@ -428,7 +445,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_server_challenge_404() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet.lock();
 
@@ -452,7 +469,7 @@ mod tests {
     async fn test_wallet_unlock_error_instruction_response(
         response_error: AccountProviderResponseError,
     ) -> WalletUnlockError {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet.lock();
 
@@ -544,19 +561,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_signing() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet.lock();
 
         // Have the hardware key signing fail.
-        wallet
-            .registration
-            .as_mut()
-            .unwrap()
-            .hw_privkey
-            .next_private_key_error
-            .get_mut()
-            .replace(p256::ecdsa::Error::new());
+        match &mut wallet.registration {
+            WalletRegistration::Registered {
+                attested_key: AttestedKey::Apple(attested_key),
+                ..
+            } => attested_key.has_error = true,
+            _ => unreachable!(),
+        }
 
         let error = wallet
             .unlock(PIN.to_string())
@@ -568,7 +584,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_result_validation() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet.lock();
 
@@ -607,7 +623,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_store() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
         wallet.lock();
 

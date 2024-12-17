@@ -11,7 +11,6 @@ import '../../../wallet_constants.dart';
 import '../../common/widget/svg_or_image.dart';
 import '../../common/widget/text/body_text.dart';
 
-const _kContainerColor = Color(0xFFF5F4F9);
 const _kStoreLogoSize = 32.0;
 const _kWarnDotSize = 21.0;
 const _kForwardIconSize = 16.0;
@@ -107,7 +106,7 @@ class _UpdateBannerState extends State<UpdateBanner> with SingleTickerProviderSt
         );
       },
       child: Material(
-        color: _kContainerColor,
+        color: context.colorScheme.tertiaryContainer,
         borderRadius: WalletTheme.kBorderRadius12,
         child: InkWell(
           borderRadius: WalletTheme.kBorderRadius12,

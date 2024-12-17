@@ -11,6 +11,7 @@ use wallet_common::account::messages::instructions::CheckPin;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::apple::MockAppleAttestedKey;
 use wallet_common::generator::Generator;
+use wallet_common::utils;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -70,7 +71,7 @@ async fn do_registration(
             let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                 apple_mock_ca,
                 account_server.apple_config.app_identifier.clone(),
-                &challenge,
+                &utils::sha256(&challenge),
             );
             let registration_message =
                 ChallengeResponse::<Registration>::new_apple(&attested_key, attestation_data, pin_privkey, challenge)

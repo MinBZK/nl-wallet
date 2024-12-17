@@ -37,9 +37,11 @@
         "${PID_CA_CRT}"
     ],
     "update_policy_server": {
-        "base_url": "https://${SERVICES_HOST}:${UPDATE_POLICY_SERVER_PORT}/update/v1/",
-        "trust_anchors": [
-            "${UPDATE_POLICY_SERVER_CA_CRT}"
-        ]
+        "http_config": {
+            "base_url": "https://${SERVICES_HOST}:${UPDATE_POLICY_SERVER_PORT}/update/v1/",
+            "trust_anchors": [
+                "${UPDATE_POLICY_SERVER_CA_CRT}"
+            ]
+        }
     }
 }

@@ -378,6 +378,12 @@ generate_wp_random_key pin_pubkey_encryption
 WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
 export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
 
+APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/apple_app_attest/assets/Apple_App_Attestation_Root_CA.pem" -outform DER | ${BASE64})
+export APPLE_ROOT_CA
+
+MOCK_APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/apple_app_attest/assets/mock_ca.crt.pem" -outform DER | ${BASE64})
+export MOCK_APPLE_ROOT_CA
+
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 

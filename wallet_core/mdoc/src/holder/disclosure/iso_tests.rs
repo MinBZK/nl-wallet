@@ -46,7 +46,7 @@ async fn create_example_device_response(
         _ => panic!("should have found a valid candidate in DeviceRequest"),
     };
 
-    let device_response =
+    let (device_response, _) =
         DeviceResponse::from_proposed_documents(vec![proposed_document], &MockRemoteKeyFactory::default())
             .await
             .unwrap();

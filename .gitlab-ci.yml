@@ -267,7 +267,7 @@ deploy-update-policy-server-demo:
     WALLET_PROVIDER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA}
   script:
     - envsubst < deploy/kubernetes/servicemonitors.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/wallet-provider-configmap.yaml
+    - kubectl apply -f deploy/kubernetes/${ENV}/wallet-provider-configmap.yaml
     - envsubst < deploy/kubernetes/wallet-provider-deployment.yaml | kubectl apply -f -
     - envsubst < deploy/kubernetes/wallet-provider-ingress.yaml | kubectl apply -f -
     - kubectl apply -f deploy/kubernetes/wallet-provider-service.yaml
@@ -282,6 +282,7 @@ deploy-wallet-provider-ont:
     - job: run-wp-migrations-ont
       artifacts: false
   variables:
+    ENV: ont
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_ONT
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_ONT
     APP_IDENTIFIER: "${INTERNAL_APP_IDENTIFIER}.latest"
@@ -294,6 +295,7 @@ deploy-wallet-provider-demo:
     - job: run-wp-migrations-demo
       artifacts: false
   variables:
+    ENV: demo
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_DEMO
     APP_IDENTIFIER: "${INTERNAL_APP_IDENTIFIER}.demo"

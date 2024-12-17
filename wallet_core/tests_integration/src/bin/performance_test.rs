@@ -5,12 +5,15 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
+use apple_app_attest::AppIdentifier;
 use nl_wallet_mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use tests_integration::default_deployed_app_identifier;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use wallet::mock::default_wallet_config;
@@ -26,7 +29,6 @@ use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
 use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 use wallet_server::verifier::StartDisclosureRequest;
 use wallet_server::verifier::StartDisclosureResponse;
 use wallet_server::verifier::StatusParams;
@@ -38,14 +40,14 @@ fn init() {
 
 type PerformanceTestWallet = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
+    UpdatePolicyRepository,
     MockStorage,
-    MockHardwareEcdsaKey,
+    MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidSession,
     HttpIssuanceSession,
     DisclosureSession<HttpVpMessageClient, Uuid>,
     WpWteIssuanceClient,
-    UpdatePolicyRepository,
 >;
 
 #[instrument(name = "", fields(pid = std::process::id()))]
@@ -56,6 +58,17 @@ async fn main() {
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
     let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
+
+    let team_identifier = option_env!("TEAM_IDENTIFIER");
+    let bundle_identifier = option_env!("BUNDLE_IDENTIFIER");
+
+    // Create an iOS app identifier if both environment variables are provided, otherwise fall back to the default.
+    let app_identifier = if let (Some(team_identifier), Some(bundle_identifier)) = (team_identifier, bundle_identifier)
+    {
+        AppIdentifier::new(team_identifier, bundle_identifier)
+    } else {
+        default_deployed_app_identifier()
+    };
 
     let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
@@ -76,9 +89,10 @@ async fn main() {
 
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
-        MockStorage::default(),
-        HttpAccountProviderClient::default(),
         update_policy_repository,
+        MockStorage::default(),
+        MockHardwareAttestedKeyHolder::new_mock(app_identifier),
+        HttpAccountProviderClient::default(),
     )
     .await
     .expect("Could not create test wallet");
