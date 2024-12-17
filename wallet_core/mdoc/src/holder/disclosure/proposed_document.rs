@@ -159,7 +159,7 @@ impl<I> ProposedDocument<I> {
     pub(super) async fn sign_multiple<KF, K>(
         key_factory: &KF,
         proposed_documents: Vec<ProposedDocument<I>>,
-    ) -> Result<Vec<Document>>
+    ) -> Result<(Vec<Document>, Vec<K>)>
     where
         KF: KeyFactory<Key = K>,
         K: CredentialEcdsaKey,
@@ -174,7 +174,7 @@ impl<I> ProposedDocument<I> {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
+        let (device_signed, keys) = DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
 
         let documents = proposed_documents
             .into_iter()
@@ -187,7 +187,7 @@ impl<I> ProposedDocument<I> {
             })
             .collect();
 
-        Ok(documents)
+        Ok((documents, keys))
     }
 }
 
@@ -375,9 +375,10 @@ mod tests {
         .await
         .unwrap();
 
-        let mut documents = ProposedDocument::sign_multiple(&MockRemoteKeyFactory::default(), vec![proposed_document])
-            .await
-            .expect("Could not sign ProposedDocument");
+        let (mut documents, _) =
+            ProposedDocument::sign_multiple(&MockRemoteKeyFactory::default(), vec![proposed_document])
+                .await
+                .expect("Could not sign ProposedDocument");
 
         let document = documents.remove(0);
 

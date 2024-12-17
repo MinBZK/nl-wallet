@@ -11,6 +11,8 @@ use futures::future;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 use ring::hmac;
 use ring::rand;
 use rstest::rstest;
@@ -64,7 +66,12 @@ use openid4vc::VpAuthorizationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::examples::Examples;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::VecAtLeastTwo;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
@@ -139,12 +146,24 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 
     // Compute the disclosure.
     let key_factory = MockRemoteKeyFactory::default();
-    let device_response = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
+    let (device_response, keys) = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
         .await
         .unwrap();
 
+    let poa = match VecAtLeastTwo::try_new(keys) {
+        Ok(keys) => {
+            let keys = keys.as_ref().iter().collect_vec().try_into().unwrap();
+            let poa = key_factory
+                .poa(keys, auth_request.client_id.clone(), Some(mdoc_nonce.clone()))
+                .await
+                .unwrap();
+            Some(poa)
+        }
+        Err(_) => None,
+    };
+
     // Put the disclosure in an Authorization Response and encrypt it.
-    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce).unwrap()
+    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce, poa).unwrap()
 }
 
 #[tokio::test]
@@ -160,7 +179,6 @@ async fn disclosure_using_message_client() {
 
     // Initialize the "wallet"
     let mdocs = IsoMockMdocDataSource::new_with_example();
-    let key_factory = &MockRemoteKeyFactory::default();
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair);
@@ -182,7 +200,8 @@ async fn disclosure_using_message_client() {
     };
 
     // Finish the disclosure.
-    proposal.disclose(key_factory).await.unwrap();
+    let key_factory = MockRemoteKeyFactory::default();
+    proposal.disclose(&key_factory).await.unwrap();
 }
 
 // A mock implementation of the `VpMessageClient` trait that implements the RP side of OpenID4VP
@@ -410,6 +429,7 @@ impl MdocDataSource for MockMdocDataSource {
     (pid_given_name() + addr_street()).into(),
     pid_given_name() + addr_street()
 )]
+// attributes from different documents, so this case also tests the PoA
 #[case(
     SessionType::SameDevice,
     None,
@@ -476,6 +496,7 @@ async fn test_client_and_server(
         uri_source,
         &request_uri,
         &rp_trust_anchor,
+        MockRemoteKeyFactory::default(),
     )
     .await
     .unwrap();
@@ -570,6 +591,7 @@ async fn test_client_and_server_cancel_after_created() {
         DisclosureUriSource::Link,
         &request_uri,
         &trust_anchor,
+        MockRemoteKeyFactory::default(),
     )
     .await
     .expect_err("should not be able to start the disclosure session in the wallet");
@@ -611,6 +633,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
         DisclosureUriSource::Link,
         &request_uri,
         &trust_anchor,
+        MockRemoteKeyFactory::default(),
     )
     .await
     .unwrap();
@@ -640,6 +663,90 @@ async fn test_client_and_server_cancel_after_wallet_start() {
         error.error,
         VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
             if error.error_response.error == PostAuthResponseErrorCode::CancelledSession
+    );
+}
+
+#[tokio::test]
+async fn test_disclosure_invalid_poa() {
+    /// A mock key factory that returns a wrong PoA.
+    #[derive(Default)]
+    struct WrongPoaKeyFactory(MockRemoteKeyFactory);
+    impl KeyFactory for WrongPoaKeyFactory {
+        type Key = MockRemoteEcdsaKey;
+        type Error = MockRemoteKeyFactoryError;
+
+        fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+            self.0.generate_existing(identifier, public_key)
+        }
+
+        async fn sign_multiple_with_existing_keys(
+            &self,
+            messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+        ) -> Result<Vec<Vec<Signature>>, Self::Error> {
+            self.0.sign_multiple_with_existing_keys(messages_and_keys).await
+        }
+
+        async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+            unimplemented!()
+        }
+
+        async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+            self.0.generate_new_multiple(count).await
+        }
+
+        async fn poa(&self, keys: VecAtLeastTwo<&Self::Key>, _: String, _: Option<String>) -> Result<Poa, Self::Error> {
+            self.0.poa(keys, "".to_owned(), Some("".to_owned())).await
+        }
+    }
+
+    let stored_documents = pid_full_name() + addr_street();
+    let items_requests = (pid_given_name() + addr_street()).into();
+    let session_type = SessionType::SameDevice;
+    let use_case = NO_RETURN_URL_USE_CASE;
+
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests);
+
+    // Start the session
+    let session_token = verifier
+        .new_session(items_requests, use_case.to_string(), None)
+        .await
+        .unwrap();
+
+    // frontend receives the UL to feed to the wallet when fetching the session status
+    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
+
+    // Determine the correct source for the session type
+    let uri_source = match session_type {
+        SessionType::SameDevice => DisclosureUriSource::Link,
+        SessionType::CrossDevice => DisclosureUriSource::QrCode,
+    };
+
+    // Start session in the wallet
+    let (session, key_factory) = start_disclosure_session(
+        Arc::clone(&verifier),
+        stored_documents,
+        &issuer_ca,
+        uri_source,
+        &request_uri,
+        &rp_trust_anchor,
+        WrongPoaKeyFactory::default(),
+    )
+    .await
+    .unwrap();
+
+    let DisclosureSession::Proposal(proposal) = session else {
+        panic!("should have requested attributes")
+    };
+
+    // Finish the disclosure.
+    let error = proposal
+        .disclose(&key_factory)
+        .await
+        .expect_err("should not be able to disclose attributes");
+    assert_matches!(
+        error.error,
+        VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
+            if error.error_response.error == PostAuthResponseErrorCode::InvalidRequest
     );
 }
 
@@ -688,22 +795,18 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, Borrowi
     (verifier, rp_ca.trust_anchor().unwrap(), issuer_ca)
 }
 
-async fn start_disclosure_session(
+async fn start_disclosure_session<KF, K>(
     verifier: Arc<MockVerifier>,
     stored_documents: TestDocuments,
     issuer_ca: &KeyPair,
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: &BorrowingTrustAnchor,
-) -> Result<
-    (
-        DisclosureSession<VerifierMockVpMessageClient, String>,
-        MockRemoteKeyFactory,
-    ),
-    VpClientError,
-> {
-    let key_factory = MockRemoteKeyFactory::default();
-
+    key_factory: KF,
+) -> Result<(DisclosureSession<VerifierMockVpMessageClient, String>, KF), VpClientError>
+where
+    KF: KeyFactory<Key = K>,
+{
     // Populate the wallet with the specified test documents
     let mdocs = future::join_all(
         stored_documents

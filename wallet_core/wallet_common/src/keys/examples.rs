@@ -82,10 +82,12 @@ fn ecdsa_keypair(x: &str, y: &str, d: &str) -> Result<SigningKey> {
     }
     Ok(sk)
 }
+
 fn ecdsa_privkey(d: &str) -> Result<SigningKey> {
     let privkey = SigningKey::try_from(hex::decode(d)?.as_slice())?;
     Ok(privkey)
 }
+
 fn ecdsa_pubkey(x: &str, y: &str) -> Result<VerifyingKey> {
     VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
         hex::decode(x)?.as_slice().into(),

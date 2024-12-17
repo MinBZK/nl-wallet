@@ -497,7 +497,11 @@ encrypt_gba_v_responses
 echo
 echo -e "${SECTION}Configure wallet${NC}"
 
-render_template "${DEVENV}/wallet.env.template" "${BASE_DIR}/wallet_core/wallet/.env"
+render_template "${DEVENV}/wallet.env.template" "${BASE_DIR}/wallet_core/wallet/.env.local"
+if [[ $(readlink "${BASE_DIR}/wallet_core/wallet/.env") != ".env.local" ]]
+then
+    ln -sf .env.local "${BASE_DIR}/wallet_core/wallet/.env"
+fi
 
 ########################################################################
 # Configure Android Emulator
