@@ -378,8 +378,10 @@ where
         let json_string = serde_json::to_string(self)?;
         let string = Utf8StringRef::new(&json_string)?;
 
-        // unwrap is safe here because the OID is constructed from u8 and thus will fit in u64
-        let sub_identifiers = Self::OID.iter().unwrap().collect::<Vec<_>>();
+        let sub_identifiers = Self::OID
+            .iter()
+            .ok_or(CertificateError::IncorrectEku(Self::OID.to_id_string()))?
+            .collect::<Vec<_>>();
         let ext = rcgen::CustomExtension::from_oid_content(sub_identifiers.as_slice(), string.to_der()?);
         Ok(ext)
     }
