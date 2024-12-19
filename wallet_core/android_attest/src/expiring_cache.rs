@@ -33,6 +33,7 @@ where
 
 /// Expiring value.
 /// Stores the [`last_retrieval`] timestamp, and a [`max_age`].
+#[derive(Debug, Clone)]
 pub struct ExpiringValue<T> {
     value: T,
     last_retrieval: DateTime<Utc>,

@@ -9,7 +9,9 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use x509_parser::certificate::X509Certificate;
 
+use crate::expiring_cache::ExpiringCache;
 use crate::expiring_cache::ExpiringValue;
+use crate::expiring_cache::MapProvider;
 use crate::expiring_cache::Provider;
 
 /// A NewType for the serial number.
@@ -95,6 +97,9 @@ const ANDROID_CRL: &str = "https://android.googleapis.com/attestation/status";
 pub enum Error {
     #[error("http error: {0}")]
     Http(#[from] reqwest::Error),
+    #[cfg(any(test, feature = "mock"))]
+    #[error("json error: {0}")]
+    Json(#[from] serde_json::Error),
     #[error("http status code {0}, with message: {1}")]
     HttpFailure(StatusCode, String),
     #[error("Cache-Control header is missing from response")]
@@ -135,18 +140,23 @@ impl Provider<ExpiringValue<AndroidCrl>> for Client {
     }
 }
 
+pub fn provide_cached_crl<P>(crl_provider: P) -> impl Provider<ExpiringValue<IndexMap<BigUint, AndroidCrlEntry>>>
+where
+    P: Provider<ExpiringValue<AndroidCrl>>,
+{
+    ExpiringCache::new(crl_provider.map(|e| e.map(|crl| crl.as_biguint_map())))
+}
+
 /// Return all revoked certificates from [`certificate_chain`].
 /// The certificate chain is provided by [`provider`].
-async fn get_revoked_certificates<'a, P, E>(
+pub async fn get_revoked_certificates<'a, P, E>(
     provider: P,
     certificate_chain: &'a [X509Certificate<'a>],
 ) -> Result<Vec<(&'a X509Certificate<'a>, AndroidCrlEntry)>, E>
 where
-    P: Provider<ExpiringValue<AndroidCrl>, Error = E>,
-    E: Into<Error>,
+    P: Provider<ExpiringValue<IndexMap<BigUint, AndroidCrlEntry>>, Error = E>,
 {
-    let crl = provider.provide().await?.as_biguint_map(); // TODO: can this be implemented as Provider<IndexMap<BigUint, AndroidCrlEntry>>?
-
+    let crl = provider.provide().await?;
     let revoked_certificates = certificate_chain
         .iter()
         .flat_map(move |cert| crl.get(&cert.serial).map(move |entry| (cert, entry.clone())))
@@ -160,8 +170,10 @@ mod mock {
 
     use super::*;
 
-    struct MockAndroidCrl;
+    #[derive(Debug)]
+    pub struct MockAndroidCrl;
 
+    // status.json is taken from repo: https://github.com/google/android-key-attestation.git
     const TEST_ASSETS_STATUS_BYTES: &[u8] = include_bytes!("../test-assets/status.json");
 
     impl Provider<ExpiringValue<AndroidCrl>> for MockAndroidCrl {
@@ -178,8 +190,56 @@ mod mock {
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;
+    use x509_parser::pem;
+    use x509_parser::prelude::FromDer;
+    use x509_parser::prelude::X509Certificate;
+
+    use crate::android_crl::mock::MockAndroidCrl;
 
     use super::*;
+
+    // example certificate taken from repo: https://github.com/google/android-key-attestation.git
+    // this certificate is suspended according to status.json
+    const TEST_CERT: &str = r#"-----BEGIN CERTIFICATE-----
+MIIB8zCCAXqgAwIBAgIRAMxm6ak3E7bmQ7JsFYeXhvcwCgYIKoZIzj0EAwIwOTEM
+MAoGA1UEDAwDVEVFMSkwJwYDVQQFEyA0ZjdlYzg1N2U4MDU3NDdjMWIxZWRhYWVm
+ODk1NDk2ZDAeFw0xOTA4MTQxOTU0MTBaFw0yOTA4MTExOTU0MTBaMDkxDDAKBgNV
+BAwMA1RFRTEpMCcGA1UEBRMgMzJmYmJiNmRiOGM5MTdmMDdhYzlhYjZhZTQ4MTAz
+YWEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQzg+sx9lLrkNIZwLYZerzL1bPK
+2zi75zFEuuI0fIr35DJND1B4Z8RPZ3djzo3FOdAObqvoZ4CZVxcY3iQ1ffMMo2Mw
+YTAdBgNVHQ4EFgQUzZOUqhJOO7wttSe9hYemjceVsgIwHwYDVR0jBBgwFoAUWlnI
+9iPzasns60heYXIP+h+Hz8owDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+AgQwCgYIKoZIzj0EAwIDZwAwZAIwUFz/AKheCOPaBiRGDk7LaSEDXVYmTr0VoU8T
+bIqrKGWiiMwsGEmW+Jdo8EcKVPIwAjAoO7n1ruFh+6mEaTAukc6T5BW4MnmYadkk
+FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
+-----END CERTIFICATE-----
+"#;
+
+    #[tokio::test]
+    async fn test_check_revoked_certificates() -> Result<(), Box<dyn std::error::Error>> {
+        // prepare test certificate list
+        let (_, cert_pem) = pem::parse_x509_pem(TEST_CERT.as_bytes())?;
+        let (_, cert) = X509Certificate::from_der(&cert_pem.contents)?;
+        let certificates = [cert];
+
+        let crl_provider = provide_cached_crl(MockAndroidCrl);
+        // note that the `unwrap_or_else(|_| unreachable!())` is used, to avoid `Debug` on `Provider`.
+        let crl = crl_provider.provide().await.unwrap_or_else(|_| unreachable!());
+        assert_eq!(crl.len(), 5);
+
+        // verify certificate against the crl
+        // note that the `unwrap_or_else(|_| unreachable!())` is used, to avoid `Debug` on `Provider`.
+        let actual = get_revoked_certificates(crl_provider, &certificates)
+            .await
+            .unwrap_or_else(|_| unreachable!());
+
+        assert_eq!(actual.len(), 1);
+        let (_, status_entry) = &actual[0];
+
+        assert_eq!(status_entry.status, AndroidCrlStatus::Suspended);
+        assert_eq!(status_entry.reason, Some(AndroidCrlReason::KeyCompromise));
+        Ok(())
+    }
 
     // Deserialize example from: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
     #[test]
@@ -206,32 +266,26 @@ mod tests {
         let mut iter = actual.entries.into_iter();
 
         // Verify first entry
-        if let Some((key, entry)) = iter.next() {
-            assert_eq!(key, SerialNumber::try_new("2c8cdddfd5e03bfc").unwrap());
-            assert_eq!(entry.status, AndroidCrlStatus::Revoked);
-            assert_eq!(
-                entry.expires,
-                Some(NaiveDate::from_ymd_opt(2020, 11, 13).expect("valid date"))
-            );
-            assert_eq!(entry.reason, Some(AndroidCrlReason::KeyCompromise));
-            assert_eq!(entry.comment, Some("Key stored on unsecure system".to_string()));
-        } else {
-            panic!("Should not happen, because of len check above");
-        }
+        let (key, entry) = iter.next().expect("safe because of len() check above");
+        assert_eq!(key, SerialNumber::try_new("2c8cdddfd5e03bfc").unwrap());
+        assert_eq!(entry.status, AndroidCrlStatus::Revoked);
+        assert_eq!(
+            entry.expires,
+            Some(NaiveDate::from_ymd_opt(2020, 11, 13).expect("valid date"))
+        );
+        assert_eq!(entry.reason, Some(AndroidCrlReason::KeyCompromise));
+        assert_eq!(entry.comment, Some("Key stored on unsecure system".to_string()));
 
         // Verify second entry
-        if let Some((key, entry)) = iter.next() {
-            assert_eq!(key, SerialNumber::try_new("c8966fcb2fbb0d7a").unwrap());
-            assert_eq!(entry.status, AndroidCrlStatus::Suspended);
-            assert_eq!(entry.expires, None);
-            assert_eq!(entry.reason, Some(AndroidCrlReason::SoftwareFlaw));
-            assert_eq!(
-                entry.comment,
-                Some("Bug in keystore causes this key malfunction b/555555".to_string())
-            );
-        } else {
-            panic!("Should not happen, because of len check above");
-        }
+        let (key, entry) = iter.next().expect("safe because of len() check above");
+        assert_eq!(key, SerialNumber::try_new("c8966fcb2fbb0d7a").unwrap());
+        assert_eq!(entry.status, AndroidCrlStatus::Suspended);
+        assert_eq!(entry.expires, None);
+        assert_eq!(entry.reason, Some(AndroidCrlReason::SoftwareFlaw));
+        assert_eq!(
+            entry.comment,
+            Some("Bug in keystore causes this key malfunction b/555555".to_string())
+        );
     }
 
     #[tokio::test]
