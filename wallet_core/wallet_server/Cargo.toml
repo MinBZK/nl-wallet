@@ -45,7 +45,7 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insec
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
+db_test = ["postgres", "allow_insecure_url", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
 # Enable issuance
 issuance = [
     "axum/form",

@@ -6,7 +6,7 @@ use update_policy_server::config::UpdatePolicyConfig;
 use wallet::errors::WalletRegistrationError;
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn test_wallet_registration() {
     let settings_and_ca = wallet_provider_settings();
     let connection = database_connection(&settings_and_ca.0).await;
@@ -27,7 +27,7 @@ async fn test_wallet_registration() {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn test_registration_blocked() {
     let (mut settings, root_ca) = update_policy_server_settings();
     settings.update_policy =

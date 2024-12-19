@@ -61,7 +61,13 @@ sea-orm-cli generate entity -o wallet_provider/persistence/src/entity --database
 There are database-specific integration test that can be run with:
 
 ```bash
-cargo test --features db_test --test '*'
+cargo test --features db_test
+```
+
+There are HSM specific test that can be run with:
+
+```bash
+cargo test --features hsm_test
 ```
 
 ## Running the server & retrieving the public keys
