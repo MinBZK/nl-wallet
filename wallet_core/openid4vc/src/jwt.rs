@@ -10,12 +10,12 @@ use base64::prelude::*;
 use base64::DecodeError;
 use chrono::DateTime;
 use chrono::Utc;
-use itertools::Itertools;
 use josekit::JoseError;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
+use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -133,21 +133,20 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
         .ok_or(JwtX5cError::MissingCertificates)?
         .into_iter()
         .map(|cert_base64| {
-            let cert = BorrowingCertificate::from_der(
+            let cert = CertificateDer::from(
                 BASE64_STANDARD
                     .decode(cert_base64)
                     .map_err(JwtX5cError::CertificateBase64)?,
-            )
-            .map_err(JwtX5cError::CertificateParsing)?;
+            );
             Ok(cert)
         })
         .collect::<Result<Vec<_>, JwtX5cError>>()?;
 
     // Verify the certificate chain against the trust anchors.
-    let leaf_cert = certs.pop().ok_or(JwtX5cError::MissingCertificates)?;
-    let intermediate_certs = certs.iter().collect_vec();
+    let leaf_cert = BorrowingCertificate::from_certificate_der(certs.pop().ok_or(JwtX5cError::MissingCertificates)?)
+        .map_err(JwtX5cError::CertificateParsing)?;
     leaf_cert
-        .verify(CertificateUsage::ReaderAuth, &intermediate_certs, time, trust_anchors)
+        .verify(CertificateUsage::ReaderAuth, &certs, time, trust_anchors)
         .map_err(JwtX5cError::CertificateValidation)?;
 
     // The leaf certificate is trusted, we can now use its public key to verify the JWS.

@@ -147,7 +147,7 @@ impl BorrowingCertificate {
     pub fn verify(
         &self,
         usage: CertificateUsage,
-        intermediate_certs: &[&BorrowingCertificate],
+        intermediate_certs: &[CertificateDer],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(), CertificateError> {
@@ -155,10 +155,7 @@ impl BorrowingCertificate {
             .verify_for_usage(
                 &[ECDSA_P256_SHA256],
                 trust_anchors,
-                &intermediate_certs
-                    .iter()
-                    .map(|der| CertificateDer::from(der.as_ref()))
-                    .collect::<Vec<_>>(),
+                intermediate_certs,
                 // unwrap is safe here because we assume the time that is generated lies after the epoch
                 UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())),
                 webpki::KeyUsage::required(usage.eku()),
