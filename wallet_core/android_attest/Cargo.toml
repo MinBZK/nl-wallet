@@ -4,9 +4,6 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
-[features]
-mock = []
-
 [dependencies]
 cache_control.workspace = true
 chrono = { workspace = true, features = ["now", "serde"] }
@@ -31,3 +28,4 @@ workspace = true
 assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
+wiremock.workspace = true

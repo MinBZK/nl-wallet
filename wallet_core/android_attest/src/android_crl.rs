@@ -91,13 +91,11 @@ pub enum AndroidCrlReason {
     SoftwareFlaw,
 }
 
-const ANDROID_CRL: &str = "https://android.googleapis.com/attestation/status";
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("http error: {0}")]
     Http(#[from] reqwest::Error),
-    #[cfg(any(test, feature = "mock"))]
+    #[cfg(test)]
     #[error("json error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("http status code {0}, with message: {1}")]
@@ -112,11 +110,37 @@ pub enum Error {
     MissingMaxAge,
 }
 
-impl Provider<ExpiringValue<AndroidCrl>> for Client {
+const ANDROID_CRL: &str = "https://android.googleapis.com/attestation/status";
+
+pub struct GoogleRevocationList {
+    crl: String,
+    client: Client,
+}
+
+impl GoogleRevocationList {
+    pub fn new(crl: String, client: Client) -> Self {
+        Self { crl, client }
+    }
+
+    pub fn mapped_and_cached(self) -> impl Provider<ExpiringValue<IndexMap<BigUint, AndroidCrlEntry>>, Error = Error> {
+        ExpiringCache::new(self.map(|e| e.map(|crl| crl.as_biguint_map())))
+    }
+}
+
+impl Default for GoogleRevocationList {
+    fn default() -> Self {
+        Self {
+            crl: String::from(ANDROID_CRL),
+            client: Default::default(),
+        }
+    }
+}
+
+impl Provider<ExpiringValue<AndroidCrl>> for GoogleRevocationList {
     type Error = Error;
 
     async fn provide(&self) -> Result<ExpiringValue<AndroidCrl>, Self::Error> {
-        let response = self.get(ANDROID_CRL).send().await?;
+        let response = self.client.get(&self.crl).send().await?;
 
         // Check if status is success.
         let status = response.status();
@@ -140,13 +164,6 @@ impl Provider<ExpiringValue<AndroidCrl>> for Client {
     }
 }
 
-pub fn provide_cached_crl<P>(crl_provider: P) -> impl Provider<ExpiringValue<IndexMap<BigUint, AndroidCrlEntry>>>
-where
-    P: Provider<ExpiringValue<AndroidCrl>>,
-{
-    ExpiringCache::new(crl_provider.map(|e| e.map(|crl| crl.as_biguint_map())))
-}
-
 /// Return all revoked certificates from [`certificate_chain`].
 /// The certificate chain is provided by [`provider`].
 pub async fn get_revoked_certificates<'a, P, E>(
@@ -164,39 +181,22 @@ where
     Ok(revoked_certificates)
 }
 
-#[cfg(any(test, feature = "mock"))]
-mod mock {
-    use std::time::Duration;
-
-    use super::*;
-
-    #[derive(Debug)]
-    pub struct MockAndroidCrl;
-
-    // status.json is taken from repo: https://github.com/google/android-key-attestation.git
-    const TEST_ASSETS_STATUS_BYTES: &[u8] = include_bytes!("../test-assets/status.json");
-
-    impl Provider<ExpiringValue<AndroidCrl>> for MockAndroidCrl {
-        type Error = serde_json::Error;
-
-        async fn provide(&self) -> Result<ExpiringValue<AndroidCrl>, Self::Error> {
-            let crl = serde_json::from_slice(TEST_ASSETS_STATUS_BYTES)?;
-            let result = ExpiringValue::now(crl, Duration::from_secs(24 * 60 * 60));
-            Ok(result)
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
+    use wiremock::Mock;
+    use wiremock::MockServer;
+    use wiremock::ResponseTemplate;
     use x509_parser::pem;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
 
-    use crate::android_crl::mock::MockAndroidCrl;
-
     use super::*;
+
+    // status.json is taken from repo: https://github.com/google/android-key-attestation.git
+    const TEST_ASSETS_STATUS_BYTES: &[u8] = include_bytes!("../test-assets/status.json");
 
     // example certificate taken from repo: https://github.com/google/android-key-attestation.git
     // this certificate is suspended according to status.json
@@ -215,23 +215,41 @@ FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
 -----END CERTIFICATE-----
 "#;
 
+    async fn start_google_crl_server() -> MockServer {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/status"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_bytes(TEST_ASSETS_STATUS_BYTES)
+                    .append_header("Cache-Control", "max-age=3600"),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        server
+    }
+
     #[tokio::test]
     async fn test_check_revoked_certificates() -> Result<(), Box<dyn std::error::Error>> {
+        let crl_server = start_google_crl_server().await;
+        let base_url = crl_server.uri();
+
         // prepare test certificate list
         let (_, cert_pem) = pem::parse_x509_pem(TEST_CERT.as_bytes())?;
         let (_, cert) = X509Certificate::from_der(&cert_pem.contents)?;
         let certificates = [cert];
 
-        let crl_provider = provide_cached_crl(MockAndroidCrl);
-        // note that the `unwrap_or_else(|_| unreachable!())` is used, to avoid `Debug` on `Provider`.
-        let crl = crl_provider.provide().await.unwrap_or_else(|_| unreachable!());
+        // create caching CRL provider, and verify entries are read
+        let crl_provider =
+            GoogleRevocationList::new(format!("{base_url}/status"), Client::default()).mapped_and_cached();
+        let crl = crl_provider.provide().await?;
         assert_eq!(crl.len(), 5);
 
         // verify certificate against the crl
-        // note that the `unwrap_or_else(|_| unreachable!())` is used, to avoid `Debug` on `Provider`.
-        let actual = get_revoked_certificates(crl_provider, &certificates)
-            .await
-            .unwrap_or_else(|_| unreachable!());
+        let actual = get_revoked_certificates(crl_provider, &certificates).await?;
 
         assert_eq!(actual.len(), 1);
         let (_, status_entry) = &actual[0];
@@ -286,13 +304,6 @@ FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
             entry.comment,
             Some("Bug in keystore causes this key malfunction b/555555".to_string())
         );
-    }
-
-    #[tokio::test]
-    async fn test_client() {
-        let client = Client::default();
-        let crl = client.provide().await.unwrap();
-        assert!(!crl.entries.is_empty());
     }
 
     #[test]
