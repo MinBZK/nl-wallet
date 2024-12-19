@@ -178,6 +178,10 @@ impl BorrowingCertificate {
         &self.0.get().public_key
     }
 
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.as_ref().to_vec()
+    }
+
     pub fn subject(&self) -> Result<IndexMap<String, &str>, CertificateError> {
         self.x509_certificate()
             .subject
@@ -250,7 +254,7 @@ impl TryFrom<Vec<u8>> for BorrowingCertificate {
 
 impl From<BorrowingCertificate> for Vec<u8> {
     fn from(value: BorrowingCertificate) -> Self {
-        value.as_ref().to_vec()
+        value.to_vec()
     }
 }
 

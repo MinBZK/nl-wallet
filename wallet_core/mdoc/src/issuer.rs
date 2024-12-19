@@ -41,10 +41,7 @@ impl IssuerSigned {
         };
 
         let headers = HeaderBuilder::new()
-            .value(
-                COSE_X5CHAIN_HEADER_LABEL,
-                Value::Bytes(key.certificate().clone().into()),
-            )
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))
             .build();
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
