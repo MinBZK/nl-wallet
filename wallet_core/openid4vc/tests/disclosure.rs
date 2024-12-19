@@ -79,7 +79,7 @@ use wallet_common::urls::BaseUrl;
 async fn disclosure_direct() {
     let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
     let auth_keypair = ca.generate_reader_mock(None).unwrap();
-    let borrowing_trust_anchor = ca.trust_anchor().unwrap();
+    let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
@@ -169,7 +169,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 #[tokio::test]
 async fn disclosure_using_message_client() {
     let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-    let borrowing_trust_anchor = ca.trust_anchor().unwrap();
+    let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
     let trust_anchors = &[(&borrowing_trust_anchor).into()];
     let rp_keypair = ca
         .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
@@ -788,11 +788,11 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, Borrowi
     let verifier = Arc::new(MockVerifier::new(
         usecases,
         MemorySessionStore::default(),
-        vec![issuer_ca.trust_anchor().unwrap()],
+        vec![issuer_ca.to_trust_anchor().unwrap()],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     ));
 
-    (verifier, rp_ca.trust_anchor().unwrap(), issuer_ca)
+    (verifier, rp_ca.to_trust_anchor().unwrap(), issuer_ca)
 }
 
 async fn start_disclosure_session<KF, K>(

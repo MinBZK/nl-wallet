@@ -900,7 +900,7 @@ mod tests {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = MockRemoteKeyFactory::default();
-        let borrowing_trust_anchor = ca.trust_anchor().unwrap();
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
         let preview = CredentialPreview::MsoMdoc {
@@ -929,8 +929,7 @@ mod tests {
     #[tokio::test]
     async fn test_start_issuance_untrusted_credential_preview() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-        let ca_cert = ca.certificate();
-        let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca_cert.as_ref()).unwrap();
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
         let trust_anchors = &[(&borrowing_trust_anchor).into()];
 
         let mut mock_msg_client = mock_openid_message_client();
@@ -1067,8 +1066,6 @@ mod tests {
             });
         }
 
-        let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca_cert.as_ref()).unwrap();
-
         // _ is an error because our mock does not behave like an actual issuer should, but it doesn't matter
         // because we are just inspecting what the client sent in this test with the expectation above.
         let _ = HttpIssuanceSession {
@@ -1076,7 +1073,7 @@ mod tests {
             session_state,
         }
         .accept_issuance(
-            &[borrowing_trust_anchor.trust_anchor().clone()],
+            &[ca_cert.trust_anchor().clone()],
             key_factory,
             wte,
             "https://issuer.example.com".parse().unwrap(),

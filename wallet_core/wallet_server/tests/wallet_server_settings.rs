@@ -34,7 +34,7 @@ fn test_settings_success() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    settings.issuer_trust_anchors = vec![issuer_ca.trust_anchor().unwrap()];
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -45,7 +45,7 @@ fn test_settings_success() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.trust_anchor().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     settings.verify_key_pairs().expect("should succeed");
 }
@@ -77,7 +77,7 @@ fn test_settings_no_issuer_trust_anchors() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.trust_anchor().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::MissingTrustAnchors);
@@ -99,7 +99,7 @@ fn test_settings_no_reader_trust_anchors() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    settings.issuer_trust_anchors = vec![issuer_ca.trust_anchor().unwrap()];
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -135,7 +135,7 @@ fn test_settings_no_reader_registration() {
         .generate_reader_mock(None)
         .expect("generate reader cert without reader registration");
 
-    settings.issuer_trust_anchors = vec![issuer_ca.trust_anchor().unwrap()];
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -147,7 +147,7 @@ fn test_settings_no_reader_registration() {
     usecases.insert("no_registration".to_string(), to_use_case(reader_cert_no_registration));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.trust_anchor().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::IncompleteCertificateType(key) if key == "no_registration");
@@ -172,7 +172,7 @@ fn test_settings_wrong_reader_ca() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate reader cert on issuer CA");
 
-    settings.issuer_trust_anchors = vec![issuer_ca.trust_anchor().unwrap()];
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -184,7 +184,7 @@ fn test_settings_wrong_reader_ca() {
     usecases.insert("wrong_ca".to_string(), to_use_case(reader_cert_wrong_ca));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.trust_anchor().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key) if key == "wrong_ca");
@@ -209,7 +209,7 @@ fn test_settings_no_issuer_registration() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    settings.issuer_trust_anchors = vec![issuer_ca.trust_anchor().unwrap()];
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
 
     settings.issuer.private_keys.clear();
     settings
@@ -225,7 +225,7 @@ fn test_settings_no_issuer_registration() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.trust_anchor().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::IncompleteCertificateType(key) if key == "com.example.no_registration");
@@ -250,7 +250,7 @@ fn test_settings_wrong_issuer_ca() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    settings.issuer_trust_anchors = vec![issuer_ca.trust_anchor().unwrap()];
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
@@ -265,7 +265,7 @@ fn test_settings_wrong_issuer_ca() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.trust_anchor().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key) if key == "com.example.wrong_ca");

@@ -599,7 +599,7 @@ mod tests {
         let header_cert = cose.signing_cert().unwrap();
         assert_eq!(issuer_key_pair.certificate().as_ref(), header_cert.as_ref());
 
-        let trust_anchor = ca.trust_anchor().unwrap();
+        let trust_anchor = ca.to_trust_anchor().unwrap();
         cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[(&trust_anchor).into()])
             .unwrap();
     }

@@ -86,7 +86,7 @@ fn setup(
         MemoryWteTracker::new(),
     );
 
-    let borrowing_trust_anchor = ca.trust_anchor().unwrap();
+    let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
 
     (
         issuer,

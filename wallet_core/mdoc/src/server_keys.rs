@@ -191,7 +191,7 @@ mod generate {
             SigningKey::from_pkcs8_der(keypair.serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
         }
 
-        pub fn trust_anchor(&self) -> Result<BorrowingTrustAnchor, webpki::Error> {
+        pub fn to_trust_anchor(&self) -> Result<BorrowingTrustAnchor, webpki::Error> {
             BorrowingTrustAnchor::from_der(self.certificate().as_ref())
         }
     }

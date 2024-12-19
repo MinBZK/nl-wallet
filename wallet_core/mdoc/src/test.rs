@@ -175,7 +175,7 @@ impl TestDocument {
 
         let (issuer_signed, mdoc_key) = self.issuer_signed(ca, key_factory, copy_count).await;
 
-        let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(ca.certificate().as_ref()).unwrap();
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
         Mdoc::new::<KF::Key>(
             mdoc_key.identifier().to_string(),
             issuer_signed,

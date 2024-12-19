@@ -90,7 +90,7 @@ mod tests {
     async fn it_works() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-        let trust_anchor = ca.trust_anchor().unwrap();
+        let trust_anchor = ca.to_trust_anchor().unwrap();
         let trust_anchors = &[(&trust_anchor).into()];
 
         let unsigned = UnsignedMdoc {

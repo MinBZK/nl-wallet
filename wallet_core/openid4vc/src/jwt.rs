@@ -216,7 +216,7 @@ mod tests {
         let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
 
         let audience: &[String] = &[];
-        let trust_anchor = ca.trust_anchor().unwrap();
+        let trust_anchor = ca.to_trust_anchor().unwrap();
         let (deserialized, leaf_cert) =
             verify_against_trust_anchors(&jwt, audience, &[(&trust_anchor).into()], &TimeGenerator).unwrap();
 
@@ -235,7 +235,7 @@ mod tests {
         let other_ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
 
         let audience: &[String] = &[];
-        let trust_anchor = other_ca.trust_anchor().unwrap();
+        let trust_anchor = other_ca.to_trust_anchor().unwrap();
         let err = verify_against_trust_anchors(&jwt, audience, &[(&trust_anchor).into()], &TimeGenerator).unwrap_err();
         assert_matches!(
             err,

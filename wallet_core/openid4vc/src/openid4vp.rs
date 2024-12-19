@@ -939,7 +939,7 @@ mod tests {
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
-        let borrowing_trust_anchor = ca.trust_anchor().unwrap();
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
         let (auth_request, cert) =
             VpAuthorizationRequest::try_new(&auth_request_jwt, &[(&borrowing_trust_anchor).into()]).unwrap();
         auth_request.validate(&cert, None).unwrap();
@@ -1277,7 +1277,7 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce";
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let borrowing_trust_anchor = ca.trust_anchor().unwrap();
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
         let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, poa) = setup_device_response(
             &auth_request,
@@ -1299,7 +1299,7 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce";
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let borrowing_trust_anchor = ca.trust_anchor().unwrap();
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
         let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, _) = setup_device_response(
             &auth_request,
@@ -1322,7 +1322,7 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce";
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let borrowing_trust_anchor = ca.trust_anchor().unwrap();
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
         let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, poa) = setup_device_response(
             &auth_request,
