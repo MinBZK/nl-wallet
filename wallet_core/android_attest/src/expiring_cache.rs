@@ -7,43 +7,10 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 
-/// Expiring Data.
 /// This trait marks data that can expire, for example by expiration time/date.
 pub trait Expiring {
     /// Returns true when the data is expired at the moment of calling.
     fn is_expired(&self) -> bool;
-}
-
-pub struct ExpiringValue<T> {
-    value: T,
-    last_retrieval: DateTime<Utc>,
-    max_age: Duration,
-}
-
-impl<T> ExpiringValue<T> {
-    pub fn new(value: T, max_age: Duration) -> Self {
-        Self {
-            value,
-            last_retrieval: Utc::now(),
-            max_age,
-        }
-    }
-}
-
-impl<T> Deref for ExpiringValue<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T> Expiring for ExpiringValue<T> {
-    fn is_expired(&self) -> bool {
-        let now = Utc::now();
-        let crl_age = now - self.last_retrieval;
-        crl_age.num_seconds() >= self.max_age.as_secs() as i64
-    }
 }
 
 /// Provider of [`T`], raises a [`Self::Error`] on failure to provide.
@@ -64,8 +31,67 @@ where
     }
 }
 
-/// Cache that holds [`ExpiringData`], uses [`provider`] to retrieve the data.
-/// This cache is lazy, meaning that [`provider`] is only invoked when needed.
+/// Expiring value.
+/// Stores the [`last_retrieval`] timestamp, and a [`max_age`].
+pub struct ExpiringValue<T> {
+    value: T,
+    last_retrieval: DateTime<Utc>,
+    max_age: Duration,
+}
+
+impl<T> ExpiringValue<T> {
+    /// Constructor.
+    pub fn new(value: T, last_retrieval: DateTime<Utc>, max_age: Duration) -> Self {
+        Self {
+            value,
+            last_retrieval,
+            max_age,
+        }
+    }
+
+    /// Constructor for an [`ExpiringValue`] retrieved now.
+    pub fn now(value: T, max_age: Duration) -> Self {
+        Self {
+            value,
+            last_retrieval: Utc::now(),
+            max_age,
+        }
+    }
+
+    pub fn is_expired_at(&self, timestamp: DateTime<Utc>) -> bool {
+        let crl_age = timestamp - self.last_retrieval;
+        crl_age.num_seconds() >= self.max_age.as_secs() as i64
+    }
+
+    pub fn map<R, F>(self, transform: F) -> ExpiringValue<R>
+    where
+        F: FnOnce(T) -> R,
+    {
+        let ExpiringValue {
+            value,
+            last_retrieval,
+            max_age,
+        } = self;
+        ExpiringValue::new(transform(value), last_retrieval, max_age)
+    }
+}
+
+impl<T> Deref for ExpiringValue<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T> Expiring for ExpiringValue<T> {
+    fn is_expired(&self) -> bool {
+        self.is_expired_at(Utc::now())
+    }
+}
+
+/// Cache that holds an [`Expiring`] value, uses a [`Provider`] to retrieve the data.
+/// This cache is lazy, meaning that the [`Provider`] is only invoked when the cached value is requested.
 pub struct ExpiringCache<T, P> {
     /// Provider for the cached data
     provider: P,
@@ -125,6 +151,7 @@ where
     }
 }
 
+/// Extension trait for [`Provider`], provides the [`map`] operation.
 pub trait MapProvider<T, R, F>: Provider<T>
 where
     F: Fn(T) -> R,
@@ -134,7 +161,6 @@ where
     fn map(self, transform: F) -> Self::Provider;
 }
 
-// impl<T, P, E, R, F> MapProvider<T, R, F> for ExpiringCache<T, P>
 impl<T, P, E, R, F> MapProvider<T, R, F> for P
 where
     R: Expiring + Clone,
@@ -149,15 +175,11 @@ where
     }
 }
 
-pub struct MappedProvider<S, PS, F, T>
-where
-    PS: Provider<S>,
-    F: Fn(S) -> T,
-{
+pub struct MappedProvider<S, PS, F, T> {
     source_provider: PS,
     transform: F,
-    _source: PhantomData<S>,
-    _target: PhantomData<T>,
+    _source: PhantomData<S>, // Restrict `S`
+    _target: PhantomData<T>, // Restrict `T`
 }
 
 impl<S, PS, F, T> MappedProvider<S, PS, F, T>
@@ -191,7 +213,29 @@ where
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
+
+    const PAST: DateTime<Utc> = DateTime::from_timestamp_millis(1_000_000).unwrap();
+    const PRESENT: DateTime<Utc> = DateTime::from_timestamp_millis(2_000_000).unwrap();
+
+    const SHORT: Duration = Duration::from_millis(500_000);
+    const LONG: Duration = Duration::from_millis(1_500_000);
+    const VERY_LONG: Duration = Duration::from_millis(2_500_000);
+
+    #[rstest]
+    #[case(ExpiringValue::new((), PAST, SHORT), true)]
+    #[case(ExpiringValue::new((), PAST, LONG), false)]
+    fn test_expiring_value(#[case] test_subject: ExpiringValue<()>, #[case] expected_to_be_expired: bool) {
+        assert_eq!(test_subject.is_expired_at(PRESENT), expected_to_be_expired);
+    }
+
+    #[test]
+    fn test_expiring_value_map() {
+        let test_subject = ExpiringValue::now(3, VERY_LONG);
+        assert_eq!(*test_subject.map(|x| x * 2), 6);
+    }
 
     /// [`Provider`] of [`ExpiringData`] to unit test [`ExpiringDataCache`].
     /// Provides the number of times the [`provide()`] function has been invoked.

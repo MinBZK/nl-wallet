@@ -131,7 +131,7 @@ impl Provider<ExpiringValue<AndroidCrl>> for Client {
             .ok_or(Error::MissingMaxAge)?;
         let crl_data = response.json().await?;
 
-        Ok(ExpiringValue::new(crl_data, max_age))
+        Ok(ExpiringValue::now(crl_data, max_age))
     }
 }
 
@@ -169,7 +169,7 @@ mod mock {
 
         async fn provide(&self) -> Result<ExpiringValue<AndroidCrl>, Self::Error> {
             let crl = serde_json::from_slice(TEST_ASSETS_STATUS_BYTES)?;
-            let result = ExpiringValue::new(crl, Duration::from_secs(24 * 60 * 60));
+            let result = ExpiringValue::now(crl, Duration::from_secs(24 * 60 * 60));
             Ok(result)
         }
     }
