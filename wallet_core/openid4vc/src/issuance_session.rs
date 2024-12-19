@@ -13,6 +13,7 @@ use p256::elliptic_curve::rand_core::OsRng;
 use reqwest::header::ToStrError;
 use reqwest::header::AUTHORIZATION;
 use reqwest::Method;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
@@ -20,7 +21,6 @@ use url::Url;
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::IssuedAttributesMismatch;
 use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
 use nl_wallet_mdoc::utils::serialization::CborError;
@@ -868,12 +868,12 @@ mod tests {
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-    use nl_wallet_mdoc::utils::x509::Certificate;
     use nl_wallet_mdoc::IssuerSigned;
     use wallet_common::keys::factory::KeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::nonempty::NonEmpty;
+    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::token::TokenResponse;
 
@@ -893,13 +893,14 @@ mod tests {
     async fn create_credential_response() -> (
         CredentialResponse,
         CredentialPreview,
-        Certificate,
+        BorrowingTrustAnchor,
         VerifyingKey,
         MockRemoteKeyFactory,
     ) {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = MockRemoteKeyFactory::default();
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
         let preview = CredentialPreview::MsoMdoc {
@@ -919,7 +920,7 @@ mod tests {
         (
             credential_response,
             preview,
-            ca.certificate().clone(),
+            borrowing_trust_anchor,
             *mdoc_public_key,
             key_factory,
         )
@@ -928,8 +929,8 @@ mod tests {
     #[tokio::test]
     async fn test_start_issuance_untrusted_credential_preview() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-        let ca_cert = ca.certificate();
-        let trust_anchors = &[(ca_cert.try_into().unwrap())];
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
+        let trust_anchors = &[(&borrowing_trust_anchor).into()];
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
@@ -1072,7 +1073,7 @@ mod tests {
             session_state,
         }
         .accept_issuance(
-            &[((&ca_cert).try_into().unwrap())],
+            &[ca_cert.trust_anchor().clone()],
             key_factory,
             wte,
             "https://issuer.example.com".parse().unwrap(),
@@ -1083,7 +1084,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_issuance_wrong_response_count() {
         let mut mock_msg_client = mock_openid_message_client();
-        let (cred_response, preview, ca_cert, _, _) = create_credential_response().await;
+        let (cred_response, preview, trust_anchor, _, _) = create_credential_response().await;
 
         mock_msg_client.expect_request_credentials().return_once(
             |_url, _credential_requests, _dpop_header, _access_token_header| {
@@ -1098,7 +1099,7 @@ mod tests {
             session_state: new_session_state(vec![preview.clone(), preview]),
         }
         .accept_issuance(
-            &[((&ca_cert).try_into().unwrap())],
+            &[(&trust_anchor).into()],
             MockRemoteKeyFactory::default(),
             None,
             "https://issuer.example.com".parse().unwrap(),
@@ -1114,21 +1115,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc() {
-        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         let _ = credential_response
             .into_credential::<MockRemoteEcdsaKey>(
                 "key_id".to_string(),
                 &mdoc_public_key,
                 &preview,
-                &[((&ca_cert).try_into().unwrap())],
+                &[(&trust_anchor).into()],
             )
             .expect("should be able to convert CredentialResponse into Mdoc");
     }
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_public_key_mismatch_error() {
-        let (credential_response, preview, ca_cert, _, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, _, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
         // public key than the one contained within the response should fail.
@@ -1138,7 +1139,7 @@ mod tests {
                 "key_id".to_string(),
                 &other_public_key,
                 &preview,
-                &[((&ca_cert).try_into().unwrap())],
+                &[(&trust_anchor).into()],
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
@@ -1147,7 +1148,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_attribute_random_length_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` from a response
         // that contains insufficient random data should fail.
@@ -1171,7 +1172,7 @@ mod tests {
                 "key_id".to_string(),
                 &mdoc_public_key,
                 &preview,
-                &[((&ca_cert).try_into().unwrap())],
+                &[(&trust_anchor).into()],
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
@@ -1183,7 +1184,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
@@ -1206,7 +1207,7 @@ mod tests {
                 "key_id".to_string(),
                 &mdoc_public_key,
                 &preview,
-                &[((&ca_cert).try_into().unwrap())],
+                &[(&trust_anchor).into()],
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
@@ -1228,7 +1229,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail.
@@ -1247,7 +1248,7 @@ mod tests {
                 "key_id".to_string(),
                 &mdoc_public_key,
                 &preview,
-                &[((&ca_cert).try_into().unwrap())],
+                &[(&trust_anchor).into()],
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 

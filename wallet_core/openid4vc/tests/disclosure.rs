@@ -16,6 +16,7 @@ use p256::ecdsa::VerifyingKey;
 use ring::hmac;
 use ring::rand;
 use rstest::rstest;
+use rustls_pki_types::TrustAnchor;
 
 use nl_wallet_mdoc::examples::example_items_requests;
 use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
@@ -24,7 +25,6 @@ use nl_wallet_mdoc::holder::DisclosureRequestMatch;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::holder::MdocDataSource;
 use nl_wallet_mdoc::holder::StoredMdoc;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::test::data::addr_street;
 use nl_wallet_mdoc::test::data::pid_full_name;
@@ -72,13 +72,14 @@ use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::VecAtLeastTwo;
-use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 #[tokio::test]
 async fn disclosure_direct() {
     let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
     let auth_keypair = ca.generate_reader_mock(None).unwrap();
+    let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
@@ -97,7 +98,7 @@ async fn disclosure_direct() {
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
-    let jwe = disclosure_jwe(auth_request_jws, &[ca.certificate().try_into().unwrap()]).await;
+    let jwe = disclosure_jwe(auth_request_jws, &[(&borrowing_trust_anchor).into()]).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
@@ -168,7 +169,8 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 #[tokio::test]
 async fn disclosure_using_message_client() {
     let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-    let trust_anchors = &[ca.certificate().try_into().unwrap()];
+    let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
+    let trust_anchors = &[(&borrowing_trust_anchor).into()];
     let rp_keypair = ca
         .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
             &example_items_requests(),
@@ -253,7 +255,7 @@ impl DirectMockVpMessageClient {
     fn start_session(&self) -> String {
         serde_urlencoded::to_string(VpRequestUriObject {
             request_uri: self.request_uri.clone(),
-            client_id: self.auth_keypair.certificate().san_dns_name().unwrap().unwrap(),
+            client_id: String::from(self.auth_keypair.certificate().san_dns_name().unwrap().unwrap()),
             request_uri_method: Default::default(),
         })
         .unwrap()
@@ -748,11 +750,10 @@ async fn test_disclosure_invalid_poa() {
     );
 }
 
-fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTrustAnchor, KeyPair) {
+fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, BorrowingTrustAnchor, KeyPair) {
     // Initialize key material
     let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor: TrustAnchor = rp_ca.certificate().try_into().unwrap();
 
     // Initialize the verifier
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(items_requests));
@@ -787,11 +788,11 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTr
     let verifier = Arc::new(MockVerifier::new(
         usecases,
         MemorySessionStore::default(),
-        vec![OwnedTrustAnchor::from(&(issuer_ca.certificate().try_into().unwrap()))],
+        vec![issuer_ca.to_trust_anchor().unwrap()],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     ));
 
-    (verifier, (&rp_trust_anchor).into(), issuer_ca)
+    (verifier, rp_ca.to_trust_anchor().unwrap(), issuer_ca)
 }
 
 async fn start_disclosure_session<KF, K>(
@@ -800,7 +801,7 @@ async fn start_disclosure_session<KF, K>(
     issuer_ca: &KeyPair,
     uri_source: DisclosureUriSource,
     request_uri: &str,
-    trust_anchor: &OwnedTrustAnchor,
+    trust_anchor: &BorrowingTrustAnchor,
     key_factory: KF,
 ) -> Result<(DisclosureSession<VerifierMockVpMessageClient, String>, KF), VpClientError>
 where
@@ -821,7 +822,7 @@ where
         request_uri,
         uri_source,
         &mdocs,
-        &[(trust_anchor).into()],
+        &[trust_anchor.trust_anchor().clone()],
     )
     .await
     .map(|session| (session, key_factory))

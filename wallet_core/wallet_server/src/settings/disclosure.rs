@@ -48,7 +48,7 @@ impl TryFrom<VerifierUseCases> for UseCases {
         let use_cases = value
             .into_iter()
             .map(|(id, use_case)| {
-                let use_case = UseCase::try_from(&use_case)?;
+                let use_case = UseCase::try_from(use_case)?;
 
                 Ok((id, use_case))
             })
@@ -59,11 +59,11 @@ impl TryFrom<VerifierUseCases> for UseCases {
     }
 }
 
-impl TryFrom<&VerifierUseCase> for UseCase {
+impl TryFrom<VerifierUseCase> for UseCase {
     type Error = anyhow::Error;
 
-    fn try_from(value: &VerifierUseCase) -> Result<Self, Self::Error> {
-        let use_case = UseCase::try_new((&value.key_pair).try_into()?, value.session_type_return_url)?;
+    fn try_from(value: VerifierUseCase) -> Result<Self, Self::Error> {
+        let use_case = UseCase::try_new(value.key_pair.try_into_mdoc_key_pair()?, value.session_type_return_url)?;
 
         Ok(use_case)
     }

@@ -5,6 +5,7 @@ use chrono::Utc;
 use derive_more::AsRef;
 use indexmap::IndexMap;
 use p256::SecretKey;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
@@ -12,7 +13,6 @@ use serde_with::FromInto;
 use serde_with::IfIsHumanReadable;
 use tracing::debug;
 use tracing::warn;
-use webpki::types::TrustAnchor;
 
 use wallet_common::generator::Generator;
 
@@ -228,8 +228,8 @@ impl IssuerSigned {
         Ok((
             DocumentDisclosedAttributes {
                 attributes: attrs,
-                issuer: issuer_cns.pop().unwrap(),
-                ca: ca_cns.pop().unwrap(),
+                issuer: String::from(issuer_cns.pop().unwrap()),
+                ca: String::from(ca_cns.pop().unwrap()),
                 validity_info: mso.validity_info.clone(),
             },
             mso,

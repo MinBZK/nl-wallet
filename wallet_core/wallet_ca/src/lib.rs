@@ -1,5 +1,4 @@
 use std::fs;
-use std::io;
 use std::path::Path;
 
 use anyhow::anyhow;
@@ -13,21 +12,20 @@ use pem::LineEnding;
 use pem::Pem;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 
-fn read_certificate(input: CachedInput) -> Result<Certificate> {
-    let input_string = io::read_to_string(input)?;
-    let crt = Certificate::from_pem(&input_string)?;
+fn read_certificate(input: &CachedInput) -> Result<BorrowingCertificate> {
+    let crt = BorrowingCertificate::from_pem(input.get_data())?;
     Ok(crt)
 }
 
-fn read_signing_key(input: CachedInput) -> Result<SigningKey> {
-    let pem: Pem = io::read_to_string(input)?.parse()?;
+fn read_signing_key(input: &CachedInput) -> Result<SigningKey> {
+    let pem: Pem = input.get_data().try_into()?;
     let key = SigningKey::from_pkcs8_der(pem.contents())?;
     Ok(key)
 }
 
-pub fn read_key_pair(ca_key_file: CachedInput, ca_crt_file: CachedInput) -> Result<KeyPair> {
+pub fn read_key_pair(ca_key_file: &CachedInput, ca_crt_file: &CachedInput) -> Result<KeyPair> {
     let ca_crt = read_certificate(ca_crt_file)?;
     let ca_key = read_signing_key(ca_key_file)?;
     let key_pair = KeyPair::new_from_signing_key(ca_key, ca_crt)?;
@@ -57,8 +55,8 @@ fn assert_not_exists(file_path: &Path, force: bool) -> Result<()> {
     Ok(())
 }
 
-fn write_certificate(file_path: &Path, certificate: &Certificate) -> Result<()> {
-    let crt_pem = Pem::new("CERTIFICATE", certificate.as_bytes());
+fn write_certificate(file_path: &Path, certificate: &BorrowingCertificate) -> Result<()> {
+    let crt_pem = Pem::new("CERTIFICATE", certificate.as_ref());
     fs::write(
         file_path,
         pem::encode_config(&crt_pem, EncodeConfig::new().set_line_ending(LineEnding::LF)),

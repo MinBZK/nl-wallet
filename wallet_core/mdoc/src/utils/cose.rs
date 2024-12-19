@@ -21,9 +21,9 @@ use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use ring::hmac;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use webpki::types::TrustAnchor;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
@@ -35,7 +35,7 @@ use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::CborError;
 
-use super::x509::Certificate;
+use super::x509::BorrowingCertificate;
 use super::x509::CertificateError;
 use super::x509::CertificateUsage;
 
@@ -174,9 +174,9 @@ impl<C, T> From<C> for MdocCose<C, T> {
 /// COSE header label for `x5chain`, defined in [RFC 9360](https://datatracker.ietf.org/doc/rfc9360/).
 pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
 
-pub fn new_certificate_header(cert: &Certificate) -> Header {
+pub fn new_certificate_header(cert: &BorrowingCertificate) -> Header {
     HeaderBuilder::new()
-        .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.as_bytes().to_vec()))
+        .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.to_vec()))
         .build()
 }
 
@@ -220,7 +220,7 @@ impl<T> MdocCose<CoseSign1, T> {
     }
 
     /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
-    pub fn signing_cert(&self) -> Result<Certificate, CoseError>
+    pub fn signing_cert(&self) -> Result<BorrowingCertificate, CoseError>
     where
         T: DeserializeOwned,
     {
@@ -232,7 +232,7 @@ impl<T> MdocCose<CoseSign1, T> {
         // The standard defining the above COSE header label (https://datatracker.ietf.org/doc/draft-ietf-cose-x509/)
         // allows multiple certificates being present in the header, but ISO 18013-5 doesn't.
         // So we can parse the bytes as a certificate.
-        let cert = Certificate::from(cert_bts);
+        let cert = BorrowingCertificate::from_der(cert_bts.to_vec())?;
         Ok(cert)
     }
 
@@ -254,8 +254,7 @@ impl<T> MdocCose<CoseSign1, T> {
             .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
-        let issuer_pk = cert.public_key().map_err(CoseError::Certificate)?;
-        self.verify_and_parse(&issuer_pk)
+        self.verify_and_parse(cert.public_key())
     }
 }
 
@@ -598,10 +597,10 @@ mod tests {
 
         // Certificate should be present in the unprotected headers
         let header_cert = cose.signing_cert().unwrap();
-        assert_eq!(issuer_key_pair.certificate().as_bytes(), header_cert.as_bytes());
+        assert_eq!(issuer_key_pair.certificate().as_ref(), header_cert.as_ref());
 
-        let trust_anchor = ca.certificate().try_into().unwrap();
-        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[trust_anchor])
+        let trust_anchor = ca.to_trust_anchor().unwrap();
+        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[(&trust_anchor).into()])
             .unwrap();
     }
 

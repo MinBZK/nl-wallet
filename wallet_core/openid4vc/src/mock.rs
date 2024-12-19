@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use indexmap::IndexSet;
+use rustls_pki_types::TrustAnchor;
 
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::wte::WteClaims;
 
-use nl_wallet_mdoc::holder::TrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 use crate::issuance_session::HttpVcMessageClient;

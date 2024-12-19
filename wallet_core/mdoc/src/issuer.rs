@@ -41,10 +41,7 @@ impl IssuerSigned {
         };
 
         let headers = HeaderBuilder::new()
-            .value(
-                COSE_X5CHAIN_HEADER_LABEL,
-                Value::Bytes(key.certificate().as_bytes().to_vec()),
-            )
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))
             .build();
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
@@ -90,7 +87,8 @@ mod tests {
     async fn it_works() {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-        let trust_anchors = &[ca.certificate().try_into().unwrap()];
+        let trust_anchor = ca.to_trust_anchor().unwrap();
+        let trust_anchors = &[(&trust_anchor).into()];
 
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),

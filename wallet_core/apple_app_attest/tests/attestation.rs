@@ -138,7 +138,7 @@ mod mock {
     use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::MockAttestationCa;
     use apple_app_attest::VerifiedAttestation;
-    use webpki::types::TrustAnchor;
+    use rustls_pki_types::TrustAnchor;
 
     fn test_mock_attestation(mock_ca: &MockAttestationCa, trust_anchors: &[TrustAnchor]) {
         let app_identifier = AppIdentifier::new_mock();

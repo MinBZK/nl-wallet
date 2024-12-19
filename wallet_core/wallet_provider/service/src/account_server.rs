@@ -5,6 +5,7 @@ use chrono::Utc;
 use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
@@ -12,7 +13,6 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
-use webpki::types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
@@ -1031,7 +1031,8 @@ mod tests {
     use crate::wallet_certificate::{self};
     use crate::wte_issuer::mock::MockWteIssuer;
 
-    use super::{mock::MockHardwareKey, *};
+    use super::mock::MockHardwareKey;
+    use super::*;
 
     static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
 

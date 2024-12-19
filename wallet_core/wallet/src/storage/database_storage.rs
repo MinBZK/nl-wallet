@@ -43,6 +43,7 @@ use entity::mdoc_copy;
 use nl_wallet_mdoc::utils::serialization::cbor_deserialize;
 use nl_wallet_mdoc::utils::serialization::cbor_serialize;
 use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
@@ -611,14 +612,11 @@ where
         Self::combine_history_events(issuance_events, disclosure_events)
     }
 
-    async fn did_share_data_with_relying_party(
-        &self,
-        certificate: &nl_wallet_mdoc::utils::x509::Certificate,
-    ) -> StorageResult<bool> {
+    async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column(disclosure_history_event::Column::RelyingPartyCertificate)
             .from(disclosure_history_event::Entity)
-            .and_where(Expr::col(disclosure_history_event::Column::RelyingPartyCertificate).eq(certificate.as_bytes()))
+            .and_where(Expr::col(disclosure_history_event::Column::RelyingPartyCertificate).eq(certificate.as_ref()))
             .and_where(Expr::col(disclosure_history_event::Column::Status).eq(EventStatus::Success))
             .and_where(Expr::col(disclosure_history_event::Column::Attributes).is_not_null())
             .limit(1)

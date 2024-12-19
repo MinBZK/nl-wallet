@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -14,7 +15,6 @@ use wallet_common::config::wallet_config::LockTimeoutConfiguration;
 use wallet_common::config::wallet_config::PidIssuanceConfiguration;
 use wallet_common::config::wallet_config::UpdatePolicyServerConfiguration;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 
@@ -159,10 +159,20 @@ impl Default for ConfigServerConfiguration {
     }
 }
 
-fn parse_trust_anchors(source: &str) -> Vec<DerTrustAnchor> {
+fn parse_trust_anchors<T>(source: &str) -> Vec<T>
+where
+    T: TryFrom<Vec<u8>>,
+    <T as TryFrom<Vec<u8>>>::Error: Debug,
+{
     source
         .split('|')
-        .map(|anchor| serde_json::from_str(format!("\"{}\"", anchor).as_str()).expect("failed to parse trust anchor"))
+        .map(|anchor| {
+            BASE64_STANDARD
+                .decode(anchor)
+                .unwrap()
+                .try_into()
+                .expect("failed to parse trust anchor")
+        })
         .collect()
 }
 

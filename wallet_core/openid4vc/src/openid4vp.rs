@@ -11,7 +11,9 @@ use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwk::Jwk;
 use josekit::jwt::JwtPayload;
 use josekit::JoseError;
+use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::formats::PreferOne;
@@ -21,9 +23,8 @@ use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::errors::Error as MdocError;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use nl_wallet_mdoc::verifier::ItemsRequests;
@@ -224,7 +225,6 @@ pub struct WalletRequest {
     pub wallet_nonce: Option<String>,
 }
 
-use nutype::nutype;
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
     validate(predicate = |u| JwePublicKey::validate(u).is_ok()),
@@ -312,7 +312,7 @@ impl VpAuthorizationRequest {
     pub fn try_new(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(VpAuthorizationRequest, Certificate), AuthRequestValidationError> {
+    ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
         Ok(jwt::verify_against_trust_anchors(
             jws,
             &[VpAuthorizationRequestAudience::SelfIssued],
@@ -331,14 +331,14 @@ impl VpAuthorizationRequest {
     /// contains only the fields we need and use.
     pub fn validate(
         self,
-        rp_cert: &Certificate,
+        rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
     ) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
         if dns_san != self.oauth_request.client_id {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
                 client_id: self.oauth_request.client_id,
-                dns_san,
+                dns_san: String::from(dns_san),
             });
         }
 
@@ -375,7 +375,7 @@ pub struct IsoVpAuthorizationRequest {
 impl IsoVpAuthorizationRequest {
     pub fn new(
         items_requests: &ItemsRequests,
-        rp_certificate: &Certificate,
+        rp_certificate: &BorrowingCertificate,
         nonce: String,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
@@ -384,10 +384,12 @@ impl IsoVpAuthorizationRequest {
         let encryption_pubkey = encryption_pubkey.into_inner();
 
         Ok(Self {
-            client_id: rp_certificate
-                .san_dns_name()
-                .map_err(AuthRequestError::CertificateParsing)?
-                .ok_or(AuthRequestError::MissingSAN)?,
+            client_id: String::from(
+                rp_certificate
+                    .san_dns_name()
+                    .map_err(AuthRequestError::CertificateParsing)?
+                    .ok_or(AuthRequestError::MissingSAN)?,
+            ),
             nonce,
             encryption_pubkey: encryption_pubkey.clone(),
             response_uri,
@@ -820,12 +822,12 @@ mod tests {
     use itertools::Itertools;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
+    use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
     use nl_wallet_mdoc::examples::example_items_requests;
     use nl_wallet_mdoc::examples::Example;
     use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
-    use nl_wallet_mdoc::holder::TrustAnchor;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::test::data::addr_street;
     use nl_wallet_mdoc::test::data::pid_full_name;
@@ -937,8 +939,9 @@ mod tests {
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
         let (auth_request, cert) =
-            VpAuthorizationRequest::try_new(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
+            VpAuthorizationRequest::try_new(&auth_request_jwt, &[(&borrowing_trust_anchor).into()]).unwrap();
         auth_request.validate(&cert, None).unwrap();
     }
 
@@ -1274,7 +1277,8 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce";
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let issuer_ca: Vec<TrustAnchor<'_>> = vec![ca.certificate().try_into().unwrap()];
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
+        let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, poa) = setup_device_response(
             &auth_request,
             mdoc_nonce,
@@ -1295,7 +1299,8 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce";
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let issuer_ca: Vec<TrustAnchor<'_>> = vec![ca.certificate().try_into().unwrap()];
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
+        let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, _) = setup_device_response(
             &auth_request,
             mdoc_nonce,
@@ -1317,7 +1322,8 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce";
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let issuer_ca: Vec<TrustAnchor<'_>> = vec![ca.certificate().try_into().unwrap()];
+        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
+        let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, poa) = setup_device_response(
             &auth_request,
             mdoc_nonce,

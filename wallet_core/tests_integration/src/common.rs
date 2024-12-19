@@ -49,7 +49,7 @@ use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::reqwest::ReqwestTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_provider::settings::AppleEnvironment;
@@ -127,9 +127,9 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
 
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
-    (mut cs_settings, cs_root_ca): (CsSettings, DerTrustAnchor),
-    (ups_settings, ups_root_ca): (UpsSettings, DerTrustAnchor),
-    (mut wp_settings, wp_root_ca): (WpSettings, DerTrustAnchor),
+    (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
+    (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
+    (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
     let key_holder = MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock());
@@ -165,9 +165,9 @@ pub async fn setup_wallet_and_env(
 
     let certificates = ws_settings.issuer.certificates();
 
-    start_config_server(cs_settings, &cs_root_ca).await;
-    start_update_policy_server(ups_settings, &ups_root_ca).await;
-    start_wallet_provider(wp_settings, &wp_root_ca).await;
+    start_config_server(cs_settings, cs_root_ca).await;
+    start_update_policy_server(ups_settings, ups_root_ca).await;
+    start_wallet_provider(wp_settings, wp_root_ca).await;
     start_wallet_server(ws_settings, MockAttributeService(certificates)).await;
 
     let config_repository = HttpConfigurationRepository::new(
@@ -210,26 +210,26 @@ pub fn find_listener_port() -> u16 {
         .port()
 }
 
-pub fn config_server_settings() -> (CsSettings, DerTrustAnchor) {
+pub fn config_server_settings() -> (CsSettings, ReqwestTrustAnchor) {
     let port = find_listener_port();
 
     let mut settings = CsSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.port = port;
 
-    let root_ca = DerTrustAnchor::from_der(read_file("cs.ca.crt.der")).unwrap();
+    let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
 
-pub fn update_policy_server_settings() -> (UpsSettings, DerTrustAnchor) {
+pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
     let port = find_listener_port();
 
     let mut settings = UpsSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.port = port;
 
-    let root_ca = DerTrustAnchor::from_der(read_file("ups.ca.crt.der")).unwrap();
+    let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
@@ -248,7 +248,7 @@ pub fn config_jwt(wallet_config: &WalletConfiguration) -> String {
     .unwrap()
 }
 
-pub fn wallet_provider_settings() -> (WpSettings, DerTrustAnchor) {
+pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
     let port = find_listener_port();
 
     let mut settings = WpSettings::new().expect("Could not read settings");
@@ -256,12 +256,12 @@ pub fn wallet_provider_settings() -> (WpSettings, DerTrustAnchor) {
     settings.webserver.port = port;
     settings.pin_policy.timeouts = vec![200, 400, 600].into_iter().map(Duration::from_millis).collect();
 
-    let root_ca = DerTrustAnchor::from_der(read_file("wp.ca.crt.der")).unwrap();
+    let root_ca = read_file("wp.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
 
-pub async fn start_config_server(settings: CsSettings, trust_anchor: &DerTrustAnchor) {
+pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_config_base_url(&settings.port);
 
     tokio::spawn(async {
@@ -271,14 +271,10 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: &DerTrustAn
         }
     });
 
-    wait_for_server(
-        remove_path(&base_url),
-        vec![Certificate::from_der(&trust_anchor.der_bytes).unwrap()],
-    )
-    .await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
-pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: &DerTrustAnchor) {
+pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_ups_base_url(&settings.port);
 
     tokio::spawn(async {
@@ -288,14 +284,10 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: &De
         }
     });
 
-    wait_for_server(
-        remove_path(&base_url),
-        vec![Certificate::from_der(&trust_anchor.der_bytes).unwrap()],
-    )
-    .await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
-pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: &DerTrustAnchor) {
+pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_wp_base_url(&settings.webserver.port);
 
     tokio::spawn(async {
@@ -306,11 +298,7 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: &DerTrust
         }
     });
 
-    wait_for_server(
-        remove_path(&base_url),
-        vec![Certificate::from_der(&trust_anchor.der_bytes).unwrap()],
-    )
-    .await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
 pub fn wallet_server_settings() -> WsSettings {
@@ -454,7 +442,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
     wallet
 }
 
-pub struct MockAttributeService(pub IndexMap<String, x509::Certificate>);
+pub struct MockAttributeService(pub IndexMap<String, x509::BorrowingCertificate>);
 
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
