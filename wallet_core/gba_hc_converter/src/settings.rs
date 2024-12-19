@@ -57,7 +57,7 @@ impl HttpGbavClient {
             settings.adhoc_url,
             settings.username,
             settings.password,
-            settings.trust_anchor.into(),
+            settings.trust_anchor.into_certificate(),
             settings.client_cert,
             settings.client_cert_key,
             settings.ca_api_key,

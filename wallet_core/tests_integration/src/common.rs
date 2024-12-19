@@ -271,7 +271,7 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrus
         }
     });
 
-    wait_for_server(remove_path(&base_url), vec![trust_anchor.into()]).await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
 pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) {
@@ -284,7 +284,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
         }
     });
 
-    wait_for_server(remove_path(&base_url), vec![trust_anchor.into()]).await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
 pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTrustAnchor) {
@@ -298,7 +298,7 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTr
         }
     });
 
-    wait_for_server(remove_path(&base_url), vec![trust_anchor.into()]).await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
 pub fn wallet_server_settings() -> WsSettings {

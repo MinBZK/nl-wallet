@@ -5,12 +5,10 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use derive_more::AsRef;
-use derive_more::Into;
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
 use mime::Mime;
-use reqwest::Certificate;
 use reqwest::Client;
 use reqwest::Response;
 
@@ -21,17 +19,20 @@ const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Wrapper around a `reqwest::Certificate` implementing `PartialEq`, `Eq` and `Hash`. In addition, it implements
 /// the necessary `From`/`TryFrom` implementations so that it can be (de)serialised using `serde_with`.
-#[derive(Clone, AsRef, Into)]
+#[derive(Clone, AsRef)]
 pub struct ReqwestTrustAnchor {
     #[as_ref([u8])]
     der_bytes: Vec<u8>,
-    #[into]
     certificate: reqwest::Certificate,
 }
 
 impl ReqwestTrustAnchor {
     pub fn as_certificate(&self) -> &reqwest::Certificate {
         &self.certificate
+    }
+
+    pub fn into_certificate(self) -> reqwest::Certificate {
+        self.certificate
     }
 }
 
@@ -135,7 +136,7 @@ pub fn default_reqwest_client_builder() -> reqwest::ClientBuilder {
 
 /// Create a [`ClientBuilder`] that validates certificates signed with the supplied trust anchors (root certificates) as
 /// well as the built-in root certificates.
-pub fn trusted_reqwest_client_builder(trust_anchors: Vec<Certificate>) -> reqwest::ClientBuilder {
+pub fn trusted_reqwest_client_builder(trust_anchors: Vec<reqwest::Certificate>) -> reqwest::ClientBuilder {
     trust_anchors
         .into_iter()
         .fold(default_reqwest_client_builder(), |builder, root_ca| {
@@ -145,7 +146,7 @@ pub fn trusted_reqwest_client_builder(trust_anchors: Vec<Certificate>) -> reqwes
 
 /// Create a [`ClientBuilder`] that only validates certificates signed with the supplied trust anchors (root
 /// certificates). The built-in root certificates are therefore disabled and the client will only work over https.
-pub fn tls_pinned_client_builder(trust_anchors: Vec<Certificate>) -> reqwest::ClientBuilder {
+pub fn tls_pinned_client_builder(trust_anchors: Vec<reqwest::Certificate>) -> reqwest::ClientBuilder {
     trusted_reqwest_client_builder(trust_anchors)
         .https_only(true)
         .tls_built_in_root_certs(false)
