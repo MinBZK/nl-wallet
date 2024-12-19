@@ -299,8 +299,8 @@ pub mod mock {
         use rcgen::CertificateParams;
         use rcgen::KeyPair;
         use rcgen::PKCS_ECDSA_P384_SHA384;
-        use webpki::types::CertificateDer;
-        use webpki::types::PrivateKeyDer;
+        use rustls_pki_types::CertificateDer;
+        use rustls_pki_types::PrivateKeyDer;
 
         use crate::MOCK_APPLE_ROOT_CA;
         use crate::MOCK_APPLE_ROOT_CA_KEY;

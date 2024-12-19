@@ -49,7 +49,7 @@ pub enum CertificateError {
     #[error("certificate content parsing failed: {0}")]
     X509CertificateParsing(#[from] x509_parser::nom::Err<X509Error>),
     #[error("pem parsing failed: {0}")]
-    PemParsing(#[from] webpki::types::pem::Error),
+    PemParsing(#[from] rustls_pki_types::pem::Error),
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate private key generation failed: {0}")]
     #[category(unexpected)]

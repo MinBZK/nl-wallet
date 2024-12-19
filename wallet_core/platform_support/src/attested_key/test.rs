@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::mem;
 
 use p256::ecdsa::signature::Verifier;
-use webpki::types::TrustAnchor;
+use rustls_pki_types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
