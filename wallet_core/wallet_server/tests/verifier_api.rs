@@ -17,7 +17,6 @@ use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
-use p256::pkcs8::EncodePrivateKey;
 use parking_lot::RwLock;
 #[cfg(feature = "issuance")]
 use rand_core::OsRng;
@@ -163,15 +162,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnc
         USECASE_NAME.to_string(),
         VerifierUseCase {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
-            key_pair: wallet_server::settings::KeyPair {
-                certificate: usecase_keypair.certificate().clone(),
-                private_key: usecase_keypair
-                    .private_key()
-                    .to_pkcs8_der()
-                    .unwrap()
-                    .as_bytes()
-                    .to_vec(),
-            },
+            key_pair: usecase_keypair.into(),
         },
     )])
     .into();

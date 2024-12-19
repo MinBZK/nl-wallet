@@ -14,7 +14,7 @@ use wallet_server::settings::VerifierUseCase;
 fn to_use_case(key_pair: KeyPair) -> VerifierUseCase {
     VerifierUseCase {
         session_type_return_url: SessionTypeReturnUrl::Both,
-        key_pair: key_pair.try_into().unwrap(),
+        key_pair: key_pair.into(),
     }
 }
 
@@ -39,7 +39,7 @@ fn test_settings_success() {
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
@@ -71,7 +71,7 @@ fn test_settings_no_issuer_trust_anchors() {
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
@@ -104,7 +104,7 @@ fn test_settings_no_reader_trust_anchors() {
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
@@ -140,7 +140,7 @@ fn test_settings_no_reader_registration() {
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
@@ -177,7 +177,7 @@ fn test_settings_wrong_reader_ca() {
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
@@ -215,10 +215,10 @@ fn test_settings_no_issuer_registration() {
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
     settings.issuer.private_keys.insert(
         "com.example.no_registration".to_string(),
-        issuer_cert_no_registration.try_into().unwrap(),
+        issuer_cert_no_registration.into(),
     );
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
@@ -255,11 +255,11 @@ fn test_settings_wrong_issuer_ca() {
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
-    settings.issuer.private_keys.insert(
-        "com.example.wrong_ca".to_string(),
-        issuer_cert_wrong_ca.try_into().unwrap(),
-    );
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
+    settings
+        .issuer
+        .private_keys
+        .insert("com.example.wrong_ca".to_string(), issuer_cert_wrong_ca.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));

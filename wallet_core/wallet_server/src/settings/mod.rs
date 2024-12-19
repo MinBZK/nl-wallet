@@ -10,10 +10,6 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use p256::ecdsa::SigningKey;
-use p256::pkcs8::DecodePrivateKey;
-#[cfg(feature = "integration_test")]
-use p256::pkcs8::EncodePrivateKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -25,6 +21,7 @@ use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
+use wallet_common::account::serialization::DerSigningKey;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
@@ -131,8 +128,7 @@ pub struct Storage {
 pub struct KeyPair {
     #[serde_as(as = "Base64")]
     pub certificate: BorrowingCertificate,
-    #[serde_as(as = "Base64")]
-    pub private_key: Vec<u8>,
+    pub private_key: DerSigningKey,
 }
 
 impl From<&Storage> for SessionStoreTimeouts {
@@ -145,36 +141,22 @@ impl From<&Storage> for SessionStoreTimeouts {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum KeyPairError {
-    #[error("failed to parse private key: {0}")]
-    ParsePrivateKey(#[from] p256::pkcs8::Error),
-    #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
-}
+impl KeyPair {
+    pub fn try_into_mdoc_key_pair(self) -> Result<nl_wallet_mdoc::server_keys::KeyPair, CertificateError> {
+        let key_pair =
+            nl_wallet_mdoc::server_keys::KeyPair::new_from_signing_key(self.private_key.0, self.certificate)?;
 
-impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
-    type Error = KeyPairError;
-
-    fn try_from(value: &KeyPair) -> Result<Self, Self::Error> {
-        Ok(Self::new_from_signing_key(
-            SigningKey::from_pkcs8_der(&value.private_key)?,
-            value.certificate.clone(),
-        )?)
+        Ok(key_pair)
     }
 }
 
 #[cfg(feature = "integration_test")]
-impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
-    type Error = KeyPairError;
-    fn try_from(source: nl_wallet_mdoc::server_keys::KeyPair) -> Result<Self, Self::Error> {
-        let private_key = source.private_key().to_pkcs8_der()?.as_bytes().to_vec();
-        let certificate = source.certificate().clone();
-
-        Ok(Self {
-            certificate,
-            private_key,
-        })
+impl From<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
+    fn from(value: nl_wallet_mdoc::server_keys::KeyPair) -> Self {
+        Self {
+            certificate: value.certificate().clone(),
+            private_key: DerSigningKey(value.private_key().clone()),
+        }
     }
 }
 
@@ -185,7 +167,7 @@ pub enum CertificateVerificationError {
     #[error("invalid certificate `{1}`: {0}")]
     InvalidCertificate(#[source] CertificateError, String),
     #[error("invalid key pair `{1}`: {0}")]
-    InvalidKeyPair(#[source] KeyPairError, String),
+    InvalidKeyPair(#[source] CertificateError, String),
     #[error("no CertificateType found in certificate `{1}`: {0}")]
     NoCertificateType(#[source] CertificateError, String),
     #[error("certificate `{0}` is missing CertificateType registration data")]
@@ -351,8 +333,9 @@ where
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
-        let key_pair: nl_wallet_mdoc::server_keys::KeyPair = key_pair
-            .try_into()
+        let key_pair = key_pair
+            .clone()
+            .try_into_mdoc_key_pair()
             .map_err(|error| CertificateVerificationError::InvalidKeyPair(error, key_pair_id.clone()))?;
 
         let certificate = key_pair.certificate();

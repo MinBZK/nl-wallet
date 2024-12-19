@@ -26,7 +26,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["disclosure"]
+required-features = ["disclosure", "integration_test"]
 
 [[test]]
 name = "postgres"
