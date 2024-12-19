@@ -26,12 +26,12 @@ pub struct ReqwestTrustAnchor {
     #[as_ref([u8])]
     der_bytes: Vec<u8>,
     #[into]
-    trust_anchor: reqwest::Certificate,
+    certificate: reqwest::Certificate,
 }
 
 impl ReqwestTrustAnchor {
-    pub fn trust_anchor(&self) -> &reqwest::Certificate {
-        &self.trust_anchor
+    pub fn as_certificate(&self) -> &reqwest::Certificate {
+        &self.certificate
     }
 }
 
@@ -53,17 +53,11 @@ impl TryFrom<Vec<u8>> for ReqwestTrustAnchor {
     type Error = reqwest::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        let trust_anchor = reqwest::Certificate::from_der(&value)?;
+        let certificate = reqwest::Certificate::from_der(&value)?;
         Ok(Self {
             der_bytes: value,
-            trust_anchor,
+            certificate,
         })
-    }
-}
-
-impl From<&ReqwestTrustAnchor> for reqwest::Certificate {
-    fn from(trust_anchor: &ReqwestTrustAnchor) -> Self {
-        trust_anchor.trust_anchor().clone()
     }
 }
 

@@ -6,8 +6,6 @@ use coset::CoseSign1;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
-
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::device_retrieval::DeviceRequest;

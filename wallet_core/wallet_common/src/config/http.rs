@@ -85,7 +85,10 @@ impl TlsPinningConfig {
     }
 
     pub fn certificates(&self) -> Vec<reqwest::Certificate> {
-        self.trust_anchors.iter().map(Into::into).collect()
+        self.trust_anchors
+            .iter()
+            .map(|anchor| anchor.as_certificate().clone())
+            .collect()
     }
 }
 
