@@ -497,6 +497,7 @@ encrypt_gba_v_responses
 echo
 echo -e "${SECTION}Configure wallet${NC}"
 
+rm -f "${BASE_DIR}/wallet_core/wallet/config-server-config.json" "${BASE_DIR}/wallet_core/wallet/wallet-config.json"
 render_template "${DEVENV}/config-server-config.json.template" "${BASE_DIR}/wallet_core/wallet/config-server-config.json"
 render_template "${DEVENV}/wallet-config.json.template" "${BASE_DIR}/wallet_core/wallet/wallet-config.json"
 

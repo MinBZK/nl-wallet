@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::os;
 use std::path::PathBuf;
 
 use serde::de::DeserializeOwned;
@@ -82,7 +83,7 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
     let file_path = crate_path.join(file);
     // If the config file doesn't exist, copy the fallback to the config file and use that
     if !file_path.exists() {
-        fs::copy(fallback, &file_path).unwrap();
+        os::unix::fs::symlink(fallback, &file_path).unwrap();
     }
 
     let config: T = serde_json::from_slice(&fs::read(file_path).unwrap()).unwrap();
