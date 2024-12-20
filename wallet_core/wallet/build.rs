@@ -86,7 +86,7 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
         os::unix::fs::symlink(fallback, &file_path).unwrap();
     }
 
-    let config: T = serde_json::from_slice(&fs::read(file_path).unwrap()).unwrap();
+    let config: T = serde_json::from_slice(&fs::read(file_path).unwrap()).expect("Could not parse config json");
 
     verify_environment(config.environment());
 
