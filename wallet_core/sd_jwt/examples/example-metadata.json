@@ -1,0 +1,57 @@
+{
+  "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+  "name": "SD-JWT VC - Metadata example",
+  "description": "This is an example of SD-JWT VC Type Metadata",
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "vct": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "given_name": {
+        "type": "string"
+      },
+      "family_name": {
+        "type": "string"
+      },
+      "email": {
+        "type": "string"
+      },
+      "address": {
+        "type": "object",
+        "properties": {
+          "street_address": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "is_over_18": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "iss",
+      "vct",
+      "cnf"
+    ]
+  }
+}
