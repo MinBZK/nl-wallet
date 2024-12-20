@@ -1,13 +1,12 @@
-use assert_matches::assert_matches;
 use std::collections::HashMap;
+
+use assert_matches::assert_matches;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::Certificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
-use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_server::settings::CertificateVerificationError;
 use wallet_server::settings::Settings;
 use wallet_server::settings::VerifierUseCase;
@@ -15,15 +14,8 @@ use wallet_server::settings::VerifierUseCase;
 fn to_use_case(key_pair: KeyPair) -> VerifierUseCase {
     VerifierUseCase {
         session_type_return_url: SessionTypeReturnUrl::Both,
-        key_pair: key_pair.try_into().unwrap(),
+        key_pair: key_pair.into(),
     }
-}
-
-fn certificates_to_trust_anchors(trust_anchors: &[Certificate]) -> Result<Vec<DerTrustAnchor>, CertificateError> {
-    trust_anchors
-        .iter()
-        .map(TryInto::try_into)
-        .collect::<Result<Vec<_>, CertificateError>>()
 }
 
 #[test]
@@ -42,20 +34,18 @@ fn test_settings_success() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     settings.verify_key_pairs().expect("should succeed");
 }
@@ -76,20 +66,18 @@ fn test_settings_no_issuer_trust_anchors() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![];
     settings.issuer.private_keys.clear();
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::MissingTrustAnchors);
@@ -111,14 +99,12 @@ fn test_settings_no_reader_trust_anchors() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
@@ -149,21 +135,19 @@ fn test_settings_no_reader_registration() {
         .generate_reader_mock(None)
         .expect("generate reader cert without reader registration");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
     usecases.insert("no_registration".to_string(), to_use_case(reader_cert_no_registration));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::IncompleteCertificateType(key) if key == "no_registration");
@@ -188,21 +172,19 @@ fn test_settings_wrong_reader_ca() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate reader cert on issuer CA");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
     usecases.insert("wrong_ca".to_string(), to_use_case(reader_cert_wrong_ca));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key) if key == "wrong_ca");
@@ -227,24 +209,23 @@ fn test_settings_no_issuer_registration() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
 
     settings.issuer.private_keys.clear();
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
     settings.issuer.private_keys.insert(
         "com.example.no_registration".to_string(),
-        issuer_cert_no_registration.try_into().unwrap(),
+        issuer_cert_no_registration.into(),
     );
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::IncompleteCertificateType(key) if key == "com.example.no_registration");
@@ -269,24 +250,22 @@ fn test_settings_wrong_issuer_ca() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let issuer_trust_anchors = vec![issuer_ca.certificate().clone()];
-    settings.issuer_trust_anchors = certificates_to_trust_anchors(&issuer_trust_anchors).unwrap();
-
+    settings.issuer_trust_anchors = vec![issuer_ca.to_trust_anchor().unwrap()];
     settings.issuer.private_keys.clear();
     settings
         .issuer
         .private_keys
-        .insert("com.example.valid".to_string(), issuer_cert_valid.try_into().unwrap());
-    settings.issuer.private_keys.insert(
-        "com.example.wrong_ca".to_string(),
-        issuer_cert_wrong_ca.try_into().unwrap(),
-    );
+        .insert("com.example.valid".to_string(), issuer_cert_valid.into());
+    settings
+        .issuer
+        .private_keys
+        .insert("com.example.wrong_ca".to_string(), issuer_cert_wrong_ca.into());
 
     let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.verifier.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.certificate().try_into().unwrap()];
+    settings.reader_trust_anchors = vec![reader_ca.to_trust_anchor().unwrap()];
 
     let error = settings.verify_key_pairs().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key) if key == "com.example.wrong_ca");

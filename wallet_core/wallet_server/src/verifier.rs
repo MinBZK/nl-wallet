@@ -40,7 +40,7 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonError;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 use wallet_common::urls::{self};
@@ -57,7 +57,7 @@ struct ApplicationState<S> {
 fn create_application_state<S>(
     urls: Urls,
     verifier: settings::Verifier,
-    issuer_trust_anchors: Vec<DerTrustAnchor>,
+    issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
     sessions: S,
 ) -> anyhow::Result<ApplicationState<S>>
 where
@@ -67,10 +67,7 @@ where
         verifier: Verifier::new(
             verifier.usecases.try_into()?,
             sessions,
-            issuer_trust_anchors
-                .into_iter()
-                .map(|ta| ta.owned_trust_anchor)
-                .collect::<Vec<_>>(),
+            issuer_trust_anchors,
             (&verifier.ephemeral_id_secret).into(),
         ),
         public_url: urls.public_url,
@@ -88,7 +85,7 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
 pub fn create_routers<S>(
     urls: Urls,
     verifier: settings::Verifier,
-    issuer_trust_anchors: Vec<DerTrustAnchor>,
+    issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
     sessions: S,
 ) -> anyhow::Result<(Router, Router)>
 where

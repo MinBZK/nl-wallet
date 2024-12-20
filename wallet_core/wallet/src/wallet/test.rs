@@ -8,6 +8,7 @@ use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
+use apple_app_attest::AttestationEnvironment;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
@@ -22,7 +23,7 @@ use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
@@ -60,7 +61,7 @@ pub struct AccountServerKeys {
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
     pub issuance_key: KeyPair<SigningKey>,
-    pub trust_anchor: DerTrustAnchor,
+    pub trust_anchor: BorrowingTrustAnchor,
 }
 
 /// An alias for the `Wallet<>` with all mock dependencies.
@@ -86,10 +87,11 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let trust_anchor = ca.to_trust_anchor().unwrap();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: ca.certificate().try_into().unwrap(),
+        trust_anchor,
     }
 });
 
@@ -97,10 +99,11 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(None).unwrap();
+    let trust_anchor = ca.to_trust_anchor().unwrap();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: ca.certificate().try_into().unwrap(),
+        trust_anchor,
     }
 });
 
@@ -132,7 +135,7 @@ pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -
         private_key_id,
         issuer_signed,
         &TimeGenerator,
-        &[(&issuer_key.trust_anchor.owned_trust_anchor).into()],
+        &[(&issuer_key.trust_anchor).into()],
     )
     .unwrap()
 }
@@ -166,7 +169,7 @@ impl WalletWithMocks {
             config_repository,
             MockUpdatePolicyRepository::default(),
             MockStorage::default(),
-            MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
+            MockHardwareAttestedKeyHolder::generate(AttestationEnvironment::Development, AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),
             RegistrationStatus::Unregistered,
         )
@@ -244,7 +247,7 @@ impl WalletWithMocks {
             config_repository,
             MockUpdatePolicyRepository::default(),
             storage,
-            MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock()),
+            MockHardwareAttestedKeyHolder::generate(AttestationEnvironment::Development, AppIdentifier::new_mock()),
             MockAccountProviderClient::default(),
         )
         .await

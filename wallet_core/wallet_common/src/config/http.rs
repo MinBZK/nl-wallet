@@ -21,7 +21,7 @@ use crate::reqwest::JsonClientBuilder;
 use crate::reqwest::JsonReqwestBuilder;
 use crate::reqwest::RequestBuilder;
 use crate::reqwest::ReqwestBuilder;
-use crate::trust_anchor::DerTrustAnchor;
+use crate::reqwest::ReqwestTrustAnchor;
 use crate::urls::BaseUrl;
 
 #[serde_as]
@@ -36,11 +36,13 @@ pub struct TlsServerConfig {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct TlsPinningConfigHash(u64);
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct TlsPinningConfig {
     pub base_url: BaseUrl,
     #[debug(skip)]
-    pub trust_anchors: Vec<DerTrustAnchor>,
+    #[serde_as(as = "Vec<Base64>")]
+    pub trust_anchors: Vec<ReqwestTrustAnchor>,
 }
 
 impl TlsPinningConfig {
@@ -85,10 +87,7 @@ impl TlsPinningConfig {
     pub fn certificates(&self) -> Vec<reqwest::Certificate> {
         self.trust_anchors
             .iter()
-            .map(|anchor| {
-                reqwest::Certificate::from_der(&anchor.der_bytes)
-                    .expect("DerTrustAnchor should be able to be converted to reqwest::Certificate")
-            })
+            .map(|anchor| anchor.as_certificate().clone())
             .collect()
     }
 }

@@ -2,7 +2,6 @@ use std::env;
 
 use assert_matches::assert_matches;
 use serde_json::json;
-use serial_test::serial;
 
 use tests_integration::common::*;
 use tests_integration::utils::read_file;
@@ -13,18 +12,16 @@ use wallet::wallet_deps::RepositoryUpdateState;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::UpdatePolicyServerConfiguration;
-use wallet_common::trust_anchor::DerTrustAnchor;
 
 #[tokio::test]
-#[serial]
 async fn test_wallet_update_policy() {
     let (mut ups_settings, root_ca) = update_policy_server_settings();
     ups_settings.update_policy =
         serde_json::from_value::<UpdatePolicyConfig>(json!({ env!("CARGO_PKG_VERSION"): "Block" })).unwrap();
 
-    start_update_policy_server(ups_settings.clone(), &root_ca).await;
+    start_update_policy_server(ups_settings.clone(), root_ca).await;
 
-    let root_ca = DerTrustAnchor::from_der(read_file("ups.ca.crt.der")).unwrap();
+    let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_ups_base_url(&ups_settings.port),
@@ -46,12 +43,11 @@ async fn test_wallet_update_policy() {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_wallet_update_policy_stale() {
     let (ups_settings, root_ca) = update_policy_server_settings();
-    start_update_policy_server(ups_settings.clone(), &root_ca).await;
+    start_update_policy_server(ups_settings.clone(), root_ca).await;
 
-    let root_ca = DerTrustAnchor::from_der(read_file("ups.ca.crt.der")).unwrap();
+    let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_ups_base_url(&ups_settings.port),
@@ -72,13 +68,12 @@ async fn test_wallet_update_policy_stale() {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_wallet_update_policy_server_tls_pinning() {
     let (ups_settings, root_ca) = update_policy_server_settings();
-    start_update_policy_server(ups_settings.clone(), &root_ca).await;
+    start_update_policy_server(ups_settings.clone(), root_ca).await;
 
     // Use the wrong root CA
-    let root_ca = DerTrustAnchor::from_der(read_file("cs.ca.crt.der")).unwrap();
+    let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_ups_base_url(&ups_settings.port),

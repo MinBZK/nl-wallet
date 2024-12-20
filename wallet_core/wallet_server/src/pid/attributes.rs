@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Created;
 use openid4vc::oidc;
@@ -43,11 +43,11 @@ pub enum Error {
 }
 
 pub struct AttributeCertificates {
-    certificates: IndexMap<String, Certificate>,
+    certificates: IndexMap<String, BorrowingCertificate>,
 }
 
 impl AttributeCertificates {
-    pub fn new(certificates: IndexMap<String, Certificate>) -> Self {
+    pub fn new(certificates: IndexMap<String, BorrowingCertificate>) -> Self {
         Self { certificates }
     }
 
@@ -75,7 +75,7 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
-        certificates: IndexMap<String, Certificate>,
+        certificates: IndexMap<String, BorrowingCertificate>,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,

@@ -95,7 +95,7 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     pid_given_name() + addr_street(), pid_given_name() + addr_street()
 )]
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn test_disclosure_usecases_ok(
     #[case] session_type: SessionType,
     #[case] return_url_template: Option<ReturnUrlTemplate>,
@@ -232,7 +232,7 @@ async fn test_disclosure_usecases_ok(
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn test_disclosure_without_pid() {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _: &TlsPinningConfig, _| {

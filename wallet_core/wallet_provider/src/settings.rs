@@ -9,13 +9,13 @@ use config::Environment;
 use config::File;
 use derive_more::From;
 use derive_more::Into;
+use rustls_pki_types::CertificateDer;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
-use webpki::types::CertificateDer;
-use webpki::types::TrustAnchor;
 
 use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;

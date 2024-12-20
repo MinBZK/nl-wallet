@@ -10,23 +10,22 @@ use base64::prelude::*;
 use base64::DecodeError;
 use chrono::DateTime;
 use chrono::Utc;
-use itertools::Itertools;
 use josekit::JoseError;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
+use rustls_pki_types::CertificateDer;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::jwk_to_p256;
 use wallet_common::jwt::validations;
@@ -115,10 +114,10 @@ pub enum JwtX5cError {
     #[error("error base64-decoding certificate: {0}")]
     #[category(critical)]
     CertificateBase64(#[source] DecodeError),
+    #[error("error parsing certificate: {0}")]
+    CertificateParsing(#[source] CertificateError),
     #[error("error verifying certificate: {0}")]
     CertificateValidation(#[source] CertificateError),
-    #[error("error parsing public key from certificate: {0}")]
-    CertificatePublicKey(#[source] CertificateError),
 }
 
 /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT header.
@@ -127,30 +126,31 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
     audience: &[A],
     trust_anchors: &[TrustAnchor],
     time: &impl Generator<DateTime<Utc>>,
-) -> Result<(T, Certificate), JwtX5cError> {
+) -> Result<(T, BorrowingCertificate), JwtX5cError> {
     let header = jsonwebtoken::decode_header(&jwt.0).map_err(JwtError::Validation)?;
     let mut certs = header
         .x5c
         .ok_or(JwtX5cError::MissingCertificates)?
         .into_iter()
         .map(|cert_base64| {
-            let cert: Certificate = BASE64_STANDARD
-                .decode(cert_base64)
-                .map_err(JwtX5cError::CertificateBase64)?
-                .into();
+            let cert = CertificateDer::from(
+                BASE64_STANDARD
+                    .decode(cert_base64)
+                    .map_err(JwtX5cError::CertificateBase64)?,
+            );
             Ok(cert)
         })
         .collect::<Result<Vec<_>, JwtX5cError>>()?;
 
     // Verify the certificate chain against the trust anchors.
-    let leaf_cert = certs.pop().ok_or(JwtX5cError::MissingCertificates)?;
-    let intermediate_certs = certs.iter().map(|cert| cert.as_bytes()).collect_vec();
+    let leaf_cert = BorrowingCertificate::from_certificate_der(certs.pop().ok_or(JwtX5cError::MissingCertificates)?)
+        .map_err(JwtX5cError::CertificateParsing)?;
     leaf_cert
-        .verify(CertificateUsage::ReaderAuth, &intermediate_certs, time, trust_anchors)
+        .verify(CertificateUsage::ReaderAuth, &certs, time, trust_anchors)
         .map_err(JwtX5cError::CertificateValidation)?;
 
     // The leaf certificate is trusted, we can now use its public key to verify the JWS.
-    let pubkey = leaf_cert.public_key().map_err(JwtX5cError::CertificatePublicKey)?;
+    let pubkey = leaf_cert.public_key();
 
     let validation_options = {
         let mut validation = Validation::new(Algorithm::ES256);
@@ -161,7 +161,7 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
         validation
     };
 
-    let payload = jwt.parse_and_verify(&DerVerifyingKey(pubkey).into(), &validation_options)?;
+    let payload = jwt.parse_and_verify(&pubkey.into(), &validation_options)?;
 
     Ok((payload, leaf_cert))
 }
@@ -172,7 +172,7 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
     // The `x5c` header supports certificate chains, but ISO 18013-5 doesn't: it requires that issuer
     // and RP certificates are signed directly by the trust anchor. So we don't support certificate chains
     // here (yet).
-    let certs = vec![BASE64_STANDARD.encode(keypair.certificate().as_bytes())];
+    let certs = vec![BASE64_STANDARD.encode(keypair.certificate().as_ref())];
 
     let jwt = Jwt::sign(
         payload,
@@ -194,12 +194,11 @@ mod tests {
     use indexmap::IndexMap;
     use serde_json::json;
 
+    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::utils::x509::CertificateError;
     use wallet_common::generator::TimeGenerator;
     use wallet_common::jwt::JwtCredentialClaims;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-
-    use nl_wallet_mdoc::server_keys::KeyPair;
-    use nl_wallet_mdoc::utils::x509::CertificateError;
 
     use crate::jwt::sign_with_certificate;
     use crate::jwt::JwtCredential;
@@ -216,9 +215,9 @@ mod tests {
         let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
 
         let audience: &[String] = &[];
+        let trust_anchor = ca.to_trust_anchor().unwrap();
         let (deserialized, leaf_cert) =
-            verify_against_trust_anchors(&jwt, audience, &[ca.certificate().try_into().unwrap()], &TimeGenerator)
-                .unwrap();
+            verify_against_trust_anchors(&jwt, audience, &[(&trust_anchor).into()], &TimeGenerator).unwrap();
 
         assert_eq!(deserialized, payload);
         assert_eq!(leaf_cert, *keypair.certificate());
@@ -235,13 +234,8 @@ mod tests {
         let other_ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
 
         let audience: &[String] = &[];
-        let err = verify_against_trust_anchors(
-            &jwt,
-            audience,
-            &[other_ca.certificate().try_into().unwrap()],
-            &TimeGenerator,
-        )
-        .unwrap_err();
+        let trust_anchor = other_ca.to_trust_anchor().unwrap();
+        let err = verify_against_trust_anchors(&jwt, audience, &[(&trust_anchor).into()], &TimeGenerator).unwrap_err();
         assert_matches!(
             err,
             JwtX5cError::CertificateValidation(CertificateError::Verification(_))
@@ -274,7 +268,7 @@ mod tests {
         let (cred, claims) = JwtCredential::new::<MockRemoteEcdsaKey>(
             holder_key_id.to_string(),
             jwt,
-            &issuer_keypair.certificate().public_key().unwrap(),
+            issuer_keypair.certificate().public_key(),
         )
         .unwrap();
 

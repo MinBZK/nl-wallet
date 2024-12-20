@@ -5,6 +5,7 @@ use chrono::Utc;
 use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
@@ -12,7 +13,6 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
-use webpki::types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
@@ -895,7 +895,7 @@ pub mod mock {
     use super::*;
 
     pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> (AccountServer, MockAttestationCa) {
-        let apple_mock_ca = MockAttestationCa::generate();
+        let apple_mock_ca = MockAttestationCa::generate(AttestationEnvironment::Development);
         let account_server = AccountServer::new(
             Duration::from_millis(15000),
             "mock_account_server".into(),
@@ -904,7 +904,7 @@ pub mod mock {
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
             AppleAttestationConfiguration {
                 app_identifier: AppIdentifier::new_mock(),
-                environment: AttestationEnvironment::Development,
+                environment: apple_mock_ca.environment,
             },
             vec![apple_mock_ca.trust_anchor().to_owned()],
         )
@@ -1031,7 +1031,8 @@ mod tests {
     use crate::wallet_certificate::{self};
     use crate::wte_issuer::mock::MockWteIssuer;
 
-    use super::{mock::MockHardwareKey, *};
+    use super::mock::MockHardwareKey;
+    use super::*;
 
     static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
 
@@ -1339,7 +1340,7 @@ mod tests {
         let (account_server, _apple_mock_ca) = mock::setup_account_server(&setup.signing_pubkey);
 
         // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
-        let other_apple_mock_ca = MockAttestationCa::generate();
+        let other_apple_mock_ca = MockAttestationCa::generate(account_server.apple_config.environment);
 
         let error = do_registration(
             &account_server,

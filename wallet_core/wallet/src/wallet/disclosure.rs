@@ -15,7 +15,7 @@ use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::StoredMdoc;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -345,7 +345,7 @@ where
         &mut self,
         proposed_attributes: ProposedAttributes,
         data_shared: bool,
-        remote_party_certificate: Certificate,
+        remote_party_certificate: BorrowingCertificate,
     ) -> Result<(), DisclosureError> {
         let disclosure_type = DisclosureType::from_proposed_attributes(&proposed_attributes);
         let event = WalletEvent::new_disclosure(

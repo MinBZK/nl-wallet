@@ -27,6 +27,7 @@ use serde::Serialize;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::server_keys::KeyRing;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -47,7 +48,6 @@ use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings::KeyPairError;
 use crate::settings::Urls;
 use crate::settings::{self};
 
@@ -71,13 +71,13 @@ impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
 }
 
 impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing<SigningKey> {
-    type Error = KeyPairError;
+    type Error = CertificateError;
 
     fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
         let key_ring = private_keys
             .into_iter()
             .map(|(doctype, key_pair)| {
-                let key_pair = (&key_pair).try_into()?;
+                let key_pair = key_pair.try_into_mdoc_key_pair()?;
 
                 Ok((doctype, key_pair))
             })

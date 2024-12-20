@@ -1,3 +1,5 @@
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::sync::Arc;
 
 use base64::prelude::*;
@@ -359,6 +361,20 @@ impl HandleInstruction for ConstructPoa {
 struct HsmCredentialSigningKey<'a, H> {
     hsm: &'a H,
     wrapped_key: WrappedKey,
+}
+
+impl<H> PartialEq for HsmCredentialSigningKey<'_, H> {
+    fn eq(&self, other: &Self) -> bool {
+        self.wrapped_key == other.wrapped_key
+    }
+}
+
+impl<H> Eq for HsmCredentialSigningKey<'_, H> {}
+
+impl<H> Hash for HsmCredentialSigningKey<'_, H> {
+    fn hash<HASH: Hasher>(&self, state: &mut HASH) {
+        self.wrapped_key.hash(state);
+    }
 }
 
 impl<'a, H> EcdsaKey for HsmCredentialSigningKey<'a, H>

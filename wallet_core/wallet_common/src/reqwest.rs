@@ -1,23 +1,66 @@
-use std::error::Error;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::path::Path;
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use base64::prelude::*;
+use derive_more::AsRef;
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
 use mime::Mime;
-use reqwest::Certificate;
 use reqwest::Client;
 use reqwest::Response;
-use serde::Deserialize;
-use serde::Deserializer;
 
 use crate::http_error::APPLICATION_PROBLEM_JSON;
 
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Wrapper around a `reqwest::Certificate` implementing `PartialEq`, `Eq` and `Hash`. In addition, it implements
+/// the necessary `From`/`TryFrom` implementations so that it can be (de)serialised using `serde_with`.
+#[derive(Clone, AsRef)]
+pub struct ReqwestTrustAnchor {
+    #[as_ref([u8])]
+    der_bytes: Vec<u8>,
+    certificate: reqwest::Certificate,
+}
+
+impl ReqwestTrustAnchor {
+    pub fn as_certificate(&self) -> &reqwest::Certificate {
+        &self.certificate
+    }
+
+    pub fn into_certificate(self) -> reqwest::Certificate {
+        self.certificate
+    }
+}
+
+impl PartialEq for ReqwestTrustAnchor {
+    fn eq(&self, other: &Self) -> bool {
+        self.der_bytes == other.der_bytes
+    }
+}
+
+impl Eq for ReqwestTrustAnchor {}
+
+impl Hash for ReqwestTrustAnchor {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.der_bytes.hash(state);
+    }
+}
+
+impl TryFrom<Vec<u8>> for ReqwestTrustAnchor {
+    type Error = reqwest::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        let certificate = reqwest::Certificate::from_der(&value)?;
+        Ok(Self {
+            der_bytes: value,
+            certificate,
+        })
+    }
+}
 
 pub trait ClientBuilder {
     fn builder(&self) -> reqwest::ClientBuilder;
@@ -72,37 +115,6 @@ pub trait ReqwestBuilder: ClientBuilder + RequestBuilder {}
 
 pub trait JsonReqwestBuilder: JsonClientBuilder + RequestBuilder {}
 
-fn base64_to_certificate(encoded_certificate: String) -> Result<reqwest::Certificate, Box<dyn Error>> {
-    let der_bytes = BASE64_STANDARD.decode(encoded_certificate)?;
-    let certificate = reqwest::Certificate::from_der(&der_bytes)?;
-    Ok(certificate)
-}
-
-pub fn deserialize_certificate<'de, D>(deserializer: D) -> Result<reqwest::Certificate, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let encoded_certificate = String::deserialize(deserializer).map_err(serde::de::Error::custom)?;
-    let certificate = base64_to_certificate(encoded_certificate).map_err(serde::de::Error::custom)?;
-    Ok(certificate)
-}
-
-pub fn deserialize_certificates<'de, D>(deserializer: D) -> Result<Vec<reqwest::Certificate>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let encoded_certificates: Vec<String> = Vec::deserialize(deserializer).map_err(serde::de::Error::custom)?;
-    let certificates = encoded_certificates
-        .into_iter()
-        .map(|encoded_certificate| {
-            let certificate = base64_to_certificate(encoded_certificate).map_err(serde::de::Error::custom)?;
-            Ok(certificate)
-        })
-        .collect::<Result<_, _>>()?;
-
-    Ok(certificates)
-}
-
 pub fn parse_content_type(response: &Response) -> Option<Mime> {
     response
         .headers()
@@ -124,7 +136,7 @@ pub fn default_reqwest_client_builder() -> reqwest::ClientBuilder {
 
 /// Create a [`ClientBuilder`] that validates certificates signed with the supplied trust anchors (root certificates) as
 /// well as the built-in root certificates.
-pub fn trusted_reqwest_client_builder(trust_anchors: Vec<Certificate>) -> reqwest::ClientBuilder {
+pub fn trusted_reqwest_client_builder(trust_anchors: Vec<reqwest::Certificate>) -> reqwest::ClientBuilder {
     trust_anchors
         .into_iter()
         .fold(default_reqwest_client_builder(), |builder, root_ca| {
@@ -134,7 +146,7 @@ pub fn trusted_reqwest_client_builder(trust_anchors: Vec<Certificate>) -> reqwes
 
 /// Create a [`ClientBuilder`] that only validates certificates signed with the supplied trust anchors (root
 /// certificates). The built-in root certificates are therefore disabled and the client will only work over https.
-pub fn tls_pinned_client_builder(trust_anchors: Vec<Certificate>) -> reqwest::ClientBuilder {
+pub fn tls_pinned_client_builder(trust_anchors: Vec<reqwest::Certificate>) -> reqwest::ClientBuilder {
     trusted_reqwest_client_builder(trust_anchors)
         .https_only(true)
         .tls_built_in_root_certs(false)

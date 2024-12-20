@@ -9,7 +9,6 @@ use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
 use regex::Regex;
 use reqwest::header::HeaderValue;
-use serial_test::serial;
 use tokio::fs;
 
 use tests_integration::common::*;
@@ -24,7 +23,6 @@ use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::JwtError;
 
 #[tokio::test]
-#[serial]
 async fn test_wallet_config() {
     let mut served_wallet_config = default_configuration();
     served_wallet_config.lock_timeouts.inactive_timeout = 1;
@@ -34,7 +32,7 @@ async fn test_wallet_config() {
     let (mut cs_settings, cs_root_ca) = config_server_settings();
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
     let port = cs_settings.port;
-    start_config_server(cs_settings, &cs_root_ca).await;
+    start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
@@ -76,7 +74,6 @@ async fn test_wallet_config() {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_wallet_config_stale() {
     let (settings, _) = wallet_provider_settings();
 
@@ -86,7 +83,7 @@ async fn test_wallet_config_stale() {
     let (mut cs_settings, cs_root_ca) = config_server_settings();
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
     let port = cs_settings.port;
-    start_config_server(cs_settings, &cs_root_ca).await;
+    start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
@@ -113,7 +110,6 @@ async fn test_wallet_config_stale() {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_wallet_config_signature_verification_failed() {
     let (settings, _) = wallet_provider_settings();
 
@@ -138,7 +134,7 @@ async fn test_wallet_config_signature_verification_failed() {
     // Serve a wallet configuration as JWT signed by a random key
     cs_settings.wallet_config_jwt = jwt;
     let port = cs_settings.port;
-    start_config_server(cs_settings, &cs_root_ca).await;
+    start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {

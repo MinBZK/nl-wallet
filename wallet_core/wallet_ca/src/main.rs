@@ -129,7 +129,7 @@ impl Command {
                 days,
                 force,
             } => {
-                let ca = read_key_pair(ca_key_file, ca_crt_file)?;
+                let ca = read_key_pair(&ca_key_file, &ca_crt_file)?;
                 let issuer_registration: IssuerRegistration = serde_json::from_reader(issuer_auth_file)?;
                 let key_pair = ca.generate(
                     &common_name,
@@ -148,7 +148,7 @@ impl Command {
                 days,
                 force,
             } => {
-                let ca = read_key_pair(ca_key_file, ca_crt_file)?;
+                let ca = read_key_pair(&ca_key_file, &ca_crt_file)?;
                 let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
                 let key_pair = ca.generate(
                     &common_name,

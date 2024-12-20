@@ -1,6 +1,8 @@
 use std::collections::HashSet;
+use std::hash::Hash;
 
 use futures::future::try_join_all;
+use itertools::Itertools;
 use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::jwk::{self};
 use jsonwebtoken::Algorithm;
@@ -30,8 +32,11 @@ pub struct PoaPayload {
     pub jwks: VecAtLeastTwo<Jwk>,
 }
 
-#[nutype(derive(Debug, Clone, Serialize, Deserialize, TryFrom, AsRef), validate(predicate = |vec| vec.len() >= 2))]
-pub struct VecAtLeastTwo<T>(Vec<T>);
+#[nutype(
+    derive(Debug, Clone, Serialize, Deserialize, TryFrom, AsRef),
+    validate(predicate = |vec| vec.len() >= 2 && vec.iter().all_unique())
+)]
+pub struct VecAtLeastTwo<T: Eq + Hash>(Vec<T>);
 
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
 pub type Poa = JsonJwt<PoaPayload>;
@@ -67,7 +72,7 @@ pub enum PoaVerificationError {
 }
 
 impl Poa {
-    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwo<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
+    pub async fn new<K: EcdsaKey + Eq + Hash>(keys: VecAtLeastTwo<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
         let payload = PoaPayload {
             payload,
             jwks: try_join_all(keys.as_ref().iter().map(|privkey| async {
@@ -100,8 +105,8 @@ impl Poa {
     /// Verify the PoA, checking that:
     ///
     /// - all `expected_keys` are in the PoA (and no other keys). The keys may be passed in any order.
-    /// - all signatures are valid against all keys in the PoA, and the order of the JWKs in the payload
-    ///   corresponds to the order of the signatures.
+    /// - all signatures are valid against all keys in the PoA, and the order of the JWKs in the payload corresponds to
+    ///   the order of the signatures.
     /// - the `aud`, `nonce` and `iss` fields in the payload have the expected values.
     pub fn verify(
         self,
@@ -175,15 +180,17 @@ mod tests {
     use crate::jwt::JsonJwt;
     use crate::jwt::Jwt;
     use crate::jwt::JwtPopClaims;
+    use crate::keys::mock_remote::MockRemoteEcdsaKey;
     use crate::nonempty::NonEmpty;
 
     use super::Poa;
     use super::PoaPayload;
     use super::PoaVerificationError;
+    use super::VecAtLeastTwo;
 
     async fn poa_setup() -> (Poa, VerifyingKey, VerifyingKey, String, String, String) {
-        let key1 = SigningKey::random(&mut OsRng);
-        let key2 = SigningKey::random(&mut OsRng);
+        let key1 = MockRemoteEcdsaKey::new_random("key1".into());
+        let key2 = MockRemoteEcdsaKey::new_random("key2".into());
 
         let iss = "iss".to_string();
         let aud = "aud".to_string();
@@ -291,5 +298,17 @@ mod tests {
             &poa.verify(&[key1, other_key], &aud, &iss, &nonce).unwrap_err(),
             PoaVerificationError::MissingKey { .. }
         );
+    }
+
+    #[rstest]
+    #[case(vec![], false)]
+    #[case(vec![1], false)]
+    #[case(vec![1, 2], true)]
+    #[case(vec![1, 2, 3], true)]
+    #[case(vec![1, 1], false)]
+    #[case(vec![1, 2, 1], false)]
+    fn test_vec_at_least_two(#[case] input: Vec<isize>, #[case] expected_is_ok: bool) {
+        let vec = VecAtLeastTwo::try_new(input);
+        assert_eq!(vec.is_ok(), expected_is_ok);
     }
 }

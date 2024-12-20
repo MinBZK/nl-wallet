@@ -37,6 +37,7 @@ p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
 rand_core.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
+rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde-aux.workspace = true
@@ -52,6 +53,7 @@ tokio = { workspace = true, features = ["parking_lot"] }
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
+yoke = { workspace = true, features = ["derive"] }
 
 anyhow = { workspace = true, optional = true }
 assert_matches = { workspace = true, optional = true }
@@ -70,7 +72,7 @@ assert_matches.workspace = true
 hex-literal.workspace = true
 http.workspace = true
 parking_lot.workspace = true
-rcgen = { workspace = true, features = ["x509-parser"] }
+rcgen = { workspace = true, features = ["x509-parser", "crypto", "ring"] }
 regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

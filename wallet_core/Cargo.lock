@@ -231,6 +231,7 @@ dependencies = [
  "rand_core",
  "rcgen",
  "rstest",
+ "rustls-pki-types",
  "rustls-webpki",
  "serde",
  "serde_with",
@@ -720,9 +721,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.9.0"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "325918d6fe32f23b19878fe4b34794ae41fc19ddbe53b10571a4874d44ffd39b"
+checksum = "a12916984aab3fa6e39d655a33e09c0071eb36d6ab3aea5c2d78551f1df6d952"
 
 [[package]]
 name = "cache_control"
@@ -2885,6 +2886,7 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
+ "rustls-pki-types",
  "rustls-webpki",
  "serde",
  "serde-aux",
@@ -2901,6 +2903,7 @@ dependencies = [
  "url",
  "wallet_common",
  "x509-parser",
+ "yoke",
 ]
 
 [[package]]
@@ -3041,9 +3044,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.2"
+version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
 name = "opaque-debug"
@@ -3083,6 +3086,7 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
+ "rustls-pki-types",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -3390,7 +3394,7 @@ dependencies = [
  "log",
  "p256",
  "parking_lot",
- "rustls-webpki",
+ "rustls-pki-types",
  "serde",
  "serde_json",
  "serde_with",
@@ -3508,9 +3512,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.92"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37d3544b3f2748c54e147655edb5025752e2303145b5aefb3c3ea2c78b973bb0"
+checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
  "unicode-ident",
 ]
@@ -3589,9 +3593,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.37"
+version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
+checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
 dependencies = [
  "proc-macro2",
 ]
@@ -5035,6 +5039,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rstest",
+ "rustls-pki-types",
  "sea-orm",
  "semver",
  "serde_json",
@@ -5796,9 +5801,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.11.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8c5f0a0af699448548ad1a2fbf920fb4bee257eae39953ba95cb84891a0446a"
+checksum = "5de17fd2f7da591098415cff336e12965a28061ddace43b59cb3c430179c9439"
 dependencies = [
  "getrandom",
  "serde",
@@ -5876,6 +5881,7 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
+ "rustls-pki-types",
  "sanitize-filename",
  "sea-orm",
  "sea-query",
@@ -5954,6 +5960,7 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
+ "rustls-pki-types",
  "rustls-webpki",
  "sanitize-filename",
  "semver",
@@ -5968,6 +5975,7 @@ dependencies = [
  "trait-variant",
  "url",
  "x509-parser",
+ "yoke",
 ]
 
 [[package]]
@@ -5984,6 +5992,7 @@ dependencies = [
  "nutype",
  "p256",
  "rand_core",
+ "rustls-pki-types",
  "rustls-webpki",
  "serde",
  "serde_json",
@@ -6084,6 +6093,7 @@ dependencies = [
  "rand",
  "rand_core",
  "rstest",
+ "rustls-pki-types",
  "rustls-webpki",
  "sec1",
  "serde",
@@ -6128,6 +6138,7 @@ dependencies = [
  "reqwest",
  "ring",
  "rstest",
+ "rustls-pki-types",
  "sea-orm",
  "serde",
  "serde_json",
