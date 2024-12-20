@@ -305,7 +305,6 @@ mod tests {
     use rand_core::OsRng;
 
     use apple_app_attest::AssertionCounter;
-    use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::VerifiedAttestation;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
@@ -374,7 +373,7 @@ mod tests {
                     &[trust_anchor],
                     &utils::sha256(&registration.challenge),
                     &app_identifier,
-                    AttestationEnvironment::Development,
+                    wallet.key_holder.ca.environment,
                 )
                 .expect("registration message Apple attestation should verify");
 

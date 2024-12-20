@@ -16,7 +16,11 @@ allow_insecure_url = ["openid4vc/allow_insecure_url"]
 # Read an .env file with configuration overrides when compiling
 env_config = ["dep:dotenvy"]
 # Use fake Apple attested keys for use in the iOS simulator
-fake_attestation = ["platform_support/persistent_mock_attested_key", "platform_support/xcode_env"]
+fake_attestation = [
+    "dep:apple_app_attest",
+    "platform_support/persistent_mock_attested_key",
+    "platform_support/xcode_env",
+]
 # Include mock implementations and constructors for testing
 mock = ["dep:mockall", "nl_wallet_mdoc/generate", "nl_wallet_mdoc/mock", "openid4vc/mock"]
 # Export the traits and actual implementations of the Wallet dependencies
@@ -71,6 +75,8 @@ nl_wallet_mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
+
+apple_app_attest = { path = "../apple_app_attest", optional = true }
 
 [dev-dependencies]
 aes-gcm = { workspace = true, features = ["std"] }

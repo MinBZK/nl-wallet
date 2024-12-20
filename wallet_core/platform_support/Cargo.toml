@@ -28,7 +28,7 @@ persistent_mock_attested_key = [
     "tokio/fs",
     "tokio/sync",
 ]
-# Implement Default on PersistentMockAttestedKeyHolder by reading Xcode environment variables.
+# Implement extra constructor on PersistentMockAttestedKeyHolder by reading Xcode environment variables.
 xcode_env = ["apple_app_attest/xcode_env"]
 # Include the MockHardwareUtilities type for use in tests
 mock_utils = ["dep:tokio"]
