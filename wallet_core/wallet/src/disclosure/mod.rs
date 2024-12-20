@@ -14,7 +14,6 @@ use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
@@ -74,10 +73,9 @@ pub trait MdocDisclosureProposal {
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
+    async fn disclose<KF>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
-        KF: KeyFactory<Key = K>,
-        K: CredentialEcdsaKey;
+        KF: KeyFactory;
 }
 
 type VpDisclosureSession = openid4vc::disclosure_session::DisclosureSession<HttpVpMessageClient, Uuid>;
@@ -162,10 +160,9 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
         self.proposed_attributes()
     }
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
+    async fn disclose<KF>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
-        KF: KeyFactory<Key = K>,
-        K: CredentialEcdsaKey,
+        KF: KeyFactory,
     {
         let redirect_uri = self
             .disclose(key_factory)
@@ -236,10 +233,9 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
+        async fn disclose<KF>(&self, _key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
         where
-            KF: KeyFactory<Key = K>,
-            K: CredentialEcdsaKey,
+            KF: KeyFactory,
         {
             if let Some(error) = self.next_error.lock().take() {
                 return Err(DisclosureError::new(self.attributes_shared, error));

@@ -28,7 +28,6 @@ use nl_wallet_mdoc::utils::x509::CertificateType;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::VecAtLeastTwo;
-use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -665,10 +664,9 @@ where
             .collect()
     }
 
-    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
+    pub async fn disclose<KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
     where
-        KF: KeyFactory<Key = K>,
-        K: CredentialEcdsaKey,
+        KF: KeyFactory,
     {
         info!("disclose proposed documents");
 
