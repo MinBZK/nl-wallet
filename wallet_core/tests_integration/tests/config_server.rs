@@ -13,8 +13,8 @@ use tokio::fs;
 
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
-use wallet::mock::default_wallet_config;
 use wallet::wallet_deps::default_config_server_config;
+use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::RepositoryUpdateState;

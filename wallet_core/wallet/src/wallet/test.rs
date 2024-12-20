@@ -25,11 +25,6 @@ use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 
-use super::documents::DocumentsError;
-use super::HistoryError;
-use super::Wallet;
-use super::WalletInitError;
-use super::WalletRegistration;
 use crate::account_provider::MockAccountProviderClient;
 use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
@@ -49,7 +44,12 @@ use crate::wte::tests::MockWteIssuanceClient;
 use crate::Document;
 use crate::HistoryEvent;
 
+use super::documents::DocumentsError;
 use super::init::RegistrationStatus;
+use super::HistoryError;
+use super::Wallet;
+use super::WalletInitError;
+use super::WalletRegistration;
 
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {

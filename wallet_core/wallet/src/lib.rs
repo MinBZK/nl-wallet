@@ -69,6 +69,7 @@ pub mod wallet_deps {
     pub use crate::account_provider::AccountProviderClient;
     pub use crate::account_provider::HttpAccountProviderClient;
     pub use crate::config::default_config_server_config;
+    pub use crate::config::default_wallet_config;
     pub use crate::config::FileStorageConfigurationRepository;
     pub use crate::config::HttpConfigurationRepository;
     pub use crate::config::WalletConfigurationRepository;
@@ -91,7 +92,6 @@ pub mod wallet_deps {
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::account_provider::MockAccountProviderClient;
-    pub use crate::config::default_wallet_config;
     pub use crate::config::LocalConfigurationRepository;
     pub use crate::disclosure::MockMdocDisclosureMissingAttributes;
     pub use crate::disclosure::MockMdocDisclosureProposal;
