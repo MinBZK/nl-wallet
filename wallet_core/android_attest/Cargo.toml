@@ -9,6 +9,7 @@ workspace = true
 
 [features]
 network_test = []
+mock = []
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
@@ -16,9 +17,11 @@ http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
 num-bigint.workspace = true
 num-traits.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
+rasn.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware.workspace = true
+rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true
 thiserror.workspace = true
