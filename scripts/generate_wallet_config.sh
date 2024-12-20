@@ -4,9 +4,6 @@ set -e # break on error
 set -u # warn against undefined variables
 set -o pipefail # break on error in pipeline
 
-SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
-BASE_DIR=$(dirname "${SCRIPTS_DIR}")
-
 # Source: https://gist.github.com/stokito/f2d7ea0b300f14638a9063559384ec89
 base64_padding()
 {
@@ -25,16 +22,17 @@ base64_padding()
 base64_url_decode() { base64_padding "$1" | tr -- '-_' '+/' | openssl base64 -d -A; }
 
 # Print usage instructions when there are not enough arguments.
-if [ $# -lt 4 ]; then
-    >&2 echo "Usage: $0 <wallet env> <env static hostname> <config public key> <config server TLS CA> [<config server TLS CA>..]"
+if [ $# -lt 5 ]; then
+    >&2 echo "Usage: $0 <output location> <wallet env> <env static hostname> <config public key> <config server TLS CA> [<config server TLS CA>..]"
     exit 1
 fi
 
 # Store arguments in variables, catching all remaining ones as CAs.
-WALLET_ENV=$1
-STATIC_HOSTNAME=$2
-CONFIG_PUBLIC_KEY=$3
-CONFIG_SERVER_CAS=("${@:4}")
+OUTPUT_LOCATION=$1
+WALLET_ENV=$2
+STATIC_HOSTNAME=$3
+CONFIG_PUBLIC_KEY=$4
+CONFIG_SERVER_CAS=("${@:5}")
 
 # Create a temporary PEM file with all of the CA certificates.
 CA_FILE=$(mktemp --tmpdir "generate_wallet_env_file.config_server_ca.XXXXXXXXXX")
@@ -89,7 +87,7 @@ if ! echo -n "${JWT_HEADER}.${JWT_PAYLOAD}" | openssl dgst -sha256 -verify "$CON
 fi
 
 # Output wallet_configuration JSON
-base64_url_decode "$JWT_PAYLOAD" > "${BASE_DIR}/../wallet_core/wallet/wallet-config.json"
+base64_url_decode "$JWT_PAYLOAD" > "${OUTPUT_LOCATION}/wallet-config.json"
 
 # Output config_server_configuratino JSON
 jq -n \
@@ -99,4 +97,4 @@ jq -n \
     --arg pubkey "${CONFIG_PUBLIC_KEY}" \
     --arg freq 3600 \
     '{"environment":$env,"http_config":{"base_url":$url,"trust_anchors":[$ca]},"signing_public_key":$pubkey,"update_frequency_in_sec":$freq}' \
-    > "${BASE_DIR}/../wallet_core/wallet/config-server-config.json"
+    > "${OUTPUT_LOCATION}/config-server-config.json"

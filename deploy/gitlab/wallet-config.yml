@@ -1,6 +1,11 @@
 .wallet-config:
   script:
-    - scripts/generate_wallet_config.sh "$WALLET_ENV" "$STATIC_HOSTNAME" "$CONFIG_PUBKEY" "$CONFIG_TLS_CA"
+    - scripts/generate_wallet_config.sh
+      wallet_core/wallet
+      "$WALLET_ENV"
+      "$STATIC_HOSTNAME"
+      "$CONFIG_PUBKEY"
+      "$CONFIG_TLS_CA"
   artifacts:
     name: wallet-config-$WALLET_ENV
     paths:
