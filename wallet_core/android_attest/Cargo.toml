@@ -11,16 +11,13 @@ workspace = true
 network_test = []
 
 [dependencies]
-cache_control.workspace = true
 chrono = { workspace = true, features = ["now", "serde"] }
-indexmap = { workspace = true, features = ["serde"] }
 num-bigint = { workspace = true, features = ["serde"] }
 num-traits.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true, features = ["alloc"] }
 serde_with = { workspace = true, features = ["time_0_3"] }
 thiserror.workspace = true
 tokio.workspace = true
@@ -29,5 +26,6 @@ x509-parser.workspace = true
 [dev-dependencies]
 assert_matches.workspace = true
 rstest.workspace = true
+serde_json = { workspace = true, features = ["alloc"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 wiremock.workspace = true

@@ -1,6 +1,6 @@
-use cache_control::CacheControl;
+use std::collections::HashMap;
+
 use chrono::NaiveDate;
-use indexmap::IndexMap;
 use num_bigint::BigUint;
 use num_traits::Num;
 use nutype::nutype;
@@ -9,45 +9,30 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use x509_parser::certificate::X509Certificate;
 
-use crate::expiring_cache::ExpiringCache;
-use crate::expiring_cache::ExpiringValue;
-use crate::expiring_cache::MapProvider;
-use crate::expiring_cache::Provider;
-
 /// A NewType for the serial number.
 /// This type supports SerialNumbers of up to 20 bytes in accordance to
 /// [the spec](https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.2).
 #[nutype(
     sanitize(trim, uppercase),
     validate(not_empty, len_char_max = 40, regex = "[a-fA-F0-9]+"),
-    default = "0",
-    derive(Debug, Clone, Default, Deserialize, PartialEq, Eq, Hash, AsRef, Deref)
+    derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash, AsRef)
 )]
 pub struct SerialNumber(String);
 
 impl SerialNumber {
     fn serial(&self) -> BigUint {
-        BigUint::from_str_radix(self, 16).expect("nutype validation applied")
-    }
-}
-
-impl TryFrom<BigUint> for SerialNumber {
-    type Error = __nutype_SerialNumber__::SerialNumberError;
-
-    fn try_from(value: BigUint) -> Result<Self, Self::Error> {
-        let hex = value.to_str_radix(16);
-        SerialNumber::try_new(hex)
+        BigUint::from_str_radix(self.as_ref(), 16).expect("nutype validation applied")
     }
 }
 
 /// Root type of the schema as defined in: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct AndroidCrl {
-    pub entries: IndexMap<SerialNumber, AndroidCrlEntry>,
+    pub entries: HashMap<SerialNumber, AndroidCrlEntry>,
 }
 
 impl AndroidCrl {
-    pub fn as_biguint_map(&self) -> IndexMap<BigUint, AndroidCrlEntry> {
+    pub fn to_biguint_map(&self) -> HashMap<BigUint, AndroidCrlEntry> {
         self.entries
             .iter()
             .map(|(serial, entry)| (serial.serial(), entry.clone()))
@@ -95,19 +80,8 @@ pub enum AndroidCrlReason {
 pub enum Error {
     #[error("http error: {0}")]
     Http(#[from] reqwest::Error),
-    #[cfg(test)]
-    #[error("json error: {0}")]
-    Json(#[from] serde_json::Error),
     #[error("http status code {0}, with message: {1}")]
     HttpFailure(StatusCode, String),
-    #[error("Cache-Control header is missing from response")]
-    MissingCacheControlHeader,
-    #[error("Cache-Control header cannot be represented as str")]
-    InvalidStrCacheControlHeader(#[from] reqwest::header::ToStrError),
-    #[error("Cache-Control header could not be parsed")]
-    InvalidCacheControlHeader,
-    #[error("Cache-Control header does not contain (valid) `max-age` part")]
-    MissingMaxAge,
 }
 
 const ANDROID_CRL: &str = "https://android.googleapis.com/attestation/status";
@@ -118,28 +92,21 @@ pub struct GoogleRevocationList {
 }
 
 impl GoogleRevocationList {
-    pub fn new(crl: String, client: Client) -> Self {
+    /// Constructor with [`client`].
+    /// It is recommended to use a caching middleware, like `http-cache-reqwest`.
+    pub fn new_with_client(client: Client) -> Self {
+        Self {
+            crl: String::from(ANDROID_CRL),
+            client,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(crl: String, client: Client) -> Self {
         Self { crl, client }
     }
 
-    pub fn mapped_and_cached(self) -> impl Provider<ExpiringValue<IndexMap<BigUint, AndroidCrlEntry>>, Error = Error> {
-        ExpiringCache::new(self.map(|e| e.map(|crl| crl.as_biguint_map())))
-    }
-}
-
-impl Default for GoogleRevocationList {
-    fn default() -> Self {
-        Self {
-            crl: String::from(ANDROID_CRL),
-            client: Default::default(),
-        }
-    }
-}
-
-impl Provider<ExpiringValue<AndroidCrl>> for GoogleRevocationList {
-    type Error = Error;
-
-    async fn provide(&self) -> Result<ExpiringValue<AndroidCrl>, Self::Error> {
+    pub async fn get(&self) -> Result<AndroidCrl, Error> {
         let response = self.client.get(&self.crl).send().await?;
 
         // Check if status is success.
@@ -148,35 +115,21 @@ impl Provider<ExpiringValue<AndroidCrl>> for GoogleRevocationList {
             return Err(Error::HttpFailure(status, response.text().await?));
         }
 
-        // Parse max_age from the `Cache-Control` header.
-        let cache_control_header = response
-            .headers()
-            .get("Cache-Control")
-            .ok_or(Error::MissingCacheControlHeader)?
-            .to_str()?;
-        let max_age = CacheControl::from_value(cache_control_header)
-            .ok_or(Error::InvalidCacheControlHeader)?
-            .max_age
-            .ok_or(Error::MissingMaxAge)?;
         let crl_data = response.json().await?;
 
-        Ok(ExpiringValue::now(crl_data, max_age))
+        Ok(crl_data)
     }
 }
 
 /// Return all revoked certificates from [`certificate_chain`].
 /// The CRL is provided by [`revocation_list`].
-pub async fn get_revoked_certificates<'a, P, E>(
-    revocation_list: P,
+pub fn get_revoked_certificates<'a>(
+    crl: &'a HashMap<BigUint, AndroidCrlEntry>,
     certificate_chain: &'a [X509Certificate<'a>],
-) -> Result<Vec<(&'a X509Certificate<'a>, AndroidCrlEntry)>, E>
-where
-    P: Provider<ExpiringValue<IndexMap<BigUint, AndroidCrlEntry>>, Error = E>,
-{
-    let crl = revocation_list.provide().await?;
+) -> Result<Vec<(&'a X509Certificate<'a>, &'a AndroidCrlEntry)>, Error> {
     let revoked_certificates = certificate_chain
         .iter()
-        .flat_map(move |cert| crl.get(&cert.serial).map(move |entry| (cert, entry.clone())))
+        .flat_map(move |cert| crl.get(&cert.serial).map(move |entry| (cert, entry)))
         .collect();
     Ok(revoked_certificates)
 }
@@ -196,24 +149,14 @@ mod tests {
     use super::*;
 
     // status.json is taken from repo: https://github.com/google/android-key-attestation.git
+    const STATUS_TESTS_BYTES: &[u8] = include_bytes!("../test-assets/status-tests.json");
+
+    // status.json is taken from repo: https://github.com/google/android-key-attestation.git
     const TEST_ASSETS_STATUS_BYTES: &[u8] = include_bytes!("../test-assets/status.json");
 
     // example certificate taken from repo: https://github.com/google/android-key-attestation.git
     // this certificate is suspended according to status.json
-    const TEST_CERT: &str = r#"-----BEGIN CERTIFICATE-----
-MIIB8zCCAXqgAwIBAgIRAMxm6ak3E7bmQ7JsFYeXhvcwCgYIKoZIzj0EAwIwOTEM
-MAoGA1UEDAwDVEVFMSkwJwYDVQQFEyA0ZjdlYzg1N2U4MDU3NDdjMWIxZWRhYWVm
-ODk1NDk2ZDAeFw0xOTA4MTQxOTU0MTBaFw0yOTA4MTExOTU0MTBaMDkxDDAKBgNV
-BAwMA1RFRTEpMCcGA1UEBRMgMzJmYmJiNmRiOGM5MTdmMDdhYzlhYjZhZTQ4MTAz
-YWEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQzg+sx9lLrkNIZwLYZerzL1bPK
-2zi75zFEuuI0fIr35DJND1B4Z8RPZ3djzo3FOdAObqvoZ4CZVxcY3iQ1ffMMo2Mw
-YTAdBgNVHQ4EFgQUzZOUqhJOO7wttSe9hYemjceVsgIwHwYDVR0jBBgwFoAUWlnI
-9iPzasns60heYXIP+h+Hz8owDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
-AgQwCgYIKoZIzj0EAwIDZwAwZAIwUFz/AKheCOPaBiRGDk7LaSEDXVYmTr0VoU8T
-bIqrKGWiiMwsGEmW+Jdo8EcKVPIwAjAoO7n1ruFh+6mEaTAukc6T5BW4MnmYadkk
-FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
------END CERTIFICATE-----
-"#;
+    const TEST_ASSETS_SUSPENDED_CERT: &[u8] = include_bytes!("../test-assets/suspended-cert.pem");
 
     async fn start_google_crl_server() -> MockServer {
         let server = MockServer::start().await;
@@ -237,9 +180,9 @@ FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
     #[cfg(feature = "network_test")]
     #[tokio::test]
     async fn test_google_crl_network() {
-        let crl_provider = GoogleRevocationList::default().mapped_and_cached();
-        let crl = crl_provider.provide().await.unwrap();
-        assert!(!crl.is_empty());
+        let crl_provider = GoogleRevocationList::new_with_client(Default::default());
+        let crl = crl_provider.get().await.unwrap();
+        assert!(!crl.entries.is_empty());
     }
 
     #[tokio::test]
@@ -248,18 +191,17 @@ FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
         let base_url = crl_server.uri();
 
         // prepare test certificate list
-        let (_, cert_pem) = pem::parse_x509_pem(TEST_CERT.as_bytes())?;
+        let (_, cert_pem) = pem::parse_x509_pem(TEST_ASSETS_SUSPENDED_CERT)?;
         let (_, cert) = X509Certificate::from_der(&cert_pem.contents)?;
         let certificates = [cert];
 
         // create caching CRL provider, and verify entries are read
-        let crl_provider =
-            GoogleRevocationList::new(format!("{base_url}/status"), Client::default()).mapped_and_cached();
-        let crl = crl_provider.provide().await?;
+        let crl_provider = GoogleRevocationList::for_test(format!("{base_url}/status"), Client::default());
+        let crl = crl_provider.get().await?.to_biguint_map();
         assert_eq!(crl.len(), 5);
 
         // verify certificate against the crl
-        let actual = get_revoked_certificates(crl_provider, &certificates).await?;
+        let actual = get_revoked_certificates(&crl, &certificates)?;
 
         assert_eq!(actual.len(), 1);
         let (_, status_entry) = &actual[0];
@@ -272,30 +214,12 @@ FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
     // Deserialize example from: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
     #[test]
     fn deserialize_example() {
-        let example_json = r#"
-          {
-            "entries": {
-              "2c8cdddfd5e03bfc": {
-                "status": "REVOKED",
-                "expires": "2020-11-13",
-                "reason": "KEY_COMPROMISE",
-                "comment": "Key stored on unsecure system"
-              },
-              "c8966fcb2fbb0d7a": {
-                "status": "SUSPENDED",
-                "reason": "SOFTWARE_FLAW",
-                "comment": "Bug in keystore causes this key malfunction b/555555"
-              }
-            }
-          }
-        "#;
-        let actual: AndroidCrl = serde_json::from_str(example_json).unwrap();
-        assert_eq!(actual.entries.len(), 2);
-        let mut iter = actual.entries.into_iter();
+        let actual: AndroidCrl = serde_json::from_slice(STATUS_TESTS_BYTES).unwrap();
+        assert_eq!(actual.entries.len(), 3);
+
+        let entry = &actual.entries[&SerialNumber::try_new("2c8cdddfd5e03bfc").unwrap()];
 
         // Verify first entry
-        let (key, entry) = iter.next().expect("safe because of len() check above");
-        assert_eq!(key, SerialNumber::try_new("2c8cdddfd5e03bfc").unwrap());
         assert_eq!(entry.status, AndroidCrlStatus::Revoked);
         assert_eq!(
             entry.expires,
@@ -305,8 +229,7 @@ FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
         assert_eq!(entry.comment, Some("Key stored on unsecure system".to_string()));
 
         // Verify second entry
-        let (key, entry) = iter.next().expect("safe because of len() check above");
-        assert_eq!(key, SerialNumber::try_new("c8966fcb2fbb0d7a").unwrap());
+        let entry = &actual.entries[&SerialNumber::try_new("c8966fcb2fbb0d7a").unwrap()];
         assert_eq!(entry.status, AndroidCrlStatus::Suspended);
         assert_eq!(entry.expires, None);
         assert_eq!(entry.reason, Some(AndroidCrlReason::SoftwareFlaw));
@@ -314,17 +237,11 @@ FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
             entry.comment,
             Some("Bug in keystore causes this key malfunction b/555555".to_string())
         );
-    }
 
-    #[test]
-    fn test_serial_number() {
-        let serial = SerialNumber::try_new("e24e5301403dcb9bad30918083fa15c7").unwrap();
-        println!("serial: {serial:?}");
-        println!("biguint: {}", serial.serial());
-
-        let biguint = BigUint::new(vec![8, 0, 0, 0]);
-        let serial = SerialNumber::try_from(biguint.clone()).unwrap();
-        println!("serial: {serial:?}");
-        assert_eq!(serial.serial(), biguint);
+        let entry = &actual.entries[&SerialNumber::try_new("1").unwrap()];
+        assert_eq!(entry.status, AndroidCrlStatus::Revoked);
+        assert_eq!(entry.expires, None);
+        assert_eq!(entry.reason, None);
+        assert_eq!(entry.comment, None);
     }
 }
