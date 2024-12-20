@@ -15,6 +15,7 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
 use crate::iso::mdocs::*;
+use crate::unsigned::Entry;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::NullCborValue;
 use crate::utils::serialization::RequiredValue;
@@ -68,6 +69,21 @@ pub struct Document {
 pub struct IssuerSigned {
     pub name_spaces: Option<IssuerNameSpaces>,
     pub issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
+}
+
+impl IssuerSigned {
+    pub fn to_entries_by_namespace(&self) -> IndexMap<NameSpace, Vec<Entry>> {
+        self.name_spaces
+            .as_ref()
+            .map(|name_spaces| {
+                name_spaces
+                    .as_ref()
+                    .iter()
+                    .map(|(name_space, attributes)| (name_space.clone(), attributes.into()))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
 }
 
 /// The holder signature as during disclosure of an mdoc (see [`Document`]) computed with the mdoc private key, as well

@@ -30,7 +30,7 @@ fn setup_hsm() -> (Pkcs11Hsm, Settings) {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn generate_key_and_sign() {
     let (hsm, _) = setup_hsm();
 
@@ -50,7 +50,7 @@ async fn generate_key_and_sign() {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn sign_sha256_hmac_using_new_secret_key() {
     let (hsm, _) = setup_hsm();
 
@@ -65,7 +65,7 @@ async fn sign_sha256_hmac_using_new_secret_key() {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn sign_sha256_hmac() {
     let (hsm, settings) = setup_hsm();
 
@@ -89,7 +89,7 @@ async fn sign_sha256_hmac() {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn wrap_key_and_sign() {
     let (hsm, _) = setup_hsm();
 
@@ -104,7 +104,7 @@ async fn wrap_key_and_sign() {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn encrypt_decrypt() {
     let (hsm, settings) = setup_hsm();
 
@@ -124,7 +124,7 @@ async fn encrypt_decrypt() {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn encrypt_decrypt_verifying_key() {
     let (hsm, settings) = setup_hsm();
 

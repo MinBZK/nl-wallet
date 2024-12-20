@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-use nl_wallet_mdoc::utils::x509::Certificate;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
@@ -41,10 +40,10 @@ pub struct Digid {
 }
 
 impl Issuer {
-    pub fn certificates(&self) -> IndexMap<String, Certificate> {
+    pub fn certificates(&self) -> IndexMap<String, BorrowingCertificate> {
         self.private_keys
             .iter()
-            .map(|(doctype, privkey)| (doctype.clone(), privkey.certificate.clone().into()))
+            .map(|(doctype, privkey)| (doctype.clone(), privkey.certificate.clone()))
             .collect()
     }
 }

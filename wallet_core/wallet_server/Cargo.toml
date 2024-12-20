@@ -26,7 +26,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["disclosure"]
+required-features = ["disclosure", "integration_test"]
 
 [[test]]
 name = "postgres"
@@ -45,7 +45,7 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insec
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
+db_test = ["postgres", "allow_insecure_url", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
 # Enable issuance
 issuance = [
     "axum/form",
@@ -75,6 +75,7 @@ derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"]
 http.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
+rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true

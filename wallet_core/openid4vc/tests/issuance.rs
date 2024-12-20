@@ -16,7 +16,7 @@ use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::Tdate;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequestProof;
@@ -50,11 +50,12 @@ use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::PoaPayload;
 use wallet_common::nonempty::NonEmpty;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
-fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
+fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, BorrowingTrustAnchor, BaseUrl, SigningKey) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
@@ -62,16 +63,16 @@ fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, Certific
         MockAttributeService {
             previews: mock_mdoc_attributes(issuance_keypair.certificate(), attestation_count, copy_count),
         },
-        ca,
+        &ca,
         issuance_keypair,
     )
 }
 
 fn setup(
     attr_service: MockAttributeService,
-    ca: KeyPair,
+    ca: &KeyPair,
     issuance_keypair: KeyPair,
-) -> (MockIssuer, Certificate, BaseUrl, SigningKey) {
+) -> (MockIssuer, BorrowingTrustAnchor, BaseUrl, SigningKey) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();
     let wte_issuer_privkey = SigningKey::random(&mut OsRng);
 
@@ -85,9 +86,11 @@ fn setup(
         MemoryWteTracker::new(),
     );
 
+    let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
+
     (
         issuer,
-        ca.into(),
+        borrowing_trust_anchor,
         server_url.join_base_url("issuance/"),
         wte_issuer_privkey,
     )
@@ -96,14 +99,14 @@ fn setup(
 #[rstest]
 #[tokio::test]
 async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2)] copy_count: u8) {
-    let (issuer, ca, server_url, wte_issuer_privkey) = setup_mdoc(attestation_count, copy_count);
+    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mdoc(attestation_count, copy_count);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
         TokenRequest::new_mock(),
-        &[(&ca).try_into().unwrap()],
+        &[(&trust_anchor).into()],
     )
     .await
     .unwrap();
@@ -112,7 +115,7 @@ async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2
     let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     let issued_creds = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
+        .accept_issuance(&[(&trust_anchor).into()], key_factory, Some(wte), server_url)
         .await
         .unwrap();
 
@@ -134,14 +137,14 @@ async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, ca, server_url, _) = setup_mdoc(1, 1);
+    let (issuer, trust_anchor, server_url, _) = setup_mdoc(1, 1);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url,
         TokenRequest::new_mock(),
-        &[(&ca).try_into().unwrap()],
+        &[(&trust_anchor).into()],
     )
     .await
     .unwrap();
@@ -152,14 +155,14 @@ async fn reject_issuance() {
 async fn start_and_accept_err(
     message_client: MockOpenidMessageClient,
     server_url: BaseUrl,
-    ca: Certificate,
+    trust_anchor: BorrowingTrustAnchor,
     wte_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
         TokenRequest::new_mock(),
-        &[(&ca).try_into().unwrap()],
+        &[(&trust_anchor).into()],
     )
     .await
     .unwrap();
@@ -168,7 +171,7 @@ async fn start_and_accept_err(
     let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     session
-        .accept_issuance(&[(&ca).try_into().unwrap()], key_factory, Some(wte), server_url)
+        .accept_issuance(&[(&trust_anchor).into()], key_factory, Some(wte), server_url)
         .await
         .unwrap_err()
 }
@@ -460,7 +463,11 @@ impl VcMessageClient for MockOpenidMessageClient {
 const MOCK_DOCTYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
-fn mock_mdoc_attributes(issuer_cert: &Certificate, attestation_count: usize, copy_count: u8) -> Vec<CredentialPreview> {
+fn mock_mdoc_attributes(
+    issuer_cert: &BorrowingCertificate,
+    attestation_count: usize,
+    copy_count: u8,
+) -> Vec<CredentialPreview> {
     (0..attestation_count)
         .map(|i| CredentialPreview::MsoMdoc {
             unsigned_mdoc: UnsignedMdoc {

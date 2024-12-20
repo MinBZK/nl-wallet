@@ -9,7 +9,7 @@ use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn test_unlock_ok() {
     let pin = "112234".to_string();
 
@@ -30,7 +30,7 @@ async fn test_unlock_ok() {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn test_block() {
     let pin = "112234".to_string();
 
@@ -80,7 +80,7 @@ async fn test_block() {
 }
 
 #[tokio::test]
-#[serial]
+#[serial(hsm)]
 async fn test_unlock_error() {
     let pin = "112234".to_string();
     let mut wallet = setup_wallet_and_default_env().await;

@@ -36,7 +36,6 @@ use super::MdocDataSource;
 ///   request contains the same `DocType` multiple times.
 /// * It is a known limitation that `DisclosureRequestMatch::MissingAttributes` only contains the missing attributes for
 ///   one of the `Mdoc`s for a particular `DocType`. Which one it chooses is undefined.
-#[derive(Debug)]
 pub enum DisclosureRequestMatch<I> {
     Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
     // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)

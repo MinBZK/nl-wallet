@@ -6,9 +6,9 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::EncodedPoint;
 use p256::SecretKey;
+use rustls_pki_types::CertificateDer;
+use rustls_pki_types::TrustAnchor;
 use webpki::anchor_from_trusted_cert;
-use webpki::types::CertificateDer;
-use webpki::types::TrustAnchor;
 
 pub struct Examples;
 

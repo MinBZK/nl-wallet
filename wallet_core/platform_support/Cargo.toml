@@ -41,7 +41,7 @@ hardware_integration_test = [
     "dep:cfg-if",
     "dep:jni",
     "dep:log",
-    "dep:rustls-webpki",
+    "dep:rustls-pki-types",
     "tokio/fs",
     "tokio/io-util",
     "tokio/rt",
@@ -63,7 +63,7 @@ log = { workspace = true, optional = true }
 serde = { workspace = true, optional = true, features = ["derive", "rc"] }
 serde_json = { workspace = true, optional = true }
 serde_with = { workspace = true, optional = true }
-rustls-webpki = { workspace = true, optional = true }
+rustls-pki-types = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 uuid = { workspace = true, optional = true, features = ["v4"] }
 
@@ -77,7 +77,7 @@ android_logger = { workspace = true, optional = true }
 jni = { workspace = true, optional = true }
 
 [dev-dependencies]
-rustls-webpki.workspace = true
+rustls-pki-types.workspace = true
 log.workspace = true
 tokio = { workspace = true, features = ["macros", "fs", "io-util"] }
 

@@ -1,16 +1,13 @@
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+use x509_parser::oid_registry::asn1_rs::oid;
+use x509_parser::oid_registry::Oid;
 
 use crate::utils::x509::CertificateType;
 use crate::utils::x509::MdocCertificateExtension;
 
 use super::Organization;
-
-/// oid: 2.1.123.2
-/// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
-/// suffix: 2, unofficial id for Issuer Authentication
-const OID_EXT_ISSUER_AUTH: &[u64] = &[2, 1, 123, 2];
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,7 +17,10 @@ pub struct IssuerRegistration {
 }
 
 impl MdocCertificateExtension for IssuerRegistration {
-    const OID: &'static [u64] = OID_EXT_ISSUER_AUTH;
+    /// oid: 2.1.123.2
+    /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
+    /// suffix: 2, unofficial id for Issuer Authentication
+    const OID: Oid<'static> = oid!(2.1.123 .2);
 }
 
 impl From<IssuerRegistration> for CertificateType {

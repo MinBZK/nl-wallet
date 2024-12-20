@@ -21,7 +21,7 @@ use uuid::Uuid;
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::credential::MdocCopies;
 
 pub use self::data::ChangePinData;
@@ -117,5 +117,5 @@ pub trait Storage {
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>>;
-    async fn did_share_data_with_relying_party(&self, certificate: &Certificate) -> StorageResult<bool>;
+    async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
 }

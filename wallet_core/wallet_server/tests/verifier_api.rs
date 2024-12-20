@@ -17,13 +17,13 @@ use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
-use p256::pkcs8::EncodePrivateKey;
 use parking_lot::RwLock;
 #[cfg(feature = "issuance")]
 use rand_core::OsRng;
 use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
+use rustls_pki_types::TrustAnchor;
 use tokio::time;
 use url::Url;
 
@@ -34,7 +34,6 @@ use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
 use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
 use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
@@ -67,7 +66,7 @@ use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_server::settings::Authentication;
@@ -133,7 +132,7 @@ fn fake_issuer_settings() -> Issuer {
     }
 }
 
-fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor) {
+fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnchor) {
     // Set up the hostname and ports.
     let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
@@ -147,12 +146,12 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
     let issuer_key_pair = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
         .unwrap();
-    let issuer_trust_anchor = issuer_ca.certificate().try_into().unwrap();
+    let issuer_trust_anchor = issuer_ca.to_trust_anchor().unwrap();
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
     let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor = OwnedTrustAnchor::from(&rp_ca.certificate().try_into().unwrap());
+    let rp_trust_anchor = rp_ca.to_trust_anchor().unwrap();
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
         &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
     ));
@@ -163,15 +162,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         USECASE_NAME.to_string(),
         VerifierUseCase {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
-            key_pair: wallet_server::settings::KeyPair {
-                certificate: usecase_keypair.certificate().as_bytes().to_vec(),
-                private_key: usecase_keypair
-                    .private_key()
-                    .to_pkcs8_der()
-                    .unwrap()
-                    .as_bytes()
-                    .to_vec(),
-            },
+            key_pair: usecase_keypair.into(),
         },
     )])
     .into();
@@ -212,7 +203,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
             allow_origins: None,
         },
         #[cfg(feature = "disclosure")]
-        reader_trust_anchors: vec![rp_ca.certificate().try_into().unwrap()],
+        reader_trust_anchors: vec![rp_trust_anchor.clone()],
     };
 
     (settings, issuer_key_pair, rp_trust_anchor)
@@ -543,7 +534,7 @@ async fn start_disclosure<S>(
     SessionToken,
     BaseUrl,
     KeyPair<SigningKey>,
-    OwnedTrustAnchor,
+    BorrowingTrustAnchor,
 )
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -929,7 +920,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         &settings
             .issuer_trust_anchors
             .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
+            .map(|anchor| anchor.into())
             .collect_vec(),
     )
     .await;
