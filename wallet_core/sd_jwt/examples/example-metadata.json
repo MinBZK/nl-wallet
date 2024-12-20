@@ -128,6 +128,24 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": [
+        "nationalities",
+        null
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Nationalities",
+          "description": "Nationalities"
+        },
+        {
+          "lang": "nl-NL",
+          "label": "Nationaliteiten",
+          "description": "Nationaliteiten"
+        }
+      ]
     }
   ],
   "schema": {
@@ -171,6 +189,12 @@
       },
       "is_over_18": {
         "type": "boolean"
+      },
+      "nationalities": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     },
     "required": [

@@ -5,8 +5,7 @@ use serde::Serialize;
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TypeMetadata {
-    /// A URI that uniquely identifies the type.
-    /// This URI MUST be dereferenceable to a JSON document that describes the type.
+    /// A String or URI that uniquely identifies the type.
     pub vct: String,
 
     /// A human-readable name for the type, intended for developers reading the JSON document.
@@ -15,19 +14,52 @@ pub struct TypeMetadata {
     /// A human-readable description for the type, intended for developers reading the JSON document.
     pub description: Option<String>,
 
-    /// A URI of another type that this type extends.
-    pub extends: Option<String>,
+    /// Another type that this type extends.
+    #[serde(flatten)]
+    pub extends: Option<MetadataExtends>,
 
     /// Validating the integrity of the extends field.
     #[serde(rename = "extends#integrity")]
     pub extends_integrity: Option<String>,
 
+    /// An array of objects containing display information for the type.
     pub display: Vec<DisplayMetadata>,
 
+    /// An array of objects containing claim information for the type.
     pub claims: Vec<ClaimMetadata>,
 
-    /// An embedded JSON Schema document describing the structure of the Verifiable Credential.
-    pub schema: serde_json::Value,
+    /// A JSON Schema document describing the structure of the Verifiable Credential
+    #[serde(flatten)]
+    pub schema: SchemaOption,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MetadataExtends {
+    /// A URI of another type that this type extends.
+    #[serde(with = "http_serde::uri")]
+    pub extends: Uri,
+
+    /// Validating the integrity of the extends field.
+    #[serde(rename = "extends#integrity")]
+    pub extends_integrity: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SchemaOption {
+    EMBEDDED {
+        /// An embedded JSON Schema document describing the structure of the Verifiable Credential.
+        schema: serde_json::Value,
+    },
+    REMOTE {
+        /// A URL pointing to a JSON Schema document describing the structure of the Verifiable Credential.
+        /// schema_uri MUST NOT be used if schema is present.
+        #[serde(with = "http_serde::uri")]
+        schema_uri: Uri,
+        /// Validating the integrity of the schema_uri field.
+        #[serde(rename = "schema_uri#integrity")]
+        schema_uri_integrity: String,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -62,9 +94,9 @@ pub struct LogoMetadata {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClaimMetadata {
-    pub path: Vec<String>,
+    pub path: Vec<serde_json::Value>,
     pub display: Vec<ClaimDisplayMetadata>,
-    // #[serde(default = "ClaimSelectiveDisclosureMetadata::default")]
+    #[serde(default)]
     pub sd: ClaimSelectiveDisclosureMetadata,
     pub svg_id: Option<String>,
 }
@@ -87,20 +119,25 @@ pub struct ClaimDisplayMetadata {
 
 #[cfg(test)]
 mod test {
+    use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
     use serde_json::json;
     use std::env;
     use std::path::PathBuf;
 
-    #[tokio::test]
-    async fn test_deserialize() {
+    async fn read_and_parse_metadata(filename: &str) -> TypeMetadata {
         let base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap();
 
-        let metadata_file = tokio::fs::read(base_path.join("examples").join("example-metadata.json"))
+        let metadata_file = tokio::fs::read(base_path.join("examples").join(filename))
             .await
             .unwrap();
 
-        let metadata: TypeMetadata = serde_json::from_slice(metadata_file.as_slice()).unwrap();
+        serde_json::from_slice(metadata_file.as_slice()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_deserialize() {
+        let metadata = read_and_parse_metadata("example-metadata.json").await;
 
         assert_eq!(
             "https://sd_jwt_vc_metadata.example.com/example_credential",
@@ -110,13 +147,7 @@ mod test {
 
     #[tokio::test]
     async fn test_schema_validation() {
-        let base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap();
-
-        let metadata_file = tokio::fs::read(base_path.join("examples").join("example-metadata.json"))
-            .await
-            .unwrap();
-
-        let metadata: TypeMetadata = serde_json::from_slice(metadata_file.as_slice()).unwrap();
+        let metadata = read_and_parse_metadata("example-metadata.json").await;
 
         let claims = json!({
           "vct":"https://credentials.example.com/identity_credential",
@@ -137,6 +168,13 @@ mod test {
           }
         });
 
-        assert!(jsonschema::draft202012::is_valid(&metadata.schema, &claims))
+        match &metadata.schema {
+            SchemaOption::EMBEDDED { schema } => {
+                assert!(jsonschema::draft202012::is_valid(schema, &claims))
+            }
+            SchemaOption::REMOTE { .. } => {
+                panic!("Remote schema option is not supported")
+            }
+        }
     }
 }
