@@ -1,3 +1,4 @@
+use http::Uri;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -26,16 +27,7 @@ pub struct TypeMetadata {
     pub claims: Vec<ClaimMetadata>,
 
     /// An embedded JSON Schema document describing the structure of the Verifiable Credential.
-    /// schema MUST NOT be used if schema_uri is present.
     pub schema: serde_json::Value,
-
-    /// A URL pointing to a JSON Schema document describing the structure of the Verifiable Credential.
-    /// schema_uri MUST NOT be used if schema is present.
-    pub schema_uri: Option<String>,
-
-    /// Validating the integrity of the schema_uri field.
-    #[serde(rename = "schema_uri#integrity")]
-    pub schema_uri_integrity: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,12 +50,20 @@ pub enum RenderingMetadata {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct LogoMetadata {}
+pub struct LogoMetadata {
+    #[serde(with = "http_serde::uri")]
+    pub uri: Uri,
+
+    #[serde(rename = "uri#integrity")]
+    pub uri_integrity: String,
+
+    pub alt_text: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClaimMetadata {
     pub path: Vec<String>,
-    pub display: Option<ClaimDisplayMetadata>,
+    pub display: Vec<ClaimDisplayMetadata>,
     // #[serde(default = "ClaimSelectiveDisclosureMetadata::default")]
     pub sd: ClaimSelectiveDisclosureMetadata,
     pub svg_id: Option<String>,
@@ -109,7 +109,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn bla() {
+    async fn test_schema_validation() {
         let base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap();
 
         let metadata_file = tokio::fs::read(base_path.join("examples").join("example-metadata.json"))
@@ -137,7 +137,6 @@ mod test {
           }
         });
 
-        dbg!(jsonschema::draft202012::validate(&metadata.schema, &claims).unwrap());
         assert!(jsonschema::draft202012::is_valid(&metadata.schema, &claims))
     }
 }
