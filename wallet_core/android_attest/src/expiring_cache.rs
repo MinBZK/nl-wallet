@@ -1,16 +1,16 @@
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use tokio::sync::RwLock;
 
 /// This trait marks data that can expire, for example by expiration time/date.
 pub trait Expiring {
     /// Returns true when the data is expired at the moment of calling.
-    fn is_expired(&self) -> bool;
+    async fn is_expired(&self) -> bool;
 }
 
 /// Provider of [`T`], raises a [`Self::Error`] on failure to provide.
@@ -86,7 +86,7 @@ impl<T> Deref for ExpiringValue<T> {
 }
 
 impl<T> Expiring for ExpiringValue<T> {
-    fn is_expired(&self) -> bool {
+    async fn is_expired(&self) -> bool {
         self.is_expired_at(Utc::now())
     }
 }
@@ -97,7 +97,7 @@ pub struct ExpiringCache<T, P> {
     /// Provider for the cached data
     provider: P,
     /// In memory cache of the provided data
-    cache: Arc<Mutex<Option<T>>>,
+    cache: RwLock<Option<T>>,
 }
 
 impl<T, P> ExpiringCache<T, P> {
@@ -117,20 +117,15 @@ where
     type Error = E;
 
     async fn provide(&self) -> Result<T, Self::Error> {
-        if self.is_expired() {
-            // Invoke provider outside of the scope which holds the mutex lock.
-            let item = self.provider.provide().await?;
-
-            // Lock the mutex in an as small as possible scope, so that locking will not err.
-            let mut lock = self.cache.lock().unwrap();
-            *lock = Some(item.clone());
-            Ok(item)
+        if self.is_expired().await {
+            let value = self.provider.provide().await?;
+            let mut cache = self.cache.write().await;
+            *cache = Some(value.clone());
+            Ok(value)
         } else {
-            // Lock the mutex in an as small as possible scope, so that locking will not err.
-            let lock = self.cache.lock().unwrap();
-            // Unwrap is safe, because of the `is_expired()` call above and the fact that we never set the
-            // cache to `None`, apart from [`ExpiringDataCache::new`].
-            Ok(lock.clone().unwrap())
+            let cache = self.cache.read().await;
+            // unwrap is safe because cache is already initialized (i.e. not expired)
+            Ok(cache.clone().unwrap())
         }
     }
 }
@@ -141,12 +136,10 @@ where
     P: Provider<T, Error = E>,
 {
     /// The cache is expired when the cache is not initialized yet, or if the data in the cache is expired.
-    fn is_expired(&self) -> bool {
-        // Lock the mutex in an as small as possible scope, so that locking will not err.
-        let cache = self.cache.lock().unwrap();
-
+    async fn is_expired(&self) -> bool {
+        let cache = self.cache.read().await;
         match cache.as_ref() {
-            Some(cache) => cache.is_expired(),
+            Some(value) => value.is_expired().await,
             None => true,
         }
     }
@@ -242,12 +235,12 @@ mod tests {
     /// Provides the number of times the [`provide()`] function has been invoked.
     #[derive(Default, Clone)]
     struct Counter {
-        provide_count: Arc<Mutex<u8>>,
+        provide_count: Arc<RwLock<u8>>,
     }
 
     impl Counter {
-        fn provide_count(&self) -> u8 {
-            let provide_count = self.provide_count.lock().unwrap();
+        async fn provide_count(&self) -> u8 {
+            let provide_count = self.provide_count.read().await;
             *provide_count
         }
     }
@@ -256,21 +249,21 @@ mod tests {
         type Error = ();
 
         async fn provide(&self) -> Result<u8, Self::Error> {
-            let mut provide_count = self.provide_count.lock().unwrap();
+            let mut provide_count = self.provide_count.write().await;
             *provide_count += 1;
             Ok(*provide_count)
         }
     }
 
     impl Expiring for u8 {
-        fn is_expired(&self) -> bool {
+        async fn is_expired(&self) -> bool {
             // This allows us to test both the initial initialization of the cache, and expiration of the data.
             *self < 2
         }
     }
 
     impl Expiring for u16 {
-        fn is_expired(&self) -> bool {
+        async fn is_expired(&self) -> bool {
             *self < 8
         }
     }
@@ -296,35 +289,35 @@ mod tests {
     async fn test_cache() {
         let cache: ExpiringCache<u8, Counter> = ExpiringCache::new(Counter::default());
         // Verify provider not yet invoked
-        assert_eq!(cache.provider.provide_count(), 0);
+        assert_eq!(cache.provider.provide_count().await, 0);
 
         // Invoke cached provider
-        assert!(cache.is_expired());
+        assert!(cache.is_expired().await);
         let actual: u8 = cache.provide().await.unwrap();
         assert_eq!(actual, 1);
         // Verify provider invoked once, because cache not initialized
-        assert_eq!(cache.provider.provide_count(), 1);
+        assert_eq!(cache.provider.provide_count().await, 1);
 
         // Invoke cached provider
-        assert!(cache.is_expired());
+        assert!(cache.is_expired().await);
         let actual: u8 = cache.provide().await.unwrap();
         assert_eq!(actual, 2);
         // Verify provider invoked again, because data expired
-        assert_eq!(cache.provider.provide_count(), 2);
+        assert_eq!(cache.provider.provide_count().await, 2);
 
         // Invoke cached provider
-        assert!(!cache.is_expired());
+        assert!(!cache.is_expired().await);
         let actual: u8 = cache.provide().await.unwrap();
         assert_eq!(actual, 2);
         // Verify provider not invoked again
-        assert_eq!(cache.provider.provide_count(), 2);
+        assert_eq!(cache.provider.provide_count().await, 2);
 
         // Invoke cached provider
-        assert!(!cache.is_expired());
+        assert!(!cache.is_expired().await);
         let actual: u8 = cache.provide().await.unwrap();
         assert_eq!(actual, 2);
         // Verify provider not invoked again
-        assert_eq!(cache.provider.provide_count(), 2);
+        assert_eq!(cache.provider.provide_count().await, 2);
     }
 
     #[tokio::test]
@@ -335,35 +328,35 @@ mod tests {
         let cache: ExpiringCache<_, _> = inner_cache.clone().map(|c| c as u16 * 2);
 
         // Verify provider not yet invoked
-        assert_eq!(inner_cache.provider.provide_count(), 0);
+        assert_eq!(inner_cache.provider.provide_count().await, 0);
 
         // Invoke cached provider
-        assert!(cache.is_expired());
+        assert!(cache.is_expired().await);
         let actual: u16 = cache.provide().await.unwrap();
         assert_eq!(actual, 2);
         // Verify provider invoked once, because cache not initialized
-        assert_eq!(inner_cache.provider.provide_count(), 1);
+        assert_eq!(inner_cache.provider.provide_count().await, 1);
 
         // Invoke cached provider
-        assert!(cache.is_expired());
+        assert!(cache.is_expired().await);
         let actual: u16 = cache.provide().await.unwrap();
         assert_eq!(actual, 4);
         // Verify provider invoked again, because data expired
-        assert_eq!(inner_cache.provider.provide_count(), 2);
+        assert_eq!(inner_cache.provider.provide_count().await, 2);
 
         // Invoke cached provider
-        assert!(cache.is_expired());
+        assert!(cache.is_expired().await);
         let actual: u16 = cache.provide().await.unwrap();
         assert_eq!(actual, 4);
         // Verify provider not invoked again
-        assert_eq!(inner_cache.provider.provide_count(), 2);
+        assert_eq!(inner_cache.provider.provide_count().await, 2);
 
         // Invoke cached provider
-        assert!(cache.is_expired());
+        assert!(cache.is_expired().await);
         let actual: u16 = cache.provide().await.unwrap();
         assert_eq!(actual, 4);
         // Verify provider not invoked again
-        assert_eq!(inner_cache.provider.provide_count(), 2);
+        assert_eq!(inner_cache.provider.provide_count().await, 2);
     }
 
     #[tokio::test]
@@ -374,34 +367,34 @@ mod tests {
         let cache: ExpiringCache<_, _> = inner_cache.clone().map(|c| c as u16 * 4);
 
         // Verify provider not yet invoked
-        assert_eq!(inner_cache.provider.provide_count(), 0);
+        assert_eq!(inner_cache.provider.provide_count().await, 0);
 
         // Invoke cached provider
-        assert!(cache.is_expired());
+        assert!(cache.is_expired().await);
         let actual: u16 = cache.provide().await.unwrap();
         assert_eq!(actual, 4);
         // Verify provider invoked once, because cache not initialized
-        assert_eq!(inner_cache.provider.provide_count(), 1);
+        assert_eq!(inner_cache.provider.provide_count().await, 1);
 
         // Invoke cached provider
-        assert!(cache.is_expired());
+        assert!(cache.is_expired().await);
         let actual: u16 = cache.provide().await.unwrap();
         assert_eq!(actual, 8);
         // Verify provider invoked again, because data expired
-        assert_eq!(inner_cache.provider.provide_count(), 2);
+        assert_eq!(inner_cache.provider.provide_count().await, 2);
 
         // Invoke cached provider
-        assert!(!cache.is_expired());
+        assert!(!cache.is_expired().await);
         let actual: u16 = cache.provide().await.unwrap();
         assert_eq!(actual, 8);
         // Verify provider not invoked again
-        assert_eq!(inner_cache.provider.provide_count(), 2);
+        assert_eq!(inner_cache.provider.provide_count().await, 2);
 
         // Invoke cached provider
-        assert!(!cache.is_expired());
+        assert!(!cache.is_expired().await);
         let actual: u16 = cache.provide().await.unwrap();
         assert_eq!(actual, 8);
         // Verify provider not invoked again
-        assert_eq!(inner_cache.provider.provide_count(), 2);
+        assert_eq!(inner_cache.provider.provide_count().await, 2);
     }
 }

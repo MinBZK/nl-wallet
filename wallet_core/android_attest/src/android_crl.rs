@@ -165,15 +165,15 @@ impl Provider<ExpiringValue<AndroidCrl>> for GoogleRevocationList {
 }
 
 /// Return all revoked certificates from [`certificate_chain`].
-/// The certificate chain is provided by [`provider`].
+/// The CRL is provided by [`revocation_list`].
 pub async fn get_revoked_certificates<'a, P, E>(
-    provider: P,
+    revocation_list: P,
     certificate_chain: &'a [X509Certificate<'a>],
 ) -> Result<Vec<(&'a X509Certificate<'a>, AndroidCrlEntry)>, E>
 where
     P: Provider<ExpiringValue<IndexMap<BigUint, AndroidCrlEntry>>, Error = E>,
 {
-    let crl = provider.provide().await?;
+    let crl = revocation_list.provide().await?;
     let revoked_certificates = certificate_chain
         .iter()
         .flat_map(move |cert| crl.get(&cert.serial).map(move |entry| (cert, entry.clone())))
