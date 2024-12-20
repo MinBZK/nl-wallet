@@ -232,6 +232,16 @@ FSIjzDAaJ6lAq+nmmGQ1KlZpqi4Z/VI=
         server
     }
 
+    /// This test just exists to check `GoogleRevocationList` against the official google URL.
+    /// Since this requires network, it is disabled by default, enable with feature "network_test".
+    #[cfg(feature = "network_test")]
+    #[tokio::test]
+    async fn test_google_crl_network() {
+        let crl_provider = GoogleRevocationList::default().mapped_and_cached();
+        let crl = crl_provider.provide().await.unwrap();
+        assert!(!crl.is_empty());
+    }
+
     #[tokio::test]
     async fn test_check_revoked_certificates() -> Result<(), Box<dyn std::error::Error>> {
         let crl_server = start_google_crl_server().await;
