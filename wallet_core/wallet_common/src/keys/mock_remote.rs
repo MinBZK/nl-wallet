@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::iter;
 
 use derive_more::Debug;
@@ -43,6 +45,20 @@ pub struct MockRemoteEcdsaKey {
     identifier: String,
     #[debug(skip)]
     pub key: SigningKey,
+}
+
+impl PartialEq for MockRemoteEcdsaKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.identifier == other.identifier
+    }
+}
+
+impl Eq for MockRemoteEcdsaKey {}
+
+impl Hash for MockRemoteEcdsaKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.identifier.hash(state);
+    }
 }
 
 impl MockRemoteEcdsaKey {

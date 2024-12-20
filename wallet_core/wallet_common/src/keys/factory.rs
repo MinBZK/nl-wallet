@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::hash::Hash;
 
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -8,7 +9,7 @@ use super::poa::VecAtLeastTwo;
 use super::CredentialEcdsaKey;
 
 pub trait KeyFactory {
-    type Key: CredentialEcdsaKey;
+    type Key: CredentialEcdsaKey + Eq + Hash;
     type Error: Error + Send + Sync + 'static;
 
     async fn generate_new(&self) -> Result<Self::Key, Self::Error> {

@@ -1,3 +1,5 @@
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::iter;
 
 use itertools::Itertools;
@@ -48,6 +50,20 @@ pub struct RemoteEcdsaKey<'a, S, AK, GK, A> {
     identifier: String,
     public_key: VerifyingKey,
     key_factory: &'a RemoteEcdsaKeyFactory<'a, S, AK, GK, A>,
+}
+
+impl<S, AK, GK, A> PartialEq for RemoteEcdsaKey<'_, S, AK, GK, A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.identifier == other.identifier
+    }
+}
+
+impl<S, AK, GK, A> Eq for RemoteEcdsaKey<'_, S, AK, GK, A> {}
+
+impl<S, AK, GK, A> Hash for RemoteEcdsaKey<'_, S, AK, GK, A> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.identifier.hash(state);
+    }
 }
 
 impl<'a, S, AK, GK, A> RemoteEcdsaKeyFactory<'a, S, AK, GK, A> {
