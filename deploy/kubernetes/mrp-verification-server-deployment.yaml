@@ -40,10 +40,6 @@ spec:
               containerPort: 3001
             - name: requester-port
               containerPort: 3002
-          volumeMounts:
-            - name: config-volume
-              mountPath: /verification_server.toml
-              subPath: config.toml
           env:
             - name: VERIFICATION_SERVER_WALLET_SERVER__PORT
               value: "3001"
@@ -69,9 +65,60 @@ spec:
                   key: password
             - name: VERIFICATION_SERVER_STORAGE__URL
               value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/verification_server"
+            - name: VERIFICATION_SERVER_ISSUER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: issuer_trust_anchors
+            - name: VERIFICATION_SERVER_READER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: reader_trust_anchors
+            - name: VERIFICATION_SERVER_VERIFIER__EPHEMERAL_ID_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-ephemeral-id-secret
+                  key: verifier_ephemeral_id_secret
+            - name: VERIFICATION_SERVER_VERIFIER__USECASES__mijn_amsterdam__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: certificate
+            - name: VERIFICATION_SERVER_VERIFIER__USECASES__mijn_amsterdam__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: private_key
+            - name: VERIFICATION_SERVER_VERIFIER__USECASES__monkey_bike__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-monkey-bike
+                  key: certificate
+            - name: VERIFICATION_SERVER_VERIFIER__USECASES__monkey_bike__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-monkey-bike
+                  key: private_key
+            - name: VERIFICATION_SERVER_VERIFIER__USECASES__online_marketplace__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-online-marketplace
+                  key: certificate
+            - name: VERIFICATION_SERVER_VERIFIER__USECASES__online_marketplace__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-online-marketplace
+                  key: private_key
+            - name: VERIFICATION_SERVER_VERIFIER__USECASES__xyz_bank__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-xyz-bank
+                  key: certificate
+            - name: VERIFICATION_SERVER_VERIFIER__USECASES__xyz_bank__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-xyz-bank
+                  key: private_key
             - name: RUST_LOG
               value: "debug,hyper=warn"
-      volumes:
-        - name: config-volume
-          secret:
-            secretName: nl-mrp-verification-server-config
