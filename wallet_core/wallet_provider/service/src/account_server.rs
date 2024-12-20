@@ -353,7 +353,7 @@ impl AccountServer {
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
         let attestation = match attestation_data {
             None => registration_message
-                .parse_and_verify_ecdsa(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
+                .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
                 .map(|_| None),
             Some(data) => registration_message
                 .parse_and_verify_apple(
@@ -440,7 +440,7 @@ impl AccountServer {
         let (request, assertion_counter) = match user.attestation {
             None => challenge_request
                 .request
-                .parse_and_verify_ecdsa(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
+                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
                 .map(|request| (request, None)),
             Some(WalletUserAttestation::Apple { assertion_counter }) => challenge_request
                 .request
@@ -844,7 +844,7 @@ impl AccountServer {
         let (parsed, assertion_counter) = match wallet_user.attestation {
             None => instruction
                 .instruction
-                .parse_and_verify_ecdsa(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
+                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
                 .map(|parsed| (parsed, None)),
             Some(WalletUserAttestation::Apple { assertion_counter }) => instruction
                 .instruction
@@ -938,7 +938,7 @@ pub mod mock {
         {
             match self {
                 Self::Ecdsa(signing_key) => {
-                    InstructionChallengeRequest::new_ecdsa::<I>(
+                    InstructionChallengeRequest::new_google::<I>(
                         wallet_id,
                         instruction_sequence_number,
                         signing_key,
@@ -972,7 +972,7 @@ pub mod mock {
         {
             match self {
                 Self::Ecdsa(signing_key) => {
-                    Instruction::new_ecdsa(
+                    Instruction::new_google(
                         instruction,
                         challenge,
                         instruction_sequence_number,

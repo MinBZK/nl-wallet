@@ -79,7 +79,7 @@ impl ChallengeResponse<Registration> {
             hw_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
         )?;
 
-        Self::sign_ecdsa(
+        Self::sign_google(
             Registration {
                 attestation: RegistrationAttestation::None {
                     hw_pubkey: hw_pubkey.into(),
@@ -214,7 +214,7 @@ mod tests {
         };
 
         // The Wallet Provider takes the public keys from the message and verifies the signatures.
-        msg.parse_and_verify_ecdsa(
+        msg.parse_and_verify_google(
             challenge,
             SequenceNumberComparison::EqualTo(0),
             unverified_hw_pubkey,
