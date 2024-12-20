@@ -163,9 +163,6 @@ test-codegen:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:a220cb6b7f8161982d62dcb17e544ce09892c5f57564cd06f599d95d05e596fa"
   cache: !reference [.rust-cache, cache]
-  variables:
-    SKIP_DIGID_CONNECTOR: "true"
-    SKIP_WALLET_WEB: "true"
   before_script:
     - set -euxo pipefail
   script:
