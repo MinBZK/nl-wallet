@@ -96,5 +96,13 @@ jq -n \
     --arg ca "$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")" \
     --arg pubkey "${CONFIG_PUBLIC_KEY}" \
     --arg freq 3600 \
-    '{"environment":$env,"http_config":{"base_url":$url,"trust_anchors":[$ca]},"signing_public_key":$pubkey,"update_frequency_in_sec":$freq}' \
+    '{
+        "environment": $env,
+        "http_config": {
+            "base_url": $url,
+            "trust_anchors": [$ca]
+        },
+        "signing_public_key": $pubkey,
+        "update_frequency_in_sec": $freq
+    }' \
     > "${OUTPUT_LOCATION}/config-server-config.json"
