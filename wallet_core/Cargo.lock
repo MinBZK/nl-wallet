@@ -5827,7 +5827,6 @@ dependencies = [
  "chrono",
  "ciborium",
  "derive_more",
- "dotenvy",
  "entity",
  "error_category",
  "futures",

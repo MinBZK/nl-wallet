@@ -25,17 +25,16 @@ base64_padding()
 base64_url_decode() { base64_padding "$1" | tr -- '-_' '+/' | openssl base64 -d -A; }
 
 # Print usage instructions when there are not enough arguments.
-if [ $# -lt 5 ]; then
-    >&2 echo "Usage: $0 <wallet env> <env app hostname> <env static hostname> <config public key> <config server TLS CA> [<config server TLS CA>..]"
+if [ $# -lt 4 ]; then
+    >&2 echo "Usage: $0 <wallet env> <env static hostname> <config public key> <config server TLS CA> [<config server TLS CA>..]"
     exit 1
 fi
 
 # Store arguments in variables, catching all remaining ones as CAs.
 WALLET_ENV=$1
-APP_HOSTNAME=$2
-STATIC_HOSTNAME=$3
-CONFIG_PUBLIC_KEY=$4
-CONFIG_SERVER_CAS=("${@:5}")
+STATIC_HOSTNAME=$2
+CONFIG_PUBLIC_KEY=$3
+CONFIG_SERVER_CAS=("${@:4}")
 
 # Create a temporary PEM file with all of the CA certificates.
 CA_FILE=$(mktemp --tmpdir "generate_wallet_env_file.config_server_ca.XXXXXXXXXX")
@@ -101,5 +100,3 @@ jq -n \
     --arg freq 3600 \
     '{"environment":$env,"http_config":{"base_url":$url,"trust_anchors":[$ca]},"signing_public_key":$pubkey,"update_frequency_in_sec":$freq}' \
     > "${BASE_DIR}/../wallet_core/wallet/config-server-config.json"
-
-echo "UNIVERSAL_LINK_BASE=https://${APP_HOSTNAME}/deeplink/"

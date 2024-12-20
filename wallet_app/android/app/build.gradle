@@ -186,9 +186,6 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         if (dartEnvironmentVariables['ALLOW_INSECURE_URL'] == 'true') {
             args += ['--features', 'wallet/allow_insecure_url']
         }
-        if (dartEnvironmentVariables['ENV_CONFIGURATION'] == 'true') {
-            args += ['--features', 'wallet/env_config']
-        }
     }
 }
 

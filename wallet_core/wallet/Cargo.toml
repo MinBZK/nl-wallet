@@ -13,8 +13,6 @@ doctest = false
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
-# Read an .env file with configuration overrides when compiling
-env_config = ["dep:dotenvy"]
 # Use fake Apple attested keys for use in the iOS simulator
 fake_attestation = ["platform_support/persistent_mock_attested_key", "platform_support/xcode_env"]
 # Include mock implementations and constructors for testing
@@ -97,7 +95,6 @@ wallet_common = { path = "../wallet_common", features = [
 ] }
 
 [build-dependencies]
-dotenvy = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
 

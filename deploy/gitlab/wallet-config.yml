@@ -1,6 +1,6 @@
 .wallet-config:
   script:
-    - scripts/generate_wallet_config.sh "$WALLET_ENV" "$APP_HOSTNAME" "$STATIC_HOSTNAME" "$CONFIG_PUBKEY" "$CONFIG_TLS_CA"
+    - scripts/generate_wallet_config.sh "$WALLET_ENV" "$STATIC_HOSTNAME" "$CONFIG_PUBKEY" "$CONFIG_TLS_CA"
   artifacts:
     name: wallet-config-$WALLET_ENV
     paths:
@@ -12,7 +12,6 @@ wallet-config-ont:
   rules: !reference [.default-branch, rules]
   variables:
     WALLET_ENV: ont
-    APP_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
     STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_ONT
     CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_ONT
     CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_ONT
@@ -22,7 +21,6 @@ wallet-config-demo:
   rules: !reference [.release-tag, rules]
   variables:
     WALLET_ENV: demo
-    APP_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
     STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_DEMO
     CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_DEMO
     CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_DEMO
@@ -33,7 +31,6 @@ wallet-config-acceptance:
   when: manual
   variables:
     WALLET_ENV: acceptance
-    APP_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ACC
     STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_ACC
     CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_ACC
     CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_ACC
@@ -44,7 +41,6 @@ wallet-config-preproduction:
   when: manual
   variables:
     WALLET_ENV: preproduction
-    APP_HOSTNAME: $APP_EXTERNAL_HOSTNAME_PREPROD
     STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_PREPROD
     CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_PREPROD
     CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_PREPROD
@@ -55,7 +51,6 @@ wallet-config-production:
   when: manual
   variables:
     WALLET_ENV: production
-    APP_HOSTNAME: $APP_EXTERNAL_HOSTNAME_PROD
     STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_PROD
     CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_PROD
     CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_PROD

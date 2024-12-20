@@ -92,7 +92,7 @@ to achieve the app's functionalities.
 A sample command to run the *core* version of the app is provided below.
 
 ```sh
-flutter run --dart-define=MOCK_REPOSITORIES=false --dart-define ENV_CONFIGURATION=true --dart-define UL_HOSTNAME={hostname}
+flutter run --dart-define=MOCK_REPOSITORIES=false --dart-define UL_HOSTNAME={hostname}
 ```
 
 However, since the core version relies heavily on communication with other services, we also provide

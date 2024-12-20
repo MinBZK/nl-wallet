@@ -3,6 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde::de::DeserializeOwned;
+
 use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::config::EnvironmentSpecific;
@@ -76,27 +77,6 @@ fn android_x86_64_workaround() {
     }
 }
 
-#[cfg(feature = "env_config")]
-fn inject_dotenv_vars() {
-    let crate_path: PathBuf = env::var("CARGO_MANIFEST_DIR").expect("Could not get crate path").into();
-    let env_file_path = crate_path.join(".env");
-
-    if env_file_path.exists() {
-        println!("cargo:rerun-if-changed={}", env_file_path.to_str().unwrap());
-
-        match dotenvy::from_path_iter(env_file_path) {
-            Ok(values) => {
-                for item in values {
-                    let (key, value) = item.expect("Could not read entry from .env file");
-                    println!("cargo:rustc-env={}={}", key, value);
-                }
-            }
-            // Do not panic on this, as we may want to operate without any `.env` file.
-            Err(error) => println!("cargo:warning=Could not read .env file: {}", error),
-        }
-    }
-}
-
 fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, fallback: &str) {
     let crate_path: PathBuf = env::var("CARGO_MANIFEST_DIR").expect("Could not get crate path").into();
     let file_path = crate_path.join(file);
@@ -104,8 +84,11 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
     if !file_path.exists() {
         fs::copy(fallback, &file_path).unwrap();
     }
+
     let config: T = serde_json::from_slice(&fs::read(file_path).unwrap()).unwrap();
+
     verify_environment(config.environment());
+
     println!("cargo:rerun-if-changed={}", file);
 }
 
@@ -137,9 +120,6 @@ fn verify_configurations() {
 
 fn main() {
     android_x86_64_workaround();
-
-    #[cfg(feature = "env_config")]
-    inject_dotenv_vars();
 
     verify_configurations();
 }
