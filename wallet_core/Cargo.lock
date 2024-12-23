@@ -118,6 +118,7 @@ dependencies = [
  "nutype",
  "regex",
  "reqwest",
+ "rstest",
  "serde",
  "serde_json",
  "serde_with",

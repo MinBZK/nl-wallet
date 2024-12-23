@@ -17,7 +17,7 @@ use x509_parser::certificate::X509Certificate;
 /// [the spec](https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.2).
 #[nutype(
     sanitize(trim, lowercase),
-    validate(not_empty, len_char_max = 40, regex = "[a-f0-9]+"),
+    validate(not_empty, len_char_max = 40, regex = "^[a-f1-9][a-f0-9]*$"),
     derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash, AsRef)
 )]
 pub struct SerialNumber(String);
@@ -141,6 +141,7 @@ impl GoogleRevocationListClient {
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;
+    use rstest::rstest;
     use wiremock::matchers::method;
     use wiremock::matchers::path;
     use wiremock::Mock;
@@ -247,5 +248,24 @@ mod tests {
         assert_eq!(entry.expires, None);
         assert_eq!(entry.reason, None);
         assert_eq!(entry.comment, None);
+    }
+
+    #[rstest]
+    #[case(r#""1""#, b"1")]
+    #[case(r#""100""#, b"100")]
+    #[case(r#""2c8cdddfd5e03bfc""#, b"2c8cdddfd5e03bfc")]
+    #[case(r#""c8966fcb2fbb0d7a""#, b"c8966fcb2fbb0d7a")]
+    fn deserialize_serialnumber_success(#[case] json_biguint: String, #[case] bytes_biguint: &[u8]) {
+        let actual: SerialNumber = serde_json::from_str(&json_biguint).unwrap();
+        assert_eq!(BigUint::from(actual), BigUint::parse_bytes(bytes_biguint, 16).unwrap());
+    }
+
+    #[rstest]
+    #[case(r#""""#)]
+    #[case(r#""02c8cdddfd5e03bfc""#)]
+    #[case(r#""xyz""#)]
+    #[case(r#""2c8cdddfd5e03bfc2c8cdddfd5e03bfc2c8cdddfd5e03bfc""#)]
+    fn deserialize_serialnumber_failure(#[case] json_biguint: String) {
+        serde_json::from_str::<SerialNumber>(&json_biguint).expect_err("should fail");
     }
 }
