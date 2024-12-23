@@ -112,14 +112,12 @@ checksum = "e999941b234f3131b00bc13c22d06e8c5ff726d1b6318ac7eb276997bbb4fef0"
 name = "android_attest"
 version = "0.3.0-dev"
 dependencies = [
- "assert_matches",
  "chrono",
  "num-bigint",
  "num-traits",
  "nutype",
  "regex",
  "reqwest",
- "rstest",
  "serde",
  "serde_json",
  "serde_with",
@@ -2925,7 +2923,6 @@ checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
 dependencies = [
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]

@@ -7,49 +7,71 @@ use nutype::nutype;
 use reqwest::Client;
 use reqwest::StatusCode;
 use serde::Deserialize;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use serde_with::FromInto;
 use x509_parser::certificate::X509Certificate;
 
 /// A NewType for the serial number.
 /// This type supports SerialNumbers of up to 20 bytes in accordance to
 /// [the spec](https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.2).
 #[nutype(
-    sanitize(trim, uppercase),
-    validate(not_empty, len_char_max = 40, regex = "[a-fA-F0-9]+"),
+    sanitize(trim, lowercase),
+    validate(not_empty, len_char_max = 40, regex = "[a-f0-9]+"),
     derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash, AsRef)
 )]
 pub struct SerialNumber(String);
 
-impl SerialNumber {
-    fn serial(&self) -> BigUint {
-        BigUint::from_str_radix(self.as_ref(), 16).expect("nutype validation applied")
+impl From<SerialNumber> for BigUint {
+    fn from(value: SerialNumber) -> Self {
+        BigUint::from_str_radix(value.as_ref(), 16).expect("nutype validation applied")
     }
 }
 
 /// Root type of the schema as defined in: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
+#[serde_as]
 #[derive(Debug, Clone, Default, Deserialize)]
-pub struct AndroidCrl {
-    pub entries: HashMap<SerialNumber, AndroidCrlEntry>,
+pub struct RevocationStatusList {
+    #[serde_as(as = "FromInto<RevocationStatusEntries>")]
+    pub entries: HashMap<BigUint, RevocationStatusEntry>,
 }
 
-impl AndroidCrl {
-    pub fn to_biguint_map(&self) -> HashMap<BigUint, AndroidCrlEntry> {
-        self.entries
+impl RevocationStatusList {
+    /// Return all revoked certificates from [`certificate_chain`], together with the reason as a tuple.
+    pub fn get_revoked_certificates<'a>(
+        &'a self,
+        certificate_chain: &'a [X509Certificate<'a>],
+    ) -> Result<Vec<(&'a X509Certificate<'a>, &'a RevocationStatusEntry)>, Error> {
+        let revoked_certificates = certificate_chain
             .iter()
-            .map(|(serial, entry)| (serial.serial(), entry.clone()))
+            .flat_map(move |cert| self.entries.get(&cert.serial).map(move |entry| (cert, entry)))
+            .collect();
+        Ok(revoked_certificates)
+    }
+}
+
+/// Intermediate representation of all revocation status entries.
+/// Will be converted into a [`HashMap<BigUint, RevocationStatusEntry>`] using `serde_as`.
+#[nutype(derive(Debug, Clone, Deserialize, PartialEq, Eq, AsRef))]
+struct RevocationStatusEntries(HashMap<SerialNumber, RevocationStatusEntry>);
+
+impl From<RevocationStatusEntries> for HashMap<BigUint, RevocationStatusEntry> {
+    fn from(crl: RevocationStatusEntries) -> Self {
+        crl.into_inner()
+            .into_iter()
+            .map(|(serial, entry)| (serial.into(), entry))
             .collect()
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct AndroidCrlEntry {
+#[skip_serializing_none]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct RevocationStatusEntry {
     pub status: AndroidCrlStatus,
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub expires: Option<NaiveDate>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub reason: Option<AndroidCrlReason>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub comment: Option<String>,
 }
@@ -86,12 +108,12 @@ pub enum Error {
 
 const ANDROID_CRL: &str = "https://android.googleapis.com/attestation/status";
 
-pub struct GoogleRevocationList {
+pub struct GoogleRevocationListClient {
     crl: String,
     client: Client,
 }
 
-impl GoogleRevocationList {
+impl GoogleRevocationListClient {
     /// Constructor with [`client`].
     /// It is recommended to use a caching middleware, like `http-cache-reqwest`.
     pub fn new_with_client(client: Client) -> Self {
@@ -106,7 +128,7 @@ impl GoogleRevocationList {
         Self { crl, client }
     }
 
-    pub async fn get(&self) -> Result<AndroidCrl, Error> {
+    pub async fn get(&self) -> Result<RevocationStatusList, Error> {
         let response = self.client.get(&self.crl).send().await?;
 
         // Check if status is success.
@@ -119,19 +141,6 @@ impl GoogleRevocationList {
 
         Ok(crl_data)
     }
-}
-
-/// Return all revoked certificates from [`certificate_chain`].
-/// The CRL is provided by [`revocation_list`].
-pub fn get_revoked_certificates<'a>(
-    crl: &'a HashMap<BigUint, AndroidCrlEntry>,
-    certificate_chain: &'a [X509Certificate<'a>],
-) -> Result<Vec<(&'a X509Certificate<'a>, &'a AndroidCrlEntry)>, Error> {
-    let revoked_certificates = certificate_chain
-        .iter()
-        .flat_map(move |cert| crl.get(&cert.serial).map(move |entry| (cert, entry)))
-        .collect();
-    Ok(revoked_certificates)
 }
 
 #[cfg(test)]
@@ -180,7 +189,7 @@ mod tests {
     #[cfg(feature = "network_test")]
     #[tokio::test]
     async fn test_google_crl_network() {
-        let crl_provider = GoogleRevocationList::new_with_client(Default::default());
+        let crl_provider = GoogleRevocationListClient::new_with_client(Default::default());
         let crl = crl_provider.get().await.unwrap();
         assert!(!crl.entries.is_empty());
     }
@@ -196,12 +205,12 @@ mod tests {
         let certificates = [cert];
 
         // create caching CRL provider, and verify entries are read
-        let crl_provider = GoogleRevocationList::for_test(format!("{base_url}/status"), Client::default());
-        let crl = crl_provider.get().await?.to_biguint_map();
-        assert_eq!(crl.len(), 5);
+        let crl_provider = GoogleRevocationListClient::for_test(format!("{base_url}/status"), Client::default());
+        let crl = crl_provider.get().await?;
+        assert_eq!(crl.entries.len(), 5);
 
         // verify certificate against the crl
-        let actual = get_revoked_certificates(&crl, &certificates)?;
+        let actual = crl.get_revoked_certificates(&certificates)?;
 
         assert_eq!(actual.len(), 1);
         let (_, status_entry) = &actual[0];
@@ -214,10 +223,10 @@ mod tests {
     // Deserialize example from: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
     #[test]
     fn deserialize_example() {
-        let actual: AndroidCrl = serde_json::from_slice(STATUS_TESTS_BYTES).unwrap();
+        let actual: RevocationStatusList = serde_json::from_slice(STATUS_TESTS_BYTES).unwrap();
         assert_eq!(actual.entries.len(), 3);
 
-        let entry = &actual.entries[&SerialNumber::try_new("2c8cdddfd5e03bfc").unwrap()];
+        let entry = &actual.entries[&BigUint::parse_bytes(b"2c8cdddfd5e03bfc", 16).unwrap()];
 
         // Verify first entry
         assert_eq!(entry.status, AndroidCrlStatus::Revoked);
@@ -229,7 +238,7 @@ mod tests {
         assert_eq!(entry.comment, Some("Key stored on unsecure system".to_string()));
 
         // Verify second entry
-        let entry = &actual.entries[&SerialNumber::try_new("c8966fcb2fbb0d7a").unwrap()];
+        let entry = &actual.entries[&BigUint::parse_bytes(b"c8966fcb2fbb0d7a", 16).unwrap()];
         assert_eq!(entry.status, AndroidCrlStatus::Suspended);
         assert_eq!(entry.expires, None);
         assert_eq!(entry.reason, Some(AndroidCrlReason::SoftwareFlaw));
@@ -238,7 +247,7 @@ mod tests {
             Some("Bug in keystore causes this key malfunction b/555555".to_string())
         );
 
-        let entry = &actual.entries[&SerialNumber::try_new("1").unwrap()];
+        let entry = &actual.entries[&BigUint::parse_bytes(b"1", 16).unwrap()];
         assert_eq!(entry.status, AndroidCrlStatus::Revoked);
         assert_eq!(entry.expires, None);
         assert_eq!(entry.reason, None);
