@@ -1,15 +1,24 @@
 use std::collections::HashMap;
 
 use chrono::NaiveDate;
+use http_cache_reqwest::Cache;
+use http_cache_reqwest::CacheMode;
+use http_cache_reqwest::HttpCache;
+use http_cache_reqwest::HttpCacheOptions;
+use http_cache_reqwest::MokaManager;
 use num_bigint::BigUint;
 use num_traits::Num;
 use nutype::nutype;
 use reqwest::Client;
 use reqwest::StatusCode;
+use reqwest::Url;
+use reqwest_middleware::ClientBuilder;
+use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::FromInto;
+use url::ParseError;
 use x509_parser::certificate::X509Certificate;
 
 /// A NewType for the serial number.
@@ -97,6 +106,8 @@ pub enum AndroidCrlReason {
 pub enum Error {
     #[error("http error: {0}")]
     Http(#[from] reqwest::Error),
+    #[error("http error: {0}")]
+    Middleware(#[from] reqwest_middleware::Error),
     #[error("http status code {0}, with message: {1}")]
     HttpFailure(StatusCode, String),
 }
@@ -104,27 +115,28 @@ pub enum Error {
 const ANDROID_CRL: &str = "https://android.googleapis.com/attestation/status";
 
 pub struct GoogleRevocationListClient {
-    crl: String,
-    client: Client,
+    crl: Url,
+    client: ClientWithMiddleware,
 }
 
 impl GoogleRevocationListClient {
-    /// Constructor with [`client`].
-    /// It is recommended to use a caching middleware, like `http-cache-reqwest`.
-    pub fn new_with_client(client: Client) -> Self {
-        Self {
-            crl: String::from(ANDROID_CRL),
-            client,
-        }
+    /// Construct [`GoogleRevocationListClient`] from [`client`].
+    /// The client will be decorated with an in-memory caching middleware.
+    pub fn new(client: Client) -> Self {
+        Self::new_decorated(ANDROID_CRL, client).expect("ANDROID_CRL is valid")
     }
 
-    #[cfg(test)]
-    pub(crate) fn for_test(crl: String, client: Client) -> Self {
-        Self { crl, client }
+    /// Internal constructor, allows to use a custom URL
+    fn new_decorated(crl: &str, client: Client) -> Result<Self, ParseError> {
+        let result = Self {
+            crl: Url::parse(crl)?,
+            client: Self::decorate_client(client),
+        };
+        Ok(result)
     }
 
     pub async fn get(&self) -> Result<RevocationStatusList, Error> {
-        let response = self.client.get(&self.crl).send().await?;
+        let response = self.client.get(self.crl.clone()).send().await?;
 
         // Check if status is success.
         let status = response.status();
@@ -135,6 +147,17 @@ impl GoogleRevocationListClient {
         let crl_data = response.json().await?;
 
         Ok(crl_data)
+    }
+
+    /// Install in-memory caching middleware.
+    fn decorate_client(client: Client) -> ClientWithMiddleware {
+        ClientBuilder::new(client)
+            .with(Cache(HttpCache {
+                mode: CacheMode::Default,
+                manager: MokaManager::default(),
+                options: HttpCacheOptions::default(),
+            }))
+            .build()
     }
 }
 
@@ -185,7 +208,7 @@ mod tests {
     #[cfg(feature = "network_test")]
     #[tokio::test]
     async fn test_google_crl_network() {
-        let crl_provider = GoogleRevocationListClient::new_with_client(Default::default());
+        let crl_provider = GoogleRevocationListClient::new(Default::default());
         let crl = crl_provider.get().await.unwrap();
         assert!(!crl.entries.is_empty());
     }
@@ -201,7 +224,8 @@ mod tests {
         let certificates = [cert];
 
         // create caching CRL provider, and verify entries are read
-        let crl_provider = GoogleRevocationListClient::for_test(format!("{base_url}/status"), Client::default());
+        let crl_provider = GoogleRevocationListClient::new_decorated(&format!("{base_url}/status"), Client::default())
+            .expect("url is valid");
         let crl = crl_provider.get().await?;
         assert_eq!(crl.entries.len(), 5);
 
