@@ -163,6 +163,7 @@ impl GoogleRevocationListClient {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use chrono::NaiveDate;
     use rstest::rstest;
     use wiremock::matchers::method;
@@ -203,6 +204,19 @@ mod tests {
         server
     }
 
+    async fn start_failing_google_crl_server() -> MockServer {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/status"))
+            .respond_with(ResponseTemplate::new(500).set_body_string("some test error"))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        server
+    }
+
     /// This test just exists to check `GoogleRevocationList` against the official google URL.
     /// Since this requires network, it is disabled by default, enable with feature "network_test".
     #[cfg(feature = "network_test")]
@@ -218,16 +232,16 @@ mod tests {
         let crl_server = start_google_crl_server().await;
         let base_url = crl_server.uri();
 
-        // prepare test certificate list
-        let (_, cert_pem) = pem::parse_x509_pem(TEST_ASSETS_SUSPENDED_CERT)?;
-        let (_, cert) = X509Certificate::from_der(&cert_pem.contents)?;
-        let certificates = [cert];
-
         // create caching CRL provider, and verify entries are read
         let crl_provider = GoogleRevocationListClient::new_decorated(&format!("{base_url}/status"), Client::default())
             .expect("url is valid");
         let crl = crl_provider.get().await?;
         assert_eq!(crl.entries.len(), 5);
+
+        // prepare test certificate list
+        let (_, cert_pem) = pem::parse_x509_pem(TEST_ASSETS_SUSPENDED_CERT)?;
+        let (_, cert) = X509Certificate::from_der(&cert_pem.contents)?;
+        let certificates = [cert];
 
         // verify certificate against the crl
         let actual = crl.get_revoked_certificates(&certificates)?;
@@ -238,6 +252,18 @@ mod tests {
         assert_eq!(status_entry.status, AndroidCrlStatus::Suspended);
         assert_eq!(status_entry.reason, Some(AndroidCrlReason::KeyCompromise));
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_check_revoked_certificates_error() {
+        let crl_server = start_failing_google_crl_server().await;
+        let base_url = crl_server.uri();
+
+        // create caching CRL provider, and verify entries are read
+        let crl_provider = GoogleRevocationListClient::new_decorated(&format!("{base_url}/status"), Client::default())
+            .expect("url is valid");
+        let error = crl_provider.get().await.expect_err("request should fail");
+        assert_matches!(error, Error::HttpFailure(status, message) if status == 500 && message == "some test error");
     }
 
     // Deserialize example from: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
