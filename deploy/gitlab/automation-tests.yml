@@ -150,6 +150,7 @@ run-performance-test-ont:
     RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
+    APPLE_ATTESTATION_ENVIRONMENT: "production"
   script: |
     cd ./wallet_core/
     cargo build --release --bin performance_test --features performance_test,allow_insecure_url

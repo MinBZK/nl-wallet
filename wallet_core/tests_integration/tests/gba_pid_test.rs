@@ -9,7 +9,7 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use tests_integration::default_deployed_app_identifier;
+use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::errors::PidIssuanceError;
 use wallet::mock::LocalConfigurationRepository;
@@ -135,7 +135,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         config_repository,
         MockUpdatePolicyRepository::default(),
         MockStorage::default(),
-        MockHardwareAttestedKeyHolder::new_mock(default_deployed_app_identifier()),
+        MockHardwareAttestedKeyHolder::new_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
     )
     .await

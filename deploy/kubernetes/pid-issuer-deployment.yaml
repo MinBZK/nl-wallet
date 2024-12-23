@@ -39,7 +39,7 @@ spec:
             - name: pid-issuer-port
               containerPort: 3007
           volumeMounts:
-            - name: pid-issuer-config-volume
+            - name: pid-issuer-private-keys
               mountPath: /pid_issuer.toml
               subPath: pid_issuer.toml
           env:
@@ -49,10 +49,30 @@ spec:
               value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
             - name: PID_ISSUER_STRUCTURED_LOGGING
               value: "true"
+            - name: PID_ISSUER_ISSUER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: issuer_trust_anchors
+            - name: PID_ISSUER_ISSUER__DIGID__BSN_PRIVKEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-pid-issuer-digid-bsn-privkey
+                  key: bsn_privkey
             - name: PID_ISSUER_ISSUER__DIGID__HTTP_CONFIG__BASE_URL
               value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
+            - name: PID_ISSUER_ISSUER__DIGID__HTTP_CONFIG__TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-pid-issuer-digid-http-trust-anchors
+                  key: trust_anchors
             - name: PID_ISSUER_ISSUER__BRP_SERVER
               value: "http://brpproxy:5001/"
+            - name: PID_ISSUER_ISSUER__WTE_ISSUER_PUBKEY
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-pid-issuer-wte-issuer-pubkey
+                  key: wte_issuer_pubkey
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -68,6 +88,6 @@ spec:
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
-        - name: pid-issuer-config-volume
+        - name: pid-issuer-private-keys
           secret:
-            secretName: nl-pid-issuer-config
+            secretName: nl-pid-issuer-private-keys

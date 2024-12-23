@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::hash::Hash;
 
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -256,7 +257,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     where
         Self: Sized;
 
-    async fn accept_issuance<K: CredentialEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
@@ -548,7 +549,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok((issuance_client, credential_previews))
     }
 
-    async fn accept_issuance<K: CredentialEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,

@@ -133,11 +133,12 @@ pub async fn setup_wallet_and_env(
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
-    let key_holder = MockHardwareAttestedKeyHolder::generate(AppIdentifier::new_mock());
+    let apple_environment = AppleEnvironment::Development;
+    let key_holder = MockHardwareAttestedKeyHolder::generate(apple_environment.into(), AppIdentifier::new_mock());
     wp_settings.ios = Ios {
         team_identifier: key_holder.app_identifier.prefix().to_string(),
         bundle_identifier: key_holder.app_identifier.bundle_identifier().to_string(),
-        environment: AppleEnvironment::Development,
+        environment: apple_environment,
         root_certificates: vec![RootCertificate::from(key_holder.ca.trust_anchor().to_owned())],
     };
 

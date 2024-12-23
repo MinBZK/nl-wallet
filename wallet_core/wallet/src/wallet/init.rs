@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cfg_if::cfg_if;
 use futures::try_join;
 use tokio::sync::RwLock;
 
@@ -31,6 +32,7 @@ use crate::storage::StorageError;
 use crate::storage::StorageState;
 use crate::update_policy::UpdatePolicyRepository;
 
+use super::KeyHolderType;
 use super::Wallet;
 use super::WalletRegistration;
 
@@ -54,12 +56,36 @@ pub(super) enum RegistrationStatus {
     Registered(RegistrationData),
 }
 
-impl<AKH, APC, DS, IS, MDS, WIC>
+#[cfg(feature = "fake_attestation")]
+async fn init_mock_key_holder() -> platform_support::attested_key::mock::PersistentMockAttestedKeyHolder {
+    use apple_app_attest::AttestationEnvironment;
+    use platform_support::attested_key::mock::PersistentMockAttestedKeyHolder;
+
+    // Initialize the key holder, but make sure this happens only once.
+    KEY_HOLDER_ONCE
+        .get_or_init(|| async {
+            PersistentMockAttestedKeyHolder::init::<HardwareUtilities>().await;
+        })
+        .await;
+
+    // Read the Apple attestation environment from an environment variable, defaulting to the development environment.
+    let apple_attestation_environment = option_env!("APPLE_ATTESTATION_ENVIRONMENT")
+        .map(|environment| match environment {
+            "development" => AttestationEnvironment::Development,
+            "production" => AttestationEnvironment::Production,
+            _ => panic!("Invalid Apple attestation environment"),
+        })
+        .unwrap_or(AttestationEnvironment::Development);
+
+    PersistentMockAttestedKeyHolder::new_mock_xcode(apple_attestation_environment)
+}
+
+impl<APC, DS, IS, MDS, WIC>
     Wallet<
         WalletConfigurationRepository,
         UpdatePolicyRepository,
         DatabaseStorage<HardwareEncryptionKey>,
-        AKH,
+        KeyHolderType,
         APC,
         DS,
         IS,
@@ -67,7 +93,6 @@ impl<AKH, APC, DS, IS, MDS, WIC>
         WIC,
     >
 where
-    AKH: AttestedKeyHolder + Default,
     APC: Default,
     WIC: Default,
 {
@@ -76,19 +101,15 @@ where
         init_universal_link_base_url();
 
         // When using fake attestations, initialize the key holder, but make sure this happens only once.
-        #[cfg(feature = "fake_attestation")]
-        {
-            use platform_support::attested_key::mock::PersistentMockAttestedKeyHolder;
-
-            KEY_HOLDER_ONCE
-                .get_or_init(|| async {
-                    PersistentMockAttestedKeyHolder::init::<HardwareUtilities>().await;
-                })
-                .await;
+        cfg_if! {
+            if #[cfg(feature = "fake_attestation")] {
+                let key_holder = init_mock_key_holder().await;
+            } else {
+                let key_holder = platform_support::attested_key::hardware::HardwareAttestedKeyHolder::default();
+            }
         }
 
         let update_policy_repository = UpdatePolicyRepository::init();
-        let key_holder = AKH::default();
 
         let storage_path = HardwareUtilities::storage_path().await?;
         let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
