@@ -83,6 +83,10 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
     let file_path = crate_path.join(file);
     // If the config file doesn't exist, copy the fallback to the config file and use that
     if !file_path.exists() {
+        #[cfg(windows)]
+        os::windows::fs::symlink_file(fallback, &file_path).unwrap();
+
+        #[cfg(unix)]
         os::unix::fs::symlink(fallback, &file_path).unwrap();
     }
 
