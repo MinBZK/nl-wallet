@@ -88,7 +88,7 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
 
     let config: T = serde_json::from_slice(&fs::read(file_path).unwrap()).expect("Could not parse config json");
 
-    verify_environment(config.environment());
+    verify_environment(config.environment(), file);
 
     println!("cargo:rerun-if-changed={}", file);
 }
@@ -103,9 +103,14 @@ fn current_env() -> String {
     }
 }
 
-fn verify_environment(config_env: &str) {
+fn verify_environment(config_env: &str, file: &str) {
     if config_env != current_env() {
-        panic!("Build environment doesn't match config enviroment");
+        panic!(
+            "Build environment '{}' doesn't match config enviroment '{}' for {}",
+            current_env(),
+            config_env,
+            file,
+        );
     }
 }
 
