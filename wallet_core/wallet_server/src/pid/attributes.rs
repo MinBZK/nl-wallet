@@ -11,6 +11,7 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
+use sd_jwt::metadata::TypeMetadata;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -36,6 +37,8 @@ pub enum Error {
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
+    #[error("could not find type metadata for doctype {0}")]
+    NoMetadataFound(String),
     #[error("missing certificate for issuance of doctype {0}")]
     MissingCertificate(String),
     #[error("error retrieving from BRP: {0}")]
@@ -51,14 +54,19 @@ impl AttributeCertificates {
         Self { certificates }
     }
 
-    pub fn try_unsigned_mdoc_to_attestion_preview(&self, unsigned: UnsignedMdoc) -> Result<CredentialPreview, Error> {
+    pub fn try_unsigned_mdoc_to_attestion_preview(
+        &self,
+        unsigned_mdoc: UnsignedMdoc,
+        metadata: TypeMetadata,
+    ) -> Result<CredentialPreview, Error> {
         let preview = CredentialPreview::MsoMdoc {
             issuer: self
                 .certificates
-                .get(&unsigned.doc_type)
-                .ok_or(Error::MissingCertificate(unsigned.doc_type.clone()))?
+                .get(&unsigned_mdoc.doc_type)
+                .ok_or(Error::MissingCertificate(unsigned_mdoc.doc_type.clone()))?
                 .clone(),
-            unsigned_mdoc: unsigned,
+            unsigned_mdoc,
+            metadata,
         };
         Ok(preview)
     }
@@ -68,6 +76,7 @@ pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient<TlsPinningConfig>,
     certificates: AttributeCertificates,
+    metadata_by_doctype: IndexMap<String, TypeMetadata>,
 }
 
 impl BrpPidAttributeService {
@@ -76,11 +85,13 @@ impl BrpPidAttributeService {
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
         certificates: IndexMap<String, BorrowingCertificate>,
+        metadata_by_doctype: IndexMap<String, TypeMetadata>,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
             certificates: AttributeCertificates::new(certificates),
+            metadata_by_doctype,
         })
     }
 }
@@ -111,7 +122,15 @@ impl AttributeService for BrpPidAttributeService {
         let unsigned_mdocs: Vec<UnsignedMdoc> = person.into();
         let previews = unsigned_mdocs
             .into_iter()
-            .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
+            .map(|unsigned| {
+                let metadata = self
+                    .metadata_by_doctype
+                    .get(unsigned.doc_type.as_str())
+                    .ok_or(Error::NoMetadataFound(String::from(unsigned.doc_type.as_str())))?
+                    .clone();
+                self.certificates
+                    .try_unsigned_mdoc_to_attestion_preview(unsigned, metadata)
+            })
             .collect::<Result<Vec<CredentialPreview>, Error>>()?;
         previews.try_into().map_err(|_| Error::NoAttributesFound)
     }

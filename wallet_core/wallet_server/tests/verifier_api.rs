@@ -119,6 +119,7 @@ fn fake_issuer_settings() -> Issuer {
 
     Issuer {
         private_keys: Default::default(),
+        metadata: Default::default(),
         wallet_client_ids: Default::default(),
         digid: Digid {
             bsn_privkey: Default::default(),

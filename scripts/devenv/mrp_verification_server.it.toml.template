@@ -1,5 +1,9 @@
 [issuer]
 wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
+metadata = [
+    "${ISSUER_METADATA_PID}",
+    "${ISSUER_METADATA_ADDRESS}"
+]
 
 [issuer.private_keys."com.example.pid"]
 private_key = "${PID_ISSUER_KEY}"

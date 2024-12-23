@@ -93,6 +93,7 @@ nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_const
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["mock"] }
+sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../wallet_common", features = [
     "mock_secure_keys",
     "mock_hardware_keys",

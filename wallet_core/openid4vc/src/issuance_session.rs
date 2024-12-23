@@ -768,7 +768,11 @@ impl CredentialResponse {
                 credential: issuer_signed,
             } => {
                 let CborBase64(issuer_signed) = *issuer_signed;
-                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
+                let CredentialPreview::MsoMdoc {
+                    unsigned_mdoc,
+                    issuer,
+                    metadata: _,
+                } = preview;
 
                 if issuer_signed
                     .public_key()
@@ -872,6 +876,7 @@ mod tests {
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
     use nl_wallet_mdoc::IssuerSigned;
+    use sd_jwt::metadata::TypeMetadata;
     use wallet_common::keys::factory::KeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
@@ -904,9 +909,11 @@ mod tests {
         let trust_anchor = ca.to_trust_anchor().to_owned();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
+        let metadata = TypeMetadata::new_example();
         let preview = CredentialPreview::MsoMdoc {
             unsigned_mdoc: unsigned_mdoc.clone(),
             issuer: issuance_key.certificate().clone(),
+            metadata,
         };
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
@@ -939,10 +946,12 @@ mod tests {
                 // HttpIssuanceSession::start_issuance() will accept
                 let ca = Ca::generate_issuer_mock_ca().unwrap();
                 let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+                let metadata = TypeMetadata::new_example();
 
                 let preview = CredentialPreview::MsoMdoc {
                     unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
                     issuer: issuance_key.certificate().clone(),
+                    metadata,
                 };
 
                 Ok((
@@ -1180,9 +1189,11 @@ mod tests {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
                 issuer: _,
+                metadata,
             } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
                 issuer: other_issuance_key.certificate().clone(),
+                metadata,
             },
         };
 
@@ -1216,9 +1227,11 @@ mod tests {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc: _,
                 issuer,
+                metadata,
             } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
                 issuer,
+                metadata,
             },
         };
 

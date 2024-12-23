@@ -20,6 +20,7 @@ use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use sd_jwt::metadata::TypeMetadata;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::utils::random_string;
 use wallet_common::utils::sha256;
@@ -154,6 +155,7 @@ pub enum CredentialPreview {
         unsigned_mdoc: UnsignedMdoc,
         #[serde_as(as = "Base64")]
         issuer: BorrowingCertificate,
+        metadata: TypeMetadata,
     },
 }
 
@@ -206,15 +208,19 @@ pub enum CredentialPreviewError {
     NoIssuerRegistration,
 }
 
-impl TryFrom<CredentialPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
+impl TryFrom<CredentialPreview> for (UnsignedMdoc, TypeMetadata, Box<IssuerRegistration>) {
     type Error = CredentialPreviewError;
 
     fn try_from(value: CredentialPreview) -> Result<Self, Self::Error> {
-        let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = value;
+        let CredentialPreview::MsoMdoc {
+            unsigned_mdoc,
+            issuer,
+            metadata,
+        } = value;
         let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&issuer)? else {
             Err(CredentialPreviewError::NoIssuerRegistration)?
         };
-        Ok((unsigned_mdoc, issuer))
+        Ok((unsigned_mdoc, metadata, issuer))
     }
 }
 

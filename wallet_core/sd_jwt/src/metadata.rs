@@ -15,11 +15,11 @@ pub enum TypeMetadataError {
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
 /// various reasons.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpecOptionalImplRequired<T>(pub T);
 
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct TypeMetadata {
     /// A String or URI that uniquely identifies the type.
@@ -47,7 +47,7 @@ pub struct TypeMetadata {
     pub schema: SchemaOption,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum MetadataExtendsOption {
     Uri {
@@ -59,7 +59,7 @@ pub enum MetadataExtendsOption {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetadataExtends {
     /// A URI of another type that this type extends.
     #[serde(with = "http_serde::uri")]
@@ -70,7 +70,7 @@ pub struct MetadataExtends {
     pub extends_integrity: SpecOptionalImplRequired<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SchemaOption {
     Embedded {
@@ -95,7 +95,7 @@ fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataEr
     Ok(())
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct DisplayMetadata {
     pub lang: String,
@@ -104,7 +104,7 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[skip_serializing_none]
 pub enum RenderingMetadata {
@@ -116,7 +116,7 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogoMetadata {
     #[serde(with = "http_serde::uri")]
     pub uri: Uri,
@@ -127,10 +127,11 @@ pub struct LogoMetadata {
     pub alt_text: SpecOptionalImplRequired<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct ClaimMetadata {
     pub path: VecNonEmpty<ClaimPath>,
+    #[serde(default)]
     pub display: Vec<ClaimDisplayMetadata>,
     #[serde(default)]
     pub sd: ClaimSelectiveDisclosureMetadata,
@@ -145,7 +146,7 @@ pub enum ClaimPath {
     SelectByIndex(usize),
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ClaimSelectiveDisclosureMetadata {
     Always,
@@ -154,12 +155,47 @@ pub enum ClaimSelectiveDisclosureMetadata {
     Never,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct ClaimDisplayMetadata {
     pub lang: String,
     pub label: String,
     pub description: Option<String>,
+}
+
+#[cfg(any(test, feature = "example_constructors"))]
+pub mod mock {
+    use serde_json::json;
+
+    use wallet_common::utils::random_string;
+
+    use crate::metadata::JsonSchema;
+    use crate::metadata::SchemaOption;
+    use crate::metadata::TypeMetadata;
+
+    impl TypeMetadata {
+        pub fn new_example() -> Self {
+            Self {
+                vct: random_string(16),
+                name: Some(random_string(8)),
+                description: None,
+                extends: None,
+                display: vec![],
+                claims: vec![],
+                schema: SchemaOption::Embedded {
+                    schema: JsonSchema::try_new(json!({})).unwrap(),
+                },
+            }
+        }
+    }
+}
+
+impl TryFrom<Vec<u8>> for TypeMetadata {
+    type Error = serde_json::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        serde_json::from_slice(&value)
+    }
 }
 
 #[cfg(test)]
