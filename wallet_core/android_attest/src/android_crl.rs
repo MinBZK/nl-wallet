@@ -77,24 +77,19 @@ pub struct RevocationStatusEntry {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AndroidCrlStatus {
-    #[serde(rename = "REVOKED")]
     Revoked,
-    #[serde(rename = "SUSPENDED")]
     Suspended,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AndroidCrlReason {
-    #[serde(rename = "UNSPECIFIED")]
     Unspecified,
-    #[serde(rename = "KEY_COMPROMISE")]
     KeyCompromise,
-    #[serde(rename = "CA_COMPROMISE")]
     CaCompromise,
-    #[serde(rename = "SUPERSEDED")]
     Superseded,
-    #[serde(rename = "SOFTWARE_FLAW")]
     SoftwareFlaw,
 }
 
