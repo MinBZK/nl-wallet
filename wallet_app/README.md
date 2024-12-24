@@ -197,6 +197,7 @@ enforced by the linter as well.
 - Test file name follows the convention: `{class_name}_test.dart`
 - Test description (ideally) follows the convention: `should {do something} when {some condition}`
 - Tests are grouped* by the method they are testing
+- Run the unit tests: `flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true`
 
 ** Grouping tests by method is not required, but recommended when testing a specific method.
 
@@ -220,8 +221,8 @@ only run UI tests on mac hosts for now. Because of this it is vital to only gene
 new goldens on a mac host. This can be done
 with `flutter test --update-goldens --tags=golden <optional_path_to_single_test_file>`.
 
-- To only verify goldens use `flutter test --tags=golden`
-- To only verify other tests use `flutter test --exclude-tags=golden`
+- To only verify goldens use `flutter test --tags=golden --dart-define=MOCK_REPOSITORIES=true`
+- To only verify other tests use `flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true`
 
 ##### Widget Test Template
 

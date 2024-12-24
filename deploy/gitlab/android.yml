@@ -65,8 +65,7 @@
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${RELEASE_VERSION:-}" \
-        mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}"
+        version:"${RELEASE_VERSION:-}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 

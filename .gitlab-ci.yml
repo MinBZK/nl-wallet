@@ -123,7 +123,7 @@ test-flutter:
     - flutter --version
     - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
     - flutter analyze $FLUTTER_APP_PROJECT_DIR
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json")
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json")
   artifacts:
     paths:
       - $FLUTTER_APP_PROJECT_DIR/coverage/lcov.info
@@ -143,7 +143,7 @@ test-flutter-ui:
   script:
     - set -euxo pipefail
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden --dart-define=MOCK_REPOSITORIES=true)
 
 # Checks .arb files for unused keys, indicating an update to Lokalise might be in order
 verify-flutter-localizations:
