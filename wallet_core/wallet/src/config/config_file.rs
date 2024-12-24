@@ -43,7 +43,7 @@ fn path_for_config_file(storage_path: &Path) -> PathBuf {
 mod tests {
     use crate::config::config_file::get_config_file;
     use crate::config::config_file::update_config_file;
-    use crate::config::default_configuration;
+    use crate::config::default_wallet_config;
 
     #[tokio::test]
     async fn should_read_and_update_config() {
@@ -51,13 +51,13 @@ mod tests {
 
         assert!(get_config_file(tempdir.path()).await.unwrap().is_none());
 
-        let mut config = default_configuration();
+        let mut config = default_wallet_config();
         config.lock_timeouts.background_timeout = 1500;
         update_config_file(tempdir.path(), &config).await.unwrap();
 
         let updated = get_config_file(tempdir.path()).await.unwrap().unwrap();
 
-        assert_ne!(&default_configuration(), &updated);
+        assert_ne!(&default_wallet_config(), &updated);
         assert_eq!(1500, updated.lock_timeouts.background_timeout);
     }
 }

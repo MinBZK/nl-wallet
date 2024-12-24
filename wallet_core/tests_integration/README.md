@@ -73,7 +73,8 @@ To run the test using Cargo from `wallet_core`:
 ### Running externally
 
 Change the values in `test_integration/.env` appropriately. The `allow_insecure_url` feature is not necessary (but
-also doesn't hurt).
+also doesn't hurt). In addition, the `CONFIG_ENV` environment variable has to be set to point to the proper
+environment, e.g. `ont`.
 
 ## GBA-V to PID tests
 

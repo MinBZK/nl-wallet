@@ -27,8 +27,7 @@ use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
-use crate::config::default_configuration;
-use crate::config::ConfigServerConfiguration;
+use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::disclosure::MockMdocDisclosureSession;
@@ -41,6 +40,7 @@ use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::StorageState;
 use crate::update_policy::MockUpdatePolicyRepository;
+use crate::wallet_deps::default_config_server_config;
 use crate::wte::tests::MockWteIssuanceClient;
 use crate::Document;
 use crate::HistoryEvent;
@@ -148,7 +148,7 @@ impl WalletWithMocks {
 
         // Override public key material in the `Configuration`.
         let config = {
-            let mut config = default_configuration();
+            let mut config = default_wallet_config();
 
             config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
             config.account_server.instruction_result_public_key =
@@ -159,7 +159,7 @@ impl WalletWithMocks {
             config
         };
 
-        let config_server_config = ConfigServerConfiguration::default();
+        let config_server_config = default_config_server_config();
         let config_repository =
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), config_server_config)
                 .now_or_never()
@@ -239,7 +239,7 @@ impl WalletWithMocks {
 
     /// Creates mocks and calls `Wallet::init_registration()`, except for the `MockStorage` instance.
     pub async fn init_registration_mocks_with_storage(storage: MockStorage) -> Result<Self, WalletInitError> {
-        let config_server_config = ConfigServerConfiguration::default();
+        let config_server_config = default_config_server_config();
         let config_repository =
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
 

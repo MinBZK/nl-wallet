@@ -136,7 +136,6 @@ gba_pid_test = [
     "fake_digid",
     "dep:apple_app_attest",
     "dep:ctor",
-    "dep:dotenvy",
     "dep:indexmap",
     "dep:insta",
     "dep:reqwest",
@@ -202,7 +201,7 @@ nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "t
 openid4vc = { path = "../openid4vc", optional = true }
 platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
 update_policy_server = { path = "../update_policy_server", optional = true }
-wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "env_config", "test"] }
+wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
 wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }

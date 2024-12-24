@@ -15,9 +15,9 @@ use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::update_policy::VersionState;
 
-use crate::config::default_configuration;
+use crate::config::default_config_server_config;
+use crate::config::default_wallet_config;
 use crate::config::init_universal_link_base_url;
-use crate::config::ConfigServerConfiguration;
 use crate::config::ConfigurationError;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::WalletConfigurationRepository;
@@ -115,8 +115,8 @@ where
         let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
             storage_path.clone(),
-            ConfigServerConfiguration::default(),
-            default_configuration(),
+            default_config_server_config(),
+            default_wallet_config(),
         )
         .await?;
 
