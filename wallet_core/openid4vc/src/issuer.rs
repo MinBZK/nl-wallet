@@ -29,9 +29,9 @@ use wallet_common::jwt::VerifiedJwt;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::PoaVerificationError;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
+use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
 use crate::credential::CredentialRequest;
@@ -245,7 +245,7 @@ pub trait AttributeService {
         &self,
         session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error>;
+    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error>;
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
@@ -538,7 +538,7 @@ impl Session<Created> {
                 let next = self.transition(WaitingForResponse {
                     access_token: response.token_response.access_token.clone(),
                     c_nonce: response.token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
-                    credential_previews: response.credential_previews.clone().into_inner(),
+                    credential_previews: response.credential_previews.clone().into(),
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
                 });

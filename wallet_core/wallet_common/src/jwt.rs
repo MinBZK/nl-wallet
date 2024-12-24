@@ -35,7 +35,7 @@ use crate::keys::factory::KeyFactory;
 use crate::keys::CredentialEcdsaKey;
 use crate::keys::EcdsaKey;
 use crate::keys::SecureEcdsaKey;
-use crate::nonempty::NonEmpty;
+use crate::vec_at_least::VecNonEmpty;
 
 /// JWT type, generic over its contents.
 ///
@@ -542,7 +542,7 @@ pub struct JsonJwt<T> {
 #[serde(untagged)]
 pub enum JsonJwtSignatures {
     General {
-        signatures: NonEmpty<Vec<JsonJwtSignature>>,
+        signatures: VecNonEmpty<JsonJwtSignature>,
     },
     Flattened {
         #[serde(flatten)]
@@ -557,17 +557,17 @@ impl IntoIterator for JsonJwtSignatures {
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            JsonJwtSignatures::General { signatures } => signatures.into_inner().into_iter(),
+            JsonJwtSignatures::General { signatures } => signatures.into_vec().into_iter(),
             JsonJwtSignatures::Flattened { signature } => vec![signature].into_iter(),
         }
     }
 }
 
-impl From<NonEmpty<Vec<JsonJwtSignature>>> for JsonJwtSignatures {
-    fn from(signatures: NonEmpty<Vec<JsonJwtSignature>>) -> Self {
+impl From<VecNonEmpty<JsonJwtSignature>> for JsonJwtSignatures {
+    fn from(signatures: VecNonEmpty<JsonJwtSignature>) -> Self {
         match signatures.len().get() {
             1 => Self::Flattened {
-                signature: signatures.into_inner().pop().unwrap(),
+                signature: signatures.into_vec().pop().unwrap(),
             },
             _ => Self::General { signatures },
         }
@@ -602,11 +602,12 @@ impl<T> From<JsonJwt<T>> for Vec<Jwt<T>> {
     }
 }
 
-impl<T> TryFrom<NonEmpty<Vec<Jwt<T>>>> for JsonJwt<T> {
+impl<T> TryFrom<VecNonEmpty<Jwt<T>>> for JsonJwt<T> {
     type Error = JwtError;
 
-    fn try_from(jwts: NonEmpty<Vec<Jwt<T>>>) -> Result<Self, Self::Error> {
+    fn try_from(jwts: VecNonEmpty<Jwt<T>>) -> Result<Self, Self::Error> {
         let split_jwts = jwts
+            .into_vec()
             .into_iter()
             .map(|jwt| jwt.0.split('.').map(str::to_string).collect_vec())
             .collect_vec();
@@ -617,7 +618,7 @@ impl<T> TryFrom<NonEmpty<Vec<Jwt<T>>>> for JsonJwt<T> {
         }
         let payload = first.remove(1); // `remove` is like `get`, but also moves out of the vec, so we can avoid cloning
 
-        let signatures: NonEmpty<_> = split_jwts
+        let signatures: VecNonEmpty<_> = split_jwts
             .into_iter()
             .map(|mut split_jwt| {
                 if split_jwt.len() != 3 {
@@ -804,14 +805,14 @@ mod tests {
             .await
             .unwrap();
 
-        let json_jwt_one: JsonJwt<_> = NonEmpty::new(vec![jwt.clone()]).unwrap().try_into().unwrap();
+        let json_jwt_one: JsonJwt<_> = VecNonEmpty::try_from(vec![jwt.clone()]).unwrap().try_into().unwrap();
         assert_matches!(json_jwt_one.signatures, JsonJwtSignatures::Flattened { .. });
         let serialized = serde_json::to_string(&json_jwt_one).unwrap();
 
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
         assert_matches!(deserialized.signatures, JsonJwtSignatures::Flattened { .. });
 
-        let json_jwt_two: JsonJwt<_> = NonEmpty::new(vec![jwt.clone(), jwt.clone()])
+        let json_jwt_two: JsonJwt<_> = VecNonEmpty::try_from(vec![jwt.clone(), jwt.clone()])
             .unwrap()
             .try_into()
             .unwrap();
@@ -824,7 +825,7 @@ mod tests {
         let JsonJwtSignatures::General { signatures } = json_jwt_two.signatures else {
             panic!("expected the JsonJwtSignatures::General variant") // we actually already checked this above
         };
-        let mut signatures = signatures.into_inner();
+        let mut signatures = signatures.into_vec();
         signatures.pop();
         let json_jwt_mixed = JsonJwt::<ToyMessage> {
             payload: json_jwt_two.payload,

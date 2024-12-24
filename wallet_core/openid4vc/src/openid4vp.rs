@@ -852,7 +852,7 @@ mod tests {
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::keys::poa::Poa;
-    use wallet_common::keys::poa::VecAtLeastTwo;
+    use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::openid4vp::AuthResponseError;
     use crate::openid4vp::IsoVpAuthorizationRequest;
@@ -1219,7 +1219,7 @@ mod tests {
 
         let device_response = device_response(issuer_signed, device_signed, &session_transcript, cas, time);
 
-        let poa = match VecAtLeastTwo::try_new(keys) {
+        let poa = match VecAtLeastTwoUnique::try_from(keys) {
             Ok(keys) => {
                 let keys = keys.as_ref().iter().collect_vec().try_into().unwrap();
                 let poa = key_factory

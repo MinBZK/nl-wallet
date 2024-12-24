@@ -48,11 +48,11 @@ use wallet::Wallet;
 use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
 use wallet_common::reqwest::ReqwestTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
+use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::RootCertificate;
@@ -453,7 +453,7 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error> {
+    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error> {
         let attributes = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()

@@ -14,8 +14,8 @@ use wallet_common::jwt::JwtPopClaims;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
+use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
 use crate::issuance_session::IssuanceSessionError;
@@ -27,7 +27,7 @@ use crate::Format;
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequests {
-    pub credential_requests: NonEmpty<Vec<CredentialRequest>>,
+    pub credential_requests: VecNonEmpty<CredentialRequest>,
     pub attestations: Option<WteDisclosure>,
     pub poa: Option<Poa>,
 }

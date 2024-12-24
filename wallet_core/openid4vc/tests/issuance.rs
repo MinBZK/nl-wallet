@@ -49,9 +49,9 @@ use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::PoaPayload;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
@@ -349,7 +349,7 @@ impl MockOpenidMessageClient {
         if self.invalidate_pop {
             let invalidated_request = self.credential_request(credential_requests.credential_requests.first().clone());
 
-            let mut requests = credential_requests.credential_requests.into_inner();
+            let mut requests = credential_requests.credential_requests.into_vec();
             requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
         }
@@ -372,7 +372,7 @@ impl MockOpenidMessageClient {
     fn invalidate_poa(poa: Poa) -> Poa {
         let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
         jwts.pop();
-        let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
+        let jwts: VecNonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
         let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
 
         poa
@@ -504,7 +504,7 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error> {
+    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error> {
         Ok(self.previews.clone().try_into().unwrap())
     }
 
