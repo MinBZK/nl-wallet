@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
-use crate::config::data::default_configuration;
+use crate::config::data::default_wallet_config;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
@@ -25,7 +25,7 @@ impl LocalConfigurationRepository {
 
 impl Default for LocalConfigurationRepository {
     fn default() -> Self {
-        Self::new(default_configuration())
+        Self::new(default_wallet_config())
     }
 }
 

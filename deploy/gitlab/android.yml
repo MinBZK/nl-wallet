@@ -65,8 +65,7 @@
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${RELEASE_VERSION:-}" \
-        mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}"
+        version:"${RELEASE_VERSION:-}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -75,13 +74,14 @@
   rules: !reference [.default-branch, rules]
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-ont
+    - job: wallet-config-ont
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
+    CONFIG_ENV: "ont"
 
 build-android-app-ont:
   extends: .build-android-app-ont
@@ -131,12 +131,13 @@ build-android-app-mock:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-demo
+    - job: wallet-config-demo
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
+    CONFIG_ENV: "demo"
 
 build-android-app-demo:
   extends: .build-android-app-demo
@@ -159,12 +160,13 @@ build-android-app-acceptance:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-acceptance
+    - job: wallet-config-acceptance
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
     APP_NAME: "NL Wallet (acceptance)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ACC}"
+    CONFIG_ENV: "acceptance"
     SENTRY_DSN: "${SENTRY_DSN_ACC}"
     SENTRY_ENVIRONMENT: "acceptance"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
@@ -176,12 +178,13 @@ build-android-app-preproduction:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-preproduction
+    - job: wallet-config-preproduction
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
     APP_NAME: "NL Wallet (pre-production)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PREPROD}"
+    CONFIG_ENV: "preproduction"
     SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
     SENTRY_ENVIRONMENT: "preproduction"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
@@ -193,12 +196,13 @@ build-android-app-production:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
-    - job: wallet-env-config-production
+    - job: wallet-config-production
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: ""
     APP_NAME: "NL Wallet (production)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PROD}"
+    CONFIG_ENV: "production"
     SENTRY_DSN: "${SENTRY_DSN_PROD}"
     SENTRY_ENVIRONMENT: "production"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"

@@ -22,16 +22,17 @@ base64_padding()
 base64_url_decode() { base64_padding "$1" | tr -- '-_' '+/' | openssl base64 -d -A; }
 
 # Print usage instructions when there are not enough arguments.
-if [ $# -lt 4 ]; then
-    >&2 echo "Usage: $0 <env app hostname> <env static hostname> <config public key> <config server TLS CA> [<config server TLS CA>..]"
+if [ $# -lt 5 ]; then
+    >&2 echo "Usage: $0 <output location> <wallet env> <env static hostname> <config public key> <config server TLS CA> [<config server TLS CA>..]"
     exit 1
 fi
 
 # Store arguments in variables, catching all remaining ones as CAs.
-APP_HOSTNAME=$1
-STATIC_HOSTNAME=$2
-CONFIG_PUBLIC_KEY=$3
-CONFIG_SERVER_CAS=("${@:4}")
+OUTPUT_LOCATION=$1
+WALLET_ENV=$2
+STATIC_HOSTNAME=$3
+CONFIG_PUBLIC_KEY=$4
+CONFIG_SERVER_CAS=("${@:5}")
 
 # Create a temporary PEM file with all of the CA certificates.
 CA_FILE=$(mktemp --tmpdir "generate_wallet_env_file.config_server_ca.XXXXXXXXXX")
@@ -85,37 +86,23 @@ if ! echo -n "${JWT_HEADER}.${JWT_PAYLOAD}" | openssl dgst -sha256 -verify "$CON
     exit 1
 fi
 
-# Output the lines of the .env file based on the contents of the configuration JSON.
-CONFIG_JSON=$(base64_url_decode "$JWT_PAYLOAD")
+# Output wallet_configuration JSON
+base64_url_decode "$JWT_PAYLOAD" > "${OUTPUT_LOCATION}/wallet-config.json"
 
-echo "CONFIG_SERVER_BASE_URL=https://${STATIC_HOSTNAME}/config/v1/"
-echo "CONFIG_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")"
-echo "CONFIG_SERVER_SIGNING_PUBLIC_KEY=${CONFIG_PUBLIC_KEY}"
-echo "UNIVERSAL_LINK_BASE=https://${APP_HOSTNAME}/deeplink/"
-echo "WALLET_CONFIG_VERSION=$(echo "$CONFIG_JSON" | jq -r '.version' )"
-echo "WALLET_PROVIDER_BASE_URL=$(echo "$CONFIG_JSON" | jq -r '.account_server.http_config.base_url' )"
-echo "CERTIFICATE_PUBLIC_KEY=$(echo "$CONFIG_JSON" | jq -r '.account_server.certificate_public_key' )"
-echo "INSTRUCTION_RESULT_PUBLIC_KEY=$(echo "$CONFIG_JSON" | jq -r '.account_server.instruction_result_public_key' )"
-echo "WTE_PUBLIC_KEY=$(echo "$CONFIG_JSON" | jq -r '.account_server.wte_public_key' )"
-echo "PID_ISSUER_URL=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.pid_issuer_url' )"
-echo "DIGID_URL=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid_http_config.base_url' )"
-echo "DIGID_CLIENT_ID=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.client_id' )"
-echo "DIGID_APP2APP_ENV=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.env' )"
-echo "DIGID_APP2APP_HOST=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.host' )"
-echo "DIGID_APP2APP_UNIVERSAL_LINK=$(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid.app2app.universal_link' )"
-echo "UPDATE_POLICY_SERVER_BASE_URL=$(echo $CONFIG_JSON | jq -r '.update_policy_server.http_config.base_url' )"
-
-mapfile -t WALLET_PROVIDER_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.account_server.http_config.trust_anchors[]')
-echo "WALLET_PROVIDER_TRUST_ANCHORS=$(IFS="|" ; echo "${WALLET_PROVIDER_TRUST_ANCHORS[*]}")"
-
-mapfile -t DIGID_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.pid_issuance.digid_http_config.trust_anchors[]')
-echo "DIGID_TRUST_ANCHORS=$(IFS="|" ; echo "${DIGID_TRUST_ANCHORS[*]}")"
-
-mapfile -t RP_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.disclosure.rp_trust_anchors[]')
-echo "RP_TRUST_ANCHORS=$(IFS="|" ; echo "${RP_TRUST_ANCHORS[*]}")"
-
-mapfile -t MDOC_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.mdoc_trust_anchors[]')
-echo "MDOC_TRUST_ANCHORS=$(IFS="|" ; echo "${MDOC_TRUST_ANCHORS[*]}")"
-
-mapfile -t UPDATE_POLICY_SERVER_TRUST_ANCHORS < <(echo "$CONFIG_JSON" | jq -r '.update_policy_server.http_config.trust_anchors[]')
-echo "UPDATE_POLICY_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${UPDATE_POLICY_SERVER_TRUST_ANCHORS[*]}")"
+# Output config_server_configuratino JSON
+jq -n \
+    --arg env "$WALLET_ENV" \
+    --arg url "https://${STATIC_HOSTNAME}/config/v1/" \
+    --arg ca "$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")" \
+    --arg pubkey "${CONFIG_PUBLIC_KEY}" \
+    --arg freq 3600 \
+    '{
+        "environment": $env,
+        "http_config": {
+            "base_url": $url,
+            "trust_anchors": [$ca]
+        },
+        "signing_public_key": $pubkey,
+        "update_frequency_in_sec": $freq
+    }' \
+    > "${OUTPUT_LOCATION}/config-server-config.json"

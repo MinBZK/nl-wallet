@@ -15,8 +15,9 @@ lint-rust:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
   cache: !reference [.rust-cache, cache]
-  script:
+  before_script:
     - set -euxo pipefail
+  script:
     # Check Rust formatting
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo fmt --manifest-path {} -- --check
     # Check clippy
@@ -31,7 +32,6 @@ test-rust:
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
-    SKIP_MOCK_RELYING_PARTY: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
@@ -63,6 +63,7 @@ test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   variables:
     RUSTFLAGS: "-D warnings"
+    CONFIG_ENV: "dev"
 
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation

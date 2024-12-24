@@ -12,10 +12,10 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::errors::PidIssuanceError;
-use wallet::mock::default_configuration;
 use wallet::mock::LocalConfigurationRepository;
 use wallet::mock::MockStorage;
 use wallet::mock::MockUpdatePolicyRepository;
+use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpDigidSession;
 use wallet::wallet_deps::Repository;
@@ -118,7 +118,7 @@ async fn test_gba_pid_success(
 }
 
 async fn gba_pid(bsn: &str) -> Result<(), TestError> {
-    let config_repository = LocalConfigurationRepository::new(default_configuration());
+    let config_repository = LocalConfigurationRepository::new(default_wallet_config());
     let pid_issuance_config = &config_repository.get().pid_issuance;
 
     let mut wallet: Wallet<

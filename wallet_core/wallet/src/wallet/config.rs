@@ -60,7 +60,7 @@ mod tests {
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
-    use crate::config::default_configuration;
+    use crate::config::default_wallet_config;
 
     use super::super::test::WalletWithMocks;
 
@@ -100,7 +100,7 @@ mod tests {
             assert_eq!(configs.len(), 1);
             assert_eq!(
                 configs.first().unwrap().account_server.http_config.base_url,
-                default_configuration().account_server.http_config.base_url
+                default_wallet_config().account_server.http_config.base_url
             );
         }
 
