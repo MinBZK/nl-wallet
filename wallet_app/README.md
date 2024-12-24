@@ -92,12 +92,24 @@ to achieve the app's functionalities.
 A sample command to run the *core* version of the app is provided below.
 
 ```sh
-flutter run --dart-define=MOCK_REPOSITORIES=false --dart-define UL_HOSTNAME={hostname}
+flutter run --dart-define UL_HOSTNAME={hostname}
 ```
 
 However, since the core version relies heavily on communication with other services, we also provide
 scripts to configure the complete development environment. Please refer to [scripts](../scripts/),
 and more specifically the `setup-devenv.sh` and `start-devenv.sh` files.
+
+The configuration for how the app can connect to the configuration server (which serves the wallet
+configuration) is compiled directly into the app (`wallet_core/config-server-config.json`).
+In addition, the intial wallet configuration (`wallet_core/wallet-config.json`)
+(the most recent version at the time the app is built) is compiled into the app as well.
+These configurations are parsed and verified at compile time.
+
+In order to make sure the wallet configuration belongs to the environment the app is built for,
+an environment variable named `CONFIG_ENV` is used.
+If, for instance, the app is built for the demo environment, `CONFIG_ENV` should have the value `demo`.
+This check is always performed, but when the `--release`-flag is passed to Cargo, the `CONFIG_ENV`
+environment variable is mandatory. Without the `--release`-flag the default (`dev`) is used.
 
 ## File Structure
 
