@@ -18,8 +18,8 @@ use crate::jwt::JwkConversionError;
 use crate::jwt::Jwt;
 use crate::jwt::JwtError;
 use crate::jwt::JwtPopClaims;
-use crate::nonempty::NonEmpty;
 use crate::vec_at_least::VecAtLeastTwoUnique;
+use crate::vec_at_least::VecNonEmpty;
 
 use super::EcdsaKey;
 
@@ -85,7 +85,7 @@ impl Poa {
             ..Header::new(Algorithm::ES256)
         };
 
-        let jwts: NonEmpty<_> = try_join_all(keys.as_ref().iter().map(|key| Jwt::sign(&payload, &header, *key)))
+        let jwts: VecNonEmpty<_> = try_join_all(keys.as_ref().iter().map(|key| Jwt::sign(&payload, &header, *key)))
             .await?
             .try_into()
             .unwrap(); // our iterable is a `VecAtLeastTwo`
@@ -173,7 +173,7 @@ mod tests {
     use crate::jwt::Jwt;
     use crate::jwt::JwtPopClaims;
     use crate::keys::mock_remote::MockRemoteEcdsaKey;
-    use crate::nonempty::NonEmpty;
+    use crate::vec_at_least::VecNonEmpty;
 
     use super::Poa;
     use super::PoaPayload;
@@ -270,7 +270,7 @@ mod tests {
 
         let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
         jwts.pop();
-        let jwts: NonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
+        let jwts: VecNonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
         let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
 
         assert_matches!(

@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::num::NonZeroUsize;
 
 use itertools::Itertools;
 use serde::de;
@@ -48,6 +49,11 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
                 expected: N,
             })
         }
+    }
+
+    pub fn len(&self) -> NonZeroUsize {
+        // Guaranteed to succeed, as N is at least 1.
+        self.0.len().try_into().unwrap()
     }
 
     pub fn first(&self) -> &T {
