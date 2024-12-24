@@ -27,9 +27,9 @@ use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::poa::VecAtLeastTwo;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::openid4vp::AuthRequestValidationError;
 use crate::openid4vp::AuthResponseError;
@@ -680,7 +680,7 @@ where
             .await
             .map_err(|err| DisclosureError::before_sharing(VpClientError::DeviceResponse(err)))?;
 
-        let poa = match VecAtLeastTwo::try_new(keys) {
+        let poa = match VecAtLeastTwoUnique::try_from(keys) {
             Ok(keys) => {
                 info!("create Proof of Association");
 
@@ -780,8 +780,8 @@ mod tests {
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
     use wallet_common::keys::poa::Poa;
-    use wallet_common::keys::poa::VecAtLeastTwo;
     use wallet_common::utils::random_string;
+    use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::jwt::JwtX5cError;
     use crate::openid4vp::AuthRequestValidationError;
@@ -1663,7 +1663,7 @@ mod tests {
 
             async fn poa(
                 &self,
-                _: VecAtLeastTwo<&Self::Key>,
+                _: VecAtLeastTwoUnique<&Self::Key>,
                 _: String,
                 _: Option<String>,
             ) -> Result<Poa, Self::Error> {

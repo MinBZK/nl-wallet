@@ -12,9 +12,9 @@ use crate::jwt::Jwt;
 use crate::jwt::JwtCredentialClaims;
 use crate::jwt::JwtSubject;
 use crate::keys::poa::Poa;
-use crate::keys::poa::VecAtLeastTwo;
 use crate::keys::EphemeralEcdsaKey;
 use crate::keys::SecureEcdsaKey;
+use crate::vec_at_least::VecAtLeastTwoUnique;
 use crate::wte::WteClaims;
 
 use super::auth::WalletCertificate;
@@ -72,7 +72,7 @@ pub struct IssueWteResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConstructPoa {
-    pub key_identifiers: VecAtLeastTwo<String>,
+    pub key_identifiers: VecAtLeastTwoUnique<String>,
     pub aud: String,
     pub nonce: Option<String>,
 }

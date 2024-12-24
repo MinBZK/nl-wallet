@@ -36,10 +36,10 @@ use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::VecAtLeastTwo;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::wte::WteClaims;
 
 use crate::credential::CredentialCopies;
@@ -607,7 +607,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec();
 
         // We need a minimum of two keys to associate for a PoA to be sensible.
-        let poa = VecAtLeastTwo::try_new(poa_keys).ok().map(|poa_keys| async {
+        let poa = VecAtLeastTwoUnique::try_from(poa_keys).ok().map(|poa_keys| async {
             key_factory
                 .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
                 .await
