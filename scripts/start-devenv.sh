@@ -471,7 +471,6 @@ then
         flutter run \
             --dart-define MOCK_REPOSITORIES=false \
             --dart-define ALLOW_INSECURE_URL=true \
-            --dart-define ENV_CONFIGURATION=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \
             --dart-define SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT}"

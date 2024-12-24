@@ -95,7 +95,7 @@ jq -n \
     --arg url "https://${STATIC_HOSTNAME}/config/v1/" \
     --arg ca "$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")" \
     --arg pubkey "${CONFIG_PUBLIC_KEY}" \
-    --arg freq 3600 \
+    --argjson freq 3600 \
     '{
         "environment": $env,
         "http_config": {
