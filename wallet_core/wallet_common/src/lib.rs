@@ -13,4 +13,5 @@ pub mod trust_anchor;
 pub mod update_policy;
 pub mod urls;
 pub mod utils;
+pub mod vec_at_least;
 pub mod wte;
