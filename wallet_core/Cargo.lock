@@ -6086,6 +6086,7 @@ name = "wallet_common"
 version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
+ "android_attest",
  "anyhow",
  "apple_app_attest",
  "assert_matches",
@@ -6231,6 +6232,7 @@ dependencies = [
 name = "wallet_provider_service"
 version = "0.3.0-dev"
 dependencies = [
+ "android_attest",
  "anyhow",
  "apple_app_attest",
  "assert_matches",
@@ -6244,6 +6246,7 @@ dependencies = [
  "indexmap 2.2.6",
  "itertools 0.13.0",
  "jsonwebtoken",
+ "nl_wallet_mdoc",
  "p256",
  "r2d2-cryptoki",
  "rand",

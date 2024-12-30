@@ -81,13 +81,21 @@ async fn do_registration(
             (registration_message, MockHardwareKey::Apple(attested_key))
         }
         AttestationType::None => {
-            let signing_key = SigningKey::random(&mut OsRng);
-            let registration_message =
-                ChallengeResponse::<Registration>::new_unattested(&signing_key, pin_privkey, challenge)
-                    .await
-                    .expect("Could not sign new unattested registration");
+            let (attested_certificate_chain, attested_private_keys) =
+                android_attest::mock::generate_mock_certificate_chain(1);
+            let attested_private_key = attested_private_keys.into_iter().next().unwrap();
+            let app_attestation_token = utils::random_bytes(32);
+            let registration_message = ChallengeResponse::new_google(
+                &attested_private_key,
+                attested_certificate_chain.try_into().unwrap(),
+                app_attestation_token,
+                pin_privkey,
+                challenge,
+            )
+            .await
+            .expect("Could not sign new Google attested registration");
 
-            (registration_message, MockHardwareKey::Ecdsa(signing_key))
+            (registration_message, MockHardwareKey::Google(attested_private_key))
         }
     };
 
