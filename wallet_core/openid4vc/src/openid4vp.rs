@@ -1221,7 +1221,7 @@ mod tests {
 
         let poa = match VecAtLeastTwoUnique::try_from(keys) {
             Ok(keys) => {
-                let keys = keys.as_ref().iter().collect_vec().try_into().unwrap();
+                let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
                 let poa = key_factory
                     .poa(keys, auth_request.client_id.clone(), Some(mdoc_nonce.to_owned()))
                     .await

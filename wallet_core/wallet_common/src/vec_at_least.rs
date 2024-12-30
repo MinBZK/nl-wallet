@@ -70,7 +70,7 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         &self.0
     }
 
-    pub fn into_vec(self) -> Vec<T> {
+    pub fn into_inner(self) -> Vec<T> {
         self.0
     }
 }
@@ -113,7 +113,7 @@ impl<T, const N: usize, const UNIQUE: bool> AsRef<[T]> for VecAtLeastN<T, N, UNI
 
 impl<T, const N: usize, const UNIQUE: bool> From<VecAtLeastN<T, N, UNIQUE>> for Vec<T> {
     fn from(value: VecAtLeastN<T, N, UNIQUE>) -> Self {
-        value.into_vec()
+        value.into_inner()
     }
 }
 

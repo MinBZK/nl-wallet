@@ -349,7 +349,7 @@ impl MockOpenidMessageClient {
         if self.invalidate_pop {
             let invalidated_request = self.credential_request(credential_requests.credential_requests.first().clone());
 
-            let mut requests = credential_requests.credential_requests.into_vec();
+            let mut requests = credential_requests.credential_requests.into_inner();
             requests[0] = invalidated_request;
             credential_requests.credential_requests = requests.try_into().unwrap();
         }

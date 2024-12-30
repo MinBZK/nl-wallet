@@ -686,7 +686,7 @@ where
 
                 // Poa::new() needs a vec of references. We can unwrap because we only get here if the conversion was
                 // successful.
-                let keys = keys.as_ref().iter().collect_vec().try_into().unwrap();
+                let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
                 let poa = key_factory
                     .poa(
                         keys,

@@ -223,7 +223,7 @@ where
 
     fn try_from(creds: VecNonEmpty<IssuedCredential>) -> Result<Self, Self::Error> {
         let copies = creds
-            .into_vec()
+            .into_inner()
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<T>, _>>()?
@@ -526,11 +526,11 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         token_response
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .try_for_each(|preview| preview.verify(trust_anchors))?;
 
-        let credential_previews = token_response.credential_previews.clone().into();
+        let credential_previews = token_response.credential_previews.clone().into_inner();
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -566,7 +566,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let types = self
             .session_state
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count().into()))
             .collect_vec();
@@ -662,7 +662,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let mdocs = self
             .session_state
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .map(|preview| {
                 let copy_count: usize = preview.copy_count().into();
