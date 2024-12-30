@@ -282,6 +282,7 @@ generate_ws_random_key ephemeral_id_secret
 MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
 export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
+# Base64 encode the Technical Attestation Schemas
 ISSUER_METADATA_PID=$(< "${DEVENV}/com_example_pid_metadata.json" ${BASE64})
 export ISSUER_METADATA_PID
 ISSUER_METADATA_ADDRESS=$(< "${DEVENV}/com_example_address_metadata.json" ${BASE64})

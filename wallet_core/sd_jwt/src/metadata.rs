@@ -18,6 +18,8 @@ pub enum TypeMetadataError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpecOptionalImplRequired<T>(pub T);
 
+pub const COSE_METADATA_HEADER_LABEL: &str = "COSE_METADATA_HEADER";
+
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[skip_serializing_none]
@@ -45,6 +47,22 @@ pub struct TypeMetadata {
     /// A JSON Schema document describing the structure of the Verifiable Credential
     #[serde(flatten)]
     pub schema: SchemaOption,
+}
+
+impl TryFrom<Vec<u8>> for TypeMetadata {
+    type Error = serde_json::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        serde_json::from_slice(&value)
+    }
+}
+
+impl TryFrom<TypeMetadata> for Vec<u8> {
+    type Error = serde_json::Error;
+
+    fn try_from(value: TypeMetadata) -> Result<Self, Self::Error> {
+        serde_json::to_vec(&value)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,14 +205,6 @@ pub mod mock {
                 },
             }
         }
-    }
-}
-
-impl TryFrom<Vec<u8>> for TypeMetadata {
-    type Error = serde_json::Error;
-
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        serde_json::from_slice(&value)
     }
 }
 

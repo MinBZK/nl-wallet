@@ -6,6 +6,8 @@ use coset::CoseSign1;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
+use sd_jwt::metadata::TypeMetadata;
+
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::device_retrieval::DeviceRequest;
@@ -204,11 +206,12 @@ impl TestDocument {
             unsigned.copy_count = copy_count;
             unsigned
         };
+        let metadata = TypeMetadata::new_example();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned, mdoc_public_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned, metadata, mdoc_public_key, &issuance_key)
             .await
             .unwrap();
 

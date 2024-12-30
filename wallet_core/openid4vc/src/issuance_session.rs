@@ -659,6 +659,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         };
         let mut responses_and_pubkeys: VecDeque<_> = responses.into_iter().zip(pubkeys).collect();
 
+        // todo: validate against metadata schema
         let mdocs = self
             .session_state
             .credential_previews
@@ -913,14 +914,19 @@ mod tests {
         let preview = CredentialPreview::MsoMdoc {
             unsigned_mdoc: unsigned_mdoc.clone(),
             issuer: issuance_key.certificate().clone(),
-            metadata,
+            metadata: metadata.clone(),
         };
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = mdoc_key.verifying_key();
-        let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key.try_into().unwrap(), &issuance_key)
-            .await
-            .unwrap();
+        let issuer_signed = IssuerSigned::sign(
+            unsigned_mdoc,
+            metadata,
+            mdoc_public_key.try_into().unwrap(),
+            &issuance_key,
+        )
+        .await
+        .unwrap();
         let credential_response = CredentialResponse::MsoMdoc {
             credential: Box::new(issuer_signed.into()),
         };

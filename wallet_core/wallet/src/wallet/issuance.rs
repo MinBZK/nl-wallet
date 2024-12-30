@@ -448,6 +448,10 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
+    use rstest::rstest;
+    use serial_test::serial;
+    use url::Url;
+
     use nl_wallet_mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
@@ -455,10 +459,6 @@ mod tests {
     use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use rstest::rstest;
-    use sd_jwt::metadata::TypeMetadata;
-    use serial_test::serial;
-    use url::Url;
     use wallet_common::config::http::TlsPinningConfig;
 
     use crate::document;
@@ -685,15 +685,16 @@ mod tests {
     async fn test_continue_pid_issuance() {
         let mut wallet = setup_wallet_with_digid_session();
 
+        let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
-                    unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
+                    unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    metadata: TypeMetadata::new_example(),
+                    metadata,
                 }],
             ))
         });
@@ -806,7 +807,7 @@ mod tests {
         // Set up the `MockIssuanceSession` to return an `AttestationPreview` with an unknown doctype.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
-            let mut unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+            let (mut unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
             unsigned_mdoc.doc_type = "foobar".to_string();
 
             Ok((
@@ -814,7 +815,7 @@ mod tests {
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    metadata: TypeMetadata::new_example(),
+                    metadata,
                 }],
             ))
         });

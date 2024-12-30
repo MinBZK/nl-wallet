@@ -2,12 +2,14 @@ use chrono::Utc;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use coset::HeaderBuilder;
-
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::COSE_METADATA_HEADER_LABEL;
 use wallet_common::keys::EcdsaKey;
 
 use crate::iso::*;
 use crate::server_keys::KeyPair;
 use crate::unsigned::UnsignedMdoc;
+use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
@@ -17,6 +19,7 @@ use crate::Result;
 impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
+        metadata: TypeMetadata,
         device_public_key: CoseKey,
         key: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self> {
@@ -40,8 +43,14 @@ impl IssuerSigned {
             validity_info: validity,
         };
 
+        // todo: verify unsigned_mdoc against metadata schema
+
         let headers = HeaderBuilder::new()
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))
+            .text_value(
+                String::from(COSE_METADATA_HEADER_LABEL),
+                Value::Bytes(metadata.try_into().map_err(CoseError::MetadataSerialization)?),
+            )
             .build();
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
@@ -65,7 +74,7 @@ mod tests {
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-
+    use sd_jwt::metadata::TypeMetadata;
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
@@ -107,9 +116,10 @@ mod tests {
             .try_into()
             .unwrap(),
         };
+        let metadata = TypeMetadata::new_example();
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned.clone(), device_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned.clone(), metadata, device_key, &issuance_key)
             .await
             .unwrap();
 

@@ -3104,6 +3104,7 @@ dependencies = [
  "rstest",
  "rustls-pki-types",
  "rustls-webpki",
+ "sd_jwt",
  "serde",
  "serde-aux",
  "serde_bytes",
