@@ -138,6 +138,7 @@ mod tests {
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
+    use crate::config::default_config_server_config;
     use crate::config::default_wallet_config;
     use crate::config::ConfigurationError;
     use crate::config::UpdatingConfigurationRepository;
@@ -145,7 +146,6 @@ mod tests {
     use crate::repository::Repository;
     use crate::repository::RepositoryUpdateState;
     use crate::repository::UpdateableRepository;
-    use crate::wallet_deps::default_config_server_config;
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
 
