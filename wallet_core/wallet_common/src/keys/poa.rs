@@ -67,7 +67,7 @@ impl Poa {
     pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
         let payload = PoaPayload {
             payload,
-            jwks: try_join_all(keys.as_ref().iter().map(|privkey| async {
+            jwks: try_join_all(keys.as_slice().iter().map(|privkey| async {
                 jwk_from_p256(
                     &privkey
                         .verifying_key()
@@ -85,7 +85,7 @@ impl Poa {
             ..Header::new(Algorithm::ES256)
         };
 
-        let jwts: VecNonEmpty<_> = try_join_all(keys.as_ref().iter().map(|key| Jwt::sign(&payload, &header, *key)))
+        let jwts: VecNonEmpty<_> = try_join_all(keys.as_slice().iter().map(|key| Jwt::sign(&payload, &header, *key)))
             .await?
             .try_into()
             .unwrap(); // our iterable is a `VecAtLeastTwo`
@@ -121,10 +121,10 @@ impl Poa {
         // We may use `unwrap()` because of the use of `NonEmpty` in `JsonJwtSignatures`, and we may use
         // `dangerous_parse_unverified()` because we actually validate all JWTs below.
         let (_, payload) = jwts.first().unwrap().dangerous_parse_unverified()?;
-        if jwts.len() != payload.jwks.as_ref().len() {
+        if jwts.len() != payload.jwks.as_slice().len() {
             return Err(PoaVerificationError::UnexpectedKeyCount {
                 expected: jwts.len(),
-                found: payload.jwks.as_ref().len(),
+                found: payload.jwks.as_slice().len(),
             });
         }
         if payload.payload.nonce.as_deref() != Some(expected_nonce) {
@@ -135,7 +135,7 @@ impl Poa {
         let mut validations = validations();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(&[expected_iss]);
-        for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_ref()) {
+        for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
             let pubkey = jwk_to_p256(jwk)?;
             let (header, _) = jwt.parse_and_verify_with_header(&(&pubkey).into(), &validations)?;
             if header.typ.as_deref() != Some(POA_JWT_TYP) {
@@ -148,7 +148,7 @@ impl Poa {
         // exactly the right information into account (the EC curve identifier as well as the x and y coordinates),
         // while discarding irrelevant other keys from the JWK (e.g. `kid`, `x5c` and friends, `use`, `alg`).
         let associated_keys: HashSet<jwk::AlgorithmParameters> =
-            payload.jwks.into_vec().into_iter().map(|key| key.algorithm).collect();
+            payload.jwks.into_inner().into_iter().map(|key| key.algorithm).collect();
         for key in expected_keys {
             let expected_key = jwk_alg_from_p256(key)?;
             if !associated_keys.contains(&expected_key) {

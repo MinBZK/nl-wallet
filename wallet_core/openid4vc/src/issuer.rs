@@ -538,7 +538,7 @@ impl Session<Created> {
                 let next = self.transition(WaitingForResponse {
                     access_token: response.token_response.access_token.clone(),
                     c_nonce: response.token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
-                    credential_previews: response.credential_previews.clone().into(),
+                    credential_previews: response.credential_previews.clone().into_inner(),
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
                 });
@@ -802,7 +802,7 @@ impl Session<WaitingForResponse> {
         let previews_and_holder_pubkeys = try_join_all(
             credential_requests
                 .credential_requests
-                .as_ref()
+                .as_slice()
                 .iter()
                 .zip(
                     session_data

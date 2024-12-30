@@ -557,7 +557,7 @@ impl IntoIterator for JsonJwtSignatures {
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            JsonJwtSignatures::General { signatures } => signatures.into_vec().into_iter(),
+            JsonJwtSignatures::General { signatures } => signatures.into_inner().into_iter(),
             JsonJwtSignatures::Flattened { signature } => vec![signature].into_iter(),
         }
     }
@@ -567,7 +567,7 @@ impl From<VecNonEmpty<JsonJwtSignature>> for JsonJwtSignatures {
     fn from(signatures: VecNonEmpty<JsonJwtSignature>) -> Self {
         match signatures.len().get() {
             1 => Self::Flattened {
-                signature: signatures.into_vec().pop().unwrap(),
+                signature: signatures.into_inner().pop().unwrap(),
             },
             _ => Self::General { signatures },
         }
@@ -607,7 +607,7 @@ impl<T> TryFrom<VecNonEmpty<Jwt<T>>> for JsonJwt<T> {
 
     fn try_from(jwts: VecNonEmpty<Jwt<T>>) -> Result<Self, Self::Error> {
         let split_jwts = jwts
-            .into_vec()
+            .into_inner()
             .into_iter()
             .map(|jwt| jwt.0.split('.').map(str::to_string).collect_vec())
             .collect_vec();
@@ -825,7 +825,7 @@ mod tests {
         let JsonJwtSignatures::General { signatures } = json_jwt_two.signatures else {
             panic!("expected the JsonJwtSignatures::General variant") // we actually already checked this above
         };
-        let mut signatures = signatures.into_vec();
+        let mut signatures = signatures.into_inner();
         signatures.pop();
         let json_jwt_mixed = JsonJwt::<ToyMessage> {
             payload: json_jwt_two.payload,

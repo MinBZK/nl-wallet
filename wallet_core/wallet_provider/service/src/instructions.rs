@@ -330,13 +330,13 @@ impl HandleInstruction for ConstructPoa {
     {
         let tx = wallet_user_repository.begin_transaction().await?;
         let mut keys = wallet_user_repository
-            .find_keys_by_identifiers(&tx, wallet_user.id, self.key_identifiers.as_ref())
+            .find_keys_by_identifiers(&tx, wallet_user.id, self.key_identifiers.as_slice())
             .await?;
         tx.commit().await?;
 
         let keys = self
             .key_identifiers
-            .as_ref()
+            .as_slice()
             .iter()
             .map(|key_identifier| {
                 let wrapped_key = keys

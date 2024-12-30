@@ -167,7 +167,7 @@ where
             .instruction_client
             .send(ConstructPoa {
                 key_identifiers: keys
-                    .as_ref()
+                    .as_slice()
                     .iter()
                     .map(|key| key.identifier.clone())
                     .collect_vec()
