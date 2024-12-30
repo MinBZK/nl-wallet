@@ -8,6 +8,7 @@ rust-version.workspace = true
 workspace = true
 
 [features]
+mock = ["dep:p256", "dep:rcgen"]
 network_test = []
 
 [dependencies]
@@ -25,9 +26,14 @@ thiserror.workspace = true
 url.workspace = true
 x509-parser.workspace = true
 
+p256 = { workspace = true, optional = true, features = ["std", "ecdsa", "pkcs8"] }
+rcgen = { workspace = true, optional = true, features = ["ring"] }
+
 [dev-dependencies]
 assert_matches.workspace = true
 rstest.workspace = true
+rustls-pki-types.workspace = true
+rustls-webpki.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true
