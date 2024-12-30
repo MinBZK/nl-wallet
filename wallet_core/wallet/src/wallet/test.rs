@@ -27,6 +27,7 @@ use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
+use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
@@ -40,7 +41,6 @@ use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::StorageState;
 use crate::update_policy::MockUpdatePolicyRepository;
-use crate::wallet_deps::default_config_server_config;
 use crate::wte::tests::MockWteIssuanceClient;
 use crate::Document;
 use crate::HistoryEvent;
