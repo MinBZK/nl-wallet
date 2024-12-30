@@ -15,11 +15,11 @@ use rand_core::OsRng;
 use crate::jwt::JwtPopClaims;
 use crate::jwt::NL_WALLET_CLIENT_ID;
 use crate::utils;
+use crate::vec_at_least::VecAtLeastTwoUnique;
 
 use super::factory::KeyFactory;
 use super::poa::Poa;
 use super::poa::PoaError;
-use super::poa::VecAtLeastTwo;
 use super::CredentialEcdsaKey;
 use super::CredentialKeyType;
 use super::EcdsaKey;
@@ -249,7 +249,7 @@ impl KeyFactory for MockRemoteKeyFactory {
 
     async fn poa(
         &self,
-        keys: VecAtLeastTwo<&Self::Key>,
+        keys: VecAtLeastTwoUnique<&Self::Key>,
         aud: String,
         nonce: Option<String>,
     ) -> Result<Poa, Self::Error> {

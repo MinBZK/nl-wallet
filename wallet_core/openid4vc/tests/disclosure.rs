@@ -71,9 +71,9 @@ use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::VecAtLeastTwo;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -150,9 +150,9 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
         .await
         .unwrap();
 
-    let poa = match VecAtLeastTwo::try_new(keys) {
+    let poa = match VecAtLeastTwoUnique::try_from(keys) {
         Ok(keys) => {
-            let keys = keys.as_ref().iter().collect_vec().try_into().unwrap();
+            let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
             let poa = key_factory
                 .poa(keys, auth_request.client_id.clone(), Some(mdoc_nonce.clone()))
                 .await
@@ -694,7 +694,12 @@ async fn test_disclosure_invalid_poa() {
             self.0.generate_new_multiple(count).await
         }
 
-        async fn poa(&self, keys: VecAtLeastTwo<&Self::Key>, _: String, _: Option<String>) -> Result<Poa, Self::Error> {
+        async fn poa(
+            &self,
+            keys: VecAtLeastTwoUnique<&Self::Key>,
+            _: String,
+            _: Option<String>,
+        ) -> Result<Poa, Self::Error> {
             self.0.poa(keys, "".to_owned(), Some("".to_owned())).await
         }
     }
