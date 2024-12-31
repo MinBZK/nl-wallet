@@ -5,6 +5,7 @@
 //! - Bulk signing of JWTs.
 
 use std::collections::HashSet;
+use std::collections::VecDeque;
 
 use base64::prelude::*;
 use base64::DecodeError;
@@ -140,13 +141,16 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
             );
             Ok(cert)
         })
-        .collect::<Result<Vec<_>, JwtX5cError>>()?;
+        .collect::<Result<VecDeque<_>, JwtX5cError>>()?;
 
     // Verify the certificate chain against the trust anchors.
-    let leaf_cert = BorrowingCertificate::from_certificate_der(certs.pop().ok_or(JwtX5cError::MissingCertificates)?)
-        .map_err(JwtX5cError::CertificateParsing)?;
+    let leaf_cert =
+        BorrowingCertificate::from_certificate_der(certs.pop_front().ok_or(JwtX5cError::MissingCertificates)?)
+            .map_err(JwtX5cError::CertificateParsing)?;
+    // The `VecDeque` containing the certificates will be contiguous at this point, so the second value is empty.
+    let (intermediates, _) = certs.as_slices();
     leaf_cert
-        .verify(CertificateUsage::ReaderAuth, &certs, time, trust_anchors)
+        .verify(CertificateUsage::ReaderAuth, intermediates, time, trust_anchors)
         .map_err(JwtX5cError::CertificateValidation)?;
 
     // The leaf certificate is trusted, we can now use its public key to verify the JWS.
