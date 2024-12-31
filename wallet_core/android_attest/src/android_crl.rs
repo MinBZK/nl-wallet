@@ -127,7 +127,7 @@ impl GoogleRevocationListClient {
     }
 
     /// Internal constructor, allows to use a custom URL
-    pub(crate) fn new_decorated(crl: &str, client: Client) -> Result<Self, ParseError> {
+    fn new_decorated(crl: &str, client: Client) -> Result<Self, ParseError> {
         let result = Self {
             crl: Url::parse(crl)?,
             client: Self::decorate_client(client),
@@ -162,7 +162,7 @@ impl GoogleRevocationListClient {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use assert_matches::assert_matches;
     use chrono::NaiveDate;
     use rstest::rstest;
@@ -187,7 +187,7 @@ pub(crate) mod tests {
     // this certificate is suspended according to status.json
     const TEST_ASSETS_SUSPENDED_CERT: &[u8] = include_bytes!("../test-assets/suspended-cert.pem");
 
-    pub(crate) async fn start_google_crl_server() -> MockServer {
+    async fn start_google_crl_server() -> MockServer {
         let server = MockServer::start().await;
 
         Mock::given(method("GET"))
