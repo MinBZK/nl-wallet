@@ -65,6 +65,12 @@ impl RouterState {
             settings.ios.bundle_identifier,
             settings.ios.environment.into(),
         );
+        let apple_trust_anchors = settings
+            .ios
+            .root_certificates
+            .into_iter()
+            .map(|anchor| anchor.trust_anchor().to_owned())
+            .collect();
 
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
@@ -73,7 +79,7 @@ impl RouterState {
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
             apple_config,
-            settings.ios.root_certificates.into_iter().map(Into::into).collect(),
+            apple_trust_anchors,
         )?;
 
         let db = Db::new(

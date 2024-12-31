@@ -8,9 +8,6 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use derive_more::From;
-use derive_more::Into;
-use rustls_pki_types::CertificateDer;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -19,6 +16,7 @@ use serde_with::DurationSeconds;
 
 use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_provider_database_settings::Database;
 
 #[serde_as]
@@ -82,7 +80,7 @@ pub struct Ios {
     #[serde(default)]
     pub environment: AppleEnvironment,
     #[serde_as(as = "Vec<Base64>")]
-    pub root_certificates: Vec<RootCertificate>,
+    pub root_certificates: Vec<BorrowingTrustAnchor>,
 }
 
 #[derive(Clone, Copy, Default, Deserialize)]
@@ -92,9 +90,6 @@ pub enum AppleEnvironment {
     #[default]
     Production,
 }
-
-#[derive(Clone, From, Into)]
-pub struct RootCertificate(TrustAnchor<'static>);
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
@@ -145,15 +140,5 @@ impl From<AppleEnvironment> for AttestationEnvironment {
             AppleEnvironment::Development => Self::Development,
             AppleEnvironment::Production => Self::Production,
         }
-    }
-}
-
-impl TryFrom<Vec<u8>> for RootCertificate {
-    type Error = webpki::Error;
-
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        let trust_anchor = webpki::anchor_from_trusted_cert(&CertificateDer::from(value))?.to_owned();
-
-        Ok(Self(trust_anchor))
     }
 }
