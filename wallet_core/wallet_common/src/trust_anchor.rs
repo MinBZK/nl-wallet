@@ -65,7 +65,7 @@ impl TryFrom<Vec<u8>> for BorrowingTrustAnchor {
     type Error = Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        BorrowingTrustAnchor::from_der(value.as_slice())
+        BorrowingTrustAnchor::from_der(value)
     }
 }
 
