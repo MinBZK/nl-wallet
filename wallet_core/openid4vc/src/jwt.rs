@@ -195,12 +195,17 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use base64::prelude::*;
     use indexmap::IndexMap;
+    use jsonwebtoken::Header;
     use serde_json::json;
 
     use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+    use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
     use nl_wallet_mdoc::utils::x509::CertificateError;
+    use nl_wallet_mdoc::utils::x509::CertificateUsage;
     use wallet_common::generator::TimeGenerator;
+    use wallet_common::jwt::Jwt;
     use wallet_common::jwt::JwtCredentialClaims;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
@@ -218,6 +223,68 @@ mod tests {
         let payload = json!({"hello": "world"});
         let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
 
+        let audience: &[String] = &[];
+        let (deserialized, leaf_cert) =
+            verify_against_trust_anchors(&jwt, audience, &[ca.to_trust_anchor()], &TimeGenerator).unwrap();
+
+        assert_eq!(deserialized, payload);
+        assert_eq!(leaf_cert, *keypair.certificate());
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_cert_intermediates() {
+        // Generate a chain of certificates
+        let ca =
+            SelfSignedCa::generate_with_intermediate_count("myca", CertificateConfiguration::default(), 3).unwrap();
+        let intermediate1 = ca
+            .generate_intermediate(
+                "myintermediate1",
+                CertificateUsage::ReaderAuth,
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
+        let intermediate2 = intermediate1
+            .generate_intermediate(
+                "myintermediate2",
+                CertificateUsage::ReaderAuth,
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
+        let intermediate3 = intermediate2
+            .generate_intermediate(
+                "myintermediate3",
+                CertificateUsage::ReaderAuth,
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
+        let keypair = intermediate3.generate_reader_mock(None).unwrap();
+
+        // Construct a JWT with the `x5c` field containing the X.509 certificates
+        // of the leaf certificate and the intermediates, in reverse order.
+        let payload = json!({"hello": "world"});
+        let certs = vec![
+            keypair.certificate().as_ref(),
+            intermediate3.as_certificate_der().as_ref(),
+            intermediate2.as_certificate_der().as_ref(),
+            intermediate1.as_certificate_der().as_ref(),
+        ]
+        .into_iter()
+        .map(|der| BASE64_STANDARD.encode(der))
+        .collect();
+
+        let jwt = Jwt::sign(
+            &payload,
+            &Header {
+                alg: jsonwebtoken::Algorithm::ES256,
+                x5c: Some(certs),
+                ..Default::default()
+            },
+            keypair.private_key(),
+        )
+        .await
+        .unwrap();
+
+        // Verifying this JWT against the CA's trust anchor should succeed.
         let audience: &[String] = &[];
         let (deserialized, leaf_cert) =
             verify_against_trust_anchors(&jwt, audience, &[ca.to_trust_anchor()], &TimeGenerator).unwrap();
