@@ -19,6 +19,8 @@ use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::AttestationError;
 use apple_app_attest::VerifiedAttestation;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::RegistrationAttestation;
@@ -126,6 +128,10 @@ pub enum RegistrationError {
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
     #[error("registration challenge validation error: {0}")]
     ChallengeValidation(#[source] JwtError),
+    #[error("validation of Apple key and/or app attestation failed: {0}")]
+    AppleAttestation(#[from] AttestationError),
+    #[error("validation of Google key attestation failed: {0}")]
+    GoogleAttestation(#[from] CertificateError),
     #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_common::account::errors::Error),
     #[error("registration message validation error: {0}")]
@@ -140,8 +146,6 @@ pub enum RegistrationError {
     WalletCertificate(#[from] WalletCertificateError),
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
-    #[error("validation of Apple attestation failed: {0}")]
-    AppleAttestation(#[from] AttestationError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -328,9 +332,6 @@ impl AccountServer {
             Self::verify_registration_challenge(&self.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
 
         let (hw_pubkey, attestation_data) = match unverified.payload.attestation {
-            RegistrationAttestation::None {
-                hw_pubkey: DerVerifyingKey(hw_pubkey),
-            } => (hw_pubkey, None),
             RegistrationAttestation::Apple { data } => {
                 debug!("Validating Apple key and app attestation");
 
@@ -344,6 +345,13 @@ impl AccountServer {
 
                 (hw_pubkey, Some(data))
             }
+            // TODO: Actually validate and process Google key and app attestation.
+            RegistrationAttestation::Google { certificate_chain, .. } => {
+                // For now, just extract the verifying key from the first X.509 certificate in the chain.
+                let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.into_first())?;
+
+                (*leaf_certificate.public_key(), None)
+            }
         };
 
         let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
@@ -353,7 +361,7 @@ impl AccountServer {
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
         let attestation = match attestation_data {
             None => registration_message
-                .parse_and_verify_ecdsa(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
+                .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
                 .map(|_| None),
             Some(data) => registration_message
                 .parse_and_verify_apple(
@@ -440,7 +448,7 @@ impl AccountServer {
         let (request, assertion_counter) = match user.attestation {
             None => challenge_request
                 .request
-                .parse_and_verify_ecdsa(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
+                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
                 .map(|request| (request, None)),
             Some(WalletUserAttestation::Apple { assertion_counter }) => challenge_request
                 .request
@@ -844,7 +852,7 @@ impl AccountServer {
         let (parsed, assertion_counter) = match wallet_user.attestation {
             None => instruction
                 .instruction
-                .parse_and_verify_ecdsa(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
+                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
                 .map(|parsed| (parsed, None)),
             Some(WalletUserAttestation::Apple { assertion_counter }) => instruction
                 .instruction
@@ -915,15 +923,15 @@ pub mod mock {
 
     #[derive(Debug)]
     pub enum MockHardwareKey {
-        Ecdsa(SigningKey),
         Apple(MockAppleAttestedKey),
+        Google(SigningKey),
     }
 
     impl MockHardwareKey {
         pub fn verifying_key(&self) -> &VerifyingKey {
             match self {
-                Self::Ecdsa(signing_key) => signing_key.verifying_key(),
                 Self::Apple(attested_key) => attested_key.verifying_key(),
+                Self::Google(signing_key) => signing_key.verifying_key(),
             }
         }
 
@@ -937,20 +945,20 @@ pub mod mock {
             I: InstructionAndResult,
         {
             match self {
-                Self::Ecdsa(signing_key) => {
-                    InstructionChallengeRequest::new_ecdsa::<I>(
-                        wallet_id,
-                        instruction_sequence_number,
-                        signing_key,
-                        certificate,
-                    )
-                    .await
-                }
                 Self::Apple(attested_key) => {
                     InstructionChallengeRequest::new_apple::<I>(
                         wallet_id,
                         instruction_sequence_number,
                         attested_key,
+                        certificate,
+                    )
+                    .await
+                }
+                Self::Google(signing_key) => {
+                    InstructionChallengeRequest::new_google::<I>(
+                        wallet_id,
+                        instruction_sequence_number,
+                        signing_key,
                         certificate,
                     )
                     .await
@@ -971,23 +979,23 @@ pub mod mock {
             T: Serialize + DeserializeOwned,
         {
             match self {
-                Self::Ecdsa(signing_key) => {
-                    Instruction::new_ecdsa(
-                        instruction,
-                        challenge,
-                        instruction_sequence_number,
-                        signing_key,
-                        pin_privkey,
-                        certificate,
-                    )
-                    .await
-                }
                 Self::Apple(attested_key) => {
                     Instruction::new_apple(
                         instruction,
                         challenge,
                         instruction_sequence_number,
                         attested_key,
+                        pin_privkey,
+                        certificate,
+                    )
+                    .await
+                }
+                Self::Google(signing_key) => {
+                    Instruction::new_google(
+                        instruction,
+                        challenge,
+                        instruction_sequence_number,
+                        signing_key,
                         pin_privkey,
                         certificate,
                     )
@@ -1039,7 +1047,7 @@ mod tests {
     #[derive(Debug, Clone, Copy)]
     enum AttestationType {
         Apple,
-        None,
+        Google,
     }
 
     async fn get_global_hsm() -> &'static MockPkcs11Client<HsmError> {
@@ -1073,13 +1081,22 @@ mod tests {
 
                 (registration_message, MockHardwareKey::Apple(attested_key))
             }
-            AttestationType::None => {
-                let signing_key = SigningKey::random(&mut OsRng);
-                let registration_message = ChallengeResponse::new_unattested(&signing_key, pin_privkey, challenge)
-                    .await
-                    .expect("Could not sign new unattested registration");
+            AttestationType::Google => {
+                let (attested_certificate_chain, attested_private_keys) =
+                    android_attest::mock::generate_mock_certificate_chain(1);
+                let attested_private_key = attested_private_keys.into_iter().next().unwrap();
+                let app_attestation_token = utils::random_bytes(32);
+                let registration_message = ChallengeResponse::new_google(
+                    &attested_private_key,
+                    attested_certificate_chain.try_into().unwrap(),
+                    app_attestation_token,
+                    pin_privkey,
+                    challenge,
+                )
+                .await
+                .expect("Could not sign new Google attested registration");
 
-                (registration_message, MockHardwareKey::Ecdsa(signing_key))
+                (registration_message, MockHardwareKey::Google(attested_private_key))
             }
         };
 
@@ -1126,7 +1143,7 @@ mod tests {
 
         let apple_assertion_counter = match attestation_type {
             AttestationType::Apple => Some(AssertionCounter::from(1)),
-            AttestationType::None => None,
+            AttestationType::Google => None,
         };
         let repo = WalletUserTestRepo {
             hw_pubkey: *hw_privkey.verifying_key(),
@@ -1185,8 +1202,8 @@ mod tests {
         let updated_repo = WalletUserTestRepo {
             challenge: Some(challenge.clone()),
             apple_assertion_counter: match hw_privkey {
-                MockHardwareKey::Ecdsa(_) => None,
                 MockHardwareKey::Apple(attested_key) => Some(AssertionCounter::from(*attested_key.next_counter() - 1)),
+                MockHardwareKey::Google(_) => None,
             },
             ..repo
         };
@@ -1311,7 +1328,9 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    async fn test_register(#[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType) {
+    async fn test_register(
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
+    ) {
         let (setup, account_server, hw_privkey, cert, repo) = setup_and_do_registration(attestation_type).await;
 
         let cert_data = cert
@@ -1359,14 +1378,14 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_challenge_request_error_signature_type_mismatch(
-        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
         let (_setup, account_server, _hw_privkey, cert, repo) = setup_and_do_registration(attestation_type).await;
 
         // Create a hardware key that is the opposite type of the one used during registration.
         let wrong_hw_privkey = match attestation_type {
-            AttestationType::Apple => MockHardwareKey::Ecdsa(SigningKey::random(&mut OsRng)),
-            AttestationType::None => MockHardwareKey::Apple(MockAppleAttestedKey::new_random(
+            AttestationType::Apple => MockHardwareKey::Google(SigningKey::random(&mut OsRng)),
+            AttestationType::Google => MockHardwareKey::Apple(MockAppleAttestedKey::new_random(
                 account_server.apple_config.app_identifier.clone(),
             )),
         };
@@ -1413,7 +1432,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn valid_instruction_challenge_should_verify(
-        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
         let (setup, account_server, hw_privkey, cert, mut repo) = setup_and_do_registration(attestation_type).await;
 
@@ -1452,7 +1471,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn wrong_instruction_challenge_should_not_verify(
-        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
         let (setup, account_server, hw_privkey, cert, mut repo) = setup_and_do_registration(attestation_type).await;
 
@@ -1493,7 +1512,7 @@ mod tests {
                         ))
                     );
                 }
-                AttestationType::None => {
+                AttestationType::Google => {
                     assert_matches!(
                         error,
                         InstructionValidationError::VerificationFailed(
@@ -1518,7 +1537,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn expired_instruction_challenge_should_not_verify(
-        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
         let (setup, account_server, hw_privkey, cert, repo) = setup_and_do_registration(attestation_type).await;
 
@@ -1561,7 +1580,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_check_pin(
-        #[values(AttestationType::None, AttestationType::Apple)] attestation_type: AttestationType,
+        #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
         let (setup, account_server, hw_privkey, cert, mut repo) = setup_and_do_registration(attestation_type).await;
         repo.instruction_sequence_number = 42;
@@ -1603,7 +1622,7 @@ mod tests {
     #[tokio::test]
     async fn test_change_pin_start_commit() {
         let (setup, account_server, hw_privkey, cert, mut repo) =
-            setup_and_do_registration(AttestationType::None).await;
+            setup_and_do_registration(AttestationType::Google).await;
         repo.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
@@ -1751,7 +1770,7 @@ mod tests {
     #[tokio::test]
     async fn test_change_pin_start_invalid_pop() {
         let (setup, account_server, hw_privkey, cert, mut repo) =
-            setup_and_do_registration(AttestationType::None).await;
+            setup_and_do_registration(AttestationType::Google).await;
         repo.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
@@ -1811,7 +1830,7 @@ mod tests {
     #[tokio::test]
     async fn test_change_pin_start_rollback() {
         let (setup, account_server, hw_privkey, cert, mut repo) =
-            setup_and_do_registration(AttestationType::None).await;
+            setup_and_do_registration(AttestationType::Google).await;
         repo.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
@@ -1939,7 +1958,7 @@ mod tests {
     #[tokio::test]
     async fn test_change_pin_no_other_instructions_allowed() {
         let (setup, account_server, hw_privkey, cert, mut repo) =
-            setup_and_do_registration(AttestationType::None).await;
+            setup_and_do_registration(AttestationType::Google).await;
         repo.instruction_sequence_number = 42;
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 

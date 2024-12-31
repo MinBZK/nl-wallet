@@ -12,8 +12,8 @@ use openid4vc::token::TokenRequestGrantType;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
 use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
@@ -92,7 +92,7 @@ impl AttributeService for BrpPidAttributeService {
         &self,
         _session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Error> {
+    ) -> Result<VecNonEmpty<CredentialPreview>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),

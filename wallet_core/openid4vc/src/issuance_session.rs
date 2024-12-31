@@ -36,10 +36,10 @@ use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::VecAtLeastTwo;
 use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
 use crate::credential::CredentialCopies;
@@ -215,13 +215,13 @@ impl TryFrom<IssuedCredentialCopies> for MdocCopies {
     }
 }
 
-impl<T> TryFrom<NonEmpty<Vec<IssuedCredential>>> for CredentialCopies<T>
+impl<T> TryFrom<VecNonEmpty<IssuedCredential>> for CredentialCopies<T>
 where
     T: TryFrom<IssuedCredential>,
 {
     type Error = <T as TryFrom<IssuedCredential>>::Error;
 
-    fn try_from(creds: NonEmpty<Vec<IssuedCredential>>) -> Result<Self, Self::Error> {
+    fn try_from(creds: VecNonEmpty<IssuedCredential>) -> Result<Self, Self::Error> {
         let copies = creds
             .into_inner()
             .into_iter()
@@ -240,7 +240,9 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
     fn try_from(creds: Vec<IssuedCredential>) -> Result<Self, Self::Error> {
         let copies = match creds.first().ok_or(IssuanceSessionError::NoCredentialCopies)? {
             // We can unwrap in these arms because we just checked that we have at least one credential
-            IssuedCredential::MsoMdoc(_) => IssuedCredentialCopies::MsoMdoc(NonEmpty::new(creds).unwrap().try_into()?),
+            IssuedCredential::MsoMdoc(_) => {
+                IssuedCredentialCopies::MsoMdoc(VecNonEmpty::try_from(creds).unwrap().try_into()?)
+            }
         };
 
         Ok(copies)
@@ -454,7 +456,7 @@ impl HttpVcMessageClient {
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
-    credential_previews: NonEmpty<Vec<CredentialPreview>>,
+    credential_previews: VecNonEmpty<CredentialPreview>,
     issuer_url: BaseUrl,
     #[debug(skip)]
     dpop_private_key: SigningKey,
@@ -524,7 +526,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         token_response
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .try_for_each(|preview| preview.verify(trust_anchors))?;
 
@@ -564,7 +566,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let types = self
             .session_state
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count().into()))
             .collect_vec();
@@ -607,7 +609,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec();
 
         // We need a minimum of two keys to associate for a PoA to be sensible.
-        let poa = VecAtLeastTwo::try_new(poa_keys).ok().map(|poa_keys| async {
+        let poa = VecAtLeastTwoUnique::try_from(poa_keys).ok().map(|poa_keys| async {
             key_factory
                 .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
                 .await
@@ -650,7 +652,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 vec![self.request_credential(&credential_request).await?]
             }
             _ => {
-                let credential_requests = NonEmpty::new(credential_requests).unwrap();
+                let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
                 self.request_batch_credentials(credential_requests, wte_disclosure.take(), poa.take())
                     .await?
             }
@@ -660,7 +662,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let mdocs = self
             .session_state
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .map(|preview| {
                 let copy_count: usize = preview.copy_count().into();
@@ -715,7 +717,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     async fn request_batch_credentials(
         &self,
-        credential_requests: NonEmpty<Vec<CredentialRequest>>,
+        credential_requests: VecNonEmpty<CredentialRequest>,
         wte_disclosure: Option<WteDisclosure>,
         poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
@@ -873,7 +875,6 @@ mod tests {
     use wallet_common::keys::factory::KeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::nonempty::NonEmpty;
     use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::token::TokenResponse;
@@ -950,7 +951,7 @@ mod tests {
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        credential_previews: NonEmpty::new(vec![preview]).unwrap(),
+                        credential_previews: VecNonEmpty::try_from(vec![preview]).unwrap(),
                     },
                     None,
                 ))
@@ -978,7 +979,7 @@ mod tests {
         IssuanceState {
             access_token: "access_token".to_string().into(),
             c_nonce: "c_nonce".to_string(),
-            credential_previews: NonEmpty::new(previews).unwrap(),
+            credential_previews: VecNonEmpty::try_from(previews).unwrap(),
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),

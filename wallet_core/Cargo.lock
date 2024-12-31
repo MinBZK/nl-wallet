@@ -118,11 +118,14 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "nutype",
+ "p256",
  "rasn",
+ "rcgen",
  "regex",
  "reqwest",
  "reqwest-middleware",
  "rstest",
+ "rustls-pki-types",
  "rustls-webpki",
  "serde",
  "serde_json",
@@ -3740,9 +3743,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.37"
+version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
+checksum = "0e4dccaaaf89514f546c693ddc140f729f958c247918a13380cccc6078391acc"
 dependencies = [
  "proc-macro2",
 ]
@@ -6121,7 +6124,6 @@ dependencies = [
  "chrono",
  "ciborium",
  "derive_more",
- "dotenvy",
  "entity",
  "error_category",
  "futures",
@@ -6193,6 +6195,7 @@ name = "wallet_common"
 version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
+ "android_attest",
  "anyhow",
  "apple_app_attest",
  "assert_matches",
@@ -6338,6 +6341,7 @@ dependencies = [
 name = "wallet_provider_service"
 version = "0.3.0-dev"
 dependencies = [
+ "android_attest",
  "anyhow",
  "apple_app_attest",
  "assert_matches",
@@ -6351,6 +6355,7 @@ dependencies = [
  "indexmap 2.2.6",
  "itertools 0.13.0",
  "jsonwebtoken",
+ "nl_wallet_mdoc",
  "p256",
  "r2d2-cryptoki",
  "rand",

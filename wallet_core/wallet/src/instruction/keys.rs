@@ -16,13 +16,13 @@ use wallet_common::account::messages::instructions::Sign;
 use wallet_common::apple::AppleAttestedKey;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::VecAtLeastTwo;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::keys::WithIdentifier;
 use wallet_common::utils::random_string;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;
@@ -159,7 +159,7 @@ where
 
     async fn poa(
         &self,
-        keys: VecAtLeastTwo<&Self::Key>,
+        keys: VecAtLeastTwoUnique<&Self::Key>,
         aud: String,
         nonce: Option<String>,
     ) -> Result<Poa, Self::Error> {
@@ -167,12 +167,12 @@ where
             .instruction_client
             .send(ConstructPoa {
                 key_identifiers: keys
-                    .as_ref()
+                    .as_slice()
                     .iter()
                     .map(|key| key.identifier.clone())
                     .collect_vec()
                     .try_into()
-                    .unwrap(), // our iterable is a VecAtLeastTwo
+                    .unwrap(), // our iterable is a VecAtLeastTwoUnique
                 aud,
                 nonce,
             })

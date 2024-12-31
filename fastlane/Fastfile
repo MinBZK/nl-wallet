@@ -144,9 +144,6 @@ platform :android do
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
-
-            # ENV_CONFIGURATION is ignored when mock repositories are configured
-            "--dart-define=ENV_CONFIGURATION=true",
       )
 
       upload_sentry_symbols
@@ -352,9 +349,6 @@ platform :ios do
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
-
-            # ENV_CONFIGURATION is ignored when mock repositories are configured
-            "--dart-define=ENV_CONFIGURATION=true",
       )
 
       upload_sentry_symbols

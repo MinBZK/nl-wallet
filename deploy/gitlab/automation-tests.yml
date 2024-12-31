@@ -144,9 +144,11 @@ run-performance-test-ont:
       artifacts: false
     - job: deploy-pid-issuer-ont
       artifacts: false
-    - job: wallet-env-config-ont
+    - job: wallet-config-ont
       artifacts: true
   variables:
+    CONFIG_ENV: ont
+    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
     RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"

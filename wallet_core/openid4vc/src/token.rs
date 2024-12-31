@@ -21,9 +21,9 @@ use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::utils::random_string;
 use wallet_common::utils::sha256;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationDetails;
 use crate::server_state::SessionToken;
@@ -143,7 +143,7 @@ pub struct TokenResponse {
 pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
-    pub credential_previews: NonEmpty<Vec<CredentialPreview>>,
+    pub credential_previews: VecNonEmpty<CredentialPreview>,
 }
 
 #[serde_as]

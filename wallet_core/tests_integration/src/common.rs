@@ -35,23 +35,24 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use update_policy_server::settings::Settings as UpsSettings;
-use wallet::mock::default_configuration;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
-use wallet::wallet_deps::ConfigServerConfiguration;
+use wallet::wallet_deps::default_config_server_config;
+use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
+use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
 use wallet_common::reqwest::ReqwestTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
+use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::RootCertificate;
@@ -146,10 +147,10 @@ pub async fn setup_wallet_and_env(
             base_url: local_config_base_url(&cs_settings.port),
             trust_anchors: vec![cs_root_ca.clone()],
         },
-        ..Default::default()
+        ..default_config_server_config()
     };
 
-    let mut wallet_config = default_configuration();
+    let mut wallet_config = default_wallet_config();
     wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
     wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
@@ -172,7 +173,7 @@ pub async fn setup_wallet_and_env(
     start_wallet_server(ws_settings, MockAttributeService(certificates)).await;
 
     let config_repository = HttpConfigurationRepository::new(
-        (&config_server_config.signing_public_key).into(),
+        (&config_server_config.signing_public_key.0).into(),
         tempfile::tempdir().unwrap().into_path(),
         wallet_config,
     )
@@ -452,7 +453,7 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error> {
+    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error> {
         let attributes = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()

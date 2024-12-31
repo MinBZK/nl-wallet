@@ -91,22 +91,6 @@ impl ContainsChallenge for ChallengeRequestPayload {
 pub struct ChallengeRequest(SignedSubjectMessage<ChallengeRequestPayload>);
 
 impl ChallengeRequest {
-    pub async fn sign_ecdsa<K>(
-        wallet_id: String,
-        sequence_number: u64,
-        instruction_name: String,
-        hardware_signing_key: &K,
-    ) -> Result<Self>
-    where
-        K: SecureEcdsaKey,
-    {
-        let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
-        let signed =
-            SignedSubjectMessage::sign_ecdsa(challenge_request, EcdsaSignatureType::Hw, hardware_signing_key).await?;
-
-        Ok(Self(signed))
-    }
-
     pub async fn sign_apple<K>(
         wallet_id: String,
         sequence_number: u64,
@@ -122,16 +106,21 @@ impl ChallengeRequest {
         Ok(Self(signed))
     }
 
-    pub fn parse_and_verify_ecdsa(
-        &self,
-        wallet_id: &str,
-        sequence_number_comparison: SequenceNumberComparison,
-        verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeRequestPayload> {
-        let request = self.0.parse_and_verify_ecdsa(EcdsaSignatureType::Hw, verifying_key)?;
-        request.verify(wallet_id, sequence_number_comparison)?;
+    pub async fn sign_google<K>(
+        wallet_id: String,
+        sequence_number: u64,
+        instruction_name: String,
+        hardware_signing_key: &K,
+    ) -> Result<Self>
+    where
+        K: SecureEcdsaKey,
+    {
+        let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
+        let signed =
+            SignedSubjectMessage::sign_ecdsa(challenge_request, EcdsaSignatureType::Google, hardware_signing_key)
+                .await?;
 
-        Ok(request)
+        Ok(Self(signed))
     }
 
     pub fn parse_and_verify_apple(
@@ -148,6 +137,20 @@ impl ChallengeRequest {
         request.verify(wallet_id, sequence_number_comparison)?;
 
         Ok((request, counter))
+    }
+
+    pub fn parse_and_verify_google(
+        &self,
+        wallet_id: &str,
+        sequence_number_comparison: SequenceNumberComparison,
+        verifying_key: &VerifyingKey,
+    ) -> Result<ChallengeRequestPayload> {
+        let request = self
+            .0
+            .parse_and_verify_ecdsa(EcdsaSignatureType::Google, verifying_key)?;
+        request.verify(wallet_id, sequence_number_comparison)?;
+
+        Ok(request)
     }
 }
 
@@ -230,25 +233,6 @@ where
 pub struct ChallengeResponse<T>(SignedMessage<SignedSubjectMessage<ChallengeResponsePayload<T>>>);
 
 impl<T> ChallengeResponse<T> {
-    pub async fn sign_ecdsa<HK, PK>(
-        payload: T,
-        challenge: Vec<u8>,
-        sequence_number: u64,
-        hardware_signing_key: &HK,
-        pin_signing_key: &PK,
-    ) -> Result<Self>
-    where
-        T: Serialize,
-        HK: SecureEcdsaKey,
-        PK: EphemeralEcdsaKey,
-    {
-        let inner_signed = SignedSubjectMessage::sign_pin(payload, challenge, sequence_number, pin_signing_key).await?;
-        let outer_signed =
-            SignedMessage::sign_ecdsa(&inner_signed, EcdsaSignatureType::Hw, hardware_signing_key).await?;
-
-        Ok(Self(outer_signed))
-    }
-
     pub async fn sign_apple<AK, PK>(
         payload: T,
         challenge: Vec<u8>,
@@ -267,30 +251,30 @@ impl<T> ChallengeResponse<T> {
         Ok(Self(outer_signed))
     }
 
+    pub async fn sign_google<HK, PK>(
+        payload: T,
+        challenge: Vec<u8>,
+        sequence_number: u64,
+        hardware_signing_key: &HK,
+        pin_signing_key: &PK,
+    ) -> Result<Self>
+    where
+        T: Serialize,
+        HK: SecureEcdsaKey,
+        PK: EphemeralEcdsaKey,
+    {
+        let inner_signed = SignedSubjectMessage::sign_pin(payload, challenge, sequence_number, pin_signing_key).await?;
+        let outer_signed =
+            SignedMessage::sign_ecdsa(&inner_signed, EcdsaSignatureType::Google, hardware_signing_key).await?;
+
+        Ok(Self(outer_signed))
+    }
+
     pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>>
     where
         T: DeserializeOwned,
     {
         let challenge_response = self.0.dangerous_parse_unverified()?.dangerous_parse_unverified()?;
-
-        Ok(challenge_response)
-    }
-
-    pub fn parse_and_verify_ecdsa(
-        &self,
-        challenge: &[u8],
-        sequence_number_comparison: SequenceNumberComparison,
-        hardware_verifying_key: &VerifyingKey,
-        pin_verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeResponsePayload<T>>
-    where
-        T: DeserializeOwned,
-    {
-        let inner_signed = self
-            .0
-            .parse_and_verify_ecdsa(EcdsaSignatureType::Hw, hardware_verifying_key)?;
-        let challenge_response =
-            inner_signed.parse_and_verify_pin(challenge, sequence_number_comparison, pin_verifying_key)?;
 
         Ok(challenge_response)
     }
@@ -314,6 +298,25 @@ impl<T> ChallengeResponse<T> {
             inner_signed.parse_and_verify_pin(challenge, sequence_number_comparison, pin_verifying_key)?;
 
         Ok((challenge_response, counter))
+    }
+
+    pub fn parse_and_verify_google(
+        &self,
+        challenge: &[u8],
+        sequence_number_comparison: SequenceNumberComparison,
+        hardware_verifying_key: &VerifyingKey,
+        pin_verifying_key: &VerifyingKey,
+    ) -> Result<ChallengeResponsePayload<T>>
+    where
+        T: DeserializeOwned,
+    {
+        let inner_signed = self
+            .0
+            .parse_and_verify_ecdsa(EcdsaSignatureType::Google, hardware_verifying_key)?;
+        let challenge_response =
+            inner_signed.parse_and_verify_pin(challenge, sequence_number_comparison, pin_verifying_key)?;
+
+        Ok(challenge_response)
     }
 }
 
@@ -346,57 +349,6 @@ mod tests {
         let app_identifier = AppIdentifier::new_mock();
 
         MockAppleAttestedKey::new_random(app_identifier)
-    }
-
-    #[tokio::test]
-    async fn test_ecdsa_challenge_request() {
-        let wallet_id = utils::random_string(32);
-        let sequence_number = 42;
-        let instruction_name = "jump";
-        let hw_privkey = SigningKey::random(&mut OsRng);
-
-        let signed = ChallengeRequest::sign_ecdsa(
-            wallet_id.clone(),
-            sequence_number,
-            instruction_name.to_string(),
-            &hw_privkey,
-        )
-        .await
-        .expect("should sign SignedChallengeRequest successfully");
-
-        // Verifying against an incorrect wallet_id should return a `Error::WalletIdMismatch`.
-        let error = signed
-            .parse_and_verify_ecdsa(
-                "incorrect",
-                SequenceNumberComparison::EqualTo(sequence_number),
-                hw_privkey.verifying_key(),
-            )
-            .expect_err("verifying SignedChallengeRequest should return an error");
-
-        assert_matches!(error, Error::WalletIdMismatch);
-
-        // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
-        let error = signed
-            .parse_and_verify_ecdsa(
-                &wallet_id,
-                SequenceNumberComparison::LargerThan(sequence_number),
-                hw_privkey.verifying_key(),
-            )
-            .expect_err("verifying SignedChallengeRequest should return an error");
-
-        assert_matches!(error, Error::SequenceNumberMismatch);
-
-        // Verifying against the correct values should succeed.
-        let request = signed
-            .parse_and_verify_ecdsa(
-                &wallet_id,
-                SequenceNumberComparison::EqualTo(sequence_number),
-                hw_privkey.verifying_key(),
-            )
-            .expect("SignedChallengeRequest should be valid");
-
-        assert_eq!(request.sequence_number, sequence_number);
-        assert_eq!(request.instruction_name, instruction_name);
     }
 
     #[tokio::test]
@@ -460,57 +412,54 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_ecdsa_challenge_response() {
-        let sequence_number = 1337;
-        let challenge = b"challenge";
+    async fn test_google_challenge_request() {
+        let wallet_id = utils::random_string(32);
+        let sequence_number = 42;
+        let instruction_name = "jump";
         let hw_privkey = SigningKey::random(&mut OsRng);
-        let pin_privkey = SigningKey::random(&mut OsRng);
 
-        let signed = ChallengeResponse::sign_ecdsa(
-            ToyMessage::default(),
-            challenge.to_vec(),
+        let signed = ChallengeRequest::sign_google(
+            wallet_id.clone(),
             sequence_number,
+            instruction_name.to_string(),
             &hw_privkey,
-            &pin_privkey,
         )
         .await
-        .expect("should sign ChallengeResponse successfully");
+        .expect("should sign SignedChallengeRequest successfully");
 
-        // Verifying against an incorrect challenge should return a `Error::ChallengeMismatch`.
+        // Verifying against an incorrect wallet_id should return a `Error::WalletIdMismatch`.
         let error = signed
-            .parse_and_verify_ecdsa(
-                b"wrong",
-                SequenceNumberComparison::LargerThan(sequence_number - 1),
+            .parse_and_verify_google(
+                "incorrect",
+                SequenceNumberComparison::EqualTo(sequence_number),
                 hw_privkey.verifying_key(),
-                pin_privkey.verifying_key(),
             )
-            .expect_err("verifying SignedChallengeResponse should return an error");
+            .expect_err("verifying SignedChallengeRequest should return an error");
 
-        assert_matches!(error, Error::ChallengeMismatch);
+        assert_matches!(error, Error::WalletIdMismatch);
 
         // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
         let error = signed
-            .parse_and_verify_ecdsa(
-                challenge,
-                SequenceNumberComparison::EqualTo(42),
+            .parse_and_verify_google(
+                &wallet_id,
+                SequenceNumberComparison::LargerThan(sequence_number),
                 hw_privkey.verifying_key(),
-                pin_privkey.verifying_key(),
             )
-            .expect_err("verifying SignedChallengeResponse should return an error");
+            .expect_err("verifying SignedChallengeRequest should return an error");
 
         assert_matches!(error, Error::SequenceNumberMismatch);
 
         // Verifying against the correct values should succeed.
-        let verified = signed
-            .parse_and_verify_ecdsa(
-                challenge,
-                SequenceNumberComparison::LargerThan(sequence_number - 1),
+        let request = signed
+            .parse_and_verify_google(
+                &wallet_id,
+                SequenceNumberComparison::EqualTo(sequence_number),
                 hw_privkey.verifying_key(),
-                pin_privkey.verifying_key(),
             )
-            .expect("SignedChallengeResponse should be valid");
+            .expect("SignedChallengeRequest should be valid");
 
-        assert_eq!(ToyMessage::default(), verified.payload);
+        assert_eq!(request.sequence_number, sequence_number);
+        assert_eq!(request.instruction_name, instruction_name);
     }
 
     #[tokio::test]
@@ -574,5 +523,59 @@ mod tests {
 
         assert_eq!(ToyMessage::default(), verified.payload);
         assert_eq!(*counter, 1)
+    }
+
+    #[tokio::test]
+    async fn test_google_challenge_response() {
+        let sequence_number = 1337;
+        let challenge = b"challenge";
+        let hw_privkey = SigningKey::random(&mut OsRng);
+        let pin_privkey = SigningKey::random(&mut OsRng);
+
+        let signed = ChallengeResponse::sign_google(
+            ToyMessage::default(),
+            challenge.to_vec(),
+            sequence_number,
+            &hw_privkey,
+            &pin_privkey,
+        )
+        .await
+        .expect("should sign ChallengeResponse successfully");
+
+        // Verifying against an incorrect challenge should return a `Error::ChallengeMismatch`.
+        let error = signed
+            .parse_and_verify_google(
+                b"wrong",
+                SequenceNumberComparison::LargerThan(sequence_number - 1),
+                hw_privkey.verifying_key(),
+                pin_privkey.verifying_key(),
+            )
+            .expect_err("verifying SignedChallengeResponse should return an error");
+
+        assert_matches!(error, Error::ChallengeMismatch);
+
+        // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
+        let error = signed
+            .parse_and_verify_google(
+                challenge,
+                SequenceNumberComparison::EqualTo(42),
+                hw_privkey.verifying_key(),
+                pin_privkey.verifying_key(),
+            )
+            .expect_err("verifying SignedChallengeResponse should return an error");
+
+        assert_matches!(error, Error::SequenceNumberMismatch);
+
+        // Verifying against the correct values should succeed.
+        let verified = signed
+            .parse_and_verify_google(
+                challenge,
+                SequenceNumberComparison::LargerThan(sequence_number - 1),
+                hw_privkey.verifying_key(),
+                pin_privkey.verifying_key(),
+            )
+            .expect("SignedChallengeResponse should be valid");
+
+        assert_eq!(ToyMessage::default(), verified.payload);
     }
 }

@@ -8,6 +8,7 @@ use tokio::time::{self};
 use tracing::error;
 use tracing::info;
 
+use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
@@ -17,7 +18,6 @@ use crate::repository::RepositoryCallback;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
 
-use super::ConfigServerConfiguration;
 use super::ConfigurationError;
 use super::FileStorageConfigurationRepository;
 use super::WalletConfigurationRepository;
@@ -34,9 +34,12 @@ impl WalletConfigurationRepository {
         config: ConfigServerConfiguration,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
-        let wrapped =
-            FileStorageConfigurationRepository::init(storage_path, (&config.signing_public_key).into(), initial_config)
-                .await?;
+        let wrapped = FileStorageConfigurationRepository::init(
+            storage_path,
+            (&config.signing_public_key.0).into(),
+            initial_config,
+        )
+        .await?;
         let updating_repository = Self::new(wrapped, config).await;
         Ok(updating_repository)
     }
@@ -135,8 +138,8 @@ mod tests {
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
-    use crate::config::default_configuration;
-    use crate::config::ConfigServerConfiguration;
+    use crate::config::default_config_server_config;
+    use crate::config::default_wallet_config;
     use crate::config::ConfigurationError;
     use crate::config::UpdatingConfigurationRepository;
     use crate::repository::ObservableRepository;
@@ -171,8 +174,8 @@ mod tests {
 
     #[tokio::test]
     async fn should_update_config() {
-        let mut config_server_config = ConfigServerConfiguration::default();
-        let initial_wallet_config = default_configuration();
+        let mut config_server_config = default_config_server_config();
+        let initial_wallet_config = default_wallet_config();
 
         // pause time so we can advance it later
         time::pause();
@@ -214,8 +217,8 @@ mod tests {
 
     #[tokio::test]
     async fn drop_should_abort_updating_task() {
-        let mut config_server_config = ConfigServerConfiguration::default();
-        let initial_wallet_config = default_configuration();
+        let mut config_server_config = default_config_server_config();
+        let initial_wallet_config = default_wallet_config();
 
         // pause time so we can advance it later
         time::pause();

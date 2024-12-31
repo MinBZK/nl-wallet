@@ -13,9 +13,9 @@ use wallet_common::jwt::JwtError;
 use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;
 
-pub use self::data::default_configuration;
+pub use self::data::default_config_server_config;
+pub use self::data::default_wallet_config;
 pub use self::data::init_universal_link_base_url;
-pub use self::data::ConfigServerConfiguration;
 pub use self::data::UNIVERSAL_LINK_BASE_URL;
 pub use self::file_repository::FileStorageConfigurationRepository;
 pub use self::http_repository::HttpConfigurationRepository;

@@ -20,6 +20,7 @@ use wallet_common::jwt::JwtError;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::update_policy::VersionState;
 use wallet_common::utils;
+use wallet_common::vec_at_least::VecAtLeastNError;
 
 use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
@@ -57,6 +58,9 @@ pub enum WalletRegistrationError {
     #[error("could not perform key and/or app attestation: {0}")]
     #[category(pd)]
     Attestation(#[source] Box<dyn Error + Send + Sync>),
+    #[error("certificate chain for Android key attestation has too few entries: {0}")]
+    #[category(critical)]
+    AndroidCertificateChain(#[source] VecAtLeastNError),
     #[category(pd)]
     #[error("could not get attested public key: {0}")]
     AttestedPublicKey(#[source] Box<dyn Error + Send + Sync>),
@@ -228,12 +232,21 @@ where
                     .await
                     .map(|message| (message, AttestedKey::Apple(key)))
             }
-            // TODO: Support Google attestation.
-            KeyWithAttestation::Google { key, .. } => {
-                ChallengeResponse::<Registration>::new_unattested(&key, &pin_key, challenge)
-                    .await
-                    .map(|message| (message, AttestedKey::Google(key)))
-            }
+            KeyWithAttestation::Google {
+                key,
+                certificate_chain,
+                app_attestation_token,
+            } => ChallengeResponse::<Registration>::new_google(
+                &key,
+                certificate_chain
+                    .try_into()
+                    .map_err(WalletRegistrationError::AndroidCertificateChain)?,
+                app_attestation_token,
+                &pin_key,
+                challenge,
+            )
+            .await
+            .map(|message| (message, AttestedKey::Google(key))),
         }
         .map_err(WalletRegistrationError::Signing)?;
 

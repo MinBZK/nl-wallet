@@ -12,9 +12,9 @@ use crate::jwt::Jwt;
 use crate::jwt::JwtCredentialClaims;
 use crate::jwt::JwtSubject;
 use crate::keys::poa::Poa;
-use crate::keys::poa::VecAtLeastTwo;
 use crate::keys::EphemeralEcdsaKey;
 use crate::keys::SecureEcdsaKey;
+use crate::vec_at_least::VecAtLeastTwoUnique;
 use crate::wte::WteClaims;
 
 use super::auth::WalletCertificate;
@@ -72,7 +72,7 @@ pub struct IssueWteResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConstructPoa {
-    pub key_identifiers: VecAtLeastTwo<String>,
+    pub key_identifiers: VecAtLeastTwoUnique<String>,
     pub aud: String,
     pub nonce: Option<String>,
 }
@@ -172,26 +172,6 @@ where
         }
     }
 
-    pub async fn new_ecdsa(
-        instruction: T,
-        challenge: Vec<u8>,
-        instruction_sequence_number: u64,
-        hw_privkey: &impl SecureEcdsaKey,
-        pin_privkey: &impl EphemeralEcdsaKey,
-        certificate: WalletCertificate,
-    ) -> Result<Self> {
-        let challenge_response = ChallengeResponse::sign_ecdsa(
-            instruction,
-            challenge,
-            instruction_sequence_number,
-            hw_privkey,
-            pin_privkey,
-        )
-        .await?;
-
-        Ok(Self::new(challenge_response, certificate))
-    }
-
     pub async fn new_apple(
         instruction: T,
         challenge: Vec<u8>,
@@ -211,27 +191,31 @@ where
 
         Ok(Self::new(challenge_response, certificate))
     }
+
+    pub async fn new_google(
+        instruction: T,
+        challenge: Vec<u8>,
+        instruction_sequence_number: u64,
+        hw_privkey: &impl SecureEcdsaKey,
+        pin_privkey: &impl EphemeralEcdsaKey,
+        certificate: WalletCertificate,
+    ) -> Result<Self> {
+        let challenge_response = ChallengeResponse::sign_google(
+            instruction,
+            challenge,
+            instruction_sequence_number,
+            hw_privkey,
+            pin_privkey,
+        )
+        .await?;
+
+        Ok(Self::new(challenge_response, certificate))
+    }
 }
 
 impl InstructionChallengeRequest {
     fn new(request: ChallengeRequest, certificate: WalletCertificate) -> Self {
         Self { request, certificate }
-    }
-
-    pub async fn new_ecdsa<I>(
-        wallet_id: String,
-        instruction_sequence_number: u64,
-        hw_privkey: &impl SecureEcdsaKey,
-        certificate: WalletCertificate,
-    ) -> Result<Self>
-    where
-        I: InstructionAndResult,
-    {
-        let challenge_request =
-            ChallengeRequest::sign_ecdsa(wallet_id, instruction_sequence_number, I::NAME.to_string(), hw_privkey)
-                .await?;
-
-        Ok(Self::new(challenge_request, certificate))
     }
 
     pub async fn new_apple<I>(
@@ -250,6 +234,22 @@ impl InstructionChallengeRequest {
             attested_key,
         )
         .await?;
+
+        Ok(Self::new(challenge_request, certificate))
+    }
+
+    pub async fn new_google<I>(
+        wallet_id: String,
+        instruction_sequence_number: u64,
+        hw_privkey: &impl SecureEcdsaKey,
+        certificate: WalletCertificate,
+    ) -> Result<Self>
+    where
+        I: InstructionAndResult,
+    {
+        let challenge_request =
+            ChallengeRequest::sign_google(wallet_id, instruction_sequence_number, I::NAME.to_string(), hw_privkey)
+                .await?;
 
         Ok(Self::new(challenge_request, certificate))
     }
