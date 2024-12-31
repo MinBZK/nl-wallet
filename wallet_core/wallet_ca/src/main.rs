@@ -5,11 +5,11 @@ use clap::Parser;
 use clap::Subcommand;
 use clio::CachedInput;
 
-use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
-use wallet_ca::read_key_pair;
+use wallet_ca::read_self_signed_ca;
 use wallet_ca::write_key_pair;
 use wallet_common::built_info::version_string;
 
@@ -116,8 +116,9 @@ impl Command {
                 force,
             } => {
                 let configuration = Self::get_certificate_configuration(days);
-                let ca = KeyPair::generate_ca(&common_name, configuration)?;
-                write_key_pair(&ca, &file_prefix, force)?;
+                let ca = SelfSignedCa::generate(&common_name, configuration)?;
+                let signing_key = ca.to_signing_key()?;
+                write_key_pair(ca.as_certificate_der(), &signing_key, &file_prefix, force)?;
                 Ok(())
             }
             Issuer {
@@ -129,14 +130,14 @@ impl Command {
                 days,
                 force,
             } => {
-                let ca = read_key_pair(&ca_key_file, &ca_crt_file)?;
+                let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
                 let issuer_registration: IssuerRegistration = serde_json::from_reader(issuer_auth_file)?;
-                let key_pair = ca.generate(
+                let key_pair = ca.generate_key_pair(
                     &common_name,
                     &issuer_registration.into(),
                     Self::get_certificate_configuration(days),
                 )?;
-                write_key_pair(&key_pair, &file_prefix, force)?;
+                write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
                 Ok(())
             }
             Reader {
@@ -148,14 +149,14 @@ impl Command {
                 days,
                 force,
             } => {
-                let ca = read_key_pair(&ca_key_file, &ca_crt_file)?;
+                let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
                 let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
-                let key_pair = ca.generate(
+                let key_pair = ca.generate_key_pair(
                     &common_name,
                     &reader_registration.into(),
                     Self::get_certificate_configuration(days),
                 )?;
-                write_key_pair(&key_pair, &file_prefix, force)?;
+                write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
                 Ok(())
             }
         }

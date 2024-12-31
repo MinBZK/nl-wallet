@@ -646,6 +646,7 @@ pub(crate) mod tests {
     use tokio::fs;
 
     use nl_wallet_mdoc::holder::Mdoc;
+    use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
@@ -663,14 +664,14 @@ pub(crate) mod tests {
     const ADDRESS_DOCTYPE: &str = "com.example.address";
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let issuer_ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
         issuer_ca
             .generate_issuer_mock(IssuerRegistration::new_mock().into())
             .unwrap()
     });
 
     static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let reader_ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
         reader_ca
             .generate_reader_mock(ReaderRegistration::new_mock().into())
             .unwrap()

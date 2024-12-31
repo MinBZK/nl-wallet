@@ -277,11 +277,11 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
-    use nl_wallet_mdoc::server_keys::KeyPair;
+
+    use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 
     use super::Wallet;
@@ -338,7 +338,7 @@ mod tests {
     async fn test_history() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
 
-        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let reader_ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
         let reader_key = reader_ca
             .generate_reader_mock(ReaderRegistration::new_mock().into())
             .unwrap();

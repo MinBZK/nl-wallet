@@ -828,6 +828,7 @@ mod tests {
     use nl_wallet_mdoc::examples::example_items_requests;
     use nl_wallet_mdoc::examples::Example;
     use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
+    use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::test::data::addr_street;
     use nl_wallet_mdoc::test::data::pid_full_name;
@@ -877,14 +878,15 @@ mod tests {
         );
     }
 
-    fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest) {
+    fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         setup_with_items_requests(&example_items_requests())
     }
 
     fn setup_with_items_requests(
         items_request: &ItemsRequests,
-    ) -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+    ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
+        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let trust_anchor = ca.to_trust_anchor().to_owned();
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
@@ -900,7 +902,7 @@ mod tests {
         .unwrap()
         .into();
 
-        (ca, rp_keypair, encryption_privkey, auth_request)
+        (trust_anchor, rp_keypair, encryption_privkey, auth_request)
     }
 
     #[test]
@@ -935,13 +937,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_authorization_request_jwt() {
-        let (ca, rp_keypair, _, auth_request) = setup();
+        let (trust_anchor, rp_keypair, _, auth_request) = setup();
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
-        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
-        let (auth_request, cert) =
-            VpAuthorizationRequest::try_new(&auth_request_jwt, &[(&borrowing_trust_anchor).into()]).unwrap();
+        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();
     }
 
@@ -1253,7 +1253,7 @@ mod tests {
             .unwrap();
     }
 
-    async fn setup_poa_test(ca: &KeyPair) -> (Vec<(IssuerSigned, MockRemoteEcdsaKey)>, IsoVpAuthorizationRequest) {
+    async fn setup_poa_test(ca: &SelfSignedCa) -> (Vec<(IssuerSigned, MockRemoteEcdsaKey)>, IsoVpAuthorizationRequest) {
         let stored_documents = pid_full_name() + addr_street();
         let items_request = stored_documents.clone().into();
 
@@ -1275,44 +1275,42 @@ mod tests {
     #[tokio::test]
     async fn test_verify_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
-        let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, poa) = setup_device_response(
             &auth_request,
             mdoc_nonce,
             &issuer_signed_and_keys,
-            &issuer_ca,
+            trust_anchors,
             &MockTimeGenerator::default(),
         )
         .await;
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
         auth_response
-            .verify(&auth_request, mdoc_nonce, &TimeGenerator, &issuer_ca)
+            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
             .unwrap();
     }
 
     #[tokio::test]
     async fn test_verify_missing_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
-        let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, _) = setup_device_response(
             &auth_request,
             mdoc_nonce,
             &issuer_signed_and_keys,
-            &issuer_ca,
+            trust_anchors,
             &MockTimeGenerator::default(),
         )
         .await;
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, None);
         let error = auth_response
-            .verify(&auth_request, mdoc_nonce, &TimeGenerator, &issuer_ca)
+            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
             .expect_err("should fail due to missing PoA");
         assert!(matches!(error, AuthResponseError::MissingPoa));
     }
@@ -1320,15 +1318,14 @@ mod tests {
     #[tokio::test]
     async fn test_verify_invalid_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
-        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
-        let issuer_ca: Vec<TrustAnchor<'_>> = vec![borrowing_trust_anchor.trust_anchor().clone()];
         let (device_response, poa) = setup_device_response(
             &auth_request,
             mdoc_nonce,
             &issuer_signed_and_keys,
-            &issuer_ca,
+            trust_anchors,
             &MockTimeGenerator::default(),
         )
         .await;
@@ -1338,7 +1335,7 @@ mod tests {
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, Some(poa));
         let error = auth_response
-            .verify(&auth_request, mdoc_nonce, &TimeGenerator, &issuer_ca)
+            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
             .expect_err("should fail due to missing PoA");
         assert!(matches!(error, AuthResponseError::PoaVerification(_)));
     }

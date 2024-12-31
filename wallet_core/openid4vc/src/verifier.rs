@@ -1123,7 +1123,7 @@ mod tests {
     use ring::rand;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
     use nl_wallet_mdoc::ItemsRequest;
     use wallet_common::generator::Generator;
@@ -1182,8 +1182,8 @@ mod tests {
 
     fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
         // Initialize server state
-        let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![ca.to_trust_anchor().unwrap().trust_anchor().to_owned()];
+        let ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+        let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let reader_registration = Some(ReaderRegistration::new_mock());
 
         let use_cases = HashMap::from([
