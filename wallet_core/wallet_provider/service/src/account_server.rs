@@ -331,21 +331,21 @@ impl AccountServer {
         let wallet_id =
             Self::verify_registration_challenge(&self.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
 
-        let (hw_pubkey, attestation_data_and_timestamp) = match unverified.payload.attestation {
+        let attestation_timestamp = Utc::now();
+        let (hw_pubkey, attestation_data) = match unverified.payload.attestation {
             RegistrationAttestation::Apple { data } => {
                 debug!("Validating Apple key and app attestation");
 
-                let now = Utc::now();
                 let (_, hw_pubkey) = VerifiedAttestation::parse_and_verify_with_time(
                     &data,
                     &self.apple_trust_anchors,
-                    now,
+                    attestation_timestamp,
                     &utils::sha256(challenge),
                     &self.apple_config.app_identifier,
                     self.apple_config.environment,
                 )?;
 
-                (hw_pubkey, Some((data, now)))
+                (hw_pubkey, Some(data))
             }
             // TODO: Actually validate and process Google key and app attestation.
             RegistrationAttestation::Google { certificate_chain, .. } => {
@@ -361,11 +361,11 @@ impl AccountServer {
         debug!("Checking if challenge is signed with the provided hw and pin keys");
 
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
-        let attestation = match attestation_data_and_timestamp {
+        let attestation = match attestation_data {
             None => registration_message
                 .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
                 .map(|_| None),
-            Some((data, verification_date_time)) => registration_message
+            Some(data) => registration_message
                 .parse_and_verify_apple(
                     challenge,
                     sequence_number_comparison,
@@ -377,7 +377,7 @@ impl AccountServer {
                 .map(|(_, assertion_counter)| {
                     Some(WalletUserAttestationCreate::Apple {
                         data,
-                        verification_date_time,
+                        verification_date_time: attestation_timestamp,
                         assertion_counter,
                     })
                 }),
