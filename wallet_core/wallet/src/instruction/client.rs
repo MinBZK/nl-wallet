@@ -92,7 +92,7 @@ where
                     InstructionChallengeRequest::new_apple::<I>(wallet_id, seq_num, key, wallet_certificate).await
                 }
                 AttestedKey::Google(key) => {
-                    InstructionChallengeRequest::new_ecdsa::<I>(wallet_id, seq_num, key, wallet_certificate).await
+                    InstructionChallengeRequest::new_google::<I>(wallet_id, seq_num, key, wallet_certificate).await
                 }
             }
         })
@@ -135,7 +135,7 @@ where
                     Instruction::new_apple(instruction, challenge, seq_num, key, &pin_key, wallet_certificate).await
                 }
                 AttestedKey::Google(key) => {
-                    Instruction::new_ecdsa(instruction, challenge, seq_num, key, &pin_key, wallet_certificate).await
+                    Instruction::new_google(instruction, challenge, seq_num, key, &pin_key, wallet_certificate).await
                 }
             }
         })

@@ -66,6 +66,7 @@ rand_core = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true, features = ["std"] }
 
 apple_app_attest.path = "../../apple_app_attest"
+nl_wallet_mdoc.path = "../../mdoc"
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_domain.path = "../domain"
 wallet_common.path = "../../wallet_common"
@@ -79,6 +80,7 @@ rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 
+android_attest = { path = "../../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
 wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys", "mock_apple_attested_key"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }

@@ -29,5 +29,5 @@ pub enum SignatureType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcdsaSignatureType {
     Pin,
-    Hw,
+    Google,
 }
