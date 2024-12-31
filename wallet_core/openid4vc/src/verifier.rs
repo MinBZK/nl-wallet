@@ -10,7 +10,6 @@ use chrono::SecondsFormat;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::From;
-use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwk::Jwk;
@@ -34,7 +33,6 @@ use nl_wallet_mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtError;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -485,7 +483,7 @@ pub struct Verifier<S> {
     use_cases: UseCases,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
-    trust_anchors: Vec<BorrowingTrustAnchor>,
+    trust_anchors: Vec<TrustAnchor<'static>>,
     ephemeral_id_secret: hmac::Key,
 }
 
@@ -512,7 +510,7 @@ where
     pub fn new(
         use_cases: UseCases,
         sessions: S,
-        trust_anchors: Vec<BorrowingTrustAnchor>,
+        trust_anchors: Vec<TrustAnchor<'static>>,
         ephemeral_id_secret: hmac::Key,
     ) -> Self
     where
@@ -678,15 +676,7 @@ where
     ) -> Result<VpResponse, WithRedirectUri<PostAuthResponseError>> {
         let session: Session<WaitingForResponse> = self.get_session(session_token).await?;
 
-        let (result, next) = session.process_authorization_response(
-            wallet_response,
-            time,
-            self.trust_anchors
-                .iter()
-                .map(Into::<TrustAnchor<'_>>::into)
-                .collect_vec()
-                .as_slice(),
-        );
+        let (result, next) = session.process_authorization_response(wallet_response, time, &self.trust_anchors);
 
         self.sessions.write(next.into(), false).await.map_err(|err| {
             WithRedirectUri::new(
@@ -1193,7 +1183,7 @@ mod tests {
     fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
         // Initialize server state
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![ca.to_trust_anchor().unwrap()];
+        let trust_anchors = vec![ca.to_trust_anchor().unwrap().trust_anchor().to_owned()];
         let reader_registration = Some(ReaderRegistration::new_mock());
 
         let use_cases = HashMap::from([

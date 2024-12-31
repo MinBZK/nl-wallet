@@ -16,7 +16,11 @@ where
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.urls,
         settings.verifier,
-        settings.issuer_trust_anchors,
+        settings
+            .issuer_trust_anchors
+            .iter()
+            .map(|anchor| anchor.trust_anchor().to_owned())
+            .collect(),
         disclosure_sessions,
     )?;
 
