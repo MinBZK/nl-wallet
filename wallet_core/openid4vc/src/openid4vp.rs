@@ -828,7 +828,7 @@ mod tests {
     use nl_wallet_mdoc::examples::example_items_requests;
     use nl_wallet_mdoc::examples::Example;
     use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
-    use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::test::data::addr_street;
     use nl_wallet_mdoc::test::data::pid_full_name;
@@ -885,7 +885,7 @@ mod tests {
     fn setup_with_items_requests(
         items_request: &ItemsRequests,
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
@@ -1253,7 +1253,7 @@ mod tests {
             .unwrap();
     }
 
-    async fn setup_poa_test(ca: &SelfSignedCa) -> (Vec<(IssuerSigned, MockRemoteEcdsaKey)>, IsoVpAuthorizationRequest) {
+    async fn setup_poa_test(ca: &Ca) -> (Vec<(IssuerSigned, MockRemoteEcdsaKey)>, IsoVpAuthorizationRequest) {
         let stored_documents = pid_full_name() + addr_street();
         let items_request = stored_documents.clone().into();
 
@@ -1275,7 +1275,7 @@ mod tests {
     #[tokio::test]
     async fn test_verify_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
         let (device_response, poa) = setup_device_response(
@@ -1296,7 +1296,7 @@ mod tests {
     #[tokio::test]
     async fn test_verify_missing_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
         let (device_response, _) = setup_device_response(
@@ -1318,7 +1318,7 @@ mod tests {
     #[tokio::test]
     async fn test_verify_invalid_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
         let (device_response, poa) = setup_device_response(

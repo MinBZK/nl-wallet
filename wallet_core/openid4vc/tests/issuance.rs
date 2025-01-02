@@ -12,7 +12,7 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
-use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::test::SingleKeyRing;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
@@ -57,7 +57,7 @@ use wallet_common::vec_at_least::VecNonEmpty;
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
 fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
-    let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
     setup(
@@ -71,7 +71,7 @@ fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, TrustAnc
 
 fn setup(
     attr_service: MockAttributeService,
-    ca: &SelfSignedCa,
+    ca: &Ca,
     issuance_keypair: KeyPair,
 ) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();

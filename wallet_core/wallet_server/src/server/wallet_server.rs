@@ -4,6 +4,7 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
 use openid4vc::verifier::DisclosureData;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
 use super::*;
 use crate::issuer::create_issuance_router;
@@ -42,7 +43,7 @@ where
         settings
             .issuer_trust_anchors
             .iter()
-            .map(|anchor| anchor.trust_anchor().to_owned())
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         disclosure_sessions,
     )?;

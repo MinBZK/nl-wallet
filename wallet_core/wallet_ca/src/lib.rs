@@ -10,12 +10,12 @@ use pem::EncodeConfig;
 use pem::LineEnding;
 use pem::Pem;
 
-use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 
-pub fn read_self_signed_ca(ca_crt_file: &CachedInput, ca_key_file: &CachedInput) -> Result<SelfSignedCa> {
+pub fn read_self_signed_ca(ca_crt_file: &CachedInput, ca_key_file: &CachedInput) -> Result<Ca> {
     let certificate_der = Pem::try_from(ca_crt_file.get_data())?;
     let signing_key_der = Pem::try_from(ca_key_file.get_data())?;
-    let ca = SelfSignedCa::from_der(certificate_der.contents(), signing_key_der.contents())?;
+    let ca = Ca::from_der(certificate_der.contents(), signing_key_der.contents())?;
 
     Ok(ca)
 }

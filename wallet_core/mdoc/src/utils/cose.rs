@@ -487,7 +487,7 @@ mod tests {
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::server_keys::generate::SelfSignedCa;
+    use crate::server_keys::generate::Ca;
     use crate::utils::cose::CoseError;
     use crate::utils::cose::{self};
     use crate::utils::issuer_auth::IssuerRegistration;
@@ -580,7 +580,7 @@ mod tests {
 
     #[tokio::test]
     async fn cose_with_certificate() {
-        let ca = SelfSignedCa::generate("ca.example.com", Default::default()).unwrap();
+        let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
         let issuer_key_pair = ca
             .generate_key_pair(
                 "cert.example.com",

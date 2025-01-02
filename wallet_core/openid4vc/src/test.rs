@@ -15,7 +15,7 @@ use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
 use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
 use nl_wallet_mdoc::iso::device_retrieval::ItemsRequest;
-use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::verifier::ItemsRequests;
@@ -92,7 +92,7 @@ where
         transform_auth_request: F,
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
-        let ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+        let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let key_pair = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
@@ -398,7 +398,7 @@ where
 }
 
 pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
-    let ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+    let ca = Ca::generate_reader_mock_ca().unwrap();
     let key_pair = ca
         .generate_reader_mock(Some(ReaderRegistration {
             attributes: ReaderRegistration::create_attributes(

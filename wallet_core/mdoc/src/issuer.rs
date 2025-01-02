@@ -70,7 +70,7 @@ mod tests {
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
-    use crate::server_keys::generate::SelfSignedCa;
+    use crate::server_keys::generate::Ca;
     use crate::unsigned::Entry;
     use crate::unsigned::UnsignedMdoc;
     use crate::utils::cose::CoseKey;
@@ -85,7 +85,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 

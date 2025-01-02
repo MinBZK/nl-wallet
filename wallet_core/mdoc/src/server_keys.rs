@@ -110,7 +110,6 @@ pub mod generate {
     use p256::pkcs8::DecodePrivateKey;
     use p256::pkcs8::ObjectIdentifier;
     use rcgen::BasicConstraints;
-    use rcgen::Certificate;
     use rcgen::CertificateParams;
     use rcgen::CustomExtension;
     use rcgen::DnType;
@@ -137,14 +136,14 @@ pub mod generate {
         SigningKey::from_pkcs8_der(keypair.serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
     }
 
-    pub struct SelfSignedCa {
-        certificate: Certificate,
+    pub struct Ca {
+        certificate: rcgen::Certificate,
         key_pair: rcgen::KeyPair,
         borrowing_trust_anchor: BorrowingTrustAnchor,
     }
 
-    impl SelfSignedCa {
-        fn new(certificate: Certificate, key_pair: rcgen::KeyPair) -> Result<Self, CertificateError> {
+    impl Ca {
+        fn new(certificate: rcgen::Certificate, key_pair: rcgen::KeyPair) -> Result<Self, CertificateError> {
             let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.der().as_ref())?;
 
             let key_pair_ca = Self {
@@ -211,7 +210,7 @@ pub mod generate {
         }
 
         pub fn to_trust_anchor(&self) -> TrustAnchor {
-            self.borrowing_trust_anchor.trust_anchor().clone()
+            self.borrowing_trust_anchor.as_trust_anchor().clone()
         }
 
         /// Generate a new intermediate CA key pair, with any constraint
@@ -330,7 +329,7 @@ pub mod generate {
         const RP_CA_CN: &str = "ca.rp.example.com";
         const RP_CERT_CN: &str = "cert.rp.example.com";
 
-        impl SelfSignedCa {
+        impl Ca {
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
                 Self::generate(ISSUANCE_CA_CN, Default::default())
             }

@@ -10,7 +10,7 @@ use rand_core::OsRng;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
@@ -86,7 +86,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
-    let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
@@ -98,7 +98,7 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
-    let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(None).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
@@ -136,7 +136,7 @@ pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -
         private_key_id,
         issuer_signed,
         &TimeGenerator,
-        &[(&issuer_key.trust_anchor).into()],
+        &[issuer_key.trust_anchor.as_trust_anchor().clone()],
     )
     .unwrap()
 }

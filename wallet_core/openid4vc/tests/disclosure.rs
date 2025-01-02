@@ -25,7 +25,7 @@ use nl_wallet_mdoc::holder::DisclosureRequestMatch;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::holder::MdocDataSource;
 use nl_wallet_mdoc::holder::StoredMdoc;
-use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::test::data::addr_street;
 use nl_wallet_mdoc::test::data::pid_full_name;
@@ -77,7 +77,7 @@ use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 #[tokio::test]
 async fn disclosure_direct() {
-    let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+    let ca = Ca::generate("myca", Default::default()).unwrap();
     let auth_keypair = ca.generate_reader_mock(None).unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
@@ -167,7 +167,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 
 #[tokio::test]
 async fn disclosure_using_message_client() {
-    let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+    let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = ca
         .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
             &example_items_requests(),
@@ -752,10 +752,10 @@ async fn test_disclosure_invalid_poa() {
     );
 }
 
-fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAnchor<'static>, SelfSignedCa) {
+fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAnchor<'static>, Ca) {
     // Initialize key material
-    let issuer_ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
-    let rp_ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     // Initialize the verifier
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(items_requests));
@@ -800,7 +800,7 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
 async fn start_disclosure_session<KF, K>(
     verifier: Arc<MockVerifier>,
     stored_documents: TestDocuments,
-    issuer_ca: &SelfSignedCa,
+    issuer_ca: &Ca,
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: TrustAnchor<'static>,

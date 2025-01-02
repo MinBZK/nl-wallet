@@ -69,7 +69,7 @@ impl RouterState {
             .ios
             .root_certificates
             .into_iter()
-            .map(|anchor| anchor.trust_anchor().to_owned())
+            .map(|anchor| anchor.to_owned_trust_anchor())
             .collect();
 
         let account_server = AccountServer::new(

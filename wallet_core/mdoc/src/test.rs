@@ -159,7 +159,7 @@ impl TestDocument {
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
     pub async fn sign<KF>(
         self,
-        ca: &crate::server_keys::generate::SelfSignedCa,
+        ca: &crate::server_keys::generate::Ca,
         key_factory: &KF,
         copy_count: NonZeroU8,
     ) -> crate::holder::Mdoc
@@ -187,7 +187,7 @@ impl TestDocument {
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
     pub async fn issuer_signed<KF>(
         self,
-        ca: &crate::server_keys::generate::SelfSignedCa,
+        ca: &crate::server_keys::generate::Ca,
         key_factory: &KF,
         copy_count: NonZeroU8,
     ) -> (crate::IssuerSigned, KF::Key)

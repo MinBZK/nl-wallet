@@ -865,7 +865,7 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::test::data;
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
@@ -898,7 +898,7 @@ mod tests {
         VerifyingKey,
         MockRemoteKeyFactory,
     ) {
-        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = MockRemoteKeyFactory::default();
         let trust_anchor = ca.to_trust_anchor().to_owned();
@@ -929,7 +929,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_start_issuance_untrusted_credential_preview() {
-        let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
@@ -937,7 +937,7 @@ mod tests {
             .return_once(|_url, _token_request, _dpop_header| {
                 // Generate the credential previews with some other CA than what the
                 // HttpIssuanceSession::start_issuance() will accept
-                let ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+                let ca = Ca::generate_issuer_mock_ca().unwrap();
                 let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
                 let preview = CredentialPreview::MsoMdoc {
@@ -1172,7 +1172,7 @@ mod tests {
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
-        let other_ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+        let other_ca = Ca::generate_issuer_mock_ca().unwrap();
         let other_issuance_key = other_ca
             .generate_issuer_mock(IssuerRegistration::new_mock().into())
             .unwrap();
