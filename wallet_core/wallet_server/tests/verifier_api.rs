@@ -921,7 +921,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         &settings
             .issuer_trust_anchors
             .iter()
-            .map(|anchor| anchor.into())
+            .map(|anchor| anchor.as_trust_anchor().clone())
             .collect_vec(),
     )
     .await;

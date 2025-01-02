@@ -136,7 +136,7 @@ pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -
         private_key_id,
         issuer_signed,
         &TimeGenerator,
-        &[(&issuer_key.trust_anchor).into()],
+        &[issuer_key.trust_anchor.as_trust_anchor().clone()],
     )
     .unwrap()
 }

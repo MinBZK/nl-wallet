@@ -2,6 +2,7 @@ use anyhow::Result;
 
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
 use super::*;
 use crate::settings::Settings;
@@ -19,7 +20,7 @@ where
         settings
             .issuer_trust_anchors
             .iter()
-            .map(|anchor| anchor.trust_anchor().to_owned())
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         disclosure_sessions,
     )?;

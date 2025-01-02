@@ -202,7 +202,7 @@ pub mod generate {
         }
 
         pub fn to_trust_anchor(&self) -> TrustAnchor {
-            self.borrowing_trust_anchor.trust_anchor().clone()
+            self.borrowing_trust_anchor.as_trust_anchor().clone()
         }
 
         /// Generate a new key pair signed with the specified CA.
