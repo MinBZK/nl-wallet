@@ -94,18 +94,6 @@
         }
       ],
       "sd": "always"
-    },
-    {
-      "path": ["vct"],
-      "sd": "never"
-    },
-    {
-      "path": ["vct#integrity"],
-      "sd": "never"
-    },
-    {
-      "path": ["iss"],
-      "sd": "never"
     }
   ],
   "schema": {
@@ -138,8 +126,14 @@
       },
       "iss": {
         "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
       }
     },
-    "required": ["vct", "iss"]
+    "required": ["vct", "iss", "iat", "exp"]
   }
 }
