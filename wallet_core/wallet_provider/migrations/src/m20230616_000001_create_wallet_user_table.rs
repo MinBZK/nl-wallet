@@ -24,6 +24,15 @@ impl MigrationTrait for Migration {
                     .col(timestamp_with_time_zone_null(WalletUser::LastUnsuccessfulPin))
                     .col(boolean(WalletUser::IsBlocked).default(false))
                     .col(boolean(WalletUser::HasWte).default(false))
+                    .check(SimpleExpr::or(
+                        // Both of these columns should be used or neither.
+                        Expr::col(WalletUser::EncryptedPreviousPinPubkeySec1)
+                            .is_null()
+                            .and(Expr::col(WalletUser::PreviousPinPubkeyIv).is_null()),
+                        Expr::col(WalletUser::EncryptedPreviousPinPubkeySec1)
+                            .is_not_null()
+                            .and(Expr::col(WalletUser::PreviousPinPubkeyIv).is_not_null()),
+                    ))
                     .to_owned(),
             )
             .await?;
