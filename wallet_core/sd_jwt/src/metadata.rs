@@ -1,6 +1,14 @@
 use http::Uri;
+use jsonschema::ValidationError;
+use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+
+#[derive(Debug, thiserror::Error)]
+pub enum TypeMetadataError {
+    #[error("json schema validation failed {0}")]
+    JsonSchemaValidation(#[from] ValidationError<'static>),
+}
 
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
 #[derive(Debug, Serialize, Deserialize)]
@@ -49,7 +57,7 @@ pub struct MetadataExtends {
 pub enum SchemaOption {
     Embedded {
         /// An embedded JSON Schema document describing the structure of the Verifiable Credential.
-        schema: serde_json::Value,
+        schema: JsonSchema,
     },
     Remote {
         /// A URL pointing to a JSON Schema document describing the structure of the Verifiable Credential.
@@ -60,6 +68,14 @@ pub enum SchemaOption {
         #[serde(rename = "schema_uri#integrity")]
         schema_uri_integrity: String,
     },
+}
+
+#[nutype(validate(with = validate_json_schema, error = TypeMetadataError), derive(Debug, Clone, Serialize, Deserialize))]
+pub struct JsonSchema(serde_json::Value);
+
+fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataError> {
+    jsonschema::draft202012::meta::validate(schema).map_err(ValidationError::to_owned)?;
+    Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -146,7 +162,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_schema_validation() {
+    async fn test_schema_validation_success() {
         let metadata = read_and_parse_metadata("example-metadata.json").await;
 
         let claims = json!({
@@ -168,9 +184,29 @@ mod test {
           }
         });
 
-        match &metadata.schema {
+        match metadata.schema {
             SchemaOption::Embedded { schema } => {
-                assert!(jsonschema::draft202012::is_valid(schema, &claims))
+                assert!(jsonschema::draft202012::is_valid(&schema.into_inner(), &claims))
+            }
+            SchemaOption::Remote { .. } => {
+                panic!("Remote schema option is not supported")
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_schema_validation_failure() {
+        let metadata = read_and_parse_metadata("example-metadata.json").await;
+
+        let claims = json!({
+          "address":{
+            "country":123
+          }
+        });
+
+        match metadata.schema {
+            SchemaOption::Embedded { schema } => {
+                assert!(jsonschema::draft202012::validate(&schema.into_inner(), &claims).is_err())
             }
             SchemaOption::Remote { .. } => {
                 panic!("Remote schema option is not supported")
