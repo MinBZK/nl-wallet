@@ -6,33 +6,12 @@
     {
       "lang": "en-US",
       "name": "NL Wallet address",
-      "description": "The address credential for the NL Wallet",
-      "rendering": {
-        "simple": {
-          "logo": {
-            "uri": "https://pid.example.com/.well-known/rijksoverheid.png",
-            "uri#integrity": "sha256-xxx",
-            "alt_text": "Logo Dutch Government"
-          },
-          "background_color": "#0000FF",
-          "text_color": "#FFFFFF"
-        }
-      }
+      "description": "The address credential for the NL Wallet"
     },
     {
       "lang": "nl-NL",
-      "name": "Persoonsgegevens voor de NL Wallet",
-      "rendering": {
-        "simple": {
-          "logo": {
-            "uri": "https://pid.example.com/.well-known/rijksoverheid.png",
-            "uri#integrity": "sha256-xxx",
-            "alt_text": "Logo Rijksoverheid"
-          },
-          "background_color": "#0000FF",
-          "text_color": "#FFFFFF"
-        }
-      }
+      "name": "NL Wallet adres",
+      "description": "De adresattestatie voor de NL Wallet"
     }
   ],
   "claims": [
@@ -99,18 +78,6 @@
         }
       ],
       "sd": "always"
-    },
-    {
-      "path": ["vct"],
-      "sd": "never"
-    },
-    {
-      "path": ["vct#integrity"],
-      "sd": "never"
-    },
-    {
-      "path": ["iss"],
-      "sd": "never"
     }
   ],
   "schema": {
@@ -140,8 +107,15 @@
       },
       "iss": {
         "type": "string"
+      },
+      "iat": {
+        "type": "string"
+      },
+      "exp": {
+        "type": "string"
       }
     },
-    "required": ["vct", "iss"]
+    "required": ["vct", "iss", "iat", "exp"],
+    "additionalProperties": false
   }
 }
