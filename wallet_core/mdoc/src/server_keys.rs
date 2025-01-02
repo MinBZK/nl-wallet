@@ -110,7 +110,6 @@ pub mod generate {
     use p256::pkcs8::DecodePrivateKey;
     use p256::pkcs8::ObjectIdentifier;
     use rcgen::BasicConstraints;
-    use rcgen::Certificate;
     use rcgen::CertificateParams;
     use rcgen::CustomExtension;
     use rcgen::DnType;
@@ -138,13 +137,13 @@ pub mod generate {
     }
 
     pub struct Ca {
-        certificate: Certificate,
+        certificate: rcgen::Certificate,
         key_pair: rcgen::KeyPair,
         borrowing_trust_anchor: BorrowingTrustAnchor,
     }
 
     impl Ca {
-        fn new(certificate: Certificate, key_pair: rcgen::KeyPair) -> Result<Self, CertificateError> {
+        fn new(certificate: rcgen::Certificate, key_pair: rcgen::KeyPair) -> Result<Self, CertificateError> {
             let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.der().as_ref())?;
 
             let key_pair_ca = Self {
