@@ -3,6 +3,7 @@ use jsonschema::ValidationError;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::skip_serializing_none;
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
@@ -12,6 +13,7 @@ pub enum TypeMetadataError {
 
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
 #[derive(Debug, Serialize, Deserialize)]
+#[skip_serializing_none]
 pub struct TypeMetadata {
     /// A String or URI that uniquely identifies the type.
     pub vct: String,
