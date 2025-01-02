@@ -1,4 +1,3 @@
-use std::sync::LazyLock;
 use std::time::Duration;
 
 use chrono::DateTime;
@@ -19,13 +18,13 @@ use webpki::ring::ECDSA_P384_SHA384;
 use webpki::EndEntityCert;
 use webpki::KeyUsage;
 use x509_parser::certificate::X509Certificate;
+use x509_parser::der_parser::oid;
+use x509_parser::der_parser::Oid;
 use x509_parser::error::X509Error;
-use x509_parser::oid_registry::Oid;
 use x509_parser::prelude::FromDer;
 
-pub const APPLE_ANONYMOUS_ATTESTATION_OID: [u64; 7] = [1, 2, 840, 113635, 100, 8, 2];
-static APPLE_ANONYMOUS_ATTESTATION_OID_ASN1: LazyLock<Oid> =
-    LazyLock::new(|| Oid::from(&APPLE_ANONYMOUS_ATTESTATION_OID).unwrap());
+#[rustfmt::skip]
+pub const APPLE_ANONYMOUS_ATTESTATION_OID: Oid = oid!(1.2.840.113635.100.8.2);
 
 #[derive(Debug, thiserror::Error)]
 pub enum CertificateError {
@@ -131,7 +130,7 @@ impl CredentialCertificate<'_> {
     pub fn attestation_extension(&self) -> Result<AppleAnonymousAttestationExtension, CertificateError> {
         let extension = self
             .as_ref()
-            .get_extension_unique(&APPLE_ANONYMOUS_ATTESTATION_OID_ASN1)
+            .get_extension_unique(&APPLE_ANONYMOUS_ATTESTATION_OID)
             .map_err(CertificateError::ExtensionExtraction)?
             .ok_or(CertificateError::ExtensionMissing)?;
 

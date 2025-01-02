@@ -409,7 +409,7 @@ pub mod mock {
 
             let mut params = CertificateParams::default();
             params.custom_extensions = vec![CustomExtension::from_oid_content(
-                &APPLE_ANONYMOUS_ATTESTATION_OID,
+                &APPLE_ANONYMOUS_ATTESTATION_OID.iter().unwrap().collect::<Vec<_>>(),
                 extension_content,
             )];
             let certificate = params.signed_by(&key_pair, &ca.certificate, &ca.key_pair).unwrap();
