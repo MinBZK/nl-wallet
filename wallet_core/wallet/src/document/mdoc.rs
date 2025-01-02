@@ -379,6 +379,7 @@ pub mod tests {
     use chrono::Utc;
     use rstest::rstest;
 
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::Tdate;
 
@@ -387,7 +388,7 @@ pub mod tests {
     use super::*;
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
     });
 

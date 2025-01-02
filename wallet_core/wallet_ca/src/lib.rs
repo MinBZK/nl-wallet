@@ -5,34 +5,22 @@ use anyhow::anyhow;
 use anyhow::Result;
 use clio::CachedInput;
 use p256::ecdsa::SigningKey;
-use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
 use pem::EncodeConfig;
 use pem::LineEnding;
 use pem::Pem;
 
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 
-fn read_certificate(input: &CachedInput) -> Result<BorrowingCertificate> {
-    let crt = BorrowingCertificate::from_pem(input.get_data())?;
-    Ok(crt)
+pub fn read_self_signed_ca(ca_crt_file: &CachedInput, ca_key_file: &CachedInput) -> Result<Ca> {
+    let certificate_der = Pem::try_from(ca_crt_file.get_data())?;
+    let signing_key_der = Pem::try_from(ca_key_file.get_data())?;
+    let ca = Ca::from_der(certificate_der.contents(), signing_key_der.contents())?;
+
+    Ok(ca)
 }
 
-fn read_signing_key(input: &CachedInput) -> Result<SigningKey> {
-    let pem: Pem = input.get_data().try_into()?;
-    let key = SigningKey::from_pkcs8_der(pem.contents())?;
-    Ok(key)
-}
-
-pub fn read_key_pair(ca_key_file: &CachedInput, ca_crt_file: &CachedInput) -> Result<KeyPair> {
-    let ca_crt = read_certificate(ca_crt_file)?;
-    let ca_key = read_signing_key(ca_key_file)?;
-    let key_pair = KeyPair::new_from_signing_key(ca_key, ca_crt)?;
-    Ok(key_pair)
-}
-
-pub fn write_key_pair(key_pair: &KeyPair, file_prefix: &str, force: bool) -> Result<()> {
+pub fn write_key_pair(certificate: &impl AsRef<[u8]>, key: &SigningKey, file_prefix: &str, force: bool) -> Result<()> {
     // Verify certificate and key files do not exist before writing to either
     let crt_file = format!("{}.crt.pem", file_prefix);
     let crt_path = Path::new(&crt_file);
@@ -42,8 +30,8 @@ pub fn write_key_pair(key_pair: &KeyPair, file_prefix: &str, force: bool) -> Res
     let key_path = Path::new(&key_file);
     assert_not_exists(key_path, force)?;
 
-    write_certificate(crt_path, key_pair.certificate())?;
-    write_signing_key(key_path, key_pair.private_key())?;
+    write_certificate(crt_path, certificate)?;
+    write_signing_key(key_path, key)?;
 
     Ok(())
 }
@@ -55,7 +43,7 @@ fn assert_not_exists(file_path: &Path, force: bool) -> Result<()> {
     Ok(())
 }
 
-fn write_certificate(file_path: &Path, certificate: &BorrowingCertificate) -> Result<()> {
+fn write_certificate(file_path: &Path, certificate: &impl AsRef<[u8]>) -> Result<()> {
     let crt_pem = Pem::new("CERTIFICATE", certificate.as_ref());
     fs::write(
         file_path,

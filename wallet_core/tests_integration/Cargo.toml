@@ -219,4 +219,4 @@ dotenvy = { workspace = true, optional = true }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
 wallet_provider_service.path = "../wallet_provider/service"
-wallet_server = { path = "../wallet_server", features = ["issuance"] }
+wallet_server = { path = "../wallet_server", features = ["issuance", "integration_test"] }

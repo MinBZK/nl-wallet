@@ -15,6 +15,7 @@ use http::HeaderValue;
 use http::Method;
 use http::StatusCode;
 use http::Uri;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use tower_http::cors::CorsLayer;
@@ -40,7 +41,6 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonError;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 use wallet_common::urls::{self};
@@ -57,7 +57,7 @@ struct ApplicationState<S> {
 fn create_application_state<S>(
     urls: Urls,
     verifier: settings::Verifier,
-    issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+    issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     sessions: S,
 ) -> anyhow::Result<ApplicationState<S>>
 where
@@ -85,7 +85,7 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
 pub fn create_routers<S>(
     urls: Urls,
     verifier: settings::Verifier,
-    issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+    issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     sessions: S,
 ) -> anyhow::Result<(Router, Router)>
 where

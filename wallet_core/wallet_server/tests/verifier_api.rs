@@ -34,6 +34,7 @@ use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
 use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
 use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
@@ -66,7 +67,6 @@ use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_server::settings::Authentication;
@@ -132,7 +132,7 @@ fn fake_issuer_settings() -> Issuer {
     }
 }
 
-fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnchor) {
+fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'static>) {
     // Set up the hostname and ports.
     let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
@@ -141,17 +141,18 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnc
     // Set up the default storage timeouts.
     let default_store_timeouts = SessionStoreTimeouts::default();
 
-    // Create the issuer CA and derive the trust anchor from it.
-    let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    // Create the issuer CA and derive the trust anchors from it.
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_key_pair = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
         .unwrap();
-    let issuer_trust_anchor = issuer_ca.to_trust_anchor().unwrap();
+    let issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
-    let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor = rp_ca.to_trust_anchor().unwrap();
+    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
+    let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
+    let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
         &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
     ));
@@ -196,14 +197,14 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, BorrowingTrustAnc
         },
         #[cfg(feature = "issuance")]
         issuer: fake_issuer_settings(),
-        issuer_trust_anchors: vec![issuer_trust_anchor],
+        issuer_trust_anchors,
         verifier: Verifier {
             usecases,
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
             allow_origins: None,
         },
         #[cfg(feature = "disclosure")]
-        reader_trust_anchors: vec![rp_trust_anchor.clone()],
+        reader_trust_anchors,
     };
 
     (settings, issuer_key_pair, rp_trust_anchor)
@@ -534,7 +535,7 @@ async fn start_disclosure<S>(
     SessionToken,
     BaseUrl,
     KeyPair<SigningKey>,
-    BorrowingTrustAnchor,
+    TrustAnchor<'static>,
 )
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -920,7 +921,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         &settings
             .issuer_trust_anchors
             .iter()
-            .map(|anchor| anchor.into())
+            .map(|anchor| anchor.as_trust_anchor().clone())
             .collect_vec(),
     )
     .await;
@@ -935,7 +936,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         &request_uri_query,
         uri_source,
         &mdoc_data_source,
-        &[rp_trust_anchor].iter().map(Into::into).collect_vec(),
+        &[rp_trust_anchor],
     )
     .await
     .expect("disclosure session should start at client side");
@@ -1063,7 +1064,7 @@ async fn test_disclosed_attributes_failed_session() {
         &request_uri_query,
         DisclosureUriSource::QrCode,
         &MockMdocDataSource::new_with_example(),
-        &[rp_trust_anchor].iter().map(Into::into).collect_vec(),
+        &[rp_trust_anchor],
     )
     .await
     .expect("disclosure session should start at client side");
