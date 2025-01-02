@@ -194,7 +194,7 @@ mod tests {
     use indexmap::IndexMap;
     use serde_json::json;
 
-    use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::utils::x509::CertificateError;
     use wallet_common::generator::TimeGenerator;
     use wallet_common::jwt::JwtCredentialClaims;
@@ -208,7 +208,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
-        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let keypair = ca.generate_reader_mock(None).unwrap();
 
         let payload = json!({"hello": "world"});
@@ -224,13 +224,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_wrong_cert() {
-        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let keypair = ca.generate_reader_mock(None).unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
 
-        let other_ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let other_ca = Ca::generate("myca", Default::default()).unwrap();
 
         let audience: &[String] = &[];
         let err =
@@ -245,7 +245,7 @@ mod tests {
     async fn test_jwt_credential() {
         let holder_key_id = "key";
         let holder_keypair = MockRemoteEcdsaKey::new_random(holder_key_id.to_string());
-        let issuer_keypair = SelfSignedCa::generate_issuer_mock_ca()
+        let issuer_keypair = Ca::generate_issuer_mock_ca()
             .unwrap()
             .generate_issuer_mock(None)
             .unwrap();

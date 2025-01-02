@@ -5,7 +5,7 @@ use clap::Parser;
 use clap::Subcommand;
 use clio::CachedInput;
 
-use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+use nl_wallet_mdoc::server_keys::generate;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
@@ -116,7 +116,7 @@ impl Command {
                 force,
             } => {
                 let configuration = Self::get_certificate_configuration(days);
-                let ca = SelfSignedCa::generate(&common_name, configuration)?;
+                let ca = generate::Ca::generate(&common_name, configuration)?;
                 let signing_key = ca.to_signing_key()?;
                 write_key_pair(ca.as_certificate_der(), &signing_key, &file_prefix, force)?;
                 Ok(())

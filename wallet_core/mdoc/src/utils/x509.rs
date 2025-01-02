@@ -407,7 +407,7 @@ mod test {
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::server_keys::generate::SelfSignedCa;
+    use crate::server_keys::generate::Ca;
     use crate::utils::issuer_auth::IssuerRegistration;
     use crate::utils::reader_auth::ReaderRegistration;
     use crate::utils::x509::CertificateType;
@@ -432,7 +432,7 @@ mod test {
 
     #[test]
     fn generate_ca() {
-        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
@@ -450,7 +450,7 @@ mod test {
             not_before: Some(now),
             not_after: Some(later),
         };
-        let ca = SelfSignedCa::generate("myca", config).unwrap();
+        let ca = Ca::generate("myca", config).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
             .expect("self signed CA should contain a valid X.509 certificate");
 
@@ -497,7 +497,7 @@ mod test {
 
     #[test]
     fn generate_and_verify_issuer_cert() {
-        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let mdl = IssuerRegistration::new_mock().into();
 
         let issuer_key_pair = ca.generate_key_pair("mycert", &mdl, Default::default()).unwrap();
@@ -526,7 +526,7 @@ mod test {
             not_after: Some(later),
         };
 
-        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let mdl = IssuerRegistration::new_mock().into();
 
         let issuer_key_pair = ca.generate_key_pair("mycert", &mdl, config).unwrap();
@@ -547,7 +547,7 @@ mod test {
 
     #[test]
     fn generate_and_verify_reader_cert() {
-        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
         let reader_key_pair = ca
@@ -583,7 +583,7 @@ mod test {
             not_after: Some(later),
         };
 
-        let ca = SelfSignedCa::generate("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
         let reader_key_pair = ca.generate_key_pair("mycert", &reader_auth, config).unwrap();
@@ -639,7 +639,7 @@ mod test {
         assert_eq!(actual_common_name, expected_common_name);
     }
 
-    fn generate_ca_for_validity_test() -> SelfSignedCa {
+    fn generate_ca_for_validity_test() -> Ca {
         let now = Utc::now();
         let start = now - Duration::weeks(52);
         let end = now + Duration::weeks(52);
@@ -649,6 +649,6 @@ mod test {
             not_after: Some(end),
         };
 
-        SelfSignedCa::generate("myca", config).unwrap()
+        Ca::generate("myca", config).unwrap()
     }
 }

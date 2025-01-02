@@ -182,7 +182,7 @@ mod mock {
 
     use parking_lot::Mutex;
 
-    use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
 
     use super::*;
@@ -278,7 +278,7 @@ mod mock {
 
     /// The reader key, generated once for testing.
     static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let reader_ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
         reader_ca
             .generate_reader_mock(ReaderRegistration::new_mock().into())
             .unwrap()

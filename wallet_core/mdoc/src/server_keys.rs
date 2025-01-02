@@ -137,13 +137,13 @@ pub mod generate {
         SigningKey::from_pkcs8_der(keypair.serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
     }
 
-    pub struct SelfSignedCa {
+    pub struct Ca {
         certificate: Certificate,
         key_pair: rcgen::KeyPair,
         borrowing_trust_anchor: BorrowingTrustAnchor,
     }
 
-    impl SelfSignedCa {
+    impl Ca {
         fn new(certificate: Certificate, key_pair: rcgen::KeyPair) -> Result<Self, CertificateError> {
             let borrowing_trust_anchor = BorrowingTrustAnchor::from_der(certificate.der().as_ref())?;
 
@@ -296,7 +296,7 @@ pub mod generate {
         const RP_CA_CN: &str = "ca.rp.example.com";
         const RP_CERT_CN: &str = "cert.rp.example.com";
 
-        impl SelfSignedCa {
+        impl Ca {
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
                 Self::generate(ISSUANCE_CA_CN, Default::default())
             }

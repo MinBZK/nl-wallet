@@ -130,7 +130,7 @@ mod tests {
 
     use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
-    use crate::server_keys::generate::SelfSignedCa;
+    use crate::server_keys::generate::Ca;
     use crate::server_keys::KeyPair;
     use crate::utils::cose::MdocCose;
     use crate::utils::cose::{self};
@@ -168,7 +168,7 @@ mod tests {
     #[tokio::test]
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
-        let ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+        let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
         let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
@@ -223,7 +223,7 @@ mod tests {
     #[tokio::test]
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
-        let ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+        let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let private_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
@@ -240,7 +240,7 @@ mod tests {
 
         assert_matches!(certificate, Some(cert) if cert == private_key.into());
 
-        let other_ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+        let other_ca = Ca::generate_reader_mock_ca().unwrap();
         let error = doc_request
             .verify(&session_transcript, &TimeGenerator, &[other_ca.to_trust_anchor()])
             .expect_err("Verifying DeviceRequest should have resulted in an error");

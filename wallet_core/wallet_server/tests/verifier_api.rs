@@ -34,7 +34,7 @@ use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
 use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
 use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::server_keys::generate::SelfSignedCa;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
@@ -142,7 +142,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'stat
     let default_store_timeouts = SessionStoreTimeouts::default();
 
     // Create the issuer CA and derive the trust anchors from it.
-    let issuer_ca = SelfSignedCa::generate_issuer_mock_ca().unwrap();
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_key_pair = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
         .unwrap();
@@ -150,7 +150,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'stat
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
-    let rp_ca = SelfSignedCa::generate_reader_mock_ca().unwrap();
+    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
