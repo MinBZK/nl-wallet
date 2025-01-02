@@ -62,6 +62,10 @@ pub enum CertificateError {
     #[error("parsed X.509 certificate is not a root CA")]
     #[category(unexpected)]
     NotRootCa,
+    #[cfg(any(test, feature = "generate"))]
+    #[error("the basic constraint of this CA does not allow generating an intermediate CA")]
+    #[category(unexpected)]
+    BasicConstraintViolation,
     #[error("failed to parse certificate public key: {0}")]
     PublicKeyParsing(p256::pkcs8::spki::Error),
     #[error("EKU count incorrect ({0})")]

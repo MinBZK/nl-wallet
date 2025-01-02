@@ -155,16 +155,25 @@ pub mod generate {
             Ok(key_pair_ca)
         }
 
-        /// Generate a new self-signed CA key pair.
-        pub fn generate(common_name: &str, configuration: CertificateConfiguration) -> Result<Self, CertificateError> {
+        /// Generate a new self-signed CA key pair, constrained to the specified number of intermediates CAs.
+        pub fn generate_with_intermediate_count(
+            common_name: &str,
+            configuration: CertificateConfiguration,
+            intermediate_count: u8,
+        ) -> Result<Self, CertificateError> {
             let mut params = CertificateParams::from(configuration);
-            params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+            params.is_ca = IsCa::Ca(BasicConstraints::Constrained(intermediate_count));
             params.distinguished_name.push(DnType::CommonName, common_name);
 
             let key_pair = rcgen::KeyPair::generate()?;
             let certificate = params.self_signed(&key_pair)?;
 
             Self::new(certificate, key_pair)
+        }
+
+        /// Generate a new self-signed CA key pair, constrained to having no intermediate CAs.
+        pub fn generate(common_name: &str, configuration: CertificateConfiguration) -> Result<Self, CertificateError> {
+            Self::generate_with_intermediate_count(common_name, configuration, 0)
         }
 
         pub fn from_der(
@@ -202,6 +211,31 @@ pub mod generate {
 
         pub fn to_trust_anchor(&self) -> TrustAnchor {
             self.borrowing_trust_anchor.as_trust_anchor().clone()
+        }
+
+        /// Generate a new intermediate CA key pair, with any constraint
+        /// on the amount of intermediates it can have decremented by one.
+        pub fn generate_intermediate(
+            &self,
+            common_name: &str,
+            certificate_usage: CertificateUsage,
+            configuration: CertificateConfiguration,
+        ) -> Result<Self, CertificateError> {
+            let constraint = match self.certificate.params().is_ca {
+                IsCa::Ca(BasicConstraints::Unconstrained) => BasicConstraints::Unconstrained,
+                IsCa::Ca(BasicConstraints::Constrained(count)) if count > 0 => BasicConstraints::Constrained(count - 1),
+                _ => return Err(CertificateError::BasicConstraintViolation),
+            };
+
+            let mut params = CertificateParams::from(configuration);
+            params.is_ca = IsCa::Ca(constraint);
+            params.distinguished_name.push(DnType::CommonName, common_name);
+            params.custom_extensions.push(certificate_usage.to_custom_ext());
+
+            let key_pair = rcgen::KeyPair::generate()?;
+            let certificate = params.signed_by(&key_pair, &self.certificate, &self.key_pair)?;
+
+            Self::new(certificate, key_pair)
         }
 
         /// Generate a new key pair signed with the specified CA.
