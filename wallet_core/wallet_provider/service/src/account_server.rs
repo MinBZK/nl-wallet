@@ -331,13 +331,15 @@ impl AccountServer {
         let wallet_id =
             Self::verify_registration_challenge(&self.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
 
+        let attestation_timestamp = Utc::now();
         let (hw_pubkey, attestation_data) = match unverified.payload.attestation {
             RegistrationAttestation::Apple { data } => {
                 debug!("Validating Apple key and app attestation");
 
-                let (_, hw_pubkey) = VerifiedAttestation::parse_and_verify(
+                let (_, hw_pubkey) = VerifiedAttestation::parse_and_verify_with_time(
                     &data,
                     &self.apple_trust_anchors,
+                    attestation_timestamp,
                     &utils::sha256(challenge),
                     &self.apple_config.app_identifier,
                     self.apple_config.environment,
@@ -375,6 +377,7 @@ impl AccountServer {
                 .map(|(_, assertion_counter)| {
                     Some(WalletUserAttestationCreate::Apple {
                         data,
+                        verification_date_time: attestation_timestamp,
                         assertion_counter,
                     })
                 }),

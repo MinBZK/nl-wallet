@@ -68,6 +68,7 @@ pub struct WalletUserCreate {
 pub enum WalletUserAttestationCreate {
     Apple {
         data: Vec<u8>,
+        verification_date_time: DateTime<Utc>,
         assertion_counter: AssertionCounter,
     },
 }

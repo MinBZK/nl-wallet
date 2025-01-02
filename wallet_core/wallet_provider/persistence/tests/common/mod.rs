@@ -71,6 +71,7 @@ where
             encrypted_pin_pubkey: encrypted_pin_key("key1").await,
             attestation: Some(WalletUserAttestationCreate::Apple {
                 data: random_bytes(64),
+                verification_date_time: Utc::now(),
                 assertion_counter: AssertionCounter::default(),
             }),
         },
