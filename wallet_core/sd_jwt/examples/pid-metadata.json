@@ -20,12 +20,12 @@
         {
           "lang": "nl-NL",
           "label": "Achternaam",
-          "description": "Achternaam van de persoon"
+          "description": "Achternaam van de persoon, inclusief voorvoegsels"
         },
         {
           "lang": "en-US",
           "label": "Name",
-          "description": "Family name of the person"
+          "description": "Family name of the person, including any prefixes"
         }
       ],
       "sd": "always"
