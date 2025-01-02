@@ -7,23 +7,14 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(unique)]
-    pub wallet_user_id: Uuid,
     pub assertion_counter: i64,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub attestation_data: Vec<u8>,
-    pub verification_date_time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::wallet_user::Entity",
-        from = "Column::WalletUserId",
-        to = "super::wallet_user::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
+    #[sea_orm(has_one = "super::wallet_user::Entity")]
     WalletUser,
 }
 

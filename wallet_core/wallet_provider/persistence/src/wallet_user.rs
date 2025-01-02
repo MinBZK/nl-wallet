@@ -40,15 +40,37 @@ use crate::PersistenceConnection;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
-pub async fn create_wallet_user<S, T>(db: &T, user: WalletUserCreate) -> Result<()>
+pub async fn create_wallet_user<S, T>(db: &T, user: WalletUserCreate) -> Result<Uuid>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
+    let user_id = Uuid::new_v4();
     let connection = db.connection();
 
+    let apple_attestation_id = match user.attestation {
+        Some(WalletUserAttestationCreate::Apple {
+            data,
+            assertion_counter,
+        }) => {
+            let id = Uuid::new_v4();
+
+            wallet_user_apple_attestation::ActiveModel {
+                id: Set(id),
+                assertion_counter: Set((*assertion_counter).into()),
+                attestation_data: Set(data),
+            }
+            .insert(connection)
+            .await
+            .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+            Some(id)
+        }
+        None => None,
+    };
+
     wallet_user::ActiveModel {
-        id: Set(user.id),
+        id: Set(user_id),
         wallet_id: Set(user.wallet_id),
         hw_pubkey_der: Set(user.hw_pubkey.to_public_key_der()?.to_vec()),
         encrypted_pin_pubkey_sec1: Set(user.encrypted_pin_pubkey.data),
@@ -60,30 +82,14 @@ where
         last_unsuccessful_pin: Set(None),
         is_blocked: Set(false),
         has_wte: Set(false),
+        attestation_date_time: Set(user.attestation_date_time.into()),
+        apple_attestation_id: Set(apple_attestation_id),
     }
     .insert(connection)
     .await
     .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
 
-    if let Some(WalletUserAttestationCreate::Apple {
-        data,
-        verification_date_time,
-        assertion_counter,
-    }) = user.attestation
-    {
-        wallet_user_apple_attestation::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            wallet_user_id: Set(user.id),
-            assertion_counter: Set((*assertion_counter).into()),
-            attestation_data: Set(data),
-            verification_date_time: Set(verification_date_time.into()),
-        }
-        .insert(connection)
-        .await
-        .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
-    }
-
-    Ok(())
+    Ok(user_id)
 }
 
 #[derive(FromQueryResult)]
@@ -474,9 +480,9 @@ where
             Expr::value(i64::from(*assertion_counter)),
         )
         .filter(
-            wallet_user_apple_attestation::Column::WalletUserId.in_subquery(
+            wallet_user_apple_attestation::Column::Id.in_subquery(
                 Query::select()
-                    .column(wallet_user::Column::Id)
+                    .column(wallet_user::Column::AppleAttestationId)
                     .from(wallet_user::Entity)
                     .and_where(Expr::col(wallet_user::Column::WalletId).eq(wallet_id))
                     .to_owned(),

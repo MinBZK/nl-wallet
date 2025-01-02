@@ -27,10 +27,9 @@ async fn test_create_keys() {
         key: WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
     };
 
-    let wallet_user_id = Uuid::new_v4();
     let wallet_id = Uuid::new_v4().to_string();
 
-    common::create_wallet_user_with_random_keys(&db, wallet_user_id, wallet_id.clone()).await;
+    let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
     create_keys(
         &db,

@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::*;
 
-use crate::m20230616_000001_create_wallet_user_table::WalletUser;
+use crate::m20250102_000010_create_wallet_user_table::WalletUser;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;

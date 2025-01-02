@@ -1,7 +1,6 @@
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use rstest::rstest;
-use uuid::Uuid;
 
 use apple_app_attest::MockAttestationCa;
 use wallet_common::account::messages::auth::Registration;
@@ -10,7 +9,6 @@ use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::account::messages::instructions::CheckPin;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::apple::MockAppleAttestedKey;
-use wallet_common::generator::Generator;
 use wallet_common::utils;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
@@ -31,13 +29,6 @@ use wallet_provider_service::wallet_certificate;
 enum AttestationType {
     Apple,
     None,
-}
-
-struct UuidGenerator;
-impl Generator<Uuid> for UuidGenerator {
-    fn generate(&self) -> Uuid {
-        Uuid::new_v4()
-    }
 }
 
 async fn db_from_env() -> Result<Db, PersistenceError> {
@@ -100,13 +91,7 @@ async fn do_registration(
     };
 
     let certificate = account_server
-        .register(
-            certificate_signing_key,
-            &UuidGenerator,
-            repos,
-            hsm,
-            registration_message,
-        )
+        .register(certificate_signing_key, repos, hsm, registration_message)
         .await
         .expect("Could not process registration message at account server");
 

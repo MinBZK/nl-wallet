@@ -57,7 +57,7 @@ pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {
     .unwrap()
 }
 
-pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, id: Uuid, wallet_id: String)
+pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, wallet_id: String) -> Uuid
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -65,19 +65,18 @@ where
     create_wallet_user(
         db,
         WalletUserCreate {
-            id,
             wallet_id,
             hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
             encrypted_pin_pubkey: encrypted_pin_key("key1").await,
+            attestation_date_time: Utc::now(),
             attestation: Some(WalletUserAttestationCreate::Apple {
                 data: random_bytes(64),
-                verification_date_time: Utc::now(),
                 assertion_counter: AssertionCounter::default(),
             }),
         },
     )
     .await
-    .expect("Could not create wallet user");
+    .expect("Could not create wallet user")
 }
 
 pub async fn find_wallet_user<S, T>(db: &T, id: Uuid) -> Option<wallet_user::Model>

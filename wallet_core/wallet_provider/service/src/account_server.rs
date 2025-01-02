@@ -307,7 +307,6 @@ impl AccountServer {
     pub async fn register<T, R, H>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
-        uuid_generator: &impl Generator<Uuid>,
         repositories: &R,
         hsm: &H,
         registration_message: ChallengeResponse<Registration>,
@@ -377,7 +376,6 @@ impl AccountServer {
                 .map(|(_, assertion_counter)| {
                     Some(WalletUserAttestationCreate::Apple {
                         data,
-                        verification_date_time: attestation_timestamp,
                         assertion_counter,
                     })
                 }),
@@ -392,15 +390,14 @@ impl AccountServer {
 
         debug!("Creating new wallet user");
 
-        let uuid = uuid_generator.generate();
-        repositories
+        let uuid = repositories
             .create_wallet_user(
                 &tx,
                 WalletUserCreate {
-                    id: uuid,
                     wallet_id: wallet_id.clone(),
                     hw_pubkey,
                     encrypted_pin_pubkey,
+                    attestation_date_time: attestation_timestamp,
                     attestation,
                 },
             )
@@ -1018,6 +1015,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rstest::rstest;
     use tokio::sync::OnceCell;
+    use uuid::uuid;
 
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AssertionError;
@@ -1034,7 +1032,6 @@ mod tests {
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::EpochGenerator;
-    use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -1107,16 +1104,12 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
-        wallet_user_repo.expect_create_wallet_user().returning(|_, _| Ok(()));
+        wallet_user_repo
+            .expect_create_wallet_user()
+            .returning(|_, _| Ok(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")));
 
         account_server
-            .register(
-                certificate_signing_key,
-                &FixedUuidGenerator,
-                &wallet_user_repo,
-                hsm,
-                registration_message,
-            )
+            .register(certificate_signing_key, &wallet_user_repo, hsm, registration_message)
             .await
             .map(|wallet_certificate| (wallet_certificate, hw_privkey))
     }

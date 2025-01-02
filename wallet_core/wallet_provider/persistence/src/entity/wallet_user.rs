@@ -24,11 +24,20 @@ pub struct Model {
     pub last_unsuccessful_pin: Option<DateTimeWithTimeZone>,
     pub is_blocked: bool,
     pub has_wte: bool,
+    pub attestation_date_time: DateTimeWithTimeZone,
+    #[sea_orm(unique)]
+    pub apple_attestation_id: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_one = "super::wallet_user_apple_attestation::Entity")]
+    #[sea_orm(
+        belongs_to = "super::wallet_user_apple_attestation::Entity",
+        from = "Column::AppleAttestationId",
+        to = "super::wallet_user_apple_attestation::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
     WalletUserAppleAttestation,
     #[sea_orm(has_one = "super::wallet_user_instruction_challenge::Entity")]
     WalletUserInstructionChallenge,

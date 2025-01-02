@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::*;
 
+use crate::m20250102_000000_create_wallet_user_apple_attestation_table::WalletUserAppleAttestation;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -24,6 +26,8 @@ impl MigrationTrait for Migration {
                     .col(timestamp_with_time_zone_null(WalletUser::LastUnsuccessfulPin))
                     .col(boolean(WalletUser::IsBlocked).default(false))
                     .col(boolean(WalletUser::HasWte).default(false))
+                    .col(timestamp_with_time_zone(WalletUser::AttestationDateTime))
+                    .col(uuid_null(WalletUser::AppleAttestationId))
                     .check(SimpleExpr::or(
                         // Both of these columns should be used or neither.
                         Expr::col(WalletUser::EncryptedPreviousPinPubkeySec1)
@@ -33,6 +37,19 @@ impl MigrationTrait for Migration {
                             .is_not_null()
                             .and(Expr::col(WalletUser::PreviousPinPubkeyIv).is_not_null()),
                     ))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_wallet_user_apple_attestation_id")
+                            .from(WalletUser::Table, WalletUser::AppleAttestationId)
+                            .to(WalletUserAppleAttestation::Table, WalletUserAppleAttestation::Id)
+                            .on_delete(ForeignKeyAction::NoAction),
+                    )
+                    .index(
+                        Index::create()
+                            .unique()
+                            .name("wallet_user_unique_apple_attestation_id")
+                            .col(WalletUser::AppleAttestationId),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -56,4 +73,6 @@ pub enum WalletUser {
     LastUnsuccessfulPin,
     IsBlocked,
     HasWte,
+    AttestationDateTime,
+    AppleAttestationId,
 }

@@ -28,10 +28,9 @@ pub mod common;
 async fn create_test_user() -> (Db, Uuid, String, wallet_user::Model) {
     let db = common::db_from_env().await.expect("Could not connect to database");
 
-    let wallet_user_id = Uuid::new_v4();
     let wallet_id = random_string(32);
 
-    common::create_wallet_user_with_random_keys(&db, wallet_user_id, wallet_id.clone()).await;
+    let wallet_user_id = common::create_wallet_user_with_random_keys(&db, wallet_id.clone()).await;
 
     let user = common::find_wallet_user(&db, wallet_user_id)
         .await
@@ -95,10 +94,9 @@ async fn test_create_wallet_user_transaction_commit() {
         .await
         .expect("Could not begin transaction");
 
-    let wallet_user_id = Uuid::new_v4();
     let wallet_id = random_string(32);
 
-    common::create_wallet_user_with_random_keys(&transaction, wallet_user_id, wallet_id.clone()).await;
+    let wallet_user_id = common::create_wallet_user_with_random_keys(&transaction, wallet_id.clone()).await;
 
     let maybe_wallet_user = common::find_wallet_user(&db, wallet_user_id).await;
 
@@ -119,16 +117,15 @@ async fn test_create_wallet_user_transaction_commit() {
 #[tokio::test]
 async fn test_create_wallet_user_transaction_rollback() {
     let db = common::db_from_env().await.expect("Could not connect to database");
-    let wallet_user_id = Uuid::new_v4();
     let wallet_id = random_string(32);
 
-    {
+    let wallet_user_id = {
         let transaction = transaction::begin_transaction(&db)
             .await
             .expect("Could not begin transaction");
 
-        common::create_wallet_user_with_random_keys(&transaction, wallet_user_id, wallet_id).await;
-    }
+        common::create_wallet_user_with_random_keys(&transaction, wallet_id).await
+    };
 
     let maybe_wallet_user = common::find_wallet_user(&db, wallet_user_id).await;
 
@@ -176,9 +173,8 @@ async fn test_insert_instruction_challenge_on_conflict() {
     assert_ne!(challenges[0].id, og_id);
 
     // create a second wallet
-    let wallet_user_id2 = Uuid::new_v4();
     let wallet_id2 = random_string(32);
-    common::create_wallet_user_with_random_keys(&db, wallet_user_id2, wallet_id2.clone()).await;
+    let wallet_user_id2 = common::create_wallet_user_with_random_keys(&db, wallet_id2.clone()).await;
 
     let challenges = common::find_instruction_challenges_by_wallet_id(&db, &wallet_id).await;
     assert_eq!(challenges.len(), 1);

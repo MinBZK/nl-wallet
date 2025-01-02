@@ -56,11 +56,11 @@ pub enum WalletUserQueryResult {
 
 #[derive(Debug)]
 pub struct WalletUserCreate {
-    pub id: Uuid,
     pub wallet_id: String,
     pub hw_pubkey: VerifyingKey,
     #[debug(skip)]
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    pub attestation_date_time: DateTime<Utc>,
     pub attestation: Option<WalletUserAttestationCreate>,
 }
 
@@ -68,7 +68,6 @@ pub struct WalletUserCreate {
 pub enum WalletUserAttestationCreate {
     Apple {
         data: Vec<u8>,
-        verification_date_time: DateTime<Utc>,
         assertion_counter: AssertionCounter,
     },
 }
