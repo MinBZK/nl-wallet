@@ -47,11 +47,11 @@ pub struct MetadataExtends {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SchemaOption {
-    EMBEDDED {
+    Embedded {
         /// An embedded JSON Schema document describing the structure of the Verifiable Credential.
         schema: serde_json::Value,
     },
-    REMOTE {
+    Remote {
         /// A URL pointing to a JSON Schema document describing the structure of the Verifiable Credential.
         /// schema_uri MUST NOT be used if schema is present.
         #[serde(with = "http_serde::uri")]
@@ -169,10 +169,10 @@ mod test {
         });
 
         match &metadata.schema {
-            SchemaOption::EMBEDDED { schema } => {
+            SchemaOption::Embedded { schema } => {
                 assert!(jsonschema::draft202012::is_valid(schema, &claims))
             }
-            SchemaOption::REMOTE { .. } => {
+            SchemaOption::Remote { .. } => {
                 panic!("Remote schema option is not supported")
             }
         }
