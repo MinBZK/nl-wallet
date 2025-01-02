@@ -134,6 +134,7 @@
         "type": "number"
       }
     },
-    "required": ["vct", "iss", "iat", "exp"]
+    "required": ["vct", "iss", "iat", "exp"],
+    "additionalProperties": false
   }
 }
