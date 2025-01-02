@@ -2,12 +2,16 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-use der::Decode;
-use der::Sequence;
 use derive_more::AsRef;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
+use rasn::types::OctetString;
+use rasn::AsnType;
+use rasn::Decode;
+use rasn::Decoder;
+#[cfg(feature = "serialize")]
+use rasn::Encoder;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 use rustls_pki_types::UnixTime;
@@ -43,7 +47,7 @@ pub enum CertificateError {
     #[error("extracting anonymous attestation extension from certificate failed: {0}")]
     ExtensionExtraction(#[source] X509Error),
     #[error("parsing anonymous attestation certificate extension failed: {0}")]
-    ExtensionParsing(#[source] der::Error),
+    ExtensionParsing(#[source] rasn::error::DecodeError),
 }
 
 #[nutype(
@@ -110,10 +114,11 @@ impl DerX509CertificateChain {
     }
 }
 
-#[derive(Debug, Sequence)]
-pub struct AppleAnonymousAttestationExtension<'a> {
-    #[asn1(context_specific = "1", type = "OCTET STRING")]
-    pub nonce: &'a [u8],
+#[derive(Debug, AsnType, Decode)]
+#[cfg_attr(feature = "serialize", derive(rasn::Encode))]
+pub struct AppleAnonymousAttestationExtension {
+    #[rasn(tag(explicit(1)))]
+    pub nonce: OctetString,
 }
 
 #[derive(Debug, AsRef)]
@@ -134,8 +139,7 @@ impl CredentialCertificate<'_> {
             .map_err(CertificateError::ExtensionExtraction)?
             .ok_or(CertificateError::ExtensionMissing)?;
 
-        let decoded_extension = AppleAnonymousAttestationExtension::from_der(extension.value)
-            .map_err(CertificateError::ExtensionParsing)?;
+        let decoded_extension = rasn::der::decode(extension.value).map_err(CertificateError::ExtensionParsing)?;
 
         Ok(decoded_extension)
     }
