@@ -10,7 +10,8 @@
     },
     {
       "lang": "nl-NL",
-      "name": "Persoonsgegevens voor de NL Wallet"
+      "name": "NL Wallet persoonsgegevens",
+      "description": "De persoonsgegevensattestatie voor de NL Wallet"
     }
   ],
   "claims": [
