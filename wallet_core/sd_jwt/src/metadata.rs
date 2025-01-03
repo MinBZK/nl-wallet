@@ -11,6 +11,11 @@ pub enum TypeMetadataError {
     JsonSchemaValidation(#[from] ValidationError<'static>),
 }
 
+/// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
+/// various reasons.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SpecOptionalImplRequired<T>(pub T);
+
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
 #[derive(Debug, Serialize, Deserialize)]
 #[skip_serializing_none]
@@ -26,21 +31,30 @@ pub struct TypeMetadata {
 
     /// Another type that this type extends.
     #[serde(flatten)]
-    pub extends: Option<MetadataExtends>,
-
-    /// Validating the integrity of the extends field.
-    #[serde(rename = "extends#integrity")]
-    pub extends_integrity: Option<String>,
+    pub extends: Option<MetadataExtendsOption>,
 
     /// An array of objects containing display information for the type.
     pub display: Vec<DisplayMetadata>,
 
     /// An array of objects containing claim information for the type.
+    #[serde(default)]
     pub claims: Vec<ClaimMetadata>,
 
     /// A JSON Schema document describing the structure of the Verifiable Credential
     #[serde(flatten)]
     pub schema: SchemaOption,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MetadataExtendsOption {
+    Uri {
+        #[serde(flatten)]
+        extends: MetadataExtends,
+    },
+    Identifier {
+        extends: String,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,7 +65,7 @@ pub struct MetadataExtends {
 
     /// Validating the integrity of the extends field.
     #[serde(rename = "extends#integrity")]
-    pub extends_integrity: String,
+    pub extends_integrity: SpecOptionalImplRequired<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,12 +77,11 @@ pub enum SchemaOption {
     },
     Remote {
         /// A URL pointing to a JSON Schema document describing the structure of the Verifiable Credential.
-        /// schema_uri MUST NOT be used if schema is present.
         #[serde(with = "http_serde::uri")]
         schema_uri: Uri,
         /// Validating the integrity of the schema_uri field.
         #[serde(rename = "schema_uri#integrity")]
-        schema_uri_integrity: String,
+        schema_uri_integrity: SpecOptionalImplRequired<String>,
     },
 }
 
@@ -105,9 +118,9 @@ pub struct LogoMetadata {
     pub uri: Uri,
 
     #[serde(rename = "uri#integrity")]
-    pub uri_integrity: String,
+    pub uri_integrity: SpecOptionalImplRequired<String>,
 
-    pub alt_text: String,
+    pub alt_text: SpecOptionalImplRequired<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -137,11 +150,15 @@ pub struct ClaimDisplayMetadata {
 
 #[cfg(test)]
 mod test {
-    use crate::metadata::SchemaOption;
-    use crate::metadata::TypeMetadata;
-    use serde_json::json;
     use std::env;
     use std::path::PathBuf;
+
+    use assert_matches::assert_matches;
+    use serde_json::json;
+
+    use crate::metadata::MetadataExtendsOption;
+    use crate::metadata::SchemaOption;
+    use crate::metadata::TypeMetadata;
 
     async fn read_and_parse_metadata(filename: &str) -> TypeMetadata {
         let base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap();
@@ -161,6 +178,56 @@ mod test {
             "https://sd_jwt_vc_metadata.example.com/example_credential",
             metadata.vct
         );
+    }
+
+    #[test]
+    fn test_extends_with_identifier() {
+        let metadata = serde_json::from_value::<TypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "extends": "random_string",
+            "display": [],
+            "schema_uri": "https://sd_jwt_vc_metadata.example.com/",
+            "schema_uri#integrity": "abc123",
+        }))
+        .unwrap();
+
+        assert_matches!(metadata.extends, Some(MetadataExtendsOption::Identifier { .. }));
+    }
+
+    #[test]
+    fn test_with_uri() {
+        let metadata = serde_json::from_value::<TypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
+            "extends#integrity": "abc123",
+            "display": [],
+            "schema_uri": "https://sd_jwt_vc_metadata.example.com/",
+            "schema_uri#integrity": "abc123",
+        }))
+        .unwrap();
+
+        assert_matches!(metadata.extends, Some(MetadataExtendsOption::Uri { .. }));
+        assert_matches!(metadata.schema, SchemaOption::Remote { .. });
+    }
+
+    #[test]
+    fn test_embedded_schema_validation() {
+        assert!(serde_json::from_value::<TypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
+            "extends#integrity": "abc123",
+            "display": [],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "flobject",
+                "properties": {
+                    "vct": {
+                        "type": "string"
+                    }
+                }
+            }
+        }))
+        .is_err());
     }
 
     #[tokio::test]
