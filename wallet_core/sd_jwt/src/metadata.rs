@@ -252,9 +252,8 @@ mod test {
         let claims = json!({
           "vct":"https://credentials.example.com/identity_credential",
           "iss":"https://example.com/issuer",
-          "iat":1683000000,
+          "nbf":1683000000,
           "exp":1883000000,
-          "sub":"6c5c0a49-b589-431d-bae7-219122a9ec2c",
           "address":{
             "country":"DE"
           },

@@ -38,9 +38,7 @@
   ],
   "claims": [
     {
-      "path": [
-        "given_name"
-      ],
+      "path": ["given_name"],
       "display": [
         {
           "lang": "en-US",
@@ -56,9 +54,7 @@
       "sd": "allowed"
     },
     {
-      "path": [
-        "family_name"
-      ],
+      "path": ["family_name"],
       "display": [
         {
           "lang": "en-US",
@@ -74,10 +70,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "address",
-        "street_address"
-      ],
+      "path": ["address", "street_address"],
       "display": [
         {
           "lang": "en-US",
@@ -93,10 +86,7 @@
       "sd": "allowed"
     },
     {
-      "path": [
-        "address",
-        "country"
-      ],
+      "path": ["address", "country"],
       "display": [
         {
           "lang": "en-US",
@@ -112,9 +102,7 @@
       "sd": "allowed"
     },
     {
-      "path": [
-        "is_over_18"
-      ],
+      "path": ["is_over_18"],
       "display": [
         {
           "lang": "en-US",
@@ -130,10 +118,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "nationalities",
-        null
-      ],
+      "path": ["nationalities", null],
       "display": [
         {
           "lang": "en-US",
@@ -197,10 +182,7 @@
         }
       }
     },
-    "required": [
-      "iss",
-      "vct",
-      "cnf"
-    ]
+    "required": ["iss", "vct", "cnf"],
+    "additionalProperties": false
   }
 }
