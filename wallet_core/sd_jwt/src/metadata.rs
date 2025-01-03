@@ -5,6 +5,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
+use wallet_common::vec_at_least::VecNonEmpty;
+
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
     #[error("json schema validation failed {0}")]
@@ -128,11 +130,19 @@ pub struct LogoMetadata {
 #[derive(Debug, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct ClaimMetadata {
-    pub path: Vec<serde_json::Value>,
+    pub path: VecNonEmpty<ClaimPath>,
     pub display: Vec<ClaimDisplayMetadata>,
     #[serde(default)]
     pub sd: ClaimSelectiveDisclosureMetadata,
     pub svg_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(untagged)]
+pub enum ClaimPath {
+    SelectByKey(String),
+    SelectAll,
+    SelectByIndex(usize),
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -160,6 +170,7 @@ mod test {
     use assert_matches::assert_matches;
     use serde_json::json;
 
+    use crate::metadata::ClaimPath;
     use crate::metadata::MetadataExtendsOption;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
@@ -256,6 +267,14 @@ mod test {
             }
           }
         });
+
+        assert_eq!(
+            vec![
+                ClaimPath::SelectByKey(String::from("nationalities")),
+                ClaimPath::SelectAll
+            ],
+            metadata.claims[5].path.clone().into_inner()
+        );
 
         match metadata.schema {
             SchemaOption::Embedded { schema } => {
