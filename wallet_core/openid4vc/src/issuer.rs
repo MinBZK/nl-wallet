@@ -919,14 +919,14 @@ impl CredentialResponse {
         match preview {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
-                metadata,
+                signed_metadata,
                 ..
             } => {
                 let cose_pubkey = (&holder_pubkey)
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata, cose_pubkey, issuer_privkey)
+                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, signed_metadata, cose_pubkey, issuer_privkey)
                     .await
                     .map_err(CredentialRequestError::CredentialSigning)?;
 

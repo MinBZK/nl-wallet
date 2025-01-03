@@ -4448,6 +4448,7 @@ name = "sd_jwt"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "base64 0.22.1",
  "derive_more",
  "http",
  "http-serde",

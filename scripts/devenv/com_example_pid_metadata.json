@@ -1,150 +1,132 @@
 {
-  "vct": "com.example.address",
-  "name": "NL Wallet address credential",
-  "description": "Working version of the NL Wallet address credential",
+  "vct": "com.example.pid",
+  "name": "NL Wallet PID credential",
+  "description": "Working version of the NL Wallet PID credential",
   "display": [
     {
       "lang": "en-US",
-      "name": "NL Wallet address",
-      "description": "The address credential for the NL Wallet",
-      "rendering": {
-        "simple": {
-          "logo": {
-            "uri": "https://pid.example.com/.well-known/rijksoverheid.png",
-            "uri#integrity": "sha256-xxx",
-            "alt_text": "Logo Dutch Government"
-          },
-          "background_color": "#0000FF",
-          "text_color": "#FFFFFF"
-        }
-      }
+      "name": "NL Wallet Personal Data",
+      "description": "The Personal Data credential for the NL Wallet"
     },
     {
       "lang": "nl-NL",
-      "name": "Persoonsgegevens voor de NL Wallet",
-      "rendering": {
-        "simple": {
-          "logo": {
-            "uri": "https://pid.example.com/.well-known/rijksoverheid.png",
-            "uri#integrity": "sha256-xxx",
-            "alt_text": "Logo Rijksoverheid"
-          },
-          "background_color": "#0000FF",
-          "text_color": "#FFFFFF"
-        }
-      }
+      "name": "NL Wallet persoonsgegevens",
+      "description": "De persoonsgegevensattestatie voor de NL Wallet"
     }
   ],
   "claims": [
     {
       "path": [
-        "resident_street"
+        "family_name"
       ],
       "display": [
         {
           "lang": "nl-NL",
-          "label": "Straatnaam",
-          "description": "Straatnaam van het adres"
+          "label": "Achternaam",
+          "description": "Achternaam van de persoon, inclusief voorvoegsels"
         },
         {
           "lang": "en-US",
-          "label": "Street",
-          "description": "Street of the address"
+          "label": "Name",
+          "description": "Family name of the person, including any prefixes"
         }
       ],
       "sd": "always"
     },
     {
       "path": [
-        "resident_house_number"
+        "given_name"
       ],
       "display": [
         {
           "lang": "nl-NL",
-          "label": "Huisnummer",
-          "description": "Huisnummer van het adres"
+          "label": "Voornaam",
+          "description": "Voornaam van de persoon"
         },
         {
           "lang": "en-US",
-          "label": "House number",
-          "description": "House number of the address"
+          "label": "First name",
+          "description": "First name of the person"
         }
       ],
       "sd": "always"
     },
     {
       "path": [
-        "resident_postal_code"
+        "birth_date"
       ],
       "display": [
         {
           "lang": "nl-NL",
-          "label": "Postcode",
-          "description": "Postcode van het adres"
+          "label": "Geboortedatum",
+          "description": "Geboortedatum van de persoon"
         },
         {
           "lang": "en-US",
-          "label": "Postal code",
-          "description": "Postal code of the address"
+          "label": "Birth date",
+          "description": "Birth date of the person"
         }
       ],
       "sd": "always"
     },
     {
       "path": [
-        "resident_city"
+        "age_over_18"
       ],
       "display": [
         {
           "lang": "nl-NL",
-          "label": "Stad",
-          "description": "Stad van het adres"
+          "label": "18+",
+          "description": "Of de persoon 18+ is"
         },
         {
           "lang": "en-US",
-          "label": "City",
-          "description": "City of the address"
+          "label": "Over 18",
+          "description": "Whether the person is over 18"
         }
       ],
       "sd": "always"
     },
     {
       "path": [
-        "vct"
+        "bsn"
       ],
-      "sd": "never"
-    },
-    {
-      "path": [
-        "vct#integrity"
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "BSN",
+          "description": "BSN van de persoon"
+        },
+        {
+          "lang": "en-US",
+          "label": "BSN",
+          "description": "BSN of the person"
+        }
       ],
-      "sd": "never"
-    },
-    {
-      "path": [
-        "iss"
-      ],
-      "sd": "never"
+      "sd": "always"
     }
   ],
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet address VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet address VCT",
+    "title": "NL Wallet PID VCT Schema",
+    "description": "The JSON schema that defines the NL Wallet PID VCT",
     "type": "object",
     "properties": {
-      "resident_street": {
+      "given_name": {
         "type": "string"
       },
-      "resident_house_number": {
+      "family_name": {
         "type": "string"
       },
-      "resident_postal_code": {
+      "birthdate": {
         "type": "string",
         "format": "date"
       },
-      "resident_city": {
+      "age_over_18": {
         "type": "boolean"
+      },
+      "bsn": {
+        "type": "string"
       },
       "vct": {
         "type": "string"
@@ -154,11 +136,20 @@
       },
       "iss": {
         "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
       }
     },
     "required": [
       "vct",
-      "iss"
-    ]
+      "iss",
+      "iat",
+      "exp"
+    ],
+    "additionalProperties": false
   }
 }

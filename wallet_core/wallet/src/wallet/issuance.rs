@@ -20,6 +20,7 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::jwt::JwtCredentialError;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
@@ -112,6 +113,9 @@ pub enum PidIssuanceError {
     JwtCredential(#[from] JwtCredentialError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
+    #[error("type metadata verification failed: {0}")]
+    #[category(critical)]
+    TypeMetadataVerification(#[from] TypeMetadataError),
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -288,8 +292,10 @@ where
         let mut documents = attestation_previews
             .into_iter()
             .map(|preview| {
-                let (unsigned_mdoc, _metadata, issuer) = preview.try_into()?;
-                // todo: validate metadata
+                let (unsigned_mdoc, signed_metadata, issuer) = preview.try_into()?;
+                let _metadata = signed_metadata.verify_and_parse()?;
+                // todo: verify JSON representation of unsigned_mdoc against metadata schema
+
                 Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer)?)
             })
             .collect::<Result<Vec<_>, PidIssuanceError>>()?;
@@ -459,6 +465,7 @@ mod tests {
     use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
+    use sd_jwt::metadata::SignedTypeMetadata;
     use wallet_common::config::http::TlsPinningConfig;
 
     use crate::document;
@@ -686,6 +693,7 @@ mod tests {
         let mut wallet = setup_wallet_with_digid_session();
 
         let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
+        let signed_metadata = SignedTypeMetadata::sign(&metadata).unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
@@ -694,7 +702,7 @@ mod tests {
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    metadata,
+                    signed_metadata,
                 }],
             ))
         });
@@ -809,13 +817,14 @@ mod tests {
         start_context.expect().return_once(|| {
             let (mut unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
             unsigned_mdoc.doc_type = "foobar".to_string();
+            let signed_metadata = SignedTypeMetadata::sign(&metadata).unwrap();
 
             Ok((
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    metadata,
+                    signed_metadata,
                 }],
             ))
         });

@@ -1,3 +1,5 @@
+use base64::prelude::*;
+use derive_more::Into;
 use http::Uri;
 use jsonschema::ValidationError;
 use nutype::nutype;
@@ -5,12 +7,19 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
+use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
     #[error("json schema validation failed {0}")]
     JsonSchemaValidation(#[from] ValidationError<'static>),
+    #[error("serialization failed {0}")]
+    Serialization(#[from] serde_json::Error),
+    #[error("decoding failed {0}")]
+    Decoding(#[from] base64::DecodeError),
+    #[error("resource integrity check failed")]
+    ResourceIntegrity,
 }
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
@@ -18,7 +27,37 @@ pub enum TypeMetadataError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpecOptionalImplRequired<T>(pub T);
 
-pub const COSE_METADATA_HEADER_LABEL: &str = "COSE_METADATA_HEADER";
+pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
+pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SignedTypeMetadata {
+    pub metadata_encoded: String,
+    pub integrity: ResourceIntegrity,
+}
+
+impl SignedTypeMetadata {
+    pub fn sign(metadata: &TypeMetadata) -> Result<Self, TypeMetadataError> {
+        let bytes: Vec<u8> = serde_json::to_vec(&metadata)?;
+        let metadata_encoded = BASE64_STANDARD.encode(bytes);
+        let integrity = ResourceIntegrity::from_bytes(metadata_encoded.as_bytes());
+        Ok(SignedTypeMetadata {
+            metadata_encoded,
+            integrity,
+        })
+    }
+
+    pub fn verify_and_parse(&self) -> Result<TypeMetadata, TypeMetadataError> {
+        let integrity = ResourceIntegrity::from_bytes(self.metadata_encoded.as_bytes());
+        if self.integrity != integrity {
+            return Err(TypeMetadataError::ResourceIntegrity);
+        }
+
+        let decoded = BASE64_STANDARD.decode(self.metadata_encoded.as_bytes())?;
+        let metadata: TypeMetadata = serde_json::from_slice(&decoded)?;
+        Ok(metadata)
+    }
+}
 
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +86,19 @@ pub struct TypeMetadata {
     /// A JSON Schema document describing the structure of the Verifiable Credential
     #[serde(flatten)]
     pub schema: SchemaOption,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Into, Serialize, Deserialize)]
+pub struct ResourceIntegrity(String);
+
+impl ResourceIntegrity {
+    const ALG_PREFIX: &'static str = "sha256";
+
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let sig = sha256(bytes);
+        let integrity = format!("{}-{}", Self::ALG_PREFIX, BASE64_STANDARD.encode(sig));
+        ResourceIntegrity(integrity)
+    }
 }
 
 impl TryFrom<Vec<u8>> for TypeMetadata {
@@ -219,6 +271,7 @@ mod test {
     use crate::metadata::ClaimPath;
     use crate::metadata::MetadataExtendsOption;
     use crate::metadata::SchemaOption;
+    use crate::metadata::SignedTypeMetadata;
     use crate::metadata::TypeMetadata;
 
     async fn read_and_parse_metadata(filename: &str) -> TypeMetadata {
@@ -349,5 +402,12 @@ mod test {
                 panic!("Remote schema option is not supported")
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_sign_verify() {
+        let metadata = read_and_parse_metadata("example-metadata.json").await;
+        let signed = SignedTypeMetadata::sign(&metadata).unwrap();
+        signed.verify_and_parse().unwrap();
     }
 }

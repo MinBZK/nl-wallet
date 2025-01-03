@@ -78,9 +78,6 @@ pub enum CoseError {
     #[error("no signature received")]
     #[category(critical)]
     SignatureMissing,
-    #[error("error serializing metadata: {0}")]
-    #[category(critical)]
-    MetadataSerialization(serde_json::Error),
 }
 
 impl Cose for CoseSign1 {

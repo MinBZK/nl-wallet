@@ -11,7 +11,9 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
+use sd_jwt::metadata::SignedTypeMetadata;
 use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -43,6 +45,8 @@ pub enum Error {
     MissingCertificate(String),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
+    #[error("error signing metadata: {0}")]
+    MetadataSigning(#[from] TypeMetadataError),
 }
 
 pub struct AttributeCertificates {
@@ -57,7 +61,7 @@ impl AttributeCertificates {
     pub fn try_unsigned_mdoc_to_attestion_preview(
         &self,
         unsigned_mdoc: UnsignedMdoc,
-        metadata: TypeMetadata,
+        signed_metadata: SignedTypeMetadata,
     ) -> Result<CredentialPreview, Error> {
         let preview = CredentialPreview::MsoMdoc {
             issuer: self
@@ -66,7 +70,7 @@ impl AttributeCertificates {
                 .ok_or(Error::MissingCertificate(unsigned_mdoc.doc_type.clone()))?
                 .clone(),
             unsigned_mdoc,
-            metadata,
+            signed_metadata,
         };
         Ok(preview)
     }
@@ -126,10 +130,10 @@ impl AttributeService for BrpPidAttributeService {
                 let metadata = self
                     .metadata_by_doctype
                     .get(unsigned.doc_type.as_str())
-                    .ok_or(Error::NoMetadataFound(String::from(unsigned.doc_type.as_str())))?
-                    .clone();
+                    .ok_or(Error::NoMetadataFound(String::from(unsigned.doc_type.as_str())))?;
+                let signed_metadata = SignedTypeMetadata::sign(metadata)?;
                 self.certificates
-                    .try_unsigned_mdoc_to_attestion_preview(unsigned, metadata)
+                    .try_unsigned_mdoc_to_attestion_preview(unsigned, signed_metadata)
             })
             .collect::<Result<Vec<CredentialPreview>, Error>>()?;
         previews.try_into().map_err(|_| Error::NoAttributesFound)
