@@ -94,6 +94,7 @@ fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataEr
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[skip_serializing_none]
 pub struct DisplayMetadata {
     pub lang: String,
     pub name: String,
@@ -103,6 +104,7 @@ pub struct DisplayMetadata {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[skip_serializing_none]
 pub enum RenderingMetadata {
     Simple {
         logo: Option<LogoMetadata>,
@@ -124,6 +126,7 @@ pub struct LogoMetadata {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[skip_serializing_none]
 pub struct ClaimMetadata {
     pub path: Vec<serde_json::Value>,
     pub display: Vec<ClaimDisplayMetadata>,
@@ -142,6 +145,7 @@ pub enum ClaimSelectiveDisclosureMetadata {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[skip_serializing_none]
 pub struct ClaimDisplayMetadata {
     pub lang: String,
     pub label: String,
