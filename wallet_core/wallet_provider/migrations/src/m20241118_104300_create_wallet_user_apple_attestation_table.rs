@@ -26,6 +26,9 @@ impl MigrationTrait for Migration {
                         ),
                     )
                     .col(binary(WalletUserAppleAttestation::AttestationData))
+                    .col(timestamp_with_time_zone(
+                        WalletUserAppleAttestation::VerificationDateTime,
+                    ))
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_wallet_user_id")
@@ -57,4 +60,5 @@ enum WalletUserAppleAttestation {
     WalletUserId,
     AssertionCounter,
     AttestationData,
+    VerificationDateTime,
 }

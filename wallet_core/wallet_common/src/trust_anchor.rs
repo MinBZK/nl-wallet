@@ -36,8 +36,12 @@ impl BorrowingTrustAnchor {
         Ok(BorrowingTrustAnchor(yoke))
     }
 
-    pub fn trust_anchor(&self) -> &TrustAnchor {
+    pub fn as_trust_anchor(&self) -> &TrustAnchor {
         &self.0.get().trust_anchor
+    }
+
+    pub fn to_owned_trust_anchor(&self) -> TrustAnchor<'static> {
+        self.0.get().trust_anchor.to_owned()
     }
 }
 
@@ -65,13 +69,7 @@ impl TryFrom<Vec<u8>> for BorrowingTrustAnchor {
     type Error = Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        BorrowingTrustAnchor::from_der(value.as_slice())
-    }
-}
-
-impl<'a> From<&'a BorrowingTrustAnchor> for TrustAnchor<'a> {
-    fn from(trust_anchor: &'a BorrowingTrustAnchor) -> Self {
-        trust_anchor.trust_anchor().clone()
+        BorrowingTrustAnchor::from_der(value)
     }
 }
 

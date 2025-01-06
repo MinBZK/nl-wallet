@@ -26,7 +26,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["disclosure", "integration_test"]
+required-features = ["integration_test"]
 
 [[test]]
 name = "postgres"
@@ -36,7 +36,7 @@ required-features = ["db_test"]
 [[test]]
 name = "wallet_server_settings"
 path = "tests/wallet_server_settings.rs"
-required-features = ["disclosure", "issuance", "integration_test", "allow_insecure_url"]
+required-features = ["integration_test"]
 
 [features]
 default = ["disclosure", "postgres"]
@@ -62,7 +62,7 @@ disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:serde_jso
 # Enable mock PID issuance
 mock = ["issuance"]
 # Enable integration tests
-integration_test = []
+integration_test = ["disclosure", "allow_insecure_url"]
 
 [dependencies]
 anyhow.workspace = true

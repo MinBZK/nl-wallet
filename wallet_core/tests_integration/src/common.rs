@@ -50,12 +50,12 @@ use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
 use wallet_common::reqwest::ReqwestTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
-use wallet_provider::settings::RootCertificate;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::pid::mock::MockAttributesLookup;
@@ -139,7 +139,7 @@ pub async fn setup_wallet_and_env(
         team_identifier: key_holder.app_identifier.prefix().to_string(),
         bundle_identifier: key_holder.app_identifier.bundle_identifier().to_string(),
         environment: apple_environment,
-        root_certificates: vec![RootCertificate::from(key_holder.ca.trust_anchor().to_owned())],
+        root_certificates: vec![BorrowingTrustAnchor::from_der(key_holder.ca.as_certificate_der().as_ref()).unwrap()],
     };
 
     let config_server_config = ConfigServerConfiguration {

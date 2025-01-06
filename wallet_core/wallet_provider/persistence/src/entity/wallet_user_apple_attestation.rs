@@ -12,6 +12,7 @@ pub struct Model {
     pub assertion_counter: i64,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub attestation_data: Vec<u8>,
+    pub verification_date_time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -203,7 +203,7 @@ mod tests {
     use crate::iso::mdocs::IssuerNameSpaces;
     use crate::iso::mdocs::IssuerSignedItem;
     use crate::iso::unsigned::Entry;
-    use crate::server_keys::KeyPair;
+    use crate::server_keys::generate::Ca;
     use crate::test::data::addr_street;
     use crate::test::data::empty;
     use crate::test::data::pid_family_name;
@@ -241,7 +241,7 @@ mod tests {
     ) {
         use crate::DeviceRequest;
 
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let key_factory = MockRemoteKeyFactory::default();
 
         let mdoc_data_source = MockMdocDataSource::new(

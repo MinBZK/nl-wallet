@@ -758,7 +758,7 @@ mod tests {
     use nl_wallet_mdoc::holder::ProposedDocument;
     use nl_wallet_mdoc::identifiers::AttributeIdentifier;
     use nl_wallet_mdoc::identifiers::AttributeIdentifierHolder;
-    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::utils::cose::ClonePayload;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
     use nl_wallet_mdoc::utils::reader_auth::ValidationError;
@@ -1504,9 +1504,9 @@ mod tests {
 
         let mdoc_nonce = random_string(32);
 
-        let ca_key_pair = KeyPair::generate_ca("my_ca", CertificateConfiguration::default()).unwrap();
-        let mock_key_pair = ca_key_pair
-            .generate(
+        let ca = Ca::generate("my_ca", CertificateConfiguration::default()).unwrap();
+        let mock_key_pair = ca
+            .generate_key_pair(
                 "mock_keypair",
                 &CertificateType::ReaderAuth(None),
                 CertificateConfiguration::default(),
@@ -1558,7 +1558,10 @@ mod tests {
     where
         F: Fn() -> Option<VpMessageClientError>,
     {
-        let mock_key_pair = KeyPair::generate_reader_mock_ca().unwrap();
+        let mock_key_pair = Ca::generate_reader_mock_ca()
+            .unwrap()
+            .generate_reader_mock(None)
+            .unwrap();
         DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,

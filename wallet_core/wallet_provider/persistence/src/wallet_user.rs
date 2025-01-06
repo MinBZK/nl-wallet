@@ -67,6 +67,7 @@ where
 
     if let Some(WalletUserAttestationCreate::Apple {
         data,
+        verification_date_time,
         assertion_counter,
     }) = user.attestation
     {
@@ -75,6 +76,7 @@ where
             wallet_user_id: Set(user.id),
             assertion_counter: Set((*assertion_counter).into()),
             attestation_data: Set(data),
+            verification_date_time: Set(verification_date_time.into()),
         }
         .insert(connection)
         .await
