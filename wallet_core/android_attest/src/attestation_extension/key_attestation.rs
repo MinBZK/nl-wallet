@@ -363,6 +363,38 @@ pub struct KeyAttestation {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum KeyAttestationVerificationError {
+    #[error("security requirements not met for attestation_security_level: {0:?}")]
+    AttestationSecurityLevel(SecurityLevel),
+    #[error("security requirements not met for key_mint_security_level: {0:?}")]
+    KeyMintSecurityLevel(SecurityLevel),
+}
+
+impl KeyAttestation {
+    pub fn verify(&self) -> Result<(), KeyAttestationVerificationError> {
+        if !match self.attestation_security_level {
+            SecurityLevel::Software => false,
+            SecurityLevel::TrustedEnvironment | SecurityLevel::StrongBox => true,
+        } {
+            return Err(KeyAttestationVerificationError::AttestationSecurityLevel(
+                self.attestation_security_level,
+            ));
+        }
+
+        if !match self.key_mint_security_level {
+            SecurityLevel::Software => false,
+            SecurityLevel::TrustedEnvironment | SecurityLevel::StrongBox => true,
+        } {
+            return Err(KeyAttestationVerificationError::KeyMintSecurityLevel(
+                self.key_mint_security_level,
+            ));
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum KeyDescriptionFieldError {
     #[error("invalid attestation_version field: {0}")]
     AttestationVersion(#[from] AttestationVersionError),

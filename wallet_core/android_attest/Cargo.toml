@@ -27,10 +27,13 @@ regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware.workspace = true
 rsa = { workspace = true, features = ["std"] }
+rustls-pki-types.workspace = true
+rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true
 spki = { workspace = true, features = ["std"] }
 thiserror.workspace = true
+tracing.workspace = true
 url.workspace = true
 x509-parser.workspace = true
 
@@ -39,8 +42,10 @@ rcgen = { workspace = true, optional = true, features = ["aws_lc_rs"] }
 
 [dev-dependencies]
 assert_matches.workspace = true
-p256 = { workspace = true, features = ["pem"] }
+derive_more = { workspace = true, features = ["debug"] }
+p256 = { workspace = true, features = ["std", "ecdsa", "pem", "pkcs8"] }
 rand.workspace = true
+rcgen = { workspace = true, features = ["aws_lc_rs"] }
 rstest.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true

@@ -1,4 +1,4 @@
-mod key_attestation;
+pub mod key_attestation;
 mod key_description;
 
 use x509_parser::certificate::X509Certificate;
