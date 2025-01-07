@@ -49,7 +49,7 @@ osv-scanner:
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:94c09c0a2fc2cb4676b76056fe9b020b1af181cbc0444097cf23f171c118f862"
   before_script:
     - mkdir -p $CI_PROJECT_DIR/.cargo
     - cp $CI_PROJECT_DIR/deploy/dependencies/cargo-audit.toml $CI_PROJECT_DIR/.cargo/audit.toml

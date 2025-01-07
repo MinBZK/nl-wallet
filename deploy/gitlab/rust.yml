@@ -13,7 +13,7 @@
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:94c09c0a2fc2cb4676b76056fe9b020b1af181cbc0444097cf23f171c118f862"
   cache: !reference [.rust-cache, cache]
   before_script:
     - set -euxo pipefail
@@ -27,9 +27,10 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:94c09c0a2fc2cb4676b76056fe9b020b1af181cbc0444097cf23f171c118f862"
   cache: !reference [.rust-cache, cache]
   variables:
+    NEXTEST_PROFILE: "ci"
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
@@ -49,15 +50,18 @@ test-rust:
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
-    - RUST_BACKTRACE=1 cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
+    - RUST_BACKTRACE=1 cargo test --doc --features integration_test --locked
+    - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
     reports:
       coverage_report:
         path: wallet_core/rust-coverage.xml
         coverage_format: cobertura
+      junit: wallet_core/target/nextest/ci/junit.xml
     paths:
       - wallet_core/lcov.info
+      - wallet_core/target/nextest/ci/junit.xml
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -83,7 +87,7 @@ test-rust-compilation-ios:
 .build-binary:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:94c09c0a2fc2cb4676b76056fe9b020b1af181cbc0444097cf23f171c118f862"
   cache: !reference [.rust-cache, cache]
   needs:
     - job: test-rust
