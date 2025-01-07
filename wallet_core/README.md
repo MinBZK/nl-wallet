@@ -67,3 +67,15 @@ use wallet_common::...;
 use crate::...;
 use super::...;
 ```
+
+## Tests
+
+The tests can be run with the normal cargo test runner,
+but also with the [nextest](https://nexte.st) runner.
+Install nextest via:
+
+```sh
+cargo install cargo-nextest --locked
+```
+
+and run via `cargo nextest run` instead of `cargo test`.
