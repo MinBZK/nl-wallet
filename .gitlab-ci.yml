@@ -204,6 +204,8 @@ build-wallet-web:
     - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
     - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
   artifacts:
+    reports:
+      junit: wallet_web/coverage/tests.xml
     paths:
       - wallet_web/dist
       - wallet_web/coverage
