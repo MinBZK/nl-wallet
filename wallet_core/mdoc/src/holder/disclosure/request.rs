@@ -130,6 +130,7 @@ mod tests {
 
     use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
+    use crate::server_keys::generate::Ca;
     use crate::server_keys::KeyPair;
     use crate::utils::cose::MdocCose;
     use crate::utils::cose::{self};
@@ -167,8 +168,7 @@ mod tests {
     #[tokio::test]
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
-        let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let der_trust_anchors = [ca.to_trust_anchor().unwrap()];
+        let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
         let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
@@ -185,10 +185,10 @@ mod tests {
         ]);
 
         // Verifying this `DeviceRequest` should succeed and return the `ReaderRegistration`.
-        let trust_anchors = der_trust_anchors.iter().map(Into::into).collect::<Vec<_>>();
+        let trust_anchors = &[ca.to_trust_anchor()];
 
         let verified_reader_registration = device_request
-            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert_eq!(
@@ -200,7 +200,7 @@ mod tests {
         let device_request = DeviceRequest::from_items_requests(vec![items_request.clone(), items_request.clone()]);
 
         let no_reader_registration = device_request
-            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert!(no_reader_registration.is_none());
@@ -214,7 +214,7 @@ mod tests {
 
         // Verifying this `DeviceRequest` should result in a `HolderError::ReaderAuthsInconsistent` error.
         let error = device_request
-            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, trust_anchors)
             .expect_err("Verifying DeviceRequest should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthsInconsistent));
@@ -223,10 +223,10 @@ mod tests {
     #[tokio::test]
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
-        let ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let private_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
-        let der_trust_anchor = ca.to_trust_anchor().unwrap();
+        let trust_anchors = &[ca.to_trust_anchor()];
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
@@ -235,15 +235,14 @@ mod tests {
 
         // Verification of the `DocRequest` should succeed and return the certificate contained within it.
         let certificate = doc_request
-            .verify(&session_transcript, &TimeGenerator, &[(&der_trust_anchor).into()])
+            .verify(&session_transcript, &TimeGenerator, trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert_matches!(certificate, Some(cert) if cert == private_key.into());
 
-        let other_ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let other_der_trust_anchor = other_ca.to_trust_anchor().unwrap();
+        let other_ca = Ca::generate_reader_mock_ca().unwrap();
         let error = doc_request
-            .verify(&session_transcript, &TimeGenerator, &[(&other_der_trust_anchor).into()])
+            .verify(&session_transcript, &TimeGenerator, &[other_ca.to_trust_anchor()])
             .expect_err("Verifying DeviceRequest should have resulted in an error");
 
         assert_matches!(error, Error::Cose(_));
@@ -255,7 +254,7 @@ mod tests {
         };
 
         let no_certificate = doc_request
-            .verify(&session_transcript, &TimeGenerator, &[(&der_trust_anchor).into()])
+            .verify(&session_transcript, &TimeGenerator, trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert!(no_certificate.is_none());

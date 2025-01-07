@@ -53,11 +53,19 @@ pub enum CertificateError {
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate private key generation failed: {0}")]
     #[category(unexpected)]
-    GeneratingPrivateKey(p256::pkcs8::Error),
+    GeneratingPrivateKey(#[source] p256::pkcs8::Error),
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate creation failed: {0}")]
     #[category(unexpected)]
     GeneratingFailed(#[from] rcgen::Error),
+    #[cfg(any(test, feature = "generate"))]
+    #[error("parsed X.509 certificate is not a root CA")]
+    #[category(unexpected)]
+    NotRootCa,
+    #[cfg(any(test, feature = "generate"))]
+    #[error("the basic constraint of this CA does not allow generating an intermediate CA")]
+    #[category(unexpected)]
+    BasicConstraintViolation,
     #[error("failed to parse certificate public key: {0}")]
     PublicKeyParsing(p256::pkcs8::spki::Error),
     #[error("EKU count incorrect ({0})")]
@@ -403,11 +411,12 @@ mod test {
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::server_keys::KeyPair;
+    use crate::server_keys::generate::Ca;
     use crate::utils::issuer_auth::IssuerRegistration;
     use crate::utils::reader_auth::ReaderRegistration;
     use crate::utils::x509::CertificateType;
 
+    use super::BorrowingCertificate;
     use super::CertificateConfiguration;
     use super::CertificateError;
     use super::CertificateUsage;
@@ -427,9 +436,11 @@ mod test {
 
     #[test]
     fn generate_ca() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+            .expect("self signed CA should contain a valid X.509 certificate");
 
-        let x509_cert = ca.certificate().x509_certificate();
+        let x509_cert = certificate.x509_certificate();
         assert_certificate_common_name(x509_cert, &["myca"]);
         assert_certificate_default_validity(x509_cert);
     }
@@ -443,9 +454,11 @@ mod test {
             not_before: Some(now),
             not_after: Some(later),
         };
-        let ca = KeyPair::generate_ca("myca", config).unwrap();
+        let ca = Ca::generate("myca", config).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+            .expect("self signed CA should contain a valid X.509 certificate");
 
-        let x509_cert = ca.certificate().x509_certificate();
+        let x509_cert = certificate.x509_certificate();
         assert_certificate_common_name(x509_cert, &["myca"]);
         assert_certificate_validity(x509_cert, now, later);
     }
@@ -459,11 +472,10 @@ mod test {
         let config = CertificateConfiguration { not_before, not_after };
         let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
-        let ca_trustanchor = ca.to_trust_anchor().unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", &mdl, config).unwrap();
         issuer_key_pair
             .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[(&ca_trustanchor).into()])
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .expect_err("Expected verify to fail")
     }
 
@@ -489,15 +501,14 @@ mod test {
 
     #[test]
     fn generate_and_verify_issuer_cert() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", &mdl, Default::default()).unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", &mdl, Default::default()).unwrap();
 
-        let ca_trustanchor = ca.to_trust_anchor().unwrap();
         issuer_key_pair
             .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[(&ca_trustanchor).into()])
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
@@ -519,15 +530,14 @@ mod test {
             not_after: Some(later),
         };
 
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", &mdl, config).unwrap();
 
-        let ca_trustanchor = ca.to_trust_anchor().unwrap();
         issuer_key_pair
             .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[(&ca_trustanchor).into()])
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
@@ -541,19 +551,20 @@ mod test {
 
     #[test]
     fn generate_and_verify_reader_cert() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
-        let reader_key_pair = ca.generate("mycert", &reader_auth, Default::default()).unwrap();
+        let reader_key_pair = ca
+            .generate_key_pair("mycert", &reader_auth, Default::default())
+            .unwrap();
 
-        let ca_trustanchor = ca.to_trust_anchor().unwrap();
         reader_key_pair
             .certificate()
             .verify(
                 CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
-                &[(&ca_trustanchor).into()],
+                &[ca.to_trust_anchor()],
             )
             .unwrap();
 
@@ -576,19 +587,18 @@ mod test {
             not_after: Some(later),
         };
 
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
-        let reader_key_pair = ca.generate("mycert", &reader_auth, config).unwrap();
+        let reader_key_pair = ca.generate_key_pair("mycert", &reader_auth, config).unwrap();
 
-        let ca_trustanchor = ca.to_trust_anchor().unwrap();
         reader_key_pair
             .certificate()
             .verify(
                 CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
-                &[(&ca_trustanchor).into()],
+                &[ca.to_trust_anchor()],
             )
             .unwrap();
 
@@ -633,7 +643,7 @@ mod test {
         assert_eq!(actual_common_name, expected_common_name);
     }
 
-    fn generate_ca_for_validity_test() -> KeyPair {
+    fn generate_ca_for_validity_test() -> Ca {
         let now = Utc::now();
         let start = now - Duration::weeks(52);
         let end = now + Duration::weeks(52);
@@ -642,6 +652,7 @@ mod test {
             not_before: Some(start),
             not_after: Some(end),
         };
-        KeyPair::generate_ca("myca", config).unwrap()
+
+        Ca::generate("myca", config).unwrap()
     }
 }

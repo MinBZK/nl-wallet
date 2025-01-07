@@ -36,7 +36,7 @@ impl WalletConfiguration {
     pub fn mdoc_trust_anchors(&self) -> Vec<TrustAnchor> {
         self.mdoc_trust_anchors
             .iter()
-            .map(Into::<TrustAnchor<'_>>::into)
+            .map(|anchor| anchor.as_trust_anchor().clone())
             .collect()
     }
 
@@ -118,7 +118,7 @@ impl DisclosureConfiguration {
     pub fn rp_trust_anchors(&self) -> Vec<TrustAnchor> {
         self.rp_trust_anchors
             .iter()
-            .map(Into::<TrustAnchor<'_>>::into)
+            .map(|anchor| anchor.as_trust_anchor().clone())
             .collect()
     }
 }

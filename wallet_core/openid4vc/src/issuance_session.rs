@@ -865,7 +865,7 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::test::data;
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
@@ -875,7 +875,6 @@ mod tests {
     use wallet_common::keys::factory::KeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::token::TokenResponse;
 
@@ -895,14 +894,14 @@ mod tests {
     async fn create_credential_response() -> (
         CredentialResponse,
         CredentialPreview,
-        BorrowingTrustAnchor,
+        TrustAnchor<'static>,
         VerifyingKey,
         MockRemoteKeyFactory,
     ) {
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = MockRemoteKeyFactory::default();
-        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
+        let trust_anchor = ca.to_trust_anchor().to_owned();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
         let preview = CredentialPreview::MsoMdoc {
@@ -922,7 +921,7 @@ mod tests {
         (
             credential_response,
             preview,
-            borrowing_trust_anchor,
+            trust_anchor,
             *mdoc_public_key,
             key_factory,
         )
@@ -930,9 +929,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_start_issuance_untrusted_credential_preview() {
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
-        let trust_anchors = &[(&borrowing_trust_anchor).into()];
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
@@ -940,7 +937,7 @@ mod tests {
             .return_once(|_url, _token_request, _dpop_header| {
                 // Generate the credential previews with some other CA than what the
                 // HttpIssuanceSession::start_issuance() will accept
-                let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+                let ca = Ca::generate_issuer_mock_ca().unwrap();
                 let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
                 let preview = CredentialPreview::MsoMdoc {
@@ -963,7 +960,7 @@ mod tests {
             mock_msg_client,
             "https://example.com".parse().unwrap(),
             token_request,
-            trust_anchors,
+            &[ca.to_trust_anchor()],
         )
         .await
         .unwrap_err();
@@ -1018,7 +1015,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
-        let (cred_response, preview, ca_cert, _, key_factory) = create_credential_response().await;
+        let (cred_response, preview, trust_anchor, _, key_factory) = create_credential_response().await;
         let wte = if use_wte {
             Some(mock_wte(&key_factory, &SigningKey::random(&mut OsRng)).await)
         } else {
@@ -1075,7 +1072,7 @@ mod tests {
             session_state,
         }
         .accept_issuance(
-            &[ca_cert.trust_anchor().clone()],
+            &[trust_anchor],
             key_factory,
             wte,
             "https://issuer.example.com".parse().unwrap(),
@@ -1101,7 +1098,7 @@ mod tests {
             session_state: new_session_state(vec![preview.clone(), preview]),
         }
         .accept_issuance(
-            &[(&trust_anchor).into()],
+            &[trust_anchor],
             MockRemoteKeyFactory::default(),
             None,
             "https://issuer.example.com".parse().unwrap(),
@@ -1120,12 +1117,7 @@ mod tests {
         let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         let _ = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &mdoc_public_key,
-                &preview,
-                &[(&trust_anchor).into()],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
             .expect("should be able to convert CredentialResponse into Mdoc");
     }
 
@@ -1137,12 +1129,7 @@ mod tests {
         // public key than the one contained within the response should fail.
         let other_public_key = *SigningKey::random(&mut OsRng).verifying_key();
         let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &other_public_key,
-                &preview,
-                &[(&trust_anchor).into()],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &other_public_key, &preview, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::PublicKeyMismatch);
@@ -1170,12 +1157,7 @@ mod tests {
         };
 
         let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &mdoc_public_key,
-                &preview,
-                &[(&trust_anchor).into()],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(
@@ -1190,7 +1172,7 @@ mod tests {
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
-        let other_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let other_ca = Ca::generate_issuer_mock_ca().unwrap();
         let other_issuance_key = other_ca
             .generate_issuer_mock(IssuerRegistration::new_mock().into())
             .unwrap();
@@ -1205,12 +1187,7 @@ mod tests {
         };
 
         let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &mdoc_public_key,
-                &preview,
-                &[(&trust_anchor).into()],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::IssuerMismatch);
@@ -1246,12 +1223,7 @@ mod tests {
         };
 
         let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &mdoc_public_key,
-                &preview,
-                &[(&trust_anchor).into()],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(

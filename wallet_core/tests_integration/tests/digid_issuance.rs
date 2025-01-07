@@ -1,5 +1,3 @@
-use rustls_pki_types::TrustAnchor;
-
 use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
@@ -7,7 +5,6 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::oidc::HttpOidcClient;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
-use wallet::wallet_common::WalletConfiguration;
 use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::DigidSession;
 use wallet::wallet_deps::HttpDigidSession;
@@ -79,7 +76,7 @@ async fn test_pid_issuance_digid_bridge() {
 
     let mdocs = pid_issuer_client
         .accept_issuance(
-            &trust_anchors(&default_wallet_config()),
+            &wallet_config.mdoc_trust_anchors(),
             MockRemoteKeyFactory::default(),
             None,
             server_url,
@@ -89,8 +86,4 @@ async fn test_pid_issuance_digid_bridge() {
 
     assert_eq!(2, mdocs.len());
     assert_eq!(2, <&MdocCopies>::try_from(&mdocs[0]).unwrap().len());
-}
-
-fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {
-    wallet_conf.mdoc_trust_anchors.iter().map(|a| a.into()).collect()
 }

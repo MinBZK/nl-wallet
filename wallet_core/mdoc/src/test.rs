@@ -159,7 +159,7 @@ impl TestDocument {
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
     pub async fn sign<KF>(
         self,
-        ca: &crate::server_keys::KeyPair,
+        ca: &crate::server_keys::generate::Ca,
         key_factory: &KF,
         copy_count: NonZeroU8,
     ) -> crate::holder::Mdoc
@@ -173,12 +173,12 @@ impl TestDocument {
 
         let (issuer_signed, mdoc_key) = self.issuer_signed(ca, key_factory, copy_count).await;
 
-        let borrowing_trust_anchor = ca.to_trust_anchor().unwrap();
+        let trust_anchor = ca.to_trust_anchor();
         Mdoc::new::<KF::Key>(
             mdoc_key.identifier().to_string(),
             issuer_signed,
             &TimeGenerator,
-            &[(&borrowing_trust_anchor).into()],
+            &[trust_anchor],
         )
         .unwrap()
     }
@@ -187,7 +187,7 @@ impl TestDocument {
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
     pub async fn issuer_signed<KF>(
         self,
-        ca: &crate::server_keys::KeyPair,
+        ca: &crate::server_keys::generate::Ca,
         key_factory: &KF,
         copy_count: NonZeroU8,
     ) -> (crate::IssuerSigned, KF::Key)

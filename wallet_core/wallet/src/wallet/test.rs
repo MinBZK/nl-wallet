@@ -10,6 +10,7 @@ use rand_core::OsRng;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
@@ -60,7 +61,7 @@ pub struct AccountServerKeys {
 
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
-    pub issuance_key: KeyPair<SigningKey>,
+    pub issuance_key: KeyPair,
     pub trust_anchor: BorrowingTrustAnchor,
 }
 
@@ -85,9 +86,9 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
-    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-    let trust_anchor = ca.to_trust_anchor().unwrap();
+    let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
         issuance_key,
@@ -97,9 +98,9 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
-    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(None).unwrap();
-    let trust_anchor = ca.to_trust_anchor().unwrap();
+    let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
         issuance_key,
@@ -135,7 +136,7 @@ pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -
         private_key_id,
         issuer_signed,
         &TimeGenerator,
-        &[(&issuer_key.trust_anchor).into()],
+        &[issuer_key.trust_anchor.as_trust_anchor().clone()],
     )
     .unwrap()
 }

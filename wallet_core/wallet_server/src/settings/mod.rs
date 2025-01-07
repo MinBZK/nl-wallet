@@ -269,7 +269,7 @@ impl Settings {
         let trust_anchors: Vec<TrustAnchor<'a>> = self
             .reader_trust_anchors
             .iter()
-            .map(|trust_anchor| trust_anchor.into())
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect::<Vec<_>>();
 
         let key_pairs: Vec<(String, KeyPair)> = self
@@ -296,7 +296,7 @@ impl Settings {
         let trust_anchors: Vec<TrustAnchor<'a>> = self
             .issuer_trust_anchors
             .iter()
-            .map(|trust_anchor| trust_anchor.into())
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect::<Vec<_>>();
 
         let key_pairs: Vec<(String, KeyPair)> = self

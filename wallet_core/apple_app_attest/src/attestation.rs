@@ -256,6 +256,7 @@ pub mod mock {
     use rcgen::KeyPair;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rcgen::PKCS_ECDSA_P384_SHA384;
+    use rustls_pki_types::CertificateDer;
     use rustls_pki_types::TrustAnchor;
     use sha2::Digest;
     use sha2::Sha256;
@@ -293,8 +294,12 @@ pub mod mock {
             }
         }
 
+        pub fn as_certificate_der(&self) -> &CertificateDer<'static> {
+            self.certificate.der()
+        }
+
         pub fn trust_anchor(&self) -> TrustAnchor {
-            webpki::anchor_from_trusted_cert(self.certificate.der()).unwrap()
+            webpki::anchor_from_trusted_cert(self.as_certificate_der()).unwrap()
         }
     }
 
