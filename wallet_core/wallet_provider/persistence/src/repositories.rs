@@ -345,9 +345,10 @@ pub mod mock {
                 }),
                 instruction_sequence_number: self.instruction_sequence_number,
                 has_wte: false,
-                attestation: self
-                    .apple_assertion_counter
-                    .map(|assertion_counter| WalletUserAttestation::Apple { assertion_counter }),
+                attestation: match self.apple_assertion_counter {
+                    Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
+                    None => WalletUserAttestation::Android,
+                },
             })))
         }
 

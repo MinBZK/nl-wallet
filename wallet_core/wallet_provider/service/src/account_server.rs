@@ -324,14 +324,19 @@ impl AccountServer {
             .dangerous_parse_unverified()
             .map_err(RegistrationError::MessageParsing)?;
 
-        debug!("Extracting challenge, wallet id, hw pubkey and pin pubkey");
+        debug!("Verifying challenge and extracting wallet id");
 
         let challenge = &unverified.challenge;
         let wallet_id =
             Self::verify_registration_challenge(&self.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
 
+        debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
+
         let attestation_timestamp = Utc::now();
-        let (hw_pubkey, attestation_data) = match unverified.payload.attestation {
+        let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
+        let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
+
+        let (hw_pubkey, attestation) = match unverified.payload.attestation {
             RegistrationAttestation::Apple { data } => {
                 debug!("Validating Apple key and app attestation");
 
@@ -344,43 +349,42 @@ impl AccountServer {
                     self.apple_config.environment,
                 )?;
 
-                (hw_pubkey, Some(data))
-            }
-            // TODO: Actually validate and process Google key and app attestation.
-            RegistrationAttestation::Google { certificate_chain, .. } => {
-                // For now, just extract the verifying key from the first X.509 certificate in the chain.
-                let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.into_first())?;
-
-                (*leaf_certificate.public_key(), None)
-            }
-        };
-
-        let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
-
-        debug!("Checking if challenge is signed with the provided hw and pin keys");
-
-        let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
-        let attestation = match attestation_data {
-            None => registration_message
-                .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
-                .map(|_| None),
-            Some(data) => registration_message
-                .parse_and_verify_apple(
-                    challenge,
-                    sequence_number_comparison,
-                    &hw_pubkey,
-                    &self.apple_config.app_identifier,
-                    AssertionCounter::default(),
-                    &pin_pubkey,
-                )
-                .map(|(_, assertion_counter)| {
-                    Some(WalletUserAttestationCreate::Apple {
+                let attestation = registration_message
+                    .parse_and_verify_apple(
+                        challenge,
+                        sequence_number_comparison,
+                        &hw_pubkey,
+                        &self.apple_config.app_identifier,
+                        AssertionCounter::default(),
+                        &pin_pubkey,
+                    )
+                    .map(|(_, assertion_counter)| WalletUserAttestationCreate::Apple {
                         data,
                         assertion_counter,
                     })
-                }),
-        }
-        .map_err(RegistrationError::MessageValidation)?;
+                    .map_err(RegistrationError::MessageValidation)?;
+
+                (hw_pubkey, attestation)
+            }
+            // TODO: Actually validate and process Google key and app attestation.
+            RegistrationAttestation::Google { certificate_chain, .. } => {
+                debug!("Validating Android key attestation");
+
+                // For now, just extract the verifying key from the first X.509 certificate in the chain.
+                let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.first().clone())?;
+
+                let hw_pubkey = *leaf_certificate.public_key();
+
+                let attestation = registration_message
+                    .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
+                    .map(|_| WalletUserAttestationCreate::Android {
+                        certificate_chain: certificate_chain.into_inner(),
+                    })
+                    .map_err(RegistrationError::MessageValidation)?;
+
+                (hw_pubkey, attestation)
+            }
+        };
 
         debug!("Starting database transaction");
 
@@ -446,11 +450,7 @@ impl AccountServer {
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(user.instruction_sequence_number);
         let DerVerifyingKey(hw_pubkey) = &user.hw_pubkey;
         let (request, assertion_counter) = match user.attestation {
-            None => challenge_request
-                .request
-                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
-                .map(|request| (request, None)),
-            Some(WalletUserAttestation::Apple { assertion_counter }) => challenge_request
+            WalletUserAttestation::Apple { assertion_counter } => challenge_request
                 .request
                 .parse_and_verify_apple(
                     &claims.wallet_id,
@@ -460,6 +460,10 @@ impl AccountServer {
                     assertion_counter,
                 )
                 .map(|(request, assertion_counter)| (request, Some(assertion_counter))),
+            WalletUserAttestation::Android => challenge_request
+                .request
+                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
+                .map(|request| (request, None)),
         }?;
 
         debug!("Verifying wallet certificate");
@@ -850,11 +854,7 @@ impl AccountServer {
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
         let DerVerifyingKey(hw_pubkey) = &wallet_user.hw_pubkey;
         let (parsed, assertion_counter) = match wallet_user.attestation {
-            None => instruction
-                .instruction
-                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
-                .map(|parsed| (parsed, None)),
-            Some(WalletUserAttestation::Apple { assertion_counter }) => instruction
+            WalletUserAttestation::Apple { assertion_counter } => instruction
                 .instruction
                 .parse_and_verify_apple(
                     &challenge.bytes,
@@ -865,6 +865,10 @@ impl AccountServer {
                     &pin_pubkey,
                 )
                 .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
+            WalletUserAttestation::Android => instruction
+                .instruction
+                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
+                .map(|parsed| (parsed, None)),
         }
         .map_err(InstructionValidationError::VerificationFailed)?;
 

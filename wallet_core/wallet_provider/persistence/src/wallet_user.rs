@@ -1,3 +1,4 @@
+use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
@@ -34,6 +35,7 @@ use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::entity::wallet_user;
+use crate::entity::wallet_user_android_attestation;
 use crate::entity::wallet_user_apple_attestation;
 use crate::entity::wallet_user_instruction_challenge;
 use crate::PersistenceConnection;
@@ -48,11 +50,11 @@ where
     let user_id = Uuid::new_v4();
     let connection = db.connection();
 
-    let apple_attestation_id = match user.attestation {
-        Some(WalletUserAttestationCreate::Apple {
+    let (apple_attestation_id, android_attestation_id) = match user.attestation {
+        WalletUserAttestationCreate::Apple {
             data,
             assertion_counter,
-        }) => {
+        } => {
             let id = Uuid::new_v4();
 
             wallet_user_apple_attestation::ActiveModel {
@@ -64,9 +66,24 @@ where
             .await
             .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
 
-            Some(id)
+            (Some(id), None)
         }
-        None => None,
+        WalletUserAttestationCreate::Android { certificate_chain } => {
+            let id = Uuid::new_v4();
+
+            wallet_user_android_attestation::ActiveModel {
+                id: Set(id),
+                certificate_chain: Set(certificate_chain
+                    .into_iter()
+                    .map(|cert| BASE64_STANDARD_NO_PAD.encode(cert))
+                    .collect()),
+            }
+            .insert(connection)
+            .await
+            .map_err(|e| PersistenceError::Execution(Box::new(e)))?;
+
+            (None, Some(id))
+        }
     };
 
     wallet_user::ActiveModel {
@@ -84,6 +101,7 @@ where
         has_wte: Set(false),
         attestation_date_time: Set(user.attestation_date_time.into()),
         apple_attestation_id: Set(apple_attestation_id),
+        android_attestation_id: Set(android_attestation_id),
     }
     .insert(connection)
     .await
@@ -179,13 +197,15 @@ where
                     }),
                     _ => None,
                 };
-                let attestation = joined_model
-                    .apple_assertion_counter
-                    .map(|counter| WalletUserAttestation::Apple {
-                        // This is guaranteed to succeed because of the CHECK constraint on the column.
+                let attestation = match joined_model.apple_assertion_counter {
+                    Some(counter) => WalletUserAttestation::Apple {
                         assertion_counter: AssertionCounter::from(u32::try_from(counter).unwrap()),
-                    });
-
+                    },
+                    // If the JOIN results in an assertion counter of NULL, we can safely assume that this
+                    // user has registered using an Android attestation instead. This is enforced by the
+                    // CHECK statement on the table.
+                    None => WalletUserAttestation::Android,
+                };
                 let wallet_user = WalletUser {
                     id: joined_model.id,
                     wallet_id: joined_model.wallet_id,

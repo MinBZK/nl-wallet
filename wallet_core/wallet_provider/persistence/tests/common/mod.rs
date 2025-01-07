@@ -69,10 +69,10 @@ where
             hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
             encrypted_pin_pubkey: encrypted_pin_key("key1").await,
             attestation_date_time: Utc::now(),
-            attestation: Some(WalletUserAttestationCreate::Apple {
+            attestation: WalletUserAttestationCreate::Apple {
                 data: random_bytes(64),
                 assertion_counter: AssertionCounter::default(),
-            }),
+            },
         },
     )
     .await

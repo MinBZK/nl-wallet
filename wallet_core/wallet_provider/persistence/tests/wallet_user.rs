@@ -68,7 +68,7 @@ async fn test_find_wallet_user_by_wallet_id() {
     );
     assert!(wallet_user.instruction_challenge.is_none());
     assert!(!wallet_user.has_wte);
-    assert_matches!(wallet_user.attestation, Some(WalletUserAttestation::Apple { .. }));
+    assert_matches!(wallet_user.attestation, WalletUserAttestation::Apple { .. });
 
     // After generating a random instruction challenge, this should be found together with the user.
     common::create_instruction_challenge_with_random_data(&db, &wallet_id).await;
@@ -283,11 +283,11 @@ async fn test_update_apple_assertion_counter() {
         (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
             assert_matches!(
                 wallet_user.attestation,
-                Some(WalletUserAttestation::Apple { assertion_counter }) if *assertion_counter == 0
+                WalletUserAttestation::Apple { assertion_counter } if *assertion_counter == 0
             );
             assert_matches!(
                 other_wallet_user.attestation,
-                Some(WalletUserAttestation::Apple { assertion_counter }) if *assertion_counter == 0
+                WalletUserAttestation::Apple { assertion_counter } if *assertion_counter == 0
             );
         }
         _ => panic!(),
@@ -306,11 +306,11 @@ async fn test_update_apple_assertion_counter() {
         (WalletUserQueryResult::Found(wallet_user), WalletUserQueryResult::Found(other_wallet_user)) => {
             assert_matches!(
                 wallet_user.attestation,
-                Some(WalletUserAttestation::Apple { assertion_counter }) if *assertion_counter == 1337
+                WalletUserAttestation::Apple { assertion_counter } if *assertion_counter == 1337
             );
             assert_matches!(
                 other_wallet_user.attestation,
-                Some(WalletUserAttestation::Apple { assertion_counter }) if *assertion_counter == 0
+                WalletUserAttestation::Apple { assertion_counter } if *assertion_counter == 0
             );
         }
         _ => panic!(),

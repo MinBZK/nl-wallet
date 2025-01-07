@@ -6212,6 +6212,7 @@ version = "0.3.0-dev"
 dependencies = [
  "apple_app_attest",
  "assert_matches",
+ "base64 0.22.1",
  "chrono",
  "ctor",
  "mockall",
