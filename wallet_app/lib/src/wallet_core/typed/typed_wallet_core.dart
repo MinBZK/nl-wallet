@@ -5,7 +5,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
 import '../../util/mapper/mapper.dart';
 import '../error/core_error.dart';
@@ -14,17 +14,15 @@ import '../error/core_error.dart';
 /// Adds auto initialization, pass through of the locked
 /// flag and parsing of the [FlutterApiError]s.
 class TypedWalletCore {
-  final WalletCore _walletCore;
   final Mapper<String, CoreError> _errorMapper;
   final Completer _isInitialized = Completer();
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
-  final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();
-  final BehaviorSubject<FlutterVersionState> _flutterVersionState = BehaviorSubject();
-  final BehaviorSubject<List<WalletEvent>> _recentHistory = BehaviorSubject();
-  final BehaviorSubject<List<Card>> _cards = BehaviorSubject();
+  final BehaviorSubject<core.FlutterConfiguration> _flutterConfig = BehaviorSubject();
+  final BehaviorSubject<core.FlutterVersionState> _flutterVersionState = BehaviorSubject();
+  final BehaviorSubject<List<core.WalletEvent>> _recentHistory = BehaviorSubject();
+  final BehaviorSubject<List<core.Card>> _cards = BehaviorSubject();
 
-  TypedWalletCore(this._walletCore, this._errorMapper) {
-    _initWalletCore();
+  TypedWalletCore(this._errorMapper) {
     _setupLockedStream();
     _setupConfigurationStream();
     _setupVersionStateStream();
@@ -33,22 +31,22 @@ class TypedWalletCore {
   }
 
   Future<void> _initWalletCore() async {
-    if (!(await _walletCore.isInitialized())) {
+    if (!(await core.isInitialized())) {
       // Initialize the Asynchronous runtime and the wallet itself.
       // This is required to call any subsequent API function on the wallet.
-      await _walletCore.init();
+      await core.WalletCore.init();
     } else {
       // The wallet_core is already initialized, this can happen when the Flutter
       // engine/activity was killed, but the application (and thus native code) was
       // kept alive by the platform. To recover from this we make sure the streams are reset,
       // as they can contain references to the previous Flutter engine.
-      await _walletCore.clearLockStream();
-      await _walletCore.clearConfigurationStream();
-      await _walletCore.clearVersionStateStream();
-      await _walletCore.clearCardsStream();
-      await _walletCore.clearRecentHistoryStream();
+      await core.clearLockStream();
+      await core.clearConfigurationStream();
+      await core.clearVersionStateStream();
+      await core.clearCardsStream();
+      await core.clearRecentHistoryStream();
       // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
-      await _walletCore.lockWallet();
+      await lockWallet();
     }
     _isInitialized.complete();
   }
@@ -56,25 +54,25 @@ class TypedWalletCore {
   void _setupLockedStream() {
     _isLocked.onListen = () async {
       await _isInitialized.future;
-      _walletCore.setLockStream().listen(_isLocked.add);
+      core.setLockStream().listen(_isLocked.add);
     };
-    _isLocked.onCancel = _walletCore.clearLockStream;
+    _isLocked.onCancel = core.clearLockStream;
   }
 
   void _setupConfigurationStream() {
     _flutterConfig.onListen = () async {
       await _isInitialized.future;
-      _walletCore.setConfigurationStream().listen(_flutterConfig.add);
+      core.setConfigurationStream().listen(_flutterConfig.add);
     };
-    _flutterConfig.onCancel = _walletCore.clearConfigurationStream;
+    _flutterConfig.onCancel = core.clearConfigurationStream;
   }
 
   void _setupVersionStateStream() {
     _flutterVersionState.onListen = () async {
       await _isInitialized.future;
-      _walletCore.setVersionStateStream().listen(_flutterVersionState.add);
+      core.setVersionStateStream().listen(_flutterVersionState.add);
     };
-    _flutterVersionState.onCancel = _walletCore.clearVersionStateStream;
+    _flutterVersionState.onCancel = core.clearVersionStateStream;
   }
 
   Future<void> _setupCardsStream() async {
@@ -83,93 +81,99 @@ class TypedWalletCore {
     //FIXME: the wallet_core cards stream through the complete lifecycle of the app for now.
     //To reproduce issue: 1. Start clean, 2. Setup Wallet, 3. Kill app, 4. Continue Setup, 5. Cards don't show up on success page
     await _isInitialized.future;
-    _walletCore.setCardsStream().listen(_cards.add);
+    core.setCardsStream().listen(_cards.add);
   }
 
   void _setupRecentHistoryStream() {
     _recentHistory.onListen = () async {
       await _isInitialized.future;
-      _walletCore.setRecentHistoryStream().listen(_recentHistory.add);
+      core.setRecentHistoryStream().listen(_recentHistory.add);
     };
-    _recentHistory.onCancel = _walletCore.clearRecentHistoryStream;
+    _recentHistory.onCancel = core.clearRecentHistoryStream;
   }
 
-  Future<PinValidationResult> isValidPin(String pin) => call((core) => core.isValidPin(pin: pin));
+  Future<core.PinValidationResult> isValidPin(String pin) => call(() => core.isValidPin(pin: pin));
 
-  Future<void> register(String pin) => call((core) => core.register(pin: pin));
+  Future<void> register(String pin) => call(() => core.register(pin: pin));
 
-  Future<bool> isRegistered() => call((core) => core.hasRegistration());
+  Future<bool> isRegistered() => call(core.hasRegistration);
 
-  Future<void> lockWallet() => call((core) => core.lockWallet());
+  Future<void> lockWallet() => call(core.lockWallet);
 
-  Future<WalletInstructionResult> unlockWallet(String pin) => call((core) => core.unlockWallet(pin: pin));
+  Future<core.WalletInstructionResult> unlockWallet(String pin) => call(() => core.unlockWallet(pin: pin));
 
-  Future<WalletInstructionResult> checkPin(String pin) => call((core) => core.checkPin(pin: pin));
+  Future<core.WalletInstructionResult> checkPin(String pin) => call(() => core.checkPin(pin: pin));
 
-  Future<WalletInstructionResult> changePin(String oldPin, newPin) =>
-      call((core) => core.changePin(oldPin: oldPin, newPin: newPin));
+  Future<core.WalletInstructionResult> changePin(String oldPin, newPin) =>
+      call(() => core.changePin(oldPin: oldPin, newPin: newPin));
 
-  Future<WalletInstructionResult> continueChangePin(String pin) => call((core) => core.continueChangePin(pin: pin));
+  Future<core.WalletInstructionResult> continueChangePin(String pin) => call(() => core.continueChangePin(pin: pin));
 
   Stream<bool> get isLocked => _isLocked;
 
-  Stream<FlutterConfiguration> observeConfig() => _flutterConfig.stream;
+  Stream<core.FlutterConfiguration> observeConfig() => _flutterConfig.stream;
 
-  Stream<FlutterVersionState> observeVersionState() => _flutterVersionState.stream;
+  Stream<core.FlutterVersionState> observeVersionState() => _flutterVersionState.stream;
 
-  Future<String> createPidIssuanceRedirectUri() => call((core) => core.createPidIssuanceRedirectUri());
+  Future<String> createPidIssuanceRedirectUri() => call(core.createPidIssuanceRedirectUri);
 
-  Future<IdentifyUriResult> identifyUri(String uri) => call((core) => core.identifyUri(uri: uri));
+  Future<core.IdentifyUriResult> identifyUri(String uri) => call(() => core.identifyUri(uri: uri));
 
-  Future<void> cancelPidIssuance() => call((core) => core.cancelPidIssuance());
+  Future<void> cancelPidIssuance() => call(core.cancelPidIssuance);
 
-  Future<List<Card>> continuePidIssuance(String uri) => call((core) => core.continuePidIssuance(uri: uri));
+  Future<List<core.Card>> continuePidIssuance(String uri) => call(() => core.continuePidIssuance(uri: uri));
 
-  Future<WalletInstructionResult> acceptOfferedPid(String pin) => call((core) => core.acceptPidIssuance(pin: pin));
+  Future<core.WalletInstructionResult> acceptOfferedPid(String pin) => call(() => core.acceptPidIssuance(pin: pin));
 
-  Future<bool> hasActivePidIssuanceSession() => call((core) => core.hasActivePidIssuanceSession());
+  Future<bool> hasActivePidIssuanceSession() => call(core.hasActivePidIssuanceSession);
 
-  Future<StartDisclosureResult> startDisclosure(String uri, {bool isQrCode = false}) =>
-      call((core) => core.startDisclosure(uri: uri, isQrCode: isQrCode));
+  Future<core.StartDisclosureResult> startDisclosure(
+    String uri, {
+    bool isQrCode = false,
+  }) =>
+      call(() => core.startDisclosure(uri: uri, isQrCode: isQrCode));
 
-  Future<String?> cancelDisclosure() => call((core) => core.cancelDisclosure());
+  Future<String?> cancelDisclosure() => call(core.cancelDisclosure);
 
-  Future<AcceptDisclosureResult> acceptDisclosure(String pin) => call((core) => core.acceptDisclosure(pin: pin));
+  Future<core.AcceptDisclosureResult> acceptDisclosure(String pin) => call(() => core.acceptDisclosure(pin: pin));
 
-  Future<bool> hasActiveDisclosureSession() => call((core) => core.hasActiveDisclosureSession());
+  Future<bool> hasActiveDisclosureSession() => call(core.hasActiveDisclosureSession);
 
-  Stream<List<Card>> observeCards() => _cards.stream;
+  Stream<List<core.Card>> observeCards() => _cards.stream;
 
-  Future<void> resetWallet() => call((core) => core.resetWallet());
+  Future<void> resetWallet() => call(core.resetWallet);
 
-  Future<List<WalletEvent>> getHistory() => call((core) => core.getHistory());
+  Future<List<core.WalletEvent>> getHistory() => call(core.getHistory);
 
-  Future<List<WalletEvent>> getHistoryForCard(String docType) =>
-      call((core) => core.getHistoryForCard(docType: docType));
+  Future<List<core.WalletEvent>> getHistoryForCard(String docType) =>
+      call(() => core.getHistoryForCard(docType: docType));
 
-  Stream<List<WalletEvent>> observeRecentHistory() => _recentHistory.stream;
+  Stream<List<core.WalletEvent>> observeRecentHistory() => _recentHistory.stream;
 
-  Future<bool> isBiometricLoginEnabled() => call((core) => core.isBiometricUnlockEnabled());
+  Future<bool> isBiometricLoginEnabled() => call(core.isBiometricUnlockEnabled);
 
-  Future<void> setBiometricUnlock({required bool enabled}) => call((core) => core.setBiometricUnlock(enable: enabled));
+  Future<void> setBiometricUnlock({required bool enabled}) => call(() => core.setBiometricUnlock(enable: enabled));
 
-  Future<void> unlockWithBiometrics() => call((core) => core.unlockWalletWithBiometrics());
+  Future<void> unlockWithBiometrics() => call(core.unlockWalletWithBiometrics);
 
-  Future<String> getVersionString() => call((core) => core.getVersionString());
+  Future<String> getVersionString() => call(core.getVersionString);
 
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.
-  Future<T> call<T>(Future<T> Function(WalletCore) runnable) async {
+  Future<T> call<T>(Future<T> Function() runnable) async {
     try {
       await _isInitialized.future;
-      return await runnable(_walletCore);
+      return await runnable();
     } catch (exception, stacktrace) {
       throw await _handleCoreException(exception, stackTrace: stacktrace);
     }
   }
 
   /// Converts the exception to a [CoreError] if it can be mapped into one, otherwise returns the original exception.
-  Future<Object> _handleCoreException(Object ex, {StackTrace? stackTrace}) async {
+  Future<Object> _handleCoreException(
+    Object ex, {
+    StackTrace? stackTrace,
+  }) async {
     try {
       final String coreErrorJson = _extractErrorJson(ex)!;
       final error = _errorMapper.map(coreErrorJson);
@@ -184,19 +188,22 @@ class TypedWalletCore {
       }
       return error;
     } catch (exception) {
-      Fimber.e('Failed to map exception to CoreError, returning original exception', ex: exception);
+      Fimber.e(
+        'Failed to map exception to CoreError, returning original exception',
+        ex: exception,
+      );
       return ex;
     }
   }
 
   String? _extractErrorJson(Object ex) {
-    if (ex is FrbAnyhowException) {
-      Fimber.e('FrbAnyhowException. Contents: ${ex.anyhow}');
-      return ex.anyhow;
-    } else if (ex is FfiException) {
-      Fimber.e('FfiException. Code: ${ex.code}, Message: ${ex.message}');
-      if (ex.code != 'RESULT_ERROR') return null;
+    if (ex is AnyhowException) {
+      Fimber.e('AnyhowException. Contents: ${ex.message}');
       return ex.message;
+      // } else if (ex is FfiException) {
+      //   Fimber.e('FfiException. Code: ${ex.code}, Message: ${ex.message}');
+      //   if (ex.code != 'RESULT_ERROR') return null;
+      //   return ex.message;
     } else if (ex is String) {
       Fimber.e('StringException. Contents: $ex');
       return ex;

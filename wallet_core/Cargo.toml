@@ -5,8 +5,8 @@ members = [
     "configuration_server",
     "error_category",
     "error_category/error_category_derive",
-    "flutter_api",
-    "flutter_api/flutter_api_macros",
+    "flutter_api_v2",
+    "flutter_api_v2/flutter_api_macros",
     "gba_hc_converter",
     "mdoc",
     "mock_relying_party",
@@ -87,7 +87,7 @@ der = "0.7.7"
 derive_more = "1.0.0"
 dotenvy = "0.15.7"
 etag = "4.0.0"
-flutter_rust_bridge = { version = "1.70.0", default-features = false }
+flutter_rust_bridge = { version = "2.7.0", default-features = false }
 futures = { version = "0.3.17", default-features = false }
 hex = "0.4.3"
 hex-literal = "0.4.1"

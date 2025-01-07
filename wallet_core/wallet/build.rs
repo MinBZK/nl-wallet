@@ -129,7 +129,7 @@ fn verify_configurations() {
 }
 
 fn main() {
-    android_x86_64_workaround();
+    // android_x86_64_workaround();
 
     verify_configurations();
 }

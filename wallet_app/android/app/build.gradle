@@ -66,7 +66,7 @@ android {
         jvmTarget = '1.8'
     }
 
-    ndkVersion "26.2.11394342"
+    ndkVersion "27.2.12479018"
 
     sourceSets {
         main {
@@ -75,13 +75,13 @@ android {
         }
     }
 
-    packagingOptions {
-        // Exclude the platform_support.so files that are added by the
-        // platform_support module, as this code is also in libwallet_core.so
-        jniLibs {
-            excludes += "**/libplatform_support.so"
-        }
-    }
+//    packagingOptions {
+//        // Exclude the platform_support.so files that are added by the
+//        // platform_support module, as this code is also in libwallet_core.so
+//        jniLibs {
+//            excludes += "**/libplatform_support.so"
+//        }
+//    }
 
     defaultConfig {
         applicationId "nl.ictu.edi.wallet.latest"
@@ -178,7 +178,7 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         }
         args += [
                 'build',
-                '-p', 'flutter_api'
+                '-p', 'flutter_api_v2'
         ]
         if (profileMode != null) {
             args += profileMode
