@@ -2,7 +2,7 @@
   resource_group: automation-tests
   extends: .env-ont-k8s
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk17@sha256:b2133f4b68e1663c65ecb6c794cf93d4890d75169041f2335f66ad861e0f68d0"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk17@sha256:ffafb8a480a9eb2a6d12c4f3649848a9bd03547cc5b9a8105757e018d2f32c87"
   artifacts:
     when: always
     paths:
@@ -22,7 +22,7 @@
 .run-automation-tests:
   extends: .run-automation-tests-common-setup
   script:
-    - gradle wrapper --gradle-version=7.5
+    - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace test
       --tests $TESTS
       -Dtest.config.app.identifier="$APP_IDENTIFIER"
@@ -122,7 +122,7 @@ run-automation-smoke-test-ont:
     - job: deploy-wallet-provider-ont
       artifacts: false
   script:
-    - gradle wrapper --gradle-version=7.5
+    - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace smokeTest
       -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
       -Dtest.config.device.name="Google Pixel 8"
@@ -135,7 +135,7 @@ run-automation-smoke-test-ont:
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:94c09c0a2fc2cb4676b76056fe9b020b1af181cbc0444097cf23f171c118f862"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   extends: .env-ont-k8s
   needs:
     - job: deploy-mock-relying-party-ont

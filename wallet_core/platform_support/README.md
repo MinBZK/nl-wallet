@@ -88,6 +88,20 @@ This test simply uses the crate to create a new private key, get its public key,
 
 To run the Android integration tests: execute `./gradlew connectedAndroidTest` from the `/wallet_core/platform_support/android` directory.
 
+Note: if you get an error like the following:
+
+```
+AndroidTestApkInstallerPlugin: ErrorName: INSTALL_FAILED_INSUFFICIENT_STORAGE
+```
+
+You will usually find that there is enough storage on the (emulated) device. You can start an `adb` shell and clear the temporary storage:
+
+```
+adb shell "rm -rf /data/local/tmp/*"
+```
+
+Then restart `./gradlew connectedAndroidTest` and you'll find the installation succeed and the tests continue normally.
+
 ### iOS
 
 In order to run the same integration test either in the iOS simulator or on actual hardware, a test target is included in the `PlatformSupport` Xcode project.

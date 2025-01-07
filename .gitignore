@@ -19,6 +19,10 @@ migrate_working_dir/
 *.iws
 .idea/
 
+# SublimeText related
+*.sublime-project
+*.sublime-workspace
+
 # A saner location for emacs/vim tags files
 .tags
 
