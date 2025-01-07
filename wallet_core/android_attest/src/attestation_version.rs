@@ -31,7 +31,7 @@ impl AttestationVersion {
                     Ok(value) => Ok(value.into()),
                     Err(error) => Err(error.into()),
                 };
-                // Return error here, ase we're only interested in the attestation_version
+                // Return error here, as we're only interested in the attestation_version
                 Err(rasn::error::DecodeError::unexpected_extra_data(
                     decoder.decoded_len(),
                     decoder.codec(),
