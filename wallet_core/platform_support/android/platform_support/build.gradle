@@ -16,6 +16,10 @@ android {
         consumerProguardFiles "consumer-rules.pro"
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     buildTypes {
         debug {
             testCoverageEnabled true
@@ -29,13 +33,27 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Note: When using flutter >= 3.27.1 with Java 21, you will see the
+    // following (harmless) warnings:
+    //
+    //   warning: [options] source value 8 is obsolete and will be removed in a future release
+    //   warning: [options] target value 8 is obsolete and will be removed in a future release
+    //
+    // This will be fixed in a future flutter version, see:
+    // https://github.com/flutter/flutter/issues/156111
+    //
+    // We anticipate this upcoming change and for our own code set version to
+    // 11 in the below compileOptions and kotlinOptions (i.e., this will also
+    // be done for templates and dependencies in the above linked issue).
+    //
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '11'
     }
 
     sourceSets {

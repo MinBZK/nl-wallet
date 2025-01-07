@@ -13,7 +13,7 @@
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:94c09c0a2fc2cb4676b76056fe9b020b1af181cbc0444097cf23f171c118f862"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   cache: !reference [.rust-cache, cache]
   before_script:
     - set -euxo pipefail
@@ -27,7 +27,7 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:94c09c0a2fc2cb4676b76056fe9b020b1af181cbc0444097cf23f171c118f862"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   cache: !reference [.rust-cache, cache]
   variables:
     NEXTEST_PROFILE: "ci"
@@ -36,7 +36,7 @@ test-rust:
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:f9b5a6e8517e9f666f2a238484528a99efe2dd1e676a9e94fc668b702951a453"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:027f3965467f19c36455a3a2bb6f77d13f4fd5220d1741f635f0a6adc50936b7"
       alias: postgres
       variables:
         POSTGRES_USER: "postgres"
@@ -80,14 +80,14 @@ test-rust-compilation-ios:
   extends: .test-rust-compilation
   tags:
     - macos
-  image: sonoma-wallet:0.1.3
+  image: sonoma-wallet:0.1.4
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
 
 .build-binary:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:94c09c0a2fc2cb4676b76056fe9b020b1af181cbc0444097cf23f171c118f862"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   cache: !reference [.rust-cache, cache]
   needs:
     - job: test-rust
