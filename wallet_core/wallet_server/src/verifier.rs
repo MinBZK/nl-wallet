@@ -41,12 +41,12 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonError;
+use wallet_common::urls;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
-use wallet_common::urls::{self};
 
+use crate::settings;
 use crate::settings::Urls;
-use crate::settings::{self};
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,

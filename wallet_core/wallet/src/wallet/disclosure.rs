@@ -593,9 +593,9 @@ mod tests {
     use crate::EventStatus;
     use crate::HistoryEvent;
 
+    use super::super::test;
     use super::super::test::WalletWithMocks;
     use super::super::test::ISSUER_KEY;
-    use super::super::test::{self};
     use super::*;
 
     static DISCLOSURE_URI: LazyLock<Url> =

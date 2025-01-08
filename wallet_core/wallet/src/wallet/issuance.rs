@@ -459,15 +459,15 @@ mod tests {
 
     use wallet_common::config::http::TlsPinningConfig;
 
+    use crate::document;
     use crate::document::DocumentPersistence;
-    use crate::document::{self};
     use crate::issuance::MockDigidSession;
     use crate::storage::StorageState;
     use crate::wallet::history::HistoryEvent;
 
+    use super::super::test;
     use super::super::test::WalletWithMocks;
     use super::super::test::ISSUER_KEY;
-    use super::super::test::{self};
     use super::*;
 
     #[tokio::test]

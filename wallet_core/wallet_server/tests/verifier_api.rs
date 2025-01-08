@@ -1,6 +1,6 @@
 use std::collections::HashMap;
+use std::future;
 use std::future::Future;
-use std::future::{self};
 use std::net::IpAddr;
 use std::net::TcpListener;
 use std::process;
@@ -738,8 +738,8 @@ mod db_test {
     use openid4vc::verifier::DisclosureData;
     use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_server::settings::Settings;
+    use wallet_server::store::postgres;
     use wallet_server::store::postgres::PostgresSessionStore;
-    use wallet_server::store::postgres::{self};
 
     use super::test_disclosure_expired;
     use super::wallet_server_settings;

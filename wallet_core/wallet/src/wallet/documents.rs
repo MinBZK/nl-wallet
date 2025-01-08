@@ -99,8 +99,8 @@ mod tests {
 
     use assert_matches::assert_matches;
 
+    use super::super::test;
     use super::super::test::WalletWithMocks;
-    use super::super::test::{self};
     use super::*;
 
     // Tests both setting and clearing the documents callback on an unregistered `Wallet`.

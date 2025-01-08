@@ -18,7 +18,7 @@ use openid4vc::oidc::OidcClient;
 use openid4vc::token::TokenRequest;
 use wallet_common::config::wallet_config::DigidConfiguration;
 use wallet_common::reqwest::JsonReqwestBuilder;
-use wallet_common::urls::{self};
+use wallet_common::urls;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 
@@ -240,8 +240,8 @@ impl<OIC> HttpDigidSession<OIC> {
 }
 
 mod json_base64 {
+    use serde::de;
     use serde::de::DeserializeOwned;
-    use serde::de::{self};
     use serde::ser;
     use serde::Deserializer;
     use serde::Serialize;
