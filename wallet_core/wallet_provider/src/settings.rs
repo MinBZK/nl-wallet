@@ -9,20 +9,17 @@ use config::Environment;
 use config::File;
 use derive_more::From;
 use derive_more::Into;
-use p256::ecdsa::VerifyingKey;
-use p256::pkcs8::DecodePublicKey;
-use rsa::RsaPublicKey;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
 
+use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_provider_database_settings::Database;
-use wallet_provider_service::account_server;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -105,7 +102,7 @@ pub struct Android {
 }
 
 #[derive(Clone, Into)]
-pub struct AndroidRootPublicKey(account_server::AndroidRootPublicKey);
+pub struct AndroidRootPublicKey(RootPublicKey);
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
@@ -160,13 +157,12 @@ impl From<AppleEnvironment> for AttestationEnvironment {
 }
 
 impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
-    type Error = rsa::pkcs1::Error;
+    type Error = spki::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        // Choose to return the RSA parsing error here, as this will most likely be used in production.
-        let public_key = VerifyingKey::from_public_key_der(&value)
-            .map(account_server::AndroidRootPublicKey::Ecdsa)
-            .or_else(|_| RsaPublicKey::from_public_key_der(&value).map(account_server::AndroidRootPublicKey::Rsa))?;
+        let public_key = RootPublicKey::rsa_from_der(&value)
+            // Choose to return the RSA parsing error here, as this will most likely be used in production.
+            .or_else(|error| RootPublicKey::ecdsa_from_der(&value).map_err(|_| error))?;
 
         Ok(AndroidRootPublicKey(public_key))
     }

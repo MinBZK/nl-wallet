@@ -5,7 +5,6 @@ use chrono::Utc;
 use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
-use rsa::RsaPublicKey;
 use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -15,6 +14,7 @@ use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
 
+use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
@@ -250,12 +250,6 @@ impl AppleAttestationConfiguration {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum AndroidRootPublicKey {
-    Rsa(RsaPublicKey),
-    Ecdsa(VerifyingKey),
-}
-
 pub struct AccountServer {
     instruction_challenge_timeout: Duration,
 
@@ -267,7 +261,7 @@ pub struct AccountServer {
     pub apple_config: AppleAttestationConfiguration,
     apple_trust_anchors: Vec<TrustAnchor<'static>>,
     #[allow(dead_code)]
-    android_root_public_keys: Vec<AndroidRootPublicKey>,
+    android_root_public_keys: Vec<RootPublicKey>,
 }
 
 impl AccountServer {
@@ -280,7 +274,7 @@ impl AccountServer {
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
         apple_trust_anchors: Vec<TrustAnchor<'static>>,
-        android_root_public_keys: Vec<AndroidRootPublicKey>,
+        android_root_public_keys: Vec<RootPublicKey>,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
             instruction_challenge_timeout,

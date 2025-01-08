@@ -37,13 +37,13 @@ http.workspace = true
 nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
 rand_core = { workspace = true, optional = true }
-rsa = { workspace = true, features = ["std"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono"] }
 serial_test = { workspace = true, optional = true }
+spki = { workspace = true, features = ["std"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
 tower-http = { workspace = true, features = ["trace"] }
@@ -60,6 +60,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
+android_attest.path = "../android_attest"
 apple_app_attest.path = "../apple_app_attest"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 wallet_provider_database_settings.path = "database_settings"

@@ -8,25 +8,28 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-mock = ["dep:p256", "dep:rcgen"]
+mock = ["dep:rcgen"]
 network_test = []
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
+const-decoder.workspace = true
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
 num-bigint.workspace = true
 num-traits.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
+p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware.workspace = true
+rsa = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true
+spki = { workspace = true, features = ["std"] }
 thiserror.workspace = true
 url.workspace = true
 x509-parser.workspace = true
 
-p256 = { workspace = true, optional = true, features = ["std", "ecdsa", "pkcs8"] }
 rcgen = { workspace = true, optional = true, features = ["ring"] }
 
 [dev-dependencies]

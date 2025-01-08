@@ -8,6 +8,7 @@ use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
 
+use android_attest::root_public_key::RootPublicKey;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;
@@ -16,7 +17,6 @@ use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
-use wallet_provider_service::account_server::AndroidRootPublicKey;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
@@ -77,7 +77,7 @@ impl RouterState {
             .android
             .root_public_keys
             .into_iter()
-            .map(AndroidRootPublicKey::from)
+            .map(RootPublicKey::from)
             .collect();
 
         let account_server = AccountServer::new(

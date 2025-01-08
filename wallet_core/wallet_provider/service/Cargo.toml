@@ -44,7 +44,6 @@ itertools.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 r2d2-cryptoki.workspace = true
-rsa = { workspace = true, features = ["std"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 sec1.workspace = true
@@ -66,6 +65,7 @@ uuid = { workspace = true, features = ["v4"] }
 rand_core = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true, features = ["std"] }
 
+android_attest.path = "../../android_attest"
 apple_app_attest.path = "../../apple_app_attest"
 nl_wallet_mdoc.path = "../../mdoc"
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
