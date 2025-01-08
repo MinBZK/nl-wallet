@@ -9,6 +9,7 @@
 #      coverage_report:
 #        path: wallet_core/platform_support/android/platform_support/src/main/java/cobertura.xml
 #        coverage_format: cobertura
+#      junit: wallet_core/platform_support/android/platform_support/build/outputs/androidTest-results/connected/*
 #    paths:
 #      - wallet_core/platform_support/android/platform_support/build/reports/**
 #      - wallet_core/platform_support/android/platform_support/build/outputs/androidTest-results
