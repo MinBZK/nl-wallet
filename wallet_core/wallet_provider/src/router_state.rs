@@ -16,6 +16,7 @@ use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
+use wallet_provider_service::account_server::AndroidRootPublicKey;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
@@ -72,6 +73,13 @@ impl RouterState {
             .map(|anchor| anchor.to_owned_trust_anchor())
             .collect();
 
+        let android_root_public_keys = settings
+            .android
+            .root_public_keys
+            .into_iter()
+            .map(AndroidRootPublicKey::from)
+            .collect();
+
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
             "account_server".into(),
@@ -80,6 +88,7 @@ impl RouterState {
             settings.pin_public_disclosure_protection_key_identifier,
             apple_config,
             apple_trust_anchors,
+            android_root_public_keys,
         )?;
 
         let db = Db::new(

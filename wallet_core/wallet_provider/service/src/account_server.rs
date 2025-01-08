@@ -5,6 +5,7 @@ use chrono::Utc;
 use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
+use rsa::RsaPublicKey;
 use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -249,6 +250,12 @@ impl AppleAttestationConfiguration {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum AndroidRootPublicKey {
+    Rsa(RsaPublicKey),
+    Ecdsa(VerifyingKey),
+}
+
 pub struct AccountServer {
     instruction_challenge_timeout: Duration,
 
@@ -259,9 +266,12 @@ pub struct AccountServer {
     pin_public_disclosure_protection_key_identifier: String,
     pub apple_config: AppleAttestationConfiguration,
     apple_trust_anchors: Vec<TrustAnchor<'static>>,
+    #[allow(dead_code)]
+    android_root_public_keys: Vec<AndroidRootPublicKey>,
 }
 
 impl AccountServer {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         instruction_challenge_timeout: Duration,
         name: String,
@@ -270,6 +280,7 @@ impl AccountServer {
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
         apple_trust_anchors: Vec<TrustAnchor<'static>>,
+        android_root_public_keys: Vec<AndroidRootPublicKey>,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
             instruction_challenge_timeout,
@@ -279,6 +290,7 @@ impl AccountServer {
             pin_public_disclosure_protection_key_identifier,
             apple_config,
             apple_trust_anchors,
+            android_root_public_keys,
         })
     }
 
@@ -919,6 +931,7 @@ pub mod mock {
                 environment: apple_mock_ca.environment,
             },
             vec![apple_mock_ca.trust_anchor().to_owned()],
+            vec![],
         )
         .unwrap();
 

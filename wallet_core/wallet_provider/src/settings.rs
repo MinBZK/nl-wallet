@@ -8,6 +8,10 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use derive_more::From;
+use derive_more::Into;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
+use rsa::RsaPublicKey;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -18,6 +22,7 @@ use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_provider_database_settings::Database;
+use wallet_provider_service::account_server;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -41,6 +46,7 @@ pub struct Settings {
     pub instruction_challenge_timeout: Duration,
 
     pub ios: Ios,
+    pub android: Android,
 }
 
 #[derive(Clone, Deserialize)]
@@ -91,6 +97,16 @@ pub enum AppleEnvironment {
     Production,
 }
 
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct Android {
+    #[serde_as(as = "Vec<Base64>")]
+    pub root_public_keys: Vec<AndroidRootPublicKey>,
+}
+
+#[derive(Clone, Into)]
+pub struct AndroidRootPublicKey(account_server::AndroidRootPublicKey);
+
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
@@ -140,5 +156,18 @@ impl From<AppleEnvironment> for AttestationEnvironment {
             AppleEnvironment::Development => Self::Development,
             AppleEnvironment::Production => Self::Production,
         }
+    }
+}
+
+impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
+    type Error = rsa::pkcs1::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        // Choose to return the RSA parsing error here, as this will most likely be used in production.
+        let public_key = VerifyingKey::from_public_key_der(&value)
+            .map(account_server::AndroidRootPublicKey::Ecdsa)
+            .or_else(|_| RsaPublicKey::from_public_key_der(&value).map(account_server::AndroidRootPublicKey::Rsa))?;
+
+        Ok(AndroidRootPublicKey(public_key))
     }
 }

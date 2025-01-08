@@ -41,3 +41,10 @@ root_certificates = [
     "${APPLE_ROOT_CA}",
     "${MOCK_APPLE_ROOT_CA}"
 ]
+
+[android]
+root_public_keys = [
+    "${ANDROID_ROOT_PUBKEY}",
+    "${ANDROID_EMULATOR_EC_ROOT_PUBKEY}",
+    "${ANDROID_EMULATOR_RSA_ROOT_PUBKEY}"
+]
