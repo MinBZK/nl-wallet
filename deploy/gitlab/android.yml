@@ -35,6 +35,8 @@
       artifacts: false
     - job: test-rust
       artifacts: false
+    - job: test-rust-doctest
+      artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:

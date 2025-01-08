@@ -8,6 +8,8 @@ sonar-rust:
   needs:
     - job: test-rust
       artifacts: true
+    - job: test-rust-doctest
+      artifacts: false
   variables:
     GIT_STRATEGY: clone
   before_script:
