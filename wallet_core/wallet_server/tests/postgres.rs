@@ -9,13 +9,13 @@ use serde::Serialize;
 use serial_test::parallel;
 use serial_test::serial;
 
-use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
 use openid4vc::server_state::test::RandomData;
 use openid4vc::server_state::test::{self};
 use openid4vc::server_state::Expirable;
 use openid4vc::server_state::HasProgress;
 use openid4vc::server_state::Progress;
 use openid4vc::server_state::SessionStoreTimeouts;
+use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::utils;
 use wallet_server::settings::Settings;
 use wallet_server::settings::Storage;

@@ -832,7 +832,6 @@ mod tests {
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::test::data::addr_street;
     use nl_wallet_mdoc::test::data::pid_full_name;
-    use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
     use nl_wallet_mdoc::utils::serialization::cbor_serialize;
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::CborSeq;
@@ -845,6 +844,7 @@ mod tests {
     use nl_wallet_mdoc::Document;
     use nl_wallet_mdoc::IssuerSigned;
     use nl_wallet_mdoc::SessionTranscript;
+    use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::examples::Examples;
