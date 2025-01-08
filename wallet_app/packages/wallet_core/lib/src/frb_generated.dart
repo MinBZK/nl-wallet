@@ -78,7 +78,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
-    ioDirectory: '../../../wallet_core/flutter_api_v2/target/release/',
+    ioDirectory: '../../../wallet_core/flutter_api/target/release/',
     webPrefix: 'pkg/',
   );
 }

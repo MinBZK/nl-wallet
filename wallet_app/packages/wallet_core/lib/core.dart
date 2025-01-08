@@ -5,7 +5,7 @@ library;
 export 'package:flutter_rust_bridge/flutter_rust_bridge.dart' show FlutterRustBridgeTaskConstMeta;
 
 export 'src/frb_generated.dart';
-export 'src/wallet_core.dart';
+// export 'src/wallet_core.dart'; //todo: restore or remove?
 export 'src/api/full.dart';
 export 'src/models/card.dart';
 export 'src/models/config.dart';

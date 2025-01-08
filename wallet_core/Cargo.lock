@@ -1747,15 +1747,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "flutter_api_macros"
-version = "0.3.0-dev"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
-name = "flutter_api_v2"
+name = "flutter_api"
 version = "0.3.0-dev"
 dependencies = [
  "android_logger 0.14.1",
@@ -1777,6 +1769,14 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wallet",
+]
+
+[[package]]
+name = "flutter_api_macros"
+version = "0.3.0-dev"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -28,7 +28,7 @@ pub fn async_runtime(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     sig.asyncness = None;
 
-    quote! {
+    let stream = quote! {
         #(#attrs)* #vis #sig {
             crate::async_runtime::get_async_runtime().block_on(
                 ::sentry::SentryFutureExt::bind_hub(
@@ -39,8 +39,9 @@ pub fn async_runtime(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 )
             )
         }
-    }
-    .into()
+    };
+
+    stream.into()
 }
 
 /// This macro is to be used for all API functions that are exposed to Flutter
@@ -69,7 +70,7 @@ pub fn async_runtime(_attr: TokenStream, item: TokenStream) -> TokenStream {
 pub fn flutter_api_error(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let ItemFn { attrs, vis, sig, block } = parse_macro_input!(item as ItemFn);
 
-    quote! {
+    let stream = quote! {
         #(#attrs)* #vis #sig {
             (|| #block)()
                 .map_err(|error: ::anyhow::Error|
@@ -84,6 +85,7 @@ pub fn flutter_api_error(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     }
                 )
         }
-    }
-    .into()
+    };
+
+    stream.into()
 }

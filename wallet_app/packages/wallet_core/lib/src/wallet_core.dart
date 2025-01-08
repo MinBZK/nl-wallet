@@ -11,6 +11,7 @@ final _dylib = io.Platform.isWindows ? '$_base.dll' : 'lib$_base.so';
 
 final api = WalletCore.init();
 
+//todo:
 //final api = WalletCoreImpl(
 //   io.Platform.isIOS || io.Platform.isMacOS ? DynamicLibrary.executable() : DynamicLibrary.open(_dylib),
 // );

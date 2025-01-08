@@ -5,8 +5,8 @@ members = [
     "configuration_server",
     "error_category",
     "error_category/error_category_derive",
-    "flutter_api_v2",
-    "flutter_api_v2/flutter_api_macros",
+    "flutter_api",
+    "flutter_api/flutter_api_macros",
     "gba_hc_converter",
     "mdoc",
     "mock_relying_party",
@@ -29,7 +29,7 @@ members = [
     "wallet_server",
     "wallet_server/migrations",
 ]
-exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
+exclude = ["uniffi-bindgen"]
 resolver = "2"
 
 [workspace.package]

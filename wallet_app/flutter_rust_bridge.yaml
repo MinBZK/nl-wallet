@@ -1,5 +1,5 @@
 rust_input: crate::api,crate::model
-rust_root: ../wallet_core/flutter_api_v2/
+rust_root: ../wallet_core/flutter_api/
 dart_output: packages/wallet_core/lib/src
 dart_format_line_length: 120
 dart_entrypoint_class_name: WalletCore
