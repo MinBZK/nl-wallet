@@ -44,7 +44,7 @@ impl IssuerSigned {
             validity_info: validity,
         };
 
-        // todo: verify JSON representation of unsigned_mdoc against metadata schema
+        // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3808)
 
         let headers = HeaderBuilder::new()
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))

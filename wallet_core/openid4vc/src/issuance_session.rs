@@ -822,7 +822,7 @@ impl CredentialResponse {
 
                 // Verify and parse the type metadata
                 let _metadata = signed_metadata.verify_and_parse()?;
-                // todo: verify JSON representation of mdoc against metadata schema
+                // TODO: verify JSON representation of mdoc against metadata schema (PVW-3812)
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
