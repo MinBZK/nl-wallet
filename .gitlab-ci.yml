@@ -117,17 +117,21 @@ variables:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:f2566c845a87b6af5e88aae6dc0a6a34482e130101e71f617f1f3806a747a9b5"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:343b84b0afc11d6665960ddb92bddc5bb8ff224566ecc83aad727de102dd1a16"
   script:
     - set -euxo pipefail
     - flutter --version
     - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
     - flutter analyze $FLUTTER_APP_PROJECT_DIR
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json")
+    - $HOME/.pub-cache/bin/tojunit -i $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.json -o $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.xml -b $FLUTTER_APP_PROJECT_DIR/test/src
   artifacts:
+    reports:
+      junit: $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.xml
     paths:
       - $FLUTTER_APP_PROJECT_DIR/coverage/lcov.info
       - $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.json
+      - $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.xml
 
 test-flutter-ui:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -149,7 +153,7 @@ test-flutter-ui:
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:f2566c845a87b6af5e88aae6dc0a6a34482e130101e71f617f1f3806a747a9b5"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:343b84b0afc11d6665960ddb92bddc5bb8ff224566ecc83aad727de102dd1a16"
   script:
     - set -euxo pipefail
     - flutter --version
