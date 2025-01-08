@@ -30,6 +30,8 @@ test-ios:
       artifacts: false
     - job: test-rust
       artifacts: false
+    - job: test-rust-doctest
+      artifacts: false
     - job: test-ios
       artifacts: false
     - job: test-rust-compilation-ios

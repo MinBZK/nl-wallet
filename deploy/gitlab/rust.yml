@@ -50,7 +50,6 @@ test-rust:
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
-    - RUST_BACKTRACE=1 cargo test --doc --features integration_test --locked
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
@@ -62,6 +61,17 @@ test-rust:
     paths:
       - wallet_core/lcov.info
       - wallet_core/target/nextest/ci/junit.xml
+
+test-rust-doctest:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
+  cache: !reference [.rust-cache, cache]
+  before_script:
+    - set -euxo pipefail
+    - cd wallet_core
+  script:
+    - RUST_BACKTRACE=1 cargo test --doc --locked
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -91,6 +101,8 @@ test-rust-compilation-ios:
   cache: !reference [.rust-cache, cache]
   needs:
     - job: test-rust
+      artifacts: false
+    - job: test-rust-doctest
       artifacts: false
   variables:
     RUSTFLAGS: "-D warnings"
