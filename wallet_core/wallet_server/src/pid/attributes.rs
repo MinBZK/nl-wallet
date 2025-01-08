@@ -19,8 +19,8 @@ use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::client::HttpBrpClient;
 
+use super::digid;
 use super::digid::OpenIdClient;
-use super::digid::{self};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

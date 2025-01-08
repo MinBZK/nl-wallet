@@ -15,9 +15,9 @@ use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::utils::cose::ClonePayload;
 use crate::utils::reader_auth::ReaderRegistration;
+use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::utils::serialization::{self};
 use crate::utils::x509::BorrowingCertificate;
 use crate::utils::x509::CertificateType;
 use crate::utils::x509::CertificateUsage;
@@ -132,8 +132,8 @@ mod tests {
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
     use crate::server_keys::generate::Ca;
     use crate::server_keys::KeyPair;
+    use crate::utils::cose;
     use crate::utils::cose::MdocCose;
-    use crate::utils::cose::{self};
 
     use super::*;
 

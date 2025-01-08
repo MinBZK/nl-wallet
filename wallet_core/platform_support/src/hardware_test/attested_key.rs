@@ -1,10 +1,11 @@
 use tokio::runtime;
 
-use apple_app_attest::{AppIdentifier, APPLE_TRUST_ANCHORS};
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::APPLE_TRUST_ANCHORS;
 
 use crate::attested_key::hardware::HardwareAttestedKeyHolder;
+use crate::attested_key::test;
 use crate::attested_key::test::AppleTestData;
-use crate::attested_key::test::{self};
 
 #[no_mangle]
 extern "C" fn attested_key_test(has_xcode_env: bool) {
@@ -35,7 +36,8 @@ extern "C" fn attested_key_test(has_xcode_env: bool) {
 #[cfg(target_os = "android")]
 mod android {
     use android_logger::Config;
-    use jni::{objects::JClass, JNIEnv};
+    use jni::objects::JClass;
+    use jni::JNIEnv;
     use log::LevelFilter;
 
     #[rustfmt::skip]
