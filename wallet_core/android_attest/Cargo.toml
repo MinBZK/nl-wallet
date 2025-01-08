@@ -34,6 +34,8 @@ rcgen = { workspace = true, optional = true, features = ["ring"] }
 
 [dev-dependencies]
 assert_matches.workspace = true
+p256 = { workspace = true, features = ["pem"] }
+rand.workspace = true
 rstest.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true

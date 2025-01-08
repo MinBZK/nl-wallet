@@ -120,6 +120,7 @@ dependencies = [
  "num-traits",
  "nutype",
  "p256",
+ "rand",
  "rcgen",
  "regex",
  "reqwest",
