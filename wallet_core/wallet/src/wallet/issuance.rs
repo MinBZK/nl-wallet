@@ -292,8 +292,8 @@ where
         let mut documents = attestation_previews
             .into_iter()
             .map(|preview| {
-                let (unsigned_mdoc, signed_metadata, issuer) = preview.try_into()?;
-                let _metadata = signed_metadata.verify_and_parse()?;
+                let (unsigned_mdoc, protected_metadata, issuer) = preview.try_into()?;
+                let _metadata = protected_metadata.verify_and_parse()?;
                 // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
                 Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer)?)
@@ -465,7 +465,7 @@ mod tests {
     use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt::metadata::SignedTypeMetadata;
+    use sd_jwt::metadata::ProtectedTypeMetadata;
     use wallet_common::config::http::TlsPinningConfig;
 
     use crate::document;
@@ -693,7 +693,7 @@ mod tests {
         let mut wallet = setup_wallet_with_digid_session();
 
         let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
-        let signed_metadata = SignedTypeMetadata::sign(&metadata).unwrap();
+        let protected_metadata = ProtectedTypeMetadata::protect(&metadata).unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
@@ -702,7 +702,7 @@ mod tests {
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    signed_metadata,
+                    protected_metadata,
                 }],
             ))
         });
@@ -817,14 +817,14 @@ mod tests {
         start_context.expect().return_once(|| {
             let (mut unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
             unsigned_mdoc.doc_type = "foobar".to_string();
-            let signed_metadata = SignedTypeMetadata::sign(&metadata).unwrap();
+            let protected_metadata = ProtectedTypeMetadata::protect(&metadata).unwrap();
 
             Ok((
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    signed_metadata,
+                    protected_metadata,
                 }],
             ))
         });

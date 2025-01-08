@@ -132,7 +132,7 @@ impl IssuerMetadata {
                 display: None,
                 credential_configurations_supported: HashMap::new(),
             },
-            signed_metadata: None,
+            protected_metadata: None,
         }
     }
 }

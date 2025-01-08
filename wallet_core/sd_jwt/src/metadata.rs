@@ -31,17 +31,17 @@ pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
 pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignedTypeMetadata {
-    pub metadata_encoded: String,
-    pub integrity: ResourceIntegrity,
+pub struct ProtectedTypeMetadata {
+    metadata_encoded: String,
+    integrity: ResourceIntegrity,
 }
 
-impl SignedTypeMetadata {
-    pub fn sign(metadata: &TypeMetadata) -> Result<Self, TypeMetadataError> {
+impl ProtectedTypeMetadata {
+    pub fn protect(metadata: &TypeMetadata) -> Result<Self, TypeMetadataError> {
         let bytes: Vec<u8> = serde_json::to_vec(&metadata)?;
         let metadata_encoded = BASE64_STANDARD.encode(bytes);
         let integrity = ResourceIntegrity::from_bytes(metadata_encoded.as_bytes());
-        Ok(SignedTypeMetadata {
+        Ok(ProtectedTypeMetadata {
             metadata_encoded,
             integrity,
         })
@@ -56,6 +56,14 @@ impl SignedTypeMetadata {
         let decoded = BASE64_STANDARD.decode(self.metadata_encoded.as_bytes())?;
         let metadata: TypeMetadata = serde_json::from_slice(&decoded)?;
         Ok(metadata)
+    }
+
+    pub fn metadata_encoded(&self) -> &str {
+        &self.metadata_encoded
+    }
+
+    pub fn integrity(&self) -> &ResourceIntegrity {
+        &self.integrity
     }
 }
 
@@ -270,8 +278,8 @@ mod test {
 
     use crate::metadata::ClaimPath;
     use crate::metadata::MetadataExtendsOption;
+    use crate::metadata::ProtectedTypeMetadata;
     use crate::metadata::SchemaOption;
-    use crate::metadata::SignedTypeMetadata;
     use crate::metadata::TypeMetadata;
 
     async fn read_and_parse_metadata(filename: &str) -> TypeMetadata {
@@ -407,7 +415,7 @@ mod test {
     #[tokio::test]
     async fn test_sign_verify() {
         let metadata = read_and_parse_metadata("example-metadata.json").await;
-        let signed = SignedTypeMetadata::sign(&metadata).unwrap();
+        let signed = ProtectedTypeMetadata::protect(&metadata).unwrap();
         signed.verify_and_parse().unwrap();
     }
 }

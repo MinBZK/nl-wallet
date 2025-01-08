@@ -59,7 +59,7 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
-use sd_jwt::metadata::SignedTypeMetadata;
+use sd_jwt::metadata::ProtectedTypeMetadata;
 use sd_jwt::metadata::TypeMetadata;
 #[cfg(feature = "issuance")]
 use wallet_common::config::http::TlsPinningConfig;
@@ -887,13 +887,13 @@ async fn prepare_example_holder_mocks(
     };
 
     let metadata = TypeMetadata::new_example();
-    let signed_metadata = SignedTypeMetadata::sign(&metadata).unwrap();
+    let protected_metadata = ProtectedTypeMetadata::protect(&metadata).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
     let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, signed_metadata, mdoc_public_key, issuer_key_pair)
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, protected_metadata, mdoc_public_key, issuer_key_pair)
         .await
         .unwrap();
     let mdoc =
