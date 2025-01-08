@@ -101,8 +101,7 @@
         "type": "string"
       },
       "resident_postal_code": {
-        "type": "string",
-        "format": "date"
+        "type": "string"
       },
       "resident_city": {
         "type": "boolean"
