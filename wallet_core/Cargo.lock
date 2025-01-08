@@ -3096,7 +3096,6 @@ dependencies = [
  "itertools 0.13.0",
  "nutype",
  "p256",
- "parking_lot",
  "rand_core",
  "rcgen",
  "regex",

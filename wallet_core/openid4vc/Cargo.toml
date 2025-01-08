@@ -83,5 +83,10 @@ serde_bytes = { workspace = true, features = ["std"] }
 tracing-test.workspace = true
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors", "mock_time"] }
-wallet_common = { path = "../wallet_common", features = ["examples", "mock_remote_key", "insecure_http_client"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
+wallet_common = { path = "../wallet_common", features = [
+    "examples",
+    "insecure_http_client",
+    "mock_remote_key",
+    "mock_time",
+] }

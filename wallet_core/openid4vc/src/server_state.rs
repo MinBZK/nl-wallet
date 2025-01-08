@@ -563,7 +563,7 @@ pub mod test {
 mod tests {
     use parking_lot::RwLock;
 
-    use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
+    use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_common::utils;
 
     use self::test::RandomData;
