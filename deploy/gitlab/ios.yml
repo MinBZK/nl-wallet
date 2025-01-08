@@ -8,8 +8,9 @@ test-ios:
     when: always
     reports:
       coverage_report:
-        path: wallet_core/platform_support/ios/cobertura.xml
+        path: fastlane/test_output/cobertura.xml
         coverage_format: cobertura
+      junit: fastlane/test_output/report.junit
     paths:
       - "fastlane/test_output/*"
   variables:
@@ -18,7 +19,6 @@ test-ios:
   script:
     - bundle install
     - bundle exec fastlane ios test
-    - cp fastlane/test_output/cobertura.xml wallet_core/platform_support/ios/
 
 ### iOS Building
 .build-ios-app:
