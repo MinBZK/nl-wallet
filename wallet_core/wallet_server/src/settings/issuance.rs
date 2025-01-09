@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::fs;
 
 use indexmap::IndexMap;
+use serde::de;
 use serde::Deserialize;
-use serde_with::base64::Base64;
+use serde::Deserializer;
 
 use sd_jwt::metadata::TypeMetadata;
 use wallet_common::account::serialization::DerVerifyingKey;
@@ -21,7 +23,7 @@ pub struct Issuer {
     /// Issuer private keys index per doctype
     pub private_keys: HashMap<String, KeyPair>,
 
-    #[serde_as(as = "Vec<Base64>")]
+    #[serde(deserialize_with = "deserialize_type_metadata")]
     pub metadata: Vec<TypeMetadata>,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
@@ -36,6 +38,25 @@ pub struct Issuer {
     pub brp_server: BaseUrl,
 
     pub wte_issuer_pubkey: DerVerifyingKey,
+}
+
+fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<Vec<TypeMetadata>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
+    let path = Vec::<String>::deserialize(deserializer)?;
+
+    let metadatas = path
+        .iter()
+        .map(|path| {
+            let metadata_file = fs::read(base_path.join(path)).map_err(de::Error::custom)?;
+            serde_json::from_slice(metadata_file.as_slice())
+        })
+        .collect::<Result<_, _>>()
+        .map_err(de::Error::custom)?;
+
+    Ok(metadatas)
 }
 
 #[derive(Clone, Deserialize)]

@@ -283,10 +283,12 @@ MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_part
 export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 # Base64 encode the Technical Attestation Schemas
-ISSUER_METADATA_PID=$(< "${DEVENV}/com_example_pid_metadata.json" ${BASE64})
-export ISSUER_METADATA_PID
-ISSUER_METADATA_ADDRESS=$(< "${DEVENV}/com_example_address_metadata.json" ${BASE64})
-export ISSUER_METADATA_ADDRESS
+cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${WALLET_SERVER_DIR}"
+cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${BASE_DIR}/wallet_core/tests_integration"
+ISSUER_METADATA_PID_PATH="com_example_pid_metadata.json"
+export ISSUER_METADATA_PID_PATH
+ISSUER_METADATA_ADDRESS_PATH="com_example_address_metadata.json"
+export ISSUER_METADATA_ADDRESS_PATH
 
 # And the mrp's wallet_server config
 render_template "${DEVENV}/mrp_verification_server.toml.template" "${WALLET_SERVER_DIR}/verification_server.toml"
