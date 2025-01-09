@@ -18,8 +18,11 @@ pub enum TypeMetadataError {
     Serialization(#[from] serde_json::Error),
     #[error("decoding failed {0}")]
     Decoding(#[from] base64::DecodeError),
-    #[error("resource integrity check failed")]
-    ResourceIntegrity,
+    #[error("resource integrity check failed, expected: {expected:?}, actual: {actual:?}")]
+    ResourceIntegrity {
+        expected: ResourceIntegrity,
+        actual: ResourceIntegrity,
+    },
 }
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
@@ -50,7 +53,10 @@ impl ProtectedTypeMetadata {
     pub fn verify_and_parse(&self) -> Result<TypeMetadata, TypeMetadataError> {
         let integrity = ResourceIntegrity::from_bytes(self.metadata_encoded.as_bytes());
         if self.integrity != integrity {
-            return Err(TypeMetadataError::ResourceIntegrity);
+            return Err(TypeMetadataError::ResourceIntegrity {
+                expected: self.integrity.clone(),
+                actual: integrity.clone(),
+            });
         }
 
         let decoded = BASE64_STANDARD.decode(self.metadata_encoded.as_bytes())?;
