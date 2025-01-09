@@ -42,7 +42,6 @@
       artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:2450674118dd8d677142299b35faf233f407031ce038d57d4c9d04d83c778ac2"
-  cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
     paths:
