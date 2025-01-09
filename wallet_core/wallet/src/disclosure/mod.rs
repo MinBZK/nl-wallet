@@ -47,11 +47,11 @@ pub trait MdocDisclosureSession<D> {
 
     fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError>;
 
-    async fn start<'a>(
+    async fn start(
         disclosure_uri: Self::DisclosureUriData,
         disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
-        trust_anchors: &[TrustAnchor<'a>],
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, MdocDisclosureError>
     where
         Self: Sized;
@@ -94,11 +94,11 @@ where
         VpDisclosureUriData::parse_from_uri(uri, base_uri)
     }
 
-    async fn start<'a>(
+    async fn start(
         disclosure_uri: VpDisclosureUriData,
         uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
-        trust_anchors: &[TrustAnchor<'a>],
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, MdocDisclosureError>
     where
         Self: Sized,
@@ -311,11 +311,11 @@ mod mock {
             }
         }
 
-        async fn start<'a>(
+        async fn start(
             _disclosure_uri: Self::DisclosureUriData,
             disclosure_uri_source: DisclosureUriSource,
             _mdoc_data_source: &D,
-            _trust_anchors: &[TrustAnchor<'a>],
+            _trust_anchors: &[TrustAnchor<'_>],
         ) -> Result<Self, MdocDisclosureError> {
             if let Some(error) = NEXT_START_ERROR.lock().take() {
                 Err(error)?;

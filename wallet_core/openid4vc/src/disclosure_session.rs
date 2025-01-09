@@ -403,12 +403,12 @@ impl<H, I> DisclosureSession<H, I>
 where
     H: VpMessageClient,
 {
-    pub async fn start<'a, S>(
+    pub async fn start<S>(
         client: H,
         request_uri_query: &str,
         uri_source: DisclosureUriSource,
         mdoc_data_source: &S,
-        trust_anchors: &[TrustAnchor<'a>],
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, VpClientError>
     where
         S: MdocDataSource<MdocIdentifier = I>,
@@ -537,7 +537,7 @@ where
 
     /// Internal helper function for processing and checking the Authorization Request,
     /// including checking whether or not we have the requested attributes.
-    async fn process_request<'a, S>(
+    async fn process_request<S>(
         auth_request: &IsoVpAuthorizationRequest,
         certificate: &BorrowingCertificate,
         session_transcript: &SessionTranscript,
