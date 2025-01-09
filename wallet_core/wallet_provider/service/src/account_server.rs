@@ -124,6 +124,14 @@ pub enum WalletCertificateError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum AndroidAttestationError {
+    #[error("could not decode certificate chain: {0}")]
+    CertificateChain(#[from] CertificateError),
+    #[error("root CA in certificate chain does not contain any of the configured public keys")]
+    RootPublicKeyMismatch,
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
@@ -132,7 +140,7 @@ pub enum RegistrationError {
     #[error("validation of Apple key and/or app attestation failed: {0}")]
     AppleAttestation(#[from] AttestationError),
     #[error("validation of Google key attestation failed: {0}")]
-    GoogleAttestation(#[from] CertificateError),
+    AndroidAttestation(#[from] AndroidAttestationError),
     #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_common::account::errors::Error),
     #[error("registration message validation error: {0}")]
@@ -377,7 +385,25 @@ impl AccountServer {
                 debug!("Validating Android key attestation");
 
                 // For now, just extract the verifying key from the first X.509 certificate in the chain.
-                let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.first().clone())?;
+                let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.first().clone())
+                    .map_err(AndroidAttestationError::CertificateChain)?;
+
+                let root_certificate = BorrowingCertificate::from_der(certificate_chain.last().clone())
+                    .map_err(AndroidAttestationError::CertificateChain)?;
+                let root_public_key = root_certificate
+                    .x509_certificate()
+                    .public_key()
+                    .parsed()
+                    .map_err(|error| AndroidAttestationError::CertificateChain(CertificateError::X509Error(error)))?;
+
+                // TODO: This check should be part of `android_attest`.
+                if !self
+                    .android_root_public_keys
+                    .iter()
+                    .any(|public_key| root_public_key == *public_key)
+                {
+                    return Err(AndroidAttestationError::RootPublicKeyMismatch)?;
+                }
 
                 let hw_pubkey = *leaf_certificate.public_key();
 
