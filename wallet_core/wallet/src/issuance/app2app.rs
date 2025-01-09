@@ -9,6 +9,8 @@ use reqwest::Response;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
+use serde_with::DeserializeFromStr;
+use serde_with::NoneAsEmptyString;
 use tracing::info;
 use tracing::warn;
 use url::Url;
@@ -31,9 +33,9 @@ pub struct RedirectUrlParameters {
     app_app: DigidJsonRequest,
 }
 
+#[serde_as]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "PascalCase")]
-#[serde_as]
 pub struct DigidJsonRequest {
     icon: Url,            // URL to the icon of the app, must be within the same domain as the return URL
     return_url: Url,      // universal link of the wallet app
@@ -43,9 +45,9 @@ pub struct DigidJsonRequest {
 }
 
 // As these parameters are constructed by rdo-max, they are opaque to us and passed as is to DigiD
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
-#[serde_as]
 pub struct SamlRedirectUrlParameters {
     #[serde(rename = "SAMLRequest")]
     saml_request: String,
@@ -60,23 +62,21 @@ pub struct ReturnUrlParameters {
     app_app: DigidJsonResponse,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, strum::Display)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Eq, DeserializeFromStr, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]
 pub enum App2AppErrorMessage {
-    #[serde(rename = "_by_user")]
     #[strum(to_string = "_by_user")]
     ByUser,
     NotActivated,
     Timeout,
     IconMissing,
-    #[serde(untagged)]
+    #[strum(default)]
     Other(String),
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
-#[serde_as]
 pub struct DigidJsonResponse {
     #[serde(flatten)]
     saml_parameters: SamlReturnUrlParameters,
@@ -85,9 +85,9 @@ pub struct DigidJsonResponse {
 }
 
 // As these parameters are constructed by DigiD, they are opaque to us and passed as is to rdo-max
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
-#[serde_as]
 pub struct SamlReturnUrlParameters {
     #[serde(rename = "SAMLart")]
     #[serde_as(as = "NoneAsEmptyString")]
