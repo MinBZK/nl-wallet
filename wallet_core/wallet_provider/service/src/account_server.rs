@@ -1071,6 +1071,7 @@ mod tests {
     use tokio::sync::OnceCell;
     use uuid::uuid;
 
+    use android_attest::mock::MockCaChain;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
@@ -1421,6 +1422,29 @@ mod tests {
         .expect_err("registering with an invalid Apple attestation should fail");
 
         assert_matches!(error, RegistrationError::AppleAttestation(_));
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_register_invalid_android_attestation() {
+        let setup = WalletCertificateSetup::new().await;
+        let (account_server, _apple_mock_ca, _android_mock_ca_chain) =
+            mock::setup_account_server(&setup.signing_pubkey);
+
+        // Generate the Google certificate chain using a different set of CAs to make the attestation validation fail.
+        let other_android_mock_ca_chain = MockCaChain::generate(1);
+
+        let error = do_registration(
+            &account_server,
+            get_global_hsm().await,
+            &setup.signing_key,
+            &setup.pin_privkey,
+            AttestationCa::Google(&other_android_mock_ca_chain),
+        )
+        .await
+        .expect_err("registering with an invalid Android attestation should fail");
+
+        assert_matches!(error, RegistrationError::AndroidAttestation(_));
     }
 
     #[tokio::test]
