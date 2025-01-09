@@ -905,6 +905,7 @@ impl AccountServer {
 pub mod mock {
     use p256::ecdsa::SigningKey;
 
+    use android_attest::mock::MockCaChain;
     use apple_app_attest::MockAttestationCa;
     use wallet_common::apple::MockAppleAttestedKey;
 
@@ -912,8 +913,24 @@ pub mod mock {
 
     use super::*;
 
-    pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> (AccountServer, MockAttestationCa) {
+    #[derive(Clone, Copy)]
+    pub enum AttestationType {
+        Apple,
+        Google,
+    }
+
+    #[derive(Clone, Copy)]
+    pub enum AttestationCa<'a> {
+        Apple(&'a MockAttestationCa),
+        Google(&'a MockCaChain),
+    }
+
+    pub fn setup_account_server(
+        certificate_signing_pubkey: &VerifyingKey,
+    ) -> (AccountServer, MockAttestationCa, MockCaChain) {
         let apple_mock_ca = MockAttestationCa::generate(AttestationEnvironment::Development);
+        let android_mock_ca_chain = MockCaChain::generate(1);
+
         let account_server = AccountServer::new(
             Duration::from_millis(15000),
             "mock_account_server".into(),
@@ -925,11 +942,11 @@ pub mod mock {
                 environment: apple_mock_ca.environment,
             },
             vec![apple_mock_ca.trust_anchor().to_owned()],
-            vec![],
+            vec![RootPublicKey::Ecdsa(android_mock_ca_chain.root_public_key)],
         )
         .unwrap();
 
-        (account_server, apple_mock_ca)
+        (account_server, apple_mock_ca, android_mock_ca_chain)
     }
 
     #[derive(Debug)]
@@ -1050,16 +1067,12 @@ mod tests {
     use crate::wallet_certificate::{self};
     use crate::wte_issuer::mock::MockWteIssuer;
 
+    use super::mock::AttestationCa;
+    use super::mock::AttestationType;
     use super::mock::MockHardwareKey;
     use super::*;
 
     static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
-
-    #[derive(Debug, Clone, Copy)]
-    enum AttestationType {
-        Apple,
-        Google,
-    }
 
     async fn get_global_hsm() -> &'static MockPkcs11Client<HsmError> {
         HSM.get_or_init(wallet_certificate::mock::setup_hsm).await
@@ -1070,18 +1083,17 @@ mod tests {
         hsm: &MockPkcs11Client<HsmError>,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         pin_privkey: &SigningKey,
-        mock_apple_ca: &MockAttestationCa,
-        attestation_type: AttestationType,
+        attestation_ca: AttestationCa<'_>,
     ) -> Result<(WalletCertificate, MockHardwareKey), RegistrationError> {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
             .await
             .expect("Could not get registration challenge");
 
-        let (registration_message, hw_privkey) = match attestation_type {
-            AttestationType::Apple => {
+        let (registration_message, hw_privkey) = match attestation_ca {
+            AttestationCa::Apple(apple_mock_ca) => {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
-                    mock_apple_ca,
+                    apple_mock_ca,
                     account_server.apple_config.app_identifier.clone(),
                     &utils::sha256(&challenge),
                 );
@@ -1092,10 +1104,9 @@ mod tests {
 
                 (registration_message, MockHardwareKey::Apple(attested_key))
             }
-            AttestationType::Google => {
-                let (attested_certificate_chain, attested_private_keys) =
-                    android_attest::mock::generate_mock_certificate_chain(1);
-                let attested_private_key = attested_private_keys.into_iter().next().unwrap();
+            AttestationCa::Google(android_mock_ca_chain) => {
+                let (attested_certificate_chain, attested_private_key) =
+                    android_mock_ca_chain.generate_leaf_certificate();
                 let app_attestation_token = utils::random_bytes(32);
                 let registration_message = ChallengeResponse::new_google(
                     &attested_private_key,
@@ -1135,15 +1146,19 @@ mod tests {
         WalletUserTestRepo,
     ) {
         let setup = WalletCertificateSetup::new().await;
-        let (account_server, apple_mock_ca) = mock::setup_account_server(&setup.signing_pubkey);
+        let (account_server, apple_mock_ca, android_mock_ca_chain) = mock::setup_account_server(&setup.signing_pubkey);
+
+        let attestation_ca = match attestation_type {
+            AttestationType::Apple => AttestationCa::Apple(&apple_mock_ca),
+            AttestationType::Google => AttestationCa::Google(&android_mock_ca_chain),
+        };
 
         let (cert, hw_privkey) = do_registration(
             &account_server,
             get_global_hsm().await,
             &setup.signing_key,
             &setup.pin_privkey,
-            &apple_mock_ca,
-            attestation_type,
+            attestation_ca,
         )
         .await
         .expect("Could not process registration message at account server");
@@ -1363,7 +1378,8 @@ mod tests {
     #[rstest]
     async fn test_register_invalid_apple_attestation() {
         let setup = WalletCertificateSetup::new().await;
-        let (account_server, _apple_mock_ca) = mock::setup_account_server(&setup.signing_pubkey);
+        let (account_server, _apple_mock_ca, _android_mock_ca_chain) =
+            mock::setup_account_server(&setup.signing_pubkey);
 
         // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
         let other_apple_mock_ca = MockAttestationCa::generate(account_server.apple_config.environment);
@@ -1373,8 +1389,7 @@ mod tests {
             get_global_hsm().await,
             &setup.signing_key,
             &setup.pin_privkey,
-            &other_apple_mock_ca,
-            AttestationType::Apple,
+            AttestationCa::Apple(&other_apple_mock_ca),
         )
         .await
         .expect_err("registering with an invalid Apple attestation should fail");

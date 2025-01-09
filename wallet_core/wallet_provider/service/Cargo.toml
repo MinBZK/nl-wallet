@@ -23,6 +23,7 @@ mock = [
     "dep:anyhow",
     "dep:hmac",
     "dep:rand_core",
+    "android_attest/mock",
     "apple_app_attest/mock",
     "wallet_provider_domain/mock",
     "wallet_common/mock_secure_keys",
