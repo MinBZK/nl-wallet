@@ -1090,8 +1090,8 @@ mod tests {
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
+    use crate::wallet_certificate;
     use crate::wallet_certificate::mock::WalletCertificateSetup;
-    use crate::wallet_certificate::{self};
     use crate::wte_issuer::mock::MockWteIssuer;
 
     use super::mock::AttestationCa;

@@ -108,7 +108,7 @@ class _QrScannerState extends State<QrScanner> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 8),
         margin: EdgeInsets.only(top: context.mediaQuery.padding.top),
-        color: context.theme.appBarTheme.backgroundColor?.withOpacity(0.9),
+        color: context.theme.appBarTheme.backgroundColor?.withValues(alpha: 0.9),
         child: Text.rich(
           context.l10n.qrScreenScanHint.toTextSpan(context),
           textAlign: TextAlign.center,

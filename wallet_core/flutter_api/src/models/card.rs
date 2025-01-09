@@ -1,10 +1,10 @@
+use wallet;
 use wallet::Attribute;
 use wallet::AttributeValue;
 use wallet::Document;
 use wallet::DocumentAttributes;
 use wallet::DocumentPersistence;
 use wallet::GenderAttributeValue;
-use wallet::{self};
 
 use super::disclosure::Organization;
 

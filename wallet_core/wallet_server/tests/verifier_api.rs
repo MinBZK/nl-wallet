@@ -1,6 +1,6 @@
 use std::collections::HashMap;
+use std::future;
 use std::future::Future;
-use std::future::{self};
 use std::net::IpAddr;
 use std::net::TcpListener;
 use std::process;
@@ -39,7 +39,6 @@ use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::serialization::TaggedBytes;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
@@ -62,6 +61,7 @@ use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
 #[cfg(feature = "issuance")]
 use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
@@ -730,16 +730,16 @@ mod db_test {
     use parking_lot::Mutex;
     use tokio::sync::oneshot;
 
-    use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
     use openid4vc::server_state::SessionState;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionStoreError;
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureData;
+    use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_server::settings::Settings;
+    use wallet_server::store::postgres;
     use wallet_server::store::postgres::PostgresSessionStore;
-    use wallet_server::store::postgres::{self};
 
     use super::test_disclosure_expired;
     use super::wallet_server_settings;

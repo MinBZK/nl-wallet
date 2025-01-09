@@ -12,6 +12,7 @@ members = [
     "mock_relying_party",
     "openid4vc",
     "platform_support",
+    "sd_jwt",
     "tests_integration",
     "update_policy_server",
     "wallet",
@@ -92,12 +93,14 @@ hex = "0.4.3"
 hex-literal = "0.4.1"
 http = "1.1.0"
 http-cache-reqwest = { version = "0.15.0", default-features = false }
+http-serde = "2.1.1"
 hmac = "0.12.1"
 indexmap = "2.0.2"
 insta = "1.39.0"
 itertools = "0.13.0"
 jni = "0.21.1"
 josekit = "0.8.3"
+jsonschema = { version = "0.28.1", default-features = false }
 jsonwebtoken = { version = "9.3.0", default-features = false }
 libsqlite3-sys = { version = "0.30.1", default-features = false }
 log = "0.4.22"
@@ -105,7 +108,7 @@ mime = "0.3.17"
 mockall = "0.13.0"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
-nutype = "0.5.0"
+nutype = "0.5.1"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 passkey-types = "0.3.0"
@@ -119,6 +122,7 @@ quote = "1.0.26"
 r2d2-cryptoki = "0.3.0"
 rand = "0.8.5"
 rand_core = "0.6.4"
+rasn = "0.22.0"
 rcgen = { version = "0.13.1", default-features = false }
 regex = "1.7.0"
 reqwest = { version = "0.12.5", default-features = false }
