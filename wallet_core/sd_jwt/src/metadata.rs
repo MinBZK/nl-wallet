@@ -42,8 +42,8 @@ pub struct ProtectedTypeMetadata {
 impl ProtectedTypeMetadata {
     pub fn protect(metadata: &TypeMetadata) -> Result<Self, TypeMetadataError> {
         let bytes: Vec<u8> = serde_json::to_vec(&metadata)?;
-        let metadata_encoded = BASE64_STANDARD.encode(bytes);
-        let integrity = ResourceIntegrity::from_bytes(metadata_encoded.as_bytes());
+        let integrity = ResourceIntegrity::from_bytes(&bytes);
+        let metadata_encoded = BASE64_URL_SAFE.encode(bytes);
         Ok(ProtectedTypeMetadata {
             metadata_encoded,
             integrity,
@@ -51,7 +51,8 @@ impl ProtectedTypeMetadata {
     }
 
     pub fn verify_and_parse(&self) -> Result<TypeMetadata, TypeMetadataError> {
-        let integrity = ResourceIntegrity::from_bytes(self.metadata_encoded.as_bytes());
+        let decoded = BASE64_URL_SAFE.decode(self.metadata_encoded.as_bytes())?;
+        let integrity = ResourceIntegrity::from_bytes(&decoded);
         if self.integrity != integrity {
             return Err(TypeMetadataError::ResourceIntegrity {
                 expected: self.integrity.clone(),
@@ -59,7 +60,6 @@ impl ProtectedTypeMetadata {
             });
         }
 
-        let decoded = BASE64_STANDARD.decode(self.metadata_encoded.as_bytes())?;
         let metadata: TypeMetadata = serde_json::from_slice(&decoded)?;
         Ok(metadata)
     }
@@ -419,9 +419,10 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_sign_verify() {
+    async fn test_protect_verify() {
         let metadata = read_and_parse_metadata("example-metadata.json").await;
-        let signed = ProtectedTypeMetadata::protect(&metadata).unwrap();
-        signed.verify_and_parse().unwrap();
+        let protected = ProtectedTypeMetadata::protect(&metadata).unwrap();
+        let parsed = protected.verify_and_parse().unwrap();
+        assert_eq!(metadata.vct, parsed.vct);
     }
 }
