@@ -3,26 +3,16 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "wallet_user_instruction_challenge")]
+#[sea_orm(table_name = "wallet_user_android_attestation")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(unique)]
-    pub wallet_user_id: Uuid,
-    #[sea_orm(column_type = "VarBinary(StringLen::None)")]
-    pub instruction_challenge: Vec<u8>,
-    pub expiration_date_time: DateTimeWithTimeZone,
+    pub certificate_chain: Vec<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::wallet_user::Entity",
-        from = "Column::WalletUserId",
-        to = "super::wallet_user::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
+    #[sea_orm(has_one = "super::wallet_user::Entity")]
     WalletUser,
 }
 

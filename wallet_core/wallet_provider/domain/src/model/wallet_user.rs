@@ -27,12 +27,13 @@ pub struct WalletUser {
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
     pub has_wte: bool,
-    pub attestation: Option<WalletUserAttestation>,
+    pub attestation: WalletUserAttestation,
 }
 
 #[derive(Debug)]
 pub enum WalletUserAttestation {
     Apple { assertion_counter: AssertionCounter },
+    Android,
 }
 
 impl WalletUser {
@@ -56,20 +57,22 @@ pub enum WalletUserQueryResult {
 
 #[derive(Debug)]
 pub struct WalletUserCreate {
-    pub id: Uuid,
     pub wallet_id: String,
     pub hw_pubkey: VerifyingKey,
     #[debug(skip)]
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
-    pub attestation: Option<WalletUserAttestationCreate>,
+    pub attestation_date_time: DateTime<Utc>,
+    pub attestation: WalletUserAttestationCreate,
 }
 
 #[derive(Debug)]
 pub enum WalletUserAttestationCreate {
     Apple {
         data: Vec<u8>,
-        verification_date_time: DateTime<Utc>,
         assertion_counter: AssertionCounter,
+    },
+    Android {
+        certificate_chain: Vec<Vec<u8>>,
     },
 }
 
@@ -121,7 +124,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_challenge: None,
             instruction_sequence_number: 0,
             has_wte: false,
-            attestation: None,
+            attestation: super::WalletUserAttestation::Android,
         }
     }
 }

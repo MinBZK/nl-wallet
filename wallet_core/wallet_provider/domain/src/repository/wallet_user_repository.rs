@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
+use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
 
@@ -21,7 +22,7 @@ type Result<T> = std::result::Result<T, PersistenceError>;
 pub trait WalletUserRepository {
     type TransactionType: Committable;
 
-    async fn create_wallet_user(&self, transaction: &Self::TransactionType, user: WalletUserCreate) -> Result<()>;
+    async fn create_wallet_user(&self, transaction: &Self::TransactionType, user: WalletUserCreate) -> Result<Uuid>;
 
     async fn find_wallet_user_by_wallet_id(
         &self,
@@ -88,7 +89,7 @@ pub trait WalletUserRepository {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use uuid::Uuid;
+    use uuid::{uuid, Uuid};
 
     use crate::model::wallet_user;
 
@@ -104,8 +105,8 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _user: WalletUserCreate,
-        ) -> Result<()> {
-            Ok(())
+        ) -> Result<Uuid> {
+            Ok(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))
         }
 
         async fn find_wallet_user_by_wallet_id(

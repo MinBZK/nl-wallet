@@ -23,6 +23,7 @@ mock = [
     "dep:anyhow",
     "dep:hmac",
     "dep:rand_core",
+    "android_attest/mock",
     "apple_app_attest/mock",
     "wallet_provider_domain/mock",
     "wallet_common/mock_secure_keys",
@@ -65,6 +66,7 @@ uuid = { workspace = true, features = ["v4"] }
 rand_core = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true, features = ["std"] }
 
+android_attest.path = "../../android_attest"
 apple_app_attest.path = "../../apple_app_attest"
 nl_wallet_mdoc.path = "../../mdoc"
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
