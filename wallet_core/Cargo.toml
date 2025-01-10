@@ -39,7 +39,6 @@ rust-version = "1.83"
 
 [workspace.lints.rust]
 async_fn_in_trait = "allow"
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("used_linker"))'] }
 
 [workspace.lints.clippy]
 cloned_instead_of_copied = "warn"
