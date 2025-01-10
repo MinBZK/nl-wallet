@@ -30,6 +30,7 @@ private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg/q/O39cBrXSmlATl7
 
 [issuer]
 wte_issuer_pubkey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExvHR3ALn7DoS1cZBiAs9XH77YdvWikZnBx2NILdgLMw6wx8NkLTIlfQHHjA7jmJaO3UD3YG/24vL0k9C0Og2pQ=="
+metadata = ["path_to_metadata_file", "another_path_to_metadata_file"]
 
 [issuer.private_keys."com.example.pid"]
 private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg+wByjhVbYkQmtDbPfs8zvr4ekS0e2O61J2EqAJjer7GhRANCAASSrZcGMcO9RwDbVvEVKRq7+7CbCeO+jeEFcokj55c1h50cg3cYZGVCsQK2c39wphHm/oEhCFbDcFsgTIfAJ/x5"

@@ -377,7 +377,7 @@ impl<H> Hash for HsmCredentialSigningKey<'_, H> {
     }
 }
 
-impl<'a, H> EcdsaKey for HsmCredentialSigningKey<'a, H>
+impl<H> EcdsaKey for HsmCredentialSigningKey<'_, H>
 where
     H: WalletUserHsm<Error = HsmError>,
 {

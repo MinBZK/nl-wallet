@@ -42,6 +42,12 @@ spec:
             - name: pid-issuer-private-keys
               mountPath: /pid_issuer.toml
               subPath: pid_issuer.toml
+            - name: pid-issuer-metadata
+              mountPath: /pid-metadata.json
+              subPath: pid-metadata.json
+            - name: pid-issuer-metadata
+              mountPath: /address-metadata.json
+              subPath: address-metadata.json
           env:
             - name: PID_ISSUER_WALLET_SERVER__PORT
               value: "3007"
@@ -73,6 +79,8 @@ spec:
                 configMapKeyRef:
                   name: nl-pid-issuer-wte-issuer-pubkey
                   key: wte_issuer_pubkey
+            - name: PID_ISSUER_ISSUER__METADATA
+              value: "pid-metadata.json,address-metadata.json"
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -91,3 +99,6 @@ spec:
         - name: pid-issuer-private-keys
           secret:
             secretName: nl-pid-issuer-private-keys
+        - name: pid-issuer-metadata
+          configMap:
+            name: nl-wallet-pid-issuer-metadata

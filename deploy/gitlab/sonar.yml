@@ -21,6 +21,7 @@ sonar-rust:
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
       -Dsonar.coverage.exclusions=flutter_api/src/bridge_generated/**,mock_relying_party/src/askama_axum.rs,wallet/migration/**,wallet_provider/migrations/**,wallet_server/migration/**
       -Dcommunity.rust.lcov.reportPaths="lcov.info"
+      -Dcommunity.rust.test.reportPath="target/nextest/ci/junit.xml"
 
 sonar-flutter:
   rules: !reference [.default-or-merge-request, rules]
@@ -36,14 +37,15 @@ sonar-flutter:
   before_script:
     - cd $FLUTTER_APP_PROJECT_DIR
   script:
+    - flutter pub get
     - sonar-scanner
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
-      -Dsonar.exclusions="android/**,ios/**"
+      -Dsonar.exclusions=android/**,ios/**,test/**,**/*.freezed.dart,**/*.g.dart
+      -Dsonar.tests=test/
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
-      -Dsonar.flutter.tests.reportPath=build/reports/test-results.json
-      -Dsonar.flutter.coverage.reportPath=coverage/lcov.info
+      -Dsonar.dart.lcov.reportPaths=coverage/lcov.info
 
 sonar-wallet-web:
   extends: .default-sonar
@@ -65,7 +67,6 @@ sonar-wallet-web:
       -Dsonar.test.inclusions=lib/__tests__/**/*
       -Dsonar.coverage.exclusions=lib/__tests__
       -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-      -Dsonar.junit.reportPaths=coverage/tests.xml
 
 sonar-ios:
   extends: .default-sonar

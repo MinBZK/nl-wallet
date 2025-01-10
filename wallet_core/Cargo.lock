@@ -1249,9 +1249,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.2.8"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edb49164822f3ee45b17acd4a208cfc1251410cf0cad9a833234c9890774dd9f"
+checksum = "32a2785755761f3ddc1492979ce1e48d2c00d09311c39e4466429188f3dd6501"
 dependencies = [
  "quote",
  "syn",
@@ -3108,6 +3108,7 @@ dependencies = [
  "rstest",
  "rustls-pki-types",
  "rustls-webpki",
+ "sd_jwt",
  "serde",
  "serde-aux",
  "serde_bytes",
@@ -3347,6 +3348,7 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -4450,6 +4452,7 @@ name = "sd_jwt"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "base64 0.22.1",
  "derive_more",
  "http",
  "http-serde",
@@ -5485,6 +5488,7 @@ dependencies = [
  "reqwest",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt",
  "sea-orm",
  "semver",
  "serde_json",
@@ -6350,6 +6354,7 @@ dependencies = [
  "rstest",
  "rustls-pki-types",
  "sanitize-filename",
+ "sd_jwt",
  "sea-orm",
  "sea-query",
  "semver",
@@ -6612,6 +6617,7 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt",
  "sea-orm",
  "serde",
  "serde_json",

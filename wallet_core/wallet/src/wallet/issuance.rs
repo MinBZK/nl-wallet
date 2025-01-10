@@ -20,6 +20,7 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::jwt::JwtCredentialError;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
@@ -112,6 +113,9 @@ pub enum PidIssuanceError {
     JwtCredential(#[from] JwtCredentialError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
+    #[error("type metadata verification failed: {0}")]
+    #[category(critical)]
+    TypeMetadataVerification(#[from] TypeMetadataError),
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -288,7 +292,10 @@ where
         let mut documents = attestation_previews
             .into_iter()
             .map(|preview| {
-                let (unsigned_mdoc, issuer) = preview.try_into()?;
+                let (unsigned_mdoc, protected_metadata, issuer) = preview.try_into()?;
+                let _metadata = protected_metadata.verify_and_parse_root()?;
+                // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
+
                 Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer)?)
             })
             .collect::<Result<Vec<_>, PidIssuanceError>>()?;
@@ -447,16 +454,18 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
+    use rstest::rstest;
+    use serial_test::serial;
+    use url::Url;
+
+    use nl_wallet_mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use rstest::rstest;
-    use serial_test::serial;
-    use url::Url;
-
+    use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::config::http::TlsPinningConfig;
 
     use crate::document;
@@ -469,6 +478,16 @@ mod tests {
     use super::super::test::WalletWithMocks;
     use super::super::test::ISSUER_KEY;
     use super::*;
+
+    fn mock_issuance_session(mdoc: Mdoc) -> MockIssuanceSession {
+        let mut client = MockIssuanceSession::new();
+        client.expect_accept().return_once(|| {
+            Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
+                .try_into()
+                .unwrap()])
+        });
+        client
+    }
 
     #[tokio::test]
     #[serial(MockDigidSession)]
@@ -673,14 +692,17 @@ mod tests {
     async fn test_continue_pid_issuance() {
         let mut wallet = setup_wallet_with_digid_session();
 
+        let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
-                    unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
+                    unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                    metadata_chain,
                 }],
             ))
         });
@@ -793,14 +815,16 @@ mod tests {
         // Set up the `MockIssuanceSession` to return an `AttestationPreview` with an unknown doctype.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
-            let mut unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+            let (mut unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
             unsigned_mdoc.doc_type = "foobar".to_string();
+            let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
             Ok((
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                    metadata_chain,
                 }],
             ))
         });
@@ -854,15 +878,7 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let mdoc = test::create_full_pid_mdoc();
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| {
-                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
-                    .try_into()
-                    .unwrap()])
-            });
-            client
-        };
+        let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Accept the PID issuance with the PIN.
@@ -920,15 +936,7 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single instance of `MdocCopies`, which contains
         // a single valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
         let mdoc = test::create_full_pid_mdoc_unauthenticated();
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| {
-                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
-                    .try_into()
-                    .unwrap()])
-            });
-            client
-        };
+        let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Accept the PID issuance with the PIN.
@@ -1112,15 +1120,7 @@ mod tests {
 
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let mdoc = test::create_full_pid_mdoc();
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| {
-                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
-                    .try_into()
-                    .unwrap()])
-            });
-            client
-        };
+        let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Have the mdoc storage return an error on query.

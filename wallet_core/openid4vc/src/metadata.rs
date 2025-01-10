@@ -13,7 +13,7 @@ use wallet_common::urls::BaseUrl;
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.
 ///
-/// Fields may be set either in the `issuer_config` field or in the `signed_metadata` JWT, both of which
+/// Fields may be set either in the `issuer_config` field or in the `protected_metadata` JWT, both of which
 /// contain [`IssuerData`]. If a field is present in the JWT then the same field in `issuer_config` should be
 /// disregarded.
 #[skip_serializing_none]
@@ -22,7 +22,7 @@ pub struct IssuerMetadata {
     #[serde(flatten)]
     pub issuer_config: IssuerData,
 
-    pub signed_metadata: Option<Jwt<IssuerDataClaims>>,
+    pub protected_metadata: Option<Jwt<IssuerDataClaims>>,
 }
 
 impl IssuerMetadata {

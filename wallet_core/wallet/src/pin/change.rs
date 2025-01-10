@@ -143,7 +143,7 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
     }
 }
 
-impl<'a, C, S, E> BeginChangePinOperation<'a, C, S>
+impl<C, S, E> BeginChangePinOperation<'_, C, S>
 where
     C: ChangePinClient<Error = E>,
     S: ChangePinStorage,
@@ -227,7 +227,7 @@ impl<'a, C, S> FinishChangePinOperation<'a, C, S> {
     }
 }
 
-impl<'a, C, S, E> FinishChangePinOperation<'a, C, S>
+impl<C, S, E> FinishChangePinOperation<'_, C, S>
 where
     C: ChangePinClient<Error = E>,
     S: ChangePinStorage,

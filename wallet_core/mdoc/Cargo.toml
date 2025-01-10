@@ -61,6 +61,7 @@ regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 
 error_category.path = "../error_category"
+sd_jwt.path = "../sd_jwt"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
@@ -73,6 +74,7 @@ regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
+sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../wallet_common", features = [
     "examples",
     "mock_remote_key",

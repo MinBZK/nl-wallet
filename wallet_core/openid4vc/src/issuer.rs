@@ -342,7 +342,7 @@ where
                     display: None,
                     credential_configurations_supported: HashMap::new(),
                 },
-                signed_metadata: None,
+                protected_metadata: None,
             },
         }
     }
@@ -917,12 +917,16 @@ impl CredentialResponse {
             .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 
         match preview {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
+            CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                metadata_chain,
+                ..
+            } => {
                 let cose_pubkey = (&holder_pubkey)
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, cose_pubkey, issuer_privkey)
+                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, cose_pubkey, issuer_privkey)
                     .await
                     .map_err(CredentialRequestError::CredentialSigning)?;
 

@@ -36,6 +36,7 @@ async fn test_pid_issuance_digid_bridge() {
         &settings.issuer.digid.bsn_privkey,
         settings.issuer.digid.http_config.clone(),
         settings.issuer.certificates(),
+        settings.issuer.metadata(),
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
