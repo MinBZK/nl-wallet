@@ -107,6 +107,7 @@ mod tests {
 
     use super::super::issuance::PidIssuanceSession;
     use super::super::test;
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
     use super::*;
 
@@ -115,7 +116,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_reset() {
         // Test resetting a registered and unlocked Wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Register callbacks for both documents and history events and clear anything received on them.
         let documents = test::setup_mock_documents_callback(&mut wallet)
@@ -156,7 +157,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_reset_full() {
         // Create the impossible Wallet that is doing everything at once and reset it.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
         wallet.issuance_session = PidIssuanceSession::Openid4vci(MockIssuanceSession::default()).into();
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
 
@@ -178,7 +179,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_reset_error_not_registered() {
-        let mut wallet = WalletWithMocks::new_unregistered_apple();
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Attempting to reset an unregistered Wallet should result in an error.
         let error = wallet

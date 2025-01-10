@@ -73,13 +73,14 @@ mod tests {
     use crate::issuance::MockDigidSession;
     use crate::wallet::PidIssuanceSession;
 
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
     use super::*;
 
     #[tokio::test]
     async fn test_wallet_identify_redirect_uri() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered_apple();
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Set up some URLs to work with.
         let example_uri = "https://example.com";

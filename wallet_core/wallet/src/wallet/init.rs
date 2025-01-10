@@ -248,13 +248,14 @@ mod tests {
     use crate::storage::MockStorage;
 
     use super::super::test;
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
     use super::*;
 
     // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
     #[tokio::test]
     async fn test_wallet_init_registration() {
-        let wallet = WalletWithMocks::new_init_registration_apple()
+        let wallet = WalletWithMocks::new_init_registration(WalletDeviceVendor::Apple)
             .await
             .expect("Could not initialize wallet");
 
@@ -264,7 +265,7 @@ mod tests {
     // Tests the initialization logic on a wallet without a database file.
     #[tokio::test]
     async fn test_wallet_init_fetch_registration_no_database() {
-        let wallet = WalletWithMocks::new_init_registration_apple()
+        let wallet = WalletWithMocks::new_init_registration(WalletDeviceVendor::Apple)
             .await
             .expect("Could not initialize wallet");
 
@@ -285,7 +286,7 @@ mod tests {
     async fn test_wallet_init_fetch_registration_no_registration() {
         let wallet = WalletWithMocks::new_init_registration_with_mocks(
             MockStorage::new(StorageState::Unopened, None),
-            test::generate_apple_key_holder(),
+            test::generate_key_holder(WalletDeviceVendor::Apple),
         )
         .await
         .expect("Could not initialize wallet");
@@ -302,7 +303,7 @@ mod tests {
     // Tests the initialization logic on a wallet with a database file that contains a registration.
     #[tokio::test]
     async fn test_wallet_init_fetch_with_registration() {
-        let key_holder = test::generate_apple_key_holder();
+        let key_holder = test::generate_key_holder(WalletDeviceVendor::Apple);
         key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
 
         let pin_salt = pin_key::new_pin_salt();
@@ -348,7 +349,7 @@ mod tests {
                     wallet_certificate: "thisisjwt".to_string().into(),
                 }),
             ),
-            test::generate_apple_key_holder(),
+            test::generate_key_holder(WalletDeviceVendor::Apple),
         )
         .await;
     }

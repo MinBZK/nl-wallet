@@ -67,6 +67,12 @@ pub struct IssuerKey {
     pub trust_anchor: BorrowingTrustAnchor,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum WalletDeviceVendor {
+    Apple,
+    Google,
+}
+
 /// An alias for the `Wallet<>` with all mock dependencies.
 pub type WalletWithMocks = Wallet<
     UpdatingConfigurationRepository<LocalConfigurationRepository>,
@@ -144,14 +150,20 @@ pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: &TypeMetadata, 
     .unwrap()
 }
 
-pub fn generate_apple_key_holder() -> MockHardwareAttestedKeyHolder {
-    MockHardwareAttestedKeyHolder::generate_apple(AttestationEnvironment::Development, AppIdentifier::new_mock())
+pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
+    match vendor {
+        WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
+            AttestationEnvironment::Development,
+            AppIdentifier::new_mock(),
+        ),
+        WalletDeviceVendor::Google => MockHardwareAttestedKeyHolder::generate_google(),
+    }
 }
 
 // Implement a number of methods on the the `Wallet<>` alias that can be used during testing.
 impl WalletWithMocks {
     /// Creates an unregistered `Wallet` with mock dependencies.
-    pub fn new_unregistered_apple() -> Self {
+    pub fn new_unregistered(vendor: WalletDeviceVendor) -> Self {
         let keys = LazyLock::force(&ACCOUNT_SERVER_KEYS);
 
         // Override public key material in the `Configuration`.
@@ -177,15 +189,15 @@ impl WalletWithMocks {
             config_repository,
             MockUpdatePolicyRepository::default(),
             MockStorage::default(),
-            generate_apple_key_holder(),
+            generate_key_holder(vendor),
             MockAccountProviderClient::default(),
             RegistrationStatus::Unregistered,
         )
     }
 
     /// Creates a registered and unlocked `Wallet` with mock dependencies.
-    pub fn new_registered_and_unlocked_apple() -> Self {
-        let mut wallet = Self::new_unregistered_apple();
+    pub fn new_registered_and_unlocked(vendor: WalletDeviceVendor) -> Self {
+        let mut wallet = Self::new_unregistered(vendor);
 
         let (attested_key, attested_key_identifier) = wallet.key_holder.random_key();
         let verifying_key = match &attested_key {
@@ -245,8 +257,8 @@ impl WalletWithMocks {
     }
 
     /// Creates all mocks and calls `Wallet::init_registration()`.
-    pub async fn new_init_registration_apple() -> Result<Self, WalletInitError> {
-        Self::new_init_registration_with_mocks(MockStorage::default(), generate_apple_key_holder()).await
+    pub async fn new_init_registration(vendor: WalletDeviceVendor) -> Result<Self, WalletInitError> {
+        Self::new_init_registration_with_mocks(MockStorage::default(), generate_key_holder(vendor)).await
     }
 
     /// Creates mocks and calls `Wallet::init_registration()`, except for

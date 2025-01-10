@@ -62,13 +62,14 @@ mod tests {
 
     use crate::config::default_wallet_config;
 
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
 
     // Tests both setting and clearing the configuration callback.
     #[tokio::test]
     async fn test_wallet_set_clear_config_callback() {
         // Prepare an unregistered wallet.
-        let wallet = WalletWithMocks::new_unregistered_apple();
+        let wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Wrap a `Vec<Configuration>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.

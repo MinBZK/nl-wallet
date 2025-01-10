@@ -331,6 +331,7 @@ mod tests {
     use crate::storage::KeyedData;
     use crate::storage::KeyedDataResult;
 
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
     use super::*;
 
@@ -447,7 +448,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_register_success_apple() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered_apple();
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         test_wallet_register_success(&mut wallet).await;
     }
@@ -470,7 +471,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_register_success_apple_key_identifier() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered_apple();
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Set up a key identifier to re-use, both in storage and in the Wallet internal state.
         let key_identifier = add_key_identifier_to_wallet(&mut wallet).await;
@@ -483,7 +484,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_already_registered() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let error = wallet
             .register(PIN.to_string())
@@ -496,7 +497,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_invalid_pin() {
-        let mut wallet = WalletWithMocks::new_unregistered_apple();
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Try to register with an insecure PIN.
         let error = wallet
@@ -511,7 +512,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_challenge_request() {
-        let mut wallet = WalletWithMocks::new_unregistered_apple();
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Have the account server respond to the challenge request with a 500 error.
         wallet
@@ -530,7 +531,7 @@ mod tests {
     }
 
     fn unregistered_wallet_with_registration_challenge() -> WalletWithMocks {
-        let mut wallet = WalletWithMocks::new_unregistered_apple();
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         wallet
             .account_provider_client

@@ -283,6 +283,7 @@ mod tests {
     use crate::storage::InstructionData;
     use crate::storage::KeyedData;
 
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
     use super::super::test::ACCOUNT_SERVER_KEYS;
     use super::super::WalletRegistration;
@@ -292,7 +293,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_lock_unlock_apple() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Wrap a `Vec<bool>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
@@ -419,7 +420,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_unlock_error_not_registered() {
         // Prepare an unregistered wallet
-        let mut wallet = WalletWithMocks::new_unregistered_apple();
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Unlocking an unregistered `Wallet` should result in an error.
         let error = wallet
@@ -432,7 +433,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_not_locked() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Unlocking an already unlocked `Wallet` should result in an error.
         let error = wallet
@@ -445,7 +446,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_server_challenge_404() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -469,7 +470,7 @@ mod tests {
     async fn test_wallet_unlock_error_instruction_response(
         response_error: AccountProviderResponseError,
     ) -> WalletUnlockError {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -561,7 +562,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_signing() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -584,7 +585,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_result_validation() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -623,7 +624,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_store() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
