@@ -9,11 +9,7 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
-use serde_with::base64::Base64;
-use serde_with::base64::UrlSafe;
-use serde_with::formats::Unpadded;
 use serde_with::skip_serializing_none;
-use serde_with::DeserializeAs;
 
 use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -94,8 +90,8 @@ impl Serialize for EncodedTypeMetadata {
 
 impl<'de> Deserialize<'de> for EncodedTypeMetadata {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bytes: Vec<u8> = Base64::<UrlSafe, Unpadded>::deserialize_as::<D>(deserializer)?;
-        let metadata: TypeMetadata = serde_json::from_slice(&bytes).map_err(de::Error::custom)?;
+        let metadata: TypeMetadata =
+            TypeMetadata::try_from_base64(&String::deserialize(deserializer)?).map_err(de::Error::custom)?;
         Ok(Self(metadata))
     }
 }
@@ -159,6 +155,11 @@ impl TypeMetadata {
     pub fn try_as_base64(&self) -> Result<String, TypeMetadataError> {
         let bytes: Vec<u8> = serde_json::to_vec(&self)?;
         Ok(BASE64_URL_SAFE_NO_PAD.encode(bytes))
+    }
+
+    pub fn try_from_base64(encoded: &str) -> Result<Self, TypeMetadataError> {
+        let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
+        Ok(serde_json::from_slice(&bytes)?)
     }
 }
 
