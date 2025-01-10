@@ -293,7 +293,7 @@ where
             .into_iter()
             .map(|preview| {
                 let (unsigned_mdoc, protected_metadata, issuer) = preview.try_into()?;
-                let _metadata = protected_metadata.verify_and_parse()?;
+                let _metadata = protected_metadata.verify_and_parse_root()?;
                 // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
                 Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer)?)

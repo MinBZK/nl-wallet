@@ -72,9 +72,10 @@ impl TypeMetadataChain {
         )
     }
 
-    pub fn verify_and_parse(&self) -> Result<TypeMetadata, TypeMetadataError> {
+    pub fn verify_and_parse_root(&self) -> Result<TypeMetadata, TypeMetadataError> {
         let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?;
-        self.root_integrity.verify_and_parse(&bytes)
+        self.root_integrity.verify(&bytes)?;
+        Ok(serde_json::from_slice(&bytes)?)
     }
 }
 
@@ -137,7 +138,7 @@ impl ResourceIntegrity {
         ResourceIntegrity(integrity)
     }
 
-    pub fn verify_and_parse(&self, bytes: &[u8]) -> Result<TypeMetadata, TypeMetadataError> {
+    pub fn verify(&self, bytes: &[u8]) -> Result<(), TypeMetadataError> {
         let integrity = Self::from_bytes(bytes);
         if self != &integrity {
             return Err(TypeMetadataError::ResourceIntegrity {
@@ -146,8 +147,7 @@ impl ResourceIntegrity {
             });
         }
 
-        let metadata: TypeMetadata = serde_json::from_slice(bytes)?;
-        Ok(metadata)
+        Ok(())
     }
 }
 
@@ -471,7 +471,6 @@ mod test {
         let metadata = read_and_parse_metadata("example-metadata.json").await;
         let bytes = serde_json::to_vec(&metadata).unwrap();
         let integrity = ResourceIntegrity::from_bytes(&bytes);
-        let parsed = integrity.verify_and_parse(&bytes).unwrap();
-        assert_eq!(metadata.vct, parsed.vct);
+        integrity.verify(&bytes).unwrap();
     }
 }
