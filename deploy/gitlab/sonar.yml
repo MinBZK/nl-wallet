@@ -37,6 +37,7 @@ sonar-flutter:
   before_script:
     - cd $FLUTTER_APP_PROJECT_DIR
   script:
+    - flutter pub get
     - sonar-scanner
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
