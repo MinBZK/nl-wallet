@@ -16,6 +16,7 @@ use rasn::Decoder;
 use rasn::Encode;
 
 use crate::key_description;
+use crate::key_description::KeyDescription;
 pub use crate::key_description::RootOfTrust;
 pub use crate::key_description::SecurityLevel;
 
@@ -313,7 +314,7 @@ pub struct AttestationPackageInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KeyDescription {
+pub struct KeyAttestation {
     pub attestation_version: AttestationVersion,
     pub attestation_security_level: SecurityLevel,
     pub key_mint_version: KeyMintVersion,
@@ -336,11 +337,11 @@ pub enum KeyDescriptionFieldError {
     HardwareEnforced(#[source] AuthorizationListFieldError),
 }
 
-impl TryFrom<key_description::KeyDescription> for KeyDescription {
+impl TryFrom<KeyDescription> for KeyAttestation {
     type Error = KeyDescriptionFieldError;
 
-    fn try_from(source: key_description::KeyDescription) -> Result<Self, Self::Error> {
-        let result = KeyDescription {
+    fn try_from(source: KeyDescription) -> Result<Self, Self::Error> {
+        let result = KeyAttestation {
             attestation_version: source.attestation_version.try_into()?,
             attestation_security_level: source.attestation_security_level,
             key_mint_version: source.key_mint_version.try_into()?,
@@ -810,10 +811,10 @@ mod test {
                 ..Default::default()
             },
         };
-        let actual = KeyDescription::try_from(input).unwrap();
+        let actual = KeyAttestation::try_from(input).unwrap();
         dbg!(&actual);
 
-        let expected = KeyDescription {
+        let expected = KeyAttestation {
             attestation_version: AttestationVersion::V200,
             attestation_security_level: SecurityLevel::Software,
             key_mint_version: KeyMintVersion::V200,

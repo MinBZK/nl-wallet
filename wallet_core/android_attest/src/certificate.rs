@@ -2,7 +2,9 @@ use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::oid;
 use x509_parser::der_parser::Oid;
 
-use crate::key_description::KeyDescription;
+use crate::attestation_extension::KeyAttestation;
+use crate::attestation_extension::KeyDescriptionFieldError;
+use crate::key_description;
 
 pub const KEY_ATTESTATION_EXTENSION_OID: Oid = oid!(1.3.6 .1 .4 .1 .11129 .2 .1 .17);
 
@@ -12,22 +14,24 @@ pub enum KeyAttestationExtensionError {
     DuplicateKeyDescription,
     #[error("failed to parse key attestation: {0}")]
     ParsingKeyAttestation(#[from] rasn::error::DecodeError),
+    #[error("failed to convert key description: {0}")]
+    Conversion(#[from] KeyDescriptionFieldError),
 }
 
 pub trait KeyAttestationExtension {
-    fn parse_key_description(&self) -> Result<Option<KeyDescription>, KeyAttestationExtensionError>;
+    fn parse_key_description(&self) -> Result<Option<KeyAttestation>, KeyAttestationExtensionError>;
 }
 
 impl KeyAttestationExtension for X509Certificate<'_> {
     /// Try to parse key attestation extension from the certificate.
-    fn parse_key_description(&self) -> Result<Option<KeyDescription>, KeyAttestationExtensionError> {
-        let key_description = self
+    fn parse_key_description(&self) -> Result<Option<KeyAttestation>, KeyAttestationExtensionError> {
+        let key_description: Option<key_description::KeyDescription> = self
             .get_extension_unique(&KEY_ATTESTATION_EXTENSION_OID)
             .map_err(|_| KeyAttestationExtensionError::DuplicateKeyDescription)?
             .map(|ext| rasn::der::decode(ext.value))
             .transpose()?;
 
-        Ok(key_description)
+        Ok(key_description.map(TryInto::try_into).transpose()?)
     }
 }
 
@@ -40,6 +44,7 @@ mod tests {
     use x509_parser::prelude::FromDer;
 
     use crate::key_description::AuthorizationList;
+    use crate::key_description::KeyDescription;
     use crate::key_description::RootOfTrust;
     use crate::key_description::SecurityLevel;
     use crate::key_description::VerifiedBootState;
@@ -191,6 +196,6 @@ mod tests {
     ) {
         let key_attestation = cert.parse_key_description().unwrap();
         let key_description = key_attestation.unwrap();
-        assert_eq!(key_description, expected_key_description);
+        assert_eq!(key_description, expected_key_description.try_into().unwrap());
     }
 }
