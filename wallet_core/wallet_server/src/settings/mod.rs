@@ -233,6 +233,8 @@ impl Settings {
 
         #[cfg(feature = "issuance")]
         let environment_parser = environment_parser.with_list_parse_key("issuer.digid.http_config.trust_anchors");
+        #[cfg(feature = "issuance")]
+        let environment_parser = environment_parser.with_list_parse_key("issuer.metadata");
 
         let environment_parser = environment_parser.try_parsing(true);
 
