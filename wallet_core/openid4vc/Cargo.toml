@@ -71,6 +71,7 @@ parking_lot = { workspace = true, optional = true }
 
 error_category.path = "../error_category"
 nl_wallet_mdoc.path = "../mdoc"
+sd_jwt.path = "../sd_jwt"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
@@ -84,6 +85,7 @@ tracing-test.workspace = true
 wiremock.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
+sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../wallet_common", features = [
     "examples",
     "insecure_http_client",

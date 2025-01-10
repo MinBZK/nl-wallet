@@ -115,6 +115,7 @@ strum = { workspace = true, optional = true, features = ["derive"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
+sd_jwt = { path = "../sd_jwt" }
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 [dev-dependencies]
@@ -129,4 +130,5 @@ serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors"] }
+sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../wallet_common", features = ["insecure_http_client", "mock_remote_key", "mock_time"] }

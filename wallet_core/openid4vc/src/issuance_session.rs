@@ -28,6 +28,7 @@ use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::utils::serialization::TaggedBytes;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::ATTR_RANDOM_LENGTH;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::JwkConversionError;
 use wallet_common::jwt::Jwt;
@@ -98,6 +99,9 @@ pub enum IssuanceSessionError {
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("jwt credential verification failed: {0}")]
     JwtCredentialVerification(#[from] JwtCredentialError),
+    #[error("type metadata verification failed: {0}")]
+    #[category(critical)]
+    TypeMetadataVerification(#[from] TypeMetadataError),
     #[error("error requesting access token: {0:?}")]
     #[category(pd)]
     TokenRequest(ErrorResponse<TokenErrorCode>),
@@ -768,7 +772,11 @@ impl CredentialResponse {
                 credential: issuer_signed,
             } => {
                 let CborBase64(issuer_signed) = *issuer_signed;
-                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
+                let CredentialPreview::MsoMdoc {
+                    unsigned_mdoc,
+                    issuer,
+                    metadata_chain,
+                } = preview;
 
                 if issuer_signed
                     .public_key()
@@ -811,6 +819,11 @@ impl CredentialResponse {
                 // Check that our mdoc contains exactly the attributes the issuer said it would have
                 mdoc.compare_unsigned(unsigned_mdoc)
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
+
+                // Verify and parse the type metadata
+                let _metadata = metadata_chain.verify_and_parse_root()?;
+
+                // TODO: verify JSON representation of mdoc against metadata schema (PVW-3812)
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
@@ -872,6 +885,8 @@ mod tests {
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
     use nl_wallet_mdoc::IssuerSigned;
+    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::keys::factory::KeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
@@ -904,16 +919,24 @@ mod tests {
         let trust_anchor = ca.to_trust_anchor().to_owned();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
+        let metadata = TypeMetadata::new_example();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         let preview = CredentialPreview::MsoMdoc {
             unsigned_mdoc: unsigned_mdoc.clone(),
             issuer: issuance_key.certificate().clone(),
+            metadata_chain: metadata_chain.clone(),
         };
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = mdoc_key.verifying_key();
-        let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key.try_into().unwrap(), &issuance_key)
-            .await
-            .unwrap();
+        let issuer_signed = IssuerSigned::sign(
+            unsigned_mdoc,
+            metadata_chain,
+            mdoc_public_key.try_into().unwrap(),
+            &issuance_key,
+        )
+        .await
+        .unwrap();
         let credential_response = CredentialResponse::MsoMdoc {
             credential: Box::new(issuer_signed.into()),
         };
@@ -939,10 +962,13 @@ mod tests {
                 // HttpIssuanceSession::start_issuance() will accept
                 let ca = Ca::generate_issuer_mock_ca().unwrap();
                 let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+                let metadata = TypeMetadata::new_example();
+                let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
                 let preview = CredentialPreview::MsoMdoc {
                     unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
                     issuer: issuance_key.certificate().clone(),
+                    metadata_chain,
                 };
 
                 Ok((
@@ -1180,9 +1206,11 @@ mod tests {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
                 issuer: _,
+                metadata_chain,
             } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
                 issuer: other_issuance_key.certificate().clone(),
+                metadata_chain,
             },
         };
 
@@ -1216,9 +1244,11 @@ mod tests {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc: _,
                 issuer,
+                metadata_chain,
             } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
                 issuer,
+                metadata_chain,
             },
         };
 
