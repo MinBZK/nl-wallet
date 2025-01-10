@@ -11,8 +11,8 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
-use sd_jwt::metadata::ProtectedTypeMetadata;
 use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
@@ -61,7 +61,7 @@ impl AttributeCertificates {
     pub fn try_unsigned_mdoc_to_attestion_preview(
         &self,
         unsigned_mdoc: UnsignedMdoc,
-        protected_metadata: ProtectedTypeMetadata,
+        metadata_chain: TypeMetadataChain,
     ) -> Result<CredentialPreview, Error> {
         let preview = CredentialPreview::MsoMdoc {
             issuer: self
@@ -70,7 +70,7 @@ impl AttributeCertificates {
                 .ok_or(Error::MissingCertificate(unsigned_mdoc.doc_type.clone()))?
                 .clone(),
             unsigned_mdoc,
-            protected_metadata,
+            metadata_chain,
         };
         Ok(preview)
     }
@@ -131,9 +131,9 @@ impl AttributeService for BrpPidAttributeService {
                     .metadata_by_doctype
                     .get(unsigned.doc_type.as_str())
                     .ok_or(Error::NoMetadataFound(String::from(unsigned.doc_type.as_str())))?;
-                let protected_metadata = ProtectedTypeMetadata::protect(metadata)?;
+                let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![])?;
                 self.certificates
-                    .try_unsigned_mdoc_to_attestion_preview(unsigned, protected_metadata)
+                    .try_unsigned_mdoc_to_attestion_preview(unsigned, metadata_chain)
             })
             .collect::<Result<Vec<CredentialPreview>, Error>>()?;
         previews.try_into().map_err(|_| Error::NoAttributesFound)

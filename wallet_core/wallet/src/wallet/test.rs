@@ -18,8 +18,8 @@ use nl_wallet_mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;
-use sd_jwt::metadata::ProtectedTypeMetadata;
 use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::account::serialization::DerVerifyingKey;
@@ -129,16 +129,11 @@ pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: &TypeMetadata, 
     let private_key_id = utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key().try_into().unwrap();
-    let protected_metadata = ProtectedTypeMetadata::protect(metadata).unwrap();
-    let issuer_signed = IssuerSigned::sign(
-        unsigned_mdoc,
-        protected_metadata,
-        mdoc_public_key,
-        &issuer_key.issuance_key,
-    )
-    .now_or_never()
-    .unwrap()
-    .unwrap();
+    let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![]).unwrap();
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, &issuer_key.issuance_key)
+        .now_or_never()
+        .unwrap()
+        .unwrap();
 
     Mdoc::new::<MockRemoteEcdsaKey>(
         private_key_id,

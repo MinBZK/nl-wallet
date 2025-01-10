@@ -46,8 +46,8 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
-use sd_jwt::metadata::ProtectedTypeMetadata;
 use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::jwt::JsonJwt;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
@@ -489,7 +489,7 @@ fn mock_mdoc_attributes(
                 .unwrap(),
             },
             issuer: issuer_cert.clone(),
-            protected_metadata: ProtectedTypeMetadata::protect(&TypeMetadata::new_example()).unwrap(),
+            metadata_chain: TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap(),
         })
         .collect()
 }

@@ -465,7 +465,7 @@ mod tests {
     use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt::metadata::ProtectedTypeMetadata;
+    use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::config::http::TlsPinningConfig;
 
     use crate::document;
@@ -693,7 +693,7 @@ mod tests {
         let mut wallet = setup_wallet_with_digid_session();
 
         let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
-        let protected_metadata = ProtectedTypeMetadata::protect(&metadata).unwrap();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
@@ -702,7 +702,7 @@ mod tests {
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    protected_metadata,
+                    metadata_chain,
                 }],
             ))
         });
@@ -817,14 +817,14 @@ mod tests {
         start_context.expect().return_once(|| {
             let (mut unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
             unsigned_mdoc.doc_type = "foobar".to_string();
-            let protected_metadata = ProtectedTypeMetadata::protect(&metadata).unwrap();
+            let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
             Ok((
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    protected_metadata,
+                    metadata_chain,
                 }],
             ))
         });

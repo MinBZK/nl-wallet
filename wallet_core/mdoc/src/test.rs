@@ -6,8 +6,8 @@ use coset::CoseSign1;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
-use sd_jwt::metadata::ProtectedTypeMetadata;
 use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
@@ -208,12 +208,12 @@ impl TestDocument {
             unsigned
         };
         let metadata = TypeMetadata::new_example();
-        let protected_metadata = ProtectedTypeMetadata::protect(&metadata).unwrap();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned, protected_metadata, mdoc_public_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned, metadata_chain, mdoc_public_key, &issuance_key)
             .await
             .unwrap();
 

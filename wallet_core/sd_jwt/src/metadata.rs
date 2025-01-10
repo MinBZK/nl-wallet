@@ -3,9 +3,17 @@ use derive_more::Into;
 use http::Uri;
 use jsonschema::ValidationError;
 use nutype::nutype;
+use serde::de;
+use serde::ser;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
+use serde::Serializer;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
+use serde_with::formats::Unpadded;
 use serde_with::skip_serializing_none;
+use serde_with::DeserializeAs;
 
 use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -33,43 +41,62 @@ pub struct SpecOptionalImplRequired<T>(pub T);
 pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
 pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProtectedTypeMetadata {
-    metadata_encoded: String,
-    integrity: ResourceIntegrity,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TypeMetadataChain {
+    metadata: VecNonEmpty<EncodedTypeMetadata>,
+    root_integrity: ResourceIntegrity,
 }
 
-impl ProtectedTypeMetadata {
-    pub fn protect(metadata: &TypeMetadata) -> Result<Self, TypeMetadataError> {
-        let bytes: Vec<u8> = serde_json::to_vec(&metadata)?;
-        let integrity = ResourceIntegrity::from_bytes(&bytes);
-        let metadata_encoded = BASE64_URL_SAFE.encode(bytes);
-        Ok(ProtectedTypeMetadata {
-            metadata_encoded,
-            integrity,
-        })
+impl TypeMetadataChain {
+    pub fn create(
+        root: TypeMetadata,
+        mut extended_metadata: Vec<TypeMetadata>,
+    ) -> Result<TypeMetadataChain, TypeMetadataError> {
+        let root_bytes: Vec<u8> = (&root).try_into()?;
+        let root_integrity = ResourceIntegrity::from_bytes(&root_bytes);
+        extended_metadata.push(root);
+        let metadata = VecNonEmpty::try_from(
+            extended_metadata
+                .into_iter()
+                .map(EncodedTypeMetadata)
+                .collect::<Vec<_>>(),
+        )
+        .unwrap(); // unwrap is safe here because there is always at least one item (root)
+        let result = Self {
+            metadata,
+            root_integrity,
+        };
+        Ok(result)
+    }
+
+    pub fn into_destructured(self) -> (Vec<TypeMetadata>, ResourceIntegrity) {
+        (
+            self.metadata.into_inner().into_iter().map(|m| m.0).collect(),
+            self.root_integrity,
+        )
     }
 
     pub fn verify_and_parse(&self) -> Result<TypeMetadata, TypeMetadataError> {
-        let decoded = BASE64_URL_SAFE.decode(self.metadata_encoded.as_bytes())?;
-        let integrity = ResourceIntegrity::from_bytes(&decoded);
-        if self.integrity != integrity {
-            return Err(TypeMetadataError::ResourceIntegrity {
-                expected: self.integrity.clone(),
-                actual: integrity.clone(),
-            });
-        }
-
-        let metadata: TypeMetadata = serde_json::from_slice(&decoded)?;
-        Ok(metadata)
+        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?;
+        self.root_integrity.verify_and_parse(&bytes)
     }
+}
 
-    pub fn metadata_encoded(&self) -> &str {
-        &self.metadata_encoded
+#[derive(Clone, Debug)]
+pub struct EncodedTypeMetadata(TypeMetadata);
+
+impl Serialize for EncodedTypeMetadata {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let encoded = self.0.try_as_base64().map_err(ser::Error::custom)?;
+        encoded.serialize(serializer)
     }
+}
 
-    pub fn integrity(&self) -> &ResourceIntegrity {
-        &self.integrity
+impl<'de> Deserialize<'de> for EncodedTypeMetadata {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let bytes: Vec<u8> = Base64::<UrlSafe, Unpadded>::deserialize_as::<D>(deserializer)?;
+        let metadata: TypeMetadata = serde_json::from_slice(&bytes).map_err(de::Error::custom)?;
+        Ok(Self(metadata))
     }
 }
 
@@ -113,6 +140,26 @@ impl ResourceIntegrity {
         let integrity = format!("{}-{}", Self::ALG_PREFIX, BASE64_STANDARD.encode(sig));
         ResourceIntegrity(integrity)
     }
+
+    pub fn verify_and_parse(&self, bytes: &[u8]) -> Result<TypeMetadata, TypeMetadataError> {
+        let integrity = Self::from_bytes(bytes);
+        if self != &integrity {
+            return Err(TypeMetadataError::ResourceIntegrity {
+                expected: self.clone(),
+                actual: integrity,
+            });
+        }
+
+        let metadata: TypeMetadata = serde_json::from_slice(bytes)?;
+        Ok(metadata)
+    }
+}
+
+impl TypeMetadata {
+    pub fn try_as_base64(&self) -> Result<String, TypeMetadataError> {
+        let bytes: Vec<u8> = serde_json::to_vec(&self)?;
+        Ok(BASE64_URL_SAFE_NO_PAD.encode(bytes))
+    }
 }
 
 impl TryFrom<Vec<u8>> for TypeMetadata {
@@ -123,11 +170,11 @@ impl TryFrom<Vec<u8>> for TypeMetadata {
     }
 }
 
-impl TryFrom<TypeMetadata> for Vec<u8> {
+impl TryFrom<&TypeMetadata> for Vec<u8> {
     type Error = serde_json::Error;
 
-    fn try_from(value: TypeMetadata) -> Result<Self, Self::Error> {
-        serde_json::to_vec(&value)
+    fn try_from(value: &TypeMetadata) -> Result<Self, Self::Error> {
+        serde_json::to_vec(value)
     }
 }
 
@@ -284,7 +331,7 @@ mod test {
 
     use crate::metadata::ClaimPath;
     use crate::metadata::MetadataExtendsOption;
-    use crate::metadata::ProtectedTypeMetadata;
+    use crate::metadata::ResourceIntegrity;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
 
@@ -421,8 +468,9 @@ mod test {
     #[tokio::test]
     async fn test_protect_verify() {
         let metadata = read_and_parse_metadata("example-metadata.json").await;
-        let protected = ProtectedTypeMetadata::protect(&metadata).unwrap();
-        let parsed = protected.verify_and_parse().unwrap();
+        let bytes = serde_json::to_vec(&metadata).unwrap();
+        let integrity = ResourceIntegrity::from_bytes(&bytes);
+        let parsed = integrity.verify_and_parse(&bytes).unwrap();
         assert_eq!(metadata.vct, parsed.vct);
     }
 }
