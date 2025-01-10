@@ -5,8 +5,6 @@
 //! - 100
 //! - 200
 //! - 300
-//!
-//!
 
 use rasn::types::Integer;
 use rasn::types::OctetString;
@@ -47,9 +45,9 @@ pub struct KeyDescription {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode, Encode)]
 #[rasn(enumerated)]
 pub enum SecurityLevel {
-    Software = 0,
-    TrustedEnvironment = 1,
-    StrongBox = 2,
+    Software,
+    TrustedEnvironment,
+    StrongBox,
 }
 
 // AuthorizationList ::= SEQUENCE {
@@ -138,6 +136,7 @@ pub struct AuthorizationList {
     pub trusted_confirmation_required: Option<()>,
     #[rasn(tag(explicit(509)))]
     pub unlocked_device_required: Option<()>,
+    // kept for backwards compatibility reasons, this field is removed in version 100
     #[rasn(tag(explicit(600)))]
     pub all_applications: Option<()>,
     #[rasn(tag(explicit(701)))]
@@ -201,8 +200,8 @@ pub struct RootOfTrust {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode, Encode)]
 #[rasn(enumerated)]
 pub enum VerifiedBootState {
-    Verified = 0,
-    SelfSigned = 1,
-    Unverified = 2,
-    Failed = 3,
+    Verified,
+    SelfSigned,
+    Unverified,
+    Failed,
 }

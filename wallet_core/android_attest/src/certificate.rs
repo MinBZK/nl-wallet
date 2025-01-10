@@ -1,65 +1,58 @@
 use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::oid;
 use x509_parser::der_parser::Oid;
-use x509_parser::prelude::X509Error;
 
-use crate::attestation_version::AttestationVersion;
-use crate::attestation_version::AttestationVersionError;
-use crate::key_attestation::KeyDescription;
+use crate::key_description::KeyDescription;
 
 pub const KEY_ATTESTATION_EXTENSION_OID: Oid = oid!(1.3.6 .1 .4 .1 .11129 .2 .1 .17);
 
 #[derive(Debug, thiserror::Error)]
-pub enum AndroidCertificateError {
-    #[error("expected a single unique extension: {0}")]
-    DuplicateKeyDescription(#[source] X509Error),
-    #[error("failed to parse attestation version: {0}")]
-    ParsingVersion(#[from] AttestationVersionError),
+pub enum KeyAttestationExtensionError {
+    #[error("expected a single unique extension")]
+    DuplicateKeyDescription,
     #[error("failed to parse key attestation: {0}")]
     ParsingKeyAttestation(#[from] rasn::error::DecodeError),
-    #[error("unsupported attestation schema version: {0:?}")]
-    UnsupportedAttestationVersion(AttestationVersion),
 }
 
-pub trait GoogleAttestationExtension {
-    fn key_attestation(&self) -> Result<Option<KeyDescription>, AndroidCertificateError>;
+pub trait KeyAttestationExtension {
+    fn parse_key_description(&self) -> Result<Option<KeyDescription>, KeyAttestationExtensionError>;
 }
 
-impl GoogleAttestationExtension for X509Certificate<'_> {
+impl KeyAttestationExtension for X509Certificate<'_> {
     /// Try to parse key attestation extension from the certificate.
-    fn key_attestation(&self) -> Result<Option<KeyDescription>, AndroidCertificateError> {
-        let key_attestation = self
+    fn parse_key_description(&self) -> Result<Option<KeyDescription>, KeyAttestationExtensionError> {
+        let key_description = self
             .get_extension_unique(&KEY_ATTESTATION_EXTENSION_OID)
-            .map_err(AndroidCertificateError::DuplicateKeyDescription)?
-            .map(|ext| {
-                let attestation_version = AttestationVersion::try_parse_from(ext.value)?;
-                match attestation_version.as_u16() {
-                    Some(3) | Some(4) | Some(100) | Some(200) | Some(300) => Ok(rasn::der::decode(ext.value)?),
-                    Some(_) | None => Err(AndroidCertificateError::UnsupportedAttestationVersion(
-                        attestation_version,
-                    )),
-                }
-            })
+            .map_err(|_| KeyAttestationExtensionError::DuplicateKeyDescription)?
+            .map(|ext| rasn::der::decode(ext.value))
             .transpose()?;
 
-        Ok(key_attestation)
+        Ok(key_description)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use rasn::types::{Integer, OctetString, SetOf};
+    use rasn::types::Integer;
+    use rasn::types::OctetString;
+    use rasn::types::SetOf;
     use rstest::rstest;
     use x509_parser::prelude::FromDer;
 
-    use crate::key_attestation::{AuthorizationList, RootOfTrust, SecurityLevel, VerifiedBootState};
+    use crate::key_description::AuthorizationList;
+    use crate::key_description::RootOfTrust;
+    use crate::key_description::SecurityLevel;
+    use crate::key_description::VerifiedBootState;
 
     use super::*;
 
+    // This cert was exported from the emulator
     const EMULATOR_CERTIFICATE_BYTES: &[u8] = include_bytes!("../test-assets/emulator-cert.der");
 
+    // This cert was taken from the Google repo: https://github.com/google/android-key-attestation
     const STRONGBOX_CERTIFICATE_BYTES: &[u8] = include_bytes!("../test-assets/strongbox-cert.der");
 
+    // This cert was taken from the Google repo: https://github.com/google/android-key-attestation
     const TEE_CERTIFICATE_BYTES: &[u8] = include_bytes!("../test-assets/tee-cert.der");
 
     fn cert_from_der(bytes: &'static [u8]) -> X509Certificate<'static> {
@@ -196,7 +189,7 @@ mod tests {
         #[case] cert: X509Certificate<'static>,
         #[case] expected_key_description: KeyDescription,
     ) {
-        let key_attestation = cert.key_attestation().unwrap();
+        let key_attestation = cert.parse_key_description().unwrap();
         let key_description = key_attestation.unwrap();
         assert_eq!(key_description, expected_key_description);
     }
