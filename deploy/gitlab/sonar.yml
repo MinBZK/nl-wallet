@@ -41,6 +41,7 @@ sonar-flutter:
     - sonar-scanner
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
+      -Dsonar.sources=.
       -Dsonar.exclusions=android/**,ios/**,test/**,**/*.freezed.dart,**/*.g.dart
       -Dsonar.tests=test/
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
