@@ -954,7 +954,7 @@ pub mod mock {
     pub fn setup_account_server(
         certificate_signing_pubkey: &VerifyingKey,
     ) -> (AccountServer, MockAttestationCa, MockCaChain) {
-        let apple_mock_ca = MockAttestationCa::generate(AttestationEnvironment::Development);
+        let apple_mock_ca = MockAttestationCa::generate();
         let android_mock_ca_chain = MockCaChain::generate(1);
 
         let account_server = AccountServer::new(
@@ -965,7 +965,7 @@ pub mod mock {
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
             AppleAttestationConfiguration {
                 app_identifier: AppIdentifier::new_mock(),
-                environment: apple_mock_ca.environment,
+                environment: AttestationEnvironment::Development,
             },
             vec![apple_mock_ca.trust_anchor().to_owned()],
             vec![RootPublicKey::Ecdsa(android_mock_ca_chain.root_public_key)],
@@ -1121,8 +1121,9 @@ mod tests {
             AttestationCa::Apple(apple_mock_ca) => {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                     apple_mock_ca,
-                    account_server.apple_config.app_identifier.clone(),
                     &utils::sha256(&challenge),
+                    account_server.apple_config.environment,
+                    account_server.apple_config.app_identifier.clone(),
                 );
                 let registration_message =
                     ChallengeResponse::new_apple(&attested_key, attestation_data, pin_privkey, challenge)
@@ -1409,7 +1410,7 @@ mod tests {
             mock::setup_account_server(&setup.signing_pubkey);
 
         // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
-        let other_apple_mock_ca = MockAttestationCa::generate(account_server.apple_config.environment);
+        let other_apple_mock_ca = MockAttestationCa::generate();
 
         let error = do_registration(
             &account_server,

@@ -143,8 +143,12 @@ pub async fn setup_wallet_and_env(
         MockHardwareAttestedKeyHolder::generate_apple(AttestationEnvironment::Development, AppIdentifier::new_mock());
 
     match &key_holder.holder_type {
-        KeyHolderType::Apple { ca, app_identifier } => {
-            let apple_environment = match ca.environment {
+        KeyHolderType::Apple {
+            ca,
+            environment,
+            app_identifier,
+        } => {
+            let apple_environment = match environment {
                 AttestationEnvironment::Development => AppleEnvironment::Development,
                 AttestationEnvironment::Production => AppleEnvironment::Production,
             };

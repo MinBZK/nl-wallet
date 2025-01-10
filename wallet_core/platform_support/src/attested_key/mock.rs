@@ -98,6 +98,7 @@ pub enum MockHardwareAttestedKeyError {
 pub enum KeyHolderType {
     Apple {
         ca: MockAttestationCa,
+        environment: AttestationEnvironment,
         app_identifier: AppIdentifier,
     },
     Google {
@@ -137,7 +138,8 @@ impl MockHardwareAttestedKeyHolder {
     /// Create a key holder that produces mock Apple attested keys by generating a self-signed Apple CA.
     pub fn generate_apple(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
         Self::new(KeyHolderType::Apple {
-            ca: MockAttestationCa::generate(environment),
+            ca: MockAttestationCa::generate(),
+            environment,
             app_identifier,
         })
     }
@@ -147,7 +149,8 @@ impl MockHardwareAttestedKeyHolder {
     #[cfg(feature = "mock_apple_ca")]
     pub fn new_apple_mock(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
         Self::new(KeyHolderType::Apple {
-            ca: MockAttestationCa::new_mock(environment),
+            ca: MockAttestationCa::new_mock(),
+            environment,
             app_identifier,
         })
     }
@@ -286,10 +289,14 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
 
         let has_error = matches!(self.error_scenario, KeyHolderErrorScenario::SigningError);
         let key_with_attestation = match &self.holder_type {
-            KeyHolderType::Apple { ca, app_identifier } => {
+            KeyHolderType::Apple {
+                ca,
+                environment,
+                app_identifier,
+            } => {
                 // Generate a new Apple key and mock attestation data.
                 let (mut key, attestation_data) =
-                    MockAppleAttestedKey::new_with_attestation(ca, app_identifier.clone(), &challenge);
+                    MockAppleAttestedKey::new_with_attestation(ca, &challenge, *environment, app_identifier.clone());
                 key.has_error = has_error;
 
                 // Update the global key state with both the key's private key and counter.
@@ -539,7 +546,8 @@ mod persistent {
             let holder = MockHardwareAttestedKeyHolder {
                 key_states: Arc::clone(&KEY_STATES),
                 holder_type: KeyHolderType::Apple {
-                    ca: MockAttestationCa::new_mock(environment),
+                    ca: MockAttestationCa::new_mock(),
+                    environment,
                     app_identifier,
                 },
                 error_scenario: KeyHolderErrorScenario::default(),
@@ -697,7 +705,7 @@ mod tests {
     impl MockHardwareAttestedKeyHolder {
         pub fn to_apple_test_data(&self) -> Option<AppleTestData> {
             match &self.holder_type {
-                KeyHolderType::Apple { ca, app_identifier } => Some(AppleTestData {
+                KeyHolderType::Apple { ca, app_identifier, .. } => Some(AppleTestData {
                     app_identifier,
                     trust_anchors: vec![ca.trust_anchor()],
                 }),

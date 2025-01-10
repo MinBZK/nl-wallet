@@ -276,22 +276,17 @@ pub mod mock {
         #[debug("{:?}", certificate.der())]
         certificate: Certificate,
         key_pair: KeyPair,
-        pub environment: AttestationEnvironment,
     }
 
     impl MockAttestationCa {
-        pub fn generate(environment: AttestationEnvironment) -> Self {
+        pub fn generate() -> Self {
             let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P384_SHA384).unwrap();
 
             let mut params = CertificateParams::default();
             params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
             let certificate = params.self_signed(&key_pair).unwrap();
 
-            Self {
-                certificate,
-                key_pair,
-                environment,
-            }
+            Self { certificate, key_pair }
         }
 
         pub fn as_certificate_der(&self) -> &CertificateDer<'static> {
@@ -314,7 +309,6 @@ pub mod mock {
         use crate::MOCK_APPLE_ROOT_CA;
         use crate::MOCK_APPLE_ROOT_CA_KEY;
 
-        use super::AttestationEnvironment;
         use super::MockAttestationCa;
 
         #[derive(Debug, thiserror::Error)]
@@ -326,11 +320,7 @@ pub mod mock {
         }
 
         impl MockAttestationCa {
-            fn from_der(
-                environment: AttestationEnvironment,
-                certificate_der: &[u8],
-                key_der: &[u8],
-            ) -> Result<Self, MockAttestationCaDerError> {
+            fn from_der(certificate_der: &[u8], key_der: &[u8]) -> Result<Self, MockAttestationCaDerError> {
                 let key_der = PrivateKeyDer::try_from(key_der).map_err(MockAttestationCaDerError::KeyDer)?;
                 let key_pair = KeyPair::from_der_and_sign_algo(&key_der, &PKCS_ECDSA_P384_SHA384)?;
 
@@ -342,17 +332,13 @@ pub mod mock {
                 // See: https://github.com/rustls/rcgen/issues/274#issuecomment-2121969453
                 let certificate = params.self_signed(&key_pair)?;
 
-                let ca = Self {
-                    certificate,
-                    key_pair,
-                    environment,
-                };
+                let ca = Self { certificate, key_pair };
 
                 Ok(ca)
             }
 
-            pub fn new_mock(environment: AttestationEnvironment) -> Self {
-                Self::from_der(environment, &MOCK_APPLE_ROOT_CA, &MOCK_APPLE_ROOT_CA_KEY)
+            pub fn new_mock() -> Self {
+                Self::from_der(&MOCK_APPLE_ROOT_CA, &MOCK_APPLE_ROOT_CA_KEY)
                     .expect("could not decode mock Apple root CA")
             }
         }
@@ -368,6 +354,7 @@ pub mod mock {
         pub fn new_mock(
             ca: &MockAttestationCa,
             challenge: &[u8],
+            environment: AttestationEnvironment,
             app_identifier: &AppIdentifier,
         ) -> (Self, SigningKey) {
             // Generate an ECDSA key pair and get both the private and public key from it.
@@ -382,7 +369,7 @@ pub mod mock {
             // * The public key in COSE key format.
             let mut auth_data = AuthenticatorData::new(app_identifier.as_ref(), Some(0));
 
-            let aaguid = ca.environment.to_aaguid();
+            let aaguid = environment.to_aaguid();
 
             let verifying_key = signing_key.verifying_key();
             let encoded_point = verifying_key.to_encoded_point(false);
@@ -446,9 +433,10 @@ pub mod mock {
         pub fn new_mock_bytes(
             ca: &MockAttestationCa,
             challenge: &[u8],
+            environment: AttestationEnvironment,
             app_identifier: &AppIdentifier,
         ) -> (Vec<u8>, SigningKey) {
-            let (attestation, signing_key) = Self::new_mock(ca, challenge, app_identifier);
+            let (attestation, signing_key) = Self::new_mock(ca, challenge, environment, app_identifier);
 
             let mut bytes = Vec::new();
             ciborium::into_writer(&attestation, &mut bytes).unwrap();

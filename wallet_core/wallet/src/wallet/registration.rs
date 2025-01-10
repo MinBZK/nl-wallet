@@ -356,12 +356,16 @@ mod tests {
         // Have the account server respond with a valid
         // certificate when the wallet sends a request for it.
         let challenge_expected = challenge.clone();
-        let (trust_anchor, environment, app_identifier) =
-            if let KeyHolderType::Apple { ca, app_identifier } = &wallet.key_holder.holder_type {
-                (ca.trust_anchor().to_owned(), ca.environment, app_identifier.clone())
-            } else {
-                panic!("key holder should contain mock Apple CA");
-            };
+        let (trust_anchor, environment, app_identifier) = if let KeyHolderType::Apple {
+            ca,
+            environment,
+            app_identifier,
+        } = &wallet.key_holder.holder_type
+        {
+            (ca.trust_anchor().to_owned(), *environment, app_identifier.clone())
+        } else {
+            panic!("key holder should contain mock Apple CA");
+        };
 
         // Set up a mutex for the mock callback to write the generated wallet certificate to.
         let generated_certificate: Arc<Mutex<Option<WalletCertificate>>> = Arc::new(Mutex::new(None));
