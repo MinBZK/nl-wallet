@@ -15,7 +15,6 @@ import '../error/core_error.dart';
 /// flag and parsing of the [FlutterApiError]s.
 class TypedWalletCore {
   final Mapper<String, CoreError> _errorMapper;
-  final Completer _isInitialized = Completer();
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
   final BehaviorSubject<core.FlutterConfiguration> _flutterConfig = BehaviorSubject();
   final BehaviorSubject<core.FlutterVersionState> _flutterVersionState = BehaviorSubject();
@@ -30,30 +29,8 @@ class TypedWalletCore {
     _setupRecentHistoryStream();
   }
 
-  Future<void> _initWalletCore() async {
-    if (!(await core.isInitialized())) {
-      // Initialize the Asynchronous runtime and the wallet itself.
-      // This is required to call any subsequent API function on the wallet.
-      await core.WalletCore.init();
-    } else {
-      // The wallet_core is already initialized, this can happen when the Flutter
-      // engine/activity was killed, but the application (and thus native code) was
-      // kept alive by the platform. To recover from this we make sure the streams are reset,
-      // as they can contain references to the previous Flutter engine.
-      await core.clearLockStream();
-      await core.clearConfigurationStream();
-      await core.clearVersionStateStream();
-      await core.clearCardsStream();
-      await core.clearRecentHistoryStream();
-      // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
-      await lockWallet();
-    }
-    _isInitialized.complete();
-  }
-
   void _setupLockedStream() {
     _isLocked.onListen = () async {
-      await _isInitialized.future;
       core.setLockStream().listen(_isLocked.add);
     };
     _isLocked.onCancel = core.clearLockStream;
@@ -61,7 +38,6 @@ class TypedWalletCore {
 
   void _setupConfigurationStream() {
     _flutterConfig.onListen = () async {
-      await _isInitialized.future;
       core.setConfigurationStream().listen(_flutterConfig.add);
     };
     _flutterConfig.onCancel = core.clearConfigurationStream;
@@ -69,7 +45,6 @@ class TypedWalletCore {
 
   void _setupVersionStateStream() {
     _flutterVersionState.onListen = () async {
-      await _isInitialized.future;
       core.setVersionStateStream().listen(_flutterVersionState.add);
     };
     _flutterVersionState.onCancel = core.clearVersionStateStream;
@@ -80,13 +55,11 @@ class TypedWalletCore {
     //FIXME: but since the cards are not persisted yet that means we might miss events, so observing
     //FIXME: the wallet_core cards stream through the complete lifecycle of the app for now.
     //To reproduce issue: 1. Start clean, 2. Setup Wallet, 3. Kill app, 4. Continue Setup, 5. Cards don't show up on success page
-    await _isInitialized.future;
     core.setCardsStream().listen(_cards.add);
   }
 
   void _setupRecentHistoryStream() {
     _recentHistory.onListen = () async {
-      await _isInitialized.future;
       core.setRecentHistoryStream().listen(_recentHistory.add);
     };
     _recentHistory.onCancel = core.clearRecentHistoryStream;
@@ -162,7 +135,6 @@ class TypedWalletCore {
   /// before they are (re)thrown.
   Future<T> call<T>(Future<T> Function() runnable) async {
     try {
-      await _isInitialized.future;
       return await runnable();
     } catch (exception, stacktrace) {
       throw await _handleCoreException(exception, stackTrace: stacktrace);

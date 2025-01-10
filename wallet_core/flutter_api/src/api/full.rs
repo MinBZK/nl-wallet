@@ -37,28 +37,28 @@ fn wallet() -> &'static RwLock<Wallet> {
 
 #[frb(init)]
 pub async fn init() -> anyhow::Result<()> {
-    // Enable backtraces to be caught on panics (but not errors) for Sentry.
-    std::env::set_var("RUST_BACKTRACE", "1");
-    std::env::set_var("RUST_LIB_BACKTRACE", "0");
+    if !is_initialized() {
+        // Enable backtraces to be caught on panics (but not errors) for Sentry.
+        std::env::set_var("RUST_LIB_BACKTRACE", "0");
 
-    // Initialize platform specific logging and set the log level.
-    // As creating the wallet below could fail and init() could be called again,
-    // init_logging() should not fail when being called more than once.
-    init_logging();
+        // Initialize platform specific logging and set the log level.
+        // As creating the wallet below could fail and init() could be called again,
+        // init_logging() should not fail when being called more than once.
+        init_logging();
 
-    // Initialize Sentry for Rust panics.
-    // This MUST be called before initializing the async runtime.
-    init_sentry();
+        // Initialize Sentry for Rust panics.
+        // This MUST be called before initializing the async runtime.
+        init_sentry();
 
-    // Initialize the async runtime so the #[async_runtime] macro can be used.
-    // This function may also be called safely more than once.
-    init_async_runtime();
+        // Initialize the async runtime so the #[async_runtime] macro can be used.
+        // This function may also be called safely more than once.
+        init_async_runtime();
 
-    let initialized = create_wallet().await?;
-    assert!(initialized, "Wallet can only be initialized once");
+        setup_default_user_utils();
 
-    // todo: is this necessary?
-    setup_default_user_utils();
+        let initialized = create_wallet().await?;
+        assert!(initialized, "Wallet can only be initialized once");
+    }
 
     Ok(())
 }

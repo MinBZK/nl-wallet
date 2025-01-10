@@ -7,7 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' as mock;
 
 import 'environment.dart';
@@ -37,10 +37,12 @@ void main() async {
   PlatformDispatcher.instance.onError = errorHandler.handleError;
 
   if (Environment.mockRepositories) {
-    WalletCore.initMock(api: mock.api);
+    core.WalletCore.initMock(api: mock.api);
   } else {
-    await WalletCore.init();
+    await core.WalletCore.init();
   }
+
+  await core.postInit();
 
   if (Environment.hasSentryDsn) {
     await SentryFlutter.init(
