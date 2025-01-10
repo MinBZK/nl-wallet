@@ -35,9 +35,9 @@ sonar-flutter:
   variables:
     GIT_STRATEGY: clone
   before_script:
-    - cd $FLUTTER_APP_PROJECT_DIR
+    - cd wallet_app
   script:
-    - flutter pub get
+    - flutter pub get --enforce-lockfile
     - sonar-scanner
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
