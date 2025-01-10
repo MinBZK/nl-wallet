@@ -21,7 +21,7 @@ sonar-rust:
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
       -Dsonar.coverage.exclusions=flutter_api/src/bridge_generated/**,mock_relying_party/src/askama_axum.rs,wallet/migration/**,wallet_provider/migrations/**,wallet_server/migration/**
       -Dcommunity.rust.lcov.reportPaths="lcov.info"
-      -Dcommunity.rust.test.reportPath="wallet_core/target/nextest/ci/junit.xml"
+      -Dcommunity.rust.test.reportPath="target/nextest/ci/junit.xml"
 
 sonar-flutter:
   rules: !reference [.default-or-merge-request, rules]
