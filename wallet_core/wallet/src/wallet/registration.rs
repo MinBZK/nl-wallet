@@ -320,7 +320,7 @@ mod tests {
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
-    use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+    use platform_support::attested_key::mock::KeyHolderType;
     use wallet_common::account::messages::auth::RegistrationAttestation;
     use wallet_common::account::messages::auth::WalletCertificate;
     use wallet_common::account::signed::SequenceNumberComparison;
@@ -338,7 +338,7 @@ mod tests {
 
     // TODO: Add test for registration using Google attested key.
 
-    async fn test_wallet_register_success(mut wallet: WalletWithMocks) {
+    async fn test_wallet_register_success(wallet: &mut WalletWithMocks) {
         // The wallet should report that it is currently unregistered and locked.
         assert!(!wallet.has_registration());
         assert!(wallet.is_locked());
@@ -355,11 +355,13 @@ mod tests {
 
         // Have the account server respond with a valid
         // certificate when the wallet sends a request for it.
-        // let cert = wallet.valid_certificate().await;
-        // let cert_response = cert.clone();
-        let trust_anchor = wallet.key_holder.ca.trust_anchor().to_owned();
-        let app_identifier = wallet.key_holder.app_identifier.clone();
         let challenge_expected = challenge.clone();
+        let (trust_anchor, environment, app_identifier) =
+            if let KeyHolderType::Apple { ca, app_identifier } = &wallet.key_holder.holder_type {
+                (ca.trust_anchor().to_owned(), ca.environment, app_identifier.clone())
+            } else {
+                panic!("key holder should contain mock Apple CA");
+            };
 
         // Set up a mutex for the mock callback to write the generated wallet certificate to.
         let generated_certificate: Arc<Mutex<Option<WalletCertificate>>> = Arc::new(Mutex::new(None));
@@ -386,7 +388,7 @@ mod tests {
                     &[trust_anchor],
                     &utils::sha256(&registration.challenge),
                     &app_identifier,
-                    wallet.key_holder.ca.environment,
+                    environment,
                 )
                 .expect("registration message Apple attestation should verify");
 
@@ -433,17 +435,17 @@ mod tests {
             stored_registration.wallet_certificate.0,
             generated_certificate.lock().as_ref().unwrap().0
         );
-        assert!(MockHardwareAttestedKeyHolder::is_attested(
-            &stored_registration.attested_key_identifier
-        ));
+        assert!(wallet
+            .key_holder
+            .is_attested(&stored_registration.attested_key_identifier));
     }
 
     #[tokio::test]
     async fn test_wallet_register_success_apple() {
         // Prepare an unregistered wallet.
-        let wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
-        test_wallet_register_success(wallet).await;
+        test_wallet_register_success(&mut wallet).await;
     }
 
     async fn add_key_identifier_to_wallet(wallet: &mut WalletWithMocks) -> String {
@@ -464,15 +466,15 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_register_success_apple_key_identifier() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
         // Set up a key identifier to re-use, both in storage and in the Wallet internal state.
         let key_identifier = add_key_identifier_to_wallet(&mut wallet).await;
 
-        test_wallet_register_success(wallet).await;
+        test_wallet_register_success(&mut wallet).await;
 
         // The same key identifier we generated should now be attested.
-        assert!(MockHardwareAttestedKeyHolder::is_attested(&key_identifier));
+        assert!(wallet.key_holder.is_attested(&key_identifier));
     }
 
     #[tokio::test]
@@ -490,7 +492,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_invalid_pin() {
-        let mut wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
         // Try to register with an insecure PIN.
         let error = wallet
@@ -505,7 +507,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_challenge_request() {
-        let mut wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
         // Have the account server respond to the challenge request with a 500 error.
         wallet
@@ -524,7 +526,7 @@ mod tests {
     }
 
     fn unregistered_wallet_with_registration_challenge() -> WalletWithMocks {
-        let mut wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
         wallet
             .account_provider_client
@@ -649,7 +651,7 @@ mod tests {
         assert_matches!(error, WalletRegistrationError::RegistrationRequest(_));
         assert_matches!(wallet.registration, WalletRegistration::Unregistered);
         assert!(wallet.storage.get_mut().data.is_empty());
-        assert!(MockHardwareAttestedKeyHolder::is_attested(&key_identifier));
+        assert!(wallet.key_holder.is_attested(&key_identifier));
     }
 
     #[tokio::test]

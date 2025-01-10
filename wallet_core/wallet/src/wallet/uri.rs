@@ -79,7 +79,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_identify_redirect_uri() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
         // Set up some URLs to work with.
         let example_uri = "https://example.com";

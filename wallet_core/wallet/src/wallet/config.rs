@@ -68,7 +68,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_set_clear_config_callback() {
         // Prepare an unregistered wallet.
-        let wallet = WalletWithMocks::new_unregistered();
+        let wallet = WalletWithMocks::new_unregistered_apple();
 
         // Wrap a `Vec<Configuration>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.

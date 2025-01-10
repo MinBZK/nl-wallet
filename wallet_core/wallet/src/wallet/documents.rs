@@ -107,7 +107,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_set_clear_documents_callback() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
         // Register mock document_callback
         let documents = test::setup_mock_documents_callback(&mut wallet)

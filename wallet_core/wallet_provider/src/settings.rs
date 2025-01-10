@@ -101,7 +101,7 @@ pub struct Android {
     pub root_public_keys: Vec<AndroidRootPublicKey>,
 }
 
-#[derive(Clone, Into)]
+#[derive(Clone, From, Into)]
 pub struct AndroidRootPublicKey(RootPublicKey);
 
 impl Settings {

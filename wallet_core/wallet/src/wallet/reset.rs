@@ -178,7 +178,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_reset_error_not_registered() {
-        let mut wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
         // Attempting to reset an unregistered Wallet should result in an error.
         let error = wallet

@@ -47,7 +47,7 @@ mod mock_apple_attested_key {
     #[derive(Debug)]
     pub struct MockAppleAttestedKey {
         pub app_identifier: AppIdentifier,
-        pub signing_key: SigningKey,
+        pub signing_key: Arc<SigningKey>,
         pub next_counter: Arc<AtomicU32>,
         pub has_error: bool,
     }
@@ -55,7 +55,7 @@ mod mock_apple_attested_key {
     impl MockAppleAttestedKey {
         fn new(signing_key: SigningKey, app_identifier: AppIdentifier) -> Self {
             Self {
-                signing_key,
+                signing_key: Arc::new(signing_key),
                 app_identifier,
                 next_counter: Arc::new(AtomicU32::new(1)),
                 has_error: false,

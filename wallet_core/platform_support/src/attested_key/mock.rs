@@ -1,22 +1,23 @@
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
-use std::sync::LazyLock;
 
+use p256::ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::RwLock;
+use rand_core::OsRng;
 use uuid::Uuid;
 
+use android_attest::mock::MockCaChain;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
-use wallet_common::account::serialization::DerSigningKey;
 use wallet_common::apple::MockAppleAttestedKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::utils;
 
 use super::AttestationError;
 use super::AttestedKey;
@@ -24,9 +25,39 @@ use super::AttestedKeyHolder;
 use super::GoogleAttestedKey;
 use super::KeyWithAttestation;
 
-/// The global state of all keys managed by [`MockHardwareAttestedKeyError`] instances.
-static KEY_STATES: LazyLock<RwLock<HashMap<String, AttestedKeyState>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+type KeyStates = Arc<RwLock<HashMap<String, AttestedKeyState>>>;
 
+#[derive(Debug)]
+struct SharedSigningKey {
+    signing_key: Arc<SigningKey>,
+    #[cfg(feature = "persistent_mock_attested_key")]
+    der: Vec<u8>,
+}
+
+impl SharedSigningKey {
+    fn new(signing_key: Arc<SigningKey>) -> Self {
+        #[cfg(feature = "persistent_mock_attested_key")]
+        let der = {
+            use p256::pkcs8::EncodePrivateKey;
+
+            signing_key.to_pkcs8_der().unwrap().as_bytes().to_vec()
+        };
+
+        Self {
+            signing_key,
+            #[cfg(feature = "persistent_mock_attested_key")]
+            der,
+        }
+    }
+}
+
+impl AsRef<Arc<SigningKey>> for SharedSigningKey {
+    fn as_ref(&self) -> &Arc<SigningKey> {
+        &self.signing_key
+    }
+}
+
+#[cfg_attr(feature = "persistent_mock_attested_key", serde_with::serde_as)]
 #[derive(Debug)]
 #[cfg_attr(
     feature = "persistent_mock_attested_key",
@@ -36,8 +67,16 @@ static KEY_STATES: LazyLock<RwLock<HashMap<String, AttestedKeyState>>> = LazyLoc
 enum AttestedKeyState {
     Generated,
     Attested {
-        signing_key: DerSigningKey,
-        next_counter: Arc<AtomicU32>,
+        // Ugly workaround for `#[cfg_attr(feature = "persistent_mock_attested_key", serde_as(...))]` not working here.
+        #[cfg(not(feature = "persistent_mock_attested_key"))]
+        signing_key: SharedSigningKey,
+
+        #[cfg(feature = "persistent_mock_attested_key")]
+        #[serde_as(as = "serde_with::base64::Base64")]
+        signing_key: SharedSigningKey,
+
+        // This is set to `None` for Google attested keys.
+        next_counter: Option<Arc<AtomicU32>>,
     },
 }
 
@@ -56,7 +95,19 @@ pub enum MockHardwareAttestedKeyError {
 }
 
 #[derive(Debug)]
+pub enum KeyHolderType {
+    Apple {
+        ca: MockAttestationCa,
+        app_identifier: AppIdentifier,
+    },
+    Google {
+        ca_chain: MockCaChain,
+    },
+}
+
+#[derive(Debug, Default)]
 pub enum KeyHolderErrorScenario {
+    #[default]
     NoError,
     GenerateError,
     UnretryableAttestationError,
@@ -64,49 +115,80 @@ pub enum KeyHolderErrorScenario {
     SigningError,
 }
 
-// TODO: Make this type support mock Google attested keys once those are implemented.
-
-/// Implements [`AttestedKeyHolder`] and returns [`MockAppleAttestedKey`] types,
-/// based on the mock root CA included in the [`apple_app_attest`] crate.
+/// Implements [`AttestedKeyHolder`] and returns either [`MockAppleAttestedKey`] types, based on
+/// the mock root CA included in the [`apple_app_attest`] crate, or [`MockGoogleAttestedKey`]
+/// types based on the mock root CA chain included in the [`android_attest`] crate.
 #[derive(Debug)]
 pub struct MockHardwareAttestedKeyHolder {
-    key_states: &'static RwLock<HashMap<String, AttestedKeyState>>,
-    pub ca: MockAttestationCa,
-    pub app_identifier: AppIdentifier,
+    key_states: KeyStates,
+    pub holder_type: KeyHolderType,
     pub error_scenario: KeyHolderErrorScenario,
 }
 
 impl MockHardwareAttestedKeyHolder {
-    pub fn generate(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
+    fn new(holder_type: KeyHolderType) -> Self {
         Self {
-            key_states: &KEY_STATES,
+            key_states: Arc::new(RwLock::new(HashMap::new())),
+            holder_type,
+            error_scenario: KeyHolderErrorScenario::default(),
+        }
+    }
+
+    /// Create a key holder that produces mock Apple attested keys by generating a self-signed Apple CA.
+    pub fn generate_apple(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
+        Self::new(KeyHolderType::Apple {
             ca: MockAttestationCa::generate(environment),
             app_identifier,
-            error_scenario: KeyHolderErrorScenario::NoError,
-        }
+        })
     }
 
+    /// Create a key holder that produces mock Apple attested keys using the
+    /// self-signed static Apple CA contained in the "mock_ca" files.
     #[cfg(feature = "mock_apple_ca")]
-    pub fn new_mock(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
-        Self {
-            key_states: &KEY_STATES,
+    pub fn new_apple_mock(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
+        Self::new(KeyHolderType::Apple {
             ca: MockAttestationCa::new_mock(environment),
             app_identifier,
-            error_scenario: KeyHolderErrorScenario::NoError,
+        })
+    }
+
+    /// Create a key holder that produces mock Google attested keys by generating a self-signed Google CA chain.
+    pub fn generate_google() -> Self {
+        Self::new(KeyHolderType::Google {
+            ca_chain: MockCaChain::generate(1),
+        })
+    }
+
+    fn state_from_apple_key(key: &MockAppleAttestedKey) -> AttestedKeyState {
+        AttestedKeyState::Attested {
+            signing_key: SharedSigningKey::new(Arc::clone(&key.signing_key)),
+            next_counter: Some(Arc::clone(&key.next_counter)),
         }
     }
 
-    pub fn is_attested(key_identifier: &str) -> bool {
-        KEY_STATES.read().contains_key(key_identifier)
+    fn state_from_google_key(key: &MockGoogleAttestedKey) -> AttestedKeyState {
+        AttestedKeyState::Attested {
+            signing_key: SharedSigningKey::new(Arc::clone(&key.signing_key)),
+            next_counter: None,
+        }
     }
 
-    /// Populate a particular identifier within the global state with a signing key and counter.
-    pub fn populate_key_identifier(key_identifier: String, signing_key: SigningKey, next_counter: u32) {
-        let existing_state = KEY_STATES.write().insert(
+    pub fn is_attested(&self, key_identifier: &str) -> bool {
+        self.key_states.read().contains_key(key_identifier)
+    }
+
+    /// Populate a particular identifier within the state with a signing key
+    /// and, for Apple attested keys, a default initial counter.
+    pub fn populate_key_identifier(&self, key_identifier: String, signing_key: SigningKey) {
+        let next_counter = match self.holder_type {
+            KeyHolderType::Apple { .. } => Some(Arc::new(AtomicU32::from(1))),
+            KeyHolderType::Google { .. } => None,
+        };
+        let existing_state = self.key_states.write().insert(
             key_identifier,
             AttestedKeyState::Attested {
-                signing_key: DerSigningKey(signing_key),
-                next_counter: Arc::new(AtomicU32::from(next_counter)),
+                signing_key: SharedSigningKey::new(Arc::new(signing_key)),
+                next_counter,
             },
         );
 
@@ -115,29 +197,34 @@ impl MockHardwareAttestedKeyHolder {
         }
     }
 
-    fn state_from_key(key: &MockAppleAttestedKey) -> AttestedKeyState {
-        AttestedKeyState::Attested {
-            signing_key: DerSigningKey(key.signing_key.clone()),
-            next_counter: Arc::clone(&key.next_counter),
-        }
-    }
-
     /// Insert a new random key into the global state, bypassing attestation.
-    pub fn random_key(&self) -> (MockAppleAttestedKey, String) {
+    pub fn random_key(&self) -> (AttestedKey<MockAppleAttestedKey, MockGoogleAttestedKey>, String) {
         let key_identifier = Uuid::new_v4().to_string();
-        let mut key = MockAppleAttestedKey::new_random(self.app_identifier.clone());
 
-        let existing_state = self
-            .key_states
-            .write()
-            .insert(key_identifier.clone(), Self::state_from_key(&key));
+        let has_error = matches!(self.error_scenario, KeyHolderErrorScenario::SigningError);
+        let (key, state) = match &self.holder_type {
+            KeyHolderType::Apple { app_identifier, .. } => {
+                let mut key = MockAppleAttestedKey::new_random(app_identifier.clone());
+                key.has_error = has_error;
+
+                let state = Self::state_from_apple_key(&key);
+
+                (AttestedKey::Apple(key), state)
+            }
+            KeyHolderType::Google { .. } => {
+                let mut key = MockGoogleAttestedKey::new_random(Arc::clone(&self.key_states), key_identifier.clone());
+                key.has_error = has_error;
+
+                let state = Self::state_from_google_key(&key);
+
+                (AttestedKey::Google(key), state)
+            }
+        };
+
+        let existing_state = self.key_states.write().insert(key_identifier.clone(), state);
 
         // Sanity check, this only happens on a key collision.
         assert!(existing_state.is_none());
-
-        if let KeyHolderErrorScenario::SigningError = self.error_scenario {
-            key.has_error = true;
-        }
 
         (key, key_identifier)
     }
@@ -146,7 +233,7 @@ impl MockHardwareAttestedKeyHolder {
 impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
     type Error = MockHardwareAttestedKeyError;
     type AppleKey = MockAppleAttestedKey;
-    type GoogleKey = DeadGoogleAttestedKey;
+    type GoogleKey = MockGoogleAttestedKey;
 
     async fn generate(&self) -> Result<String, Self::Error> {
         if let KeyHolderErrorScenario::GenerateError = self.error_scenario {
@@ -197,18 +284,36 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
             ));
         };
 
-        // Generate a new key and mock attestation data.
-        let (mut key, attestation_data) =
-            MockAppleAttestedKey::new_with_attestation(&self.ca, self.app_identifier.clone(), &challenge);
+        let has_error = matches!(self.error_scenario, KeyHolderErrorScenario::SigningError);
+        let key_with_attestation = match &self.holder_type {
+            KeyHolderType::Apple { ca, app_identifier } => {
+                // Generate a new Apple key and mock attestation data.
+                let (mut key, attestation_data) =
+                    MockAppleAttestedKey::new_with_attestation(ca, app_identifier.clone(), &challenge);
+                key.has_error = has_error;
 
-        if let KeyHolderErrorScenario::SigningError = self.error_scenario {
-            key.has_error = true;
-        }
+                // Update the global key state with both the key's private key and counter.
+                key_states.insert(key_identifier, Self::state_from_apple_key(&key));
 
-        // Update the global key state with both the key's private key and counter.
-        key_states.insert(key_identifier, Self::state_from_key(&key));
+                KeyWithAttestation::Apple { key, attestation_data }
+            }
+            KeyHolderType::Google { ca_chain } => {
+                // Generate a new Google key and mock certificate chain.
+                let (certificate_chain, signing_key) = ca_chain.generate_leaf_certificate();
+                let mut key =
+                    MockGoogleAttestedKey::new(Arc::clone(&self.key_states), key_identifier.clone(), signing_key);
+                key.has_error = has_error;
 
-        let key_with_attestation = KeyWithAttestation::Apple { key, attestation_data };
+                key_states.insert(key_identifier, Self::state_from_google_key(&key));
+
+                KeyWithAttestation::Google {
+                    key,
+                    certificate_chain,
+                    // As this token is opaque anyway, just provide some random data.
+                    app_attestation_token: utils::random_bytes(32),
+                }
+            }
+        };
 
         Ok(key_with_attestation)
     }
@@ -226,50 +331,110 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
         {
             AttestedKeyState::Generated => Err(MockHardwareAttestedKeyError::KeyNotAttested),
             AttestedKeyState::Attested {
-                signing_key: DerSigningKey(signing_key),
+                signing_key: SharedSigningKey { signing_key, .. },
                 next_counter,
             } => {
-                // Use the Arc's reference counter as a proxy to determine if a `MockAppleAttestedKey`
-                // already exists within memory, as this would own the second reference to it.
-                if Arc::strong_count(next_counter) > 1 {
+                // Use the Arc's reference counter as a proxy to determine if a key already
+                // exists within memory, as this would own the second reference to it.
+                if Arc::strong_count(signing_key) > 1 {
                     return Err(MockHardwareAttestedKeyError::IdentifierInUse);
                 }
 
-                // Construct a `MockAppleAttestedKey` based on the private key and counter.
-                let key = MockAppleAttestedKey {
-                    app_identifier: self.app_identifier.clone(),
-                    signing_key: signing_key.clone(),
-                    next_counter: Arc::clone(next_counter),
-                    has_error: matches!(self.error_scenario, KeyHolderErrorScenario::SigningError),
+                // Construct the correct type of key based on the private key
+                // retrieved from the state and, for Apple keys, the counter.
+                let has_error = matches!(self.error_scenario, KeyHolderErrorScenario::SigningError);
+                let signing_key = Arc::clone(signing_key);
+                let key = match (&self.holder_type, next_counter) {
+                    (KeyHolderType::Apple { app_identifier, .. }, Some(next_counter)) => {
+                        let key = MockAppleAttestedKey {
+                            app_identifier: app_identifier.clone(),
+                            signing_key,
+                            next_counter: Arc::clone(next_counter),
+                            has_error,
+                        };
+
+                        AttestedKey::Apple(key)
+                    }
+                    (KeyHolderType::Google { .. }, None) => {
+                        let key = MockGoogleAttestedKey {
+                            key_states: Arc::clone(&self.key_states),
+                            key_identifier,
+                            signing_key,
+                            has_error,
+                        };
+
+                        AttestedKey::Google(key)
+                    }
+                    // The `next_counter` field should always be used for Apple keys and never for Google keys.
+                    _ => unreachable!(),
                 };
 
-                Ok(AttestedKey::Apple(key))
+                Ok(key)
             }
         }
     }
 }
 
-/// A faux type that does nothing, which we have to have because of [`AttestedKeyHolder::GoogleKey`].
-#[derive(Debug)]
-pub struct DeadGoogleAttestedKey;
+#[derive(Debug, thiserror::Error)]
+#[error("mock error to be used in tests")]
+pub struct MockGoogleAttestedKeyError {}
 
-impl GoogleAttestedKey for DeadGoogleAttestedKey {
-    async fn delete(self) -> Result<(), Self::Error> {
-        unimplemented!()
+/// Mock Google attested key that mostly wraps a `SigningKey`. It also contains its own key identifier
+/// and a referenced copy of the key state, so that it may delete itself from the state.
+#[derive(Debug)]
+pub struct MockGoogleAttestedKey {
+    key_states: KeyStates,
+    key_identifier: String,
+    pub signing_key: Arc<SigningKey>,
+    pub has_error: bool,
+}
+
+impl MockGoogleAttestedKey {
+    fn new(key_states: KeyStates, key_identifier: String, signing_key: SigningKey) -> Self {
+        Self {
+            key_states,
+            key_identifier,
+            signing_key: Arc::new(signing_key),
+            has_error: false,
+        }
+    }
+
+    fn new_random(key_states: KeyStates, key_identifier: String) -> Self {
+        Self::new(key_states, key_identifier, SigningKey::random(&mut OsRng))
+    }
+
+    pub fn verifying_key(&self) -> &VerifyingKey {
+        self.signing_key.verifying_key()
     }
 }
 
-impl SecureEcdsaKey for DeadGoogleAttestedKey {}
+impl GoogleAttestedKey for MockGoogleAttestedKey {
+    async fn delete(self) -> Result<(), Self::Error> {
+        self.key_states.write().remove(&self.key_identifier);
 
-impl EcdsaKey for DeadGoogleAttestedKey {
-    type Error = Infallible;
+        Ok(())
+    }
+}
+
+impl SecureEcdsaKey for MockGoogleAttestedKey {}
+
+impl EcdsaKey for MockGoogleAttestedKey {
+    type Error = MockGoogleAttestedKeyError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        unimplemented!()
+        let verifying_key = *self.signing_key.verifying_key();
+
+        Ok(verifying_key)
     }
 
-    async fn try_sign(&self, _msg: &[u8]) -> Result<Signature, Self::Error> {
-        unimplemented!()
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        if self.has_error {
+            return Err(MockGoogleAttestedKeyError {});
+        }
+
+        let signature = Signer::try_sign(self.signing_key.as_ref(), msg).unwrap();
+
+        Ok(signature)
     }
 }
 
@@ -279,10 +444,13 @@ pub use persistent::*;
 #[cfg(feature = "persistent_mock_attested_key")]
 mod persistent {
     use std::future::Future;
+    use std::ops::Deref;
     use std::path::Path;
     use std::path::PathBuf;
+    use std::sync::LazyLock;
 
     use futures::TryFutureExt;
+    use p256::pkcs8::DecodePrivateKey;
     use tokio::fs;
     use tokio::sync::Mutex;
 
@@ -294,11 +462,27 @@ mod persistent {
     use super::*;
 
     /// The global state of all keys managed by [`PersistentMockAttestedKeyHolder`] instances.
-    /// Note that this is distinct from the keys managed by [`MockHardwareAttestedKeyHolder`].
-    static PERSISTENT_KEY_STATES: LazyLock<RwLock<HashMap<String, AttestedKeyState>>> =
-        LazyLock::new(|| RwLock::new(HashMap::new()));
-    /// Async mutex around the filesystem backing store that holds [`PERSISTENT_KEY_STATES`].
+    static KEY_STATES: LazyLock<KeyStates> = LazyLock::new(|| Arc::new(RwLock::new(HashMap::new())));
+    /// Async mutex around the filesystem backing store that holds [`KEY_STATES`].
     static KEY_STATES_FILE: Mutex<Option<PathBuf>> = Mutex::const_new(None);
+
+    // Have `SharedSigningKey` be serializable as Base64 through `serde_with`.
+    impl AsRef<[u8]> for SharedSigningKey {
+        fn as_ref(&self) -> &[u8] {
+            &self.der
+        }
+    }
+
+    // Have `SharedSigningKey` be deserializable as Base64 through `serde_with`.
+    impl TryFrom<Vec<u8>> for SharedSigningKey {
+        type Error = p256::pkcs8::Error;
+
+        fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+            let signing_key = SigningKey::from_pkcs8_der(&value)?;
+
+            Ok(Self::new(Arc::new(signing_key)))
+        }
+    }
 
     /// A wrapper around [`MockHardwareAttestedKeyHolder`] that synchronizes the global key state
     /// with a JSON file on the filesystem. As the iOS simulator does not support attested keys, this
@@ -306,6 +490,9 @@ mod persistent {
     /// attestation of and signing by attested keys that survive termination and relaunch of the
     /// application. As it is specifically meant for use of the iOS simulator, the storage path is
     /// determined using [`PlatformUtilities`] and it will only ever produce mock Apple attested keys.
+    ///
+    /// Note that this only ever produces mock Apple keys.
+    #[derive(Debug)]
     pub struct PersistentMockAttestedKeyHolder(MockHardwareAttestedKeyHolder);
 
     impl PersistentMockAttestedKeyHolder {
@@ -344,16 +531,18 @@ mod persistent {
                 })
                 .unwrap_or_default();
 
-            *PERSISTENT_KEY_STATES.write() = key_states;
+            *KEY_STATES.write() = key_states;
             *key_states_file = Some(file_path);
         }
 
         pub fn new_mock(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
             let holder = MockHardwareAttestedKeyHolder {
-                key_states: &PERSISTENT_KEY_STATES,
-                ca: MockAttestationCa::new_mock(environment),
-                app_identifier,
-                error_scenario: KeyHolderErrorScenario::NoError,
+                key_states: Arc::clone(&KEY_STATES),
+                holder_type: KeyHolderType::Apple {
+                    ca: MockAttestationCa::new_mock(environment),
+                    app_identifier,
+                },
+                error_scenario: KeyHolderErrorScenario::default(),
             };
 
             Self(holder)
@@ -374,7 +563,7 @@ mod persistent {
 
             future
                 .and_then(|key_identifier| async {
-                    let json = serde_json::to_string_pretty(&*PERSISTENT_KEY_STATES.read())
+                    let json = serde_json::to_string_pretty(KEY_STATES.read().deref())
                         .expect("could not encode mock Apple attested keys JSON file");
                     fs::write(file_path, json)
                         .await
@@ -394,7 +583,7 @@ mod persistent {
     impl AttestedKeyHolder for PersistentMockAttestedKeyHolder {
         type Error = MockHardwareAttestedKeyError;
         type AppleKey = PersistentMockAppleAttestedKey;
-        type GoogleKey = DeadGoogleAttestedKey;
+        type GoogleKey = MockGoogleAttestedKey;
 
         async fn generate(&self) -> Result<String, Self::Error> {
             Self::with_key_state_write(self.0.generate()).await
@@ -405,8 +594,8 @@ mod persistent {
             key_identifier: String,
             challenge: Vec<u8>,
         ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
-            // Map the output from `KeyWithAttestation<MockAppleAttestedKey, DeadGoogleAttestedKey>`
-            // to `KeyWithAttestation<PersistentMockAppleAttestedKey, DeadGoogleAttestedKey>`.
+            // Map the output from `KeyWithAttestation<MockAppleAttestedKey, MockGoogleAttestedKey>`
+            // to `KeyWithAttestation<PersistentMockAppleAttestedKey, MockGoogleAttestedKey>`.
             Self::with_key_state_write(self.0.attest(key_identifier, challenge))
                 .await
                 .map(|key_with_attestation| match key_with_attestation {
@@ -460,17 +649,15 @@ mod persistent {
     mod tests {
         use apple_app_attest::AppIdentifier;
         use apple_app_attest::AttestationEnvironment;
-        use apple_app_attest::MOCK_APPLE_TRUST_ANCHORS;
 
         use crate::attested_key::test;
-        use crate::attested_key::test::AppleTestData;
         use crate::utils::mock::MockHardwareUtilities;
 
         use super::PersistentMockAttestedKeyHolder;
         use super::KEY_STATES_FILE;
 
         #[tokio::test]
-        async fn test_persistent_mock_apple_hardware_attested_key_holder() {
+        async fn test_persistent_mock_attested_key_holder() {
             PersistentMockAttestedKeyHolder::init::<MockHardwareUtilities>().await;
 
             println!(
@@ -481,17 +668,14 @@ mod persistent {
             let app_identifier = AppIdentifier::new_mock();
             let mock_holder =
                 PersistentMockAttestedKeyHolder::new_mock(AttestationEnvironment::Development, app_identifier);
+            let PersistentMockAttestedKeyHolder(mock_holder_inner) = &mock_holder;
+
             let challenge = b"this_is_a_challenge_string";
             let payload = b"This is a message that will be signed by the persistent mock key.";
 
-            let apple_test_data = AppleTestData {
-                app_identifier: &mock_holder.0.app_identifier,
-                trust_anchors: &MOCK_APPLE_TRUST_ANCHORS,
-            };
-
             test::create_and_verify_attested_key(
                 &mock_holder,
-                Some(apple_test_data),
+                mock_holder_inner.to_apple_test_data(),
                 challenge.to_vec(),
                 payload.to_vec(),
             )
@@ -507,26 +691,45 @@ mod tests {
     use crate::attested_key::test;
     use crate::attested_key::test::AppleTestData;
 
+    use super::KeyHolderType;
     use super::MockHardwareAttestedKeyHolder;
 
-    #[tokio::test]
-    async fn test_mock_apple_hardware_attested_key_holder() {
-        let app_identifier = AppIdentifier::new_mock();
-        let mock_holder = MockHardwareAttestedKeyHolder::generate(AttestationEnvironment::Development, app_identifier);
+    impl MockHardwareAttestedKeyHolder {
+        pub fn to_apple_test_data(&self) -> Option<AppleTestData> {
+            match &self.holder_type {
+                KeyHolderType::Apple { ca, app_identifier } => Some(AppleTestData {
+                    app_identifier,
+                    trust_anchors: vec![ca.trust_anchor()],
+                }),
+                KeyHolderType::Google { .. } => None,
+            }
+        }
+    }
+
+    async fn test_mock_hardware_attested_key_holder(mock_holder: MockHardwareAttestedKeyHolder) {
         let challenge = b"this_is_a_challenge_string";
         let payload = b"This is a message that will be signed by the mock key.";
 
-        let apple_test_data = AppleTestData {
-            app_identifier: &mock_holder.app_identifier,
-            trust_anchors: &[mock_holder.ca.trust_anchor()],
-        };
-
         test::create_and_verify_attested_key(
             &mock_holder,
-            Some(apple_test_data),
+            mock_holder.to_apple_test_data(),
             challenge.to_vec(),
             payload.to_vec(),
         )
         .await;
+    }
+
+    #[tokio::test]
+    async fn test_mock_apple_hardware_attested_key_holder() {
+        test_mock_hardware_attested_key_holder(MockHardwareAttestedKeyHolder::generate_apple(
+            AttestationEnvironment::Development,
+            AppIdentifier::new_mock(),
+        ))
+        .await
+    }
+
+    #[tokio::test]
+    async fn test_mock_google_hardware_attested_key_holder() {
+        test_mock_hardware_attested_key_holder(MockHardwareAttestedKeyHolder::generate_google()).await
     }
 }

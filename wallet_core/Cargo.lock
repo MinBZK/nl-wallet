@@ -117,6 +117,7 @@ dependencies = [
  "assert_matches",
  "chrono",
  "const-decoder",
+ "derive_more",
  "http-cache-reqwest",
  "num-bigint",
  "num-traits",
@@ -3651,6 +3652,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.3.0-dev"
 dependencies = [
+ "android_attest",
  "android_logger",
  "apple_app_attest",
  "async-trait",
@@ -3662,6 +3664,7 @@ dependencies = [
  "log",
  "p256",
  "parking_lot",
+ "rand_core",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -5470,6 +5473,7 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 name = "tests_integration"
 version = "0.3.0-dev"
 dependencies = [
+ "android_attest",
  "apple_app_attest",
  "assert_matches",
  "configuration_server",

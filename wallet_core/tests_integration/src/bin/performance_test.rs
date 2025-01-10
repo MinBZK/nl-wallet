@@ -101,7 +101,7 @@ async fn main() {
         config_repository,
         update_policy_repository,
         MockStorage::default(),
-        MockHardwareAttestedKeyHolder::new_mock(apple_attestation_environment, app_identifier),
+        MockHardwareAttestedKeyHolder::new_apple_mock(apple_attestation_environment, app_identifier),
         HttpAccountProviderClient::default(),
     )
     .await

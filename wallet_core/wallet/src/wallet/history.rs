@@ -300,7 +300,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_history_fails_when_not_registered() {
-        let wallet = WalletWithMocks::new_unregistered();
+        let wallet = WalletWithMocks::new_unregistered_apple();
 
         let error = wallet
             .get_history()
@@ -403,7 +403,7 @@ mod tests {
     #[tokio::test]
     async fn test_set_clear_recent_history_callback() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered();
+        let mut wallet = WalletWithMocks::new_unregistered_apple();
 
         // Register mock recent history callback
         let events = test::setup_mock_recent_history_callback(&mut wallet)

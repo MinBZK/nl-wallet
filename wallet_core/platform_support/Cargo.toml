@@ -15,7 +15,15 @@ doctest = false
 # Implement the platform key traits on mock hardware key types from `wallet_common`
 mock_hw_keystore = ["wallet_common/mock_hardware_keys"]
 # Include the MockHardwareAttestedKeyHolder type for use in tests
-mock_attested_key = ["dep:apple_app_attest", "dep:uuid", "wallet_common/mock_apple_attested_key"]
+mock_attested_key = [
+    "dep:android_attest",
+    "dep:apple_app_attest",
+    "dep:rand_core",
+    "dep:uuid",
+    "android_attest/mock",
+    "apple_app_attest/mock",
+    "wallet_common/mock_apple_attested_key",
+]
 # Include support for the self-signed mock Apple CA in MockHardwareAttestedKeyHolder
 mock_apple_ca = ["apple_app_attest/mock_ca"]
 # Include PersistentMockAttestedKeyHolder for use in the iOS simulator
@@ -25,6 +33,7 @@ persistent_mock_attested_key = [
     "dep:futures",
     "dep:serde",
     "dep:serde_json",
+    "dep:serde_with",
     "tokio/fs",
     "tokio/sync",
 ]
@@ -62,7 +71,7 @@ futures = { workspace = true, optional = true, features = ["std"] }
 log = { workspace = true, optional = true }
 serde = { workspace = true, optional = true, features = ["derive", "rc"] }
 serde_json = { workspace = true, optional = true }
-serde_with = { workspace = true, optional = true }
+serde_with = { workspace = true, optional = true, features = ["base64"] }
 rustls-pki-types = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 uuid = { workspace = true, optional = true, features = ["v4"] }
@@ -70,6 +79,9 @@ uuid = { workspace = true, optional = true, features = ["v4"] }
 error_category.path = "../error_category"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 
+rand_core = { workspace = true, optional = true }
+
+android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
