@@ -110,6 +110,12 @@ pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
         .expect("Could not open database connection")
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum WalletDeviceVendor {
+    Apple,
+    Google,
+}
+
 pub type WalletWithMocks = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
@@ -122,8 +128,9 @@ pub type WalletWithMocks = Wallet<
     WpWteIssuanceClient,
 >;
 
-pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
+pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithMocks {
     setup_wallet_and_env(
+        vendor,
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
@@ -134,13 +141,19 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
 
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
+    vendor: WalletDeviceVendor,
     (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
-    let key_holder =
-        MockHardwareAttestedKeyHolder::generate_apple(AttestationEnvironment::Development, AppIdentifier::new_mock());
+    let key_holder = match vendor {
+        WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
+            AttestationEnvironment::Development,
+            AppIdentifier::new_mock(),
+        ),
+        WalletDeviceVendor::Google => MockHardwareAttestedKeyHolder::generate_google(),
+    };
 
     match &key_holder.holder_type {
         KeyHolderType::Apple {
