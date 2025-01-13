@@ -18,7 +18,6 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
-use apple_app_attest::AttestationError;
 use apple_app_attest::VerifiedAttestation;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -138,7 +137,7 @@ pub enum RegistrationError {
     #[error("registration challenge validation error: {0}")]
     ChallengeValidation(#[source] JwtError),
     #[error("validation of Apple key and/or app attestation failed: {0}")]
-    AppleAttestation(#[from] AttestationError),
+    AppleAttestation(#[from] apple_app_attest::AttestationError),
     #[error("validation of Google key attestation failed: {0}")]
     AndroidAttestation(#[from] AndroidAttestationError),
     #[error("registration message parsing error: {0}")]
