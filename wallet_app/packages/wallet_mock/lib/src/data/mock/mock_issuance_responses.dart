@@ -433,8 +433,8 @@ final _kMockHealthInsuranceRequestedAttributes = [
 
 // region Policies
 
-final _kMockIssuancePolicy = RequestPolicy(
-  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
+const _kMockIssuancePolicy = RequestPolicy(
+  dataStorageDurationInMinutes: 60 * 24 * 90,
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
   policyUrl: 'https://www.example.org',

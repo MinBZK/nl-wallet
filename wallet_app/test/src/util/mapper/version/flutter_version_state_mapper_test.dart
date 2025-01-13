@@ -17,7 +17,7 @@ void main() {
     expect(mapper.map(const FlutterVersionState.notify()), VersionStateNotify());
     expect(mapper.map(const FlutterVersionState.recommend()), VersionStateRecommend());
     expect(
-      mapper.map(FlutterVersionState.warn(expiresInSeconds: BigInt.from(warningSeconds))),
+      mapper.map(const FlutterVersionState.warn(expiresInSeconds: warningSeconds)),
       VersionStateWarn(timeUntilBlocked: const Duration(seconds: warningSeconds)),
     );
     expect(mapper.map(const FlutterVersionState.block()), VersionStateBlock());

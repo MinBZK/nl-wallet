@@ -19,21 +19,21 @@ mixin _$WalletInstructionError {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
-    required TResult Function(BigInt timeoutMillis) timeout,
+    required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
-    TResult? Function(BigInt timeoutMillis)? timeout,
+    TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
-    TResult Function(BigInt timeoutMillis)? timeout,
+    TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
     required TResult orElse(),
   }) =>
@@ -162,7 +162,7 @@ class _$WalletInstructionError_IncorrectPinImpl extends WalletInstructionError_I
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
-    required TResult Function(BigInt timeoutMillis) timeout,
+    required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
     return incorrectPin(attemptsLeftInRound, isFinalRound);
@@ -172,7 +172,7 @@ class _$WalletInstructionError_IncorrectPinImpl extends WalletInstructionError_I
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
-    TResult? Function(BigInt timeoutMillis)? timeout,
+    TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
   }) {
     return incorrectPin?.call(attemptsLeftInRound, isFinalRound);
@@ -182,7 +182,7 @@ class _$WalletInstructionError_IncorrectPinImpl extends WalletInstructionError_I
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
-    TResult Function(BigInt timeoutMillis)? timeout,
+    TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
     required TResult orElse(),
   }) {
@@ -249,7 +249,7 @@ abstract class _$$WalletInstructionError_TimeoutImplCopyWith<$Res> {
           _$WalletInstructionError_TimeoutImpl value, $Res Function(_$WalletInstructionError_TimeoutImpl) then) =
       __$$WalletInstructionError_TimeoutImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({BigInt timeoutMillis});
+  $Res call({int timeoutMillis});
 }
 
 /// @nodoc
@@ -271,7 +271,7 @@ class __$$WalletInstructionError_TimeoutImplCopyWithImpl<$Res>
       timeoutMillis: null == timeoutMillis
           ? _value.timeoutMillis
           : timeoutMillis // ignore: cast_nullable_to_non_nullable
-              as BigInt,
+              as int,
     ));
   }
 }
@@ -282,7 +282,7 @@ class _$WalletInstructionError_TimeoutImpl extends WalletInstructionError_Timeou
   const _$WalletInstructionError_TimeoutImpl({required this.timeoutMillis}) : super._();
 
   @override
-  final BigInt timeoutMillis;
+  final int timeoutMillis;
 
   @override
   String toString() {
@@ -312,7 +312,7 @@ class _$WalletInstructionError_TimeoutImpl extends WalletInstructionError_Timeou
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
-    required TResult Function(BigInt timeoutMillis) timeout,
+    required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
     return timeout(timeoutMillis);
@@ -322,7 +322,7 @@ class _$WalletInstructionError_TimeoutImpl extends WalletInstructionError_Timeou
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
-    TResult? Function(BigInt timeoutMillis)? timeout,
+    TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
   }) {
     return timeout?.call(timeoutMillis);
@@ -332,7 +332,7 @@ class _$WalletInstructionError_TimeoutImpl extends WalletInstructionError_Timeou
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
-    TResult Function(BigInt timeoutMillis)? timeout,
+    TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
     required TResult orElse(),
   }) {
@@ -378,11 +378,11 @@ class _$WalletInstructionError_TimeoutImpl extends WalletInstructionError_Timeou
 }
 
 abstract class WalletInstructionError_Timeout extends WalletInstructionError {
-  const factory WalletInstructionError_Timeout({required final BigInt timeoutMillis}) =
+  const factory WalletInstructionError_Timeout({required final int timeoutMillis}) =
       _$WalletInstructionError_TimeoutImpl;
   const WalletInstructionError_Timeout._() : super._();
 
-  BigInt get timeoutMillis;
+  int get timeoutMillis;
 
   /// Create a copy of WalletInstructionError
   /// with the given fields replaced by the non-null parameter values.
@@ -433,7 +433,7 @@ class _$WalletInstructionError_BlockedImpl extends WalletInstructionError_Blocke
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
-    required TResult Function(BigInt timeoutMillis) timeout,
+    required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
     return blocked();
@@ -443,7 +443,7 @@ class _$WalletInstructionError_BlockedImpl extends WalletInstructionError_Blocke
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
-    TResult? Function(BigInt timeoutMillis)? timeout,
+    TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
   }) {
     return blocked?.call();
@@ -453,7 +453,7 @@ class _$WalletInstructionError_BlockedImpl extends WalletInstructionError_Blocke
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
-    TResult Function(BigInt timeoutMillis)? timeout,
+    TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
     required TResult orElse(),
   }) {

@@ -9,7 +9,7 @@ extension WalletInstructionErrorExtension on WalletInstructionError {
         attemptsLeftInRound: result.attemptsLeftInRound,
         isFinalRound: result.isFinalRound,
       ),
-      timeout: (result) => CheckPinResultTimeout(timeoutMillis: result.timeoutMillis.toInt()), //todo: don't use BigInt
+      timeout: (result) => CheckPinResultTimeout(timeoutMillis: result.timeoutMillis),
       blocked: (result) => CheckPinResultBlocked(),
     );
   }

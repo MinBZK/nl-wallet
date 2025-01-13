@@ -1102,6 +1102,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int dco_decode_CastedPrimitive_u_64(raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('Not implemented in this codec, please use the other one');
+  }
+
+  @protected
   RustStreamSink<bool> dco_decode_StreamSink_bool_Sse(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
@@ -1182,12 +1188,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RequestPolicy dco_decode_box_autoadd_request_policy(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_request_policy(raw);
-  }
-
-  @protected
-  BigInt dco_decode_box_autoadd_u_64(raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_u_64(raw);
   }
 
   @protected
@@ -1299,7 +1299,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return FlutterConfiguration(
       inactiveLockTimeout: dco_decode_u_16(arr[0]),
       backgroundLockTimeout: dco_decode_u_16(arr[1]),
-      version: dco_decode_u_64(arr[2]),
+      version: dco_decode_CastedPrimitive_u_64(arr[2]),
     );
   }
 
@@ -1315,7 +1315,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return const FlutterVersionState_Recommend();
       case 3:
         return FlutterVersionState_Warn(
-          expiresInSeconds: dco_decode_u_64(raw[1]),
+          expiresInSeconds: dco_decode_CastedPrimitive_u_64(raw[1]),
         );
       case 4:
         return const FlutterVersionState_Block();
@@ -1431,6 +1431,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int? dco_decode_opt_CastedPrimitive_u_64(raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_CastedPrimitive_u_64(raw);
+  }
+
+  @protected
   String? dco_decode_opt_String(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
@@ -1440,12 +1446,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Image? dco_decode_opt_box_autoadd_image(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_image(raw);
-  }
-
-  @protected
-  BigInt? dco_decode_opt_box_autoadd_u_64(raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
   }
 
   @protected
@@ -1492,7 +1492,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     final arr = raw as List<dynamic>;
     if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return RequestPolicy(
-      dataStorageDurationInMinutes: dco_decode_opt_box_autoadd_u_64(arr[0]),
+      dataStorageDurationInMinutes: dco_decode_opt_CastedPrimitive_u_64(arr[0]),
       dataSharedWithThirdParties: dco_decode_bool(arr[1]),
       dataDeletionPossible: dco_decode_bool(arr[2]),
       policyUrl: dco_decode_String(arr[3]),
@@ -1587,7 +1587,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         );
       case 1:
         return WalletInstructionError_Timeout(
-          timeoutMillis: dco_decode_u_64(raw[1]),
+          timeoutMillis: dco_decode_CastedPrimitive_u_64(raw[1]),
         );
       case 2:
         return const WalletInstructionError_Blocked();
@@ -1616,6 +1616,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     final inner = sse_decode_String(deserializer);
     return AnyhowException(inner);
+  }
+
+  @protected
+  int sse_decode_CastedPrimitive_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    final inner = sse_decode_u_64(deserializer);
+    return inner.toInt();
   }
 
   @protected
@@ -1700,12 +1707,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RequestPolicy sse_decode_box_autoadd_request_policy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return sse_decode_request_policy(deserializer);
-  }
-
-  @protected
-  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return sse_decode_u_64(deserializer);
   }
 
   @protected
@@ -1807,7 +1808,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_inactiveLockTimeout = sse_decode_u_16(deserializer);
     final var_backgroundLockTimeout = sse_decode_u_16(deserializer);
-    final var_version = sse_decode_u_64(deserializer);
+    final var_version = sse_decode_CastedPrimitive_u_64(deserializer);
     return FlutterConfiguration(
         inactiveLockTimeout: var_inactiveLockTimeout,
         backgroundLockTimeout: var_backgroundLockTimeout,
@@ -1827,7 +1828,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 2:
         return const FlutterVersionState_Recommend();
       case 3:
-        final var_expiresInSeconds = sse_decode_u_64(deserializer);
+        final var_expiresInSeconds = sse_decode_CastedPrimitive_u_64(deserializer);
         return FlutterVersionState_Warn(expiresInSeconds: var_expiresInSeconds);
       case 4:
         return const FlutterVersionState_Block();
@@ -1974,6 +1975,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int? sse_decode_opt_CastedPrimitive_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return sse_decode_CastedPrimitive_u_64(deserializer);
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -1990,17 +2002,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
     if (sse_decode_bool(deserializer)) {
       return sse_decode_box_autoadd_image(deserializer);
-    } else {
-      return null;
-    }
-  }
-
-  @protected
-  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return sse_decode_box_autoadd_u_64(deserializer);
     } else {
       return null;
     }
@@ -2066,7 +2067,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   RequestPolicy sse_decode_request_policy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_dataStorageDurationInMinutes = sse_decode_opt_box_autoadd_u_64(deserializer);
+    final var_dataStorageDurationInMinutes = sse_decode_opt_CastedPrimitive_u_64(deserializer);
     final var_dataSharedWithThirdParties = sse_decode_bool(deserializer);
     final var_dataDeletionPossible = sse_decode_bool(deserializer);
     final var_policyUrl = sse_decode_String(deserializer);
@@ -2186,7 +2187,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return WalletInstructionError_IncorrectPin(
             attemptsLeftInRound: var_attemptsLeftInRound, isFinalRound: var_isFinalRound);
       case 1:
-        final var_timeoutMillis = sse_decode_u_64(deserializer);
+        final var_timeoutMillis = sse_decode_CastedPrimitive_u_64(deserializer);
         return WalletInstructionError_Timeout(timeoutMillis: var_timeoutMillis);
       case 2:
         return const WalletInstructionError_Blocked();
@@ -2215,6 +2216,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_CastedPrimitive_u_64(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(sseEncodeCastedPrimitiveU64(self), serializer);
   }
 
   @protected
@@ -2339,12 +2346,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_u_64(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_wallet_instruction_error(WalletInstructionError self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_wallet_instruction_error(self, serializer);
@@ -2429,7 +2430,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_16(self.inactiveLockTimeout, serializer);
     sse_encode_u_16(self.backgroundLockTimeout, serializer);
-    sse_encode_u_64(self.version, serializer);
+    sse_encode_CastedPrimitive_u_64(self.version, serializer);
   }
 
   @protected
@@ -2444,7 +2445,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(2, serializer);
       case FlutterVersionState_Warn(expiresInSeconds: final expiresInSeconds):
         sse_encode_i_32(3, serializer);
-        sse_encode_u_64(expiresInSeconds, serializer);
+        sse_encode_CastedPrimitive_u_64(expiresInSeconds, serializer);
       case FlutterVersionState_Block():
         sse_encode_i_32(4, serializer);
     }
@@ -2562,6 +2563,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_opt_CastedPrimitive_u_64(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_CastedPrimitive_u_64(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2578,16 +2589,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_image(self, serializer);
-    }
-  }
-
-  @protected
-  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_box_autoadd_u_64(self, serializer);
     }
   }
 
@@ -2636,7 +2637,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_request_policy(RequestPolicy self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_box_autoadd_u_64(self.dataStorageDurationInMinutes, serializer);
+    sse_encode_opt_CastedPrimitive_u_64(self.dataStorageDurationInMinutes, serializer);
     sse_encode_bool(self.dataSharedWithThirdParties, serializer);
     sse_encode_bool(self.dataDeletionPossible, serializer);
     sse_encode_String(self.policyUrl, serializer);
@@ -2747,7 +2748,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_bool(isFinalRound, serializer);
       case WalletInstructionError_Timeout(timeoutMillis: final timeoutMillis):
         sse_encode_i_32(1, serializer);
-        sse_encode_u_64(timeoutMillis, serializer);
+        sse_encode_CastedPrimitive_u_64(timeoutMillis, serializer);
       case WalletInstructionError_Blocked():
         sse_encode_i_32(2, serializer);
     }

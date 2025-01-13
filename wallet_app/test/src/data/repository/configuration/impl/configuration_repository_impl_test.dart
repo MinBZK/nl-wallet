@@ -18,10 +18,10 @@ void main() {
   test('verify that CoreConfigurationRepository fetches configuration through wallet_core', () async {
     when(mockCore.observeConfig()).thenAnswer(
       (_) => Stream.value(
-        FlutterConfiguration(
+        const FlutterConfiguration(
           inactiveLockTimeout: 5,
           backgroundLockTimeout: 10,
-          version: BigInt.zero,
+          version: 0,
         ),
       ),
     );

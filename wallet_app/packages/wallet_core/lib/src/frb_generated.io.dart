@@ -32,6 +32,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AnyhowException dco_decode_AnyhowException(raw);
 
   @protected
+  int dco_decode_CastedPrimitive_u_64(raw);
+
+  @protected
   RustStreamSink<bool> dco_decode_StreamSink_bool_Sse(raw);
 
   @protected
@@ -66,9 +69,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RequestPolicy dco_decode_box_autoadd_request_policy(raw);
-
-  @protected
-  BigInt dco_decode_box_autoadd_u_64(raw);
 
   @protected
   WalletInstructionError dco_decode_box_autoadd_wallet_instruction_error(raw);
@@ -143,13 +143,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   MissingAttribute dco_decode_missing_attribute(raw);
 
   @protected
+  int? dco_decode_opt_CastedPrimitive_u_64(raw);
+
+  @protected
   String? dco_decode_opt_String(raw);
 
   @protected
   Image? dco_decode_opt_box_autoadd_image(raw);
-
-  @protected
-  BigInt? dco_decode_opt_box_autoadd_u_64(raw);
 
   @protected
   List<DisclosureCard>? dco_decode_opt_list_disclosure_card(raw);
@@ -194,6 +194,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_CastedPrimitive_u_64(SseDeserializer deserializer);
+
+  @protected
   RustStreamSink<bool> sse_decode_StreamSink_bool_Sse(SseDeserializer deserializer);
 
   @protected
@@ -228,9 +231,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RequestPolicy sse_decode_box_autoadd_request_policy(SseDeserializer deserializer);
-
-  @protected
-  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
   WalletInstructionError sse_decode_box_autoadd_wallet_instruction_error(SseDeserializer deserializer);
@@ -305,13 +305,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   MissingAttribute sse_decode_missing_attribute(SseDeserializer deserializer);
 
   @protected
+  int? sse_decode_opt_CastedPrimitive_u_64(SseDeserializer deserializer);
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
   Image? sse_decode_opt_box_autoadd_image(SseDeserializer deserializer);
-
-  @protected
-  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
   List<DisclosureCard>? sse_decode_opt_list_disclosure_card(SseDeserializer deserializer);
@@ -356,6 +356,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
 
   @protected
+  void sse_encode_CastedPrimitive_u_64(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_StreamSink_bool_Sse(RustStreamSink<bool> self, SseSerializer serializer);
 
   @protected
@@ -392,9 +395,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_box_autoadd_request_policy(RequestPolicy self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_wallet_instruction_error(WalletInstructionError self, SseSerializer serializer);
@@ -469,13 +469,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_missing_attribute(MissingAttribute self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_CastedPrimitive_u_64(int? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_image(Image? self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_list_disclosure_card(List<DisclosureCard>? self, SseSerializer serializer);

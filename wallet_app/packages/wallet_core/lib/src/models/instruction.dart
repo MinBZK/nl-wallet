@@ -19,7 +19,7 @@ sealed class WalletInstructionError with _$WalletInstructionError {
     required bool isFinalRound,
   }) = WalletInstructionError_IncorrectPin;
   const factory WalletInstructionError.timeout({
-    required BigInt timeoutMillis,
+    required int timeoutMillis,
   }) = WalletInstructionError_Timeout;
   const factory WalletInstructionError.blocked() = WalletInstructionError_Blocked;
 }

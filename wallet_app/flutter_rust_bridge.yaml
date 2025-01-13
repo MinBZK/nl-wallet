@@ -8,5 +8,4 @@ enable_lifetime: true
 web: false
 add_mod_to_lib: false
 c_output: ios/Runner/bridge_generated.h
-#todo: enable setting below
-#64bit_int: true
+type_64bit_int: true

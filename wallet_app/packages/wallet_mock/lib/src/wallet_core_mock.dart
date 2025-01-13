@@ -218,7 +218,7 @@ class WalletCoreMock implements WalletCoreApi {
       FlutterConfiguration(
         backgroundLockTimeout: Duration(seconds: 20).inSeconds,
         inactiveLockTimeout: Duration(minutes: 3).inSeconds,
-        version: BigInt.one,
+        version: 1,
       ),
     );
   }

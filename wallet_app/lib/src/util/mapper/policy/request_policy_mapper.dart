@@ -8,9 +8,8 @@ class RequestPolicyMapper extends Mapper<RequestPolicy, Policy> {
 
   @override
   Policy map(RequestPolicy input) => Policy(
-        storageDuration: input.dataStorageDurationInMinutes == null
-            ? null
-            : Duration(minutes: input.dataStorageDurationInMinutes!.toInt()), //todo: don't use BigInt
+        storageDuration:
+            input.dataStorageDurationInMinutes == null ? null : Duration(minutes: input.dataStorageDurationInMinutes!),
         dataIsShared: input.dataSharedWithThirdParties,
         deletionCanBeRequested: input.dataDeletionPossible,
         privacyPolicyUrl: input.policyUrl,

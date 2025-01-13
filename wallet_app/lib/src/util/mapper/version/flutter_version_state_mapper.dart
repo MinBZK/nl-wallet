@@ -11,9 +11,7 @@ class FlutterVersionStateMapper extends Mapper<FlutterVersionState, VersionState
         ok: (state) => VersionStateOk(),
         notify: (state) => VersionStateNotify(),
         recommend: (state) => VersionStateRecommend(),
-        warn: (state) => VersionStateWarn(
-            //todo: don't use BigInt
-            timeUntilBlocked: Duration(seconds: state.expiresInSeconds.toInt())),
+        warn: (state) => VersionStateWarn(timeUntilBlocked: Duration(seconds: state.expiresInSeconds)),
         block: (state) => VersionStateBlock(),
       );
 }
