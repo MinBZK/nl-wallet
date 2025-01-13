@@ -265,6 +265,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use parking_lot::Mutex;
     use rand_core::OsRng;
+    use rstest::rstest;
 
     use apple_app_attest::AssertionCounter;
     use platform_support::attested_key::AttestedKey;
@@ -292,8 +293,11 @@ mod tests {
     const PIN: &str = "051097";
 
     #[tokio::test]
-    async fn test_wallet_lock_unlock_apple() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+    #[rstest]
+    async fn test_wallet_lock_unlock(
+        #[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor,
+    ) {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(vendor);
 
         // Wrap a `Vec<bool>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
@@ -318,12 +322,13 @@ mod tests {
         let wallet_cert = registration_data.wallet_certificate.clone();
         let wallet_id = registration_data.wallet_id.clone();
 
-        let AttestedKey::Apple(attested_key) = attested_key else {
-            unreachable!();
+        let (attested_public_key, app_identifier_and_next_counter) = match attested_key {
+            AttestedKey::Apple(key) => (
+                *key.verifying_key(),
+                Some((key.app_identifier.clone(), key.next_counter())),
+            ),
+            AttestedKey::Google(key) => (*key.verifying_key(), None),
         };
-        let attested_public_key = *attested_key.verifying_key();
-        let app_identifier = attested_key.app_identifier.clone();
-        let next_counter = attested_key.next_counter();
 
         wallet
             .account_provider_client
@@ -335,24 +340,41 @@ mod tests {
             .return_once(move |_, challenge_request| {
                 assert_eq!(challenge_request.certificate.0, wallet_cert.0);
 
-                challenge_request
-                    .request
-                    .parse_and_verify_apple(
-                        &wallet_id,
-                        SequenceNumberComparison::EqualTo(1),
-                        &attested_public_key,
-                        &app_identifier,
-                        AssertionCounter::from(*next_counter - 1),
-                    )
-                    .expect("challenge request should be valid");
+                match app_identifier_and_next_counter {
+                    Some((app_identifier, next_counter)) => {
+                        challenge_request
+                            .request
+                            .parse_and_verify_apple(
+                                &wallet_id,
+                                SequenceNumberComparison::EqualTo(1),
+                                &attested_public_key,
+                                &app_identifier,
+                                AssertionCounter::from(*next_counter - 1),
+                            )
+                            .expect("challenge request should be valid for Apple attested key");
+                    }
+                    None => {
+                        challenge_request
+                            .request
+                            .parse_and_verify_google(
+                                &wallet_id,
+                                SequenceNumberComparison::EqualTo(1),
+                                &attested_public_key,
+                            )
+                            .expect("challenge request should be valid for Google attested key");
+                    }
+                }
 
                 Ok(challenge_response)
             });
 
         // Set up the instruction.
         let wallet_cert = registration_data.wallet_certificate.clone();
-        let app_identifier = attested_key.app_identifier.clone();
-        let next_counter = attested_key.next_counter();
+
+        let app_identifier_and_next_counter = match attested_key {
+            AttestedKey::Apple(key) => Some((key.app_identifier.clone(), key.next_counter())),
+            AttestedKey::Google(_) => None,
+        };
 
         let pin_key = PinKey::new(PIN, &registration_data.pin_salt);
         let pin_pubkey = pin_key.verifying_key().unwrap();
@@ -376,17 +398,32 @@ mod tests {
             .return_once(move |_, instruction: Instruction<CheckPin>| {
                 assert_eq!(instruction.certificate.0, wallet_cert.0);
 
-                instruction
-                    .instruction
-                    .parse_and_verify_apple(
-                        &challenge,
-                        SequenceNumberComparison::LargerThan(1),
-                        &attested_public_key,
-                        &app_identifier,
-                        AssertionCounter::from(*next_counter - 1),
-                        &pin_pubkey,
-                    )
-                    .expect("Could not verify check pin instruction");
+                match app_identifier_and_next_counter {
+                    Some((app_identifier, next_counter)) => {
+                        instruction
+                            .instruction
+                            .parse_and_verify_apple(
+                                &challenge,
+                                SequenceNumberComparison::LargerThan(1),
+                                &attested_public_key,
+                                &app_identifier,
+                                AssertionCounter::from(*next_counter - 1),
+                                &pin_pubkey,
+                            )
+                            .expect("check pin instruction should be valid for Apple attested key");
+                    }
+                    None => {
+                        instruction
+                            .instruction
+                            .parse_and_verify_google(
+                                &challenge,
+                                SequenceNumberComparison::LargerThan(1),
+                                &attested_public_key,
+                                &pin_pubkey,
+                            )
+                            .expect("check pin instruction should be valid for Google attested key");
+                    }
+                }
 
                 Ok(result)
             });
