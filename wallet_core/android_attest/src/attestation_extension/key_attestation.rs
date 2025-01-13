@@ -258,7 +258,7 @@ pub enum PatchLevelError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct PatchLevel(u16, u8, Option<u8>);
+pub struct PatchLevel(pub u16, pub u8, pub Option<u8>);
 
 impl TryFrom<Integer> for PatchLevel {
     type Error = PatchLevelError;
@@ -299,8 +299,8 @@ impl TryFrom<Integer> for PatchLevel {
 // }
 #[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode, Encode)]
 pub struct AttestationApplicationId {
-    package_infos: SetOf<AttestationPackageInfo>,
-    signature_digests: SetOf<OctetString>,
+    pub package_infos: SetOf<AttestationPackageInfo>,
+    pub signature_digests: SetOf<OctetString>,
 }
 
 // AttestationPackageInfo ::= SEQUENCE {
@@ -309,8 +309,8 @@ pub struct AttestationApplicationId {
 // }
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsnType, Decode, Encode)]
 pub struct AttestationPackageInfo {
-    package_name: OctetString,
-    version: Integer,
+    pub package_name: OctetString,
+    pub version: Integer,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -362,7 +362,7 @@ impl TryFrom<KeyDescription> for KeyAttestation {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AuthorizationList {
     pub purpose: Option<IndexSet<KeyPurpose>>,
     pub algorithm: Option<Algorithm>,
@@ -812,7 +812,6 @@ mod test {
             },
         };
         let actual = KeyAttestation::try_from(input).unwrap();
-        dbg!(&actual);
 
         let expected = KeyAttestation {
             attestation_version: AttestationVersion::V200,
@@ -906,48 +905,7 @@ mod test {
                 device_unique_attestation: true,
                 attestation_id_second_imei: Some(OctetString::copy_from_slice(b"attestation_id_second_imei")),
             },
-            hardware_enforced: AuthorizationList {
-                purpose: None,
-                algorithm: None,
-                key_size: None,
-                digest: None,
-                padding: None,
-                ec_curve: None,
-                rsa_public_exponent: None,
-                mgf_digest: None,
-                rollback_resistance: false,
-                early_boot_only: false,
-                active_date_time: None,
-                origination_expire_date_time: None,
-                usage_expire_date_time: None,
-                usage_count_limit: None,
-                no_auth_required: false,
-                user_auth_type: None,
-                auth_timeout: None,
-                allow_while_on_body: false,
-                trusted_user_presence_required: false,
-                trusted_confirmation_required: false,
-                unlocked_device_required: false,
-                all_applications: false,
-                creation_date_time: None,
-                origin: None,
-                root_of_trust: None,
-                os_version: None,
-                os_patch_level: None,
-                attestation_application_id: None,
-                attestation_id_brand: None,
-                attestation_id_device: None,
-                attestation_id_product: None,
-                attestation_id_serial: None,
-                attestation_id_imei: None,
-                attestation_id_meid: None,
-                attestation_id_manufacturer: None,
-                attestation_id_model: None,
-                vendor_patch_level: None,
-                boot_patch_level: None,
-                device_unique_attestation: false,
-                attestation_id_second_imei: None,
-            },
+            hardware_enforced: AuthorizationList::default(),
         };
 
         assert_eq!(actual, expected);

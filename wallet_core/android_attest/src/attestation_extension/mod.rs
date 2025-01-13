@@ -8,7 +8,8 @@ use x509_parser::der_parser::Oid;
 pub use key_attestation::KeyAttestation;
 use key_attestation::KeyDescriptionFieldError;
 
-pub const KEY_ATTESTATION_EXTENSION_OID: Oid = oid!(1.3.6 .1 .4 .1 .11129 .2 .1 .17);
+#[rustfmt::skip]
+pub const KEY_ATTESTATION_EXTENSION_OID: Oid = oid!(1.3.6.1.4.1.11129.2.1.17);
 
 #[derive(Debug, thiserror::Error)]
 pub enum KeyAttestationExtensionError {
@@ -39,17 +40,28 @@ impl KeyAttestationExtension for X509Certificate<'_> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::NaiveDate;
     use rasn::types::Integer;
     use rasn::types::OctetString;
     use rasn::types::SetOf;
     use rstest::rstest;
     use x509_parser::prelude::FromDer;
 
-    use super::key_description::AuthorizationList;
-    use super::key_description::KeyDescription;
     use super::key_description::RootOfTrust;
     use super::key_description::SecurityLevel;
     use super::key_description::VerifiedBootState;
+    use key_attestation::Algorithm;
+    use key_attestation::AttestationApplicationId;
+    use key_attestation::AttestationPackageInfo;
+    use key_attestation::AttestationVersion;
+    use key_attestation::AuthorizationList;
+    use key_attestation::Digest;
+    use key_attestation::EcCurve;
+    use key_attestation::KeyMintVersion;
+    use key_attestation::KeyOrigin;
+    use key_attestation::KeyPurpose;
+    use key_attestation::OsVersion;
+    use key_attestation::PatchLevel;
 
     use super::*;
 
@@ -80,35 +92,54 @@ mod tests {
     }
 
     #[allow(clippy::octal_escapes)]
-    fn emulator_key_description() -> KeyDescription {
-        KeyDescription {
-            attestation_version: 200.into(),
+    fn emulator_key_attestation() -> KeyAttestation {
+        KeyAttestation {
+            attestation_version: AttestationVersion::V200,
             attestation_security_level: SecurityLevel::Software,
-            key_mint_version: 200
-                .into(),
+            key_mint_version: KeyMintVersion::V200,
             key_mint_security_level: SecurityLevel::Software,
-            attestation_challenge: OctetString::copy_from_slice(&[116, 104, 105, 115, 95, 105, 115, 95, 97, 95, 99, 104, 97, 108, 108, 101, 110, 103, 101, 95, 115, 116, 114, 105, 110, 103]),
-            unique_id: OctetString::new(),
+            attestation_challenge: OctetString::copy_from_slice(b"this_is_a_challenge_string"),
+            unique_id: OctetString::copy_from_slice(b""),
             software_enforced: AuthorizationList {
-                purpose: SetOf::from_vec(vec![2.into()]).into(),
-                algorithm: Integer::from(3).into(),
+                purpose: Some(vec![KeyPurpose::Sign].into_iter().collect()),
+                algorithm: Algorithm::Ec.into(),
                 key_size: Integer::from(256).into(),
-                digest: SetOf::from_vec(vec![4.into()]).into(),
-                ec_curve: Integer::from(1).into(),
-                no_auth_required: ().into(),
-                creation_date_time: Integer::from(1735035371011_i128).into(),
-                origin: Integer::from(0).into(),
+                digest: Some(vec![Digest::Sha2_256].into_iter().collect()),
+                ec_curve: EcCurve::P256.into(),
+                no_auth_required: true,
+                creation_date_time: Some(
+                    NaiveDate::from_ymd_opt(2024, 12, 24)
+                        .unwrap()
+                        .and_hms_milli_opt(10, 16, 11, 11)
+                        .unwrap()
+                        .and_utc(),
+                ),
+                origin: KeyOrigin::Generated.into(),
                 root_of_trust: RootOfTrust {
                     verified_boot_key: OctetString::copy_from_slice(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
                     device_locked: false,
                     verified_boot_state: VerifiedBootState::Unverified,
                     verified_boot_hash: OctetString::copy_from_slice(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
                 }.into(),
-                os_version: Integer::from(130_000).into(),
-                os_patch_level: Integer::from(202403).into(),
-                attestation_application_id: OctetString::copy_from_slice(b"0^1806\x041nl.rijksoverheid.edi.wallet.platform_support.test\x02\x01\01\"\x04 \xd3\xa5O\x11T\xc2ZZ\xb3\xf1%(\xdc\xc3r.\x0b\x8e\n\xd8\x11\xd42T\x84\xb7\xb2+\x0e\x8a\x1f\xe3").into(),
-                vendor_patch_level: Integer::from(0).into(),
-                boot_patch_level: Integer::from(20240301).into(),
+                os_version: OsVersion::new(13, 0, 0).into(),
+                os_patch_level: PatchLevel(2024, 3, None).into(),
+                attestation_application_id: Some(
+                    AttestationApplicationId {
+                        package_infos: SetOf::from_vec(vec![
+                            AttestationPackageInfo {
+                                package_name: OctetString::copy_from_slice(b"nl.rijksoverheid.edi.wallet.platform_support.test"),
+                                version: 0.into(),
+                            },
+                        ]),
+                        signature_digests: SetOf::from_vec(vec![
+                            OctetString::copy_from_slice(
+                                b"\xd3\xa5O\x11T\xc2ZZ\xb3\xf1%(\xdc\xc3r.\x0b\x8e\n\xd8\x11\xd42T\x84\xb7\xb2+\x0e\x8a\x1f\xe3",
+                            ),
+                        ]),
+                    },
+                ),
+                vendor_patch_level: PatchLevel(0, 0, None).into(),
+                boot_patch_level: PatchLevel(2024, 3, 1.into()).into(),
                 ..Default::default()
             },
             hardware_enforced: AuthorizationList {
@@ -117,87 +148,225 @@ mod tests {
         }
     }
 
-    fn strongbox_key_description() -> KeyDescription {
-        KeyDescription {
-            attestation_version: 3.into(),
+    fn strongbox_key_attestation() -> KeyAttestation {
+        KeyAttestation {
+            attestation_version: AttestationVersion::V3,
             attestation_security_level: SecurityLevel::StrongBox,
-            key_mint_version: 4.into(),
+            key_mint_version: KeyMintVersion::V4,
             key_mint_security_level: SecurityLevel::StrongBox,
-            attestation_challenge: OctetString::copy_from_slice(&[97, 98, 99]),
-            unique_id: OctetString::new(),
+            attestation_challenge: OctetString::copy_from_slice(b"abc"),
+            unique_id: OctetString::copy_from_slice(b""),
             software_enforced: AuthorizationList {
-                creation_date_time: Integer::from(1561115488586_i128).into(),
-                attestation_application_id: OctetString::copy_from_slice(b"0\x82\x01\xb31\x82\x01\x8b0\x0c\x04\x07android\x02\x01\x1d0\x19\x04\x14com.android.keychain\x02\x01\x1d0\x19\x04\x14com.android.settings\x02\x01\x1d0\x19\x04\x14com.qti.diagservices\x02\x01\x1d0\x1a\x04\x15com.android.dynsystem\x02\x01\x1d0\x1d\x04\x18com.android.inputdevices\x02\x01\x1d0\x1f\x04\x1acom.android.localtransport\x02\x01\x1d0\x1f\x04\x1acom.android.location.fused\x02\x01\x1d0\x1f\x04\x1acom.android.server.telecom\x02\x01\x1d0 \x04\x1bcom.android.wallpaperbackup\x02\x01\x1d0!\x04\x1ccom.google.SSRestartDetector\x02\x01\x1d0\"\x04\x1dcom.google.android.hiddenmenu\x02\x01\x010#\x04\x1ecom.android.providers.settings\x02\x01\x1d1\"\x04 0\x1a\xa3\xcb\x08\x114P\x1cE\xf1B*\xbcf\xc2B$\xfd]\xed_\xdc\x8f\x17\xe6\x97\x17o\xd8f\xaa").into(),
+                creation_date_time: Some(
+                    NaiveDate::from_ymd_opt(2019, 6, 21)
+                        .unwrap()
+                        .and_hms_milli_opt(11, 11, 28, 586)
+                        .unwrap()
+                        .and_utc(),
+                ),
+                attestation_application_id: Some(AttestationApplicationId {
+                    package_infos: SetOf::from_vec(vec![
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.dynsystem"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.qti.diagservices"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.localtransport"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.inputdevices"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.location.fused"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.server.telecom"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.wallpaperbackup"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.google.SSRestartDetector"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.keychain"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.settings"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.providers.settings"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"android"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.google.android.hiddenmenu"),
+                            version: 1.into(),
+                        },
+                    ]),
+                    signature_digests: SetOf::from_vec(vec![OctetString::copy_from_slice(
+                        b"0\x1a\xa3\xcb\x08\x114P\x1cE\xf1B*\xbcf\xc2B$\xfd]\xed_\xdc\x8f\x17\xe6\x97\x17o\xd8f\xaa",
+                    )]),
+                }),
                 ..Default::default()
             },
             hardware_enforced: AuthorizationList {
-                purpose: SetOf::from_vec(vec![3.into(), 2.into()]).into(),
-                algorithm: Integer::from(3).into(),
+                purpose: Some(vec![KeyPurpose::Verify, KeyPurpose::Sign].into_iter().collect()),
+                algorithm: Algorithm::Ec.into(),
                 key_size: Integer::from(256).into(),
-                digest: SetOf::from_vec(vec![4.into()]).into(),
-                no_auth_required: ().into(),
-                origin: Integer::from(0).into(),
+                digest: Some(vec![Digest::Sha2_256].into_iter().collect()),
+                no_auth_required: true,
+                origin: KeyOrigin::Generated.into(),
                 root_of_trust: RootOfTrust {
-                    verified_boot_key: OctetString::copy_from_slice(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
+                    verified_boot_key: OctetString::copy_from_slice(
+                        b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+                    ),
                     device_locked: false,
                     verified_boot_state: VerifiedBootState::Unverified,
-                    verified_boot_hash: OctetString::copy_from_slice(b"r\x8d\xb1'O\x1f\x1c\xf1W\x1d\xe48\x0b\x04\x8aUJ\xc4\xa3\x80\xe7oSU\x085)\x08J\x93x\x01"),
-                }.into(),
-                os_version: Integer::from(0).into(),
-                os_patch_level: Integer::from(201907).into(),
-                vendor_patch_level: Integer::from(20190705).into(),
-                boot_patch_level:  Integer::from(20190700).into(),
+                    verified_boot_hash: OctetString::copy_from_slice(
+                        b"r\x8d\xb1'O\x1f\x1c\xf1W\x1d\xe48\x0b\x04\x8aUJ\xc4\xa3\x80\xe7oSU\x085)\x08J\x93x\x01",
+                    ),
+                }
+                .into(),
+                os_version: OsVersion::new(0, 0, 0).into(),
+                os_patch_level: PatchLevel(2019, 7, None).into(),
+                vendor_patch_level: PatchLevel(2019, 7, 5.into()).into(),
+                boot_patch_level: PatchLevel(2019, 7, 0.into()).into(),
                 ..Default::default()
             },
         }
     }
 
-    fn tee_key_description() -> KeyDescription {
-        KeyDescription {
-            attestation_version: 3.into(),
+    fn tee_key_attestation() -> KeyAttestation {
+        KeyAttestation {
+            attestation_version: AttestationVersion::V3,
             attestation_security_level: SecurityLevel::TrustedEnvironment,
-            key_mint_version: 4.into(),
+            key_mint_version: KeyMintVersion::V4,
             key_mint_security_level: SecurityLevel::TrustedEnvironment,
-            attestation_challenge: OctetString::copy_from_slice(&[97, 98, 99]),
-            unique_id: OctetString::new(),
+            attestation_challenge: OctetString::copy_from_slice(b"abc"),
+            unique_id: OctetString::copy_from_slice(b""),
             software_enforced: AuthorizationList {
-                creation_date_time: Integer::from(1531381425477_i128).into(),
-                attestation_application_id: OctetString::copy_from_slice(b"0\x82\x01\xb31\x82\x01\x8b0\x0c\x04\x07android\x02\x01\x1d0\x19\x04\x14com.android.keychain\x02\x01\x1d0\x19\x04\x14com.android.settings\x02\x01\x1d0\x19\x04\x14com.qti.diagservices\x02\x01\x1d0\x1a\x04\x15com.android.dynsystem\x02\x01\x1d0\x1d\x04\x18com.android.inputdevices\x02\x01\x1d0\x1f\x04\x1acom.android.localtransport\x02\x01\x1d0\x1f\x04\x1acom.android.location.fused\x02\x01\x1d0\x1f\x04\x1acom.android.server.telecom\x02\x01\x1d0 \x04\x1bcom.android.wallpaperbackup\x02\x01\x1d0!\x04\x1ccom.google.SSRestartDetector\x02\x01\x1d0\"\x04\x1dcom.google.android.hiddenmenu\x02\x01\x010#\x04\x1ecom.android.providers.settings\x02\x01\x1d1\"\x04 0\x1a\xa3\xcb\x08\x114P\x1cE\xf1B*\xbcf\xc2B$\xfd]\xed_\xdc\x8f\x17\xe6\x97\x17o\xd8f\xaa").into(),
+                creation_date_time: Some(
+                    NaiveDate::from_ymd_opt(2018, 7, 12)
+                        .unwrap()
+                        .and_hms_milli_opt(7, 43, 45, 477)
+                        .unwrap()
+                        .and_utc(),
+                ),
+                attestation_application_id: Some(AttestationApplicationId {
+                    package_infos: SetOf::from_vec(vec![
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.dynsystem"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.qti.diagservices"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.localtransport"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.inputdevices"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.location.fused"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.server.telecom"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.wallpaperbackup"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.google.SSRestartDetector"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.keychain"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.settings"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.android.providers.settings"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"android"),
+                            version: 29.into(),
+                        },
+                        AttestationPackageInfo {
+                            package_name: OctetString::copy_from_slice(b"com.google.android.hiddenmenu"),
+                            version: 1.into(),
+                        },
+                    ]),
+                    signature_digests: SetOf::from_vec(vec![OctetString::copy_from_slice(
+                        b"0\x1a\xa3\xcb\x08\x114P\x1cE\xf1B*\xbcf\xc2B$\xfd]\xed_\xdc\x8f\x17\xe6\x97\x17o\xd8f\xaa",
+                    )]),
+                }),
                 ..Default::default()
             },
             hardware_enforced: AuthorizationList {
-                purpose: SetOf::from_vec(vec![3.into(), 2.into()]).into(),
-                algorithm: Integer::from(3).into(),
+                purpose: Some(vec![KeyPurpose::Verify, KeyPurpose::Sign].into_iter().collect()),
+                algorithm: Algorithm::Ec.into(),
                 key_size: Integer::from(256).into(),
-                digest: SetOf::from_vec(vec![4.into()]).into(),
-                ec_curve: Integer::from(1).into(),
-                no_auth_required: ().into(),
-                origin: Integer::from(0).into(),
+                digest: Some(vec![Digest::Sha2_256].into_iter().collect()),
+                ec_curve: EcCurve::P256.into(),
+                no_auth_required: true,
+                origin: KeyOrigin::Generated.into(),
                 root_of_trust: RootOfTrust {
-                    verified_boot_key: OctetString::copy_from_slice(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
+                    verified_boot_key: OctetString::copy_from_slice(
+                        b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+                    ),
                     device_locked: false,
                     verified_boot_state: VerifiedBootState::Unverified,
-                    verified_boot_hash: OctetString::copy_from_slice(b"r\x8d\xb1'O\x1f\x1c\xf1W\x1d\xe48\x0b\x04\x8aUJ\xc4\xa3\x80\xe7oSU\x085)\x08J\x93x\x01"),
-                }.into(),
-                os_version: Integer::from(0).into(),
-                os_patch_level: Integer::from(201907).into(),
-                vendor_patch_level: Integer::from(201907).into(),
-                boot_patch_level:  Integer::from(201907).into(),
+                    verified_boot_hash: OctetString::copy_from_slice(
+                        b"r\x8d\xb1'O\x1f\x1c\xf1W\x1d\xe48\x0b\x04\x8aUJ\xc4\xa3\x80\xe7oSU\x085)\x08J\x93x\x01",
+                    ),
+                }
+                .into(),
+                os_version: OsVersion::new(0, 0, 0).into(),
+                os_patch_level: PatchLevel(2019, 7, None).into(),
+                vendor_patch_level: PatchLevel(2019, 7, None).into(),
+                boot_patch_level: PatchLevel(2019, 7, None).into(),
                 ..Default::default()
             },
         }
     }
 
     #[rstest]
-    #[case::strongbox(strongbox_cert(), strongbox_key_description())]
-    #[case::tee(tee_cert(), tee_key_description())]
-    #[case::emulator(emulator_cert(), emulator_key_description())]
+    #[case::strongbox(strongbox_cert(), strongbox_key_attestation())]
+    #[case::tee(tee_cert(), tee_key_attestation())]
+    #[case::emulator(emulator_cert(), emulator_key_attestation())]
     fn test_google_certificate_extension(
         #[case] cert: X509Certificate<'static>,
-        #[case] expected_key_description: KeyDescription,
+        #[case] expected_key_attestation: KeyAttestation,
     ) {
-        let key_attestation = cert.parse_key_description().unwrap();
-        let key_description = key_attestation.unwrap();
-        assert_eq!(key_description, expected_key_description.try_into().unwrap());
+        let key_description = cert.parse_key_description().unwrap();
+        let key_attestation = key_description.unwrap();
+        assert_eq!(key_attestation, expected_key_attestation);
     }
 }
