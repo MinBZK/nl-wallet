@@ -1,10 +1,12 @@
+mod key_attestation;
+mod key_description;
+
 use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::oid;
 use x509_parser::der_parser::Oid;
 
-use crate::attestation_extension::KeyAttestation;
-use crate::attestation_extension::KeyDescriptionFieldError;
-use crate::key_description;
+pub use key_attestation::KeyAttestation;
+use key_attestation::KeyDescriptionFieldError;
 
 pub const KEY_ATTESTATION_EXTENSION_OID: Oid = oid!(1.3.6 .1 .4 .1 .11129 .2 .1 .17);
 
@@ -43,22 +45,22 @@ mod tests {
     use rstest::rstest;
     use x509_parser::prelude::FromDer;
 
-    use crate::key_description::AuthorizationList;
-    use crate::key_description::KeyDescription;
-    use crate::key_description::RootOfTrust;
-    use crate::key_description::SecurityLevel;
-    use crate::key_description::VerifiedBootState;
+    use super::key_description::AuthorizationList;
+    use super::key_description::KeyDescription;
+    use super::key_description::RootOfTrust;
+    use super::key_description::SecurityLevel;
+    use super::key_description::VerifiedBootState;
 
     use super::*;
 
     // This cert was exported from the emulator
-    const EMULATOR_CERTIFICATE_BYTES: &[u8] = include_bytes!("../test-assets/emulator-cert.der");
+    const EMULATOR_CERTIFICATE_BYTES: &[u8] = include_bytes!("../../test-assets/emulator-cert.der");
 
     // This cert was taken from the Google repo: https://github.com/google/android-key-attestation
-    const STRONGBOX_CERTIFICATE_BYTES: &[u8] = include_bytes!("../test-assets/strongbox-cert.der");
+    const STRONGBOX_CERTIFICATE_BYTES: &[u8] = include_bytes!("../../test-assets/strongbox-cert.der");
 
     // This cert was taken from the Google repo: https://github.com/google/android-key-attestation
-    const TEE_CERTIFICATE_BYTES: &[u8] = include_bytes!("../test-assets/tee-cert.der");
+    const TEE_CERTIFICATE_BYTES: &[u8] = include_bytes!("../../test-assets/tee-cert.der");
 
     fn cert_from_der(bytes: &'static [u8]) -> X509Certificate<'static> {
         let (_, cert) = X509Certificate::from_der(bytes).expect("valid certificate");

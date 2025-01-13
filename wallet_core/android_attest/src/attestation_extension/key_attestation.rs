@@ -15,10 +15,10 @@ use rasn::Decode;
 use rasn::Decoder;
 use rasn::Encode;
 
-use crate::key_description;
-use crate::key_description::KeyDescription;
-pub use crate::key_description::RootOfTrust;
-pub use crate::key_description::SecurityLevel;
+use super::key_description;
+use super::key_description::KeyDescription;
+use super::key_description::RootOfTrust;
+use super::key_description::SecurityLevel;
 
 macro_rules! integer_int_enum_conversion {
     ($type:ty, $error_type:ident, $invalid_error:ident) => {
@@ -752,7 +752,7 @@ mod test {
     #[test]
     #[allow(clippy::octal_escapes)]
     fn convert_key_description() {
-        let input = crate::key_description::KeyDescription {
+        let input = KeyDescription {
             attestation_version: 200.into(),
             attestation_security_level: SecurityLevel::Software,
             key_mint_version: 200
@@ -760,7 +760,7 @@ mod test {
             key_mint_security_level: SecurityLevel::Software,
             attestation_challenge: OctetString::copy_from_slice(&[116, 104, 105, 115, 95, 105, 115, 95, 97, 95, 99, 104, 97, 108, 108, 101, 110, 103, 101, 95, 115, 116, 114, 105, 110, 103]),
             unique_id: OctetString::new(),
-            software_enforced: crate::key_description::AuthorizationList {
+            software_enforced: super::key_description::AuthorizationList {
                 purpose: SetOf::from_vec(vec![2.into()]).into(),
                 algorithm: Integer::from(3).into(),
                 key_size: Integer::from(256).into(),
@@ -807,7 +807,7 @@ mod test {
                 device_unique_attestation: ().into(),
                 attestation_id_second_imei: OctetString::copy_from_slice(b"attestation_id_second_imei").into(),
             },
-            hardware_enforced: crate::key_description::AuthorizationList {
+            hardware_enforced: super::key_description::AuthorizationList {
                 ..Default::default()
             },
         };
