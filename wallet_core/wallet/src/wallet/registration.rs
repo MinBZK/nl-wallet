@@ -380,7 +380,7 @@ mod tests {
                     panic!("registration message should contain Apple attestation");
                 };
 
-                // Verify the mock attestaiton in order to get the public key.
+                // Verify the mock attestation in order to get the public key.
                 let (_, attested_public_key) = VerifiedAttestation::parse_and_verify(
                     attestation_data,
                     &[trust_anchor],

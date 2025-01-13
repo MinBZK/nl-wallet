@@ -46,7 +46,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         user: WalletUserCreate,
-    ) -> Result<(), PersistenceError> {
+    ) -> Result<Uuid, PersistenceError> {
         wallet_user::create_wallet_user(transaction, user).await
     }
 
@@ -209,7 +209,7 @@ pub mod mock {
                 &self,
                 transaction: &MockTransaction,
                 user: WalletUserCreate,
-            ) -> Result<(), PersistenceError>;
+            ) -> Result<Uuid, PersistenceError>;
 
             async fn find_wallet_user_by_wallet_id(
                 &self,
@@ -322,8 +322,8 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _user: WalletUserCreate,
-        ) -> Result<(), PersistenceError> {
-            Ok(())
+        ) -> Result<Uuid, PersistenceError> {
+            Ok(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"))
         }
 
         async fn find_wallet_user_by_wallet_id(
@@ -345,9 +345,10 @@ pub mod mock {
                 }),
                 instruction_sequence_number: self.instruction_sequence_number,
                 has_wte: false,
-                attestation: self
-                    .apple_assertion_counter
-                    .map(|assertion_counter| WalletUserAttestation::Apple { assertion_counter }),
+                attestation: match self.apple_assertion_counter {
+                    Some(assertion_counter) => WalletUserAttestation::Apple { assertion_counter },
+                    None => WalletUserAttestation::Android,
+                },
             })))
         }
 

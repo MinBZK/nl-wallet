@@ -14,10 +14,10 @@ use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
 
+use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
-use apple_app_attest::AttestationError;
 use apple_app_attest::VerifiedAttestation;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -123,15 +123,23 @@ pub enum WalletCertificateError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum AndroidAttestationError {
+    #[error("could not decode certificate chain: {0}")]
+    CertificateChain(#[from] CertificateError),
+    #[error("root CA in certificate chain does not contain any of the configured public keys")]
+    RootPublicKeyMismatch,
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
     #[error("registration challenge validation error: {0}")]
     ChallengeValidation(#[source] JwtError),
     #[error("validation of Apple key and/or app attestation failed: {0}")]
-    AppleAttestation(#[from] AttestationError),
+    AppleAttestation(#[from] apple_app_attest::AttestationError),
     #[error("validation of Google key attestation failed: {0}")]
-    GoogleAttestation(#[from] CertificateError),
+    AndroidAttestation(#[from] AndroidAttestationError),
     #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_common::account::errors::Error),
     #[error("registration message validation error: {0}")]
@@ -259,9 +267,12 @@ pub struct AccountServer {
     pin_public_disclosure_protection_key_identifier: String,
     pub apple_config: AppleAttestationConfiguration,
     apple_trust_anchors: Vec<TrustAnchor<'static>>,
+    #[allow(dead_code)]
+    android_root_public_keys: Vec<RootPublicKey>,
 }
 
 impl AccountServer {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         instruction_challenge_timeout: Duration,
         name: String,
@@ -270,6 +281,7 @@ impl AccountServer {
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
         apple_trust_anchors: Vec<TrustAnchor<'static>>,
+        android_root_public_keys: Vec<RootPublicKey>,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
             instruction_challenge_timeout,
@@ -279,6 +291,7 @@ impl AccountServer {
             pin_public_disclosure_protection_key_identifier,
             apple_config,
             apple_trust_anchors,
+            android_root_public_keys,
         })
     }
 
@@ -307,7 +320,6 @@ impl AccountServer {
     pub async fn register<T, R, H>(
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
-        uuid_generator: &impl Generator<Uuid>,
         repositories: &R,
         hsm: &H,
         registration_message: ChallengeResponse<Registration>,
@@ -325,14 +337,19 @@ impl AccountServer {
             .dangerous_parse_unverified()
             .map_err(RegistrationError::MessageParsing)?;
 
-        debug!("Extracting challenge, wallet id, hw pubkey and pin pubkey");
+        debug!("Verifying challenge and extracting wallet id");
 
         let challenge = &unverified.challenge;
         let wallet_id =
             Self::verify_registration_challenge(&self.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
 
+        debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
+
         let attestation_timestamp = Utc::now();
-        let (hw_pubkey, attestation_data) = match unverified.payload.attestation {
+        let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
+        let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
+
+        let (hw_pubkey, attestation) = match unverified.payload.attestation {
             RegistrationAttestation::Apple { data } => {
                 debug!("Validating Apple key and app attestation");
 
@@ -345,44 +362,60 @@ impl AccountServer {
                     self.apple_config.environment,
                 )?;
 
-                (hw_pubkey, Some(data))
+                let attestation = registration_message
+                    .parse_and_verify_apple(
+                        challenge,
+                        sequence_number_comparison,
+                        &hw_pubkey,
+                        &self.apple_config.app_identifier,
+                        AssertionCounter::default(),
+                        &pin_pubkey,
+                    )
+                    .map(|(_, assertion_counter)| WalletUserAttestationCreate::Apple {
+                        data,
+                        assertion_counter,
+                    })
+                    .map_err(RegistrationError::MessageValidation)?;
+
+                (hw_pubkey, attestation)
             }
             // TODO: Actually validate and process Google key and app attestation.
             RegistrationAttestation::Google { certificate_chain, .. } => {
-                // For now, just extract the verifying key from the first X.509 certificate in the chain.
-                let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.into_first())?;
+                debug!("Validating Android key attestation");
 
-                (*leaf_certificate.public_key(), None)
+                // For now, just extract the verifying key from the first X.509 certificate in the chain.
+                let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.first().clone())
+                    .map_err(AndroidAttestationError::CertificateChain)?;
+
+                let root_certificate = BorrowingCertificate::from_der(certificate_chain.last().clone())
+                    .map_err(AndroidAttestationError::CertificateChain)?;
+                let root_public_key = root_certificate
+                    .x509_certificate()
+                    .public_key()
+                    .parsed()
+                    .map_err(|error| AndroidAttestationError::CertificateChain(CertificateError::X509Error(error)))?;
+
+                // TODO: This check should be part of `android_attest`.
+                if !self
+                    .android_root_public_keys
+                    .iter()
+                    .any(|public_key| root_public_key == *public_key)
+                {
+                    return Err(AndroidAttestationError::RootPublicKeyMismatch)?;
+                }
+
+                let hw_pubkey = *leaf_certificate.public_key();
+
+                let attestation = registration_message
+                    .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
+                    .map(|_| WalletUserAttestationCreate::Android {
+                        certificate_chain: certificate_chain.into_inner(),
+                    })
+                    .map_err(RegistrationError::MessageValidation)?;
+
+                (hw_pubkey, attestation)
             }
         };
-
-        let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
-
-        debug!("Checking if challenge is signed with the provided hw and pin keys");
-
-        let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
-        let attestation = match attestation_data {
-            None => registration_message
-                .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
-                .map(|_| None),
-            Some(data) => registration_message
-                .parse_and_verify_apple(
-                    challenge,
-                    sequence_number_comparison,
-                    &hw_pubkey,
-                    &self.apple_config.app_identifier,
-                    AssertionCounter::default(),
-                    &pin_pubkey,
-                )
-                .map(|(_, assertion_counter)| {
-                    Some(WalletUserAttestationCreate::Apple {
-                        data,
-                        verification_date_time: attestation_timestamp,
-                        assertion_counter,
-                    })
-                }),
-        }
-        .map_err(RegistrationError::MessageValidation)?;
 
         debug!("Starting database transaction");
 
@@ -392,15 +425,14 @@ impl AccountServer {
 
         debug!("Creating new wallet user");
 
-        let uuid = uuid_generator.generate();
-        repositories
+        let uuid = repositories
             .create_wallet_user(
                 &tx,
                 WalletUserCreate {
-                    id: uuid,
                     wallet_id: wallet_id.clone(),
                     hw_pubkey,
                     encrypted_pin_pubkey,
+                    attestation_date_time: attestation_timestamp,
                     attestation,
                 },
             )
@@ -449,11 +481,7 @@ impl AccountServer {
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(user.instruction_sequence_number);
         let DerVerifyingKey(hw_pubkey) = &user.hw_pubkey;
         let (request, assertion_counter) = match user.attestation {
-            None => challenge_request
-                .request
-                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
-                .map(|request| (request, None)),
-            Some(WalletUserAttestation::Apple { assertion_counter }) => challenge_request
+            WalletUserAttestation::Apple { assertion_counter } => challenge_request
                 .request
                 .parse_and_verify_apple(
                     &claims.wallet_id,
@@ -463,6 +491,10 @@ impl AccountServer {
                     assertion_counter,
                 )
                 .map(|(request, assertion_counter)| (request, Some(assertion_counter))),
+            WalletUserAttestation::Android => challenge_request
+                .request
+                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
+                .map(|request| (request, None)),
         }?;
 
         debug!("Verifying wallet certificate");
@@ -853,11 +885,7 @@ impl AccountServer {
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
         let DerVerifyingKey(hw_pubkey) = &wallet_user.hw_pubkey;
         let (parsed, assertion_counter) = match wallet_user.attestation {
-            None => instruction
-                .instruction
-                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
-                .map(|parsed| (parsed, None)),
-            Some(WalletUserAttestation::Apple { assertion_counter }) => instruction
+            WalletUserAttestation::Apple { assertion_counter } => instruction
                 .instruction
                 .parse_and_verify_apple(
                     &challenge.bytes,
@@ -868,6 +896,10 @@ impl AccountServer {
                     &pin_pubkey,
                 )
                 .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
+            WalletUserAttestation::Android => instruction
+                .instruction
+                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
+                .map(|parsed| (parsed, None)),
         }
         .map_err(InstructionValidationError::VerificationFailed)?;
 
@@ -898,6 +930,7 @@ impl AccountServer {
 pub mod mock {
     use p256::ecdsa::SigningKey;
 
+    use android_attest::mock::MockCaChain;
     use apple_app_attest::MockAttestationCa;
     use wallet_common::apple::MockAppleAttestedKey;
 
@@ -905,8 +938,24 @@ pub mod mock {
 
     use super::*;
 
-    pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> (AccountServer, MockAttestationCa) {
+    #[derive(Clone, Copy)]
+    pub enum AttestationType {
+        Apple,
+        Google,
+    }
+
+    #[derive(Clone, Copy)]
+    pub enum AttestationCa<'a> {
+        Apple(&'a MockAttestationCa),
+        Google(&'a MockCaChain),
+    }
+
+    pub fn setup_account_server(
+        certificate_signing_pubkey: &VerifyingKey,
+    ) -> (AccountServer, MockAttestationCa, MockCaChain) {
         let apple_mock_ca = MockAttestationCa::generate(AttestationEnvironment::Development);
+        let android_mock_ca_chain = MockCaChain::generate(1);
+
         let account_server = AccountServer::new(
             Duration::from_millis(15000),
             "mock_account_server".into(),
@@ -918,10 +967,11 @@ pub mod mock {
                 environment: apple_mock_ca.environment,
             },
             vec![apple_mock_ca.trust_anchor().to_owned()],
+            vec![RootPublicKey::Ecdsa(android_mock_ca_chain.root_public_key)],
         )
         .unwrap();
 
-        (account_server, apple_mock_ca)
+        (account_server, apple_mock_ca, android_mock_ca_chain)
     }
 
     #[derive(Debug)]
@@ -1018,7 +1068,9 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rstest::rstest;
     use tokio::sync::OnceCell;
+    use uuid::uuid;
 
+    use android_attest::mock::MockCaChain;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
@@ -1034,7 +1086,6 @@ mod tests {
     use wallet_provider_domain::model::TimeoutPinPolicy;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::EpochGenerator;
-    use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -1042,16 +1093,12 @@ mod tests {
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wte_issuer::mock::MockWteIssuer;
 
+    use super::mock::AttestationCa;
+    use super::mock::AttestationType;
     use super::mock::MockHardwareKey;
     use super::*;
 
     static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
-
-    #[derive(Debug, Clone, Copy)]
-    enum AttestationType {
-        Apple,
-        Google,
-    }
 
     async fn get_global_hsm() -> &'static MockPkcs11Client<HsmError> {
         HSM.get_or_init(wallet_certificate::mock::setup_hsm).await
@@ -1062,18 +1109,17 @@ mod tests {
         hsm: &MockPkcs11Client<HsmError>,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         pin_privkey: &SigningKey,
-        mock_apple_ca: &MockAttestationCa,
-        attestation_type: AttestationType,
+        attestation_ca: AttestationCa<'_>,
     ) -> Result<(WalletCertificate, MockHardwareKey), RegistrationError> {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
             .await
             .expect("Could not get registration challenge");
 
-        let (registration_message, hw_privkey) = match attestation_type {
-            AttestationType::Apple => {
+        let (registration_message, hw_privkey) = match attestation_ca {
+            AttestationCa::Apple(apple_mock_ca) => {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
-                    mock_apple_ca,
+                    apple_mock_ca,
                     account_server.apple_config.app_identifier.clone(),
                     &utils::sha256(&challenge),
                 );
@@ -1084,10 +1130,9 @@ mod tests {
 
                 (registration_message, MockHardwareKey::Apple(attested_key))
             }
-            AttestationType::Google => {
-                let (attested_certificate_chain, attested_private_keys) =
-                    android_attest::mock::generate_mock_certificate_chain(1);
-                let attested_private_key = attested_private_keys.into_iter().next().unwrap();
+            AttestationCa::Google(android_mock_ca_chain) => {
+                let (attested_certificate_chain, attested_private_key) =
+                    android_mock_ca_chain.generate_leaf_certificate();
                 let app_attestation_token = utils::random_bytes(32);
                 let registration_message = ChallengeResponse::new_google(
                     &attested_private_key,
@@ -1107,16 +1152,12 @@ mod tests {
         wallet_user_repo
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
-        wallet_user_repo.expect_create_wallet_user().returning(|_, _| Ok(()));
+        wallet_user_repo
+            .expect_create_wallet_user()
+            .returning(|_, _| Ok(uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")));
 
         account_server
-            .register(
-                certificate_signing_key,
-                &FixedUuidGenerator,
-                &wallet_user_repo,
-                hsm,
-                registration_message,
-            )
+            .register(certificate_signing_key, &wallet_user_repo, hsm, registration_message)
             .await
             .map(|wallet_certificate| (wallet_certificate, hw_privkey))
     }
@@ -1131,15 +1172,19 @@ mod tests {
         WalletUserTestRepo,
     ) {
         let setup = WalletCertificateSetup::new().await;
-        let (account_server, apple_mock_ca) = mock::setup_account_server(&setup.signing_pubkey);
+        let (account_server, apple_mock_ca, android_mock_ca_chain) = mock::setup_account_server(&setup.signing_pubkey);
+
+        let attestation_ca = match attestation_type {
+            AttestationType::Apple => AttestationCa::Apple(&apple_mock_ca),
+            AttestationType::Google => AttestationCa::Google(&android_mock_ca_chain),
+        };
 
         let (cert, hw_privkey) = do_registration(
             &account_server,
             get_global_hsm().await,
             &setup.signing_key,
             &setup.pin_privkey,
-            &apple_mock_ca,
-            attestation_type,
+            attestation_ca,
         )
         .await
         .expect("Could not process registration message at account server");
@@ -1359,7 +1404,8 @@ mod tests {
     #[rstest]
     async fn test_register_invalid_apple_attestation() {
         let setup = WalletCertificateSetup::new().await;
-        let (account_server, _apple_mock_ca) = mock::setup_account_server(&setup.signing_pubkey);
+        let (account_server, _apple_mock_ca, _android_mock_ca_chain) =
+            mock::setup_account_server(&setup.signing_pubkey);
 
         // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
         let other_apple_mock_ca = MockAttestationCa::generate(account_server.apple_config.environment);
@@ -1369,13 +1415,35 @@ mod tests {
             get_global_hsm().await,
             &setup.signing_key,
             &setup.pin_privkey,
-            &other_apple_mock_ca,
-            AttestationType::Apple,
+            AttestationCa::Apple(&other_apple_mock_ca),
         )
         .await
         .expect_err("registering with an invalid Apple attestation should fail");
 
         assert_matches!(error, RegistrationError::AppleAttestation(_));
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_register_invalid_android_attestation() {
+        let setup = WalletCertificateSetup::new().await;
+        let (account_server, _apple_mock_ca, _android_mock_ca_chain) =
+            mock::setup_account_server(&setup.signing_pubkey);
+
+        // Generate the Google certificate chain using a different set of CAs to make the attestation validation fail.
+        let other_android_mock_ca_chain = MockCaChain::generate(1);
+
+        let error = do_registration(
+            &account_server,
+            get_global_hsm().await,
+            &setup.signing_key,
+            &setup.pin_privkey,
+            AttestationCa::Google(&other_android_mock_ca_chain),
+        )
+        .await
+        .expect_err("registering with an invalid Android attestation should fail");
+
+        assert_matches!(error, RegistrationError::AndroidAttestation(_));
     }
 
     #[tokio::test]

@@ -8,6 +8,7 @@ use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
 
+use android_attest::root_public_key::RootPublicKey;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;
@@ -72,6 +73,13 @@ impl RouterState {
             .map(|anchor| anchor.to_owned_trust_anchor())
             .collect();
 
+        let android_root_public_keys = settings
+            .android
+            .root_public_keys
+            .into_iter()
+            .map(RootPublicKey::from)
+            .collect();
+
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
             "account_server".into(),
@@ -80,6 +88,7 @@ impl RouterState {
             settings.pin_public_disclosure_protection_key_identifier,
             apple_config,
             apple_trust_anchors,
+            android_root_public_keys,
         )?;
 
         let db = Db::new(

@@ -2,8 +2,6 @@ use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::*;
 
-use crate::m20230616_000001_create_wallet_user_table::WalletUser;
-
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -15,7 +13,6 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(WalletUserAppleAttestation::Table)
                     .col(pk_uuid(WalletUserAppleAttestation::Id))
-                    .col(uuid(WalletUserAppleAttestation::WalletUserId))
                     .col(
                         big_integer(WalletUserAppleAttestation::AssertionCounter).check(
                             // Emulate a u32 with a CHECK constraint, since
@@ -26,25 +23,6 @@ impl MigrationTrait for Migration {
                         ),
                     )
                     .col(binary(WalletUserAppleAttestation::AttestationData))
-                    .col(timestamp_with_time_zone(
-                        WalletUserAppleAttestation::VerificationDateTime,
-                    ))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk_wallet_user_id")
-                            .from(
-                                WalletUserAppleAttestation::Table,
-                                WalletUserAppleAttestation::WalletUserId,
-                            )
-                            .to(WalletUser::Table, WalletUser::Id)
-                            .on_delete(ForeignKeyAction::NoAction),
-                    )
-                    .index(
-                        Index::create()
-                            .unique()
-                            .name("wallet_user_apple_attestation_unique_wallet_user_id")
-                            .col(WalletUserAppleAttestation::WalletUserId),
-                    )
                     .to_owned(),
             )
             .await?;
@@ -54,11 +32,9 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-enum WalletUserAppleAttestation {
+pub enum WalletUserAppleAttestation {
     Table,
     Id,
-    WalletUserId,
     AssertionCounter,
     AttestationData,
-    VerificationDateTime,
 }

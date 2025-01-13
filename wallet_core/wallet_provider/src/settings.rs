@@ -8,12 +8,14 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use derive_more::From;
+use derive_more::Into;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
 
+use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
@@ -41,6 +43,7 @@ pub struct Settings {
     pub instruction_challenge_timeout: Duration,
 
     pub ios: Ios,
+    pub android: Android,
 }
 
 #[derive(Clone, Deserialize)]
@@ -91,6 +94,16 @@ pub enum AppleEnvironment {
     Production,
 }
 
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct Android {
+    #[serde_as(as = "Vec<Base64>")]
+    pub root_public_keys: Vec<AndroidRootPublicKey>,
+}
+
+#[derive(Clone, Into)]
+pub struct AndroidRootPublicKey(RootPublicKey);
+
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
@@ -140,5 +153,17 @@ impl From<AppleEnvironment> for AttestationEnvironment {
             AppleEnvironment::Development => Self::Development,
             AppleEnvironment::Production => Self::Production,
         }
+    }
+}
+
+impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
+    type Error = spki::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        let public_key = RootPublicKey::rsa_from_der(&value)
+            // Choose to return the RSA parsing error here, as this will most likely be used in production.
+            .or_else(|error| RootPublicKey::ecdsa_from_der(&value).map_err(|_| error))?;
+
+        Ok(AndroidRootPublicKey(public_key))
     }
 }
