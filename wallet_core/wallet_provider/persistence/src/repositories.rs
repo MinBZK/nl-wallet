@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
+use uuid;
 use uuid::Uuid;
-use uuid::{self};
 
 use apple_app_attest::AssertionCounter;
 use wallet_provider_domain::model::encrypted::Encrypted;

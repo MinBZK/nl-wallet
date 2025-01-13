@@ -9,8 +9,8 @@ use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::DigidSession;
 use wallet::wallet_deps::HttpDigidSession;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+use wallet_common::urls;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use wallet_common::urls::{self};
 use wallet_server::pid::attributes::BrpPidAttributeService;
 use wallet_server::pid::brp::client::HttpBrpClient;
 
@@ -36,6 +36,7 @@ async fn test_pid_issuance_digid_bridge() {
         &settings.issuer.digid.bsn_privkey,
         settings.issuer.digid.http_config.clone(),
         settings.issuer.certificates(),
+        settings.issuer.metadata(),
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;

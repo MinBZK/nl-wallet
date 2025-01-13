@@ -488,8 +488,8 @@ mod tests {
     use wallet_common::generator::TimeGenerator;
 
     use crate::server_keys::generate::Ca;
+    use crate::utils::cose;
     use crate::utils::cose::CoseError;
-    use crate::utils::cose::{self};
     use crate::utils::issuer_auth::IssuerRegistration;
     use crate::utils::x509::CertificateUsage;
 

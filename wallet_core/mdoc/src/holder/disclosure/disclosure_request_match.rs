@@ -11,9 +11,9 @@ use crate::holder::HolderError;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::mdocs::DocType;
+use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::utils::serialization::{self};
 use crate::ItemsRequest;
 
 use super::proposed_document::ProposedDocument;

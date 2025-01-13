@@ -209,8 +209,8 @@ mod test {
 mod tests {
     use crate::examples::Example;
     use crate::examples::EXAMPLE_DOC_TYPE;
+    use crate::utils::serialization;
     use crate::utils::serialization::TaggedBytes;
-    use crate::utils::serialization::{self};
 
     use super::*;
 

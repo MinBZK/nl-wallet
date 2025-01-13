@@ -227,8 +227,8 @@ mod tests {
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceAuth;
+    use crate::utils::cose;
     use crate::utils::cose::CoseError;
-    use crate::utils::cose::{self};
     use crate::utils::serialization::TaggedBytes;
 
     use super::*;

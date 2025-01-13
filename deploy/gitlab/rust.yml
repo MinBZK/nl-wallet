@@ -1,20 +1,7 @@
-.rust-cache:
-  cache:
-    key: rust-${CI_JOB_NAME_SLUG}-${CI_DEFAULT_BRANCH}
-    paths:
-      - ".cargo/git"
-      - ".cargo/registry/index"
-      - ".cargo/registry/cache"
-      - "wallet_core/target/"
-      - "wallet_core/flutter_rust_bridge_codegen/target"
-      - "wallet_core/uniffi-bindgen/target"
-    policy: ${CACHE_POLICY}
-
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
-  cache: !reference [.rust-cache, cache]
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   before_script:
     - set -euxo pipefail
   script:
@@ -27,15 +14,15 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
-  cache: !reference [.rust-cache, cache]
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   variables:
+    NEXTEST_PROFILE: "ci"
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:f9b5a6e8517e9f666f2a238484528a99efe2dd1e676a9e94fc668b702951a453"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:027f3965467f19c36455a3a2bb6f77d13f4fd5220d1741f635f0a6adc50936b7"
       alias: postgres
       variables:
         POSTGRES_USER: "postgres"
@@ -49,15 +36,27 @@ test-rust:
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
-    - RUST_BACKTRACE=1 cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
+    - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
     reports:
       coverage_report:
         path: wallet_core/rust-coverage.xml
         coverage_format: cobertura
+      junit: wallet_core/target/nextest/ci/junit.xml
     paths:
       - wallet_core/lcov.info
+      - wallet_core/target/nextest/ci/junit.xml
+
+test-rust-doctest:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
+  before_script:
+    - set -euxo pipefail
+    - cd wallet_core
+  script:
+    - RUST_BACKTRACE=1 cargo test --doc --locked
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -76,17 +75,18 @@ test-rust-compilation-ios:
   extends: .test-rust-compilation
   tags:
     - macos
-  image: sonoma-wallet:0.1.3
+  image: sonoma-wallet:0.1.4
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
 
 .build-binary:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:5a622f690087095bd25c18589373eb7e4aca9d37f5c465684b16337e4c876580"
-  cache: !reference [.rust-cache, cache]
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   needs:
     - job: test-rust
+      artifacts: false
+    - job: test-rust-doctest
       artifacts: false
   variables:
     RUSTFLAGS: "-D warnings"

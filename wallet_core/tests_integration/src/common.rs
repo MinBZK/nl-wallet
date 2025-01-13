@@ -34,6 +34,8 @@ use openid4vc::server_state::SessionState;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use update_policy_server::settings::Settings as UpsSettings;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
@@ -461,6 +463,7 @@ impl AttributeService for MockAttributeService {
             .map(|unsigned_mdoc| CredentialPreview::MsoMdoc {
                 issuer: self.0[&unsigned_mdoc.doc_type].clone(),
                 unsigned_mdoc,
+                metadata_chain: TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap(),
             })
             .collect::<Vec<_>>();
         Ok(attributes.try_into().unwrap())

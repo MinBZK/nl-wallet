@@ -106,8 +106,8 @@ mod tests {
     use crate::storage::StorageState;
 
     use super::super::issuance::PidIssuanceSession;
+    use super::super::test;
     use super::super::test::WalletWithMocks;
-    use super::super::test::{self};
     use super::*;
 
     // TODO: Test key deletion for Google attested key.

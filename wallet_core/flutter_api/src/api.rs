@@ -11,7 +11,6 @@ use wallet::wallet_common::version_string;
 use wallet::DisclosureUriSource;
 use wallet::UnlockMethod;
 use wallet::Wallet;
-use wallet::{self};
 
 use crate::async_runtime::init_async_runtime;
 use crate::logging::init_logging;

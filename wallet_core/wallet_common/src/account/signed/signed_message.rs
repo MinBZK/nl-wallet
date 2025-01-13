@@ -56,7 +56,7 @@ where
     }
 }
 
-impl<'a, T> ClientData for ParsedValueWithSource<'a, T>
+impl<T> ClientData for ParsedValueWithSource<'_, T>
 where
     T: ContainsChallenge,
 {

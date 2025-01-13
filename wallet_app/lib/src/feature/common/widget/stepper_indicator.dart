@@ -99,7 +99,7 @@ class _SingleStepIndicator extends StatelessWidget {
       curve: Curves.easeInOutCirc,
       duration: kDefaultAnimationDuration,
       decoration: BoxDecoration(
-        color: context.colorScheme.primary.withOpacity(visible ? 1 : 0),
+        color: context.colorScheme.primary.withValues(alpha: visible ? 1 : 0),
         borderRadius: kBorderRadius,
       ),
     );

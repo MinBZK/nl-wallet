@@ -311,7 +311,10 @@ mod test {
             timestamp: DateTime<Utc>,
             issuer_certificate: &BorrowingCertificate,
         ) -> Self {
-            let docs = vec![create_full_unsigned_pid_mdoc(), create_full_unsigned_address_mdoc()];
+            let (docs, _): (Vec<_>, Vec<_>) =
+                vec![create_full_unsigned_pid_mdoc(), create_full_unsigned_address_mdoc()]
+                    .into_iter()
+                    .unzip();
             let mdocs = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate);
             Self::Issuance {
                 id: Uuid::new_v4(),
@@ -326,10 +329,12 @@ mod test {
             reader_certificate: BorrowingCertificate,
             issuer_certificate: &BorrowingCertificate,
         ) -> Self {
-            let docs = vec![
+            let (docs, _): (Vec<_>, Vec<_>) = vec![
                 create_minimal_unsigned_pid_mdoc(),
                 create_minimal_unsigned_address_mdoc(),
-            ];
+            ]
+            .into_iter()
+            .unzip();
             let documents = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate).into();
             Self::Disclosure {
                 id: Uuid::new_v4(),
@@ -347,10 +352,12 @@ mod test {
             reader_certificate: BorrowingCertificate,
             issuer_certificate: &BorrowingCertificate,
         ) -> Self {
-            let docs = vec![
+            let (docs, _): (Vec<_>, Vec<_>) = vec![
                 create_minimal_unsigned_pid_mdoc(),
                 create_minimal_unsigned_address_mdoc(),
-            ];
+            ]
+            .into_iter()
+            .unzip();
             let documents = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate).into();
             Self::Disclosure {
                 id: Uuid::new_v4(),

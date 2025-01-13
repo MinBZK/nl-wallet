@@ -52,6 +52,7 @@ path = "tests/update_policy_server.rs"
 required-features = ["integration_test"]
 
 [features]
+default = ["integration_test"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc?/allow_insecure_url", "wallet_common?/allow_insecure_url"]
 # Initialize global logging using tracing-subscriber
@@ -73,6 +74,7 @@ test_common = [
     "dep:openid4vc",
     "dep:platform_support",
     "dep:semver",
+    "dep:sd_jwt",
     "dep:tempfile",
     "dep:update_policy_server",
     "dep:uuid",
@@ -200,6 +202,7 @@ gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
 platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
+sd_jwt = { path = "../sd_jwt", optional = true, features = ["example_constructors"] }
 update_policy_server = { path = "../update_policy_server", optional = true }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
 wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }

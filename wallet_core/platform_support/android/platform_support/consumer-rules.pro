@@ -7,3 +7,5 @@
 }
 
 -keep class com.sun.jna.** { *; }
+
+-dontwarn java.awt.*

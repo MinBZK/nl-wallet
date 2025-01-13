@@ -184,10 +184,12 @@ class _ColorRow extends StatelessWidget {
 }
 
 extension _HexColor on Color {
-  String toHex() => '#'
-          '${alpha.toRadixString(16).padLeft(2, '0')}'
-          '${red.toRadixString(16).padLeft(2, '0')}'
-          '${green.toRadixString(16).padLeft(2, '0')}'
-          '${blue.toRadixString(16).padLeft(2, '0')}'
-      .toUpperCase();
+  String toHex() {
+    final alpha = (a * 255).toInt().toRadixString(16).padLeft(2, '0');
+    final red = (r * 255).toInt().toRadixString(16).padLeft(2, '0');
+    final green = (g * 255).toInt().toRadixString(16).padLeft(2, '0');
+    final blue = (b * 255).toInt().toRadixString(16).padLeft(2, '0');
+
+    return '#$alpha$red$green$blue'.toUpperCase();
+  }
 }

@@ -2,8 +2,8 @@ pub mod attested_key;
 pub mod hw_keystore;
 pub mod utils;
 
+use std::panic;
 use std::panic::UnwindSafe;
-use std::panic::{self};
 use std::process;
 
 macro_rules! log_panic {

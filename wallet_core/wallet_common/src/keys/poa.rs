@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use futures::future::try_join_all;
+use jsonwebtoken::jwk;
 use jsonwebtoken::jwk::Jwk;
-use jsonwebtoken::jwk::{self};
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use p256::ecdsa::VerifyingKey;

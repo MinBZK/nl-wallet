@@ -14,10 +14,10 @@ use axum::routing::post;
 use axum::Form;
 use axum::Json;
 use axum::Router;
+use axum_extra::headers;
 use axum_extra::headers::authorization::Credentials;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
-use axum_extra::headers::{self};
 use axum_extra::TypedHeader;
 use derive_more::AsRef;
 use derive_more::From;
@@ -48,8 +48,8 @@ use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
 
+use crate::settings;
 use crate::settings::Urls;
-use crate::settings::{self};
 
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;

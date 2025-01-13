@@ -34,7 +34,7 @@ impl<'a> SimpleClientData<'a> {
     }
 }
 
-impl<'a> ClientData for SimpleClientData<'a> {
+impl ClientData for SimpleClientData<'_> {
     type Error = Infallible;
 
     fn hash_data(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
