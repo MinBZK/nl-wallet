@@ -140,6 +140,7 @@ impl Settings {
                     .prefix_separator("_")
                     .list_separator(",")
                     .with_list_parse_key("ios.root_certificates")
+                    .with_list_parse_key("android.root_public_keys")
                     .try_parsing(true),
             )
             .build()?
