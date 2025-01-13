@@ -32,9 +32,9 @@ use flutter_rust_bridge::{Handler, IntoIntoDart};
 // Section: boilerplate
 
 flutter_rust_bridge::frb_generated_boilerplate!(
-    default_stream_sink_codec = SseCodec,
-    default_rust_opaque = RustOpaqueMoi,
-    default_rust_auto_opaque = RustAutoOpaqueMoi,
+    default_stream_sink_codec = DcoCodec,
+    default_rust_opaque = RustOpaqueNom,
+    default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.7.0";
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -580739876;
@@ -47,25 +47,18 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 fn wire__crate__api__full__accept_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "accept_disclosure",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_pin = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_pin = pin.cst_decode();
             move |context| {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
                     let output_ok = crate::api::full::accept_disclosure(api_pin)?;
                     Ok(output_ok)
                 })())
@@ -75,25 +68,18 @@ fn wire__crate__api__full__accept_disclosure_impl(
 }
 fn wire__crate__api__full__accept_pid_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "accept_pid_issuance",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_pin = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_pin = pin.cst_decode();
             move |context| {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
                     let output_ok = crate::api::full::accept_pid_issuance(api_pin)?;
                     Ok(output_ok)
                 })())
@@ -101,26 +87,16 @@ fn wire__crate__api__full__accept_pid_issuance_impl(
         },
     )
 }
-fn wire__crate__api__full__cancel_disclosure_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__cancel_disclosure_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "cancel_disclosure",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::cancel_disclosure().await?;
                         Ok(output_ok)
@@ -131,26 +107,16 @@ fn wire__crate__api__full__cancel_disclosure_impl(
         },
     )
 }
-fn wire__crate__api__full__cancel_pid_issuance_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__cancel_pid_issuance_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "cancel_pid_issuance",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::cancel_pid_issuance().await?;
                         Ok(output_ok)
@@ -163,26 +129,20 @@ fn wire__crate__api__full__cancel_pid_issuance_impl(
 }
 fn wire__crate__api__full__change_pin_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    old_pin: impl CstDecode<String>,
+    new_pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "change_pin",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_old_pin = <String>::sse_decode(&mut deserializer);
-            let api_new_pin = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_old_pin = old_pin.cst_decode();
+            let api_new_pin = new_pin.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::change_pin(api_old_pin, api_new_pin).await?;
                         Ok(output_ok)
@@ -195,25 +155,18 @@ fn wire__crate__api__full__change_pin_impl(
 }
 fn wire__crate__api__full__check_pin_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "check_pin",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_pin = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_pin = pin.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::check_pin(api_pin).await?;
                         Ok(output_ok)
@@ -224,26 +177,16 @@ fn wire__crate__api__full__check_pin_impl(
         },
     )
 }
-fn wire__crate__api__full__clear_cards_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__clear_cards_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "clear_cards_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_cards_stream().await;
@@ -256,26 +199,16 @@ fn wire__crate__api__full__clear_cards_stream_impl(
         },
     )
 }
-fn wire__crate__api__full__clear_configuration_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__clear_configuration_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "clear_configuration_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_configuration_stream().await;
@@ -288,26 +221,16 @@ fn wire__crate__api__full__clear_configuration_stream_impl(
         },
     )
 }
-fn wire__crate__api__full__clear_lock_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__clear_lock_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "clear_lock_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_lock_stream().await;
@@ -320,26 +243,16 @@ fn wire__crate__api__full__clear_lock_stream_impl(
         },
     )
 }
-fn wire__crate__api__full__clear_recent_history_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__clear_recent_history_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "clear_recent_history_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_recent_history_stream().await;
@@ -352,26 +265,16 @@ fn wire__crate__api__full__clear_recent_history_stream_impl(
         },
     )
 }
-fn wire__crate__api__full__clear_version_state_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__clear_version_state_stream_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "clear_version_state_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_version_state_stream().await;
@@ -386,25 +289,18 @@ fn wire__crate__api__full__clear_version_state_stream_impl(
 }
 fn wire__crate__api__full__continue_change_pin_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "continue_change_pin",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_pin = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_pin = pin.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::continue_change_pin(api_pin).await?;
                         Ok(output_ok)
@@ -417,25 +313,18 @@ fn wire__crate__api__full__continue_change_pin_impl(
 }
 fn wire__crate__api__full__continue_pid_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    uri: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "continue_pid_issuance",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_uri = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_uri = uri.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::continue_pid_issuance(api_uri).await?;
                         Ok(output_ok)
@@ -448,24 +337,16 @@ fn wire__crate__api__full__continue_pid_issuance_impl(
 }
 fn wire__crate__api__full__create_pid_issuance_redirect_uri_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "create_pid_issuance_redirect_uri",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::create_pid_issuance_redirect_uri().await?;
                         Ok(output_ok)
@@ -476,26 +357,16 @@ fn wire__crate__api__full__create_pid_issuance_redirect_uri_impl(
         },
     )
 }
-fn wire__crate__api__full__get_history_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__get_history_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "get_history",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::get_history().await?;
                         Ok(output_ok)
@@ -508,25 +379,18 @@ fn wire__crate__api__full__get_history_impl(
 }
 fn wire__crate__api__full__get_history_for_card_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    doc_type: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "get_history_for_card",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_doc_type = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_doc_type = doc_type.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::get_history_for_card(api_doc_type).await?;
                         Ok(output_ok)
@@ -537,26 +401,16 @@ fn wire__crate__api__full__get_history_for_card_impl(
         },
     )
 }
-fn wire__crate__api__full__get_version_string_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+fn wire__crate__api__full__get_version_string_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "get_version_string",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| {
-                transform_result_sse::<_, ()>((move || {
+                transform_result_dco::<_, _, ()>((move || {
                     let output_ok = Result::<_, ()>::Ok(crate::api::full::get_version_string())?;
                     Ok(output_ok)
                 })())
@@ -564,26 +418,16 @@ fn wire__crate__api__full__get_version_string_impl(
         },
     )
 }
-fn wire__crate__api__full__has_active_disclosure_session_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__has_active_disclosure_session_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "has_active_disclosure_session",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::has_active_disclosure_session().await?;
                         Ok(output_ok)
@@ -596,24 +440,16 @@ fn wire__crate__api__full__has_active_disclosure_session_impl(
 }
 fn wire__crate__api__full__has_active_pid_issuance_session_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "has_active_pid_issuance_session",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::has_active_pid_issuance_session().await?;
                         Ok(output_ok)
@@ -624,26 +460,16 @@ fn wire__crate__api__full__has_active_pid_issuance_session_impl(
         },
     )
 }
-fn wire__crate__api__full__has_registration_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__has_registration_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "has_registration",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok(crate::api::full::has_registration().await)?;
                         Ok(output_ok)
@@ -656,25 +482,18 @@ fn wire__crate__api__full__has_registration_impl(
 }
 fn wire__crate__api__full__identify_uri_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    uri: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "identify_uri",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_uri = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_uri = uri.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::identify_uri(api_uri).await?;
                         Ok(output_ok)
@@ -685,26 +504,16 @@ fn wire__crate__api__full__identify_uri_impl(
         },
     )
 }
-fn wire__crate__api__full__init_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__init_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "init",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::init().await?;
                         Ok(output_ok)
@@ -715,26 +524,16 @@ fn wire__crate__api__full__init_impl(
         },
     )
 }
-fn wire__crate__api__full__is_biometric_unlock_enabled_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__is_biometric_unlock_enabled_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "is_biometric_unlock_enabled",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::is_biometric_unlock_enabled().await?;
                         Ok(output_ok)
@@ -745,26 +544,16 @@ fn wire__crate__api__full__is_biometric_unlock_enabled_impl(
         },
     )
 }
-fn wire__crate__api__full__is_initialized_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+fn wire__crate__api__full__is_initialized_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "is_initialized",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| {
-                transform_result_sse::<_, ()>((move || {
+                transform_result_dco::<_, _, ()>((move || {
                     let output_ok = Result::<_, ()>::Ok(crate::api::full::is_initialized())?;
                     Ok(output_ok)
                 })())
@@ -774,25 +563,18 @@ fn wire__crate__api__full__is_initialized_impl(
 }
 fn wire__crate__api__full__is_valid_pin_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "is_valid_pin",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_pin = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_pin = pin.cst_decode();
             move |context| {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
                     let output_ok = crate::api::full::is_valid_pin(api_pin)?;
                     Ok(output_ok)
                 })())
@@ -800,26 +582,16 @@ fn wire__crate__api__full__is_valid_pin_impl(
         },
     )
 }
-fn wire__crate__api__full__lock_wallet_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__lock_wallet_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "lock_wallet",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::lock_wallet().await;
@@ -834,25 +606,18 @@ fn wire__crate__api__full__lock_wallet_impl(
 }
 fn wire__crate__api__full__register_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "register",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_pin = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_pin = pin.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::register(api_pin).await?;
                         Ok(output_ok)
@@ -863,26 +628,16 @@ fn wire__crate__api__full__register_impl(
         },
     )
 }
-fn wire__crate__api__full__reset_wallet_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__reset_wallet_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "reset_wallet",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::reset_wallet().await?;
                         Ok(output_ok)
@@ -895,25 +650,18 @@ fn wire__crate__api__full__reset_wallet_impl(
 }
 fn wire__crate__api__full__set_biometric_unlock_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    enable: impl CstDecode<bool>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "set_biometric_unlock",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_enable = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_enable = enable.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::set_biometric_unlock(api_enable).await?;
                         Ok(output_ok)
@@ -926,28 +674,18 @@ fn wire__crate__api__full__set_biometric_unlock_impl(
 }
 fn wire__crate__api__full__set_cards_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    sink: impl CstDecode<StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridge::for_generated::DcoCodec>>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "set_cards_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_sink =
-                <StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridge::for_generated::SseCodec>>::sse_decode(
-                    &mut deserializer,
-                );
-            deserializer.end();
+            let api_sink = sink.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::set_cards_stream(api_sink).await?;
                         Ok(output_ok)
@@ -960,28 +698,20 @@ fn wire__crate__api__full__set_cards_stream_impl(
 }
 fn wire__crate__api__full__set_configuration_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    sink: impl CstDecode<
+        StreamSink<crate::models::config::FlutterConfiguration, flutter_rust_bridge::for_generated::DcoCodec>,
+    >,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "set_configuration_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_sink = <StreamSink<
-                crate::models::config::FlutterConfiguration,
-                flutter_rust_bridge::for_generated::SseCodec,
-            >>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_sink = sink.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::set_configuration_stream(api_sink).await;
@@ -996,26 +726,18 @@ fn wire__crate__api__full__set_configuration_stream_impl(
 }
 fn wire__crate__api__full__set_lock_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    sink: impl CstDecode<StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec>>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "set_lock_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_sink =
-                <StreamSink<bool, flutter_rust_bridge::for_generated::SseCodec>>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_sink = sink.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::set_lock_stream(api_sink).await;
@@ -1030,28 +752,20 @@ fn wire__crate__api__full__set_lock_stream_impl(
 }
 fn wire__crate__api__full__set_recent_history_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    sink: impl CstDecode<
+        StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::DcoCodec>,
+    >,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "set_recent_history_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_sink = <StreamSink<
-                Vec<crate::models::wallet_event::WalletEvent>,
-                flutter_rust_bridge::for_generated::SseCodec,
-            >>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_sink = sink.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::set_recent_history_stream(api_sink).await?;
                         Ok(output_ok)
@@ -1064,28 +778,20 @@ fn wire__crate__api__full__set_recent_history_stream_impl(
 }
 fn wire__crate__api__full__set_version_state_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    sink: impl CstDecode<
+        StreamSink<crate::models::version_state::FlutterVersionState, flutter_rust_bridge::for_generated::DcoCodec>,
+    >,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "set_version_state_stream",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_sink = <StreamSink<
-                crate::models::version_state::FlutterVersionState,
-                flutter_rust_bridge::for_generated::SseCodec,
-            >>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_sink = sink.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, ()>(
+                transform_result_dco::<_, _, ()>(
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::set_version_state_stream(api_sink).await;
@@ -1100,26 +806,20 @@ fn wire__crate__api__full__set_version_state_stream_impl(
 }
 fn wire__crate__api__full__start_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    uri: impl CstDecode<String>,
+    is_qr_code: impl CstDecode<bool>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "start_disclosure",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_uri = <String>::sse_decode(&mut deserializer);
-            let api_is_qr_code = <bool>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_uri = uri.cst_decode();
+            let api_is_qr_code = is_qr_code.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::start_disclosure(api_uri, api_is_qr_code).await?;
                         Ok(output_ok)
@@ -1132,25 +832,18 @@ fn wire__crate__api__full__start_disclosure_impl(
 }
 fn wire__crate__api__full__unlock_wallet_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
+    pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "unlock_wallet",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_pin = <String>::sse_decode(&mut deserializer);
-            deserializer.end();
+            let api_pin = pin.cst_decode();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::unlock_wallet(api_pin).await?;
                         Ok(output_ok)
@@ -1161,26 +854,16 @@ fn wire__crate__api__full__unlock_wallet_impl(
         },
     )
 }
-fn wire__crate__api__full__unlock_wallet_with_biometrics_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+fn wire__crate__api__full__unlock_wallet_with_biometrics_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "unlock_wallet_with_biometrics",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(ptr_, rust_vec_len_, data_len_)
-            };
-            let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            deserializer.end();
             move |context| async move {
-                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::unlock_wallet_with_biometrics().await?;
                         Ok(output_ok)
@@ -1194,6 +877,101 @@ fn wire__crate__api__full__unlock_wallet_with_biometrics_impl(
 
 // Section: dart2rust
 
+impl CstDecode<bool> for bool {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> bool {
+        self
+    }
+}
+impl CstDecode<crate::models::disclosure::DisclosureSessionType> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::disclosure::DisclosureSessionType {
+        match self {
+            0 => crate::models::disclosure::DisclosureSessionType::SameDevice,
+            1 => crate::models::disclosure::DisclosureSessionType::CrossDevice,
+            _ => unreachable!("Invalid variant for DisclosureSessionType: {}", self),
+        }
+    }
+}
+impl CstDecode<crate::models::disclosure::DisclosureStatus> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::disclosure::DisclosureStatus {
+        match self {
+            0 => crate::models::disclosure::DisclosureStatus::Success,
+            1 => crate::models::disclosure::DisclosureStatus::Cancelled,
+            2 => crate::models::disclosure::DisclosureStatus::Error,
+            _ => unreachable!("Invalid variant for DisclosureStatus: {}", self),
+        }
+    }
+}
+impl CstDecode<crate::models::disclosure::DisclosureType> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::disclosure::DisclosureType {
+        match self {
+            0 => crate::models::disclosure::DisclosureType::Login,
+            1 => crate::models::disclosure::DisclosureType::Regular,
+            _ => unreachable!("Invalid variant for DisclosureType: {}", self),
+        }
+    }
+}
+impl CstDecode<crate::models::card::GenderCardValue> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::card::GenderCardValue {
+        match self {
+            0 => crate::models::card::GenderCardValue::Unknown,
+            1 => crate::models::card::GenderCardValue::Male,
+            2 => crate::models::card::GenderCardValue::Female,
+            3 => crate::models::card::GenderCardValue::NotApplicable,
+            _ => unreachable!("Invalid variant for GenderCardValue: {}", self),
+        }
+    }
+}
+impl CstDecode<i32> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> i32 {
+        self
+    }
+}
+impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::uri::IdentifyUriResult {
+        match self {
+            0 => crate::models::uri::IdentifyUriResult::PidIssuance,
+            1 => crate::models::uri::IdentifyUriResult::Disclosure,
+            _ => unreachable!("Invalid variant for IdentifyUriResult: {}", self),
+        }
+    }
+}
+impl CstDecode<crate::models::pin::PinValidationResult> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::pin::PinValidationResult {
+        match self {
+            0 => crate::models::pin::PinValidationResult::Ok,
+            1 => crate::models::pin::PinValidationResult::TooFewUniqueDigits,
+            2 => crate::models::pin::PinValidationResult::SequentialDigits,
+            3 => crate::models::pin::PinValidationResult::OtherIssue,
+            _ => unreachable!("Invalid variant for PinValidationResult: {}", self),
+        }
+    }
+}
+impl CstDecode<u16> for u16 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> u16 {
+        self
+    }
+}
+impl CstDecode<u64> for u64 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> u64 {
+        self
+    }
+}
+impl CstDecode<u8> for u8 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> u8 {
+        self
+    }
+}
 impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1202,7 +980,7 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
-impl SseDecode for StreamSink<bool, flutter_rust_bridge::for_generated::SseCodec> {
+impl SseDecode for StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <String>::sse_decode(deserializer);
@@ -1211,7 +989,7 @@ impl SseDecode for StreamSink<bool, flutter_rust_bridge::for_generated::SseCodec
 }
 
 impl SseDecode
-    for StreamSink<crate::models::config::FlutterConfiguration, flutter_rust_bridge::for_generated::SseCodec>
+    for StreamSink<crate::models::config::FlutterConfiguration, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1221,7 +999,7 @@ impl SseDecode
 }
 
 impl SseDecode
-    for StreamSink<crate::models::version_state::FlutterVersionState, flutter_rust_bridge::for_generated::SseCodec>
+    for StreamSink<crate::models::version_state::FlutterVersionState, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1230,7 +1008,7 @@ impl SseDecode
     }
 }
 
-impl SseDecode for StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridge::for_generated::SseCodec> {
+impl SseDecode for StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridge::for_generated::DcoCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <String>::sse_decode(deserializer);
@@ -1239,7 +1017,7 @@ impl SseDecode for StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridg
 }
 
 impl SseDecode
-    for StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::SseCodec>
+    for StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1622,17 +1400,6 @@ impl SseDecode for crate::models::disclosure::MissingAttribute {
     }
 }
 
-impl SseDecode for Option<u64> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        if (<bool>::sse_decode(deserializer)) {
-            return Some(<u64>::sse_decode(deserializer));
-        } else {
-            return None;
-        }
-    }
-}
-
 impl SseDecode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1649,6 +1416,17 @@ impl SseDecode for Option<crate::models::disclosure::Image> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<crate::models::disclosure::Image>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<u64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<u64>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1910,43 +1688,6 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__full__accept_disclosure_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__full__accept_pid_issuance_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__full__cancel_disclosure_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__full__cancel_pid_issuance_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__full__change_pin_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__full__check_pin_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__full__clear_cards_stream_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__full__clear_configuration_stream_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__full__clear_lock_stream_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__full__clear_recent_history_stream_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__full__clear_version_state_stream_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__full__continue_change_pin_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__full__continue_pid_issuance_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__full__create_pid_issuance_redirect_uri_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__full__get_history_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__full__get_history_for_card_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__full__get_version_string_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__full__has_active_disclosure_session_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__full__has_active_pid_issuance_session_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__full__has_registration_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__full__identify_uri_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__full__init_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__full__is_biometric_unlock_enabled_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__full__is_initialized_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__full__is_valid_pin_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__full__lock_wallet_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__full__register_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__full__reset_wallet_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__full__set_biometric_unlock_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__full__set_cards_stream_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__full__set_configuration_stream_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__full__set_lock_stream_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__full__set_recent_history_stream_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__full__set_version_state_stream_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__full__start_disclosure_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__full__unlock_wallet_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__full__unlock_wallet_with_biometrics_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -2517,7 +2258,7 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
-impl SseEncode for StreamSink<bool, flutter_rust_bridge::for_generated::SseCodec> {
+impl SseEncode for StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         unimplemented!("")
@@ -2525,7 +2266,7 @@ impl SseEncode for StreamSink<bool, flutter_rust_bridge::for_generated::SseCodec
 }
 
 impl SseEncode
-    for StreamSink<crate::models::config::FlutterConfiguration, flutter_rust_bridge::for_generated::SseCodec>
+    for StreamSink<crate::models::config::FlutterConfiguration, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2534,7 +2275,7 @@ impl SseEncode
 }
 
 impl SseEncode
-    for StreamSink<crate::models::version_state::FlutterVersionState, flutter_rust_bridge::for_generated::SseCodec>
+    for StreamSink<crate::models::version_state::FlutterVersionState, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2542,7 +2283,7 @@ impl SseEncode
     }
 }
 
-impl SseEncode for StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridge::for_generated::SseCodec> {
+impl SseEncode for StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridge::for_generated::DcoCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         unimplemented!("")
@@ -2550,7 +2291,7 @@ impl SseEncode for StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridg
 }
 
 impl SseEncode
-    for StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::SseCodec>
+    for StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::DcoCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2902,16 +2643,6 @@ impl SseEncode for crate::models::disclosure::MissingAttribute {
     }
 }
 
-impl SseEncode for Option<u64> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <bool>::sse_encode(self.is_some(), serializer);
-        if let Some(value) = self {
-            <u64>::sse_encode(value, serializer);
-        }
-    }
-}
-
 impl SseEncode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2928,6 +2659,16 @@ impl SseEncode for Option<crate::models::disclosure::Image> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::models::disclosure::Image>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<u64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <u64>::sse_encode(value, serializer);
         }
     }
 }
@@ -3163,6 +2904,1417 @@ mod io {
     // Section: boilerplate
 
     flutter_rust_bridge::frb_generated_boilerplate_io!();
+
+    // Section: dart2rust
+
+    impl CstDecode<flutter_rust_bridge::for_generated::anyhow::Error> for *mut wire_cst_list_prim_u_8_strict {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> flutter_rust_bridge::for_generated::anyhow::Error {
+            unimplemented!()
+        }
+    }
+    impl CstDecode<StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec>> for *mut wire_cst_list_prim_u_8_strict {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec> {
+            let raw: String = self.cst_decode();
+            StreamSink::deserialize(raw)
+        }
+    }
+    impl
+        CstDecode<StreamSink<crate::models::config::FlutterConfiguration, flutter_rust_bridge::for_generated::DcoCodec>>
+        for *mut wire_cst_list_prim_u_8_strict
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(
+            self,
+        ) -> StreamSink<crate::models::config::FlutterConfiguration, flutter_rust_bridge::for_generated::DcoCodec>
+        {
+            let raw: String = self.cst_decode();
+            StreamSink::deserialize(raw)
+        }
+    }
+    impl
+        CstDecode<
+            StreamSink<crate::models::version_state::FlutterVersionState, flutter_rust_bridge::for_generated::DcoCodec>,
+        > for *mut wire_cst_list_prim_u_8_strict
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(
+            self,
+        ) -> StreamSink<crate::models::version_state::FlutterVersionState, flutter_rust_bridge::for_generated::DcoCodec>
+        {
+            let raw: String = self.cst_decode();
+            StreamSink::deserialize(raw)
+        }
+    }
+    impl CstDecode<StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridge::for_generated::DcoCodec>>
+        for *mut wire_cst_list_prim_u_8_strict
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(
+            self,
+        ) -> StreamSink<Vec<crate::models::card::Card>, flutter_rust_bridge::for_generated::DcoCodec> {
+            let raw: String = self.cst_decode();
+            StreamSink::deserialize(raw)
+        }
+    }
+    impl
+        CstDecode<
+            StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::DcoCodec>,
+        > for *mut wire_cst_list_prim_u_8_strict
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(
+            self,
+        ) -> StreamSink<Vec<crate::models::wallet_event::WalletEvent>, flutter_rust_bridge::for_generated::DcoCodec>
+        {
+            let raw: String = self.cst_decode();
+            StreamSink::deserialize(raw)
+        }
+    }
+    impl CstDecode<String> for *mut wire_cst_list_prim_u_8_strict {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> String {
+            let vec: Vec<u8> = self.cst_decode();
+            String::from_utf8(vec).unwrap()
+        }
+    }
+    impl CstDecode<crate::models::disclosure::AcceptDisclosureResult> for wire_cst_accept_disclosure_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::AcceptDisclosureResult {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Ok };
+                    crate::models::disclosure::AcceptDisclosureResult::Ok {
+                        return_url: ans.return_url.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.InstructionError };
+                    crate::models::disclosure::AcceptDisclosureResult::InstructionError {
+                        error: ans.error.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::card::Card> for *mut wire_cst_card {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::card::Card {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::card::Card>::cst_decode(*wrap).into()
+        }
+    }
+    impl CstDecode<crate::models::disclosure::Image> for *mut wire_cst_image {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::Image {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::disclosure::Image>::cst_decode(*wrap).into()
+        }
+    }
+    impl CstDecode<crate::models::disclosure::Organization> for *mut wire_cst_organization {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::Organization {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::disclosure::Organization>::cst_decode(*wrap).into()
+        }
+    }
+    impl CstDecode<crate::models::disclosure::RequestPolicy> for *mut wire_cst_request_policy {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::RequestPolicy {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::disclosure::RequestPolicy>::cst_decode(*wrap).into()
+        }
+    }
+    impl CstDecode<u64> for *mut u64 {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> u64 {
+            unsafe { *flutter_rust_bridge::for_generated::box_from_leak_ptr(self) }
+        }
+    }
+    impl CstDecode<crate::models::instruction::WalletInstructionError> for *mut wire_cst_wallet_instruction_error {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::instruction::WalletInstructionError {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::instruction::WalletInstructionError>::cst_decode(*wrap).into()
+        }
+    }
+    impl CstDecode<crate::models::card::Card> for wire_cst_card {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::card::Card {
+            crate::models::card::Card {
+                issuer: self.issuer.cst_decode(),
+                persistence: self.persistence.cst_decode(),
+                doc_type: self.doc_type.cst_decode(),
+                attributes: self.attributes.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::card::CardAttribute> for wire_cst_card_attribute {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::card::CardAttribute {
+            crate::models::card::CardAttribute {
+                key: self.key.cst_decode(),
+                labels: self.labels.cst_decode(),
+                value: self.value.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::card::CardPersistence> for wire_cst_card_persistence {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::card::CardPersistence {
+            match self.tag {
+                0 => crate::models::card::CardPersistence::InMemory,
+                1 => {
+                    let ans = unsafe { self.kind.Stored };
+                    crate::models::card::CardPersistence::Stored {
+                        id: ans.id.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::card::CardValue> for wire_cst_card_value {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::card::CardValue {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.String };
+                    crate::models::card::CardValue::String {
+                        value: ans.value.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.Boolean };
+                    crate::models::card::CardValue::Boolean {
+                        value: ans.value.cst_decode(),
+                    }
+                }
+                2 => {
+                    let ans = unsafe { self.kind.Date };
+                    crate::models::card::CardValue::Date {
+                        value: ans.value.cst_decode(),
+                    }
+                }
+                3 => {
+                    let ans = unsafe { self.kind.Gender };
+                    crate::models::card::CardValue::Gender {
+                        value: ans.value.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::disclosure::DisclosureCard> for wire_cst_disclosure_card {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::DisclosureCard {
+            crate::models::disclosure::DisclosureCard {
+                issuer: self.issuer.cst_decode(),
+                doc_type: self.doc_type.cst_decode(),
+                attributes: self.attributes.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::config::FlutterConfiguration> for wire_cst_flutter_configuration {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::config::FlutterConfiguration {
+            crate::models::config::FlutterConfiguration {
+                inactive_lock_timeout: self.inactive_lock_timeout.cst_decode(),
+                background_lock_timeout: self.background_lock_timeout.cst_decode(),
+                version: self.version.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::version_state::FlutterVersionState> for wire_cst_flutter_version_state {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::version_state::FlutterVersionState {
+            match self.tag {
+                0 => crate::models::version_state::FlutterVersionState::Ok,
+                1 => crate::models::version_state::FlutterVersionState::Notify,
+                2 => crate::models::version_state::FlutterVersionState::Recommend,
+                3 => {
+                    let ans = unsafe { self.kind.Warn };
+                    crate::models::version_state::FlutterVersionState::Warn {
+                        expires_in_seconds: ans.expires_in_seconds.cst_decode(),
+                    }
+                }
+                4 => crate::models::version_state::FlutterVersionState::Block,
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::disclosure::Image> for wire_cst_image {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::Image {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Svg };
+                    crate::models::disclosure::Image::Svg {
+                        xml: ans.xml.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.Png };
+                    crate::models::disclosure::Image::Png {
+                        base64: ans.base64.cst_decode(),
+                    }
+                }
+                2 => {
+                    let ans = unsafe { self.kind.Jpg };
+                    crate::models::disclosure::Image::Jpg {
+                        base64: ans.base64.cst_decode(),
+                    }
+                }
+                3 => {
+                    let ans = unsafe { self.kind.Asset };
+                    crate::models::disclosure::Image::Asset {
+                        path: ans.path.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<Vec<crate::models::card::Card>> for *mut wire_cst_list_card {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::card::Card> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<crate::models::card::CardAttribute>> for *mut wire_cst_list_card_attribute {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::card::CardAttribute> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<crate::models::disclosure::DisclosureCard>> for *mut wire_cst_list_disclosure_card {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::disclosure::DisclosureCard> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<crate::models::card::LocalizedString>> for *mut wire_cst_list_localized_string {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::card::LocalizedString> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<crate::models::disclosure::MissingAttribute>> for *mut wire_cst_list_missing_attribute {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::disclosure::MissingAttribute> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<u8>> for *mut wire_cst_list_prim_u_8_strict {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<u8> {
+            unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            }
+        }
+    }
+    impl CstDecode<Vec<crate::models::wallet_event::WalletEvent>> for *mut wire_cst_list_wallet_event {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::wallet_event::WalletEvent> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<crate::models::card::LocalizedString> for wire_cst_localized_string {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::card::LocalizedString {
+            crate::models::card::LocalizedString {
+                language: self.language.cst_decode(),
+                value: self.value.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::disclosure::MissingAttribute> for wire_cst_missing_attribute {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::MissingAttribute {
+            crate::models::disclosure::MissingAttribute {
+                labels: self.labels.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::disclosure::Organization> for wire_cst_organization {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::Organization {
+            crate::models::disclosure::Organization {
+                legal_name: self.legal_name.cst_decode(),
+                display_name: self.display_name.cst_decode(),
+                description: self.description.cst_decode(),
+                image: self.image.cst_decode(),
+                web_url: self.web_url.cst_decode(),
+                privacy_policy_url: self.privacy_policy_url.cst_decode(),
+                kvk: self.kvk.cst_decode(),
+                city: self.city.cst_decode(),
+                category: self.category.cst_decode(),
+                department: self.department.cst_decode(),
+                country_code: self.country_code.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::disclosure::RequestPolicy> for wire_cst_request_policy {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::RequestPolicy {
+            crate::models::disclosure::RequestPolicy {
+                data_storage_duration_in_minutes: self.data_storage_duration_in_minutes.cst_decode(),
+                data_shared_with_third_parties: self.data_shared_with_third_parties.cst_decode(),
+                data_deletion_possible: self.data_deletion_possible.cst_decode(),
+                policy_url: self.policy_url.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::disclosure::StartDisclosureResult> for wire_cst_start_disclosure_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::StartDisclosureResult {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Request };
+                    crate::models::disclosure::StartDisclosureResult::Request {
+                        relying_party: ans.relying_party.cst_decode(),
+                        policy: ans.policy.cst_decode(),
+                        requested_cards: ans.requested_cards.cst_decode(),
+                        shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
+                        session_type: ans.session_type.cst_decode(),
+                        request_purpose: ans.request_purpose.cst_decode(),
+                        request_origin_base_url: ans.request_origin_base_url.cst_decode(),
+                        request_type: ans.request_type.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.RequestAttributesMissing };
+                    crate::models::disclosure::StartDisclosureResult::RequestAttributesMissing {
+                        relying_party: ans.relying_party.cst_decode(),
+                        missing_attributes: ans.missing_attributes.cst_decode(),
+                        shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
+                        session_type: ans.session_type.cst_decode(),
+                        request_purpose: ans.request_purpose.cst_decode(),
+                        request_origin_base_url: ans.request_origin_base_url.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::wallet_event::WalletEvent> for wire_cst_wallet_event {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::wallet_event::WalletEvent {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Disclosure };
+                    crate::models::wallet_event::WalletEvent::Disclosure {
+                        date_time: ans.date_time.cst_decode(),
+                        relying_party: ans.relying_party.cst_decode(),
+                        purpose: ans.purpose.cst_decode(),
+                        requested_cards: ans.requested_cards.cst_decode(),
+                        request_policy: ans.request_policy.cst_decode(),
+                        status: ans.status.cst_decode(),
+                        r#type: ans.r#type.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.Issuance };
+                    crate::models::wallet_event::WalletEvent::Issuance {
+                        date_time: ans.date_time.cst_decode(),
+                        card: ans.card.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::instruction::WalletInstructionError> for wire_cst_wallet_instruction_error {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::instruction::WalletInstructionError {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.IncorrectPin };
+                    crate::models::instruction::WalletInstructionError::IncorrectPin {
+                        attempts_left_in_round: ans.attempts_left_in_round.cst_decode(),
+                        is_final_round: ans.is_final_round.cst_decode(),
+                    }
+                }
+                1 => {
+                    let ans = unsafe { self.kind.Timeout };
+                    crate::models::instruction::WalletInstructionError::Timeout {
+                        timeout_millis: ans.timeout_millis.cst_decode(),
+                    }
+                }
+                2 => crate::models::instruction::WalletInstructionError::Blocked,
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::instruction::WalletInstructionResult> for wire_cst_wallet_instruction_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::instruction::WalletInstructionResult {
+            match self.tag {
+                0 => crate::models::instruction::WalletInstructionResult::Ok,
+                1 => {
+                    let ans = unsafe { self.kind.InstructionError };
+                    crate::models::instruction::WalletInstructionResult::InstructionError {
+                        error: ans.error.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl NewWithNullPtr for wire_cst_accept_disclosure_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: AcceptDisclosureResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_accept_disclosure_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_card {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                issuer: Default::default(),
+                persistence: Default::default(),
+                doc_type: core::ptr::null_mut(),
+                attributes: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_card {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_card_attribute {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                key: core::ptr::null_mut(),
+                labels: core::ptr::null_mut(),
+                value: Default::default(),
+            }
+        }
+    }
+    impl Default for wire_cst_card_attribute {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_card_persistence {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: CardPersistenceKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_card_persistence {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_card_value {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: CardValueKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_card_value {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_disclosure_card {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                issuer: Default::default(),
+                doc_type: core::ptr::null_mut(),
+                attributes: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_disclosure_card {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_flutter_configuration {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                inactive_lock_timeout: Default::default(),
+                background_lock_timeout: Default::default(),
+                version: Default::default(),
+            }
+        }
+    }
+    impl Default for wire_cst_flutter_configuration {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_flutter_version_state {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: FlutterVersionStateKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_flutter_version_state {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_image {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: ImageKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_image {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_localized_string {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                language: core::ptr::null_mut(),
+                value: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_localized_string {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_missing_attribute {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                labels: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_missing_attribute {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_organization {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                legal_name: core::ptr::null_mut(),
+                display_name: core::ptr::null_mut(),
+                description: core::ptr::null_mut(),
+                image: core::ptr::null_mut(),
+                web_url: core::ptr::null_mut(),
+                privacy_policy_url: core::ptr::null_mut(),
+                kvk: core::ptr::null_mut(),
+                city: core::ptr::null_mut(),
+                category: core::ptr::null_mut(),
+                department: core::ptr::null_mut(),
+                country_code: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_organization {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_request_policy {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                data_storage_duration_in_minutes: core::ptr::null_mut(),
+                data_shared_with_third_parties: Default::default(),
+                data_deletion_possible: Default::default(),
+                policy_url: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_request_policy {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_start_disclosure_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: StartDisclosureResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_start_disclosure_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_wallet_event {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: WalletEventKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_wallet_event {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_wallet_instruction_error {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: WalletInstructionErrorKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_wallet_instruction_error {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_wallet_instruction_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: WalletInstructionResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_wallet_instruction_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__accept_disclosure(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__accept_disclosure_impl(port_, pin)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__accept_pid_issuance_impl(port_, pin)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_disclosure(port_: i64) {
+        wire__crate__api__full__cancel_disclosure_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_pid_issuance(port_: i64) {
+        wire__crate__api__full__cancel_pid_issuance_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__change_pin(
+        port_: i64,
+        old_pin: *mut wire_cst_list_prim_u_8_strict,
+        new_pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__change_pin_impl(port_, old_pin, new_pin)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__check_pin(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__check_pin_impl(port_, pin)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_cards_stream(port_: i64) {
+        wire__crate__api__full__clear_cards_stream_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_configuration_stream(port_: i64) {
+        wire__crate__api__full__clear_configuration_stream_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_lock_stream(port_: i64) {
+        wire__crate__api__full__clear_lock_stream_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_recent_history_stream(port_: i64) {
+        wire__crate__api__full__clear_recent_history_stream_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_version_state_stream(port_: i64) {
+        wire__crate__api__full__clear_version_state_stream_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_change_pin(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__continue_change_pin_impl(port_, pin)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance(
+        port_: i64,
+        uri: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__continue_pid_issuance_impl(port_, uri)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__create_pid_issuance_redirect_uri(port_: i64) {
+        wire__crate__api__full__create_pid_issuance_redirect_uri_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_history(port_: i64) {
+        wire__crate__api__full__get_history_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_history_for_card(
+        port_: i64,
+        doc_type: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__get_history_for_card_impl(port_, doc_type)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_version_string(port_: i64) {
+        wire__crate__api__full__get_version_string_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__has_active_disclosure_session(port_: i64) {
+        wire__crate__api__full__has_active_disclosure_session_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__has_active_pid_issuance_session(port_: i64) {
+        wire__crate__api__full__has_active_pid_issuance_session_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__has_registration(port_: i64) {
+        wire__crate__api__full__has_registration_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__identify_uri(
+        port_: i64,
+        uri: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__identify_uri_impl(port_, uri)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__init(port_: i64) {
+        wire__crate__api__full__init_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__is_biometric_unlock_enabled(port_: i64) {
+        wire__crate__api__full__is_biometric_unlock_enabled_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__is_initialized(port_: i64) {
+        wire__crate__api__full__is_initialized_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__is_valid_pin(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__is_valid_pin_impl(port_, pin)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__lock_wallet(port_: i64) {
+        wire__crate__api__full__lock_wallet_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__register(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__register_impl(port_, pin)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__reset_wallet(port_: i64) {
+        wire__crate__api__full__reset_wallet_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_biometric_unlock(port_: i64, enable: bool) {
+        wire__crate__api__full__set_biometric_unlock_impl(port_, enable)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_cards_stream(
+        port_: i64,
+        sink: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__set_cards_stream_impl(port_, sink)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_configuration_stream(
+        port_: i64,
+        sink: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__set_configuration_stream_impl(port_, sink)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_lock_stream(
+        port_: i64,
+        sink: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__set_lock_stream_impl(port_, sink)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_recent_history_stream(
+        port_: i64,
+        sink: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__set_recent_history_stream_impl(port_, sink)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_version_state_stream(
+        port_: i64,
+        sink: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__set_version_state_stream_impl(port_, sink)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_disclosure(
+        port_: i64,
+        uri: *mut wire_cst_list_prim_u_8_strict,
+        is_qr_code: bool,
+    ) {
+        wire__crate__api__full__start_disclosure_impl(port_, uri, is_qr_code)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__unlock_wallet(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__unlock_wallet_impl(port_, pin)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics(port_: i64) {
+        wire__crate__api__full__unlock_wallet_with_biometrics_impl(port_)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_card() -> *mut wire_cst_card {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_card::new_with_null_ptr())
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_image() -> *mut wire_cst_image {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_image::new_with_null_ptr())
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_organization() -> *mut wire_cst_organization {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_organization::new_with_null_ptr())
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_request_policy() -> *mut wire_cst_request_policy {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_request_policy::new_with_null_ptr())
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_u_64(value: u64) -> *mut u64 {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(
+    ) -> *mut wire_cst_wallet_instruction_error {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_wallet_instruction_error::new_with_null_ptr())
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_card(len: i32) -> *mut wire_cst_list_card {
+        let wrap = wire_cst_list_card {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(<wire_cst_card>::new_with_null_ptr(), len),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_card_attribute(len: i32) -> *mut wire_cst_list_card_attribute {
+        let wrap = wire_cst_list_card_attribute {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_card_attribute>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_disclosure_card(len: i32) -> *mut wire_cst_list_disclosure_card {
+        let wrap = wire_cst_list_disclosure_card {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_disclosure_card>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_localized_string(
+        len: i32,
+    ) -> *mut wire_cst_list_localized_string {
+        let wrap = wire_cst_list_localized_string {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_localized_string>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_missing_attribute(
+        len: i32,
+    ) -> *mut wire_cst_list_missing_attribute {
+        let wrap = wire_cst_list_missing_attribute {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_missing_attribute>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_8_strict(len: i32) -> *mut wire_cst_list_prim_u_8_strict {
+        let ans = wire_cst_list_prim_u_8_strict {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(ans)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_wallet_event(len: i32) -> *mut wire_cst_list_wallet_event {
+        let wrap = wire_cst_list_wallet_event {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_wallet_event>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_accept_disclosure_result {
+        tag: i32,
+        kind: AcceptDisclosureResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union AcceptDisclosureResultKind {
+        Ok: wire_cst_AcceptDisclosureResult_Ok,
+        InstructionError: wire_cst_AcceptDisclosureResult_InstructionError,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_AcceptDisclosureResult_Ok {
+        return_url: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_AcceptDisclosureResult_InstructionError {
+        error: *mut wire_cst_wallet_instruction_error,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_card {
+        issuer: wire_cst_organization,
+        persistence: wire_cst_card_persistence,
+        doc_type: *mut wire_cst_list_prim_u_8_strict,
+        attributes: *mut wire_cst_list_card_attribute,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_card_attribute {
+        key: *mut wire_cst_list_prim_u_8_strict,
+        labels: *mut wire_cst_list_localized_string,
+        value: wire_cst_card_value,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_card_persistence {
+        tag: i32,
+        kind: CardPersistenceKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union CardPersistenceKind {
+        Stored: wire_cst_CardPersistence_Stored,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_CardPersistence_Stored {
+        id: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_card_value {
+        tag: i32,
+        kind: CardValueKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union CardValueKind {
+        String: wire_cst_CardValue_String,
+        Boolean: wire_cst_CardValue_Boolean,
+        Date: wire_cst_CardValue_Date,
+        Gender: wire_cst_CardValue_Gender,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_CardValue_String {
+        value: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_CardValue_Boolean {
+        value: bool,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_CardValue_Date {
+        value: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_CardValue_Gender {
+        value: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_disclosure_card {
+        issuer: wire_cst_organization,
+        doc_type: *mut wire_cst_list_prim_u_8_strict,
+        attributes: *mut wire_cst_list_card_attribute,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_flutter_configuration {
+        inactive_lock_timeout: u16,
+        background_lock_timeout: u16,
+        version: u64,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_flutter_version_state {
+        tag: i32,
+        kind: FlutterVersionStateKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union FlutterVersionStateKind {
+        Warn: wire_cst_FlutterVersionState_Warn,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_FlutterVersionState_Warn {
+        expires_in_seconds: u64,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_image {
+        tag: i32,
+        kind: ImageKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union ImageKind {
+        Svg: wire_cst_Image_Svg,
+        Png: wire_cst_Image_Png,
+        Jpg: wire_cst_Image_Jpg,
+        Asset: wire_cst_Image_Asset,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_Image_Svg {
+        xml: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_Image_Png {
+        base64: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_Image_Jpg {
+        base64: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_Image_Asset {
+        path: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_card {
+        ptr: *mut wire_cst_card,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_card_attribute {
+        ptr: *mut wire_cst_card_attribute,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_disclosure_card {
+        ptr: *mut wire_cst_disclosure_card,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_localized_string {
+        ptr: *mut wire_cst_localized_string,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_missing_attribute {
+        ptr: *mut wire_cst_missing_attribute,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_prim_u_8_strict {
+        ptr: *mut u8,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_wallet_event {
+        ptr: *mut wire_cst_wallet_event,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_localized_string {
+        language: *mut wire_cst_list_prim_u_8_strict,
+        value: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_missing_attribute {
+        labels: *mut wire_cst_list_localized_string,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_organization {
+        legal_name: *mut wire_cst_list_localized_string,
+        display_name: *mut wire_cst_list_localized_string,
+        description: *mut wire_cst_list_localized_string,
+        image: *mut wire_cst_image,
+        web_url: *mut wire_cst_list_prim_u_8_strict,
+        privacy_policy_url: *mut wire_cst_list_prim_u_8_strict,
+        kvk: *mut wire_cst_list_prim_u_8_strict,
+        city: *mut wire_cst_list_localized_string,
+        category: *mut wire_cst_list_localized_string,
+        department: *mut wire_cst_list_localized_string,
+        country_code: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_request_policy {
+        data_storage_duration_in_minutes: *mut u64,
+        data_shared_with_third_parties: bool,
+        data_deletion_possible: bool,
+        policy_url: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_start_disclosure_result {
+        tag: i32,
+        kind: StartDisclosureResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union StartDisclosureResultKind {
+        Request: wire_cst_StartDisclosureResult_Request,
+        RequestAttributesMissing: wire_cst_StartDisclosureResult_RequestAttributesMissing,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_StartDisclosureResult_Request {
+        relying_party: *mut wire_cst_organization,
+        policy: *mut wire_cst_request_policy,
+        requested_cards: *mut wire_cst_list_disclosure_card,
+        shared_data_with_relying_party_before: bool,
+        session_type: i32,
+        request_purpose: *mut wire_cst_list_localized_string,
+        request_origin_base_url: *mut wire_cst_list_prim_u_8_strict,
+        request_type: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_StartDisclosureResult_RequestAttributesMissing {
+        relying_party: *mut wire_cst_organization,
+        missing_attributes: *mut wire_cst_list_missing_attribute,
+        shared_data_with_relying_party_before: bool,
+        session_type: i32,
+        request_purpose: *mut wire_cst_list_localized_string,
+        request_origin_base_url: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_wallet_event {
+        tag: i32,
+        kind: WalletEventKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union WalletEventKind {
+        Disclosure: wire_cst_WalletEvent_Disclosure,
+        Issuance: wire_cst_WalletEvent_Issuance,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletEvent_Disclosure {
+        date_time: *mut wire_cst_list_prim_u_8_strict,
+        relying_party: *mut wire_cst_organization,
+        purpose: *mut wire_cst_list_localized_string,
+        requested_cards: *mut wire_cst_list_disclosure_card,
+        request_policy: *mut wire_cst_request_policy,
+        status: i32,
+        r#type: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletEvent_Issuance {
+        date_time: *mut wire_cst_list_prim_u_8_strict,
+        card: *mut wire_cst_card,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_wallet_instruction_error {
+        tag: i32,
+        kind: WalletInstructionErrorKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union WalletInstructionErrorKind {
+        IncorrectPin: wire_cst_WalletInstructionError_IncorrectPin,
+        Timeout: wire_cst_WalletInstructionError_Timeout,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletInstructionError_IncorrectPin {
+        attempts_left_in_round: u8,
+        is_final_round: bool,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletInstructionError_Timeout {
+        timeout_millis: u64,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_wallet_instruction_result {
+        tag: i32,
+        kind: WalletInstructionResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union WalletInstructionResultKind {
+        InstructionError: wire_cst_WalletInstructionResult_InstructionError,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletInstructionResult_InstructionError {
+        error: *mut wire_cst_wallet_instruction_error,
+    }
 }
 #[cfg(not(target_family = "wasm"))]
 pub use io::*;

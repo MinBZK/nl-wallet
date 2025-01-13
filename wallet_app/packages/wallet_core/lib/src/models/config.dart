@@ -10,7 +10,7 @@ import '../frb_generated.dart';
 class FlutterConfiguration {
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
-  final int version;
+  final BigInt version;
 
   const FlutterConfiguration({
     required this.inactiveLockTimeout,

@@ -18,7 +18,7 @@ sealed class FlutterVersionState with _$FlutterVersionState {
   const factory FlutterVersionState.notify() = FlutterVersionState_Notify;
   const factory FlutterVersionState.recommend() = FlutterVersionState_Recommend;
   const factory FlutterVersionState.warn({
-    required int expiresInSeconds,
+    required BigInt expiresInSeconds,
   }) = FlutterVersionState_Warn;
   const factory FlutterVersionState.block() = FlutterVersionState_Block;
 }

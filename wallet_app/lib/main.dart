@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' as mock;
@@ -40,7 +41,7 @@ void main() async {
   if (Environment.mockRepositories) {
     core.WalletCore.initMock(api: mock.api);
   } else {
-    await core.WalletCore.init();
+    await core.WalletCore.init(externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true));
   }
 
   await core.postInit();

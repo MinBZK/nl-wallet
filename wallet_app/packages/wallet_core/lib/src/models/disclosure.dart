@@ -160,7 +160,7 @@ class Organization {
 }
 
 class RequestPolicy {
-  final int? dataStorageDurationInMinutes;
+  final BigInt? dataStorageDurationInMinutes;
   final bool dataSharedWithThirdParties;
   final bool dataDeletionPossible;
   final String policyUrl;

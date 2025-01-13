@@ -172,13 +172,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(pin, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1, port: port_);
+          final arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__accept_disclosure(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_accept_disclosure_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_accept_disclosure_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullAcceptDisclosureConstMeta,
         argValues: [pin],
@@ -197,13 +196,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(pin, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2, port: port_);
+          final arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__accept_pid_issuance(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_wallet_instruction_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullAcceptPidIssuanceConstMeta,
         argValues: [pin],
@@ -221,13 +219,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<String?> crateApiFullCancelDisclosure() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_String,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__cancel_disclosure,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_opt_String,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullCancelDisclosureConstMeta,
         argValues: [],
@@ -245,13 +240,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullCancelPidIssuance() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__cancel_pid_issuance,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullCancelPidIssuanceConstMeta,
         argValues: [],
@@ -270,14 +262,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(oldPin, serializer);
-          sse_encode_String(newPin, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5, port: port_);
+          final arg0 = cst_encode_String(oldPin);
+          final arg1 = cst_encode_String(newPin);
+          return wire.wire__crate__api__full__change_pin(port_, arg0, arg1);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_wallet_instruction_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullChangePinConstMeta,
         argValues: [oldPin, newPin],
@@ -296,13 +287,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(pin, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6, port: port_);
+          final arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__check_pin(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_wallet_instruction_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullCheckPinConstMeta,
         argValues: [pin],
@@ -320,12 +310,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullClearCardsStream() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+        callFfi: wire.wire__crate__api__full__clear_cards_stream,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullClearCardsStreamConstMeta,
@@ -344,12 +331,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullClearConfigurationStream() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+        callFfi: wire.wire__crate__api__full__clear_configuration_stream,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullClearConfigurationStreamConstMeta,
@@ -368,12 +352,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullClearLockStream() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+        callFfi: wire.wire__crate__api__full__clear_lock_stream,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullClearLockStreamConstMeta,
@@ -392,12 +373,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullClearRecentHistoryStream() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+        callFfi: wire.wire__crate__api__full__clear_recent_history_stream,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullClearRecentHistoryStreamConstMeta,
@@ -416,12 +394,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullClearVersionStateStream() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+        callFfi: wire.wire__crate__api__full__clear_version_state_stream,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullClearVersionStateStreamConstMeta,
@@ -441,13 +416,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(pin, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12, port: port_);
+          final arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__continue_change_pin(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_wallet_instruction_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullContinueChangePinConstMeta,
         argValues: [pin],
@@ -466,13 +440,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(uri, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13, port: port_);
+          final arg0 = cst_encode_String(uri);
+          return wire.wire__crate__api__full__continue_pid_issuance(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_card,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_card,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullContinuePidIssuanceConstMeta,
         argValues: [uri],
@@ -490,13 +463,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<String> crateApiFullCreatePidIssuanceRedirectUri() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__create_pid_issuance_redirect_uri,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullCreatePidIssuanceRedirectUriConstMeta,
         argValues: [],
@@ -514,13 +484,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<List<WalletEvent>> crateApiFullGetHistory() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_wallet_event,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__get_history,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_wallet_event,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullGetHistoryConstMeta,
         argValues: [],
@@ -539,13 +506,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(docType, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16, port: port_);
+          final arg0 = cst_encode_String(docType);
+          return wire.wire__crate__api__full__get_history_for_card(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_wallet_event,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_wallet_event,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullGetHistoryForCardConstMeta,
         argValues: [docType],
@@ -563,12 +529,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<String> crateApiFullGetVersionString() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
+        callFfi: wire.wire__crate__api__full__get_version_string,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullGetVersionStringConstMeta,
@@ -587,13 +550,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<bool> crateApiFullHasActiveDisclosureSession() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__has_active_disclosure_session,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullHasActiveDisclosureSessionConstMeta,
         argValues: [],
@@ -611,13 +571,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<bool> crateApiFullHasActivePidIssuanceSession() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__has_active_pid_issuance_session,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullHasActivePidIssuanceSessionConstMeta,
         argValues: [],
@@ -635,12 +592,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<bool> crateApiFullHasRegistration() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 20, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+        callFfi: wire.wire__crate__api__full__has_registration,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullHasRegistrationConstMeta,
@@ -660,13 +614,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(uri, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 21, port: port_);
+          final arg0 = cst_encode_String(uri);
+          return wire.wire__crate__api__full__identify_uri(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_identify_uri_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_identify_uri_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullIdentifyUriConstMeta,
         argValues: [uri],
@@ -684,13 +637,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullInit() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__init,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullInitConstMeta,
         argValues: [],
@@ -708,13 +658,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<bool> crateApiFullIsBiometricUnlockEnabled() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__is_biometric_unlock_enabled,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullIsBiometricUnlockEnabledConstMeta,
         argValues: [],
@@ -732,12 +679,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<bool> crateApiFullIsInitialized() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+        callFfi: wire.wire__crate__api__full__is_initialized,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullIsInitializedConstMeta,
@@ -757,13 +701,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(pin, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25, port: port_);
+          final arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__is_valid_pin(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_pin_validation_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_pin_validation_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullIsValidPinConstMeta,
         argValues: [pin],
@@ -781,12 +724,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullLockWallet() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+        callFfi: wire.wire__crate__api__full__lock_wallet,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
           decodeErrorData: null,
         ),
         constMeta: kCrateApiFullLockWalletConstMeta,
@@ -806,13 +746,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(pin, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27, port: port_);
+          final arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__register(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullRegisterConstMeta,
         argValues: [pin],
@@ -830,13 +769,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullResetWallet() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__reset_wallet,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullResetWalletConstMeta,
         argValues: [],
@@ -855,13 +791,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_bool(enable, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29, port: port_);
+          final arg0 = cst_encode_bool(enable);
+          return wire.wire__crate__api__full__set_biometric_unlock(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullSetBiometricUnlockConstMeta,
         argValues: [enable],
@@ -882,13 +817,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       handler.executeNormal(
         NormalTask(
           callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_StreamSink_list_card_Sse(sink, serializer);
-            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30, port: port_);
+            final arg0 = cst_encode_StreamSink_list_card_Dco(sink);
+            return wire.wire__crate__api__full__set_cards_stream(port_, arg0);
           },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
-            decodeErrorData: sse_decode_AnyhowException,
+          codec: DcoCodec(
+            decodeSuccessData: dco_decode_unit,
+            decodeErrorData: dco_decode_AnyhowException,
           ),
           constMeta: kCrateApiFullSetCardsStreamConstMeta,
           argValues: [sink],
@@ -911,12 +845,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       handler.executeNormal(
         NormalTask(
           callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_StreamSink_flutter_configuration_Sse(sink, serializer);
-            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31, port: port_);
+            final arg0 = cst_encode_StreamSink_flutter_configuration_Dco(sink);
+            return wire.wire__crate__api__full__set_configuration_stream(port_, arg0);
           },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
+          codec: DcoCodec(
+            decodeSuccessData: dco_decode_unit,
             decodeErrorData: null,
           ),
           constMeta: kCrateApiFullSetConfigurationStreamConstMeta,
@@ -940,12 +873,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       handler.executeNormal(
         NormalTask(
           callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_StreamSink_bool_Sse(sink, serializer);
-            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32, port: port_);
+            final arg0 = cst_encode_StreamSink_bool_Dco(sink);
+            return wire.wire__crate__api__full__set_lock_stream(port_, arg0);
           },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
+          codec: DcoCodec(
+            decodeSuccessData: dco_decode_unit,
             decodeErrorData: null,
           ),
           constMeta: kCrateApiFullSetLockStreamConstMeta,
@@ -969,13 +901,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       handler.executeNormal(
         NormalTask(
           callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_StreamSink_list_wallet_event_Sse(sink, serializer);
-            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33, port: port_);
+            final arg0 = cst_encode_StreamSink_list_wallet_event_Dco(sink);
+            return wire.wire__crate__api__full__set_recent_history_stream(port_, arg0);
           },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
-            decodeErrorData: sse_decode_AnyhowException,
+          codec: DcoCodec(
+            decodeSuccessData: dco_decode_unit,
+            decodeErrorData: dco_decode_AnyhowException,
           ),
           constMeta: kCrateApiFullSetRecentHistoryStreamConstMeta,
           argValues: [sink],
@@ -998,12 +929,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       handler.executeNormal(
         NormalTask(
           callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_StreamSink_flutter_version_state_Sse(sink, serializer);
-            pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34, port: port_);
+            final arg0 = cst_encode_StreamSink_flutter_version_state_Dco(sink);
+            return wire.wire__crate__api__full__set_version_state_stream(port_, arg0);
           },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
+          codec: DcoCodec(
+            decodeSuccessData: dco_decode_unit,
             decodeErrorData: null,
           ),
           constMeta: kCrateApiFullSetVersionStateStreamConstMeta,
@@ -1025,14 +955,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(uri, serializer);
-          sse_encode_bool(isQrCode, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35, port: port_);
+          final arg0 = cst_encode_String(uri);
+          final arg1 = cst_encode_bool(isQrCode);
+          return wire.wire__crate__api__full__start_disclosure(port_, arg0, arg1);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_start_disclosure_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_start_disclosure_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullStartDisclosureConstMeta,
         argValues: [uri, isQrCode],
@@ -1051,13 +980,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(pin, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36, port: port_);
+          final arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__unlock_wallet(port_, arg0);
         },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_wallet_instruction_result,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullUnlockWalletConstMeta,
         argValues: [pin],
@@ -1075,13 +1003,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Future<void> crateApiFullUnlockWalletWithBiometrics() {
     return handler.executeNormal(
       NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+        callFfi: wire.wire__crate__api__full__unlock_wallet_with_biometrics,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullUnlockWalletWithBiometricsConstMeta,
         argValues: [],
@@ -1102,37 +1027,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  int dco_decode_CastedPrimitive_u_64(raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    throw UnimplementedError('Not implemented in this codec, please use the other one');
-  }
-
-  @protected
-  RustStreamSink<bool> dco_decode_StreamSink_bool_Sse(raw) {
+  RustStreamSink<bool> dco_decode_StreamSink_bool_Dco(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  RustStreamSink<FlutterConfiguration> dco_decode_StreamSink_flutter_configuration_Sse(raw) {
+  RustStreamSink<FlutterConfiguration> dco_decode_StreamSink_flutter_configuration_Dco(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  RustStreamSink<FlutterVersionState> dco_decode_StreamSink_flutter_version_state_Sse(raw) {
+  RustStreamSink<FlutterVersionState> dco_decode_StreamSink_flutter_version_state_Dco(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  RustStreamSink<List<Card>> dco_decode_StreamSink_list_card_Sse(raw) {
+  RustStreamSink<List<Card>> dco_decode_StreamSink_list_card_Dco(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Sse(raw) {
+  RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Dco(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
@@ -1188,6 +1107,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RequestPolicy dco_decode_box_autoadd_request_policy(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_request_policy(raw);
+  }
+
+  @protected
+  BigInt dco_decode_box_autoadd_u_64(raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_u_64(raw);
   }
 
   @protected
@@ -1299,7 +1224,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return FlutterConfiguration(
       inactiveLockTimeout: dco_decode_u_16(arr[0]),
       backgroundLockTimeout: dco_decode_u_16(arr[1]),
-      version: dco_decode_CastedPrimitive_u_64(arr[2]),
+      version: dco_decode_u_64(arr[2]),
     );
   }
 
@@ -1315,7 +1240,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return const FlutterVersionState_Recommend();
       case 3:
         return FlutterVersionState_Warn(
-          expiresInSeconds: dco_decode_CastedPrimitive_u_64(raw[1]),
+          expiresInSeconds: dco_decode_u_64(raw[1]),
         );
       case 4:
         return const FlutterVersionState_Block();
@@ -1431,12 +1356,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  int? dco_decode_opt_CastedPrimitive_u_64(raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_CastedPrimitive_u_64(raw);
-  }
-
-  @protected
   String? dco_decode_opt_String(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
@@ -1446,6 +1365,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Image? dco_decode_opt_box_autoadd_image(raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_image(raw);
+  }
+
+  @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
   }
 
   @protected
@@ -1492,7 +1417,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     final arr = raw as List<dynamic>;
     if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return RequestPolicy(
-      dataStorageDurationInMinutes: dco_decode_opt_CastedPrimitive_u_64(arr[0]),
+      dataStorageDurationInMinutes: dco_decode_opt_box_autoadd_u_64(arr[0]),
       dataSharedWithThirdParties: dco_decode_bool(arr[1]),
       dataDeletionPossible: dco_decode_bool(arr[2]),
       policyUrl: dco_decode_String(arr[3]),
@@ -1587,7 +1512,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         );
       case 1:
         return WalletInstructionError_Timeout(
-          timeoutMillis: dco_decode_CastedPrimitive_u_64(raw[1]),
+          timeoutMillis: dco_decode_u_64(raw[1]),
         );
       case 2:
         return const WalletInstructionError_Blocked();
@@ -1619,38 +1544,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  int sse_decode_CastedPrimitive_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_u_64(deserializer);
-    return inner.toInt();
-  }
-
-  @protected
-  RustStreamSink<bool> sse_decode_StreamSink_bool_Sse(SseDeserializer deserializer) {
+  RustStreamSink<bool> sse_decode_StreamSink_bool_Dco(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
   }
 
   @protected
-  RustStreamSink<FlutterConfiguration> sse_decode_StreamSink_flutter_configuration_Sse(SseDeserializer deserializer) {
+  RustStreamSink<FlutterConfiguration> sse_decode_StreamSink_flutter_configuration_Dco(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
   }
 
   @protected
-  RustStreamSink<FlutterVersionState> sse_decode_StreamSink_flutter_version_state_Sse(SseDeserializer deserializer) {
+  RustStreamSink<FlutterVersionState> sse_decode_StreamSink_flutter_version_state_Dco(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
   }
 
   @protected
-  RustStreamSink<List<Card>> sse_decode_StreamSink_list_card_Sse(SseDeserializer deserializer) {
+  RustStreamSink<List<Card>> sse_decode_StreamSink_list_card_Dco(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
   }
 
   @protected
-  RustStreamSink<List<WalletEvent>> sse_decode_StreamSink_list_wallet_event_Sse(SseDeserializer deserializer) {
+  RustStreamSink<List<WalletEvent>> sse_decode_StreamSink_list_wallet_event_Dco(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
   }
@@ -1707,6 +1625,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RequestPolicy sse_decode_box_autoadd_request_policy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return sse_decode_request_policy(deserializer);
+  }
+
+  @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return sse_decode_u_64(deserializer);
   }
 
   @protected
@@ -1808,7 +1732,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     final var_inactiveLockTimeout = sse_decode_u_16(deserializer);
     final var_backgroundLockTimeout = sse_decode_u_16(deserializer);
-    final var_version = sse_decode_CastedPrimitive_u_64(deserializer);
+    final var_version = sse_decode_u_64(deserializer);
     return FlutterConfiguration(
         inactiveLockTimeout: var_inactiveLockTimeout,
         backgroundLockTimeout: var_backgroundLockTimeout,
@@ -1828,7 +1752,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 2:
         return const FlutterVersionState_Recommend();
       case 3:
-        final var_expiresInSeconds = sse_decode_CastedPrimitive_u_64(deserializer);
+        final var_expiresInSeconds = sse_decode_u_64(deserializer);
         return FlutterVersionState_Warn(expiresInSeconds: var_expiresInSeconds);
       case 4:
         return const FlutterVersionState_Block();
@@ -1975,17 +1899,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  int? sse_decode_opt_CastedPrimitive_u_64(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    if (sse_decode_bool(deserializer)) {
-      return sse_decode_CastedPrimitive_u_64(deserializer);
-    } else {
-      return null;
-    }
-  }
-
-  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2002,6 +1915,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
     if (sse_decode_bool(deserializer)) {
       return sse_decode_box_autoadd_image(deserializer);
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return sse_decode_box_autoadd_u_64(deserializer);
     } else {
       return null;
     }
@@ -2067,7 +1991,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   RequestPolicy sse_decode_request_policy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_dataStorageDurationInMinutes = sse_decode_opt_CastedPrimitive_u_64(deserializer);
+    final var_dataStorageDurationInMinutes = sse_decode_opt_box_autoadd_u_64(deserializer);
     final var_dataSharedWithThirdParties = sse_decode_bool(deserializer);
     final var_dataDeletionPossible = sse_decode_bool(deserializer);
     final var_policyUrl = sse_decode_String(deserializer);
@@ -2187,7 +2111,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return WalletInstructionError_IncorrectPin(
             attemptsLeftInRound: var_attemptsLeftInRound, isFinalRound: var_isFinalRound);
       case 1:
-        final var_timeoutMillis = sse_decode_CastedPrimitive_u_64(deserializer);
+        final var_timeoutMillis = sse_decode_u_64(deserializer);
         return WalletInstructionError_Timeout(timeoutMillis: var_timeoutMillis);
       case 2:
         return const WalletInstructionError_Blocked();
@@ -2213,25 +2137,85 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  bool cst_encode_bool(bool raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_disclosure_session_type(DisclosureSessionType raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_disclosure_status(DisclosureStatus raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_disclosure_type(DisclosureType raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_gender_card_value(GenderCardValue raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_i_32(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_identify_uri_result(IdentifyUriResult raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_pin_validation_result(PinValidationResult raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
+  int cst_encode_u_16(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  int cst_encode_u_8(int raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
+  void cst_encode_unit(void raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw;
+  }
+
+  @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.message, serializer);
   }
 
   @protected
-  void sse_encode_CastedPrimitive_u_64(int self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_u_64(sseEncodeCastedPrimitiveU64(self), serializer);
-  }
-
-  @protected
-  void sse_encode_StreamSink_bool_Sse(RustStreamSink<bool> self, SseSerializer serializer) {
+  void sse_encode_StreamSink_bool_Dco(RustStreamSink<bool> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
       self.setupAndSerialize(
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_bool,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
       ),
       serializer,
@@ -2239,14 +2223,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_StreamSink_flutter_configuration_Sse(
+  void sse_encode_StreamSink_flutter_configuration_Dco(
       RustStreamSink<FlutterConfiguration> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
       self.setupAndSerialize(
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_flutter_configuration,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_flutter_configuration,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
       ),
       serializer,
@@ -2254,14 +2238,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_StreamSink_flutter_version_state_Sse(
+  void sse_encode_StreamSink_flutter_version_state_Dco(
       RustStreamSink<FlutterVersionState> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
       self.setupAndSerialize(
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_flutter_version_state,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_flutter_version_state,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
       ),
       serializer,
@@ -2269,13 +2253,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_StreamSink_list_card_Sse(RustStreamSink<List<Card>> self, SseSerializer serializer) {
+  void sse_encode_StreamSink_list_card_Dco(RustStreamSink<List<Card>> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
       self.setupAndSerialize(
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_card,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_card,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
       ),
       serializer,
@@ -2283,13 +2267,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_StreamSink_list_wallet_event_Sse(RustStreamSink<List<WalletEvent>> self, SseSerializer serializer) {
+  void sse_encode_StreamSink_list_wallet_event_Dco(RustStreamSink<List<WalletEvent>> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
       self.setupAndSerialize(
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_list_wallet_event,
-          decodeErrorData: sse_decode_AnyhowException,
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_list_wallet_event,
+          decodeErrorData: dco_decode_AnyhowException,
         ),
       ),
       serializer,
@@ -2343,6 +2327,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_box_autoadd_request_policy(RequestPolicy self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_request_policy(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self, serializer);
   }
 
   @protected
@@ -2430,7 +2420,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_16(self.inactiveLockTimeout, serializer);
     sse_encode_u_16(self.backgroundLockTimeout, serializer);
-    sse_encode_CastedPrimitive_u_64(self.version, serializer);
+    sse_encode_u_64(self.version, serializer);
   }
 
   @protected
@@ -2445,7 +2435,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(2, serializer);
       case FlutterVersionState_Warn(expiresInSeconds: final expiresInSeconds):
         sse_encode_i_32(3, serializer);
-        sse_encode_CastedPrimitive_u_64(expiresInSeconds, serializer);
+        sse_encode_u_64(expiresInSeconds, serializer);
       case FlutterVersionState_Block():
         sse_encode_i_32(4, serializer);
     }
@@ -2563,16 +2553,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_opt_CastedPrimitive_u_64(int? self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    sse_encode_bool(self != null, serializer);
-    if (self != null) {
-      sse_encode_CastedPrimitive_u_64(self, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2589,6 +2569,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_image(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_64(self, serializer);
     }
   }
 
@@ -2637,7 +2627,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_request_policy(RequestPolicy self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_CastedPrimitive_u_64(self.dataStorageDurationInMinutes, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.dataStorageDurationInMinutes, serializer);
     sse_encode_bool(self.dataSharedWithThirdParties, serializer);
     sse_encode_bool(self.dataDeletionPossible, serializer);
     sse_encode_String(self.policyUrl, serializer);
@@ -2748,7 +2738,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_bool(isFinalRound, serializer);
       case WalletInstructionError_Timeout(timeoutMillis: final timeoutMillis):
         sse_encode_i_32(1, serializer);
-        sse_encode_CastedPrimitive_u_64(timeoutMillis, serializer);
+        sse_encode_u_64(timeoutMillis, serializer);
       case WalletInstructionError_Blocked():
         sse_encode_i_32(2, serializer);
     }

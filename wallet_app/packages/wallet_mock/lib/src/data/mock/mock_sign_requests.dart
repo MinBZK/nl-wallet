@@ -31,7 +31,7 @@ final kRentalRequest = SignRequest(
   policy: RequestPolicy(
     dataDeletionPossible: false,
     dataSharedWithThirdParties: false,
-    dataStorageDurationInMinutes: 0,
+    dataStorageDurationInMinutes: BigInt.zero,
     policyUrl: 'https://example.org',
   ),
 );

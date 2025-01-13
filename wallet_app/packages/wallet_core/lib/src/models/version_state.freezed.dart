@@ -21,7 +21,7 @@ mixin _$FlutterVersionState {
     required TResult Function() ok,
     required TResult Function() notify,
     required TResult Function() recommend,
-    required TResult Function(int expiresInSeconds) warn,
+    required TResult Function(BigInt expiresInSeconds) warn,
     required TResult Function() block,
   }) =>
       throw _privateConstructorUsedError;
@@ -30,7 +30,7 @@ mixin _$FlutterVersionState {
     TResult? Function()? ok,
     TResult? Function()? notify,
     TResult? Function()? recommend,
-    TResult? Function(int expiresInSeconds)? warn,
+    TResult? Function(BigInt expiresInSeconds)? warn,
     TResult? Function()? block,
   }) =>
       throw _privateConstructorUsedError;
@@ -39,7 +39,7 @@ mixin _$FlutterVersionState {
     TResult Function()? ok,
     TResult Function()? notify,
     TResult Function()? recommend,
-    TResult Function(int expiresInSeconds)? warn,
+    TResult Function(BigInt expiresInSeconds)? warn,
     TResult Function()? block,
     required TResult orElse(),
   }) =>
@@ -137,7 +137,7 @@ class _$FlutterVersionState_OkImpl extends FlutterVersionState_Ok {
     required TResult Function() ok,
     required TResult Function() notify,
     required TResult Function() recommend,
-    required TResult Function(int expiresInSeconds) warn,
+    required TResult Function(BigInt expiresInSeconds) warn,
     required TResult Function() block,
   }) {
     return ok();
@@ -149,7 +149,7 @@ class _$FlutterVersionState_OkImpl extends FlutterVersionState_Ok {
     TResult? Function()? ok,
     TResult? Function()? notify,
     TResult? Function()? recommend,
-    TResult? Function(int expiresInSeconds)? warn,
+    TResult? Function(BigInt expiresInSeconds)? warn,
     TResult? Function()? block,
   }) {
     return ok?.call();
@@ -161,7 +161,7 @@ class _$FlutterVersionState_OkImpl extends FlutterVersionState_Ok {
     TResult Function()? ok,
     TResult Function()? notify,
     TResult Function()? recommend,
-    TResult Function(int expiresInSeconds)? warn,
+    TResult Function(BigInt expiresInSeconds)? warn,
     TResult Function()? block,
     required TResult orElse(),
   }) {
@@ -260,7 +260,7 @@ class _$FlutterVersionState_NotifyImpl extends FlutterVersionState_Notify {
     required TResult Function() ok,
     required TResult Function() notify,
     required TResult Function() recommend,
-    required TResult Function(int expiresInSeconds) warn,
+    required TResult Function(BigInt expiresInSeconds) warn,
     required TResult Function() block,
   }) {
     return notify();
@@ -272,7 +272,7 @@ class _$FlutterVersionState_NotifyImpl extends FlutterVersionState_Notify {
     TResult? Function()? ok,
     TResult? Function()? notify,
     TResult? Function()? recommend,
-    TResult? Function(int expiresInSeconds)? warn,
+    TResult? Function(BigInt expiresInSeconds)? warn,
     TResult? Function()? block,
   }) {
     return notify?.call();
@@ -284,7 +284,7 @@ class _$FlutterVersionState_NotifyImpl extends FlutterVersionState_Notify {
     TResult Function()? ok,
     TResult Function()? notify,
     TResult Function()? recommend,
-    TResult Function(int expiresInSeconds)? warn,
+    TResult Function(BigInt expiresInSeconds)? warn,
     TResult Function()? block,
     required TResult orElse(),
   }) {
@@ -383,7 +383,7 @@ class _$FlutterVersionState_RecommendImpl extends FlutterVersionState_Recommend 
     required TResult Function() ok,
     required TResult Function() notify,
     required TResult Function() recommend,
-    required TResult Function(int expiresInSeconds) warn,
+    required TResult Function(BigInt expiresInSeconds) warn,
     required TResult Function() block,
   }) {
     return recommend();
@@ -395,7 +395,7 @@ class _$FlutterVersionState_RecommendImpl extends FlutterVersionState_Recommend 
     TResult? Function()? ok,
     TResult? Function()? notify,
     TResult? Function()? recommend,
-    TResult? Function(int expiresInSeconds)? warn,
+    TResult? Function(BigInt expiresInSeconds)? warn,
     TResult? Function()? block,
   }) {
     return recommend?.call();
@@ -407,7 +407,7 @@ class _$FlutterVersionState_RecommendImpl extends FlutterVersionState_Recommend 
     TResult Function()? ok,
     TResult Function()? notify,
     TResult Function()? recommend,
-    TResult Function(int expiresInSeconds)? warn,
+    TResult Function(BigInt expiresInSeconds)? warn,
     TResult Function()? block,
     required TResult orElse(),
   }) {
@@ -469,7 +469,7 @@ abstract class _$$FlutterVersionState_WarnImplCopyWith<$Res> {
           _$FlutterVersionState_WarnImpl value, $Res Function(_$FlutterVersionState_WarnImpl) then) =
       __$$FlutterVersionState_WarnImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({int expiresInSeconds});
+  $Res call({BigInt expiresInSeconds});
 }
 
 /// @nodoc
@@ -491,7 +491,7 @@ class __$$FlutterVersionState_WarnImplCopyWithImpl<$Res>
       expiresInSeconds: null == expiresInSeconds
           ? _value.expiresInSeconds
           : expiresInSeconds // ignore: cast_nullable_to_non_nullable
-              as int,
+              as BigInt,
     ));
   }
 }
@@ -502,7 +502,7 @@ class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
   const _$FlutterVersionState_WarnImpl({required this.expiresInSeconds}) : super._();
 
   @override
-  final int expiresInSeconds;
+  final BigInt expiresInSeconds;
 
   @override
   String toString() {
@@ -534,7 +534,7 @@ class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
     required TResult Function() ok,
     required TResult Function() notify,
     required TResult Function() recommend,
-    required TResult Function(int expiresInSeconds) warn,
+    required TResult Function(BigInt expiresInSeconds) warn,
     required TResult Function() block,
   }) {
     return warn(expiresInSeconds);
@@ -546,7 +546,7 @@ class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
     TResult? Function()? ok,
     TResult? Function()? notify,
     TResult? Function()? recommend,
-    TResult? Function(int expiresInSeconds)? warn,
+    TResult? Function(BigInt expiresInSeconds)? warn,
     TResult? Function()? block,
   }) {
     return warn?.call(expiresInSeconds);
@@ -558,7 +558,7 @@ class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
     TResult Function()? ok,
     TResult Function()? notify,
     TResult Function()? recommend,
-    TResult Function(int expiresInSeconds)? warn,
+    TResult Function(BigInt expiresInSeconds)? warn,
     TResult Function()? block,
     required TResult orElse(),
   }) {
@@ -610,10 +610,10 @@ class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
 }
 
 abstract class FlutterVersionState_Warn extends FlutterVersionState {
-  const factory FlutterVersionState_Warn({required final int expiresInSeconds}) = _$FlutterVersionState_WarnImpl;
+  const factory FlutterVersionState_Warn({required final BigInt expiresInSeconds}) = _$FlutterVersionState_WarnImpl;
   const FlutterVersionState_Warn._() : super._();
 
-  int get expiresInSeconds;
+  BigInt get expiresInSeconds;
 
   /// Create a copy of FlutterVersionState
   /// with the given fields replaced by the non-null parameter values.
@@ -665,7 +665,7 @@ class _$FlutterVersionState_BlockImpl extends FlutterVersionState_Block {
     required TResult Function() ok,
     required TResult Function() notify,
     required TResult Function() recommend,
-    required TResult Function(int expiresInSeconds) warn,
+    required TResult Function(BigInt expiresInSeconds) warn,
     required TResult Function() block,
   }) {
     return block();
@@ -677,7 +677,7 @@ class _$FlutterVersionState_BlockImpl extends FlutterVersionState_Block {
     TResult? Function()? ok,
     TResult? Function()? notify,
     TResult? Function()? recommend,
-    TResult? Function(int expiresInSeconds)? warn,
+    TResult? Function(BigInt expiresInSeconds)? warn,
     TResult? Function()? block,
   }) {
     return block?.call();
@@ -689,7 +689,7 @@ class _$FlutterVersionState_BlockImpl extends FlutterVersionState_Block {
     TResult Function()? ok,
     TResult Function()? notify,
     TResult Function()? recommend,
-    TResult Function(int expiresInSeconds)? warn,
+    TResult Function(BigInt expiresInSeconds)? warn,
     TResult Function()? block,
     required TResult orElse(),
   }) {
