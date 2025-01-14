@@ -270,20 +270,42 @@ pub enum PatchLevelError {
     InvalidDate(Integer),
 }
 
+/// Decoded patch_level.
+/// Supports both YYYYMM and YYYYMMDD notations, including values 0 or 00 for MM and/or DD.
+///
+/// - os_patch_level: YYYYMM
+/// - vendor_patch_level: YYYYMMDD, but also found YYYYMM
+/// - boot_patch_level: YYYYMMDD, but also found YYYYMM
+///
+/// Exceptional cases:
+/// It is not possible to use a `Date` type for `PatchLevel`, because of the following finds
+/// in test data derived from Google source repositories and Android emulators.
+///
+/// - Sometimes DD is set to `00`, which is not a valid date
+/// - Sometimes the whole `PatchLevel` was set to `0`
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct PatchLevel(pub u16, pub u8, pub Option<u8>);
+pub struct PatchLevel {
+    year: u16,
+    month: u8,
+    day: Option<u8>,
+}
+
+impl PatchLevel {
+    pub fn new(year: u16, month: u8, day: Option<u8>) -> Self {
+        Self { year, month, day }
+    }
+}
 
 impl TryFrom<Integer> for PatchLevel {
     type Error = PatchLevelError;
 
     fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        let mut rest: usize = value
-            .clone()
+        let mut rest: usize = (&value)
             .try_into()
             .map_err(|_| PatchLevelError::Conversion(value.clone()))?;
 
         if rest == 0 {
-            return Ok(PatchLevel(0, 0, None));
+            return Ok(PatchLevel::new(0, 0, None));
         } else if rest < 10_000 {
             return Err(PatchLevelError::InvalidDate(value));
         }
@@ -292,14 +314,14 @@ impl TryFrom<Integer> for PatchLevel {
         rest /= 100;
 
         let result = if rest < 10_000 {
-            PatchLevel(rest as u16, first as u8, None)
+            PatchLevel::new(rest as u16, first as u8, None)
         } else {
             let second = rest % 100;
             rest /= 100;
             if rest > 10_000 {
                 return Err(PatchLevelError::InvalidDate(value));
             }
-            PatchLevel(rest as u16, second as u8, Some(first as u8))
+            PatchLevel::new(rest as u16, second as u8, Some(first as u8))
         };
 
         Ok(result)
@@ -728,17 +750,17 @@ mod test {
     }
 
     #[rstest]
-    #[case(Integer::ZERO, Ok(PatchLevel(0, 0, None)))]
+    #[case(Integer::ZERO, Ok(PatchLevel::new(0, 0, None)))]
     #[case(
         2019.into(),
         Err(PatchLevelError::InvalidDate(2019.into()))
     )]
-    #[case(201907.into(), Ok(PatchLevel(2019, 7, None)))]
-    #[case(201913.into(), Ok(PatchLevel(2019, 13, None)))]
-    #[case(20190705.into(), Ok(PatchLevel(2019, 7, Some(5))))]
-    #[case(20191305.into(), Ok(PatchLevel(2019, 13, Some(5))))]
-    #[case(20190732.into(), Ok(PatchLevel(2019, 7, Some(32))))]
-    #[case(20190229.into(), Ok(PatchLevel(2019, 2, Some(29))))]
+    #[case(201907.into(), Ok(PatchLevel::new(2019, 7, None)))]
+    #[case(201913.into(), Ok(PatchLevel::new(2019, 13, None)))]
+    #[case(20190705.into(), Ok(PatchLevel::new(2019, 7, Some(5))))]
+    #[case(20191305.into(), Ok(PatchLevel::new(2019, 13, Some(5))))]
+    #[case(20190732.into(), Ok(PatchLevel::new(2019, 7, Some(32))))]
+    #[case(20190229.into(), Ok(PatchLevel::new(2019, 2, Some(29))))]
     #[case(
         120190705.into(),
         Err(PatchLevelError::InvalidDate(120190705.into()))
@@ -915,7 +937,7 @@ mod test {
                     ),
                 }),
                 os_version: Some(OsVersion { major: 13, minor: 0, sub_minor: 0}),
-                os_patch_level: Some(PatchLevel(2024, 3, None)),
+                os_patch_level: Some(PatchLevel::new(2024, 3, None)),
                 attestation_application_id: Some(AttestationApplicationId {
                     package_infos: SetOf::from_vec(vec![AttestationPackageInfo {
                         package_name: OctetString::copy_from_slice(
@@ -935,8 +957,8 @@ mod test {
                 attestation_id_meid: Some(OctetString::copy_from_slice(b"attestation_id_meid")),
                 attestation_id_manufacturer: Some(OctetString::copy_from_slice(b"attestation_id_manufacturer")),
                 attestation_id_model: Some(OctetString::copy_from_slice(b"attestation_id_model")),
-                vendor_patch_level: Some(PatchLevel(0, 0, None)),
-                boot_patch_level: Some(PatchLevel(2024, 3, Some(1))),
+                vendor_patch_level: Some(PatchLevel::new(0, 0, None)),
+                boot_patch_level: Some(PatchLevel::new(2024, 3, Some(1))),
                 device_unique_attestation: true,
                 attestation_id_second_imei: Some(OctetString::copy_from_slice(b"attestation_id_second_imei")),
             },

@@ -124,7 +124,7 @@ mod tests {
                     verified_boot_hash: OctetString::copy_from_slice(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
                 }.into(),
                 os_version: OsVersion::new(13, 0, 0).into(),
-                os_patch_level: PatchLevel(2024, 3, None).into(),
+                os_patch_level: PatchLevel::new(2024, 3, None).into(),
                 attestation_application_id: Some(
                     AttestationApplicationId {
                         package_infos: SetOf::from_vec(vec![
@@ -140,8 +140,8 @@ mod tests {
                         ]),
                     },
                 ),
-                vendor_patch_level: PatchLevel(0, 0, None).into(),
-                boot_patch_level: PatchLevel(2024, 3, 1.into()).into(),
+                vendor_patch_level: PatchLevel::new(0, 0, None).into(),
+                boot_patch_level: PatchLevel::new(2024, 3, 1.into()).into(),
                 ..Default::default()
             },
             hardware_enforced: AuthorizationList {
@@ -246,9 +246,9 @@ mod tests {
                 }
                 .into(),
                 os_version: OsVersion::new(0, 0, 0).into(),
-                os_patch_level: PatchLevel(2019, 7, None).into(),
-                vendor_patch_level: PatchLevel(2019, 7, 5.into()).into(),
-                boot_patch_level: PatchLevel(2019, 7, 0.into()).into(),
+                os_patch_level: PatchLevel::new(2019, 7, None).into(),
+                vendor_patch_level: PatchLevel::new(2019, 7, 5.into()).into(),
+                boot_patch_level: PatchLevel::new(2019, 7, 0.into()).into(),
                 ..Default::default()
             },
         }
@@ -351,9 +351,9 @@ mod tests {
                 }
                 .into(),
                 os_version: OsVersion::new(0, 0, 0).into(),
-                os_patch_level: PatchLevel(2019, 7, None).into(),
-                vendor_patch_level: PatchLevel(2019, 7, None).into(),
-                boot_patch_level: PatchLevel(2019, 7, None).into(),
+                os_patch_level: PatchLevel::new(2019, 7, None).into(),
+                vendor_patch_level: PatchLevel::new(2019, 7, None).into(),
+                boot_patch_level: PatchLevel::new(2019, 7, None).into(),
                 ..Default::default()
             },
         }
