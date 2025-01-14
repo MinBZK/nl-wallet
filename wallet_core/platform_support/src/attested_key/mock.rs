@@ -502,7 +502,8 @@ mod persistent {
 
 #[cfg(test)]
 mod tests {
-    use apple_app_attest::{AppIdentifier, AttestationEnvironment};
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AttestationEnvironment;
 
     use crate::attested_key::test;
     use crate::attested_key::test::AppleTestData;

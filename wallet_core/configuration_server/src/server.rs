@@ -11,7 +11,8 @@ use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::StatusCode;
-use tracing::{debug, info};
+use tracing::debug;
+use tracing::info;
 
 use wallet_common::built_info::version_string;
 

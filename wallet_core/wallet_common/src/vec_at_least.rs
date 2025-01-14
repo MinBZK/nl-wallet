@@ -66,6 +66,16 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         self.0.into_iter().next().unwrap()
     }
 
+    pub fn last(&self) -> &T {
+        // Guaranteed to succeed, as N is at least 1.
+        self.0.last().unwrap()
+    }
+
+    pub fn into_last(mut self) -> T {
+        // Guaranteed to succeed, as N is at least 1.
+        self.0.pop().unwrap()
+    }
+
     pub fn as_slice(&self) -> &[T] {
         &self.0
     }

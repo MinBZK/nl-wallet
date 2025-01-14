@@ -117,13 +117,7 @@ async fn create_wallet(
 
     let cert = state
         .account_server
-        .register(
-            &state.certificate_signing_key,
-            state.as_ref(),
-            &state.repositories,
-            &state.hsm,
-            payload,
-        )
+        .register(&state.certificate_signing_key, &state.repositories, &state.hsm, payload)
         .await?;
 
     let body = Certificate { certificate: cert };

@@ -138,7 +138,7 @@ mod tests {
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
 
-    use android_attest::mock;
+    use android_attest::mock::MockCaChain;
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AttestationEnvironment;
@@ -208,15 +208,15 @@ mod tests {
         // The Wallet Provider generates a challenge.
         let challenge = b"challenge";
 
-        // Generate a mock certificate chain, a random app attestation token and a mock PIN siging key.
-        let (attested_certificate_chain, attested_private_keys) = mock::generate_mock_certificate_chain(1);
-        let attested_private_key = attested_private_keys.first().unwrap();
+        // Generate a mock certificate chain, a random app attestation token and a mock PIN signing key.
+        let attested_ca_chain = MockCaChain::generate(1);
+        let (attested_certificate_chain, attested_private_key) = attested_ca_chain.generate_leaf_certificate();
         let app_attestation_token = utils::random_bytes(32);
         let pin_signing_key = SigningKey::random(&mut OsRng);
 
         // The Wallet generates a registration message.
         let msg = ChallengeResponse::<Registration>::new_google(
-            attested_private_key,
+            &attested_private_key,
             attested_certificate_chain.try_into().unwrap(),
             app_attestation_token,
             &pin_signing_key,
