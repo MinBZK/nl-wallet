@@ -114,6 +114,53 @@ If, for instance, the app is built for the demo environment, `CONFIG_ENV` should
 This check is always performed, but when the `--release`-flag is passed to Cargo, the `CONFIG_ENV`
 environment variable is mandatory. Without the `--release`-flag the default (`dev`) is used.
 
+##### Key and app attestation
+
+The app performs key and app attestation when registering with the Wallet Provider (i.e. after the
+user first enters their PIN code). As verifying these attestations is mandatory, special care needs
+to be taken to make sure that attestation can be be performed for a particular environment.
+
+###### iOS
+
+For iOS key and app attestation to succeed, the following variables will need to match between the
+app and the Wallet Provider:
+
+1.  The root CA with which the attestation is signed.
+2.  Apple's attestation environment, which can be either *development* (i.e. a sandbox environment)
+    or *production*.
+3.  The app's bundle identifier.
+
+When running the app on real hardware, the root CA is always the one provided by Apple, as the
+attested key is stored within the Secure Element on the device.
+
+However, the iOS simulator is not capable of generating attested keys. For this use case a
+provision has been implemented that generates faux attestations under a self-signed CA. Generating
+these attestations can be enabled through the `fake_attestation` cargo feature. When compiling
+through Xcode (or indeed `flutter run`), this is done automatically when the target is the iOS
+simulator. The included setup script (for a local development environment) will automatically
+configure the Wallet Provider to accept both attestations signed by Apple and these faux
+self-signed attestations. In short, running the app on the iOS simulator against a local
+development environment should work out of the box.
+
+The attestation environment is set to *development* by default. This can be overridden by setting
+the `APPLE_ATTESTATION_ENVIRONMENT` environment variable during compilation. Note that this is
+ignored for builds that are downloaded from TestFlight or the App Store, as (per the Apple
+documentation) these always use the production environment. For this reason, the *development*
+environment should only be used during local development, while any deployed environment will use
+*production*.
+
+The bundle identifier need not be changed for the local development environment. For other
+environments it can be changed using:
+
+bash
+```
+flutter pub run rename setBundleId --targets ios --value <BUNDLE ID>
+```
+
+###### Android
+
+**TBD**
+
 ## File Structure
 
 ### Assets
