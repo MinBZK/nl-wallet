@@ -28,8 +28,9 @@ use nutype::nutype;
 use serde::Deserialize;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
+use tracing::info;
 use tracing::level_filters::LevelFilter;
-use tracing::{info, warn};
+use tracing::warn;
 use tracing_subscriber::EnvFilter;
 
 use wallet_common::built_info::version_string;
