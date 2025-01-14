@@ -24,6 +24,7 @@ use derive_more::From;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
+use tracing::warn;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::server_keys::KeyRing;
@@ -140,15 +141,15 @@ where
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
-    let metadata = state
-        .issuer
-        .oauth_metadata()
-        .await
-        .map_err(|error| openid4vc::ErrorResponse {
+    let metadata = state.issuer.oauth_metadata().await.map_err(|error| {
+        warn!("retrieving OAuth metadata failed: {}", error);
+
+        openid4vc::ErrorResponse {
             error: MetadataError::Metadata,
             error_description: Some(error.to_string()),
             error_uri: None,
-        })?;
+        }
+    })?;
 
     Ok(Json(metadata))
 }
@@ -168,7 +169,14 @@ where
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
-    let (response, dpop_nonce) = state.issuer.process_token_request(token_request, dpop).await?;
+    let (response, dpop_nonce) = state
+        .issuer
+        .process_token_request(token_request, dpop)
+        .await
+        .inspect_err(|error| {
+            warn!("processing token request failed: {}", error);
+        })?;
+
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),
@@ -192,7 +200,9 @@ where
     let response = state
         .issuer
         .process_credential(access_token, dpop, credential_request)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("processing credential failed: {}", error))?;
+
     Ok(Json(response))
 }
 
@@ -212,7 +222,9 @@ where
     let response = state
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("processing batch credential failed: {}", error))?;
+
     Ok(Json(response))
 }
 
@@ -234,7 +246,9 @@ where
     state
         .issuer
         .process_reject_issuance(access_token, dpop, uri_path)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
+
     Ok(StatusCode::NO_CONTENT)
 }
 
