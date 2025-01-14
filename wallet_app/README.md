@@ -89,19 +89,22 @@ relies heavily on all the logic implemented in the [`wallet_core`](../wallet_cor
 is the component that handles all the business logic (like storage, network and validation) needed
 to achieve the app's functionalities.
 
-A sample command to run the *core* version of the app is provided below.
+A sample command to run the *core* version of the app is provided below. Note that the universal link
+needs to be configured using various environment variables, as is illustrated in this example.
 
 ```sh
-flutter run --dart-define UL_HOSTNAME={hostname}
+UL_HOSTNAME={hostname} UNIVERSAL_LINK_BASE="https://{hostname}/path" flutter run --dart-define UL_HOSTNAME={hostname}
 ```
 
 However, since the core version relies heavily on communication with other services, we also provide
 scripts to configure the complete development environment. Please refer to [scripts](../scripts/),
 and more specifically the `setup-devenv.sh` and `start-devenv.sh` files.
 
+##### Configuration
+
 The configuration for how the app can connect to the configuration server (which serves the wallet
 configuration) is compiled directly into the app (`wallet_core/config-server-config.json`).
-In addition, the intial wallet configuration (`wallet_core/wallet-config.json`)
+In addition, the initial wallet configuration (`wallet_core/wallet-config.json`)
 (the most recent version at the time the app is built) is compiled into the app as well.
 These configurations are parsed and verified at compile time.
 
@@ -386,6 +389,6 @@ export FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD="{App-specific password}"
   here: [App Store Connect - iOS Builds](https://appstoreconnect.apple.com/apps/SSSS/testflight/ios),
   next build number needs to be `{latest_build_numer} + 1`
 - Build app with updated build
-  number `UL_HOSTNAME=app.example.com bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
+  number `UL_HOSTNAME=app.example.com UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
 - Upload to TestFlight `bundle exec fastlane ios deploy bundle_id:nl.ictu.edi.wallet.latest`  (login
   with Apple ID + password; app specific password!)
