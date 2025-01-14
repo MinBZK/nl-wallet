@@ -118,7 +118,6 @@ dependencies = [
  "bitflags 2.6.0",
  "chrono",
  "http-cache-reqwest",
- "indexmap 2.2.6",
  "int-enum",
  "num-bigint",
  "num-traits",

@@ -1,10 +1,10 @@
+use std::collections::HashSet;
 use std::hash::Hash;
 
 use bitflags::bitflags;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
-use indexmap::IndexSet;
 use int_enum::IntEnum;
 use rasn::error::DecodeError;
 use rasn::types::Integer;
@@ -21,18 +21,18 @@ use super::key_description::RootOfTrust;
 use super::key_description::SecurityLevel;
 
 macro_rules! integer_int_enum_conversion {
-    ($type:ty, $error_type:ident, $invalid_error:ident) => {
+    ($type:ty, $repr:ty, $error_type:ident, $invalid_error:ident) => {
         #[derive(Debug, thiserror::Error, PartialEq, Eq)]
         pub enum $error_type {
-            #[error("could not convert Integer to u32: {0}")]
+            #[error("could not convert Integer to {}: {0}", stringify!($repr))]
             IntegerConversion(Integer),
             #[error("not a valid {}: {0}", stringify!($type))]
-            $invalid_error(u32),
+            $invalid_error($repr),
         }
         impl TryFrom<Integer> for $type {
             type Error = $error_type;
             fn try_from(value: Integer) -> Result<Self, Self::Error> {
-                let repr: u32 = (&value)
+                let repr: $repr = (&value)
                     .try_into()
                     .map_err(|_| $error_type::IntegerConversion(value))?;
                 <$type>::try_from(repr).map_err($error_type::$invalid_error)
@@ -42,30 +42,30 @@ macro_rules! integer_int_enum_conversion {
 }
 
 macro_rules! integer_int_enum_conversion_with_set {
-    ($type:ty, $error_type:ident, $invalid_error:ident) => {
-        integer_int_enum_conversion!($type, $error_type, $invalid_error);
+    ($type:ty, $repr:ident, $error_type:ident, $invalid_error:ident) => {
+        integer_int_enum_conversion!($type, $repr, $error_type, $invalid_error);
         impl TryFrom<&Integer> for $type {
             type Error = $error_type;
             fn try_from(value: &Integer) -> Result<Self, Self::Error> {
-                let repr: u32 = value
+                let repr: $repr = value
                     .try_into()
                     .map_err(|_| $error_type::IntegerConversion(value.clone()))?;
                 <$type>::try_from(repr).map_err($error_type::$invalid_error)
             }
         }
         impl $type {
-            fn from_set_of_integer(set: SetOf<Integer>) -> Result<IndexSet<$type>, $error_type> {
+            fn from_set_of_integer(set: SetOf<Integer>) -> Result<HashSet<$type>, $error_type> {
                 set.to_vec()
                     .into_iter()
                     .map(|purpose| TryFrom::try_from(purpose))
-                    .collect::<Result<IndexSet<_>, _>>()
+                    .collect::<Result<HashSet<_>, _>>()
             }
         }
     };
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
-#[repr(u32)]
+#[repr(i32)]
 pub enum AttestationVersion {
     V1 = 1,
     V2 = 2,
@@ -76,10 +76,15 @@ pub enum AttestationVersion {
     V300 = 300,
 }
 
-integer_int_enum_conversion!(AttestationVersion, AttestationVersionError, InvalidAttestationVersion);
+integer_int_enum_conversion!(
+    AttestationVersion,
+    i32,
+    AttestationVersionError,
+    InvalidAttestationVersion
+);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
-#[repr(u32)]
+#[repr(i32)]
 pub enum KeyMintVersion {
     V2 = 2,
     V3 = 3,
@@ -90,7 +95,7 @@ pub enum KeyMintVersion {
     V300 = 300,
 }
 
-integer_int_enum_conversion!(KeyMintVersion, KeyMintVersionError, InvalidKeyMintVersion);
+integer_int_enum_conversion!(KeyMintVersion, i32, KeyMintVersionError, InvalidKeyMintVersion);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
 #[repr(u32)]
@@ -103,7 +108,7 @@ pub enum KeyPurpose {
     WrapKey = 5,
 }
 
-integer_int_enum_conversion_with_set!(KeyPurpose, KeyPurposeError, InvalidKeyPurpose);
+integer_int_enum_conversion_with_set!(KeyPurpose, u32, KeyPurposeError, InvalidKeyPurpose);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
 #[repr(u32)]
@@ -114,7 +119,7 @@ pub enum Algorithm {
     Hmac = 128,
 }
 
-integer_int_enum_conversion!(Algorithm, AlgorithmError, InvalidAlgorithm);
+integer_int_enum_conversion!(Algorithm, u32, AlgorithmError, InvalidAlgorithm);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
 #[repr(u32)]
@@ -128,7 +133,7 @@ pub enum Digest {
     Sha2_512 = 6,
 }
 
-integer_int_enum_conversion_with_set!(Digest, DigestError, InvalidDigest);
+integer_int_enum_conversion_with_set!(Digest, u32, DigestError, InvalidDigest);
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
@@ -142,7 +147,7 @@ pub enum Padding {
     Pkcs7 = 64,
 }
 
-integer_int_enum_conversion_with_set!(Padding, PaddingError, InvalidPadding);
+integer_int_enum_conversion_with_set!(Padding, u32, PaddingError, InvalidPadding);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
 #[repr(u32)]
@@ -153,7 +158,7 @@ pub enum EcCurve {
     P512 = 3,
 }
 
-integer_int_enum_conversion!(EcCurve, EcCurveError, InvalidEcCurve);
+integer_int_enum_conversion!(EcCurve, u32, EcCurveError, InvalidEcCurve);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HardwareAuthenticatorType(u32);
@@ -185,7 +190,7 @@ pub enum KeyOrigin {
     Unknown = 3,
 }
 
-integer_int_enum_conversion!(KeyOrigin, KeyOriginError, InvalidKeyOrigin);
+integer_int_enum_conversion!(KeyOrigin, u32, KeyOriginError, InvalidKeyOrigin);
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OsVersion {
@@ -364,14 +369,14 @@ impl TryFrom<KeyDescription> for KeyAttestation {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AuthorizationList {
-    pub purpose: Option<IndexSet<KeyPurpose>>,
+    pub purpose: Option<HashSet<KeyPurpose>>,
     pub algorithm: Option<Algorithm>,
     pub key_size: Option<Integer>,
-    pub digest: Option<IndexSet<Digest>>,
-    pub padding: Option<IndexSet<Padding>>,
+    pub digest: Option<HashSet<Digest>>,
+    pub padding: Option<HashSet<Padding>>,
     pub ec_curve: Option<EcCurve>,
     pub rsa_public_exponent: Option<u64>,
-    pub mgf_digest: Option<IndexSet<Integer>>, // Use Digest?
+    pub mgf_digest: Option<HashSet<Integer>>, // Use Digest?
     pub rollback_resistance: bool,
     pub early_boot_only: bool,
     pub active_date_time: Option<DateTime<Utc>>, // milliseconds since January 1, 1970

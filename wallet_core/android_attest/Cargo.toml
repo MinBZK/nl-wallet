@@ -15,7 +15,6 @@ network_test = []
 bitflags.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
-indexmap.workspace = true
 int-enum.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
