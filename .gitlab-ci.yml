@@ -116,7 +116,7 @@ variables:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:343b84b0afc11d6665960ddb92bddc5bb8ff224566ecc83aad727de102dd1a16"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:d3d70d3040d563c0668a13022f55e07e36c60854b772b636f7b4c8a5f6325ce1"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -126,6 +126,7 @@ test-flutter:
     - flutter analyze .
     - flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
     - $HOME/.pub-cache/bin/tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
+    - mc put build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
   artifacts:
     reports:
       junit: wallet_app/build/reports/test-results.xml
@@ -139,7 +140,7 @@ test-flutter-ui:
   when: manual
   tags:
     - macos
-  image: sonoma-wallet:0.1.4
+  image: sonoma-wallet:0.1.5
   artifacts:
     name: "ui-test-failures"
     when: on_failure
@@ -156,7 +157,7 @@ test-flutter-ui:
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:343b84b0afc11d6665960ddb92bddc5bb8ff224566ecc83aad727de102dd1a16"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:d3d70d3040d563c0668a13022f55e07e36c60854b772b636f7b4c8a5f6325ce1"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -185,7 +186,7 @@ test-codegen:
 build-wallet-web:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:d5b48e62a88777d54f100beac8b5d8848408f28b25c9abd62f27955aca53788d"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:5094c64b0692fd25878408229e0ace2db171912ff017613a640033e25bb87df0"
   variables:
     VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
   script:
@@ -212,6 +213,7 @@ build-wallet-web:
     - echo $CSP_STYLE_SRC_MRP | base64 > wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt
     - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
     - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
+    - mc put wallet_web/coverage/tests.xml qt/quality-time/junit-results/web.xml
   artifacts:
     reports:
       junit: wallet_web/coverage/tests.xml
