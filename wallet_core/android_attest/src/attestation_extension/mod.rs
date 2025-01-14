@@ -41,7 +41,6 @@ impl KeyAttestationExtension for X509Certificate<'_> {
 #[cfg(test)]
 mod tests {
     use chrono::NaiveDate;
-    use rasn::types::Integer;
     use rasn::types::OctetString;
     use rasn::types::SetOf;
     use rstest::rstest;
@@ -103,7 +102,7 @@ mod tests {
             software_enforced: AuthorizationList {
                 purpose: Some(vec![KeyPurpose::Sign].into_iter().collect()),
                 algorithm: Algorithm::Ec.into(),
-                key_size: Integer::from(256).into(),
+                key_size: 256.into(),
                 digest: Some(vec![Digest::Sha2_256].into_iter().collect()),
                 ec_curve: EcCurve::P256.into(),
                 no_auth_required: true,
@@ -228,7 +227,7 @@ mod tests {
             hardware_enforced: AuthorizationList {
                 purpose: Some(vec![KeyPurpose::Verify, KeyPurpose::Sign].into_iter().collect()),
                 algorithm: Algorithm::Ec.into(),
-                key_size: Integer::from(256).into(),
+                key_size: 256.into(),
                 digest: Some(vec![Digest::Sha2_256].into_iter().collect()),
                 no_auth_required: true,
                 origin: KeyOrigin::Generated.into(),
@@ -332,7 +331,7 @@ mod tests {
             hardware_enforced: AuthorizationList {
                 purpose: Some(vec![KeyPurpose::Verify, KeyPurpose::Sign].into_iter().collect()),
                 algorithm: Algorithm::Ec.into(),
-                key_size: Integer::from(256).into(),
+                key_size: 256.into(),
                 digest: Some(vec![Digest::Sha2_256].into_iter().collect()),
                 ec_curve: EcCurve::P256.into(),
                 no_auth_required: true,

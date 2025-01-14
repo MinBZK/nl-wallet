@@ -1,3 +1,11 @@
+//! The types in this file are based on the types in
+//!
+//! - Android documentation: https://source.android.com/docs/security/features/keystore/tags
+//! - KeyMint source code: https://android.googlesource.com/platform/system/keymint/
+//!
+//! These types should be able to handle all KeyMaster/KeyMint versions, so for example enums
+//! might contain more values than defined in the latest KeyMint version.
+
 use std::collections::HashSet;
 use std::hash::Hash;
 
@@ -104,8 +112,10 @@ pub enum KeyPurpose {
     Decrypt = 1,
     Sign = 2,
     Verify = 3,
-    DeriveKey = 4,
+    DeriveKey = 4, // Used in KeyMaster, removed in KeyMint
     WrapKey = 5,
+    AgreeKey = 6,
+    AttestKey = 7,
 }
 
 integer_int_enum_conversion_with_set!(KeyPurpose, u32, KeyPurposeError, InvalidKeyPurpose);
@@ -116,6 +126,7 @@ pub enum Algorithm {
     Rsa = 1,
     Ec = 3,
     Aes = 32,
+    TrippleDes = 33,
     Hmac = 128,
 }
 
@@ -156,6 +167,7 @@ pub enum EcCurve {
     P256 = 1,
     P384 = 2,
     P512 = 3,
+    Curve25519 = 4,
 }
 
 integer_int_enum_conversion!(EcCurve, u32, EcCurveError, InvalidEcCurve);
@@ -188,6 +200,7 @@ pub enum KeyOrigin {
     Derived = 1,
     Imported = 2,
     Unknown = 3,
+    SecurelyImported = 4,
 }
 
 integer_int_enum_conversion!(KeyOrigin, u32, KeyOriginError, InvalidKeyOrigin);
@@ -196,12 +209,16 @@ integer_int_enum_conversion!(KeyOrigin, u32, KeyOriginError, InvalidKeyOrigin);
 pub struct OsVersion {
     pub major: u8,
     pub minor: u8,
-    pub bugfix: u8,
+    pub sub_minor: u8,
 }
 
 impl OsVersion {
-    pub fn new(major: u8, minor: u8, bugfix: u8) -> Self {
-        Self { major, minor, bugfix }
+    pub fn new(major: u8, minor: u8, sub_minor: u8) -> Self {
+        Self {
+            major,
+            minor,
+            sub_minor,
+        }
     }
 }
 
@@ -229,7 +246,7 @@ impl TryFrom<Integer> for OsVersion {
         Ok(OsVersion {
             major: major as u8,
             minor: minor as u8,
-            bugfix: bugfix as u8,
+            sub_minor: bugfix as u8,
         })
     }
 }
@@ -371,18 +388,18 @@ impl TryFrom<KeyDescription> for KeyAttestation {
 pub struct AuthorizationList {
     pub purpose: Option<HashSet<KeyPurpose>>,
     pub algorithm: Option<Algorithm>,
-    pub key_size: Option<Integer>,
+    pub key_size: Option<u32>,
     pub digest: Option<HashSet<Digest>>,
     pub padding: Option<HashSet<Padding>>,
     pub ec_curve: Option<EcCurve>,
     pub rsa_public_exponent: Option<u64>,
-    pub mgf_digest: Option<HashSet<Integer>>, // Use Digest?
+    pub mgf_digest: Option<HashSet<Digest>>,
     pub rollback_resistance: bool,
     pub early_boot_only: bool,
     pub active_date_time: Option<DateTime<Utc>>, // milliseconds since January 1, 1970
     pub origination_expire_date_time: Option<DateTime<Utc>>, // milliseconds since January 1, 1970
     pub usage_expire_date_time: Option<DateTime<Utc>>, // milliseconds since January 1, 1970
-    pub usage_count_limit: Option<Integer>,      // u32
+    pub usage_count_limit: Option<u32>,
     pub no_auth_required: bool,
     pub user_auth_type: Option<HardwareAuthenticatorType>,
     pub auth_timeout: Option<Duration>, // in seconds
@@ -449,6 +466,10 @@ pub enum AuthorizationListFieldError {
     BootPatchLevel(#[source] PatchLevelError),
     #[error("invalid attestation_application_id field: {0}")]
     AttestationApplicationId(#[source] DecodeError),
+    #[error("invalid usage_count_limit field: {0}")]
+    UsageCountLimit(Integer),
+    #[error("invalid key_size field: {0}")]
+    KeySize(Integer),
 }
 
 impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
@@ -458,7 +479,12 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
         let result = AuthorizationList {
             purpose: source.purpose.map(KeyPurpose::from_set_of_integer).transpose()?,
             algorithm: source.algorithm.map(TryFrom::try_from).transpose()?,
-            key_size: source.key_size,
+            key_size: source
+                .key_size
+                .as_ref()
+                .map(TryFrom::try_from)
+                .transpose()
+                .map_err(|_| AuthorizationListFieldError::KeySize(source.key_size.unwrap()))?,
             digest: source.digest.map(Digest::from_set_of_integer).transpose()?,
             padding: source.padding.map(Padding::from_set_of_integer).transpose()?,
             ec_curve: source.ec_curve.map(TryFrom::try_from).transpose()?,
@@ -468,7 +494,7 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .map(TryFrom::try_from)
                 .transpose()
                 .map_err(|_| AuthorizationListFieldError::RsaPublicExponent(source.rsa_public_exponent.unwrap()))?,
-            mgf_digest: source.mgf_digest.map(|d| d.to_vec().into_iter().cloned().collect()),
+            mgf_digest: source.mgf_digest.map(Digest::from_set_of_integer).transpose()?,
             rollback_resistance: source.rollback_resistance.is_some(),
             early_boot_only: source.early_boot_only.is_some(),
             active_date_time: source
@@ -486,7 +512,12 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .map(date_time_from_integer_milliseconds)
                 .transpose()
                 .map_err(AuthorizationListFieldError::UsageExpireDateTime)?,
-            usage_count_limit: source.usage_count_limit,
+            usage_count_limit: source
+                .usage_count_limit
+                .as_ref()
+                .map(TryFrom::try_from)
+                .transpose()
+                .map_err(|_| AuthorizationListFieldError::UsageCountLimit(source.usage_count_limit.unwrap()))?,
             no_auth_required: source.no_auth_required.is_some(),
             user_auth_type: source
                 .user_auth_type
@@ -601,7 +632,9 @@ mod test {
     #[case(3.into(), Ok(KeyPurpose::Verify))]
     #[case(4.into(), Ok(KeyPurpose::DeriveKey))]
     #[case(5.into(), Ok(KeyPurpose::WrapKey))]
-    #[case(6.into(), Err(KeyPurposeError::InvalidKeyPurpose(6)))]
+    #[case(6.into(), Ok(KeyPurpose::AgreeKey))]
+    #[case(7.into(), Ok(KeyPurpose::AttestKey))]
+    #[case(8.into(), Err(KeyPurposeError::InvalidKeyPurpose(8)))]
     fn key_purpose(#[case] input: Integer, #[case] expected: Result<KeyPurpose, KeyPurposeError>) {
         assert_eq!(KeyPurpose::try_from(input), expected);
     }
@@ -610,6 +643,7 @@ mod test {
     #[case(1.into(), Ok(Algorithm::Rsa))]
     #[case(3.into(), Ok(Algorithm::Ec))]
     #[case(32.into(), Ok(Algorithm::Aes))]
+    #[case(33.into(), Ok(Algorithm::TrippleDes))]
     #[case(128.into(), Ok(Algorithm::Hmac))]
     #[case(0.into(), Err(AlgorithmError::InvalidAlgorithm(0)))]
     #[case(2.into(), Err(AlgorithmError::InvalidAlgorithm(2)))]
@@ -648,7 +682,8 @@ mod test {
     #[case(1.into(), Ok(EcCurve::P256))]
     #[case(2.into(), Ok(EcCurve::P384))]
     #[case(3.into(), Ok(EcCurve::P512))]
-    #[case(4.into(), Err(EcCurveError::InvalidEcCurve(4)))]
+    #[case(4.into(), Ok(EcCurve::Curve25519))]
+    #[case(5.into(), Err(EcCurveError::InvalidEcCurve(5)))]
     fn ec_curve(#[case] input: Integer, #[case] expected: Result<EcCurve, EcCurveError>) {
         assert_eq!(EcCurve::try_from(input), expected);
     }
@@ -658,7 +693,8 @@ mod test {
     #[case(1.into(), Ok(KeyOrigin::Derived))]
     #[case(2.into(), Ok(KeyOrigin::Imported))]
     #[case(3.into(), Ok(KeyOrigin::Unknown))]
-    #[case(4.into(), Err(KeyOriginError::InvalidKeyOrigin(4)))]
+    #[case(4.into(), Ok(KeyOrigin::SecurelyImported))]
+    #[case(5.into(), Err(KeyOriginError::InvalidKeyOrigin(5)))]
     fn key_origin(#[case] input: Integer, #[case] expected: Result<KeyOrigin, KeyOriginError>) {
         assert_eq!(KeyOrigin::try_from(input), expected);
     }
@@ -682,7 +718,7 @@ mod test {
             (Ok(version), Ok((major, minor, bugfix))) => {
                 assert_eq!(version.major, major);
                 assert_eq!(version.minor, minor);
-                assert_eq!(version.bugfix, bugfix);
+                assert_eq!(version.sub_minor, bugfix);
             }
             _ => unreachable!(),
         }
@@ -828,12 +864,12 @@ mod test {
             software_enforced: AuthorizationList {
                 purpose: Some(vec![KeyPurpose::Sign].into_iter().collect()),
                 algorithm: Some(Algorithm::Ec),
-                key_size: Some(256.into()),
+                key_size: Some(256),
                 digest: Some(vec![Digest::Sha2_256].into_iter().collect()),
                 padding: Some(vec![Padding::None].into_iter().collect()),
                 ec_curve: Some(EcCurve::P256),
                 rsa_public_exponent: Some(7),
-                mgf_digest: Some(vec![4.into()].into_iter().collect()),
+                mgf_digest: Some(vec![Digest::Sha2_256].into_iter().collect()),
                 rollback_resistance: true,
                 early_boot_only: true,
                 active_date_time: Some(
@@ -857,7 +893,7 @@ mod test {
                         .unwrap()
                         .and_utc(),
                 ),
-                usage_count_limit: Some(3.into()),
+                usage_count_limit: Some(3),
                 no_auth_required: true,
                 user_auth_type: Some(HardwareAuthenticatorType(3)),
                 auth_timeout: Some(Duration::seconds(86400)),
@@ -884,7 +920,7 @@ mod test {
                         b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
                     ),
                 }),
-                os_version: Some(OsVersion { major: 13, minor: 0, bugfix: 0}),
+                os_version: Some(OsVersion { major: 13, minor: 0, sub_minor: 0}),
                 os_patch_level: Some(PatchLevel(2024, 3, None)),
                 attestation_application_id: Some(AttestationApplicationId {
                     package_infos: SetOf::from_vec(vec![AttestationPackageInfo {
