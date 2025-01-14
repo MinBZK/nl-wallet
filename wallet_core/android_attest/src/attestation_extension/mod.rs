@@ -5,8 +5,9 @@ use x509_parser::certificate::X509Certificate;
 use x509_parser::der_parser::oid;
 use x509_parser::der_parser::Oid;
 
-pub use key_attestation::KeyAttestation;
+use key_attestation::KeyAttestation;
 use key_attestation::KeyDescriptionFieldError;
+use key_description::KeyDescription;
 
 #[rustfmt::skip]
 pub const KEY_ATTESTATION_EXTENSION_OID: Oid = oid!(1.3.6.1.4.1.11129.2.1.17);
@@ -28,13 +29,15 @@ pub trait KeyAttestationExtension {
 impl KeyAttestationExtension for X509Certificate<'_> {
     /// Try to parse key attestation extension from the certificate.
     fn parse_key_description(&self) -> Result<Option<KeyAttestation>, KeyAttestationExtensionError> {
-        let key_description: Option<key_description::KeyDescription> = self
+        let key_description = self
             .get_extension_unique(&KEY_ATTESTATION_EXTENSION_OID)
             .map_err(|_| KeyAttestationExtensionError::DuplicateKeyDescription)?
-            .map(|ext| rasn::der::decode(ext.value))
+            .map(|ext| rasn::der::decode::<KeyDescription>(ext.value))
+            .transpose()?
+            .map(TryInto::try_into)
             .transpose()?;
 
-        Ok(key_description.map(TryInto::try_into).transpose()?)
+        Ok(key_description)
     }
 }
 
@@ -46,21 +49,21 @@ mod tests {
     use rstest::rstest;
     use x509_parser::prelude::FromDer;
 
+    use super::key_attestation::Algorithm;
+    use super::key_attestation::AttestationApplicationId;
+    use super::key_attestation::AttestationPackageInfo;
+    use super::key_attestation::AttestationVersion;
+    use super::key_attestation::AuthorizationList;
+    use super::key_attestation::Digest;
+    use super::key_attestation::EcCurve;
+    use super::key_attestation::KeyMintVersion;
+    use super::key_attestation::KeyOrigin;
+    use super::key_attestation::KeyPurpose;
+    use super::key_attestation::OsVersion;
+    use super::key_attestation::PatchLevel;
     use super::key_description::RootOfTrust;
     use super::key_description::SecurityLevel;
     use super::key_description::VerifiedBootState;
-    use key_attestation::Algorithm;
-    use key_attestation::AttestationApplicationId;
-    use key_attestation::AttestationPackageInfo;
-    use key_attestation::AttestationVersion;
-    use key_attestation::AuthorizationList;
-    use key_attestation::Digest;
-    use key_attestation::EcCurve;
-    use key_attestation::KeyMintVersion;
-    use key_attestation::KeyOrigin;
-    use key_attestation::KeyPurpose;
-    use key_attestation::OsVersion;
-    use key_attestation::PatchLevel;
 
     use super::*;
 

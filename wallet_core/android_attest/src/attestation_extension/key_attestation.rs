@@ -21,7 +21,6 @@ use rasn::types::SetOf;
 use rasn::AsnType;
 use rasn::Decode;
 use rasn::Decoder;
-use rasn::Encode;
 
 use super::key_description;
 use super::key_description::KeyDescription;
@@ -37,21 +36,6 @@ macro_rules! integer_int_enum_conversion {
             #[error("not a valid {}: {0}", stringify!($type))]
             $invalid_error($repr),
         }
-        impl TryFrom<Integer> for $type {
-            type Error = $error_type;
-            fn try_from(value: Integer) -> Result<Self, Self::Error> {
-                let repr: $repr = (&value)
-                    .try_into()
-                    .map_err(|_| $error_type::IntegerConversion(value))?;
-                <$type>::try_from(repr).map_err($error_type::$invalid_error)
-            }
-        }
-    };
-}
-
-macro_rules! integer_int_enum_conversion_with_set {
-    ($type:ty, $repr:ident, $error_type:ident, $invalid_error:ident) => {
-        integer_int_enum_conversion!($type, $repr, $error_type, $invalid_error);
         impl TryFrom<&Integer> for $type {
             type Error = $error_type;
             fn try_from(value: &Integer) -> Result<Self, Self::Error> {
@@ -61,6 +45,12 @@ macro_rules! integer_int_enum_conversion_with_set {
                 <$type>::try_from(repr).map_err($error_type::$invalid_error)
             }
         }
+    };
+}
+
+macro_rules! integer_int_enum_conversion_with_set {
+    ($type:ty, $repr:ident, $error_type:ident, $invalid_error:ident) => {
+        integer_int_enum_conversion!($type, $repr, $error_type, $invalid_error);
         impl $type {
             fn from_set_of_integer(set: SetOf<Integer>) -> Result<HashSet<$type>, $error_type> {
                 set.to_vec()
@@ -242,11 +232,12 @@ impl TryFrom<Integer> for OsVersion {
             return Err(OsVersionError::InvalidOsVersion(version));
         }
         let minor = version / 100 % 100;
-        let bugfix = version % 100;
+        let sub_minor = version % 100;
+        // unwraps are safe because of guards above
         Ok(OsVersion {
-            major: major as u8,
-            minor: minor as u8,
-            sub_minor: bugfix as u8,
+            major: major.try_into().unwrap(),
+            minor: minor.try_into().unwrap(),
+            sub_minor: sub_minor.try_into().unwrap(),
         })
     }
 }
@@ -319,7 +310,8 @@ impl TryFrom<Integer> for PatchLevel {
 //     package_infos  SET OF AttestationPackageInfo,
 //     signature_digests  SET OF OCTET_STRING,
 // }
-#[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode, Encode)]
+#[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode)]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 pub struct AttestationApplicationId {
     pub package_infos: SetOf<AttestationPackageInfo>,
     pub signature_digests: SetOf<OctetString>,
@@ -329,7 +321,8 @@ pub struct AttestationApplicationId {
 //     package_name  OCTET_STRING,
 //     version  INTEGER,
 // }
-#[derive(Debug, Clone, PartialEq, Eq, Hash, AsnType, Decode, Encode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsnType, Decode)]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 pub struct AttestationPackageInfo {
     pub package_name: OctetString,
     pub version: Integer,
@@ -364,9 +357,9 @@ impl TryFrom<KeyDescription> for KeyAttestation {
 
     fn try_from(source: KeyDescription) -> Result<Self, Self::Error> {
         let result = KeyAttestation {
-            attestation_version: source.attestation_version.try_into()?,
+            attestation_version: (&source.attestation_version).try_into()?,
             attestation_security_level: source.attestation_security_level,
-            key_mint_version: source.key_mint_version.try_into()?,
+            key_mint_version: (&source.key_mint_version).try_into()?,
             key_mint_security_level: source.key_mint_security_level,
             attestation_challenge: source.attestation_challenge,
             unique_id: source.unique_id,
@@ -478,7 +471,7 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
     fn try_from(source: key_description::AuthorizationList) -> Result<Self, Self::Error> {
         let result = AuthorizationList {
             purpose: source.purpose.map(KeyPurpose::from_set_of_integer).transpose()?,
-            algorithm: source.algorithm.map(TryFrom::try_from).transpose()?,
+            algorithm: source.algorithm.as_ref().map(TryFrom::try_from).transpose()?,
             key_size: source
                 .key_size
                 .as_ref()
@@ -487,7 +480,7 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .map_err(|_| AuthorizationListFieldError::KeySize(source.key_size.unwrap()))?,
             digest: source.digest.map(Digest::from_set_of_integer).transpose()?,
             padding: source.padding.map(Padding::from_set_of_integer).transpose()?,
-            ec_curve: source.ec_curve.map(TryFrom::try_from).transpose()?,
+            ec_curve: source.ec_curve.as_ref().map(TryFrom::try_from).transpose()?,
             rsa_public_exponent: source
                 .rsa_public_exponent
                 .as_ref()
@@ -539,7 +532,7 @@ impl TryFrom<key_description::AuthorizationList> for AuthorizationList {
                 .map(date_time_from_integer_milliseconds)
                 .transpose()
                 .map_err(AuthorizationListFieldError::CreationDateTime)?,
-            origin: source.origin.map(TryFrom::try_from).transpose()?,
+            origin: source.origin.as_ref().map(TryFrom::try_from).transpose()?,
             root_of_trust: source.root_of_trust,
             os_version: source.os_version.map(TryFrom::try_from).transpose()?,
             os_patch_level: source
@@ -583,8 +576,9 @@ mod test {
     use std::cmp::Ordering;
 
     use chrono::NaiveDate;
-    use key_description::VerifiedBootState;
     use rstest::rstest;
+
+    use super::key_description::VerifiedBootState;
 
     use super::*;
 
@@ -606,7 +600,7 @@ mod test {
         #[case] input: Integer,
         #[case] expected: Result<AttestationVersion, AttestationVersionError>,
     ) {
-        assert_eq!(AttestationVersion::try_from(input), expected);
+        assert_eq!(AttestationVersion::try_from(&input), expected);
     }
 
     #[rstest]
@@ -622,7 +616,7 @@ mod test {
     #[case(5.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(5)))]
     #[case(400.into(), Err(KeyMintVersionError::InvalidKeyMintVersion(400)))]
     fn key_mint_version(#[case] input: Integer, #[case] expected: Result<KeyMintVersion, KeyMintVersionError>) {
-        assert_eq!(KeyMintVersion::try_from(input), expected);
+        assert_eq!(KeyMintVersion::try_from(&input), expected);
     }
 
     #[rstest]
@@ -636,7 +630,7 @@ mod test {
     #[case(7.into(), Ok(KeyPurpose::AttestKey))]
     #[case(8.into(), Err(KeyPurposeError::InvalidKeyPurpose(8)))]
     fn key_purpose(#[case] input: Integer, #[case] expected: Result<KeyPurpose, KeyPurposeError>) {
-        assert_eq!(KeyPurpose::try_from(input), expected);
+        assert_eq!(KeyPurpose::try_from(&input), expected);
     }
 
     #[rstest]
@@ -648,7 +642,7 @@ mod test {
     #[case(0.into(), Err(AlgorithmError::InvalidAlgorithm(0)))]
     #[case(2.into(), Err(AlgorithmError::InvalidAlgorithm(2)))]
     fn algorithm(#[case] input: Integer, #[case] expected: Result<Algorithm, AlgorithmError>) {
-        assert_eq!(Algorithm::try_from(input), expected);
+        assert_eq!(Algorithm::try_from(&input), expected);
     }
 
     #[rstest]
@@ -661,7 +655,7 @@ mod test {
     #[case(6.into(), Ok(Digest::Sha2_512))]
     #[case(7.into(), Err(DigestError::InvalidDigest(7)))]
     fn digest(#[case] input: Integer, #[case] expected: Result<Digest, DigestError>) {
-        assert_eq!(Digest::try_from(input), expected);
+        assert_eq!(Digest::try_from(&input), expected);
     }
 
     #[rstest]
@@ -674,7 +668,7 @@ mod test {
     #[case(0.into(), Err(PaddingError::InvalidPadding(0)))]
     #[case(6.into(), Err(PaddingError::InvalidPadding(6)))]
     fn padding(#[case] input: Integer, #[case] expected: Result<Padding, PaddingError>) {
-        assert_eq!(Padding::try_from(input), expected);
+        assert_eq!(Padding::try_from(&input), expected);
     }
 
     #[rstest]
@@ -685,7 +679,7 @@ mod test {
     #[case(4.into(), Ok(EcCurve::Curve25519))]
     #[case(5.into(), Err(EcCurveError::InvalidEcCurve(5)))]
     fn ec_curve(#[case] input: Integer, #[case] expected: Result<EcCurve, EcCurveError>) {
-        assert_eq!(EcCurve::try_from(input), expected);
+        assert_eq!(EcCurve::try_from(&input), expected);
     }
 
     #[rstest]
@@ -696,7 +690,7 @@ mod test {
     #[case(4.into(), Ok(KeyOrigin::SecurelyImported))]
     #[case(5.into(), Err(KeyOriginError::InvalidKeyOrigin(5)))]
     fn key_origin(#[case] input: Integer, #[case] expected: Result<KeyOrigin, KeyOriginError>) {
-        assert_eq!(KeyOrigin::try_from(input), expected);
+        assert_eq!(KeyOrigin::try_from(&input), expected);
     }
 
     #[rstest]
@@ -852,7 +846,7 @@ mod test {
                 ..Default::default()
             },
         };
-        let actual = KeyAttestation::try_from(input).unwrap();
+        let actual = KeyAttestation::try_from(input).expect("test case is valid");
 
         let expected = KeyAttestation {
             attestation_version: AttestationVersion::V200,

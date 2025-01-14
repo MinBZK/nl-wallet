@@ -12,7 +12,7 @@ use rasn::types::SetOf;
 use rasn::AsnType;
 use rasn::Decode;
 use rasn::Decoder;
-use rasn::Encode;
+#[cfg(feature = "encode")]
 use rasn::Encoder;
 
 // KeyDescription ::= SEQUENCE {
@@ -25,7 +25,8 @@ use rasn::Encoder;
 //     softwareEnforced  AuthorizationList,
 //     hardwareEnforced  AuthorizationList,
 // }
-#[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode, Encode)]
+#[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode)]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 pub(super) struct KeyDescription {
     pub(super) attestation_version: Integer,
     pub(super) attestation_security_level: SecurityLevel,
@@ -42,7 +43,8 @@ pub(super) struct KeyDescription {
 //     TrustedEnvironment  (1),
 //     StrongBox  (2),
 // }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode, Encode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode)]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 #[rasn(enumerated)]
 pub enum SecurityLevel {
     Software,
@@ -92,7 +94,8 @@ pub enum SecurityLevel {
 //     deviceUniqueAttestation  [720] EXPLICIT NULL OPTIONAL,
 //     attestationIdSecondImei  [723] EXPLICIT OCTET_STRING OPTIONAL,
 // }
-#[derive(Debug, Clone, PartialEq, Eq, Default, AsnType, Decode, Encode)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, AsnType, Decode)]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 pub(super) struct AuthorizationList {
     #[rasn(tag(explicit(1)))]
     pub(super) purpose: Option<SetOf<Integer>>,
@@ -183,7 +186,8 @@ pub(super) struct AuthorizationList {
 //     verifiedBootState  VerifiedBootState,
 //     verifiedBootHash OCTET_STRING,
 // }
-#[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode, Encode)]
+#[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode)]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 pub struct RootOfTrust {
     pub(super) verified_boot_key: OctetString,
     pub(super) device_locked: bool,
@@ -197,7 +201,8 @@ pub struct RootOfTrust {
 //     Unverified  (2),
 //     Failed  (3),
 // }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode, Encode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode)]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 #[rasn(enumerated)]
 pub enum VerifiedBootState {
     Verified,

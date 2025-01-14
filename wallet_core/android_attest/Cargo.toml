@@ -8,6 +8,7 @@ rust-version.workspace = true
 workspace = true
 
 [features]
+encode = []
 mock = ["dep:p256", "dep:rcgen"]
 network_test = []
 
