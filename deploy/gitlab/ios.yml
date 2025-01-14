@@ -46,6 +46,7 @@ test-ios:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
+    APPLE_ATTESTATION_ENVIRONMENT: "production"
     BUNDLE_FROZEN: "true"
   before_script:
     - !reference [.env-macos-runner, before_script]
