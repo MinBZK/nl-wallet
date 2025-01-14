@@ -5,6 +5,7 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use flutter_api_macros::async_runtime;
+use flutter_api_macros::flutter_api_error;
 use wallet::errors::WalletInitError;
 use wallet::wallet_common::version_string;
 use wallet::DisclosureUriSource;
@@ -86,6 +87,7 @@ async fn create_wallet() -> Result<bool, WalletInitError> {
     Ok(created)
 }
 
+#[flutter_api_error]
 pub fn is_valid_pin(pin: String) -> anyhow::Result<PinValidationResult> {
     let result = wallet::validate_pin(&pin).into();
 
@@ -158,6 +160,8 @@ pub async fn clear_recent_history_stream() {
     wallet().write().await.clear_recent_history_callback();
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn unlock_wallet(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
@@ -172,6 +176,8 @@ pub async fn lock_wallet() {
     wallet.lock();
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn check_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let wallet = wallet().read().await;
 
@@ -180,6 +186,8 @@ pub async fn check_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
     Ok(result)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn change_pin(old_pin: String, new_pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
@@ -188,6 +196,8 @@ pub async fn change_pin(old_pin: String, new_pin: String) -> anyhow::Result<Wall
     Ok(result)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn continue_change_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let wallet = wallet().read().await;
 
@@ -200,6 +210,8 @@ pub async fn has_registration() -> bool {
     wallet().read().await.has_registration()
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn register(pin: String) -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
@@ -208,6 +220,8 @@ pub async fn register(pin: String) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn identify_uri(uri: String) -> anyhow::Result<IdentifyUriResult> {
     let wallet = wallet().read().await;
 
@@ -216,6 +230,8 @@ pub async fn identify_uri(uri: String) -> anyhow::Result<IdentifyUriResult> {
     Ok(identify_uri_result)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn create_pid_issuance_redirect_uri() -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
@@ -224,6 +240,8 @@ pub async fn create_pid_issuance_redirect_uri() -> anyhow::Result<String> {
     Ok(auth_url.into())
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn cancel_pid_issuance() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
@@ -232,6 +250,8 @@ pub async fn cancel_pid_issuance() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Card>> {
     let url = Url::parse(&uri)?;
 
@@ -245,6 +265,7 @@ pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Card>> {
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
@@ -253,6 +274,8 @@ pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructio
     Ok(result)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn has_active_pid_issuance_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 
@@ -261,6 +284,8 @@ pub async fn has_active_pid_issuance_session() -> anyhow::Result<bool> {
     Ok(has_active_session)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 #[allow(unused_variables)]
 pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<StartDisclosureResult> {
     let url = Url::parse(&uri)?;
@@ -275,6 +300,8 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
     Ok(result)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
     let mut wallet = wallet().write().await;
 
@@ -284,6 +311,7 @@ pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
 }
 
 #[async_runtime]
+#[flutter_api_error]
 pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureResult> {
     let mut wallet = wallet().write().await;
 
@@ -292,6 +320,8 @@ pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureRe
     Ok(result)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 
@@ -300,6 +330,8 @@ pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
     Ok(has_active_session)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn is_biometric_unlock_enabled() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 
@@ -308,6 +340,8 @@ pub async fn is_biometric_unlock_enabled() -> anyhow::Result<bool> {
     Ok(is_biometrics_enabled)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn set_biometric_unlock(enable: bool) -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
@@ -321,6 +355,8 @@ pub async fn set_biometric_unlock(enable: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
@@ -329,6 +365,8 @@ pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn get_history() -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
@@ -336,6 +374,8 @@ pub async fn get_history() -> anyhow::Result<Vec<WalletEvent>> {
     Ok(history)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn get_history_for_card(doc_type: String) -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history_for_card(&doc_type).await?;
@@ -350,6 +390,8 @@ pub async fn get_history_for_card(doc_type: String) -> anyhow::Result<Vec<Wallet
     Ok(history)
 }
 
+#[async_runtime]
+#[flutter_api_error]
 pub async fn reset_wallet() -> anyhow::Result<()> {
     wallet().write().await.reset().await?;
 

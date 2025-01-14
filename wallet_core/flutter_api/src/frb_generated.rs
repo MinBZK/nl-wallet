@@ -88,41 +88,35 @@ fn wire__crate__api__full__accept_pid_issuance_impl(
     )
 }
 fn wire__crate__api__full__cancel_disclosure_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "cancel_disclosure",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::cancel_disclosure().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::cancel_disclosure()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
 }
 fn wire__crate__api__full__cancel_pid_issuance_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "cancel_pid_issuance",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::cancel_pid_issuance().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::cancel_pid_issuance()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -132,7 +126,7 @@ fn wire__crate__api__full__change_pin_impl(
     old_pin: impl CstDecode<String>,
     new_pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "change_pin",
             port: Some(port_),
@@ -141,14 +135,11 @@ fn wire__crate__api__full__change_pin_impl(
         move || {
             let api_old_pin = old_pin.cst_decode();
             let api_new_pin = new_pin.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::change_pin(api_old_pin, api_new_pin).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::change_pin(api_old_pin, api_new_pin)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -157,7 +148,7 @@ fn wire__crate__api__full__check_pin_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "check_pin",
             port: Some(port_),
@@ -165,14 +156,11 @@ fn wire__crate__api__full__check_pin_impl(
         },
         move || {
             let api_pin = pin.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::check_pin(api_pin).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::check_pin(api_pin)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -291,7 +279,7 @@ fn wire__crate__api__full__continue_change_pin_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "continue_change_pin",
             port: Some(port_),
@@ -299,14 +287,11 @@ fn wire__crate__api__full__continue_change_pin_impl(
         },
         move || {
             let api_pin = pin.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::continue_change_pin(api_pin).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::continue_change_pin(api_pin)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -315,7 +300,7 @@ fn wire__crate__api__full__continue_pid_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     uri: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "continue_pid_issuance",
             port: Some(port_),
@@ -323,14 +308,11 @@ fn wire__crate__api__full__continue_pid_issuance_impl(
         },
         move || {
             let api_uri = uri.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::continue_pid_issuance(api_uri).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::continue_pid_issuance(api_uri)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -338,41 +320,35 @@ fn wire__crate__api__full__continue_pid_issuance_impl(
 fn wire__crate__api__full__create_pid_issuance_redirect_uri_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "create_pid_issuance_redirect_uri",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::create_pid_issuance_redirect_uri().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::create_pid_issuance_redirect_uri()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
 }
 fn wire__crate__api__full__get_history_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "get_history",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::get_history().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::get_history()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -381,7 +357,7 @@ fn wire__crate__api__full__get_history_for_card_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     doc_type: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "get_history_for_card",
             port: Some(port_),
@@ -389,14 +365,11 @@ fn wire__crate__api__full__get_history_for_card_impl(
         },
         move || {
             let api_doc_type = doc_type.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::get_history_for_card(api_doc_type).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::get_history_for_card(api_doc_type)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -419,21 +392,18 @@ fn wire__crate__api__full__get_version_string_impl(port_: flutter_rust_bridge::f
     )
 }
 fn wire__crate__api__full__has_active_disclosure_session_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "has_active_disclosure_session",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::has_active_disclosure_session().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::has_active_disclosure_session()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -441,21 +411,18 @@ fn wire__crate__api__full__has_active_disclosure_session_impl(port_: flutter_rus
 fn wire__crate__api__full__has_active_pid_issuance_session_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "has_active_pid_issuance_session",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::has_active_pid_issuance_session().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::has_active_pid_issuance_session()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -484,7 +451,7 @@ fn wire__crate__api__full__identify_uri_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     uri: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "identify_uri",
             port: Some(port_),
@@ -492,14 +459,11 @@ fn wire__crate__api__full__identify_uri_impl(
         },
         move || {
             let api_uri = uri.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::identify_uri(api_uri).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::identify_uri(api_uri)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -525,21 +489,18 @@ fn wire__crate__api__full__init_impl(port_: flutter_rust_bridge::for_generated::
     )
 }
 fn wire__crate__api__full__is_biometric_unlock_enabled_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "is_biometric_unlock_enabled",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::is_biometric_unlock_enabled().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::is_biometric_unlock_enabled()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -608,7 +569,7 @@ fn wire__crate__api__full__register_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "register",
             port: Some(port_),
@@ -616,34 +577,28 @@ fn wire__crate__api__full__register_impl(
         },
         move || {
             let api_pin = pin.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::register(api_pin).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::register(api_pin)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
 }
 fn wire__crate__api__full__reset_wallet_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "reset_wallet",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::reset_wallet().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::reset_wallet()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -652,7 +607,7 @@ fn wire__crate__api__full__set_biometric_unlock_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     enable: impl CstDecode<bool>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "set_biometric_unlock",
             port: Some(port_),
@@ -660,14 +615,11 @@ fn wire__crate__api__full__set_biometric_unlock_impl(
         },
         move || {
             let api_enable = enable.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::set_biometric_unlock(api_enable).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::set_biometric_unlock(api_enable)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -809,7 +761,7 @@ fn wire__crate__api__full__start_disclosure_impl(
     uri: impl CstDecode<String>,
     is_qr_code: impl CstDecode<bool>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "start_disclosure",
             port: Some(port_),
@@ -818,14 +770,11 @@ fn wire__crate__api__full__start_disclosure_impl(
         move || {
             let api_uri = uri.cst_decode();
             let api_is_qr_code = is_qr_code.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::start_disclosure(api_uri, api_is_qr_code).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::start_disclosure(api_uri, api_is_qr_code)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
@@ -834,7 +783,7 @@ fn wire__crate__api__full__unlock_wallet_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "unlock_wallet",
             port: Some(port_),
@@ -842,34 +791,28 @@ fn wire__crate__api__full__unlock_wallet_impl(
         },
         move || {
             let api_pin = pin.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::unlock_wallet(api_pin).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::unlock_wallet(api_pin)?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
 }
 fn wire__crate__api__full__unlock_wallet_with_biometrics_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "unlock_wallet_with_biometrics",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::unlock_wallet_with_biometrics().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
+            move |context| {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
+                    let output_ok = crate::api::full::unlock_wallet_with_biometrics()?;
+                    Ok(output_ok)
+                })())
             }
         },
     )
