@@ -26,15 +26,15 @@ use rasn::Encoder;
 //     hardwareEnforced  AuthorizationList,
 // }
 #[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode, Encode)]
-pub struct KeyDescription {
-    pub attestation_version: Integer,
-    pub attestation_security_level: SecurityLevel,
-    pub key_mint_version: Integer,
-    pub key_mint_security_level: SecurityLevel,
-    pub attestation_challenge: OctetString,
-    pub unique_id: OctetString,
-    pub software_enforced: AuthorizationList,
-    pub hardware_enforced: AuthorizationList,
+pub(super) struct KeyDescription {
+    pub(super) attestation_version: Integer,
+    pub(super) attestation_security_level: SecurityLevel,
+    pub(super) key_mint_version: Integer,
+    pub(super) key_mint_security_level: SecurityLevel,
+    pub(super) attestation_challenge: OctetString,
+    pub(super) unique_id: OctetString,
+    pub(super) software_enforced: AuthorizationList,
+    pub(super) hardware_enforced: AuthorizationList,
 }
 
 // SecurityLevel ::= ENUMERATED {
@@ -93,88 +93,88 @@ pub enum SecurityLevel {
 //     attestationIdSecondImei  [723] EXPLICIT OCTET_STRING OPTIONAL,
 // }
 #[derive(Debug, Clone, PartialEq, Eq, Default, AsnType, Decode, Encode)]
-pub struct AuthorizationList {
+pub(super) struct AuthorizationList {
     #[rasn(tag(explicit(1)))]
-    pub purpose: Option<SetOf<Integer>>,
+    pub(super) purpose: Option<SetOf<Integer>>,
     #[rasn(tag(explicit(2)))]
-    pub algorithm: Option<Integer>,
+    pub(super) algorithm: Option<Integer>,
     #[rasn(tag(explicit(3)))]
-    pub key_size: Option<Integer>,
+    pub(super) key_size: Option<Integer>,
     #[rasn(tag(explicit(5)))]
-    pub digest: Option<SetOf<Integer>>,
+    pub(super) digest: Option<SetOf<Integer>>,
     #[rasn(tag(explicit(6)))]
-    pub padding: Option<SetOf<Integer>>,
+    pub(super) padding: Option<SetOf<Integer>>,
     #[rasn(tag(explicit(10)))]
-    pub ec_curve: Option<Integer>,
+    pub(super) ec_curve: Option<Integer>,
     #[rasn(tag(explicit(200)))]
-    pub rsa_public_exponent: Option<Integer>,
+    pub(super) rsa_public_exponent: Option<Integer>,
     #[rasn(tag(explicit(203)))]
-    pub mgf_digest: Option<SetOf<Integer>>,
+    pub(super) mgf_digest: Option<SetOf<Integer>>,
     #[rasn(tag(explicit(303)))]
-    pub rollback_resistance: Option<()>,
+    pub(super) rollback_resistance: Option<()>,
     #[rasn(tag(explicit(305)))]
-    pub early_boot_only: Option<()>,
+    pub(super) early_boot_only: Option<()>,
     #[rasn(tag(explicit(400)))]
-    pub active_date_time: Option<Integer>,
+    pub(super) active_date_time: Option<Integer>,
     #[rasn(tag(explicit(401)))]
-    pub origination_expire_date_time: Option<Integer>,
+    pub(super) origination_expire_date_time: Option<Integer>,
     #[rasn(tag(explicit(402)))]
-    pub usage_expire_date_time: Option<Integer>,
+    pub(super) usage_expire_date_time: Option<Integer>,
     #[rasn(tag(explicit(405)))]
-    pub usage_count_limit: Option<Integer>,
+    pub(super) usage_count_limit: Option<Integer>,
     #[rasn(tag(explicit(503)))]
-    pub no_auth_required: Option<()>,
+    pub(super) no_auth_required: Option<()>,
     #[rasn(tag(explicit(504)))]
-    pub user_auth_type: Option<Integer>,
+    pub(super) user_auth_type: Option<Integer>,
     #[rasn(tag(explicit(505)))]
-    pub auth_timeout: Option<Integer>,
+    pub(super) auth_timeout: Option<Integer>,
     #[rasn(tag(explicit(506)))]
-    pub allow_while_on_body: Option<()>,
+    pub(super) allow_while_on_body: Option<()>,
     #[rasn(tag(explicit(507)))]
-    pub trusted_user_presence_required: Option<()>,
+    pub(super) trusted_user_presence_required: Option<()>,
     #[rasn(tag(explicit(508)))]
-    pub trusted_confirmation_required: Option<()>,
+    pub(super) trusted_confirmation_required: Option<()>,
     #[rasn(tag(explicit(509)))]
-    pub unlocked_device_required: Option<()>,
+    pub(super) unlocked_device_required: Option<()>,
     // kept for backwards compatibility reasons, this field is removed in version 100
     #[rasn(tag(explicit(600)))]
-    pub all_applications: Option<()>,
+    pub(super) all_applications: Option<()>,
     #[rasn(tag(explicit(701)))]
-    pub creation_date_time: Option<Integer>,
+    pub(super) creation_date_time: Option<Integer>,
     #[rasn(tag(explicit(702)))]
-    pub origin: Option<Integer>,
+    pub(super) origin: Option<Integer>,
     #[rasn(tag(explicit(704)))]
-    pub root_of_trust: Option<RootOfTrust>,
+    pub(super) root_of_trust: Option<RootOfTrust>,
     #[rasn(tag(explicit(705)))]
-    pub os_version: Option<Integer>,
+    pub(super) os_version: Option<Integer>,
     #[rasn(tag(explicit(706)))]
-    pub os_patch_level: Option<Integer>,
+    pub(super) os_patch_level: Option<Integer>,
     #[rasn(tag(explicit(709)))]
-    pub attestation_application_id: Option<OctetString>,
+    pub(super) attestation_application_id: Option<OctetString>,
     #[rasn(tag(explicit(710)))]
-    pub attestation_id_brand: Option<OctetString>,
+    pub(super) attestation_id_brand: Option<OctetString>,
     #[rasn(tag(explicit(711)))]
-    pub attestation_id_device: Option<OctetString>,
+    pub(super) attestation_id_device: Option<OctetString>,
     #[rasn(tag(explicit(712)))]
-    pub attestation_id_product: Option<OctetString>,
+    pub(super) attestation_id_product: Option<OctetString>,
     #[rasn(tag(explicit(713)))]
-    pub attestation_id_serial: Option<OctetString>,
+    pub(super) attestation_id_serial: Option<OctetString>,
     #[rasn(tag(explicit(714)))]
-    pub attestation_id_imei: Option<OctetString>,
+    pub(super) attestation_id_imei: Option<OctetString>,
     #[rasn(tag(explicit(715)))]
-    pub attestation_id_meid: Option<OctetString>,
+    pub(super) attestation_id_meid: Option<OctetString>,
     #[rasn(tag(explicit(716)))]
-    pub attestation_id_manufacturer: Option<OctetString>,
+    pub(super) attestation_id_manufacturer: Option<OctetString>,
     #[rasn(tag(explicit(717)))]
-    pub attestation_id_model: Option<OctetString>,
+    pub(super) attestation_id_model: Option<OctetString>,
     #[rasn(tag(explicit(718)))]
-    pub vendor_patch_level: Option<Integer>,
+    pub(super) vendor_patch_level: Option<Integer>,
     #[rasn(tag(explicit(719)))]
-    pub boot_patch_level: Option<Integer>,
+    pub(super) boot_patch_level: Option<Integer>,
     #[rasn(tag(explicit(720)))]
-    pub device_unique_attestation: Option<()>,
+    pub(super) device_unique_attestation: Option<()>,
     #[rasn(tag(explicit(723)))]
-    pub attestation_id_second_imei: Option<OctetString>,
+    pub(super) attestation_id_second_imei: Option<OctetString>,
 }
 
 // RootOfTrust ::= SEQUENCE {
@@ -185,10 +185,10 @@ pub struct AuthorizationList {
 // }
 #[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode, Encode)]
 pub struct RootOfTrust {
-    pub verified_boot_key: OctetString,
-    pub device_locked: bool,
-    pub verified_boot_state: VerifiedBootState,
-    pub verified_boot_hash: OctetString,
+    pub(super) verified_boot_key: OctetString,
+    pub(super) device_locked: bool,
+    pub(super) verified_boot_state: VerifiedBootState,
+    pub(super) verified_boot_hash: OctetString,
 }
 
 // VerifiedBootState ::= ENUMERATED {
