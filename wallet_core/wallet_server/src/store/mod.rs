@@ -1,7 +1,7 @@
 cfg_if::cfg_if! {
     if #[cfg(feature = "postgres")] {
         pub mod postgres;
-        use postgres::{PostgresSessionStore};
+        use postgres::PostgresSessionStore;
     }
 }
 

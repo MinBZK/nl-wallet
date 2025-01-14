@@ -113,7 +113,8 @@ mod tests {
     use std::time::UNIX_EPOCH;
 
     use rstest::rstest;
-    use rustls_pki_types::{CertificateDer, UnixTime};
+    use rustls_pki_types::CertificateDer;
+    use rustls_pki_types::UnixTime;
     use webpki::ring::ECDSA_P256_SHA256;
     use webpki::EndEntityCert;
     use webpki::KeyUsage;
