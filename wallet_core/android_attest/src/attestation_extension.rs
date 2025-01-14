@@ -264,8 +264,8 @@ impl TryFrom<Integer> for PatchLevel {
     type Error = PatchLevelError;
 
     fn try_from(value: Integer) -> Result<Self, Self::Error> {
-        let mut rest: usize = value
-            .clone()
+        let mut rest: usize = (&value)
+            .try_into()
             .try_into()
             .map_err(|_| PatchLevelError::Conversion(value.clone()))?;
 
