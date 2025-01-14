@@ -1,5 +1,4 @@
-import 'dart:async';
-import 'dart:ffi';
+import 'dart:io';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/foundation.dart';
@@ -41,7 +40,8 @@ void main() async {
   if (Environment.mockRepositories) {
     core.WalletCore.initMock(api: mock.api);
   } else {
-    await core.WalletCore.init(externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true));
+    final lib = Platform.isIOS || Platform.isMacOS ? ExternalLibrary.process(iKnowHowToUseIt: true) : null;
+    await core.WalletCore.init(externalLibrary: lib);
   }
 
   await core.postInit();
