@@ -8,10 +8,10 @@
 
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::time::Duration;
 
 use bitflags::bitflags;
 use chrono::DateTime;
-use chrono::Duration;
 use chrono::Utc;
 use int_enum::IntEnum;
 use rasn::error::DecodeError;
@@ -258,8 +258,8 @@ fn date_time_from_integer_milliseconds(source: Integer) -> Result<DateTime<Utc>,
 }
 
 fn duration_from_seconds(source: Integer) -> Result<Duration, Integer> {
-    let seconds: i64 = (&source).try_into().map_err(|_| source)?;
-    Ok(Duration::seconds(seconds))
+    let seconds: u64 = (&source).try_into().map_err(|_| source)?;
+    Ok(Duration::from_secs(seconds))
 }
 
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
@@ -778,7 +778,7 @@ mod test {
     }
 
     #[rstest]
-    #[case(300.into(), Duration::seconds(300))]
+    #[case(300.into(), Duration::from_secs(300))]
     fn test_duration_from_seconds(#[case] input: Integer, #[case] expected: Duration) {
         let actual = duration_from_seconds(input).unwrap();
         assert_eq!(actual, expected);
@@ -890,7 +890,7 @@ mod test {
                 usage_count_limit: Some(3),
                 no_auth_required: true,
                 user_auth_type: Some(HardwareAuthenticatorType(3)),
-                auth_timeout: Some(Duration::seconds(86400)),
+                auth_timeout: Some(Duration::from_secs(86400)),
                 allow_while_on_body: true,
                 trusted_user_presence_required: true,
                 trusted_confirmation_required: true,
