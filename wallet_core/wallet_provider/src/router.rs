@@ -6,9 +6,12 @@ use axum::response::Json;
 use axum::routing::get;
 use axum::routing::post;
 use axum::Router;
+use futures::try_join;
+use futures::TryFutureExt;
 use serde::Serialize;
 use tower_http::trace::TraceLayer;
 use tracing::info;
+use tracing::warn;
 
 use wallet_common::account::messages::auth::Certificate;
 use wallet_common::account::messages::auth::Challenge;
@@ -100,7 +103,8 @@ async fn enroll(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Js
     let challenge = state
         .account_server
         .registration_challenge(&state.certificate_signing_key)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("generating wallet registration challenge failed: {}", error))?;
 
     let body = Challenge { challenge };
 
@@ -118,7 +122,8 @@ async fn create_wallet(
     let cert = state
         .account_server
         .register(&state.certificate_signing_key, &state.repositories, &state.hsm, payload)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("wallet registration failed: {}", error))?;
 
     let body = Certificate { certificate: cert };
 
@@ -136,7 +141,8 @@ async fn instruction_challenge(
     let challenge = state
         .account_server
         .instruction_challenge(payload, &state.repositories, state.as_ref(), &state.hsm)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("generating instruction challenge failed: {}", error))?;
 
     let body = Challenge { challenge };
 
@@ -150,7 +156,11 @@ async fn check_pin(
     Json(payload): Json<Instruction<CheckPin>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received check pin request, handling the CheckPin instruction");
-    let body = state.handle_instruction(payload).await?;
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling CheckPin instruction failed: {}", error))?;
+
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -170,7 +180,9 @@ async fn change_pin_start(
             &state.pin_policy,
             &state.hsm,
         )
-        .await?;
+        .await
+        .inspect_err(|error| warn!("handling ChangePinStart instruction failed: {}", error))?;
+
     let body = InstructionResultMessage { result };
 
     Ok((StatusCode::OK, body.into()))
@@ -181,7 +193,11 @@ async fn change_pin_commit(
     Json(payload): Json<Instruction<ChangePinCommit>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received change pin commit request, handling the ChangePinCommit instruction");
-    let body = state.handle_instruction(payload).await?;
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling ChangePinCommit instruction failed: {}", error))?;
+
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -201,7 +217,9 @@ async fn change_pin_rollback(
             &state.pin_policy,
             &state.hsm,
         )
-        .await?;
+        .await
+        .inspect_err(|error| warn!("handling ChangePinRollback instruction failed: {}", error))?;
+
     let body = InstructionResultMessage { result };
 
     info!("Replying with the instruction result");
@@ -214,7 +232,11 @@ async fn generate_key(
     Json(payload): Json<Instruction<GenerateKey>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<GenerateKeyResult>>)> {
     info!("Received generate key request, handling the GenerateKey instruction");
-    let body = state.handle_instruction(payload).await?;
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling GenerateKey instruction failed: {}", error))?;
+
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -223,7 +245,11 @@ async fn sign(
     Json(payload): Json<Instruction<Sign>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<SignResult>>)> {
     info!("Received sign request, handling the SignRequest instruction");
-    let body = state.handle_instruction(payload).await?;
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling SignRequest instruction failed: {}", error))?;
+
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -232,7 +258,11 @@ async fn issue_wte(
     Json(payload): Json<Instruction<IssueWte>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<IssueWteResult>>)> {
     info!("Received issue WTE request, handling the IssueWte instruction");
-    let body = state.handle_instruction(payload).await?;
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling IssueWte instruction failed: {}", error))?;
+
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -241,7 +271,11 @@ async fn construct_poa(
     Json(payload): Json<Instruction<ConstructPoa>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<ConstructPoaResult>>)> {
     info!("Received new PoA request, handling the ConstructPoa instruction");
-    let body = state.handle_instruction(payload).await?;
+    let body = state
+        .handle_instruction(payload)
+        .await
+        .inspect_err(|error| warn!("handling ConstructPoa instruction failed: {}", error))?;
+
     Ok((StatusCode::OK, body.into()))
 }
 
@@ -253,14 +287,23 @@ struct PublicKeys {
 }
 
 async fn public_keys(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<PublicKeys>)> {
-    let certificate_public_key = state.certificate_signing_key.verifying_key().await?.into();
-    let instruction_result_public_key = state.instruction_result_signing_key.verifying_key().await?.into();
-    let wte_signing_key = state.wte_issuer.public_key().await?.into();
+    let (certificate_public_key, instruction_result_public_key, wte_signing_key) = try_join!(
+        state
+            .certificate_signing_key
+            .verifying_key()
+            .map_err(WalletProviderError::Hsm),
+        state
+            .instruction_result_signing_key
+            .verifying_key()
+            .map_err(WalletProviderError::Hsm),
+        state.wte_issuer.public_key().map_err(WalletProviderError::Wte)
+    )
+    .inspect_err(|error| warn!("getting wallet provider public keys failed: {}", error))?;
 
     let body = PublicKeys {
-        certificate_public_key,
-        instruction_result_public_key,
-        wte_signing_key,
+        certificate_public_key: certificate_public_key.into(),
+        instruction_result_public_key: instruction_result_public_key.into(),
+        wte_signing_key: wte_signing_key.into(),
     };
 
     Ok((StatusCode::OK, body.into()))

@@ -46,8 +46,27 @@ void main() {
       );
     });
 
-    test('Legacy Barcode is still supported on mock builds', () async {
-      expect(Environment.mockRepositories, isTrue, reason: 'test should be run with mock repositories enabled');
+    test('Legacy Barcode is still supported (on mock builds)', () async {
+      /// Create the json of a legacy EdiQrCode, as embedded in the mock QR codes
+      const legacyQrCode = EdiQrCode(id: 'OPEN_BANK_ACCOUNT', type: EdiQrType.disclosure);
+      final legacyQrAsJson = jsonEncode(legacyQrCode);
+
+      /// Wrap it in a Barcode object, which is how the actual scanner would pass it through to the core
+      final legacyQrAsBarcode = Barcode(rawValue: legacyQrAsJson);
+
+      final result = qrRepository.legacyQrToDeeplink(
+        legacyQrAsBarcode,
+        forceConversion: true /* force since non-mock builds would skip this */,
+      );
+      expect(
+        result,
+        'walletdebuginteraction://deeplink#%7B%22id%22:%22OPEN_BANK_ACCOUNT%22,%22type%22:%22verify%22%7D',
+        reason: 'The EdiQrCode should now be formatted as a URI',
+      );
+    });
+
+    test('Legacy Barcode is ignored on non-mock builds', () async {
+      expect(Environment.mockRepositories, isFalse, reason: 'test should be run with mock repositories disabled');
 
       /// Create the json of a legacy EdiQrCode, as embedded in the mock QR codes
       const legacyQrCode = EdiQrCode(id: 'OPEN_BANK_ACCOUNT', type: EdiQrType.disclosure);
@@ -55,16 +74,13 @@ void main() {
 
       /// Wrap it in a Barcode object, which is how the actual scanner would pass it through to the core
       final legacyQrAsBarcode = Barcode(rawValue: legacyQrAsJson);
-      when(mockWalletCore.identifyUri(any)).thenAnswer((realInvocation) async => IdentifyUriResult.Disclosure);
 
-      /// Process the legacy QR code and check if indeed leads to the expected [DisclosureNavigationRequest]
-      final result = await qrRepository.processBarcode(legacyQrAsBarcode);
-      expect(result, isA<DisclosureNavigationRequest>());
-
+      final result = qrRepository.legacyQrToDeeplink(legacyQrAsBarcode);
       expect(
-        (result.argument! as DisclosureScreenArgument).uri,
-        stringContainsInOrder(['OPEN_BANK_ACCOUNT', 'verify']),
-        reason: 'The EdiQrCode components should be part of the uri',
+        result,
+        isNull,
+        reason:
+            'When forceConversion is not set to true, no conversion of legacy urls should take place on non-mock builds.',
       );
     });
   });
