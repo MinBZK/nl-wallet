@@ -33,6 +33,7 @@ axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }
+futures.workspace = true
 http.workspace = true
 nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
