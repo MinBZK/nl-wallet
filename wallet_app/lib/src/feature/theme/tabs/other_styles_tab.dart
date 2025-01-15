@@ -53,6 +53,10 @@ import '../../error/error_screen.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
 import '../theme_screen.dart';
 
+const _kMockPurpose = 'Kaart uitgifte';
+const _kMockUrl = 'https://www.example.org';
+const _kMockOtherKey = 'mock.other';
+
 final _kSampleCardFront = CardFront(
   title: 'Sample Card'.untranslated,
   backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
@@ -124,12 +128,12 @@ final _kSampleInteractionAttribute = WalletEvent.disclosure(
   status: EventStatus.success,
   policy: const Policy(
     storageDuration: Duration(days: 90),
-    dataPurpose: 'Kaart uitgifte',
+    dataPurpose: _kMockPurpose,
     dataIsShared: false,
     deletionCanBeRequested: true,
-    privacyPolicyUrl: 'https://www.example.org',
+    privacyPolicyUrl: _kMockUrl,
   ),
-  purpose: 'Kaart uitgifte'.untranslated,
+  purpose: _kMockPurpose.untranslated,
   type: DisclosureType.regular,
 );
 
@@ -303,21 +307,21 @@ class OtherStylesTab extends StatelessWidget {
             value: const StringValue('This is a DataAttributeRow with type text'),
             label: 'Label',
             sourceCardDocType: 'id',
-            key: 'mock.other',
+            key: _kMockOtherKey,
           ),
         ),
         const ThemeSectionSubHeader(title: 'RequestedAttributeRow'),
         AttributeRow(
           attribute: MissingAttribute.untranslated(
             label: 'This is a RequestedAttributeRow',
-            key: 'mock.other',
+            key: _kMockOtherKey,
           ),
         ),
         const ThemeSectionSubHeader(title: 'UiAttributeRow'),
         AttributeRow(
           attribute: UiAttribute.untranslated(
             value: const StringValue('This is a UiAttributeRow'),
-            key: 'mock.other',
+            key: _kMockOtherKey,
             label: 'Label',
             icon: Icons.remove_red_eye,
           ),
@@ -398,12 +402,12 @@ class OtherStylesTab extends StatelessWidget {
             status: EventStatus.success,
             policy: const Policy(
               storageDuration: Duration(days: 90),
-              dataPurpose: 'Kaart uitgifte',
+              dataPurpose: _kMockPurpose,
               dataIsShared: false,
               deletionCanBeRequested: true,
-              privacyPolicyUrl: 'https://www.example.org',
+              privacyPolicyUrl: _kMockUrl,
             ),
-            purpose: 'Kaart uitgifte'.untranslated,
+            purpose: _kMockPurpose.untranslated,
             cards: [
               WalletCard(
                 id: 'id',
@@ -425,12 +429,12 @@ class OtherStylesTab extends StatelessWidget {
             status: EventStatus.cancelled,
             policy: const Policy(
               storageDuration: Duration(days: 90),
-              dataPurpose: 'Kaart uitgifte',
+              dataPurpose: _kMockPurpose,
               dataIsShared: false,
               deletionCanBeRequested: true,
-              privacyPolicyUrl: 'https://www.example.org',
+              privacyPolicyUrl: _kMockUrl,
             ),
-            purpose: 'Kaart uitgifte'.untranslated,
+            purpose: _kMockPurpose.untranslated,
             cards: [
               WalletCard(
                 id: 'id',
@@ -462,10 +466,10 @@ class OtherStylesTab extends StatelessWidget {
           relyingParty: _kSampleOrganization,
           policy: const Policy(
             storageDuration: Duration(days: 90),
-            dataPurpose: 'Kaart uitgifte',
+            dataPurpose: _kMockPurpose,
             dataIsShared: false,
             deletionCanBeRequested: true,
-            privacyPolicyUrl: 'https://www.example.org',
+            privacyPolicyUrl: _kMockUrl,
           ),
         ),
       ],

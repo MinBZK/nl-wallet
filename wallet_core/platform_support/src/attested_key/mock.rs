@@ -146,7 +146,7 @@ impl MockHardwareAttestedKeyHolder {
 
     /// Create a key holder that produces mock Apple attested keys using the
     /// self-signed static Apple CA contained in the "mock_ca" files.
-    #[cfg(feature = "mock_apple_ca")]
+    #[cfg(feature = "mock_attested_key_apple_ca")]
     pub fn new_apple_mock(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
         Self::new(KeyHolderType::Apple {
             ca: MockAttestationCa::new_mock(),
@@ -694,7 +694,8 @@ mod persistent {
 
 #[cfg(test)]
 mod tests {
-    use apple_app_attest::{AppIdentifier, AttestationEnvironment};
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AttestationEnvironment;
 
     use crate::attested_key::test;
     use crate::attested_key::test::AppleTestData;

@@ -25,11 +25,10 @@ mock_attested_key = [
     "wallet_common/mock_apple_attested_key",
 ]
 # Include support for the self-signed mock Apple CA in MockHardwareAttestedKeyHolder
-mock_apple_ca = ["apple_app_attest/mock_ca"]
+mock_attested_key_apple_ca = ["mock_attested_key", "apple_app_attest/mock_ca"]
 # Include PersistentMockAttestedKeyHolder for use in the iOS simulator
 persistent_mock_attested_key = [
-    "mock_attested_key",
-    "mock_apple_ca",
+    "mock_attested_key_apple_ca",
     "dep:futures",
     "dep:serde",
     "dep:serde_json",

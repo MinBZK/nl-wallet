@@ -175,7 +175,7 @@ pub async fn setup_wallet_and_env(
         }
         KeyHolderType::Google { ca_chain } => {
             wp_settings.android = Android {
-                root_public_keys: vec![RootPublicKey::Ecdsa(ca_chain.root_public_key).into()],
+                root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone()).into()],
             }
         }
     }

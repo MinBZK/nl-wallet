@@ -11,10 +11,10 @@ pub const APPLE_ROOT_CA: [u8; 549] = Pem::decode(include_bytes!("../assets/Apple
 // Generated with the following command:
 // openssl req -subj "/C=NL/CN=Mock Apple App Attestation Root CA" -nodes -x509 -sha384 -days 36524 \
 // -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout mock_ca.key.pem -out mock_ca.crt.pem
-#[cfg(feature = "mock_ca")]
+#[cfg(feature = "mock_ca_root")]
 pub const MOCK_APPLE_ROOT_CA: [u8; 524] = Pem::decode(include_bytes!("../assets/mock_ca.crt.pem"));
 
-#[cfg(feature = "mock_ca")]
+#[cfg(feature = "mock_ca_root")]
 pub const MOCK_APPLE_ROOT_CA_KEY: [u8; 185] = Pem::decode(include_bytes!("../assets/mock_ca.key.pem"));
 
 fn static_trust_anchors(der: &[u8]) -> Vec<TrustAnchor> {
@@ -30,6 +30,6 @@ fn static_trust_anchors(der: &[u8]) -> Vec<TrustAnchor> {
 pub static APPLE_TRUST_ANCHORS: LazyLock<Vec<TrustAnchor>> =
     LazyLock::new(|| static_trust_anchors(APPLE_ROOT_CA.as_slice()));
 
-#[cfg(feature = "mock_ca")]
+#[cfg(feature = "mock_ca_root")]
 pub static MOCK_APPLE_TRUST_ANCHORS: LazyLock<Vec<TrustAnchor>> =
     LazyLock::new(|| static_trust_anchors(MOCK_APPLE_ROOT_CA.as_slice()));

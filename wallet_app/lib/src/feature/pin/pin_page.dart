@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../environment.dart';
 import '../../domain/model/bloc/error_state.dart';
@@ -89,18 +90,7 @@ class PinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
       listener: (context, state) async {
-        final l10n = context.l10n;
-        if (state is PinEntryInProgress) {
-          unawaited(
-            Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then((value) {
-              if (state.afterBackspacePressed) {
-                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
-              } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
-              }
-            }),
-          );
-        }
+        _runEnteredDigitsAnnouncement(state, context.l10n);
 
         /// Check for state interceptions
         if (onStateChanged?.call(context, state) ?? false) return;
@@ -137,6 +127,21 @@ class PinPage extends StatelessWidget {
               return _buildPortrait(context);
             case Orientation.landscape:
               return _buildLandscape(context);
+          }
+        },
+      ),
+    );
+  }
+
+  void _runEnteredDigitsAnnouncement(PinState state, AppLocalizations l10n) {
+    if (state is! PinEntryInProgress) return;
+    unawaited(
+      Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then(
+        (value) {
+          if (state.afterBackspacePressed) {
+            AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+            AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
           }
         },
       ),

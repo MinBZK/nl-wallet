@@ -52,9 +52,12 @@ class BiometricSettingScreen extends StatelessWidget {
                   };
                 },
                 builder: (context, state) {
-                  assert(state is! BiometricSettingsConfirmPin, 'This state should never be rendered');
-                  assert(state is! BiometricSettingsSetupRequired, 'This state should never be rendered');
-                  assert(state is! BiometricSettingsLockedOut, 'This state should never be rendered');
+                  assert(state is! BiometricSettingsConfirmPin, 'BiometricSettingsConfirmPin should never be rendered');
+                  assert(
+                    state is! BiometricSettingsSetupRequired,
+                    'BiometricSettingsSetupRequired should never be rendered',
+                  );
+                  assert(state is! BiometricSettingsLockedOut, 'BiometricSettingsLockedOut should never be rendered');
                   return switch (state) {
                     BiometricSettingsLoaded() => _buildLoaded(context, state),
                     BiometricSettingsError() => _buildError(context, state),

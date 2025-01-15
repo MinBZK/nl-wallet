@@ -16,6 +16,12 @@ const _kCreateMonkeyBikeAccount = 'CREATE_MB_ACCOUNT';
 const _kPharmacy = 'PHARMACY';
 const _kAmsterdamLoginId = 'AMSTERDAM_LOGIN';
 
+const _kMockBirthDateKey = 'mock.birthDate';
+const _kMockStreetNameKey = 'mock.streetName';
+const _kMockPostalCodeKey = 'mock.postalCode';
+const _kMockHouseNumberKey = 'mock.houseNumber';
+const _kMockUrl = 'https://www.example.org';
+
 final List<DisclosureRequest> kDisclosureRequests = [
   DisclosureRequest(
     id: _kJobApplicationId,
@@ -134,19 +140,19 @@ final _kMarketplaceLoginRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   RequestedAttribute(
     label: 'Straatnaam',
-    key: 'mock.streetName',
+    key: _kMockStreetNameKey,
   ),
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
 ];
 
@@ -165,7 +171,7 @@ final _kCarRentalRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   RequestedAttribute(
     label: 'Rijbewijscategorieën',
@@ -185,7 +191,7 @@ final _kFirstAidRequestedAttributes = [
   ),
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   RequestedAttribute(
     label: 'Klantnummer',
@@ -209,11 +215,11 @@ final _kPharmacyRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
 ];
 
@@ -224,11 +230,11 @@ final _kParkingPermitRequestedAttributes = [
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
 ];
 
@@ -236,20 +242,20 @@ final _kOpenBankAccountRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   ..._kCitizenshipNumberRequest,
   RequestedAttribute(
     label: 'Straatnaam',
-    key: 'mock.streetName',
+    key: _kMockStreetNameKey,
   ),
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
 ];
 
@@ -257,7 +263,7 @@ final _kProvideContractDetailsRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
 ];
 
@@ -265,19 +271,19 @@ final _kCreateMbAccountRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   RequestedAttribute(
     label: 'Straatnaam',
-    key: 'mock.streetName',
+    key: _kMockStreetNameKey,
   ),
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
   RequestedAttribute(
     label: 'Woonplaats',
@@ -294,7 +300,7 @@ const _kEmployerPolicy = RequestPolicy(
 // dataPurpose: 'Gegevens controle',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMockMarketPlacePolicy = RequestPolicy(
@@ -302,7 +308,7 @@ const _kMockMarketPlacePolicy = RequestPolicy(
 // dataPurpose: 'Registreren',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMockBarPolicy = RequestPolicy(
@@ -310,7 +316,7 @@ const _kMockBarPolicy = RequestPolicy(
 // dataPurpose: 'Leeftijd controle',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: false,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMockCarRentalPolicy = RequestPolicy(
@@ -318,7 +324,7 @@ const _kMockCarRentalPolicy = RequestPolicy(
 // dataPurpose: 'Rijvaardigheid',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMockFirstAidPolicy = RequestPolicy(
@@ -326,7 +332,7 @@ const _kMockFirstAidPolicy = RequestPolicy(
 // dataPurpose: 'Zorgverlening',
   dataSharedWithThirdParties: true,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMockMunicipalityGenericPolicy = RequestPolicy(
@@ -334,7 +340,7 @@ const _kMockMunicipalityGenericPolicy = RequestPolicy(
 // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMockBankPolicy = RequestPolicy(
@@ -342,7 +348,7 @@ const _kMockBankPolicy = RequestPolicy(
 // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMockHousingCorpPolicy = RequestPolicy(
@@ -350,7 +356,7 @@ const _kMockHousingCorpPolicy = RequestPolicy(
 // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMonkeyBikePolicy = RequestPolicy(
@@ -359,7 +365,7 @@ const _kMonkeyBikePolicy = RequestPolicy(
 // dataPurposeDescription: 'De gegevens kunnen worden gebruikt voor marketing en personalisatie.',
   dataSharedWithThirdParties: true,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
 const _kMunicipalityAmsterdamPolicy = RequestPolicy(

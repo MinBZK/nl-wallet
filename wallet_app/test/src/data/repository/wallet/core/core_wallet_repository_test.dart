@@ -71,7 +71,7 @@ void main() {
     });
 
     test('unlocking is not possible when not registered', () async {
-      expect(() => repo.unlockWallet(_kValidPin), throwsUnsupportedError);
+      expect(() => repo.unlockWallet(_kValidPin), throwsStateError);
     });
   });
 

@@ -5,6 +5,7 @@ use chrono::Utc;
 use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
+use p256::elliptic_curve::pkcs8::DecodePublicKey;
 use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -13,14 +14,15 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
+use x509_parser::error::X509Error;
+use x509_parser::prelude::FromDer;
+use x509_parser::prelude::X509Certificate;
 
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::RegistrationAttestation;
@@ -124,8 +126,12 @@ pub enum WalletCertificateError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AndroidAttestationError {
-    #[error("could not decode certificate chain: {0}")]
-    CertificateChain(#[from] CertificateError),
+    #[error("could not decode certificate from chain: {0}")]
+    CertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
+    #[error("could not decode public key from leaf certificate: {0}")]
+    LeafPublicKey(#[source] p256::pkcs8::spki::Error),
+    #[error("could not decode public key from root certificate: {0}")]
+    RootPublicKey(#[source] X509Error),
     #[error("root CA in certificate chain does not contain any of the configured public keys")]
     RootPublicKeyMismatch,
 }
@@ -383,17 +389,19 @@ impl AccountServer {
             RegistrationAttestation::Google { certificate_chain, .. } => {
                 debug!("Validating Android key attestation");
 
-                // For now, just extract the verifying key from the first X.509 certificate in the chain.
-                let leaf_certificate = BorrowingCertificate::from_der(certificate_chain.first().clone())
-                    .map_err(AndroidAttestationError::CertificateChain)?;
+                // Extract the leaf certificate's verifying key and check the
+                // root certificate's public key against the ones configured.
+                let (_, leaf_certificate) = X509Certificate::from_der(certificate_chain.first())
+                    .map_err(AndroidAttestationError::CertificateDecode)?;
+                let hw_pubkey = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw)
+                    .map_err(AndroidAttestationError::LeafPublicKey)?;
 
-                let root_certificate = BorrowingCertificate::from_der(certificate_chain.last().clone())
-                    .map_err(AndroidAttestationError::CertificateChain)?;
+                let (_, root_certificate) = X509Certificate::from_der(certificate_chain.last())
+                    .map_err(AndroidAttestationError::CertificateDecode)?;
                 let root_public_key = root_certificate
-                    .x509_certificate()
                     .public_key()
                     .parsed()
-                    .map_err(|error| AndroidAttestationError::CertificateChain(CertificateError::X509Error(error)))?;
+                    .map_err(AndroidAttestationError::RootPublicKey)?;
 
                 // TODO: This check should be part of `android_attest`.
                 if !self
@@ -403,8 +411,6 @@ impl AccountServer {
                 {
                     return Err(AndroidAttestationError::RootPublicKeyMismatch)?;
                 }
-
-                let hw_pubkey = *leaf_certificate.public_key();
 
                 let attestation = registration_message
                     .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
@@ -928,6 +934,8 @@ impl AccountServer {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use std::sync::LazyLock;
+
     use p256::ecdsa::SigningKey;
 
     use android_attest::mock::MockCaChain;
@@ -937,6 +945,9 @@ pub mod mock {
     use crate::wallet_certificate;
 
     use super::*;
+
+    pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
+    pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 
     #[derive(Clone, Copy)]
     pub enum AttestationType {
@@ -950,13 +961,8 @@ pub mod mock {
         Google(&'a MockCaChain),
     }
 
-    pub fn setup_account_server(
-        certificate_signing_pubkey: &VerifyingKey,
-    ) -> (AccountServer, MockAttestationCa, MockCaChain) {
-        let apple_mock_ca = MockAttestationCa::generate();
-        let android_mock_ca_chain = MockCaChain::generate(1);
-
-        let account_server = AccountServer::new(
+    pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> AccountServer {
+        AccountServer::new(
             Duration::from_millis(15000),
             "mock_account_server".into(),
             certificate_signing_pubkey.into(),
@@ -966,12 +972,10 @@ pub mod mock {
                 app_identifier: AppIdentifier::new_mock(),
                 environment: AttestationEnvironment::Development,
             },
-            vec![apple_mock_ca.trust_anchor().to_owned()],
-            vec![RootPublicKey::Ecdsa(android_mock_ca_chain.root_public_key)],
+            vec![MOCK_APPLE_CA.trust_anchor().to_owned()],
+            vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
         )
-        .unwrap();
-
-        (account_server, apple_mock_ca, android_mock_ca_chain)
+        .unwrap()
     }
 
     #[derive(Debug)]
@@ -1096,6 +1100,8 @@ mod tests {
     use super::mock::AttestationCa;
     use super::mock::AttestationType;
     use super::mock::MockHardwareKey;
+    use super::mock::MOCK_APPLE_CA;
+    use super::mock::MOCK_GOOGLE_CA_CHAIN;
     use super::*;
 
     static HSM: OnceCell<MockPkcs11Client<HsmError>> = OnceCell::const_new();
@@ -1173,11 +1179,11 @@ mod tests {
         WalletUserTestRepo,
     ) {
         let setup = WalletCertificateSetup::new().await;
-        let (account_server, apple_mock_ca, android_mock_ca_chain) = mock::setup_account_server(&setup.signing_pubkey);
+        let account_server = mock::setup_account_server(&setup.signing_pubkey);
 
         let attestation_ca = match attestation_type {
-            AttestationType::Apple => AttestationCa::Apple(&apple_mock_ca),
-            AttestationType::Google => AttestationCa::Google(&android_mock_ca_chain),
+            AttestationType::Apple => AttestationCa::Apple(&MOCK_APPLE_CA),
+            AttestationType::Google => AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
         };
 
         let (cert, hw_privkey) = do_registration(
@@ -1405,8 +1411,7 @@ mod tests {
     #[rstest]
     async fn test_register_invalid_apple_attestation() {
         let setup = WalletCertificateSetup::new().await;
-        let (account_server, _apple_mock_ca, _android_mock_ca_chain) =
-            mock::setup_account_server(&setup.signing_pubkey);
+        let account_server = mock::setup_account_server(&setup.signing_pubkey);
 
         // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
         let other_apple_mock_ca = MockAttestationCa::generate();
@@ -1428,8 +1433,7 @@ mod tests {
     #[rstest]
     async fn test_register_invalid_android_attestation() {
         let setup = WalletCertificateSetup::new().await;
-        let (account_server, _apple_mock_ca, _android_mock_ca_chain) =
-            mock::setup_account_server(&setup.signing_pubkey);
+        let account_server = mock::setup_account_server(&setup.signing_pubkey);
 
         // Generate the Google certificate chain using a different set of CAs to make the attestation validation fail.
         let other_android_mock_ca_chain = MockCaChain::generate(1);

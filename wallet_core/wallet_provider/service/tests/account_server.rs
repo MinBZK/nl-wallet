@@ -22,6 +22,8 @@ use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
 use wallet_provider_service::account_server::mock::AttestationType;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
+use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
+use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
 use wallet_provider_service::account_server::AccountServer;
 use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
@@ -127,12 +129,12 @@ async fn test_instruction_challenge(
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
     let hsm = wallet_certificate::mock::setup_hsm().await;
-    let (account_server, apple_mock_ca, android_mock_ca_chain) = mock::setup_account_server(certificate_signing_pubkey);
+    let account_server = mock::setup_account_server(certificate_signing_pubkey);
     let pin_privkey = SigningKey::random(&mut OsRng);
 
     let attestation_ca = match attestation_type {
-        AttestationType::Apple => AttestationCa::Apple(&apple_mock_ca),
-        AttestationType::Google => AttestationCa::Google(&android_mock_ca_chain),
+        AttestationType::Apple => AttestationCa::Apple(&MOCK_APPLE_CA),
+        AttestationType::Google => AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
     };
 
     let (certificate, hw_privkey, cert_data) = do_registration(

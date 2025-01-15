@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:fimber/fimber.dart';
+import 'package:meta/meta.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:wallet_core/core.dart';
 
@@ -17,15 +18,16 @@ class CoreQrRepository implements QrRepository {
 
   @override
   Future<NavigationRequest> processBarcode(Barcode barcode) {
-    final legacyValue = _legacyQrToDeeplink(barcode);
+    final legacyValue = legacyQrToDeeplink(barcode);
     return _processRawValue(legacyValue ?? barcode.rawValue!);
   }
 
   /// Attempt to convert a legacy style json encoded scenario to a deeplink url that we can process normally.
   /// Sample input: {"id":"DRIVING_LICENSE","type":"issue"}
-  /// Returns null if the conversion failed.
-  String? _legacyQrToDeeplink(Barcode barcode) {
-    if (!Environment.mockRepositories) return null;
+  /// Returns null if the conversion failed or was intentionally not attempted (on non-mock builds).
+  @visibleForTesting
+  String? legacyQrToDeeplink(Barcode barcode, {bool forceConversion = false}) {
+    if (!Environment.mockRepositories && !forceConversion) return null;
     try {
       EdiQrCode.fromJson(jsonDecode(barcode.rawValue!));
       // No exception, so create the deeplink uri that we can process normally
