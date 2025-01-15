@@ -13,13 +13,11 @@ generate = ["dep:rcgen"]
 # Include examples from the ISO specification
 examples = []
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
+test = ["dep:assert_matches", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include example based constructors to several types for testing
 mock_example_constructors = ["examples", "mock", "wallet_common/examples", "wallet_common/mock_remote_key"]
-# Include MockTimeGenerator, which can be used to mock the curren time for testing purposes
-mock_time = ["dep:parking_lot"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -58,12 +56,12 @@ yoke = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true, optional = true }
 assert_matches = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
-parking_lot = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser", "crypto", "ring"] }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 
 error_category.path = "../error_category"
+sd_jwt.path = "../sd_jwt"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
@@ -71,10 +69,15 @@ anyhow.workspace = true
 assert_matches.workspace = true
 hex-literal.workspace = true
 http.workspace = true
-parking_lot.workspace = true
 rcgen = { workspace = true, features = ["x509-parser", "crypto", "ring"] }
 regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-wallet_common = { path = "../wallet_common", features = ["examples", "mock_secure_keys", "mock_remote_key"] }
+sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
+wallet_common = { path = "../wallet_common", features = [
+    "examples",
+    "mock_remote_key",
+    "mock_secure_keys",
+    "mock_time",
+] }

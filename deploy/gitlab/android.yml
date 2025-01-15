@@ -2,13 +2,14 @@
 #  extends: .ruby-cache
 #  rules: !reference [.default-or-release-or-merge-request, rules]
 #  image:
-#    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-emulator-rust@sha256:d6585b8aa3ffbb4f8180985404ba579e450ce85ca6ec571c99e160269f14946f"
+#    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-emulator-rust@sha256:somesha256hash"
 #  artifacts:
 #    when: always
 #    reports:
 #      coverage_report:
 #        path: wallet_core/platform_support/android/platform_support/src/main/java/cobertura.xml
 #        coverage_format: cobertura
+#      junit: wallet_core/platform_support/android/platform_support/build/outputs/androidTest-results/connected/*
 #    paths:
 #      - wallet_core/platform_support/android/platform_support/build/reports/**
 #      - wallet_core/platform_support/android/platform_support/build/outputs/androidTest-results
@@ -35,11 +36,12 @@
       artifacts: false
     - job: test-rust
       artifacts: false
+    - job: test-rust-doctest
+      artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:e7d15ca08ac783d73ea0d375eafa593633cde7fd411d2713573b5eb8d51920a1"
-  cache: !reference [.rust-cache, cache]
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:2450674118dd8d677142299b35faf233f407031ce038d57d4c9d04d83c778ac2"
   artifacts:
     name: "wallet-android"
     paths:
@@ -214,7 +216,7 @@ build-android-app-production:
 .deploy-android-app:
   extends: [.env-ont-k8s, .ruby-cache]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:4cbb65476169f12ed56a1a9db920d3e91fbdca263341471373e17dbbb8bfd6e0"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:d052bea8c1309494042a6b1e50b27fa2c31a577e1756edd6147b8ff545d4ac8b"
   environment:
     action: start
   variables:

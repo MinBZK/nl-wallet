@@ -72,7 +72,7 @@ impl<'a, S, AK, GK, A> InstructionClient<'a, S, AK, GK, A> {
     }
 }
 
-impl<'a, S, AK, GK, A> InstructionClient<'a, S, AK, GK, A>
+impl<S, AK, GK, A> InstructionClient<'_, S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,

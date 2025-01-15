@@ -287,9 +287,9 @@ mod tests {
     use super::Wallet;
 
     use crate::storage::WalletEvent;
+    use crate::wallet::test;
     use crate::wallet::test::WalletWithMocks;
     use crate::wallet::test::ISSUER_KEY;
-    use crate::wallet::test::{self};
     use crate::HistoryEvent;
 
     use super::EventStorageError;

@@ -2,12 +2,11 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:5776b7ff404573a51a03e680d556dbbd70b27d5e053001e2f7144fa553b41d70"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:26a4f3870cc66c51183577237329e8b8b0faa7cfcc86b6c8a617156195e5bb88"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
   FF_USE_FASTZIP: "true"
-  FLUTTER_APP_PROJECT_DIR: "wallet_app"
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
@@ -117,66 +116,76 @@ variables:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:0826233b542eb8cf19bfff6585a67c43b93e1bd9463ae3a6e60f629acc3c4653"
-  script:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:343b84b0afc11d6665960ddb92bddc5bb8ff224566ecc83aad727de102dd1a16"
+  before_script:
+    - cd wallet_app
     - set -euxo pipefail
+  script:
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
-    - flutter analyze $FLUTTER_APP_PROJECT_DIR
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json")
+    - flutter pub get --enforce-lockfile
+    - flutter analyze .
+    - flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
+    - $HOME/.pub-cache/bin/tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
   artifacts:
+    reports:
+      junit: wallet_app/build/reports/test-results.xml
     paths:
-      - $FLUTTER_APP_PROJECT_DIR/coverage/lcov.info
-      - $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.json
+      - wallet_app/coverage/lcov.info
+      - wallet_app/build/reports/test-results.json
+      - wallet_app/build/reports/test-results.xml
 
 test-flutter-ui:
   rules: !reference [.default-or-release-or-merge-request, rules]
   when: manual
   tags:
     - macos
-  image: sonoma-wallet:0.1.3
+  image: sonoma-wallet:0.1.4
   artifacts:
     name: "ui-test-failures"
     when: on_failure
     paths:
       - "**/failures/*.png"
-  script:
+  before_script:
+    - cd wallet_app
     - set -euxo pipefail
+  script:
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden --dart-define=MOCK_REPOSITORIES=true)
+    - flutter test --tags=golden --dart-define=MOCK_REPOSITORIES=true
 
 # Checks .arb files for unused keys, indicating an update to Lokalise might be in order
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:0826233b542eb8cf19bfff6585a67c43b93e1bd9463ae3a6e60f629acc3c4653"
-  script:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:343b84b0afc11d6665960ddb92bddc5bb8ff224566ecc83aad727de102dd1a16"
+  before_script:
+    - cd wallet_app
     - set -euxo pipefail
+  script:
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter pub get --enforce-lockfile)
-    - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms) # List any unused keys
-    - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms --abort-on-unused) # Fail if unused keys are found
+    - flutter pub get --enforce-lockfile
+    - dart run translations_cleaner list-unused-terms # List any unused keys
+    - dart run translations_cleaner list-unused-terms --abort-on-unused # Fail if unused keys are found
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
 
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:173637b27d8a4b4204d6dc12a2a8af4bddbffa6bbed984b85a5c235006bda0f6"
-  cache: !reference [.rust-cache, cache]
   before_script:
+    - cd wallet_app
     - set -euxo pipefail
   script:
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
-    - flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
-    - dart format wallet_app --line-length 120
+    - flutter pub get --enforce-lockfile
+    - flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
+    - flutter pub run build_runner build --delete-conflicting-outputs
+    - dart format . --line-length 120
     - git diff
-    - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
+    - if [[ $(git diff --shortstat | wc -l) -gt 0 ]]; then echo "Code generation results in different files!"; exit 1; fi
 
 build-wallet-web:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:668558bdce476733f02766e5e393942eeb8420e1ba31def4c98e7326b12232bf"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:d5b48e62a88777d54f100beac8b5d8848408f28b25c9abd62f27955aca53788d"
   variables:
     VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
   script:
@@ -204,6 +213,8 @@ build-wallet-web:
     - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
     - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
   artifacts:
+    reports:
+      junit: wallet_web/coverage/tests.xml
     paths:
       - wallet_web/dist
       - wallet_web/coverage
@@ -536,7 +547,7 @@ deploy-gba-fetch-frontend-demo:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:8216c77dcb0e2867776211d4c2980025d166d12fd8687acb232ef3cfbd95ad2c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:5c9dc61642166024ab4445555489e36f9caf42c4709359d1d72948689a40bc31"
   script:
     ## Rust
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom

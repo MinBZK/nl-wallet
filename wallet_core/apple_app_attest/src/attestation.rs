@@ -242,7 +242,6 @@ impl VerifiedAttestation {
 pub mod mock {
     use coset::iana::EllipticCurve;
     use coset::CoseKeyBuilder;
-    use der::Encode;
     use derive_more::Debug;
     use p256::ecdsa::SigningKey;
     use p256::pkcs8::DecodePrivateKey;
@@ -408,13 +407,12 @@ pub mod mock {
                 .chain_update(challenge)
                 .finalize()
                 .to_vec();
-            let extension = AppleAnonymousAttestationExtension { nonce: &nonce };
-            let mut extension_content = Vec::new();
-            extension.encode_to_vec(&mut extension_content).unwrap();
+            let extension = AppleAnonymousAttestationExtension { nonce: nonce.into() };
+            let extension_content = rasn::der::encode(&extension).unwrap();
 
             let mut params = CertificateParams::default();
             params.custom_extensions = vec![CustomExtension::from_oid_content(
-                &APPLE_ANONYMOUS_ATTESTATION_OID,
+                &APPLE_ANONYMOUS_ATTESTATION_OID.iter().unwrap().collect::<Vec<_>>(),
                 extension_content,
             )];
             let certificate = params.signed_by(&key_pair, &ca.certificate, &ca.key_pair).unwrap();

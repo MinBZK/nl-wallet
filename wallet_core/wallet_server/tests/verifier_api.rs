@@ -1,6 +1,6 @@
 use std::collections::HashMap;
+use std::future;
 use std::future::Future;
-use std::future::{self};
 use std::net::IpAddr;
 use std::net::TcpListener;
 use std::process;
@@ -39,7 +39,6 @@ use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::serialization::TaggedBytes;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
@@ -60,8 +59,11 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 #[cfg(feature = "issuance")]
 use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
@@ -119,6 +121,7 @@ fn fake_issuer_settings() -> Issuer {
 
     Issuer {
         private_keys: Default::default(),
+        metadata: Default::default(),
         wallet_client_ids: Default::default(),
         digid: Digid {
             bsn_privkey: Default::default(),
@@ -730,16 +733,16 @@ mod db_test {
     use parking_lot::Mutex;
     use tokio::sync::oneshot;
 
-    use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
     use openid4vc::server_state::SessionState;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionStoreError;
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureData;
+    use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_server::settings::Settings;
+    use wallet_server::store::postgres;
     use wallet_server::store::postgres::PostgresSessionStore;
-    use wallet_server::store::postgres::{self};
 
     use super::test_disclosure_expired;
     use super::wallet_server_settings;
@@ -883,11 +886,14 @@ async fn prepare_example_holder_mocks(
         copy_count: 1.try_into().unwrap(),
     };
 
+    let metadata = TypeMetadata::new_example();
+    let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
     let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, issuer_key_pair)
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, issuer_key_pair)
         .await
         .unwrap();
     let mdoc =

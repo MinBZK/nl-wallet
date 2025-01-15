@@ -3,7 +3,6 @@ use std::sync::LazyLock;
 use const_decoder::Pem;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
-use webpki::{self};
 
 // Source: https://www.apple.com/certificateauthority/Apple_App_Attestation_Root_CA.pem
 pub const APPLE_ROOT_CA: [u8; 549] = Pem::decode(include_bytes!("../assets/Apple_App_Attestation_Root_CA.pem"));

@@ -1,4 +1,3 @@
-// Inspired by AndroidCrypto: https://github.com/philipplackner/AndroidCrypto/issues/2#issuecomment-1267021656
 package nl.rijksoverheid.edi.wallet.platform_support.keystore.encryption
 
 import android.content.Context
@@ -19,17 +18,18 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.GCMParameterSpec
 
 class EncryptionKey(keyAlias: String) : KeyStoreKey(keyAlias) {
 
     companion object {
         private const val ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
-        private const val CHUNK_SIZE = 1024 // bytes
-        private const val KEY_SIZE = 16 // bytes
-        private const val BLOCK_MODE = KeyProperties.BLOCK_MODE_CBC
-        private const val PADDING = KeyProperties.ENCRYPTION_PADDING_PKCS7
+        private const val BLOCK_MODE = KeyProperties.BLOCK_MODE_GCM
+        private const val PADDING = KeyProperties.ENCRYPTION_PADDING_NONE
         private const val TRANSFORMATION = "$ALGORITHM/$BLOCK_MODE/$PADDING"
+        private const val KEY_SIZE_BITS = 256
+        private const val AUTH_TAG_SIZE_BITS = 128
+        private const val IV_SIZE = 12 // bytes
 
         @Throws(
             NoSuchProviderException::class,
@@ -40,69 +40,49 @@ class EncryptionKey(keyAlias: String) : KeyStoreKey(keyAlias) {
             val spec = KeyGenParameterSpec.Builder(
                 keyAlias,
                 KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-            ).setBlockModes(BLOCK_MODE)
+            ).setKeySize(KEY_SIZE_BITS)
+                .setBlockModes(BLOCK_MODE)
                 .setEncryptionPaddings(PADDING)
-                .setKeySize(KEY_SIZE * 8 /* in bits */)
                 .setUserAuthenticationRequired(false)
                 .setRandomizedEncryptionRequired(true)
                 .setStrongBoxBackedCompat(context, true)
+                .build()
 
-            KeyGenerator.getInstance(ALGORITHM, KEYSTORE_PROVIDER).apply {
-                init(spec.build())
+
+            KeyGenerator.getInstance(ALGORITHM, KEYSTORE_PROVIDER).run {
+                init(spec)
                 generateKey()
             }
         }
     }
 
     fun encrypt(payload: List<UByte>): List<UByte> {
-        val cipher = encryptCipher
-        val bytes = payload.toByteArray()
-        val iv = cipher.iv
+        val encryptedPayload = encryptCipher.doFinal(payload.toByteArray())
+        val initVector = encryptCipher.iv
+
+        assert(initVector.size == IV_SIZE, { "Unexpected IV size. Found: ${initVector.size}, expected: $IV_SIZE" })
+
         val outputStream = ByteArrayOutputStream()
         outputStream.use {
-            it.write(iv)
-            // write the payload in chunks to make sure to support larger data amounts (this would otherwise fail silently and result in corrupted data being read back)
-            ////////////////////////////////////
-            val inputStream = ByteArrayInputStream(bytes)
-            val buffer = ByteArray(CHUNK_SIZE)
-            while (inputStream.available() > CHUNK_SIZE) {
-                inputStream.read(buffer)
-                val ciphertextChunk = cipher.update(buffer)
-                it.write(ciphertextChunk)
-            }
-            // the last chunk must be written using doFinal() because this takes the padding into account
-            val remainingBytes = inputStream.readBytes()
-            val lastChunk = cipher.doFinal(remainingBytes)
-            it.write(lastChunk)
-            //////////////////////////////////
+            it.write(initVector)
+            it.write(encryptedPayload)
         }
-        return outputStream.toByteArray().toUByteList()
 
+        return outputStream.toByteArray().toUByteList()
     }
 
     fun decrypt(payload: List<UByte>): List<UByte> {
         val inputStream = ByteArrayInputStream(payload.toByteArray())
-        return inputStream.use {
-            val iv = ByteArray(KEY_SIZE)
-            it.read(iv)
-            val cipher = getDecryptCipherForIv(iv)
-            val outputStream = ByteArrayOutputStream()
+        inputStream.use {
+            val initVector = ByteArray(IV_SIZE)
+            it.read(initVector, 0, IV_SIZE)
+            val cipher = getDecryptCipherForIv(initVector)
 
-            // read the payload in chunks to make sure to support larger data amounts (this would otherwise fail silently and result in corrupted data being read back)
-            ////////////////////////////////////
-            val buffer = ByteArray(CHUNK_SIZE)
-            while (inputStream.available() > CHUNK_SIZE) {
-                inputStream.read(buffer)
-                val ciphertextChunk = cipher.update(buffer)
-                outputStream.write(ciphertextChunk)
-            }
-            // the last chunk must be read using doFinal() because this takes the padding into account
-            val remainingBytes = inputStream.readBytes()
-            val lastChunk = cipher.doFinal(remainingBytes)
-            outputStream.write(lastChunk)
-            //////////////////////////////////
+            val encryptedBytes = ByteArray(payload.size - IV_SIZE)
+            it.read(encryptedBytes)
 
-            outputStream.toByteArray().toUByteList()
+            val decrypted = cipher.doFinal(encryptedBytes)
+            return decrypted.toUByteList()
         }
     }
 
@@ -119,15 +99,16 @@ class EncryptionKey(keyAlias: String) : KeyStoreKey(keyAlias) {
     private val secretKey: SecretKey
         get() = (keyStore.getEntry(keyAlias, null) as KeyStore.SecretKeyEntry).secretKey
 
-    private val encryptCipher
-        get() = Cipher.getInstance(TRANSFORMATION).apply {
+    private val encryptCipher: Cipher by lazy {
+        Cipher.getInstance(TRANSFORMATION).apply {
             init(Cipher.ENCRYPT_MODE, secretKey)
         }
+    }
 
     private fun getDecryptCipherForIv(initVector: ByteArray): Cipher {
+        val gcmParameterSpec = GCMParameterSpec(AUTH_TAG_SIZE_BITS, initVector)
         return Cipher.getInstance(TRANSFORMATION).apply {
-            val ivSpec = IvParameterSpec(initVector)
-            init(Cipher.DECRYPT_MODE, secretKey, ivSpec)
+            init(Cipher.DECRYPT_MODE, secretKey, gcmParameterSpec)
         }
     }
 }

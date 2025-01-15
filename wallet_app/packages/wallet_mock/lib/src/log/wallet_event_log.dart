@@ -50,7 +50,7 @@ class WalletEventLog {
         },
       ),
       status: status,
-      type: isLogin ? DisclosureType.Login : DisclosureType.Regular,
+      typ: isLogin ? DisclosureType.Login : DisclosureType.Regular,
     );
     _logEvent(event);
   }
@@ -70,7 +70,7 @@ class WalletEventLog {
       requestedCards: requestedCards,
       requestPolicy: policy,
       status: status,
-      type: requestedCards.onlyDisclosesBsn ? DisclosureType.Login : DisclosureType.Regular,
+      typ: requestedCards.onlyDisclosesBsn ? DisclosureType.Login : DisclosureType.Regular,
     );
     _logEvent(event);
   }

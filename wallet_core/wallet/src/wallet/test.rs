@@ -18,6 +18,8 @@ use nl_wallet_mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::account::serialization::DerVerifyingKey;
@@ -110,24 +112,25 @@ pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
 
 /// Generates a valid `Mdoc` that contains a full PID.
 pub fn create_full_pid_mdoc() -> Mdoc {
-    let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY)
+    mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY)
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
 pub fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
-    let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY_UNAUTHENTICATED)
+    mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY_UNAUTHENTICATED)
 }
 
-/// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and issuer key.
-pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -> Mdoc {
+/// Generates a valid `Mdoc`, based on an `UnsignedMdoc`, the `TypeMetadata` and issuer key.
+pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: &TypeMetadata, issuer_key: &IssuerKey) -> Mdoc {
     let private_key_id = utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key().try_into().unwrap();
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuer_key.issuance_key)
+    let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![]).unwrap();
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, &issuer_key.issuance_key)
         .now_or_never()
         .unwrap()
         .unwrap();

@@ -28,10 +28,6 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-def overrideFlutterMinSdkVersion = 24
-def overrideFlutterTargetSdkVersion = 34
-def overrideFlutterCompileSdkVersion = 34
-
 def dartEnvironmentVariables = []
 if (project.hasProperty('dart-defines')) {
     dartEnvironmentVariables = project.property('dart-defines')
@@ -54,9 +50,24 @@ def ulIntentFilterPathPrefix = ulHostnameIsSet ? '/deeplink' : ''
 def ulIntentFilterScheme = ulHostnameIsSet ? 'https' : 'walletdebuginteraction'
 
 android {
-    compileSdkVersion overrideFlutterCompileSdkVersion
-    ndkVersion flutter.ndkVersion
+    namespace "nl.rijksoverheid.edi.wallet"
+    compileSdk 34
 
+    // Note: When using flutter >= 3.27.1 with Java 21, you will see the
+    // following (harmless) warnings:
+    //
+    //   warning: [options] source value 8 is obsolete and will be removed in a future release
+    //   warning: [options] target value 8 is obsolete and will be removed in a future release
+    //
+    // This will be fixed in a future flutter version, see:
+    // https://github.com/flutter/flutter/issues/156111
+    //
+    // Eventually we will want to set version to 11 in the below compileOptions
+    // and kotlinOptions, after flutter supports that too (when the above issue
+    // is part of a released flutter). Do also note that we have seen problems
+    // with kotlin when the below is not 1.8:
+    // https://github.com/Kotlin/kotlinx.serialization/issues/2145
+    //
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -65,8 +76,6 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-
-    ndkVersion "27.2.12479018"
 
     sourceSets {
         main {
@@ -87,8 +96,8 @@ android {
         applicationId "nl.ictu.edi.wallet.latest"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-build-configuration.
-        minSdkVersion overrideFlutterMinSdkVersion
-        targetSdkVersion overrideFlutterTargetSdkVersion
+        minSdk 24
+        targetSdk 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
 
@@ -106,6 +115,10 @@ android {
             storeFile keystoreProperties['storeFile'] ? file('../' + keystoreProperties['storeFile']) : null
             storePassword keystoreProperties['storePassword']
         }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     // Debug and Profile builds use release keys if they're available, auto-available debug keys if not.

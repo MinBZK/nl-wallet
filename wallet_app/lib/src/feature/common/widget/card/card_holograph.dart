@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../svg_or_image.dart';
 import 'gyro_gradient_overlay.dart';
 
-final Color _kWhite0 = Colors.white.withOpacity(0);
-final Color _kWhite5 = Colors.white.withOpacity(0.05);
+final Color _kWhite0 = Colors.white.withValues(alpha: 0);
+final Color _kWhite5 = Colors.white.withValues(alpha: 0.05);
 
 class CardHolograph extends StatelessWidget {
   /// Reference to the asset that should be rendered as the holograph
@@ -55,7 +55,7 @@ class CardHolograph extends StatelessWidget {
   Gradient _generateHoloGradient() => LinearGradient(
         colors: [
           _kWhite5,
-          Colors.white.withOpacity(brightness == Brightness.light ? .6 : .21),
+          Colors.white.withValues(alpha: brightness == Brightness.light ? .6 : .21),
           _kWhite5,
         ],
         begin: Alignment.topCenter,
@@ -65,7 +65,7 @@ class CardHolograph extends StatelessWidget {
   Gradient _generateOutlineGradient() => LinearGradient(
         colors: [
           _kWhite0,
-          Colors.white.withOpacity(brightness == Brightness.light ? .6 : .21),
+          Colors.white.withValues(alpha: brightness == Brightness.light ? .6 : .21),
           _kWhite0,
         ],
         begin: Alignment.topCenter,

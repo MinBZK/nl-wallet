@@ -3,7 +3,7 @@ use std::hash::Hasher;
 use std::sync::Arc;
 
 use base64::prelude::*;
-use futures::future::{self};
+use futures::future;
 use itertools::Itertools;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -377,7 +377,7 @@ impl<H> Hash for HsmCredentialSigningKey<'_, H> {
     }
 }
 
-impl<'a, H> EcdsaKey for HsmCredentialSigningKey<'a, H>
+impl<H> EcdsaKey for HsmCredentialSigningKey<'_, H>
 where
     H: WalletUserHsm<Error = HsmError>,
 {
@@ -459,8 +459,8 @@ mod tests {
     use wallet_common::utils::random_bytes;
     use wallet_common::utils::random_string;
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
+    use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::WalletUser;
-    use wallet_provider_domain::model::wallet_user::{self};
     use wallet_provider_domain::model::wrapped_key::WrappedKey;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::FixedUuidGenerator;

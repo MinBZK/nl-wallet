@@ -356,8 +356,8 @@ mod tests {
     use crate::examples::EXAMPLE_DOC_TYPE;
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::identifiers::AttributeIdentifierHolder;
+    use crate::test;
     use crate::test::DebugCollapseBts;
-    use crate::test::{self};
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceResponse;
     use crate::Document;
