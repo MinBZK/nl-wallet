@@ -188,7 +188,7 @@ typedef struct wire_cst_WalletEvent_Disclosure {
   struct wire_cst_list_disclosure_card *requested_cards;
   struct wire_cst_request_policy *request_policy;
   int32_t status;
-  int32_t type;
+  int32_t typ;
 } wire_cst_WalletEvent_Disclosure;
 
 typedef struct wire_cst_WalletEvent_Issuance {

@@ -1489,7 +1489,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           requestedCards: dco_decode_opt_list_disclosure_card(raw[4]),
           requestPolicy: dco_decode_box_autoadd_request_policy(raw[5]),
           status: dco_decode_disclosure_status(raw[6]),
-          type: dco_decode_disclosure_type(raw[7]),
+          typ: dco_decode_disclosure_type(raw[7]),
         );
       case 1:
         return WalletEvent_Issuance(
@@ -2081,7 +2081,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         final var_requestedCards = sse_decode_opt_list_disclosure_card(deserializer);
         final var_requestPolicy = sse_decode_box_autoadd_request_policy(deserializer);
         final var_status = sse_decode_disclosure_status(deserializer);
-        final var_type = sse_decode_disclosure_type(deserializer);
+        final var_typ = sse_decode_disclosure_type(deserializer);
         return WalletEvent_Disclosure(
             dateTime: var_dateTime,
             relyingParty: var_relyingParty,
@@ -2089,7 +2089,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
             requestedCards: var_requestedCards,
             requestPolicy: var_requestPolicy,
             status: var_status,
-            type: var_type);
+            typ: var_typ);
       case 1:
         final var_dateTime = sse_decode_String(deserializer);
         final var_card = sse_decode_box_autoadd_card(deserializer);
@@ -2708,7 +2708,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           requestedCards: final requestedCards,
           requestPolicy: final requestPolicy,
           status: final status,
-          type: final type
+          typ: final typ
         ):
         sse_encode_i_32(0, serializer);
         sse_encode_String(dateTime, serializer);
@@ -2717,7 +2717,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_opt_list_disclosure_card(requestedCards, serializer);
         sse_encode_box_autoadd_request_policy(requestPolicy, serializer);
         sse_encode_disclosure_status(status, serializer);
-        sse_encode_disclosure_type(type, serializer);
+        sse_encode_disclosure_type(typ, serializer);
       case WalletEvent_Issuance(dateTime: final dateTime, card: final card):
         sse_encode_i_32(1, serializer);
         sse_encode_String(dateTime, serializer);

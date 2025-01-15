@@ -34,7 +34,7 @@ pub struct Model {
     pub relying_party_certificate: Vec<u8>,
     pub status: EventStatus,
     pub attributes: Option<Json>,
-    pub r#type: EventType,
+    pub typ: EventType,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

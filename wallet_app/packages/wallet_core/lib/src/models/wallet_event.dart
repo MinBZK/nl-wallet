@@ -23,7 +23,7 @@ sealed class WalletEvent with _$WalletEvent {
     List<DisclosureCard>? requestedCards,
     required RequestPolicy requestPolicy,
     required DisclosureStatus status,
-    required DisclosureType type,
+    required DisclosureType typ,
   }) = WalletEvent_Disclosure;
   const factory WalletEvent.issuance({
     required String dateTime,

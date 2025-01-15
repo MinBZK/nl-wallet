@@ -820,7 +820,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       var pre_requested_cards = cst_encode_opt_list_disclosure_card(apiObj.requestedCards);
       var pre_request_policy = cst_encode_box_autoadd_request_policy(apiObj.requestPolicy);
       var pre_status = cst_encode_disclosure_status(apiObj.status);
-      var pre_type = cst_encode_disclosure_type(apiObj.type);
+      var pre_typ = cst_encode_disclosure_type(apiObj.typ);
       wireObj.tag = 0;
       wireObj.kind.Disclosure.date_time = pre_date_time;
       wireObj.kind.Disclosure.relying_party = pre_relying_party;
@@ -828,7 +828,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Disclosure.requested_cards = pre_requested_cards;
       wireObj.kind.Disclosure.request_policy = pre_request_policy;
       wireObj.kind.Disclosure.status = pre_status;
-      wireObj.kind.Disclosure.type = pre_type;
+      wireObj.kind.Disclosure.typ = pre_typ;
       return;
     }
     if (apiObj is WalletEvent_Issuance) {
@@ -2067,7 +2067,7 @@ final class wire_cst_WalletEvent_Disclosure extends ffi.Struct {
   external int status;
 
   @ffi.Int32()
-  external int type;
+  external int typ;
 }
 
 final class wire_cst_WalletEvent_Issuance extends ffi.Struct {

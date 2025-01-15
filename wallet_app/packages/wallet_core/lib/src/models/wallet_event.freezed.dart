@@ -26,7 +26,7 @@ mixin _$WalletEvent {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)
+            DisclosureType typ)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) =>
@@ -40,7 +40,7 @@ mixin _$WalletEvent {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)?
+            DisclosureType typ)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) =>
@@ -54,7 +54,7 @@ mixin _$WalletEvent {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)?
+            DisclosureType typ)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
@@ -133,7 +133,7 @@ abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEve
       List<DisclosureCard>? requestedCards,
       RequestPolicy requestPolicy,
       DisclosureStatus status,
-      DisclosureType type});
+      DisclosureType typ});
 }
 
 /// @nodoc
@@ -155,7 +155,7 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
     Object? requestedCards = freezed,
     Object? requestPolicy = null,
     Object? status = null,
-    Object? type = null,
+    Object? typ = null,
   }) {
     return _then(_$WalletEvent_DisclosureImpl(
       dateTime: null == dateTime
@@ -182,9 +182,9 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as DisclosureStatus,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
+      typ: null == typ
+          ? _value.typ
+          : typ // ignore: cast_nullable_to_non_nullable
               as DisclosureType,
     ));
   }
@@ -200,7 +200,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
       final List<DisclosureCard>? requestedCards,
       required this.requestPolicy,
       required this.status,
-      required this.type})
+      required this.typ})
       : _purpose = purpose,
         _requestedCards = requestedCards,
         super._();
@@ -232,11 +232,11 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
   @override
   final DisclosureStatus status;
   @override
-  final DisclosureType type;
+  final DisclosureType typ;
 
   @override
   String toString() {
-    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status, type: $type)';
+    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
   }
 
   @override
@@ -250,12 +250,12 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             const DeepCollectionEquality().equals(other._requestedCards, _requestedCards) &&
             (identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy) &&
             (identical(other.status, status) || other.status == status) &&
-            (identical(other.type, type) || other.type == type));
+            (identical(other.typ, typ) || other.typ == typ));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
-      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status, type);
+      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status, typ);
 
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -275,11 +275,11 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)
+            DisclosureType typ)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) {
-    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, type);
+    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
   }
 
   @override
@@ -292,11 +292,11 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)?
+            DisclosureType typ)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) {
-    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, type);
+    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
   }
 
   @override
@@ -309,13 +309,13 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)?
+            DisclosureType typ)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
   }) {
     if (disclosure != null) {
-      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, type);
+      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
     }
     return orElse();
   }
@@ -360,7 +360,7 @@ abstract class WalletEvent_Disclosure extends WalletEvent {
       final List<DisclosureCard>? requestedCards,
       required final RequestPolicy requestPolicy,
       required final DisclosureStatus status,
-      required final DisclosureType type}) = _$WalletEvent_DisclosureImpl;
+      required final DisclosureType typ}) = _$WalletEvent_DisclosureImpl;
   const WalletEvent_Disclosure._() : super._();
 
   @override
@@ -370,7 +370,7 @@ abstract class WalletEvent_Disclosure extends WalletEvent {
   List<DisclosureCard>? get requestedCards;
   RequestPolicy get requestPolicy;
   DisclosureStatus get status;
-  DisclosureType get type;
+  DisclosureType get typ;
 
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -463,7 +463,7 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)
+            DisclosureType typ)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) {
@@ -480,7 +480,7 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)?
+            DisclosureType typ)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) {
@@ -497,7 +497,7 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType type)?
+            DisclosureType typ)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),

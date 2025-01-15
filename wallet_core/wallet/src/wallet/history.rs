@@ -199,7 +199,7 @@ pub enum HistoryEvent {
     },
     Disclosure {
         status: EventStatus,
-        r#type: DisclosureType,
+        typ: DisclosureType,
         timestamp: DateTime<Utc>,
         reader_registration: Box<ReaderRegistration>,
         attributes: Option<Vec<DisclosureDocument>>,
@@ -240,10 +240,10 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 timestamp,
                 documents,
                 status,
-                r#type,
+                typ,
             } => Self::Disclosure {
                 status,
-                r#type,
+                typ,
                 timestamp,
                 attributes: documents
                     .map(|EventDocuments(mdocs)| {

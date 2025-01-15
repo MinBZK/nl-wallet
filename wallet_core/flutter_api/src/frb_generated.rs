@@ -1548,7 +1548,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                     <Option<Vec<crate::models::disclosure::DisclosureCard>>>::sse_decode(deserializer);
                 let mut var_requestPolicy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
                 let mut var_status = <crate::models::disclosure::DisclosureStatus>::sse_decode(deserializer);
-                let mut var_type = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
+                let mut var_typ = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
                 return crate::models::wallet_event::WalletEvent::Disclosure {
                     date_time: var_dateTime,
                     relying_party: var_relyingParty,
@@ -1556,7 +1556,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                     requested_cards: var_requestedCards,
                     request_policy: var_requestPolicy,
                     status: var_status,
-                    r#type: var_type,
+                    typ: var_typ,
                 };
             }
             1 => {
@@ -2102,7 +2102,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 requested_cards,
                 request_policy,
                 status,
-                r#type,
+                typ,
             } => [
                 0.into_dart(),
                 date_time.into_into_dart().into_dart(),
@@ -2111,7 +2111,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 requested_cards.into_into_dart().into_dart(),
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
-                r#type.into_into_dart().into_dart(),
+                typ.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::models::wallet_event::WalletEvent::Issuance { date_time, card } => [
@@ -2765,7 +2765,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 requested_cards,
                 request_policy,
                 status,
-                r#type,
+                typ,
             } => {
                 <i32>::sse_encode(0, serializer);
                 <String>::sse_encode(date_time, serializer);
@@ -2774,7 +2774,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <Option<Vec<crate::models::disclosure::DisclosureCard>>>::sse_encode(requested_cards, serializer);
                 <crate::models::disclosure::RequestPolicy>::sse_encode(request_policy, serializer);
                 <crate::models::disclosure::DisclosureStatus>::sse_encode(status, serializer);
-                <crate::models::disclosure::DisclosureType>::sse_encode(r#type, serializer);
+                <crate::models::disclosure::DisclosureType>::sse_encode(typ, serializer);
             }
             crate::models::wallet_event::WalletEvent::Issuance { date_time, card } => {
                 <i32>::sse_encode(1, serializer);
@@ -3281,7 +3281,7 @@ mod io {
                         requested_cards: ans.requested_cards.cst_decode(),
                         request_policy: ans.request_policy.cst_decode(),
                         status: ans.status.cst_decode(),
-                        r#type: ans.r#type.cst_decode(),
+                        typ: ans.typ.cst_decode(),
                     }
                 }
                 1 => {
@@ -4209,7 +4209,7 @@ mod io {
         requested_cards: *mut wire_cst_list_disclosure_card,
         request_policy: *mut wire_cst_request_policy,
         status: i32,
-        r#type: i32,
+        typ: i32,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
