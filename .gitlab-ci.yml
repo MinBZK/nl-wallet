@@ -124,7 +124,7 @@ test-flutter:
     - flutter --version
     - flutter pub get --enforce-lockfile
     - flutter analyze .
-    - flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
+    - flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
     - $HOME/.pub-cache/bin/tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
   artifacts:
     reports:

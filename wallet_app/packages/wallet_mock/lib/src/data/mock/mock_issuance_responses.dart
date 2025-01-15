@@ -11,8 +11,13 @@ const _kMockFirstNames = CardValue.string(value: 'Willeke Liselotte');
 const _kMockFullName = CardValue.string(value: 'Willeke De Bruijn');
 const _kMockLastName = CardValue.string(value: 'De Bruijn');
 const _kMockGender = CardValue.string(value: 'Vrouw');
-
 const _kMockRequestPurpose = 'Kaart uitgifte';
+
+const _kMockFirstNamesKey = 'mock.firstNames';
+const _kMockLastNameKey = 'mock.lastName';
+const _kMockBirthDateKey = 'mock.birthDate';
+const _kMockOtherKey = 'mock.other';
+const _kMockIssuanceDateKey = 'mock.issuanceDate';
 
 final kIssuanceResponses = [
   IssuanceResponse(
@@ -152,12 +157,12 @@ final _kMockPidDataAttributes = [
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Voornamen')],
     value: _kMockFirstNames,
-    key: 'mock.firstNames',
+    key: _kMockFirstNamesKey,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Achternaam')],
     value: _kMockLastName,
-    key: 'mock.lastName',
+    key: _kMockLastNameKey,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Naam bij geboorte')],
@@ -172,7 +177,7 @@ final _kMockPidDataAttributes = [
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Geboortedatum')],
     value: _kMockBirthDate,
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Ouder dan 18')],
@@ -246,12 +251,12 @@ final _kMockDiplomaDataAttributes = [
     labels: [LocalizedString(language: 'nl', value: 'Type')],
     value: const CardValue.string(value: 'Getuigschrift'),
     // sourceCardId: _kDiplomaId,
-    key: 'mock.other',
+    key: _kMockOtherKey,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Uitgifte datum')],
     value: CardValue.date(value: DateTime(2013, 1, 1).toIso8601String()),
-    key: 'mock.issuanceDate',
+    key: _kMockIssuanceDateKey,
     // sourceCardId: _kDiplomaId,
   ),
 ];
@@ -279,12 +284,12 @@ final _kMockMasterDiplomaDataAttributes = [
     labels: [LocalizedString(language: 'nl', value: 'Type')],
     value: const CardValue.string(value: 'Getuigschrift'),
     // sourceCardId: _kMasterDiplomaId,
-    key: 'mock.other',
+    key: _kMockOtherKey,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Uitgifte datum')],
     value: CardValue.date(value: DateTime(2015, 1, 1).toIso8601String()),
-    key: 'mock.issuanceDate',
+    key: _kMockIssuanceDateKey,
     // sourceCardId: _kMasterDiplomaId,
   ),
 ];
@@ -297,19 +302,19 @@ List<CardAttribute> _buildDrivingLicenseDataAttributes({required String category
     CardAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Voornamen')],
       value: _kMockFirstNames,
-      key: 'mock.firstNames',
+      key: _kMockFirstNamesKey,
       // sourceCardId: _kDrivingLicenseId,
     ),
     CardAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Naam')],
       value: _kMockLastName,
-      key: 'mock.lastName',
+      key: _kMockLastNameKey,
       // sourceCardId: _kDrivingLicenseId,
     ),
     CardAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Geboortedatum')],
       value: _kMockBirthDate,
-      key: 'mock.birthDate',
+      key: _kMockBirthDateKey,
       // sourceCardId: _kDrivingLicenseId,
     ),
     CardAttribute(
@@ -321,7 +326,7 @@ List<CardAttribute> _buildDrivingLicenseDataAttributes({required String category
     CardAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Afgiftedatum')],
       value: CardValue.date(value: DateTime(2018, 4, 23).toIso8601String()),
-      key: 'mock.issuanceDate',
+      key: _kMockIssuanceDateKey,
       // sourceCardId: _kDrivingLicenseId,
     ),
     CardAttribute(
@@ -334,7 +339,7 @@ List<CardAttribute> _buildDrivingLicenseDataAttributes({required String category
       labels: [LocalizedString(language: 'nl', value: 'Rijbewijsnummer')],
       value: const CardValue.string(value: '99999999999'),
       // sourceCardId: _kDrivingLicenseId,
-      key: 'mock.other',
+      key: _kMockOtherKey,
     ),
     CardAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Rijbewijscategorieën')],
@@ -361,7 +366,7 @@ final _kMockHealthInsuranceDataAttributes = [
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Geboortedatum')],
     value: _kMockBirthDate,
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
     // sourceCardId: _kHealthInsuranceId,
   ),
   CardAttribute(
@@ -418,15 +423,15 @@ final _kMockGovernmentOrganizationRequestedAttributes = [
 final _kMockHealthInsuranceRequestedAttributes = [
   RequestedAttribute(
     label: 'Voornamen',
-    key: 'mock.firstNames',
+    key: _kMockFirstNamesKey,
   ),
   RequestedAttribute(
     label: 'Achternaam',
-    key: 'mock.lastName',
+    key: _kMockLastNameKey,
   ),
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
 ];
 // endregion
