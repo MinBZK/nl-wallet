@@ -161,7 +161,7 @@ verify-flutter-localizations:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:a220cb6b7f8161982d62dcb17e544ce09892c5f57564cd06f599d95d05e596fa"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:173637b27d8a4b4204d6dc12a2a8af4bddbffa6bbed984b85a5c235006bda0f6"
   cache: !reference [.rust-cache, cache]
   before_script:
     - set -euxo pipefail
