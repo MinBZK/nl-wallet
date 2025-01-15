@@ -6,7 +6,6 @@
       - ".cargo/registry/index"
       - ".cargo/registry/cache"
       - "wallet_core/target/"
-      - "wallet_core/flutter_rust_bridge_codegen/target"
       - "wallet_core/uniffi-bindgen/target"
     policy: ${CACHE_POLICY}
 

@@ -399,6 +399,7 @@ this bridge is located at `/wallet_core/flutter_api/src/api/` and generation is 
 with the following command:
 
 ```
+cargo install flutter_rust_bridge_codegen && \
 flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
 ```
 

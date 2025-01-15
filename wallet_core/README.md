@@ -9,7 +9,7 @@ This contains the "shared core" part of the app.
 - `wallet_common`: Code shared between `wallet` and `wallet_provider`.
 - `flutter_api`: Contains the `api.rs` for `flutter_rust_bridge` and the data types for the API. This allows Flutter to use the functionality from the `wallet` crate.
 - `platform_support`: Contains native functionality for both Android and iOS and code to bridge to these platforms.
-- `flutter_rust_bridge_codegen` & `uniffi-bindgen`: Helpers for bridge code generation.
+- `uniffi-bindgen`: Helpers for platform_support bridge code generation.
 
 ## Error types
 
@@ -30,16 +30,11 @@ Additionally, the `wallet` crate has some error types provided for internal func
 
 ### Regenerate the flutter bindings
 
-Generating the flutter bindings requires installing the `cargo-expand` utility:
+To regenerate the bindings, run the following command from the root:
 
-```sh
-cargo install cargo-expand
 ```
-
-To regenerate the bindings, run the following command from `wallet_core`:
-
-```sh
-cargo run --manifest-path flutter_rust_bridge_codegen/Cargo.toml
+cargo install flutter_rust_bridge_codegen && \
+flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
 ```
 
 ## Code Conventions

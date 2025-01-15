@@ -167,7 +167,7 @@ test-codegen:
     - set -euxo pipefail
   script:
     - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
-    - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
+    - flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
     - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
     - dart format wallet_app --line-length 120
     - git diff
@@ -540,7 +540,6 @@ build-sbom:
   script:
     ## Rust
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
     ## NPM
     - cd wallet_web
