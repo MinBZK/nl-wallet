@@ -61,6 +61,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
     "tracing-log",
     "parking_lot",
 ] }
+x509-parser.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
 rand_core = { workspace = true, optional = true }
