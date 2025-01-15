@@ -131,7 +131,7 @@ performance_test = [
     "dep:wallet_common",
     "dep:wallet_server",
     "dep:dotenvy",
-    "platform_support/mock_apple_ca",
+    "platform_support/mock_attested_key_apple_ca",
 ]
 gba_pid_test = [
     "logging",
@@ -155,7 +155,7 @@ gba_pid_test = [
     "dep:wallet",
     "dep:wallet_common",
     "dep:wallet_server",
-    "platform_support/mock_apple_ca",
+    "platform_support/mock_attested_key_apple_ca",
     "wallet/snapshot_test",
 ]
 
