@@ -30,7 +30,7 @@ thiserror.workspace = true
 url.workspace = true
 x509-parser.workspace = true
 
-rcgen = { workspace = true, optional = true, features = ["ring"] }
+rcgen = { workspace = true, optional = true, features = ["aws_lc_rs"] }
 
 [dev-dependencies]
 assert_matches.workspace = true
