@@ -70,6 +70,7 @@ test-ios:
         app_name:"${APP_NAME}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
+        fake_attestation:"${FAKE_ATTESTATION:-false}" \
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
@@ -104,6 +105,7 @@ build-ios-app-ont-profile:
   extends: .build-ios-app-ont
   variables:
     APP_BUILD_MODE: "profile"
+    FAKE_ATTESTATION: "true"
     MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 .build-ios-app-release-tag:
