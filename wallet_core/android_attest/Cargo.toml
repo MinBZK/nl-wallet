@@ -8,17 +8,21 @@ rust-version.workspace = true
 workspace = true
 
 [features]
+encode = []
 mock = ["dep:rcgen"]
 network_test = []
 
 [dependencies]
+bitflags.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 const-decoder.workspace = true
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
+int-enum.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
+rasn = { workspace = true, features = ["std"] }
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware.workspace = true
