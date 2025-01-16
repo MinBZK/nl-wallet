@@ -50,9 +50,7 @@ void _setupMockitoDummies() {
   provideDummy<AttributeValue>(const StringValue(''));
   provideDummy<CardFront>(CardFront(title: ''.untranslated, backgroundImage: '', theme: CardFrontTheme.light));
   provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
-  provideDummy<core.WalletInstructionResult>(
-    const core.WalletInstructionResult.ok(),
-  );
+  provideDummy<core.WalletInstructionResult>(const core.WalletInstructionResult.ok());
   provideDummy<StartDisclosureResult>(
     StartDisclosureReadyToDisclose(
       WalletMockData.organization,
