@@ -95,7 +95,7 @@ or shorter:
 
 And run the actual test with:
 
-    cargo test --package tests_integration --features=gba_pid_test
+    cargo test --package tests_integration --features=gba_pid_test --test gba_pid_test
 
 ### Maintenance
 
