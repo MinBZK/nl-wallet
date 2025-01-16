@@ -19,7 +19,12 @@ test-ios:
   script:
     - bundle install
     - bundle exec fastlane ios test
-    - mc put fastlane/test_output/report.junit qt/quality-time/junit-results/ios.xml
+  after_script:
+    - set -euxo pipefail
+    - |
+      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
+        mc put fastlane/test_output/report.junit qt/quality-time/junit-results/ios.xml
+      fi
 
 ### iOS Building
 .build-ios-app:
