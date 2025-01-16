@@ -172,14 +172,11 @@ class TypedWalletCore {
     if (ex is AnyhowException) {
       Fimber.e('AnyhowException. Contents: ${ex.message}');
       return ex.message;
-      // } else if (ex is FfiException) {
-      //   Fimber.e('FfiException. Code: ${ex.code}, Message: ${ex.message}');
-      //   if (ex.code != 'RESULT_ERROR') return null;
-      //   return ex.message;
     } else if (ex is String) {
       Fimber.e('StringException. Contents: $ex');
       return ex;
     }
+    Fimber.d('Unable to extract error json from: ${ex.runtimeType}');
     return null;
   }
 }
