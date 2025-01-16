@@ -21,10 +21,10 @@ const kAddressDocType = 'com.example.address';
 
 Future<void> postInit() async {
   if (await core.isInitialized()) {
-    // The wallet_core is already initialized, this can happen when the Flutter
-    // engine/activity was killed, but the application (and thus native code) was
-    // kept alive by the platform. To recover from this we make sure the streams are reset,
-    // as they can contain references to the previous Flutter engine.
+    // We always reset the streams here to avoid an invalid state where the native code
+    // still contains references to the old Flutter engine. This can happen when the activity
+    // was killed by the operating system, this causes the flutter engine to be killed, but
+    // the native code might be kept alive.
     await core.clearLockStream();
     await core.clearConfigurationStream();
     await core.clearVersionStateStream();
