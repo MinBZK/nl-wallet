@@ -171,8 +171,16 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
     def taskPostfix = it.key
     def (doStrip, profileMode) = it.value
     tasks.whenTaskAdded { task ->
+        if (task.name == "signReleaseBundle") {
+            task.dependsOn "checkFor${taskPostfix}Keys"
+        }
         if (task.name == "pre${taskPostfix}Build") {
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
+        }
+    }
+    tasks.register("checkFor${taskPostfix}Keys") {
+        if (taskPostfix == "Release" && !keystorePropertiesFile.exists()) {
+            throw new GradleException("Attempting a ${taskPostfix} build and ${keystorePropertiesFile} does not exist, Failing build..")
         }
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
