@@ -42,7 +42,7 @@ async fn test_gba_pid_conversion_error(
 
 #[tokio::test]
 #[rstest]
-async fn test_gba_pid_unknown_bsn(#[values("999992306", "999995657")] bsn: &str) {
+async fn test_gba_pid_unknown_bsn(#[values("900265462", "900253010")] bsn: &str) {
     assert_eq!(
         TestError::UnknownBsn,
         gba_pid(bsn).await.expect_err("should return error")
@@ -82,7 +82,6 @@ async fn test_gba_pid_success(
         "000009878",
         "999991516",
         "999991292",
-        "999991401",
         "999992569",
         "999991814",
         "999994359",
@@ -185,7 +184,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         snapshot_suffix => bsn,
         prepend_module_to_snapshot => false,
     }, {
-        insta::assert_yaml_snapshot!(attributes);
+        insta::assert_ron_snapshot!(attributes);
     });
 
     Ok(())

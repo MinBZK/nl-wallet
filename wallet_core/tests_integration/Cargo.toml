@@ -164,7 +164,7 @@ gba_pid_test = [
 assert_matches = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
-insta = { workspace = true, optional = true, features = ["yaml"] }
+insta = { workspace = true, optional = true, features = ["ron"] }
 jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, optional = true, features = [
