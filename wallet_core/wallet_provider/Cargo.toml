@@ -45,7 +45,7 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono"] }
 serial_test = { workspace = true, optional = true }
 spki = { workspace = true, features = ["std"] }
-thiserror = { workspace = true }
+thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
