@@ -61,7 +61,7 @@
 
 pub mod hardware;
 
-#[cfg(feature = "mock_attested_key")]
+#[cfg(any(feature = "mock_attested_key_apple", feature = "mock_attested_key_google"))]
 pub mod mock;
 #[cfg(any(all(feature = "mock_attested_key", test), feature = "hardware_integration_test"))]
 pub mod test;
