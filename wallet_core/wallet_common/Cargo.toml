@@ -85,12 +85,12 @@ apple_app_attest.path = "../apple_app_attest"
 error_category.path = "../error_category"
 
 [dev-dependencies]
-anyhow = { workspace = true }
+anyhow.workspace = true
 assert_matches.workspace = true
 aes-gcm = { workspace = true, features = ["std"] }
 ciborium.workspace = true
-hex = { workspace = true }
-hex-literal = { workspace = true }
+hex.workspace = true
+hex-literal.workspace = true
 parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
