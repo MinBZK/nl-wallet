@@ -3,12 +3,9 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/full.dart';
 import 'dart:async';
 import 'dart:convert';
-
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-
-import 'api/full.dart';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart' if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'models/card.dart';
@@ -19,6 +16,7 @@ import 'models/pin.dart';
 import 'models/uri.dart';
 import 'models/version_state.dart';
 import 'models/wallet_event.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// Main entrypoint of the Rust API
 class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, WalletCoreWire> {
@@ -169,901 +167,855 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   @override
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__accept_disclosure(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_accept_disclosure_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullAcceptDisclosureConstMeta,
-        argValues: [pin],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__accept_disclosure(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_accept_disclosure_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullAcceptDisclosureConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullAcceptDisclosureConstMeta => const TaskConstMeta(
-        debugName: 'accept_disclosure',
-        argNames: ['pin'],
+        debugName: "accept_disclosure",
+        argNames: ["pin"],
       );
 
   @override
   Future<WalletInstructionResult> crateApiFullAcceptPidIssuance({required String pin}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__accept_pid_issuance(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_instruction_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullAcceptPidIssuanceConstMeta,
-        argValues: [pin],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__accept_pid_issuance(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_wallet_instruction_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullAcceptPidIssuanceConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullAcceptPidIssuanceConstMeta => const TaskConstMeta(
-        debugName: 'accept_pid_issuance',
-        argNames: ['pin'],
+        debugName: "accept_pid_issuance",
+        argNames: ["pin"],
       );
 
   @override
   Future<String?> crateApiFullCancelDisclosure() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__cancel_disclosure,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_opt_String,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullCancelDisclosureConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__cancel_disclosure(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_opt_String,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullCancelDisclosureConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullCancelDisclosureConstMeta => const TaskConstMeta(
-        debugName: 'cancel_disclosure',
+        debugName: "cancel_disclosure",
         argNames: [],
       );
 
   @override
   Future<void> crateApiFullCancelPidIssuance() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__cancel_pid_issuance,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullCancelPidIssuanceConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__cancel_pid_issuance(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullCancelPidIssuanceConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullCancelPidIssuanceConstMeta => const TaskConstMeta(
-        debugName: 'cancel_pid_issuance',
+        debugName: "cancel_pid_issuance",
         argNames: [],
       );
 
   @override
   Future<WalletInstructionResult> crateApiFullChangePin({required String oldPin, required String newPin}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(oldPin);
-          final arg1 = cst_encode_String(newPin);
-          return wire.wire__crate__api__full__change_pin(port_, arg0, arg1);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_instruction_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullChangePinConstMeta,
-        argValues: [oldPin, newPin],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(oldPin);
+        var arg1 = cst_encode_String(newPin);
+        return wire.wire__crate__api__full__change_pin(port_, arg0, arg1);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_wallet_instruction_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullChangePinConstMeta,
+      argValues: [oldPin, newPin],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullChangePinConstMeta => const TaskConstMeta(
-        debugName: 'change_pin',
-        argNames: ['oldPin', 'newPin'],
+        debugName: "change_pin",
+        argNames: ["oldPin", "newPin"],
       );
 
   @override
   Future<WalletInstructionResult> crateApiFullCheckPin({required String pin}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__check_pin(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_instruction_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullCheckPinConstMeta,
-        argValues: [pin],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__check_pin(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_wallet_instruction_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullCheckPinConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullCheckPinConstMeta => const TaskConstMeta(
-        debugName: 'check_pin',
-        argNames: ['pin'],
+        debugName: "check_pin",
+        argNames: ["pin"],
       );
 
   @override
   Future<void> crateApiFullClearCardsStream() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__clear_cards_stream,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullClearCardsStreamConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__clear_cards_stream(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullClearCardsStreamConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullClearCardsStreamConstMeta => const TaskConstMeta(
-        debugName: 'clear_cards_stream',
+        debugName: "clear_cards_stream",
         argNames: [],
       );
 
   @override
   Future<void> crateApiFullClearConfigurationStream() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__clear_configuration_stream,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullClearConfigurationStreamConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__clear_configuration_stream(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullClearConfigurationStreamConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullClearConfigurationStreamConstMeta => const TaskConstMeta(
-        debugName: 'clear_configuration_stream',
+        debugName: "clear_configuration_stream",
         argNames: [],
       );
 
   @override
   Future<void> crateApiFullClearLockStream() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__clear_lock_stream,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullClearLockStreamConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__clear_lock_stream(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullClearLockStreamConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullClearLockStreamConstMeta => const TaskConstMeta(
-        debugName: 'clear_lock_stream',
+        debugName: "clear_lock_stream",
         argNames: [],
       );
 
   @override
   Future<void> crateApiFullClearRecentHistoryStream() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__clear_recent_history_stream,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullClearRecentHistoryStreamConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__clear_recent_history_stream(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullClearRecentHistoryStreamConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullClearRecentHistoryStreamConstMeta => const TaskConstMeta(
-        debugName: 'clear_recent_history_stream',
+        debugName: "clear_recent_history_stream",
         argNames: [],
       );
 
   @override
   Future<void> crateApiFullClearVersionStateStream() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__clear_version_state_stream,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullClearVersionStateStreamConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__clear_version_state_stream(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullClearVersionStateStreamConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullClearVersionStateStreamConstMeta => const TaskConstMeta(
-        debugName: 'clear_version_state_stream',
+        debugName: "clear_version_state_stream",
         argNames: [],
       );
 
   @override
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__continue_change_pin(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_instruction_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullContinueChangePinConstMeta,
-        argValues: [pin],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__continue_change_pin(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_wallet_instruction_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullContinueChangePinConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullContinueChangePinConstMeta => const TaskConstMeta(
-        debugName: 'continue_change_pin',
-        argNames: ['pin'],
+        debugName: "continue_change_pin",
+        argNames: ["pin"],
       );
 
   @override
   Future<List<Card>> crateApiFullContinuePidIssuance({required String uri}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(uri);
-          return wire.wire__crate__api__full__continue_pid_issuance(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_card,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullContinuePidIssuanceConstMeta,
-        argValues: [uri],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(uri);
+        return wire.wire__crate__api__full__continue_pid_issuance(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_list_card,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullContinuePidIssuanceConstMeta,
+      argValues: [uri],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullContinuePidIssuanceConstMeta => const TaskConstMeta(
-        debugName: 'continue_pid_issuance',
-        argNames: ['uri'],
+        debugName: "continue_pid_issuance",
+        argNames: ["uri"],
       );
 
   @override
   Future<String> crateApiFullCreatePidIssuanceRedirectUri() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__create_pid_issuance_redirect_uri,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_String,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullCreatePidIssuanceRedirectUriConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__create_pid_issuance_redirect_uri(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_String,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullCreatePidIssuanceRedirectUriConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullCreatePidIssuanceRedirectUriConstMeta => const TaskConstMeta(
-        debugName: 'create_pid_issuance_redirect_uri',
+        debugName: "create_pid_issuance_redirect_uri",
         argNames: [],
       );
 
   @override
   Future<List<WalletEvent>> crateApiFullGetHistory() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__get_history,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_wallet_event,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullGetHistoryConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__get_history(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_list_wallet_event,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullGetHistoryConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullGetHistoryConstMeta => const TaskConstMeta(
-        debugName: 'get_history',
+        debugName: "get_history",
         argNames: [],
       );
 
   @override
   Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String docType}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(docType);
-          return wire.wire__crate__api__full__get_history_for_card(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_wallet_event,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullGetHistoryForCardConstMeta,
-        argValues: [docType],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(docType);
+        return wire.wire__crate__api__full__get_history_for_card(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_list_wallet_event,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullGetHistoryForCardConstMeta,
+      argValues: [docType],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullGetHistoryForCardConstMeta => const TaskConstMeta(
-        debugName: 'get_history_for_card',
-        argNames: ['docType'],
+        debugName: "get_history_for_card",
+        argNames: ["docType"],
       );
 
   @override
   Future<String> crateApiFullGetVersionString() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__get_version_string,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_String,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullGetVersionStringConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__get_version_string(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_String,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullGetVersionStringConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullGetVersionStringConstMeta => const TaskConstMeta(
-        debugName: 'get_version_string',
+        debugName: "get_version_string",
         argNames: [],
       );
 
   @override
   Future<bool> crateApiFullHasActiveDisclosureSession() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__has_active_disclosure_session,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullHasActiveDisclosureSessionConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__has_active_disclosure_session(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_bool,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullHasActiveDisclosureSessionConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullHasActiveDisclosureSessionConstMeta => const TaskConstMeta(
-        debugName: 'has_active_disclosure_session',
+        debugName: "has_active_disclosure_session",
         argNames: [],
       );
 
   @override
   Future<bool> crateApiFullHasActivePidIssuanceSession() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__has_active_pid_issuance_session,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullHasActivePidIssuanceSessionConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__has_active_pid_issuance_session(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_bool,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullHasActivePidIssuanceSessionConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullHasActivePidIssuanceSessionConstMeta => const TaskConstMeta(
-        debugName: 'has_active_pid_issuance_session',
+        debugName: "has_active_pid_issuance_session",
         argNames: [],
       );
 
   @override
   Future<bool> crateApiFullHasRegistration() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__has_registration,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullHasRegistrationConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__has_registration(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_bool,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullHasRegistrationConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullHasRegistrationConstMeta => const TaskConstMeta(
-        debugName: 'has_registration',
+        debugName: "has_registration",
         argNames: [],
       );
 
   @override
   Future<IdentifyUriResult> crateApiFullIdentifyUri({required String uri}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(uri);
-          return wire.wire__crate__api__full__identify_uri(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_identify_uri_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullIdentifyUriConstMeta,
-        argValues: [uri],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(uri);
+        return wire.wire__crate__api__full__identify_uri(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_identify_uri_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullIdentifyUriConstMeta,
+      argValues: [uri],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullIdentifyUriConstMeta => const TaskConstMeta(
-        debugName: 'identify_uri',
-        argNames: ['uri'],
+        debugName: "identify_uri",
+        argNames: ["uri"],
       );
 
   @override
   Future<void> crateApiFullInit() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__init,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullInitConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__init(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullInitConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullInitConstMeta => const TaskConstMeta(
-        debugName: 'init',
+        debugName: "init",
         argNames: [],
       );
 
   @override
   Future<bool> crateApiFullIsBiometricUnlockEnabled() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__is_biometric_unlock_enabled,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullIsBiometricUnlockEnabledConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__is_biometric_unlock_enabled(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_bool,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullIsBiometricUnlockEnabledConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullIsBiometricUnlockEnabledConstMeta => const TaskConstMeta(
-        debugName: 'is_biometric_unlock_enabled',
+        debugName: "is_biometric_unlock_enabled",
         argNames: [],
       );
 
   @override
   Future<bool> crateApiFullIsInitialized() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__is_initialized,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_bool,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullIsInitializedConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__is_initialized(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_bool,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullIsInitializedConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullIsInitializedConstMeta => const TaskConstMeta(
-        debugName: 'is_initialized',
+        debugName: "is_initialized",
         argNames: [],
       );
 
   @override
   Future<PinValidationResult> crateApiFullIsValidPin({required String pin}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__is_valid_pin(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_pin_validation_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullIsValidPinConstMeta,
-        argValues: [pin],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__is_valid_pin(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_pin_validation_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullIsValidPinConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullIsValidPinConstMeta => const TaskConstMeta(
-        debugName: 'is_valid_pin',
-        argNames: ['pin'],
+        debugName: "is_valid_pin",
+        argNames: ["pin"],
       );
 
   @override
   Future<void> crateApiFullLockWallet() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__lock_wallet,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullLockWalletConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__lock_wallet(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullLockWalletConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullLockWalletConstMeta => const TaskConstMeta(
-        debugName: 'lock_wallet',
+        debugName: "lock_wallet",
         argNames: [],
       );
 
   @override
   Future<void> crateApiFullRegister({required String pin}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__register(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullRegisterConstMeta,
-        argValues: [pin],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__register(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullRegisterConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullRegisterConstMeta => const TaskConstMeta(
-        debugName: 'register',
-        argNames: ['pin'],
+        debugName: "register",
+        argNames: ["pin"],
       );
 
   @override
   Future<void> crateApiFullResetWallet() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__reset_wallet,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullResetWalletConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__reset_wallet(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullResetWalletConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullResetWalletConstMeta => const TaskConstMeta(
-        debugName: 'reset_wallet',
+        debugName: "reset_wallet",
         argNames: [],
       );
 
   @override
   Future<void> crateApiFullSetBiometricUnlock({required bool enable}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_bool(enable);
-          return wire.wire__crate__api__full__set_biometric_unlock(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullSetBiometricUnlockConstMeta,
-        argValues: [enable],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_bool(enable);
+        return wire.wire__crate__api__full__set_biometric_unlock(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullSetBiometricUnlockConstMeta,
+      argValues: [enable],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullSetBiometricUnlockConstMeta => const TaskConstMeta(
-        debugName: 'set_biometric_unlock',
-        argNames: ['enable'],
+        debugName: "set_biometric_unlock",
+        argNames: ["enable"],
       );
 
   @override
   Stream<List<Card>> crateApiFullSetCardsStream() {
     final sink = RustStreamSink<List<Card>>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final arg0 = cst_encode_StreamSink_list_card_Dco(sink);
-            return wire.wire__crate__api__full__set_cards_stream(port_, arg0);
-          },
-          codec: DcoCodec(
-            decodeSuccessData: dco_decode_unit,
-            decodeErrorData: dco_decode_AnyhowException,
-          ),
-          constMeta: kCrateApiFullSetCardsStreamConstMeta,
-          argValues: [sink],
-          apiImpl: this,
-        ),
+    unawaited(handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_StreamSink_list_card_Dco(sink);
+        return wire.wire__crate__api__full__set_cards_stream(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullSetCardsStreamConstMeta,
+      argValues: [sink],
+      apiImpl: this,
+    )));
     return sink.stream;
   }
 
   TaskConstMeta get kCrateApiFullSetCardsStreamConstMeta => const TaskConstMeta(
-        debugName: 'set_cards_stream',
-        argNames: ['sink'],
+        debugName: "set_cards_stream",
+        argNames: ["sink"],
       );
 
   @override
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream() {
     final sink = RustStreamSink<FlutterConfiguration>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final arg0 = cst_encode_StreamSink_flutter_configuration_Dco(sink);
-            return wire.wire__crate__api__full__set_configuration_stream(port_, arg0);
-          },
-          codec: DcoCodec(
-            decodeSuccessData: dco_decode_unit,
-            decodeErrorData: null,
-          ),
-          constMeta: kCrateApiFullSetConfigurationStreamConstMeta,
-          argValues: [sink],
-          apiImpl: this,
-        ),
+    unawaited(handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_StreamSink_flutter_configuration_Dco(sink);
+        return wire.wire__crate__api__full__set_configuration_stream(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullSetConfigurationStreamConstMeta,
+      argValues: [sink],
+      apiImpl: this,
+    )));
     return sink.stream;
   }
 
   TaskConstMeta get kCrateApiFullSetConfigurationStreamConstMeta => const TaskConstMeta(
-        debugName: 'set_configuration_stream',
-        argNames: ['sink'],
+        debugName: "set_configuration_stream",
+        argNames: ["sink"],
       );
 
   @override
   Stream<bool> crateApiFullSetLockStream() {
     final sink = RustStreamSink<bool>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final arg0 = cst_encode_StreamSink_bool_Dco(sink);
-            return wire.wire__crate__api__full__set_lock_stream(port_, arg0);
-          },
-          codec: DcoCodec(
-            decodeSuccessData: dco_decode_unit,
-            decodeErrorData: null,
-          ),
-          constMeta: kCrateApiFullSetLockStreamConstMeta,
-          argValues: [sink],
-          apiImpl: this,
-        ),
+    unawaited(handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_StreamSink_bool_Dco(sink);
+        return wire.wire__crate__api__full__set_lock_stream(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullSetLockStreamConstMeta,
+      argValues: [sink],
+      apiImpl: this,
+    )));
     return sink.stream;
   }
 
   TaskConstMeta get kCrateApiFullSetLockStreamConstMeta => const TaskConstMeta(
-        debugName: 'set_lock_stream',
-        argNames: ['sink'],
+        debugName: "set_lock_stream",
+        argNames: ["sink"],
       );
 
   @override
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream() {
     final sink = RustStreamSink<List<WalletEvent>>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final arg0 = cst_encode_StreamSink_list_wallet_event_Dco(sink);
-            return wire.wire__crate__api__full__set_recent_history_stream(port_, arg0);
-          },
-          codec: DcoCodec(
-            decodeSuccessData: dco_decode_unit,
-            decodeErrorData: dco_decode_AnyhowException,
-          ),
-          constMeta: kCrateApiFullSetRecentHistoryStreamConstMeta,
-          argValues: [sink],
-          apiImpl: this,
-        ),
+    unawaited(handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_StreamSink_list_wallet_event_Dco(sink);
+        return wire.wire__crate__api__full__set_recent_history_stream(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullSetRecentHistoryStreamConstMeta,
+      argValues: [sink],
+      apiImpl: this,
+    )));
     return sink.stream;
   }
 
   TaskConstMeta get kCrateApiFullSetRecentHistoryStreamConstMeta => const TaskConstMeta(
-        debugName: 'set_recent_history_stream',
-        argNames: ['sink'],
+        debugName: "set_recent_history_stream",
+        argNames: ["sink"],
       );
 
   @override
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream() {
     final sink = RustStreamSink<FlutterVersionState>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final arg0 = cst_encode_StreamSink_flutter_version_state_Dco(sink);
-            return wire.wire__crate__api__full__set_version_state_stream(port_, arg0);
-          },
-          codec: DcoCodec(
-            decodeSuccessData: dco_decode_unit,
-            decodeErrorData: null,
-          ),
-          constMeta: kCrateApiFullSetVersionStateStreamConstMeta,
-          argValues: [sink],
-          apiImpl: this,
-        ),
+    unawaited(handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_StreamSink_flutter_version_state_Dco(sink);
+        return wire.wire__crate__api__full__set_version_state_stream(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: null,
       ),
-    );
+      constMeta: kCrateApiFullSetVersionStateStreamConstMeta,
+      argValues: [sink],
+      apiImpl: this,
+    )));
     return sink.stream;
   }
 
   TaskConstMeta get kCrateApiFullSetVersionStateStreamConstMeta => const TaskConstMeta(
-        debugName: 'set_version_state_stream',
-        argNames: ['sink'],
+        debugName: "set_version_state_stream",
+        argNames: ["sink"],
       );
 
   @override
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(uri);
-          final arg1 = cst_encode_bool(isQrCode);
-          return wire.wire__crate__api__full__start_disclosure(port_, arg0, arg1);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_start_disclosure_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullStartDisclosureConstMeta,
-        argValues: [uri, isQrCode],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(uri);
+        var arg1 = cst_encode_bool(isQrCode);
+        return wire.wire__crate__api__full__start_disclosure(port_, arg0, arg1);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_start_disclosure_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullStartDisclosureConstMeta,
+      argValues: [uri, isQrCode],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullStartDisclosureConstMeta => const TaskConstMeta(
-        debugName: 'start_disclosure',
-        argNames: ['uri', 'isQrCode'],
+        debugName: "start_disclosure",
+        argNames: ["uri", "isQrCode"],
       );
 
   @override
   Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final arg0 = cst_encode_String(pin);
-          return wire.wire__crate__api__full__unlock_wallet(port_, arg0);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_wallet_instruction_result,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullUnlockWalletConstMeta,
-        argValues: [pin],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__unlock_wallet(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_wallet_instruction_result,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullUnlockWalletConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullUnlockWalletConstMeta => const TaskConstMeta(
-        debugName: 'unlock_wallet',
-        argNames: ['pin'],
+        debugName: "unlock_wallet",
+        argNames: ["pin"],
       );
 
   @override
   Future<void> crateApiFullUnlockWalletWithBiometrics() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: wire.wire__crate__api__full__unlock_wallet_with_biometrics,
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: dco_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiFullUnlockWalletWithBiometricsConstMeta,
-        argValues: [],
-        apiImpl: this,
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        return wire.wire__crate__api__full__unlock_wallet_with_biometrics(port_);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_unit,
+        decodeErrorData: dco_decode_AnyhowException,
       ),
-    );
+      constMeta: kCrateApiFullUnlockWalletWithBiometricsConstMeta,
+      argValues: [],
+      apiImpl: this,
+    ));
   }
 
   TaskConstMeta get kCrateApiFullUnlockWalletWithBiometricsConstMeta => const TaskConstMeta(
-        debugName: 'unlock_wallet_with_biometrics',
+        debugName: "unlock_wallet_with_biometrics",
         argNames: [],
       );
 
   @protected
-  AnyhowException dco_decode_AnyhowException(raw) {
+  AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return AnyhowException(raw as String);
   }
 
   @protected
-  RustStreamSink<bool> dco_decode_StreamSink_bool_Dco(raw) {
+  RustStreamSink<bool> dco_decode_StreamSink_bool_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  RustStreamSink<FlutterConfiguration> dco_decode_StreamSink_flutter_configuration_Dco(raw) {
+  RustStreamSink<FlutterConfiguration> dco_decode_StreamSink_flutter_configuration_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  RustStreamSink<FlutterVersionState> dco_decode_StreamSink_flutter_version_state_Dco(raw) {
+  RustStreamSink<FlutterVersionState> dco_decode_StreamSink_flutter_version_state_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  RustStreamSink<List<Card>> dco_decode_StreamSink_list_card_Dco(raw) {
+  RustStreamSink<List<Card>> dco_decode_StreamSink_list_card_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Dco(raw) {
+  RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
 
   @protected
-  String dco_decode_String(raw) {
+  String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
   }
 
   @protected
-  AcceptDisclosureResult dco_decode_accept_disclosure_result(raw) {
+  AcceptDisclosureResult dco_decode_accept_disclosure_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
@@ -1075,54 +1027,54 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           error: dco_decode_box_autoadd_wallet_instruction_error(raw[1]),
         );
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
-  bool dco_decode_bool(raw) {
+  bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
   }
 
   @protected
-  Card dco_decode_box_autoadd_card(raw) {
+  Card dco_decode_box_autoadd_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_card(raw);
   }
 
   @protected
-  Image dco_decode_box_autoadd_image(raw) {
+  Image dco_decode_box_autoadd_image(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_image(raw);
   }
 
   @protected
-  Organization dco_decode_box_autoadd_organization(raw) {
+  Organization dco_decode_box_autoadd_organization(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_organization(raw);
   }
 
   @protected
-  RequestPolicy dco_decode_box_autoadd_request_policy(raw) {
+  RequestPolicy dco_decode_box_autoadd_request_policy(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_request_policy(raw);
   }
 
   @protected
-  BigInt dco_decode_box_autoadd_u_64(raw) {
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_u_64(raw);
   }
 
   @protected
-  WalletInstructionError dco_decode_box_autoadd_wallet_instruction_error(raw) {
+  WalletInstructionError dco_decode_box_autoadd_wallet_instruction_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_wallet_instruction_error(raw);
   }
 
   @protected
-  Card dco_decode_card(raw) {
+  Card dco_decode_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
@@ -1135,7 +1087,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  CardAttribute dco_decode_card_attribute(raw) {
+  CardAttribute dco_decode_card_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
@@ -1147,22 +1099,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  CardPersistence dco_decode_card_persistence(raw) {
+  CardPersistence dco_decode_card_persistence(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
-        return const CardPersistence_InMemory();
+        return CardPersistence_InMemory();
       case 1:
         return CardPersistence_Stored(
           id: dco_decode_String(raw[1]),
         );
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
-  CardValue dco_decode_card_value(raw) {
+  CardValue dco_decode_card_value(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
@@ -1182,12 +1134,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           value: dco_decode_gender_card_value(raw[1]),
         );
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
-  DisclosureCard dco_decode_disclosure_card(raw) {
+  DisclosureCard dco_decode_disclosure_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
@@ -1199,25 +1151,25 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  DisclosureSessionType dco_decode_disclosure_session_type(raw) {
+  DisclosureSessionType dco_decode_disclosure_session_type(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return DisclosureSessionType.values[raw as int];
   }
 
   @protected
-  DisclosureStatus dco_decode_disclosure_status(raw) {
+  DisclosureStatus dco_decode_disclosure_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return DisclosureStatus.values[raw as int];
   }
 
   @protected
-  DisclosureType dco_decode_disclosure_type(raw) {
+  DisclosureType dco_decode_disclosure_type(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return DisclosureType.values[raw as int];
   }
 
   @protected
-  FlutterConfiguration dco_decode_flutter_configuration(raw) {
+  FlutterConfiguration dco_decode_flutter_configuration(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
@@ -1229,46 +1181,46 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  FlutterVersionState dco_decode_flutter_version_state(raw) {
+  FlutterVersionState dco_decode_flutter_version_state(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
-        return const FlutterVersionState_Ok();
+        return FlutterVersionState_Ok();
       case 1:
-        return const FlutterVersionState_Notify();
+        return FlutterVersionState_Notify();
       case 2:
-        return const FlutterVersionState_Recommend();
+        return FlutterVersionState_Recommend();
       case 3:
         return FlutterVersionState_Warn(
           expiresInSeconds: dco_decode_u_64(raw[1]),
         );
       case 4:
-        return const FlutterVersionState_Block();
+        return FlutterVersionState_Block();
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
-  GenderCardValue dco_decode_gender_card_value(raw) {
+  GenderCardValue dco_decode_gender_card_value(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return GenderCardValue.values[raw as int];
   }
 
   @protected
-  int dco_decode_i_32(raw) {
+  int dco_decode_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
   }
 
   @protected
-  IdentifyUriResult dco_decode_identify_uri_result(raw) {
+  IdentifyUriResult dco_decode_identify_uri_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return IdentifyUriResult.values[raw as int];
   }
 
   @protected
-  Image dco_decode_image(raw) {
+  Image dco_decode_image(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
@@ -1288,54 +1240,54 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           path: dco_decode_String(raw[1]),
         );
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
-  List<Card> dco_decode_list_card(raw) {
+  List<Card> dco_decode_list_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_card).toList();
   }
 
   @protected
-  List<CardAttribute> dco_decode_list_card_attribute(raw) {
+  List<CardAttribute> dco_decode_list_card_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_card_attribute).toList();
   }
 
   @protected
-  List<DisclosureCard> dco_decode_list_disclosure_card(raw) {
+  List<DisclosureCard> dco_decode_list_disclosure_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_disclosure_card).toList();
   }
 
   @protected
-  List<LocalizedString> dco_decode_list_localized_string(raw) {
+  List<LocalizedString> dco_decode_list_localized_string(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_localized_string).toList();
   }
 
   @protected
-  List<MissingAttribute> dco_decode_list_missing_attribute(raw) {
+  List<MissingAttribute> dco_decode_list_missing_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_missing_attribute).toList();
   }
 
   @protected
-  Uint8List dco_decode_list_prim_u_8_strict(raw) {
+  Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
   }
 
   @protected
-  List<WalletEvent> dco_decode_list_wallet_event(raw) {
+  List<WalletEvent> dco_decode_list_wallet_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_wallet_event).toList();
   }
 
   @protected
-  LocalizedString dco_decode_localized_string(raw) {
+  LocalizedString dco_decode_localized_string(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
@@ -1346,7 +1298,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  MissingAttribute dco_decode_missing_attribute(raw) {
+  MissingAttribute dco_decode_missing_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
@@ -1356,37 +1308,37 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  String? dco_decode_opt_String(raw) {
+  String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
   }
 
   @protected
-  Image? dco_decode_opt_box_autoadd_image(raw) {
+  Image? dco_decode_opt_box_autoadd_image(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_image(raw);
   }
 
   @protected
-  BigInt? dco_decode_opt_box_autoadd_u_64(raw) {
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
   }
 
   @protected
-  List<DisclosureCard>? dco_decode_opt_list_disclosure_card(raw) {
+  List<DisclosureCard>? dco_decode_opt_list_disclosure_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_list_disclosure_card(raw);
   }
 
   @protected
-  List<LocalizedString>? dco_decode_opt_list_localized_string(raw) {
+  List<LocalizedString>? dco_decode_opt_list_localized_string(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_list_localized_string(raw);
   }
 
   @protected
-  Organization dco_decode_organization(raw) {
+  Organization dco_decode_organization(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 11) throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
@@ -1406,13 +1358,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  PinValidationResult dco_decode_pin_validation_result(raw) {
+  PinValidationResult dco_decode_pin_validation_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return PinValidationResult.values[raw as int];
   }
 
   @protected
-  RequestPolicy dco_decode_request_policy(raw) {
+  RequestPolicy dco_decode_request_policy(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
     if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
@@ -1425,7 +1377,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  StartDisclosureResult dco_decode_start_disclosure_result(raw) {
+  StartDisclosureResult dco_decode_start_disclosure_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
@@ -1449,36 +1401,36 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           requestOriginBaseUrl: dco_decode_String(raw[6]),
         );
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
-  int dco_decode_u_16(raw) {
+  int dco_decode_u_16(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
   }
 
   @protected
-  BigInt dco_decode_u_64(raw) {
+  BigInt dco_decode_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeU64(raw);
   }
 
   @protected
-  int dco_decode_u_8(raw) {
+  int dco_decode_u_8(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
   }
 
   @protected
-  void dco_decode_unit(raw) {
+  void dco_decode_unit(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return;
   }
 
   @protected
-  WalletEvent dco_decode_wallet_event(raw) {
+  WalletEvent dco_decode_wallet_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
@@ -1497,12 +1449,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           card: dco_decode_box_autoadd_card(raw[2]),
         );
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
-  WalletInstructionError dco_decode_wallet_instruction_error(raw) {
+  WalletInstructionError dco_decode_wallet_instruction_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
@@ -1515,31 +1467,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           timeoutMillis: dco_decode_u_64(raw[1]),
         );
       case 2:
-        return const WalletInstructionError_Blocked();
+        return WalletInstructionError_Blocked();
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
-  WalletInstructionResult dco_decode_wallet_instruction_result(raw) {
+  WalletInstructionResult dco_decode_wallet_instruction_result(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
-        return const WalletInstructionResult_Ok();
+        return WalletInstructionResult_Ok();
       case 1:
         return WalletInstructionResult_InstructionError(
           error: dco_decode_box_autoadd_wallet_instruction_error(raw[1]),
         );
       default:
-        throw Exception('unreachable');
+        throw Exception("unreachable");
     }
   }
 
   @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_String(deserializer);
+    var inner = sse_decode_String(deserializer);
     return AnyhowException(inner);
   }
 
@@ -1576,7 +1528,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_list_prim_u_8_strict(deserializer);
+    var inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
   }
 
@@ -1584,13 +1536,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   AcceptDisclosureResult sse_decode_accept_disclosure_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        final var_returnUrl = sse_decode_opt_String(deserializer);
+        var var_returnUrl = sse_decode_opt_String(deserializer);
         return AcceptDisclosureResult_Ok(returnUrl: var_returnUrl);
       case 1:
-        final var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
+        var var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
         return AcceptDisclosureResult_InstructionError(error: var_error);
       default:
         throw UnimplementedError('');
@@ -1606,55 +1558,55 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   Card sse_decode_box_autoadd_card(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return sse_decode_card(deserializer);
+    return (sse_decode_card(deserializer));
   }
 
   @protected
   Image sse_decode_box_autoadd_image(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return sse_decode_image(deserializer);
+    return (sse_decode_image(deserializer));
   }
 
   @protected
   Organization sse_decode_box_autoadd_organization(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return sse_decode_organization(deserializer);
+    return (sse_decode_organization(deserializer));
   }
 
   @protected
   RequestPolicy sse_decode_box_autoadd_request_policy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return sse_decode_request_policy(deserializer);
+    return (sse_decode_request_policy(deserializer));
   }
 
   @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return sse_decode_u_64(deserializer);
+    return (sse_decode_u_64(deserializer));
   }
 
   @protected
   WalletInstructionError sse_decode_box_autoadd_wallet_instruction_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return sse_decode_wallet_instruction_error(deserializer);
+    return (sse_decode_wallet_instruction_error(deserializer));
   }
 
   @protected
   Card sse_decode_card(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_issuer = sse_decode_organization(deserializer);
-    final var_persistence = sse_decode_card_persistence(deserializer);
-    final var_docType = sse_decode_String(deserializer);
-    final var_attributes = sse_decode_list_card_attribute(deserializer);
+    var var_issuer = sse_decode_organization(deserializer);
+    var var_persistence = sse_decode_card_persistence(deserializer);
+    var var_docType = sse_decode_String(deserializer);
+    var var_attributes = sse_decode_list_card_attribute(deserializer);
     return Card(issuer: var_issuer, persistence: var_persistence, docType: var_docType, attributes: var_attributes);
   }
 
   @protected
   CardAttribute sse_decode_card_attribute(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_key = sse_decode_String(deserializer);
-    final var_labels = sse_decode_list_localized_string(deserializer);
-    final var_value = sse_decode_card_value(deserializer);
+    var var_key = sse_decode_String(deserializer);
+    var var_labels = sse_decode_list_localized_string(deserializer);
+    var var_value = sse_decode_card_value(deserializer);
     return CardAttribute(key: var_key, labels: var_labels, value: var_value);
   }
 
@@ -1662,12 +1614,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   CardPersistence sse_decode_card_persistence(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        return const CardPersistence_InMemory();
+        return CardPersistence_InMemory();
       case 1:
-        final var_id = sse_decode_String(deserializer);
+        var var_id = sse_decode_String(deserializer);
         return CardPersistence_Stored(id: var_id);
       default:
         throw UnimplementedError('');
@@ -1678,19 +1630,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   CardValue sse_decode_card_value(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        final var_value = sse_decode_String(deserializer);
+        var var_value = sse_decode_String(deserializer);
         return CardValue_String(value: var_value);
       case 1:
-        final var_value = sse_decode_bool(deserializer);
+        var var_value = sse_decode_bool(deserializer);
         return CardValue_Boolean(value: var_value);
       case 2:
-        final var_value = sse_decode_String(deserializer);
+        var var_value = sse_decode_String(deserializer);
         return CardValue_Date(value: var_value);
       case 3:
-        final var_value = sse_decode_gender_card_value(deserializer);
+        var var_value = sse_decode_gender_card_value(deserializer);
         return CardValue_Gender(value: var_value);
       default:
         throw UnimplementedError('');
@@ -1700,39 +1652,39 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   DisclosureCard sse_decode_disclosure_card(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_issuer = sse_decode_organization(deserializer);
-    final var_docType = sse_decode_String(deserializer);
-    final var_attributes = sse_decode_list_card_attribute(deserializer);
+    var var_issuer = sse_decode_organization(deserializer);
+    var var_docType = sse_decode_String(deserializer);
+    var var_attributes = sse_decode_list_card_attribute(deserializer);
     return DisclosureCard(issuer: var_issuer, docType: var_docType, attributes: var_attributes);
   }
 
   @protected
   DisclosureSessionType sse_decode_disclosure_session_type(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_i_32(deserializer);
+    var inner = sse_decode_i_32(deserializer);
     return DisclosureSessionType.values[inner];
   }
 
   @protected
   DisclosureStatus sse_decode_disclosure_status(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_i_32(deserializer);
+    var inner = sse_decode_i_32(deserializer);
     return DisclosureStatus.values[inner];
   }
 
   @protected
   DisclosureType sse_decode_disclosure_type(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_i_32(deserializer);
+    var inner = sse_decode_i_32(deserializer);
     return DisclosureType.values[inner];
   }
 
   @protected
   FlutterConfiguration sse_decode_flutter_configuration(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_inactiveLockTimeout = sse_decode_u_16(deserializer);
-    final var_backgroundLockTimeout = sse_decode_u_16(deserializer);
-    final var_version = sse_decode_u_64(deserializer);
+    var var_inactiveLockTimeout = sse_decode_u_16(deserializer);
+    var var_backgroundLockTimeout = sse_decode_u_16(deserializer);
+    var var_version = sse_decode_u_64(deserializer);
     return FlutterConfiguration(
         inactiveLockTimeout: var_inactiveLockTimeout,
         backgroundLockTimeout: var_backgroundLockTimeout,
@@ -1743,19 +1695,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   FlutterVersionState sse_decode_flutter_version_state(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        return const FlutterVersionState_Ok();
+        return FlutterVersionState_Ok();
       case 1:
-        return const FlutterVersionState_Notify();
+        return FlutterVersionState_Notify();
       case 2:
-        return const FlutterVersionState_Recommend();
+        return FlutterVersionState_Recommend();
       case 3:
-        final var_expiresInSeconds = sse_decode_u_64(deserializer);
+        var var_expiresInSeconds = sse_decode_u_64(deserializer);
         return FlutterVersionState_Warn(expiresInSeconds: var_expiresInSeconds);
       case 4:
-        return const FlutterVersionState_Block();
+        return FlutterVersionState_Block();
       default:
         throw UnimplementedError('');
     }
@@ -1764,7 +1716,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   GenderCardValue sse_decode_gender_card_value(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_i_32(deserializer);
+    var inner = sse_decode_i_32(deserializer);
     return GenderCardValue.values[inner];
   }
 
@@ -1777,7 +1729,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   IdentifyUriResult sse_decode_identify_uri_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_i_32(deserializer);
+    var inner = sse_decode_i_32(deserializer);
     return IdentifyUriResult.values[inner];
   }
 
@@ -1785,19 +1737,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Image sse_decode_image(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        final var_xml = sse_decode_String(deserializer);
+        var var_xml = sse_decode_String(deserializer);
         return Image_Svg(xml: var_xml);
       case 1:
-        final var_base64 = sse_decode_String(deserializer);
+        var var_base64 = sse_decode_String(deserializer);
         return Image_Png(base64: var_base64);
       case 2:
-        final var_base64 = sse_decode_String(deserializer);
+        var var_base64 = sse_decode_String(deserializer);
         return Image_Jpg(base64: var_base64);
       case 3:
-        final var_path = sse_decode_String(deserializer);
+        var var_path = sse_decode_String(deserializer);
         return Image_Asset(path: var_path);
       default:
         throw UnimplementedError('');
@@ -1808,8 +1760,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<Card> sse_decode_list_card(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <Card>[];
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <Card>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_card(deserializer));
     }
@@ -1820,8 +1772,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<CardAttribute> sse_decode_list_card_attribute(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <CardAttribute>[];
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <CardAttribute>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_card_attribute(deserializer));
     }
@@ -1832,8 +1784,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<DisclosureCard> sse_decode_list_disclosure_card(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <DisclosureCard>[];
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <DisclosureCard>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_disclosure_card(deserializer));
     }
@@ -1844,8 +1796,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<LocalizedString> sse_decode_list_localized_string(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <LocalizedString>[];
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <LocalizedString>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_localized_string(deserializer));
     }
@@ -1856,8 +1808,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<MissingAttribute> sse_decode_list_missing_attribute(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <MissingAttribute>[];
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <MissingAttribute>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_missing_attribute(deserializer));
     }
@@ -1867,7 +1819,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final len_ = sse_decode_i_32(deserializer);
+    var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
   }
 
@@ -1875,8 +1827,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<WalletEvent> sse_decode_list_wallet_event(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final len_ = sse_decode_i_32(deserializer);
-    final ans_ = <WalletEvent>[];
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <WalletEvent>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_wallet_event(deserializer));
     }
@@ -1886,15 +1838,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   LocalizedString sse_decode_localized_string(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_language = sse_decode_String(deserializer);
-    final var_value = sse_decode_String(deserializer);
+    var var_language = sse_decode_String(deserializer);
+    var var_value = sse_decode_String(deserializer);
     return LocalizedString(language: var_language, value: var_value);
   }
 
   @protected
   MissingAttribute sse_decode_missing_attribute(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_labels = sse_decode_list_localized_string(deserializer);
+    var var_labels = sse_decode_list_localized_string(deserializer);
     return MissingAttribute(labels: var_labels);
   }
 
@@ -1903,7 +1855,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return sse_decode_String(deserializer);
+      return (sse_decode_String(deserializer));
     } else {
       return null;
     }
@@ -1914,7 +1866,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return sse_decode_box_autoadd_image(deserializer);
+      return (sse_decode_box_autoadd_image(deserializer));
     } else {
       return null;
     }
@@ -1925,7 +1877,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return sse_decode_box_autoadd_u_64(deserializer);
+      return (sse_decode_box_autoadd_u_64(deserializer));
     } else {
       return null;
     }
@@ -1936,7 +1888,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return sse_decode_list_disclosure_card(deserializer);
+      return (sse_decode_list_disclosure_card(deserializer));
     } else {
       return null;
     }
@@ -1947,7 +1899,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return sse_decode_list_localized_string(deserializer);
+      return (sse_decode_list_localized_string(deserializer));
     } else {
       return null;
     }
@@ -1956,17 +1908,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   Organization sse_decode_organization(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_legalName = sse_decode_list_localized_string(deserializer);
-    final var_displayName = sse_decode_list_localized_string(deserializer);
-    final var_description = sse_decode_list_localized_string(deserializer);
-    final var_image = sse_decode_opt_box_autoadd_image(deserializer);
-    final var_webUrl = sse_decode_opt_String(deserializer);
-    final var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
-    final var_kvk = sse_decode_opt_String(deserializer);
-    final var_city = sse_decode_opt_list_localized_string(deserializer);
-    final var_category = sse_decode_list_localized_string(deserializer);
-    final var_department = sse_decode_opt_list_localized_string(deserializer);
-    final var_countryCode = sse_decode_opt_String(deserializer);
+    var var_legalName = sse_decode_list_localized_string(deserializer);
+    var var_displayName = sse_decode_list_localized_string(deserializer);
+    var var_description = sse_decode_list_localized_string(deserializer);
+    var var_image = sse_decode_opt_box_autoadd_image(deserializer);
+    var var_webUrl = sse_decode_opt_String(deserializer);
+    var var_privacyPolicyUrl = sse_decode_opt_String(deserializer);
+    var var_kvk = sse_decode_opt_String(deserializer);
+    var var_city = sse_decode_opt_list_localized_string(deserializer);
+    var var_category = sse_decode_list_localized_string(deserializer);
+    var var_department = sse_decode_opt_list_localized_string(deserializer);
+    var var_countryCode = sse_decode_opt_String(deserializer);
     return Organization(
         legalName: var_legalName,
         displayName: var_displayName,
@@ -1984,17 +1936,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   PinValidationResult sse_decode_pin_validation_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_i_32(deserializer);
+    var inner = sse_decode_i_32(deserializer);
     return PinValidationResult.values[inner];
   }
 
   @protected
   RequestPolicy sse_decode_request_policy(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_dataStorageDurationInMinutes = sse_decode_opt_box_autoadd_u_64(deserializer);
-    final var_dataSharedWithThirdParties = sse_decode_bool(deserializer);
-    final var_dataDeletionPossible = sse_decode_bool(deserializer);
-    final var_policyUrl = sse_decode_String(deserializer);
+    var var_dataStorageDurationInMinutes = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_dataSharedWithThirdParties = sse_decode_bool(deserializer);
+    var var_dataDeletionPossible = sse_decode_bool(deserializer);
+    var var_policyUrl = sse_decode_String(deserializer);
     return RequestPolicy(
         dataStorageDurationInMinutes: var_dataStorageDurationInMinutes,
         dataSharedWithThirdParties: var_dataSharedWithThirdParties,
@@ -2006,17 +1958,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   StartDisclosureResult sse_decode_start_disclosure_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        final var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
-        final var_policy = sse_decode_box_autoadd_request_policy(deserializer);
-        final var_requestedCards = sse_decode_list_disclosure_card(deserializer);
-        final var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
-        final var_sessionType = sse_decode_disclosure_session_type(deserializer);
-        final var_requestPurpose = sse_decode_list_localized_string(deserializer);
-        final var_requestOriginBaseUrl = sse_decode_String(deserializer);
-        final var_requestType = sse_decode_disclosure_type(deserializer);
+        var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
+        var var_policy = sse_decode_box_autoadd_request_policy(deserializer);
+        var var_requestedCards = sse_decode_list_disclosure_card(deserializer);
+        var var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
+        var var_sessionType = sse_decode_disclosure_session_type(deserializer);
+        var var_requestPurpose = sse_decode_list_localized_string(deserializer);
+        var var_requestOriginBaseUrl = sse_decode_String(deserializer);
+        var var_requestType = sse_decode_disclosure_type(deserializer);
         return StartDisclosureResult_Request(
             relyingParty: var_relyingParty,
             policy: var_policy,
@@ -2027,12 +1979,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
             requestOriginBaseUrl: var_requestOriginBaseUrl,
             requestType: var_requestType);
       case 1:
-        final var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
-        final var_missingAttributes = sse_decode_list_missing_attribute(deserializer);
-        final var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
-        final var_sessionType = sse_decode_disclosure_session_type(deserializer);
-        final var_requestPurpose = sse_decode_list_localized_string(deserializer);
-        final var_requestOriginBaseUrl = sse_decode_String(deserializer);
+        var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
+        var var_missingAttributes = sse_decode_list_missing_attribute(deserializer);
+        var var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
+        var var_sessionType = sse_decode_disclosure_session_type(deserializer);
+        var var_requestPurpose = sse_decode_list_localized_string(deserializer);
+        var var_requestOriginBaseUrl = sse_decode_String(deserializer);
         return StartDisclosureResult_RequestAttributesMissing(
             relyingParty: var_relyingParty,
             missingAttributes: var_missingAttributes,
@@ -2072,16 +2024,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   WalletEvent sse_decode_wallet_event(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        final var_dateTime = sse_decode_String(deserializer);
-        final var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
-        final var_purpose = sse_decode_list_localized_string(deserializer);
-        final var_requestedCards = sse_decode_opt_list_disclosure_card(deserializer);
-        final var_requestPolicy = sse_decode_box_autoadd_request_policy(deserializer);
-        final var_status = sse_decode_disclosure_status(deserializer);
-        final var_typ = sse_decode_disclosure_type(deserializer);
+        var var_dateTime = sse_decode_String(deserializer);
+        var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
+        var var_purpose = sse_decode_list_localized_string(deserializer);
+        var var_requestedCards = sse_decode_opt_list_disclosure_card(deserializer);
+        var var_requestPolicy = sse_decode_box_autoadd_request_policy(deserializer);
+        var var_status = sse_decode_disclosure_status(deserializer);
+        var var_typ = sse_decode_disclosure_type(deserializer);
         return WalletEvent_Disclosure(
             dateTime: var_dateTime,
             relyingParty: var_relyingParty,
@@ -2091,8 +2043,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
             status: var_status,
             typ: var_typ);
       case 1:
-        final var_dateTime = sse_decode_String(deserializer);
-        final var_card = sse_decode_box_autoadd_card(deserializer);
+        var var_dateTime = sse_decode_String(deserializer);
+        var var_card = sse_decode_box_autoadd_card(deserializer);
         return WalletEvent_Issuance(dateTime: var_dateTime, card: var_card);
       default:
         throw UnimplementedError('');
@@ -2103,18 +2055,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   WalletInstructionError sse_decode_wallet_instruction_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        final var_attemptsLeftInRound = sse_decode_u_8(deserializer);
-        final var_isFinalRound = sse_decode_bool(deserializer);
+        var var_attemptsLeftInRound = sse_decode_u_8(deserializer);
+        var var_isFinalRound = sse_decode_bool(deserializer);
         return WalletInstructionError_IncorrectPin(
             attemptsLeftInRound: var_attemptsLeftInRound, isFinalRound: var_isFinalRound);
       case 1:
-        final var_timeoutMillis = sse_decode_u_64(deserializer);
+        var var_timeoutMillis = sse_decode_u_64(deserializer);
         return WalletInstructionError_Timeout(timeoutMillis: var_timeoutMillis);
       case 2:
-        return const WalletInstructionError_Blocked();
+        return WalletInstructionError_Blocked();
       default:
         throw UnimplementedError('');
     }
@@ -2124,12 +2076,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   WalletInstructionResult sse_decode_wallet_instruction_result(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
-    final tag_ = sse_decode_i_32(deserializer);
+    var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        return const WalletInstructionResult_Ok();
+        return WalletInstructionResult_Ok();
       case 1:
-        final var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
+        var var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
         return WalletInstructionResult_InstructionError(error: var_error);
       default:
         throw UnimplementedError('');
@@ -2212,14 +2164,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_StreamSink_bool_Dco(RustStreamSink<bool> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
-      self.setupAndSerialize(
-        codec: DcoCodec(
+        self.setupAndSerialize(
+            codec: DcoCodec(
           decodeSuccessData: dco_decode_bool,
           decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-      serializer,
-    );
+        )),
+        serializer);
   }
 
   @protected
@@ -2227,14 +2177,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       RustStreamSink<FlutterConfiguration> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
-      self.setupAndSerialize(
-        codec: DcoCodec(
+        self.setupAndSerialize(
+            codec: DcoCodec(
           decodeSuccessData: dco_decode_flutter_configuration,
           decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-      serializer,
-    );
+        )),
+        serializer);
   }
 
   @protected
@@ -2242,42 +2190,36 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       RustStreamSink<FlutterVersionState> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
-      self.setupAndSerialize(
-        codec: DcoCodec(
+        self.setupAndSerialize(
+            codec: DcoCodec(
           decodeSuccessData: dco_decode_flutter_version_state,
           decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-      serializer,
-    );
+        )),
+        serializer);
   }
 
   @protected
   void sse_encode_StreamSink_list_card_Dco(RustStreamSink<List<Card>> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
-      self.setupAndSerialize(
-        codec: DcoCodec(
+        self.setupAndSerialize(
+            codec: DcoCodec(
           decodeSuccessData: dco_decode_list_card,
           decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-      serializer,
-    );
+        )),
+        serializer);
   }
 
   @protected
   void sse_encode_StreamSink_list_wallet_event_Dco(RustStreamSink<List<WalletEvent>> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
-      self.setupAndSerialize(
-        codec: DcoCodec(
+        self.setupAndSerialize(
+            codec: DcoCodec(
           decodeSuccessData: dco_decode_list_wallet_event,
           decodeErrorData: dco_decode_AnyhowException,
-        ),
-      ),
-      serializer,
-    );
+        )),
+        serializer);
   }
 
   @protected
