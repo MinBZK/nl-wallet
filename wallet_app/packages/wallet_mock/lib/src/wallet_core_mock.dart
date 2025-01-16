@@ -84,8 +84,8 @@ class WalletCoreMock implements WalletCoreApi {
       switch (result.error) {
         case WalletInstructionError_Timeout():
         case WalletInstructionError_Blocked():
-        case WalletInstructionError_IncorrectPin():
           _wallet.lock();
+        case WalletInstructionError_IncorrectPin():
       }
       return AcceptDisclosureResult.instructionError(error: result.error);
     }
