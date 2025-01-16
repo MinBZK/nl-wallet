@@ -1,7 +1,5 @@
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   before_script:
     - set -euxo pipefail
   script:
@@ -13,8 +11,6 @@ lint-rust:
 
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   variables:
     NEXTEST_PROFILE: "ci"
     SKIP_DIGID_CONNECTOR: "true"
@@ -50,8 +46,6 @@ test-rust:
 
 test-rust-doctest:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -66,8 +60,6 @@ test-rust-doctest:
 
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:e7d15ca08ac783d73ea0d375eafa593633cde7fd411d2713573b5eb8d51920a1"
   script:
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
@@ -81,8 +73,6 @@ test-rust-compilation-ios:
 
 .build-binary:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   needs:
     - job: test-rust
       artifacts: false

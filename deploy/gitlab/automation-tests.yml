@@ -3,8 +3,6 @@
   extends: .env-ont-k8s
   environment:
     action: access
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk17@sha256:633d0e2af68455c1a062c82d75b2883a07a568816d760fe04508fed2ded4588d"
   artifacts:
     when: always
     paths:
@@ -105,8 +103,7 @@ run-automation-tests-publish-results:
     - { job: run-automation-tests-suite-lock }
     - { job: run-automation-tests-suite-web }
   script:
-    # TODO: Install proper zip or rely on python explicitly in image
-    - python3 -m zipfile -c e2e.zip uiautomation/build/test-results/test/*.xml
+    - zip e2e.zip uiautomation/build/test-results/test/*.xml
     - mc put e2e.zip qt/quality-time/junit-results/
 
 run-automation-smoke-test-ont:
@@ -133,8 +130,6 @@ run-automation-smoke-test-ont:
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   extends: .env-ont-k8s
   needs:
     - job: deploy-mock-relying-party-ont
