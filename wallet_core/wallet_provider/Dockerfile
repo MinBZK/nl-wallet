@@ -1,5 +1,5 @@
 ### Copy Shared Library Stage ###
-FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-hsm-pkcs11-library@sha256:2a4d7d5059fb8b7207cfa765966253af7b8d3031b0030037f68d3751f88325c5 AS shared_library
+FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-hsm-pkcs11-library:250121-d4238b94 AS shared_library
 
 ### Bundle Stage ###
 FROM ${HARBOR_REGISTRY}/gcr-io-proxy/distroless/cc-debian12:nonroot
