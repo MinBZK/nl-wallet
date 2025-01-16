@@ -19,9 +19,15 @@ private_lane :get_app_identifier do
 end
 
 private_lane :get_local_version_and_build do
-  Dir.chdir("..") do
-    YAML.load_file("wallet_app/pubspec.yaml")["version"].split("+", 2)
+  yaml_data = YAML.load_file("../wallet_app/pubspec.yaml")
+  version_parts = yaml_data["version"].split("-", 2)
+
+  # If building locally, and 2nd part of version is nil or "dev", rewrite to 0.
+  if version_parts[1].nil? || version_parts[1] == "dev"
+    puts  "App version_part[1] is \"%s\", rewriting to \"0\"" % [version_parts[1]]
+    version_parts[1] = "0"
   end
+  version_parts
 end
 
 private_lane :ci_get_basic_auth do
@@ -102,6 +108,13 @@ end
 platform :android do
   desc "Build and sign Android app"
   lane :build do |options|
+
+    if options[:build_mode].nil? || options[:build_mode] == "release"
+      ensure_env_vars(
+        env_vars: ['CONFIG_ENV']
+      )
+    end
+
     package_name = options[:package_name] || get_app_identifier
     UI.user_error!("No package_name option set") if package_name.blank?
 
@@ -148,7 +161,14 @@ platform :android do
 
       upload_sentry_symbols
 
-      sh("mv", "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}", "../#{package_name}-#{version}-#{build_mode}.#{file_format}")
+      source_filepath = "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}"
+      target_filepath = "../#{package_name}-#{version}-#{build_mode}.#{file_format}"
+
+      if File.file?(source_filepath)
+        sh("mv", source_filepath, target_filepath)
+      else
+        UI.user_error!("Failed to find %s, aborting..." % [source_filepath])
+      end
     end
   end
 
@@ -204,6 +224,13 @@ end
 platform :ios do
   desc "Build and sign iOS app from CI"
   lane :ci_build do |options|
+
+    if options[:build_mode].nil? || options[:build_mode] == "release"
+      ensure_env_vars(
+        env_vars: ['CONFIG_ENV']
+      )
+    end
+
     match_basic_auth = ci_get_basic_auth
     match_keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
 
@@ -289,6 +316,13 @@ platform :ios do
 
   desc "Build and sign iOS app"
   lane :build do |options|
+
+    if options[:build_mode].nil? || options[:build_mode] == "release"
+      ensure_env_vars(
+        env_vars: ['CONFIG_ENV']
+      )
+    end
+
     bundle_id = options[:bundle_id] || get_app_identifier
     UI.user_error!("No app_identifier or bundle_id option set") if bundle_id.blank?
 
