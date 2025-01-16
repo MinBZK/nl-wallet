@@ -63,7 +63,7 @@ impl From<DisclosureType> for disclosure_history_event::EventType {
 
 impl From<&disclosure_history_event::Model> for DisclosureType {
     fn from(source: &disclosure_history_event::Model) -> Self {
-        match source.typ {
+        match source.r#type {
             disclosure_history_event::EventType::Login => Self::Login,
             disclosure_history_event::EventType::Regular => Self::Regular,
         }
@@ -190,7 +190,7 @@ impl TryFrom<WalletEvent> for WalletEventModel {
                 timestamp,
                 relying_party_certificate: (*reader_certificate).into(),
                 status: status.into(),
-                typ: typ.into(),
+                r#type: typ.into(),
             }),
         };
         Ok(result)
