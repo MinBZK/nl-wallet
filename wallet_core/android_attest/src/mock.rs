@@ -2,21 +2,23 @@ use std::iter;
 use std::rc::Rc;
 
 use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePrivateKey;
-use p256::pkcs8::DecodePublicKey;
 use rcgen::BasicConstraints;
 use rcgen::CertificateParams;
 use rcgen::IsCa;
 use rcgen::KeyPair;
+use rcgen::RsaKeySize;
 use rcgen::PKCS_ECDSA_P256_SHA256;
+use rcgen::PKCS_RSA_SHA256;
+use rsa::RsaPublicKey;
+use spki::DecodePublicKey;
 
 /// Represents a Google CA with a variable number of intermediates. After creation,
 /// this can be used to generate leaf certificates to emulate Android key attestation.
 // TODO: Include a mock key attestation certificate extension.
 pub struct MockCaChain {
     certificates_der: Vec<Vec<u8>>,
-    pub root_public_key: VerifyingKey,
+    pub root_public_key: RsaPublicKey,
     last_ca_certificate: rcgen::Certificate,
     last_ca_key_pair: rcgen::KeyPair,
 }
@@ -33,7 +35,7 @@ impl MockCaChain {
                 |prev_cert_and_pair: &mut Option<Rc<(rcgen::Certificate, rcgen::KeyPair)>>, constrained_count| {
                     // Generate a key pair and set the `IsCa` value as certificate parameters,
                     // using a decrementing intermediate count as constraint.
-                    let key_pair = rcgen::KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap();
+                    let key_pair = rcgen::KeyPair::generate_rsa_for(&PKCS_RSA_SHA256, RsaKeySize::_2048).unwrap();
                     let mut params = CertificateParams::default();
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(constrained_count));
 
@@ -69,7 +71,7 @@ impl MockCaChain {
 
         // Extract and decode the public key of the root CA.
         let (_, root_key_pair) = certificates_and_key_pairs.first().unwrap().as_ref();
-        let root_public_key = VerifyingKey::from_public_key_der(&root_key_pair.public_key_der()).unwrap();
+        let root_public_key = RsaPublicKey::from_public_key_der(&root_key_pair.public_key_der()).unwrap();
 
         // Save the generated certificate and key pair of the lowest level CA (which may be the root or an
         // intermediate), so that we can generate leaf certificates. As there should be only one reference
@@ -112,10 +114,12 @@ mod tests {
     use std::time::SystemTime;
     use std::time::UNIX_EPOCH;
 
+    use rsa::traits::PublicKeyParts;
+    use rsa::BigUint;
     use rstest::rstest;
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::UnixTime;
-    use webpki::ring::ECDSA_P256_SHA256;
+    use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
     use webpki::EndEntityCert;
     use webpki::KeyUsage;
     use x509_parser::prelude::FromDer;
@@ -135,13 +139,17 @@ mod tests {
         let (_, root_certificate) = X509Certificate::from_der(&root_certificate_der).unwrap();
         let root_public_key = root_certificate.public_key().parsed().unwrap();
 
-        if let PublicKey::EC(ec_point) = root_public_key {
+        if let PublicKey::RSA(rsa_public_key) = root_public_key {
             assert_eq!(
-                ec_point.data(),
-                mock_ca_chain.root_public_key.to_encoded_point(false).as_bytes()
+                BigUint::from_bytes_be(rsa_public_key.modulus),
+                *mock_ca_chain.root_public_key.n()
+            );
+            assert_eq!(
+                BigUint::from_bytes_be(rsa_public_key.exponent),
+                *mock_ca_chain.root_public_key.e()
             );
         } else {
-            panic!("public key shold be ECDSA verifying key");
+            panic!("root public key should be RSA public key");
         }
 
         let end_cert_der = CertificateDer::from_slice(certificates.first().unwrap());
@@ -159,7 +167,7 @@ mod tests {
         // Note that `webpki` seems to support a maximum of 6 intermediates.
         end_cert
             .verify_for_usage(
-                &[ECDSA_P256_SHA256],
+                &[RSA_PKCS1_2048_8192_SHA256],
                 &[trust_anchor],
                 &intermediate_certs,
                 UnixTime::since_unix_epoch(SystemTime::now().duration_since(UNIX_EPOCH).unwrap()),

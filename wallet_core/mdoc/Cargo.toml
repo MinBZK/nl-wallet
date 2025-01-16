@@ -56,7 +56,7 @@ yoke = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true, optional = true }
 assert_matches = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
-rcgen = { workspace = true, optional = true, features = ["x509-parser", "crypto", "ring"] }
+rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_rs"] }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 
@@ -69,7 +69,7 @@ anyhow.workspace = true
 assert_matches.workspace = true
 hex-literal.workspace = true
 http.workspace = true
-rcgen = { workspace = true, features = ["x509-parser", "crypto", "ring"] }
+rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

@@ -86,7 +86,7 @@ impl MockHardwareAttestedKeyHolder {
         }
     }
 
-    #[cfg(feature = "mock_apple_ca")]
+    #[cfg(feature = "mock_attested_key_apple_ca")]
     pub fn new_mock(environment: AttestationEnvironment, app_identifier: AppIdentifier) -> Self {
         Self {
             key_states: &KEY_STATES,
