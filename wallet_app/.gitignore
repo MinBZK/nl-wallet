@@ -16,3 +16,6 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+# Build output directories
+build/
