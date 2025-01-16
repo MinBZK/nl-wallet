@@ -58,8 +58,9 @@ async fn do_registration(
         AttestationCa::Apple(apple_mock_ca) => {
             let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                 apple_mock_ca,
-                account_server.apple_config.app_identifier.clone(),
                 &utils::sha256(&challenge),
+                account_server.apple_config.environment,
+                account_server.apple_config.app_identifier.clone(),
             );
             let registration_message =
                 ChallengeResponse::<Registration>::new_apple(&attested_key, attestation_data, pin_privkey, challenge)

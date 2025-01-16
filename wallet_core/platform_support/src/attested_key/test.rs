@@ -48,7 +48,7 @@ impl ClientData for SimpleClientData<'_> {
 
 pub struct AppleTestData<'a> {
     pub app_identifier: &'a AppIdentifier,
-    pub trust_anchors: &'a [TrustAnchor<'a>],
+    pub trust_anchors: Vec<TrustAnchor<'a>>,
 }
 
 pub async fn create_and_verify_attested_key<'a, H>(
@@ -82,7 +82,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
             // Perform the server side check of the attestation here.
             let (_, public_key) = VerifiedAttestation::parse_and_verify(
                 &attestation_data,
-                apple_test_data.trust_anchors,
+                &apple_test_data.trust_anchors,
                 &challenge,
                 apple_test_data.app_identifier,
                 AttestationEnvironment::Development, // Assume that tests use the AppAttest sandbox

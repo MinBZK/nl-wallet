@@ -20,7 +20,9 @@ use tokio::time;
 use url::Url;
 use uuid::Uuid;
 
+use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
+use apple_app_attest::AttestationEnvironment;
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::utils::x509;
@@ -33,6 +35,7 @@ use openid4vc::oidc;
 use openid4vc::server_state::SessionState;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
+use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
@@ -56,6 +59,7 @@ use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_common::vec_at_least::VecNonEmpty;
+use wallet_provider::settings::Android;
 use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
@@ -106,6 +110,12 @@ pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
         .expect("Could not open database connection")
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum WalletDeviceVendor {
+    Apple,
+    Google,
+}
+
 pub type WalletWithMocks = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
@@ -118,8 +128,9 @@ pub type WalletWithMocks = Wallet<
     WpWteIssuanceClient,
 >;
 
-pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
+pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithMocks {
     setup_wallet_and_env(
+        vendor,
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
@@ -130,19 +141,44 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
 
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
+    vendor: WalletDeviceVendor,
     (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
-    let apple_environment = AppleEnvironment::Development;
-    let key_holder = MockHardwareAttestedKeyHolder::generate(apple_environment.into(), AppIdentifier::new_mock());
-    wp_settings.ios = Ios {
-        team_identifier: key_holder.app_identifier.prefix().to_string(),
-        bundle_identifier: key_holder.app_identifier.bundle_identifier().to_string(),
-        environment: apple_environment,
-        root_certificates: vec![BorrowingTrustAnchor::from_der(key_holder.ca.as_certificate_der().as_ref()).unwrap()],
+    let key_holder = match vendor {
+        WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
+            AttestationEnvironment::Development,
+            AppIdentifier::new_mock(),
+        ),
+        WalletDeviceVendor::Google => MockHardwareAttestedKeyHolder::generate_google(),
     };
+
+    match &key_holder.holder_type {
+        KeyHolderType::Apple {
+            ca,
+            environment,
+            app_identifier,
+        } => {
+            let apple_environment = match environment {
+                AttestationEnvironment::Development => AppleEnvironment::Development,
+                AttestationEnvironment::Production => AppleEnvironment::Production,
+            };
+
+            wp_settings.ios = Ios {
+                team_identifier: app_identifier.prefix().to_string(),
+                bundle_identifier: app_identifier.bundle_identifier().to_string(),
+                environment: apple_environment,
+                root_certificates: vec![BorrowingTrustAnchor::from_der(ca.as_certificate_der().as_ref()).unwrap()],
+            };
+        }
+        KeyHolderType::Google { ca_chain } => {
+            wp_settings.android = Android {
+                root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone()).into()],
+            }
+        }
+    }
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {

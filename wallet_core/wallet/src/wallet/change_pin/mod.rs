@@ -158,6 +158,7 @@ mod tests {
 
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
+    use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::WalletWithMocks;
     use crate::wallet::test::ACCOUNT_SERVER_KEYS;
 
@@ -178,7 +179,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_begin_and_continue_change_pin() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked_apple();
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet
             .account_provider_client

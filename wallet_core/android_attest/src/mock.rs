@@ -1,6 +1,7 @@
 use std::iter;
 use std::rc::Rc;
 
+use derive_more::Debug;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use rcgen::BasicConstraints;
@@ -16,9 +17,11 @@ use spki::DecodePublicKey;
 /// Represents a Google CA with a variable number of intermediates. After creation,
 /// this can be used to generate leaf certificates to emulate Android key attestation.
 // TODO: Include a mock key attestation certificate extension.
+#[derive(Debug)]
 pub struct MockCaChain {
     certificates_der: Vec<Vec<u8>>,
     pub root_public_key: RsaPublicKey,
+    #[debug("{:?}", last_ca_certificate.der())]
     last_ca_certificate: rcgen::Certificate,
     last_ca_key_pair: rcgen::KeyPair,
 }

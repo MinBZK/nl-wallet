@@ -946,8 +946,7 @@ pub mod mock {
 
     use super::*;
 
-    pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> =
-        LazyLock::new(|| MockAttestationCa::generate(AttestationEnvironment::Development));
+    pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 
     #[derive(Clone, Copy)]
@@ -971,7 +970,7 @@ pub mod mock {
             wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
             AppleAttestationConfiguration {
                 app_identifier: AppIdentifier::new_mock(),
-                environment: MOCK_APPLE_CA.environment,
+                environment: AttestationEnvironment::Development,
             },
             vec![MOCK_APPLE_CA.trust_anchor().to_owned()],
             vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
@@ -1127,8 +1126,9 @@ mod tests {
             AttestationCa::Apple(apple_mock_ca) => {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                     apple_mock_ca,
-                    account_server.apple_config.app_identifier.clone(),
                     &utils::sha256(&challenge),
+                    account_server.apple_config.environment,
+                    account_server.apple_config.app_identifier.clone(),
                 );
                 let registration_message =
                     ChallengeResponse::new_apple(&attested_key, attestation_data, pin_privkey, challenge)
@@ -1414,7 +1414,7 @@ mod tests {
         let account_server = mock::setup_account_server(&setup.signing_pubkey);
 
         // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
-        let other_apple_mock_ca = MockAttestationCa::generate(account_server.apple_config.environment);
+        let other_apple_mock_ca = MockAttestationCa::generate();
 
         let error = do_registration(
             &account_server,

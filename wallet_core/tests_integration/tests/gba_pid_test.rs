@@ -135,7 +135,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         config_repository,
         MockUpdatePolicyRepository::default(),
         MockStorage::default(),
-        MockHardwareAttestedKeyHolder::new_mock(default::attestation_environment(), default::app_identifier()),
+        MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
     )
     .await
