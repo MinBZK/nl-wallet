@@ -28,7 +28,7 @@
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
-      -Dfile.encoding=UTF-8 || false
+      -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
   variables:
@@ -38,7 +38,6 @@
     PLATFORM_VERSION: "14.0"
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: always
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: manual
 
