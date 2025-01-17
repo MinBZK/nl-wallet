@@ -58,12 +58,14 @@ mixin _$CardPersistence {
 
 /// @nodoc
 abstract class $CardPersistenceCopyWith<$Res> {
-  factory $CardPersistenceCopyWith(CardPersistence value, $Res Function(CardPersistence) then) =
+  factory $CardPersistenceCopyWith(
+          CardPersistence value, $Res Function(CardPersistence) then) =
       _$CardPersistenceCopyWithImpl<$Res, CardPersistence>;
 }
 
 /// @nodoc
-class _$CardPersistenceCopyWithImpl<$Res, $Val extends CardPersistence> implements $CardPersistenceCopyWith<$Res> {
+class _$CardPersistenceCopyWithImpl<$Res, $Val extends CardPersistence>
+    implements $CardPersistenceCopyWith<$Res> {
   _$CardPersistenceCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
@@ -78,7 +80,8 @@ class _$CardPersistenceCopyWithImpl<$Res, $Val extends CardPersistence> implemen
 /// @nodoc
 abstract class _$$CardPersistence_InMemoryImplCopyWith<$Res> {
   factory _$$CardPersistence_InMemoryImplCopyWith(
-          _$CardPersistence_InMemoryImpl value, $Res Function(_$CardPersistence_InMemoryImpl) then) =
+          _$CardPersistence_InMemoryImpl value,
+          $Res Function(_$CardPersistence_InMemoryImpl) then) =
       __$$CardPersistence_InMemoryImplCopyWithImpl<$Res>;
 }
 
@@ -87,7 +90,8 @@ class __$$CardPersistence_InMemoryImplCopyWithImpl<$Res>
     extends _$CardPersistenceCopyWithImpl<$Res, _$CardPersistence_InMemoryImpl>
     implements _$$CardPersistence_InMemoryImplCopyWith<$Res> {
   __$$CardPersistence_InMemoryImplCopyWithImpl(
-      _$CardPersistence_InMemoryImpl _value, $Res Function(_$CardPersistence_InMemoryImpl) _then)
+      _$CardPersistence_InMemoryImpl _value,
+      $Res Function(_$CardPersistence_InMemoryImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of CardPersistence
@@ -106,7 +110,9 @@ class _$CardPersistence_InMemoryImpl extends CardPersistence_InMemory {
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$CardPersistence_InMemoryImpl);
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CardPersistence_InMemoryImpl);
   }
 
   @override
@@ -183,7 +189,8 @@ abstract class CardPersistence_InMemory extends CardPersistence {
 /// @nodoc
 abstract class _$$CardPersistence_StoredImplCopyWith<$Res> {
   factory _$$CardPersistence_StoredImplCopyWith(
-          _$CardPersistence_StoredImpl value, $Res Function(_$CardPersistence_StoredImpl) then) =
+          _$CardPersistence_StoredImpl value,
+          $Res Function(_$CardPersistence_StoredImpl) then) =
       __$$CardPersistence_StoredImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String id});
@@ -194,7 +201,8 @@ class __$$CardPersistence_StoredImplCopyWithImpl<$Res>
     extends _$CardPersistenceCopyWithImpl<$Res, _$CardPersistence_StoredImpl>
     implements _$$CardPersistence_StoredImplCopyWith<$Res> {
   __$$CardPersistence_StoredImplCopyWithImpl(
-      _$CardPersistence_StoredImpl _value, $Res Function(_$CardPersistence_StoredImpl) _then)
+      _$CardPersistence_StoredImpl _value,
+      $Res Function(_$CardPersistence_StoredImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of CardPersistence
@@ -242,8 +250,9 @@ class _$CardPersistence_StoredImpl extends CardPersistence_Stored {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$CardPersistence_StoredImplCopyWith<_$CardPersistence_StoredImpl> get copyWith =>
-      __$$CardPersistence_StoredImplCopyWithImpl<_$CardPersistence_StoredImpl>(this, _$identity);
+  _$$CardPersistence_StoredImplCopyWith<_$CardPersistence_StoredImpl>
+      get copyWith => __$$CardPersistence_StoredImplCopyWithImpl<
+          _$CardPersistence_StoredImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -309,7 +318,8 @@ class _$CardPersistence_StoredImpl extends CardPersistence_Stored {
 }
 
 abstract class CardPersistence_Stored extends CardPersistence {
-  const factory CardPersistence_Stored({required final String id}) = _$CardPersistence_StoredImpl;
+  const factory CardPersistence_Stored({required final String id}) =
+      _$CardPersistence_StoredImpl;
   const CardPersistence_Stored._() : super._();
 
   String get id;
@@ -317,8 +327,8 @@ abstract class CardPersistence_Stored extends CardPersistence {
   /// Create a copy of CardPersistence
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CardPersistence_StoredImplCopyWith<_$CardPersistence_StoredImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$CardPersistence_StoredImplCopyWith<_$CardPersistence_StoredImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -378,11 +388,13 @@ mixin _$CardValue {
 
 /// @nodoc
 abstract class $CardValueCopyWith<$Res> {
-  factory $CardValueCopyWith(CardValue value, $Res Function(CardValue) then) = _$CardValueCopyWithImpl<$Res, CardValue>;
+  factory $CardValueCopyWith(CardValue value, $Res Function(CardValue) then) =
+      _$CardValueCopyWithImpl<$Res, CardValue>;
 }
 
 /// @nodoc
-class _$CardValueCopyWithImpl<$Res, $Val extends CardValue> implements $CardValueCopyWith<$Res> {
+class _$CardValueCopyWithImpl<$Res, $Val extends CardValue>
+    implements $CardValueCopyWith<$Res> {
   _$CardValueCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
@@ -396,16 +408,19 @@ class _$CardValueCopyWithImpl<$Res, $Val extends CardValue> implements $CardValu
 
 /// @nodoc
 abstract class _$$CardValue_StringImplCopyWith<$Res> {
-  factory _$$CardValue_StringImplCopyWith(_$CardValue_StringImpl value, $Res Function(_$CardValue_StringImpl) then) =
+  factory _$$CardValue_StringImplCopyWith(_$CardValue_StringImpl value,
+          $Res Function(_$CardValue_StringImpl) then) =
       __$$CardValue_StringImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String value});
 }
 
 /// @nodoc
-class __$$CardValue_StringImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_StringImpl>
+class __$$CardValue_StringImplCopyWithImpl<$Res>
+    extends _$CardValueCopyWithImpl<$Res, _$CardValue_StringImpl>
     implements _$$CardValue_StringImplCopyWith<$Res> {
-  __$$CardValue_StringImplCopyWithImpl(_$CardValue_StringImpl _value, $Res Function(_$CardValue_StringImpl) _then)
+  __$$CardValue_StringImplCopyWithImpl(_$CardValue_StringImpl _value,
+      $Res Function(_$CardValue_StringImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of CardValue
@@ -454,7 +469,8 @@ class _$CardValue_StringImpl extends CardValue_String {
   @override
   @pragma('vm:prefer-inline')
   _$$CardValue_StringImplCopyWith<_$CardValue_StringImpl> get copyWith =>
-      __$$CardValue_StringImplCopyWithImpl<_$CardValue_StringImpl>(this, _$identity);
+      __$$CardValue_StringImplCopyWithImpl<_$CardValue_StringImpl>(
+          this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -532,7 +548,8 @@ class _$CardValue_StringImpl extends CardValue_String {
 }
 
 abstract class CardValue_String extends CardValue {
-  const factory CardValue_String({required final String value}) = _$CardValue_StringImpl;
+  const factory CardValue_String({required final String value}) =
+      _$CardValue_StringImpl;
   const CardValue_String._() : super._();
 
   @override
@@ -541,21 +558,25 @@ abstract class CardValue_String extends CardValue {
   /// Create a copy of CardValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CardValue_StringImplCopyWith<_$CardValue_StringImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$CardValue_StringImplCopyWith<_$CardValue_StringImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$CardValue_BooleanImplCopyWith<$Res> {
-  factory _$$CardValue_BooleanImplCopyWith(_$CardValue_BooleanImpl value, $Res Function(_$CardValue_BooleanImpl) then) =
+  factory _$$CardValue_BooleanImplCopyWith(_$CardValue_BooleanImpl value,
+          $Res Function(_$CardValue_BooleanImpl) then) =
       __$$CardValue_BooleanImplCopyWithImpl<$Res>;
   @useResult
   $Res call({bool value});
 }
 
 /// @nodoc
-class __$$CardValue_BooleanImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_BooleanImpl>
+class __$$CardValue_BooleanImplCopyWithImpl<$Res>
+    extends _$CardValueCopyWithImpl<$Res, _$CardValue_BooleanImpl>
     implements _$$CardValue_BooleanImplCopyWith<$Res> {
-  __$$CardValue_BooleanImplCopyWithImpl(_$CardValue_BooleanImpl _value, $Res Function(_$CardValue_BooleanImpl) _then)
+  __$$CardValue_BooleanImplCopyWithImpl(_$CardValue_BooleanImpl _value,
+      $Res Function(_$CardValue_BooleanImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of CardValue
@@ -604,7 +625,8 @@ class _$CardValue_BooleanImpl extends CardValue_Boolean {
   @override
   @pragma('vm:prefer-inline')
   _$$CardValue_BooleanImplCopyWith<_$CardValue_BooleanImpl> get copyWith =>
-      __$$CardValue_BooleanImplCopyWithImpl<_$CardValue_BooleanImpl>(this, _$identity);
+      __$$CardValue_BooleanImplCopyWithImpl<_$CardValue_BooleanImpl>(
+          this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -682,7 +704,8 @@ class _$CardValue_BooleanImpl extends CardValue_Boolean {
 }
 
 abstract class CardValue_Boolean extends CardValue {
-  const factory CardValue_Boolean({required final bool value}) = _$CardValue_BooleanImpl;
+  const factory CardValue_Boolean({required final bool value}) =
+      _$CardValue_BooleanImpl;
   const CardValue_Boolean._() : super._();
 
   @override
@@ -691,21 +714,25 @@ abstract class CardValue_Boolean extends CardValue {
   /// Create a copy of CardValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CardValue_BooleanImplCopyWith<_$CardValue_BooleanImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$CardValue_BooleanImplCopyWith<_$CardValue_BooleanImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$CardValue_DateImplCopyWith<$Res> {
-  factory _$$CardValue_DateImplCopyWith(_$CardValue_DateImpl value, $Res Function(_$CardValue_DateImpl) then) =
+  factory _$$CardValue_DateImplCopyWith(_$CardValue_DateImpl value,
+          $Res Function(_$CardValue_DateImpl) then) =
       __$$CardValue_DateImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String value});
 }
 
 /// @nodoc
-class __$$CardValue_DateImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_DateImpl>
+class __$$CardValue_DateImplCopyWithImpl<$Res>
+    extends _$CardValueCopyWithImpl<$Res, _$CardValue_DateImpl>
     implements _$$CardValue_DateImplCopyWith<$Res> {
-  __$$CardValue_DateImplCopyWithImpl(_$CardValue_DateImpl _value, $Res Function(_$CardValue_DateImpl) _then)
+  __$$CardValue_DateImplCopyWithImpl(
+      _$CardValue_DateImpl _value, $Res Function(_$CardValue_DateImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of CardValue
@@ -754,7 +781,8 @@ class _$CardValue_DateImpl extends CardValue_Date {
   @override
   @pragma('vm:prefer-inline')
   _$$CardValue_DateImplCopyWith<_$CardValue_DateImpl> get copyWith =>
-      __$$CardValue_DateImplCopyWithImpl<_$CardValue_DateImpl>(this, _$identity);
+      __$$CardValue_DateImplCopyWithImpl<_$CardValue_DateImpl>(
+          this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -832,7 +860,8 @@ class _$CardValue_DateImpl extends CardValue_Date {
 }
 
 abstract class CardValue_Date extends CardValue {
-  const factory CardValue_Date({required final String value}) = _$CardValue_DateImpl;
+  const factory CardValue_Date({required final String value}) =
+      _$CardValue_DateImpl;
   const CardValue_Date._() : super._();
 
   @override
@@ -841,21 +870,25 @@ abstract class CardValue_Date extends CardValue {
   /// Create a copy of CardValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CardValue_DateImplCopyWith<_$CardValue_DateImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$CardValue_DateImplCopyWith<_$CardValue_DateImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$CardValue_GenderImplCopyWith<$Res> {
-  factory _$$CardValue_GenderImplCopyWith(_$CardValue_GenderImpl value, $Res Function(_$CardValue_GenderImpl) then) =
+  factory _$$CardValue_GenderImplCopyWith(_$CardValue_GenderImpl value,
+          $Res Function(_$CardValue_GenderImpl) then) =
       __$$CardValue_GenderImplCopyWithImpl<$Res>;
   @useResult
   $Res call({GenderCardValue value});
 }
 
 /// @nodoc
-class __$$CardValue_GenderImplCopyWithImpl<$Res> extends _$CardValueCopyWithImpl<$Res, _$CardValue_GenderImpl>
+class __$$CardValue_GenderImplCopyWithImpl<$Res>
+    extends _$CardValueCopyWithImpl<$Res, _$CardValue_GenderImpl>
     implements _$$CardValue_GenderImplCopyWith<$Res> {
-  __$$CardValue_GenderImplCopyWithImpl(_$CardValue_GenderImpl _value, $Res Function(_$CardValue_GenderImpl) _then)
+  __$$CardValue_GenderImplCopyWithImpl(_$CardValue_GenderImpl _value,
+      $Res Function(_$CardValue_GenderImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of CardValue
@@ -904,7 +937,8 @@ class _$CardValue_GenderImpl extends CardValue_Gender {
   @override
   @pragma('vm:prefer-inline')
   _$$CardValue_GenderImplCopyWith<_$CardValue_GenderImpl> get copyWith =>
-      __$$CardValue_GenderImplCopyWithImpl<_$CardValue_GenderImpl>(this, _$identity);
+      __$$CardValue_GenderImplCopyWithImpl<_$CardValue_GenderImpl>(
+          this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -982,7 +1016,8 @@ class _$CardValue_GenderImpl extends CardValue_Gender {
 }
 
 abstract class CardValue_Gender extends CardValue {
-  const factory CardValue_Gender({required final GenderCardValue value}) = _$CardValue_GenderImpl;
+  const factory CardValue_Gender({required final GenderCardValue value}) =
+      _$CardValue_GenderImpl;
   const CardValue_Gender._() : super._();
 
   @override
@@ -991,5 +1026,6 @@ abstract class CardValue_Gender extends CardValue {
   /// Create a copy of CardValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CardValue_GenderImplCopyWith<_$CardValue_GenderImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$CardValue_GenderImplCopyWith<_$CardValue_GenderImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
