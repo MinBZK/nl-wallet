@@ -43,6 +43,7 @@ jniLibs/
 # Android builds
 /*.aab
 /*.apk
+/*.apks
 
 # iOS builds
 /*.ipa
