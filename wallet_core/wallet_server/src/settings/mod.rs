@@ -223,7 +223,7 @@ impl Settings {
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
-            .prefix_separator("_")
+            .prefix_separator("__")
             .list_separator(",");
 
         let environment_parser = environment_parser.with_list_parse_key("issuer_trust_anchors");

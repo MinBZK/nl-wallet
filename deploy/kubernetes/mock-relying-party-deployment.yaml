@@ -42,19 +42,19 @@ spec:
               mountPath: /mock_relying_party.toml
               subPath: config.toml
           env:
-            - name: MOCK_RELYING_PARTY_WEBSERVER__PORT
+            - name: MOCK_RELYING_PARTY__WEBSERVER__PORT
               value: "3004"
-            - name: MOCK_RELYING_PARTY_PUBLIC_WALLET_SERVER_URL
+            - name: MOCK_RELYING_PARTY__PUBLIC_WALLET_SERVER_URL
               value: "https://${MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
-            - name: MOCK_RELYING_PARTY_INTERNAL_WALLET_SERVER_URL
+            - name: MOCK_RELYING_PARTY__INTERNAL_WALLET_SERVER_URL
               value: "http://mrp-verification-server:3002/"
-            - name: MOCK_RELYING_PARTY_PUBLIC_URL
+            - name: MOCK_RELYING_PARTY__PUBLIC_URL
               value: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
-            - name: MOCK_RELYING_PARTY_STRUCTURED_LOGGING
+            - name: MOCK_RELYING_PARTY__STRUCTURED_LOGGING
               value: "true"
-            - name: MOCK_RELYING_PARTY_WALLET_WEB__FILENAME
+            - name: MOCK_RELYING_PARTY__WALLET_WEB__FILENAME
               value: "${WALLET_WEB_FILENAME}"
-            - name: MOCK_RELYING_PARTY_WALLET_WEB__SHA256
+            - name: MOCK_RELYING_PARTY__WALLET_WEB__SHA256
               value: "${WALLET_WEB_SHA256}"
             - name: RUST_LOG
               value: "debug,hyper=warn"

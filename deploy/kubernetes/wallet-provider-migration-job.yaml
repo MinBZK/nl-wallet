@@ -19,16 +19,16 @@ spec:
           image: $WALLET_PROVIDER_MIGRATIONS_IMAGE
           args: [ "fresh" ]
           env:
-            - name: WALLET_PROVIDER_DATABASE__HOST
+            - name: WALLET_PROVIDER__DATABASE__HOST
               value: db-cluster-rw
-            - name: WALLET_PROVIDER_DATABASE__NAME
+            - name: WALLET_PROVIDER__DATABASE__NAME
               value: wallet_provider
-            - name: WALLET_PROVIDER_DATABASE__USERNAME
+            - name: WALLET_PROVIDER__DATABASE__USERNAME
               valueFrom:
                 secretKeyRef:
                   name: db-cluster-app
                   key: username
-            - name: WALLET_PROVIDER_DATABASE__PASSWORD
+            - name: WALLET_PROVIDER__DATABASE__PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: db-cluster-app
