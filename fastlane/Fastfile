@@ -303,6 +303,7 @@ platform :ios do
     build = options[:build] || local_build
     version = options[:version].blank? ? local_version : options[:version]
     build_mode = options[:build_mode] || "release"
+    fake_attestation = !!options[:fake_attestation]
     mock_repositories = options[:mock] || false
     mock_relying_party_url = options[:mock_relying_party_url] || ""
 
@@ -313,7 +314,7 @@ platform :ios do
     flutter = flutter_cmd
 
     UI.message("Going to build iOS bundleID #{bundle_id}, name #{app_name}, build name #{version} with number #{build} in mode #{build_mode}, signing for #{export_method}")
-    UI.message("Using UL hostname #{universal_link_base} with #{mock_repositories ? "mock repositories" : "env configuration"}")
+    UI.message("Using UL hostname \"#{universal_link_base}\", #{fake_attestation ? "fake" : "real"} key/app attestation and #{mock_repositories ? "mock repositories" : "Rust core"}")
 
     # Set up provisioning profiles using match
     match(
@@ -343,6 +344,7 @@ platform :ios do
             "--build-name", version.to_s,
             "--#{build_mode}",
             "--export-method", export_method,
+            "--dart-define=FAKE_ATTESTATION=#{fake_attestation}",
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
             "--dart-define=MOCK_RELYING_PARTY_URL=#{mock_relying_party_url}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
