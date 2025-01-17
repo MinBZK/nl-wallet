@@ -24,7 +24,7 @@ private_lane :get_local_version_and_build do
 
   # If building locally, and 2nd part of version is nil or "dev", rewrite to 0.
   if version_parts[1].nil? || version_parts[1] == "dev"
-    puts  "App version_part[1] is \"%s\", rewriting to \"0\"" % [version_parts[1]]
+    puts  "App version_part[1] is \"#{version_parts[1]}\", rewriting to \"0\""
     version_parts[1] = "0"
   end
   version_parts
@@ -167,7 +167,7 @@ platform :android do
       if File.file?(source_filepath)
         sh("mv", source_filepath, target_filepath)
       else
-        UI.user_error!("Failed to find %s, aborting..." % [source_filepath])
+        UI.user_error!("Failed to find #{source_filepath}, aborting...")
       end
     end
   end
