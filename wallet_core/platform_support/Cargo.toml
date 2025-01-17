@@ -14,18 +14,25 @@ doctest = false
 [features]
 # Implement the platform key traits on mock hardware key types from `wallet_common`
 mock_hw_keystore = ["wallet_common/mock_hardware_keys"]
-# Include the MockHardwareAttestedKeyHolder type for use in tests
-mock_attested_key = [
-    "dep:android_attest",
+# Include the MockHardwareAttestedKeyHolder type for use in Apple tests
+mock_attested_key_apple = [
     "dep:apple_app_attest",
-    "dep:rand_core",
     "dep:uuid",
-    "android_attest/mock",
     "apple_app_attest/mock",
     "wallet_common/mock_apple_attested_key",
 ]
+# Include the MockHardwareAttestedKeyHolder type for use in Android tests
+mock_attested_key_google = [
+    "dep:android_attest",
+    "dep:rand_core",
+    "dep:uuid",
+    "android_attest/mock",
+    "wallet_common/mock_apple_attested_key",
+]
+# Include the MockHardwareAttestedKeyHolder type for both types of test
+mock_attested_key = ["mock_attested_key_apple", "mock_attested_key_google"]
 # Include support for the self-signed mock Apple CA in MockHardwareAttestedKeyHolder
-mock_attested_key_apple_ca = ["mock_attested_key", "apple_app_attest/mock_ca"]
+mock_attested_key_apple_ca = ["mock_attested_key_apple", "apple_app_attest/mock_ca"]
 # Include PersistentMockAttestedKeyHolder for use in the iOS simulator
 persistent_mock_attested_key = [
     "mock_attested_key_apple_ca",

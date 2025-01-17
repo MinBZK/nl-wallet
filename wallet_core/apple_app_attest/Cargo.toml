@@ -50,7 +50,7 @@ rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 
 rand = { workspace = true, optional = true }
-rcgen = { workspace = true, optional = true, features = ["aws_lc_rs"] }
+rcgen = { workspace = true, optional = true, features = ["ring"] }
 
 [dev-dependencies]
 assert_matches.workspace = true
