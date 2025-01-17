@@ -446,7 +446,7 @@ where
 
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
-        let result = session_proposal.disclose(&&remote_key_factory).await;
+        let result = session_proposal.disclose(&remote_key_factory).await;
         let return_url = match result {
             Ok(return_url) => return_url,
             Err(error) => {

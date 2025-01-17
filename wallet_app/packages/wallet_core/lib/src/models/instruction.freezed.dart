@@ -18,8 +18,7 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$WalletInstructionError {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(int attemptsLeftInRound, bool isFinalRound)
-        incorrectPin,
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
     required TResult Function(BigInt timeoutMillis) timeout,
     required TResult Function() blocked,
   }) =>
@@ -41,8 +40,7 @@ mixin _$WalletInstructionError {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(WalletInstructionError_IncorrectPin value)
-        incorrectPin,
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
     required TResult Function(WalletInstructionError_Timeout value) timeout,
     required TResult Function(WalletInstructionError_Blocked value) blocked,
   }) =>
@@ -66,14 +64,12 @@ mixin _$WalletInstructionError {
 
 /// @nodoc
 abstract class $WalletInstructionErrorCopyWith<$Res> {
-  factory $WalletInstructionErrorCopyWith(WalletInstructionError value,
-          $Res Function(WalletInstructionError) then) =
+  factory $WalletInstructionErrorCopyWith(WalletInstructionError value, $Res Function(WalletInstructionError) then) =
       _$WalletInstructionErrorCopyWithImpl<$Res, WalletInstructionError>;
 }
 
 /// @nodoc
-class _$WalletInstructionErrorCopyWithImpl<$Res,
-        $Val extends WalletInstructionError>
+class _$WalletInstructionErrorCopyWithImpl<$Res, $Val extends WalletInstructionError>
     implements $WalletInstructionErrorCopyWith<$Res> {
   _$WalletInstructionErrorCopyWithImpl(this._value, this._then);
 
@@ -88,8 +84,7 @@ class _$WalletInstructionErrorCopyWithImpl<$Res,
 
 /// @nodoc
 abstract class _$$WalletInstructionError_IncorrectPinImplCopyWith<$Res> {
-  factory _$$WalletInstructionError_IncorrectPinImplCopyWith(
-          _$WalletInstructionError_IncorrectPinImpl value,
+  factory _$$WalletInstructionError_IncorrectPinImplCopyWith(_$WalletInstructionError_IncorrectPinImpl value,
           $Res Function(_$WalletInstructionError_IncorrectPinImpl) then) =
       __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>;
   @useResult
@@ -98,12 +93,10 @@ abstract class _$$WalletInstructionError_IncorrectPinImplCopyWith<$Res> {
 
 /// @nodoc
 class __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>
-    extends _$WalletInstructionErrorCopyWithImpl<$Res,
-        _$WalletInstructionError_IncorrectPinImpl>
+    extends _$WalletInstructionErrorCopyWithImpl<$Res, _$WalletInstructionError_IncorrectPinImpl>
     implements _$$WalletInstructionError_IncorrectPinImplCopyWith<$Res> {
   __$$WalletInstructionError_IncorrectPinImplCopyWithImpl(
-      _$WalletInstructionError_IncorrectPinImpl _value,
-      $Res Function(_$WalletInstructionError_IncorrectPinImpl) _then)
+      _$WalletInstructionError_IncorrectPinImpl _value, $Res Function(_$WalletInstructionError_IncorrectPinImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of WalletInstructionError
@@ -129,10 +122,8 @@ class __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$WalletInstructionError_IncorrectPinImpl
-    extends WalletInstructionError_IncorrectPin {
-  const _$WalletInstructionError_IncorrectPinImpl(
-      {required this.attemptsLeftInRound, required this.isFinalRound})
+class _$WalletInstructionError_IncorrectPinImpl extends WalletInstructionError_IncorrectPin {
+  const _$WalletInstructionError_IncorrectPinImpl({required this.attemptsLeftInRound, required this.isFinalRound})
       : super._();
 
   @override
@@ -152,29 +143,25 @@ class _$WalletInstructionError_IncorrectPinImpl
             other is _$WalletInstructionError_IncorrectPinImpl &&
             (identical(other.attemptsLeftInRound, attemptsLeftInRound) ||
                 other.attemptsLeftInRound == attemptsLeftInRound) &&
-            (identical(other.isFinalRound, isFinalRound) ||
-                other.isFinalRound == isFinalRound));
+            (identical(other.isFinalRound, isFinalRound) || other.isFinalRound == isFinalRound));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, attemptsLeftInRound, isFinalRound);
+  int get hashCode => Object.hash(runtimeType, attemptsLeftInRound, isFinalRound);
 
   /// Create a copy of WalletInstructionError
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletInstructionError_IncorrectPinImplCopyWith<
-          _$WalletInstructionError_IncorrectPinImpl>
-      get copyWith => __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<
-          _$WalletInstructionError_IncorrectPinImpl>(this, _$identity);
+  _$$WalletInstructionError_IncorrectPinImplCopyWith<_$WalletInstructionError_IncorrectPinImpl> get copyWith =>
+      __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<_$WalletInstructionError_IncorrectPinImpl>(
+          this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(int attemptsLeftInRound, bool isFinalRound)
-        incorrectPin,
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
     required TResult Function(BigInt timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -208,8 +195,7 @@ class _$WalletInstructionError_IncorrectPinImpl
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(WalletInstructionError_IncorrectPin value)
-        incorrectPin,
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
     required TResult Function(WalletInstructionError_Timeout value) timeout,
     required TResult Function(WalletInstructionError_Blocked value) blocked,
   }) {
@@ -241,12 +227,10 @@ class _$WalletInstructionError_IncorrectPinImpl
   }
 }
 
-abstract class WalletInstructionError_IncorrectPin
-    extends WalletInstructionError {
+abstract class WalletInstructionError_IncorrectPin extends WalletInstructionError {
   const factory WalletInstructionError_IncorrectPin(
-          {required final int attemptsLeftInRound,
-          required final bool isFinalRound}) =
-      _$WalletInstructionError_IncorrectPinImpl;
+      {required final int attemptsLeftInRound,
+      required final bool isFinalRound}) = _$WalletInstructionError_IncorrectPinImpl;
   const WalletInstructionError_IncorrectPin._() : super._();
 
   int get attemptsLeftInRound;
@@ -255,16 +239,14 @@ abstract class WalletInstructionError_IncorrectPin
   /// Create a copy of WalletInstructionError
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$WalletInstructionError_IncorrectPinImplCopyWith<
-          _$WalletInstructionError_IncorrectPinImpl>
-      get copyWith => throw _privateConstructorUsedError;
+  _$$WalletInstructionError_IncorrectPinImplCopyWith<_$WalletInstructionError_IncorrectPinImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$WalletInstructionError_TimeoutImplCopyWith<$Res> {
   factory _$$WalletInstructionError_TimeoutImplCopyWith(
-          _$WalletInstructionError_TimeoutImpl value,
-          $Res Function(_$WalletInstructionError_TimeoutImpl) then) =
+          _$WalletInstructionError_TimeoutImpl value, $Res Function(_$WalletInstructionError_TimeoutImpl) then) =
       __$$WalletInstructionError_TimeoutImplCopyWithImpl<$Res>;
   @useResult
   $Res call({BigInt timeoutMillis});
@@ -272,12 +254,10 @@ abstract class _$$WalletInstructionError_TimeoutImplCopyWith<$Res> {
 
 /// @nodoc
 class __$$WalletInstructionError_TimeoutImplCopyWithImpl<$Res>
-    extends _$WalletInstructionErrorCopyWithImpl<$Res,
-        _$WalletInstructionError_TimeoutImpl>
+    extends _$WalletInstructionErrorCopyWithImpl<$Res, _$WalletInstructionError_TimeoutImpl>
     implements _$$WalletInstructionError_TimeoutImplCopyWith<$Res> {
   __$$WalletInstructionError_TimeoutImplCopyWithImpl(
-      _$WalletInstructionError_TimeoutImpl _value,
-      $Res Function(_$WalletInstructionError_TimeoutImpl) _then)
+      _$WalletInstructionError_TimeoutImpl _value, $Res Function(_$WalletInstructionError_TimeoutImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of WalletInstructionError
@@ -298,10 +278,8 @@ class __$$WalletInstructionError_TimeoutImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$WalletInstructionError_TimeoutImpl
-    extends WalletInstructionError_Timeout {
-  const _$WalletInstructionError_TimeoutImpl({required this.timeoutMillis})
-      : super._();
+class _$WalletInstructionError_TimeoutImpl extends WalletInstructionError_Timeout {
+  const _$WalletInstructionError_TimeoutImpl({required this.timeoutMillis}) : super._();
 
   @override
   final BigInt timeoutMillis;
@@ -316,8 +294,7 @@ class _$WalletInstructionError_TimeoutImpl
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletInstructionError_TimeoutImpl &&
-            (identical(other.timeoutMillis, timeoutMillis) ||
-                other.timeoutMillis == timeoutMillis));
+            (identical(other.timeoutMillis, timeoutMillis) || other.timeoutMillis == timeoutMillis));
   }
 
   @override
@@ -328,16 +305,13 @@ class _$WalletInstructionError_TimeoutImpl
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletInstructionError_TimeoutImplCopyWith<
-          _$WalletInstructionError_TimeoutImpl>
-      get copyWith => __$$WalletInstructionError_TimeoutImplCopyWithImpl<
-          _$WalletInstructionError_TimeoutImpl>(this, _$identity);
+  _$$WalletInstructionError_TimeoutImplCopyWith<_$WalletInstructionError_TimeoutImpl> get copyWith =>
+      __$$WalletInstructionError_TimeoutImplCopyWithImpl<_$WalletInstructionError_TimeoutImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(int attemptsLeftInRound, bool isFinalRound)
-        incorrectPin,
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
     required TResult Function(BigInt timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -371,8 +345,7 @@ class _$WalletInstructionError_TimeoutImpl
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(WalletInstructionError_IncorrectPin value)
-        incorrectPin,
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
     required TResult Function(WalletInstructionError_Timeout value) timeout,
     required TResult Function(WalletInstructionError_Blocked value) blocked,
   }) {
@@ -405,8 +378,7 @@ class _$WalletInstructionError_TimeoutImpl
 }
 
 abstract class WalletInstructionError_Timeout extends WalletInstructionError {
-  const factory WalletInstructionError_Timeout(
-          {required final BigInt timeoutMillis}) =
+  const factory WalletInstructionError_Timeout({required final BigInt timeoutMillis}) =
       _$WalletInstructionError_TimeoutImpl;
   const WalletInstructionError_Timeout._() : super._();
 
@@ -415,27 +387,23 @@ abstract class WalletInstructionError_Timeout extends WalletInstructionError {
   /// Create a copy of WalletInstructionError
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$WalletInstructionError_TimeoutImplCopyWith<
-          _$WalletInstructionError_TimeoutImpl>
-      get copyWith => throw _privateConstructorUsedError;
+  _$$WalletInstructionError_TimeoutImplCopyWith<_$WalletInstructionError_TimeoutImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$WalletInstructionError_BlockedImplCopyWith<$Res> {
   factory _$$WalletInstructionError_BlockedImplCopyWith(
-          _$WalletInstructionError_BlockedImpl value,
-          $Res Function(_$WalletInstructionError_BlockedImpl) then) =
+          _$WalletInstructionError_BlockedImpl value, $Res Function(_$WalletInstructionError_BlockedImpl) then) =
       __$$WalletInstructionError_BlockedImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
 class __$$WalletInstructionError_BlockedImplCopyWithImpl<$Res>
-    extends _$WalletInstructionErrorCopyWithImpl<$Res,
-        _$WalletInstructionError_BlockedImpl>
+    extends _$WalletInstructionErrorCopyWithImpl<$Res, _$WalletInstructionError_BlockedImpl>
     implements _$$WalletInstructionError_BlockedImplCopyWith<$Res> {
   __$$WalletInstructionError_BlockedImplCopyWithImpl(
-      _$WalletInstructionError_BlockedImpl _value,
-      $Res Function(_$WalletInstructionError_BlockedImpl) _then)
+      _$WalletInstructionError_BlockedImpl _value, $Res Function(_$WalletInstructionError_BlockedImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of WalletInstructionError
@@ -444,8 +412,7 @@ class __$$WalletInstructionError_BlockedImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$WalletInstructionError_BlockedImpl
-    extends WalletInstructionError_Blocked {
+class _$WalletInstructionError_BlockedImpl extends WalletInstructionError_Blocked {
   const _$WalletInstructionError_BlockedImpl() : super._();
 
   @override
@@ -456,8 +423,7 @@ class _$WalletInstructionError_BlockedImpl
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$WalletInstructionError_BlockedImpl);
+        (other.runtimeType == runtimeType && other is _$WalletInstructionError_BlockedImpl);
   }
 
   @override
@@ -466,8 +432,7 @@ class _$WalletInstructionError_BlockedImpl
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(int attemptsLeftInRound, bool isFinalRound)
-        incorrectPin,
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
     required TResult Function(BigInt timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -501,8 +466,7 @@ class _$WalletInstructionError_BlockedImpl
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(WalletInstructionError_IncorrectPin value)
-        incorrectPin,
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
     required TResult Function(WalletInstructionError_Timeout value) timeout,
     required TResult Function(WalletInstructionError_Blocked value) blocked,
   }) {
@@ -535,8 +499,7 @@ class _$WalletInstructionError_BlockedImpl
 }
 
 abstract class WalletInstructionError_Blocked extends WalletInstructionError {
-  const factory WalletInstructionError_Blocked() =
-      _$WalletInstructionError_BlockedImpl;
+  const factory WalletInstructionError_Blocked() = _$WalletInstructionError_BlockedImpl;
   const WalletInstructionError_Blocked._() : super._();
 }
 
@@ -564,22 +527,19 @@ mixin _$WalletInstructionResult {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletInstructionResult_Ok value) ok,
-    required TResult Function(WalletInstructionResult_InstructionError value)
-        instructionError,
+    required TResult Function(WalletInstructionResult_InstructionError value) instructionError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WalletInstructionResult_Ok value)? ok,
-    TResult? Function(WalletInstructionResult_InstructionError value)?
-        instructionError,
+    TResult? Function(WalletInstructionResult_InstructionError value)? instructionError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WalletInstructionResult_Ok value)? ok,
-    TResult Function(WalletInstructionResult_InstructionError value)?
-        instructionError,
+    TResult Function(WalletInstructionResult_InstructionError value)? instructionError,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -587,14 +547,12 @@ mixin _$WalletInstructionResult {
 
 /// @nodoc
 abstract class $WalletInstructionResultCopyWith<$Res> {
-  factory $WalletInstructionResultCopyWith(WalletInstructionResult value,
-          $Res Function(WalletInstructionResult) then) =
+  factory $WalletInstructionResultCopyWith(WalletInstructionResult value, $Res Function(WalletInstructionResult) then) =
       _$WalletInstructionResultCopyWithImpl<$Res, WalletInstructionResult>;
 }
 
 /// @nodoc
-class _$WalletInstructionResultCopyWithImpl<$Res,
-        $Val extends WalletInstructionResult>
+class _$WalletInstructionResultCopyWithImpl<$Res, $Val extends WalletInstructionResult>
     implements $WalletInstructionResultCopyWith<$Res> {
   _$WalletInstructionResultCopyWithImpl(this._value, this._then);
 
@@ -610,19 +568,16 @@ class _$WalletInstructionResultCopyWithImpl<$Res,
 /// @nodoc
 abstract class _$$WalletInstructionResult_OkImplCopyWith<$Res> {
   factory _$$WalletInstructionResult_OkImplCopyWith(
-          _$WalletInstructionResult_OkImpl value,
-          $Res Function(_$WalletInstructionResult_OkImpl) then) =
+          _$WalletInstructionResult_OkImpl value, $Res Function(_$WalletInstructionResult_OkImpl) then) =
       __$$WalletInstructionResult_OkImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
 class __$$WalletInstructionResult_OkImplCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res,
-        _$WalletInstructionResult_OkImpl>
+    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_OkImpl>
     implements _$$WalletInstructionResult_OkImplCopyWith<$Res> {
   __$$WalletInstructionResult_OkImplCopyWithImpl(
-      _$WalletInstructionResult_OkImpl _value,
-      $Res Function(_$WalletInstructionResult_OkImpl) _then)
+      _$WalletInstructionResult_OkImpl _value, $Res Function(_$WalletInstructionResult_OkImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of WalletInstructionResult
@@ -641,9 +596,7 @@ class _$WalletInstructionResult_OkImpl extends WalletInstructionResult_Ok {
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$WalletInstructionResult_OkImpl);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletInstructionResult_OkImpl);
   }
 
   @override
@@ -684,8 +637,7 @@ class _$WalletInstructionResult_OkImpl extends WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletInstructionResult_Ok value) ok,
-    required TResult Function(WalletInstructionResult_InstructionError value)
-        instructionError,
+    required TResult Function(WalletInstructionResult_InstructionError value) instructionError,
   }) {
     return ok(this);
   }
@@ -694,8 +646,7 @@ class _$WalletInstructionResult_OkImpl extends WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WalletInstructionResult_Ok value)? ok,
-    TResult? Function(WalletInstructionResult_InstructionError value)?
-        instructionError,
+    TResult? Function(WalletInstructionResult_InstructionError value)? instructionError,
   }) {
     return ok?.call(this);
   }
@@ -704,8 +655,7 @@ class _$WalletInstructionResult_OkImpl extends WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WalletInstructionResult_Ok value)? ok,
-    TResult Function(WalletInstructionResult_InstructionError value)?
-        instructionError,
+    TResult Function(WalletInstructionResult_InstructionError value)? instructionError,
     required TResult orElse(),
   }) {
     if (ok != null) {
@@ -722,8 +672,7 @@ abstract class WalletInstructionResult_Ok extends WalletInstructionResult {
 
 /// @nodoc
 abstract class _$$WalletInstructionResult_InstructionErrorImplCopyWith<$Res> {
-  factory _$$WalletInstructionResult_InstructionErrorImplCopyWith(
-          _$WalletInstructionResult_InstructionErrorImpl value,
+  factory _$$WalletInstructionResult_InstructionErrorImplCopyWith(_$WalletInstructionResult_InstructionErrorImpl value,
           $Res Function(_$WalletInstructionResult_InstructionErrorImpl) then) =
       __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<$Res>;
   @useResult
@@ -734,11 +683,9 @@ abstract class _$$WalletInstructionResult_InstructionErrorImplCopyWith<$Res> {
 
 /// @nodoc
 class __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res,
-        _$WalletInstructionResult_InstructionErrorImpl>
+    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_InstructionErrorImpl>
     implements _$$WalletInstructionResult_InstructionErrorImplCopyWith<$Res> {
-  __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl(
-      _$WalletInstructionResult_InstructionErrorImpl _value,
+  __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl(_$WalletInstructionResult_InstructionErrorImpl _value,
       $Res Function(_$WalletInstructionResult_InstructionErrorImpl) _then)
       : super(_value, _then);
 
@@ -770,10 +717,8 @@ class __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$WalletInstructionResult_InstructionErrorImpl
-    extends WalletInstructionResult_InstructionError {
-  const _$WalletInstructionResult_InstructionErrorImpl({required this.error})
-      : super._();
+class _$WalletInstructionResult_InstructionErrorImpl extends WalletInstructionResult_InstructionError {
+  const _$WalletInstructionResult_InstructionErrorImpl({required this.error}) : super._();
 
   @override
   final WalletInstructionError error;
@@ -799,11 +744,10 @@ class _$WalletInstructionResult_InstructionErrorImpl
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletInstructionResult_InstructionErrorImplCopyWith<
-          _$WalletInstructionResult_InstructionErrorImpl>
+  _$$WalletInstructionResult_InstructionErrorImplCopyWith<_$WalletInstructionResult_InstructionErrorImpl>
       get copyWith =>
-          __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<
-              _$WalletInstructionResult_InstructionErrorImpl>(this, _$identity);
+          __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<_$WalletInstructionResult_InstructionErrorImpl>(
+              this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -840,8 +784,7 @@ class _$WalletInstructionResult_InstructionErrorImpl
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletInstructionResult_Ok value) ok,
-    required TResult Function(WalletInstructionResult_InstructionError value)
-        instructionError,
+    required TResult Function(WalletInstructionResult_InstructionError value) instructionError,
   }) {
     return instructionError(this);
   }
@@ -850,8 +793,7 @@ class _$WalletInstructionResult_InstructionErrorImpl
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WalletInstructionResult_Ok value)? ok,
-    TResult? Function(WalletInstructionResult_InstructionError value)?
-        instructionError,
+    TResult? Function(WalletInstructionResult_InstructionError value)? instructionError,
   }) {
     return instructionError?.call(this);
   }
@@ -860,8 +802,7 @@ class _$WalletInstructionResult_InstructionErrorImpl
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WalletInstructionResult_Ok value)? ok,
-    TResult Function(WalletInstructionResult_InstructionError value)?
-        instructionError,
+    TResult Function(WalletInstructionResult_InstructionError value)? instructionError,
     required TResult orElse(),
   }) {
     if (instructionError != null) {
@@ -871,10 +812,8 @@ class _$WalletInstructionResult_InstructionErrorImpl
   }
 }
 
-abstract class WalletInstructionResult_InstructionError
-    extends WalletInstructionResult {
-  const factory WalletInstructionResult_InstructionError(
-          {required final WalletInstructionError error}) =
+abstract class WalletInstructionResult_InstructionError extends WalletInstructionResult {
+  const factory WalletInstructionResult_InstructionError({required final WalletInstructionError error}) =
       _$WalletInstructionResult_InstructionErrorImpl;
   const WalletInstructionResult_InstructionError._() : super._();
 
@@ -883,7 +822,6 @@ abstract class WalletInstructionResult_InstructionError
   /// Create a copy of WalletInstructionResult
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$WalletInstructionResult_InstructionErrorImplCopyWith<
-          _$WalletInstructionResult_InstructionErrorImpl>
+  _$$WalletInstructionResult_InstructionErrorImplCopyWith<_$WalletInstructionResult_InstructionErrorImpl>
       get copyWith => throw _privateConstructorUsedError;
 }

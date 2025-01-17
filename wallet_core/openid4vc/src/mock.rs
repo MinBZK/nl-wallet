@@ -55,7 +55,7 @@ impl IssuanceSession for MockIssuanceSession {
     async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         _: &[TrustAnchor<'_>],
-        _: impl KeyFactory<Key = K>,
+        _: &impl KeyFactory<Key = K>,
         _: Option<JwtCredential<WteClaims>>,
         _: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {

@@ -359,12 +359,12 @@ where
             )
             .await?;
 
-        let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
-
         let wte = self
             .wte_issuance_client
             .obtain_wte(&config.account_server.wte_public_key.0, &remote_instruction)
             .await?;
+
+        let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
