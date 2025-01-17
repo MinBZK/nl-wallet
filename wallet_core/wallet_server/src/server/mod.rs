@@ -25,8 +25,9 @@ use http::HeaderValue;
 use tokio::net::TcpListener;
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::TraceLayer;
+use tracing::error;
+use tracing::info;
 use tracing::level_filters::LevelFilter;
-use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
 use wallet_common::built_info::version_string;

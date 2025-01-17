@@ -38,6 +38,7 @@ const kMunicipalityTheHagueId = 'municipality_the_hague';
 const kBankId = 'bank';
 const kMonkeyBikeId = 'monkey_bike';
 const kPharmacyId = 'pharmacy';
+const kSampleCityTheHague = 'Den Haag';
 
 const _kRvigOrganizationName = 'Rijksdienst voor Identiteits­gegevens';
 final _kRvigOrganization = Organization(
@@ -170,7 +171,7 @@ final _kHousingCorporationOrganization = Organization(
   image: Image.asset(path: MockAssets.logo_housing_corp),
   webUrl: 'https://beterwonen.nl',
   countryCode: 'nl',
-  city: 'Den Haag'.untranslated,
+  city: kSampleCityTheHague.untranslated,
   department: 'Secretariaat'.untranslated,
 );
 
@@ -230,7 +231,7 @@ final _kMunicipalityTheHagueOrganization = Organization(
           .untranslated,
   image: Image.asset(path: MockAssets.logo_municipality_den_haag),
   department: 'Parkeren'.untranslated,
-  city: 'Den Haag'.untranslated,
+  city: kSampleCityTheHague.untranslated,
   countryCode: 'nl',
   webUrl: 'https://www.denhaag.nl',
 );
@@ -306,7 +307,7 @@ final _kPharmacyOrganization = Organization(
   description: 'Al meer dan 25 jaar jouw betrouwbare apotheek.'.untranslated,
   image: Image.asset(path: MockAssets.logo_zorgverzekeraar_z),
   kvk: '1234-1234',
-  city: 'Den Haag'.untranslated,
+  city: kSampleCityTheHague.untranslated,
   countryCode: 'nl',
   webUrl: 'https://denoordapotheek.nl',
 );

@@ -140,33 +140,42 @@ mod mock {
     use apple_app_attest::VerifiedAttestation;
     use rustls_pki_types::TrustAnchor;
 
-    fn test_mock_attestation(mock_ca: &MockAttestationCa, trust_anchors: &[TrustAnchor]) {
+    fn test_mock_attestation(
+        mock_ca: &MockAttestationCa,
+        trust_anchors: &[TrustAnchor],
+        environment: AttestationEnvironment,
+    ) {
         let app_identifier = AppIdentifier::new_mock();
         let challenge = b"generated_mock_attestation_challenge";
-        let (attestation_bytes, _signing_key) = Attestation::new_mock_bytes(mock_ca, challenge, &app_identifier);
+        let (attestation_bytes, _signing_key) =
+            Attestation::new_mock_bytes(mock_ca, challenge, environment, &app_identifier);
 
         VerifiedAttestation::parse_and_verify(
             &attestation_bytes,
             trust_anchors,
             challenge,
             &app_identifier,
-            mock_ca.environment,
+            environment,
         )
         .expect("mock attestation should validate successfully");
     }
 
     #[test]
     fn test_generated_mock_attestation() {
-        let mock_ca = MockAttestationCa::generate(AttestationEnvironment::Development);
+        let mock_ca = MockAttestationCa::generate();
 
-        test_mock_attestation(&mock_ca, &[mock_ca.trust_anchor()]);
+        test_mock_attestation(&mock_ca, &[mock_ca.trust_anchor()], AttestationEnvironment::Development);
     }
 
     #[cfg(feature = "mock_ca")]
     #[test]
     fn test_static_mock_attestation() {
-        let mock_ca = MockAttestationCa::new_mock(AttestationEnvironment::Production);
+        let mock_ca = MockAttestationCa::new_mock();
 
-        test_mock_attestation(&mock_ca, &apple_app_attest::MOCK_APPLE_TRUST_ANCHORS);
+        test_mock_attestation(
+            &mock_ca,
+            &apple_app_attest::MOCK_APPLE_TRUST_ANCHORS,
+            AttestationEnvironment::Production,
+        );
     }
 }

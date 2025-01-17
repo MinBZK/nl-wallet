@@ -89,19 +89,22 @@ relies heavily on all the logic implemented in the [`wallet_core`](../wallet_cor
 is the component that handles all the business logic (like storage, network and validation) needed
 to achieve the app's functionalities.
 
-A sample command to run the *core* version of the app is provided below.
+A sample command to run the *core* version of the app is provided below. Note that the universal link
+needs to be configured using various environment variables, as is illustrated in this example.
 
 ```sh
-flutter run --dart-define UL_HOSTNAME={hostname}
+UL_HOSTNAME={hostname} UNIVERSAL_LINK_BASE="https://{hostname}/path" flutter run --dart-define UL_HOSTNAME={hostname}
 ```
 
 However, since the core version relies heavily on communication with other services, we also provide
 scripts to configure the complete development environment. Please refer to [scripts](../scripts/),
 and more specifically the `setup-devenv.sh` and `start-devenv.sh` files.
 
+##### Configuration
+
 The configuration for how the app can connect to the configuration server (which serves the wallet
 configuration) is compiled directly into the app (`wallet_core/config-server-config.json`).
-In addition, the intial wallet configuration (`wallet_core/wallet-config.json`)
+In addition, the initial wallet configuration (`wallet_core/wallet-config.json`)
 (the most recent version at the time the app is built) is compiled into the app as well.
 These configurations are parsed and verified at compile time.
 
@@ -110,6 +113,53 @@ an environment variable named `CONFIG_ENV` is used.
 If, for instance, the app is built for the demo environment, `CONFIG_ENV` should have the value `demo`.
 This check is always performed, but when the `--release`-flag is passed to Cargo, the `CONFIG_ENV`
 environment variable is mandatory. Without the `--release`-flag the default (`dev`) is used.
+
+##### Key and app attestation
+
+The app performs key and app attestation when registering with the Wallet Provider (i.e. after the
+user first enters their PIN code). As verifying these attestations is mandatory, special care needs
+to be taken to make sure that attestation can be be performed for a particular environment.
+
+###### iOS
+
+For iOS key and app attestation to succeed, the following variables will need to match between the
+app and the Wallet Provider:
+
+1.  The root CA with which the attestation is signed.
+2.  Apple's attestation environment, which can be either *development* (i.e. a sandbox environment)
+    or *production*.
+3.  The app's bundle identifier.
+
+When running the app on real hardware, the root CA is always the one provided by Apple, as the
+attested key is stored within the Secure Element on the device.
+
+However, the iOS simulator is not capable of generating attested keys. For this use case a
+provision has been implemented that generates faux attestations under a self-signed CA. Generating
+these attestations can be enabled through the `fake_attestation` cargo feature. When compiling
+through Xcode (or indeed `flutter run`), this is done automatically when the target is the iOS
+simulator. The included setup script (for a local development environment) will automatically
+configure the Wallet Provider to accept both attestations signed by Apple and these faux
+self-signed attestations. In short, running the app on the iOS simulator against a local
+development environment should work out of the box.
+
+The attestation environment is set to *development* by default. This can be overridden by setting
+the `APPLE_ATTESTATION_ENVIRONMENT` environment variable during compilation. Note that this is
+ignored for builds that are downloaded from TestFlight or the App Store, as (per the Apple
+documentation) these always use the production environment. For this reason, the *development*
+environment should only be used during local development, while any deployed environment will use
+*production*.
+
+The bundle identifier need not be changed for the local development environment. For other
+environments it can be changed using:
+
+bash
+```
+flutter pub run rename setBundleId --targets ios --value <BUNDLE ID>
+```
+
+###### Android
+
+**TBD**
 
 ## File Structure
 
@@ -386,6 +436,6 @@ export FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD="{App-specific password}"
   here: [App Store Connect - iOS Builds](https://appstoreconnect.apple.com/apps/SSSS/testflight/ios),
   next build number needs to be `{latest_build_numer} + 1`
 - Build app with updated build
-  number `UL_HOSTNAME=app.example.com bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
+  number `UL_HOSTNAME=app.example.com UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
 - Upload to TestFlight `bundle exec fastlane ios deploy bundle_id:nl.ictu.edi.wallet.latest`  (login
   with Apple ID + password; app specific password!)

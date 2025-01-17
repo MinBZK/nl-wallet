@@ -60,6 +60,7 @@ logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
     "logging",
+    "dep:android_attest",
     "dep:apple_app_attest",
     "dep:ctor",
     "dep:indexmap",
@@ -131,7 +132,7 @@ performance_test = [
     "dep:wallet_common",
     "dep:wallet_server",
     "dep:dotenvy",
-    "platform_support/mock_apple_ca",
+    "platform_support/mock_attested_key_apple_ca",
 ]
 gba_pid_test = [
     "logging",
@@ -155,7 +156,7 @@ gba_pid_test = [
     "dep:wallet",
     "dep:wallet_common",
     "dep:wallet_server",
-    "platform_support/mock_apple_ca",
+    "platform_support/mock_attested_key_apple_ca",
     "wallet/snapshot_test",
 ]
 
@@ -163,7 +164,7 @@ gba_pid_test = [
 assert_matches = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
-insta = { workspace = true, optional = true, features = ["yaml"] }
+insta = { workspace = true, optional = true, features = ["ron"] }
 jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, optional = true, features = [
@@ -196,6 +197,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 
+android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }

@@ -35,6 +35,7 @@ mod mock_apple_attested_key {
     use apple_app_attest::Assertion;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::Attestation;
+    use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::MockAttestationCa;
 
     use super::AppleAssertion;
@@ -47,32 +48,34 @@ mod mock_apple_attested_key {
     #[derive(Debug)]
     pub struct MockAppleAttestedKey {
         pub app_identifier: AppIdentifier,
-        pub signing_key: SigningKey,
+        pub signing_key: Arc<SigningKey>,
         pub next_counter: Arc<AtomicU32>,
         pub has_error: bool,
     }
 
     impl MockAppleAttestedKey {
-        fn new(signing_key: SigningKey, app_identifier: AppIdentifier) -> Self {
+        fn new(app_identifier: AppIdentifier, signing_key: SigningKey) -> Self {
             Self {
-                signing_key,
                 app_identifier,
+                signing_key: Arc::new(signing_key),
                 next_counter: Arc::new(AtomicU32::new(1)),
                 has_error: false,
             }
         }
 
         pub fn new_random(app_identifier: AppIdentifier) -> Self {
-            Self::new(SigningKey::random(&mut OsRng), app_identifier)
+            Self::new(app_identifier, SigningKey::random(&mut OsRng))
         }
 
         pub fn new_with_attestation(
             mock_ca: &MockAttestationCa,
-            app_identifier: AppIdentifier,
             challenge: &[u8],
+            environment: AttestationEnvironment,
+            app_identifier: AppIdentifier,
         ) -> (Self, Vec<u8>) {
-            let (attestation, signing_key) = Attestation::new_mock_bytes(mock_ca, challenge, &app_identifier);
-            let attested_key = Self::new(signing_key, app_identifier);
+            let (attestation, signing_key) =
+                Attestation::new_mock_bytes(mock_ca, challenge, environment, &app_identifier);
+            let attested_key = Self::new(app_identifier, signing_key);
 
             (attested_key, attestation)
         }

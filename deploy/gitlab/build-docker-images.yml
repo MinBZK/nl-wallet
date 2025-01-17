@@ -21,7 +21,6 @@
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
-      --cache=true
 
 build-update-policy-server-image:
   extends: .build-docker-image
@@ -65,7 +64,6 @@ build-wp-migrations-image:
       --build-arg WALLET_WEB_SHA256="${ARG_WALLET_WEB_SHA256}"
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
-      --cache=true
 
 build-mock-relying-party-image:
   extends: .build-docker-image-mrp

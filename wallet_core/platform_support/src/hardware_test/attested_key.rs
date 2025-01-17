@@ -17,7 +17,7 @@ extern "C" fn attested_key_test(has_xcode_env: bool) {
         let app_identifier = has_xcode_env.then(AppIdentifier::default);
         let apple_test_data = app_identifier.as_ref().map(|app_identifier| AppleTestData {
             app_identifier,
-            trust_anchors: &APPLE_TRUST_ANCHORS,
+            trust_anchors: APPLE_TRUST_ANCHORS.clone(),
         });
 
         let rt = runtime::Builder::new_current_thread().enable_all().build().unwrap();

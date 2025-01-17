@@ -32,7 +32,8 @@ axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "t
 axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }
+futures.workspace = true
 http.workspace = true
 nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
@@ -43,7 +44,8 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono"] }
 serial_test = { workspace = true, optional = true }
-thiserror = { workspace = true }
+spki = { workspace = true, features = ["std"] }
+thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
@@ -59,6 +61,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
+android_attest.path = "../android_attest"
 apple_app_attest.path = "../apple_app_attest"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 wallet_provider_database_settings.path = "database_settings"

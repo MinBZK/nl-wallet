@@ -77,7 +77,7 @@ impl From<WalletProviderError> for AccountError {
                 RegistrationError::ChallengeDecoding(_) => Self::ChallengeValidation,
                 RegistrationError::ChallengeValidation(_) => Self::ChallengeValidation,
                 RegistrationError::AppleAttestation(_) => Self::AttestationValidation,
-                RegistrationError::GoogleAttestation(_) => Self::AttestationValidation,
+                RegistrationError::AndroidAttestation(_) => Self::AttestationValidation,
                 RegistrationError::MessageParsing(_) => Self::RegistrationParsing,
                 RegistrationError::MessageValidation(_) => Self::RegistrationParsing,
                 RegistrationError::SerialNumberMismatch { .. } => Self::RegistrationParsing,

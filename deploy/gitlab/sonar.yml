@@ -1,7 +1,7 @@
 .default-sonar:
   rules: !reference [.default-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/docker-hub-proxy/sonarsource/sonar-scanner-cli:11.1.1.1661_6.2.1"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:a6f06dfaade25fdcf89d1349acf1e5e86fe1bdc68155eac05a8eafb9aa790e77"
 
 sonar-rust:
   extends: .default-sonar
@@ -24,14 +24,12 @@ sonar-rust:
       -Dcommunity.rust.test.reportPath="target/nextest/ci/junit.xml"
 
 sonar-flutter:
-  rules: !reference [.default-or-merge-request, rules]
+  extends: .default-sonar
   needs:
     - job: test-flutter
       artifacts: true
     - job: dependency-check
       artifacts: true
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:a5822321adaa61f288df3b90649c4eaba26f818de56b28fac94cced0127c303f"
   variables:
     GIT_STRATEGY: clone
   before_script:

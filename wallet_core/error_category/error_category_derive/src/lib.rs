@@ -154,7 +154,8 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io::{self, ErrorKind};
-/// # use error_category::{Category, ErrorCategory};
+/// # use error_category::Category;
+/// # use error_category::ErrorCategory;
 /// # struct Attribute;
 /// #[derive(ErrorCategory)]
 /// #[category(expected)] // default category
@@ -182,7 +183,8 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use error_category::{Category, ErrorCategory};
+/// # use error_category::Category;
+/// # use error_category::ErrorCategory;
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
@@ -205,7 +207,8 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use error_category::{Category, ErrorCategory};
+/// # use error_category::Category;
+/// # use error_category::ErrorCategory;
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
@@ -231,7 +234,8 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use error_category::{Category, ErrorCategory};
+/// # use error_category::Category;
+/// # use error_category::ErrorCategory;
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
