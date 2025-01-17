@@ -38,6 +38,7 @@ fn wallet() -> &'static RwLock<Wallet> {
 }
 
 #[frb(init)]
+#[flutter_api_error]
 pub async fn init() -> anyhow::Result<()> {
     if !is_initialized() {
         // Initialize platform specific logging and set the log level.
@@ -115,6 +116,7 @@ pub async fn clear_version_state_stream() {
     wallet().read().await.clear_version_state_callback();
 }
 
+#[flutter_api_error]
 pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) -> anyhow::Result<()> {
     wallet()
         .write()
@@ -133,6 +135,7 @@ pub async fn clear_cards_stream() {
     wallet().write().await.clear_documents_callback();
 }
 
+#[flutter_api_error]
 pub async fn set_recent_history_stream(sink: StreamSink<Vec<WalletEvent>>) -> anyhow::Result<()> {
     wallet()
         .write()
