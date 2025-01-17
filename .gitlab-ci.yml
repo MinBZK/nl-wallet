@@ -106,7 +106,7 @@ variables:
       - "vendor/ruby"
   before_script:
     - ruby -v
-    - bundle config set --local path "vendor/ruby"
+    - bundle config set --local path "vendor"
 
 .ruby-cache-macos:
   extends: .ruby-cache
