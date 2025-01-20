@@ -486,14 +486,15 @@ async fn test_client_and_server(
     };
 
     // Start session in the wallet
-    let (session, key_factory) = start_disclosure_session(
+    let key_factory = MockRemoteKeyFactory::default();
+    let session = start_disclosure_session(
         Arc::clone(&verifier),
         stored_documents,
         &issuer_ca,
         uri_source,
         &request_uri,
         rp_trust_anchor,
-        MockRemoteKeyFactory::default(),
+        &key_factory,
     )
     .await
     .unwrap();
@@ -588,7 +589,7 @@ async fn test_client_and_server_cancel_after_created() {
         DisclosureUriSource::Link,
         &request_uri,
         trust_anchor,
-        MockRemoteKeyFactory::default(),
+        &MockRemoteKeyFactory::default(),
     )
     .await
     .expect_err("should not be able to start the disclosure session in the wallet");
@@ -623,14 +624,15 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Start session in the wallet
-    let (session, key_factory) = start_disclosure_session(
+    let key_factory = MockRemoteKeyFactory::default();
+    let session = start_disclosure_session(
         Arc::clone(&verifier),
         stored_documents,
         &issuer_ca,
         DisclosureUriSource::Link,
         &request_uri,
         trust_anchor,
-        MockRemoteKeyFactory::default(),
+        &key_factory,
     )
     .await
     .unwrap();
@@ -724,14 +726,15 @@ async fn test_disclosure_invalid_poa() {
     };
 
     // Start session in the wallet
-    let (session, key_factory) = start_disclosure_session(
+    let key_factory = WrongPoaKeyFactory::default();
+    let session = start_disclosure_session(
         Arc::clone(&verifier),
         stored_documents,
         &issuer_ca,
         uri_source,
         &request_uri,
         rp_trust_anchor,
-        WrongPoaKeyFactory::default(),
+        &key_factory,
     )
     .await
     .unwrap();
@@ -804,8 +807,8 @@ async fn start_disclosure_session<KF, K>(
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: TrustAnchor<'static>,
-    key_factory: KF,
-) -> Result<(DisclosureSession<VerifierMockVpMessageClient, String>, KF), VpClientError>
+    key_factory: &KF,
+) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpClientError>
 where
     KF: KeyFactory<Key = K>,
 {
@@ -813,7 +816,7 @@ where
     let mdocs = future::join_all(
         stored_documents
             .into_iter()
-            .map(|doc| async { doc.sign(issuer_ca, &key_factory, NonZeroU8::new(1).unwrap()).await }),
+            .map(|doc| async { doc.sign(issuer_ca, key_factory, NonZeroU8::new(1).unwrap()).await }),
     )
     .await;
     let mdocs = MockMdocDataSource::from(mdocs);
@@ -827,7 +830,6 @@ where
         &[trust_anchor],
     )
     .await
-    .map(|session| (session, key_factory))
 }
 
 async fn request_uri_from_status_endpoint(

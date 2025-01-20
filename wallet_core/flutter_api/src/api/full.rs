@@ -1,10 +1,12 @@
+use std::panic::AssertUnwindSafe;
+
 use flutter_rust_bridge::frb;
 use flutter_rust_bridge::setup_default_user_utils;
+use flutter_rust_bridge::SimpleAsyncRuntime;
 use tokio::sync::OnceCell;
 use tokio::sync::RwLock;
 use url::Url;
 
-use flutter_api_macros::async_runtime;
 use flutter_api_macros::flutter_api_error;
 use wallet::errors::WalletInitError;
 use wallet::wallet_common::version_string;
@@ -12,8 +14,8 @@ use wallet::DisclosureUriSource;
 use wallet::UnlockMethod;
 use wallet::Wallet;
 
-use crate::async_runtime::init_async_runtime;
 use crate::frb_generated::StreamSink;
+use crate::frb_generated::FLUTTER_RUST_BRIDGE_HANDLER;
 use crate::logging::init_logging;
 use crate::models::card::Card;
 use crate::models::config::FlutterConfiguration;
@@ -36,6 +38,7 @@ fn wallet() -> &'static RwLock<Wallet> {
 }
 
 #[frb(init)]
+#[flutter_api_error]
 pub async fn init() -> anyhow::Result<()> {
     if !is_initialized() {
         // Initialize platform specific logging and set the log level.
@@ -51,10 +54,6 @@ pub async fn init() -> anyhow::Result<()> {
         // This MUST be called before initializing the async runtime.
         init_sentry();
 
-        // Initialize the async runtime so the #[async_runtime] macro can be used.
-        // This function may also be called safely more than once.
-        init_async_runtime();
-
         create_wallet().await?;
     }
 
@@ -68,20 +67,16 @@ pub fn is_initialized() -> bool {
 /// This is called by the public [`init()`] function above.
 /// The returned `Result<bool>` is `true` if the wallet was successfully initialized,
 /// otherwise it indicates that the wallet was already created.
-async fn create_wallet() -> Result<bool, WalletInitError> {
-    let mut created = false;
-
+async fn create_wallet() -> Result<(), WalletInitError> {
     _ = WALLET
         .get_or_try_init(|| async {
             // This closure will only be called if WALLET_API_ENVIRONMENT is currently empty.
             let wallet = Wallet::init_all().await?;
-            created = true;
-
             Ok::<_, WalletInitError>(RwLock::new(wallet))
         })
         .await?;
 
-    Ok(created)
+    Ok(())
 }
 
 #[flutter_api_error]
@@ -121,6 +116,7 @@ pub async fn clear_version_state_stream() {
     wallet().read().await.clear_version_state_callback();
 }
 
+#[flutter_api_error]
 pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) -> anyhow::Result<()> {
     wallet()
         .write()
@@ -139,6 +135,7 @@ pub async fn clear_cards_stream() {
     wallet().write().await.clear_documents_callback();
 }
 
+#[flutter_api_error]
 pub async fn set_recent_history_stream(sink: StreamSink<Vec<WalletEvent>>) -> anyhow::Result<()> {
     wallet()
         .write()
@@ -157,7 +154,6 @@ pub async fn clear_recent_history_stream() {
     wallet().write().await.clear_recent_history_callback();
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn unlock_wallet(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
@@ -173,7 +169,6 @@ pub async fn lock_wallet() {
     wallet.lock();
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn check_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let wallet = wallet().read().await;
@@ -183,7 +178,6 @@ pub async fn check_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
     Ok(result)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn change_pin(old_pin: String, new_pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
@@ -193,7 +187,6 @@ pub async fn change_pin(old_pin: String, new_pin: String) -> anyhow::Result<Wall
     Ok(result)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn continue_change_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let wallet = wallet().read().await;
@@ -207,7 +200,6 @@ pub async fn has_registration() -> bool {
     wallet().read().await.has_registration()
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn register(pin: String) -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
@@ -217,7 +209,6 @@ pub async fn register(pin: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn identify_uri(uri: String) -> anyhow::Result<IdentifyUriResult> {
     let wallet = wallet().read().await;
@@ -227,7 +218,6 @@ pub async fn identify_uri(uri: String) -> anyhow::Result<IdentifyUriResult> {
     Ok(identify_uri_result)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn create_pid_issuance_redirect_uri() -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
@@ -237,7 +227,6 @@ pub async fn create_pid_issuance_redirect_uri() -> anyhow::Result<String> {
     Ok(auth_url.into())
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn cancel_pid_issuance() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
@@ -247,7 +236,6 @@ pub async fn cancel_pid_issuance() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Card>> {
     let url = Url::parse(&uri)?;
@@ -261,17 +249,21 @@ pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Card>> {
     Ok(cards)
 }
 
-#[async_runtime]
 #[flutter_api_error]
-pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
-    let mut wallet = wallet().write().await;
+pub fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
+    // Unfortunately this function does not work asynchronous natively with Flutter Rust Bridge
+    // because of some trait bound issue. As a workaround we extract the `tokio` runtime from FRB
+    // and call the `Wallet` method is a blocking fashion.
+    let SimpleAsyncRuntime(AssertUnwindSafe(runtime)) = FLUTTER_RUST_BRIDGE_HANDLER.async_runtime();
+    let result = runtime.block_on(async {
+        let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
+        wallet.accept_pid_issuance(pin).await.try_into()
+    })?;
 
     Ok(result)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn has_active_pid_issuance_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
@@ -281,7 +273,6 @@ pub async fn has_active_pid_issuance_session() -> anyhow::Result<bool> {
     Ok(has_active_session)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 #[allow(unused_variables)]
 pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<StartDisclosureResult> {
@@ -297,7 +288,6 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
     Ok(result)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
     let mut wallet = wallet().write().await;
@@ -307,17 +297,21 @@ pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
     Ok(return_url)
 }
 
-#[async_runtime]
 #[flutter_api_error]
-pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureResult> {
-    let mut wallet = wallet().write().await;
+pub fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureResult> {
+    // Unfortunately this function does not work asynchronous natively with Flutter Rust Bridge
+    // because of some trait bound issue. As a workaround we extract the `tokio` runtime from FRB
+    // and call the `Wallet` method is a blocking fashion.
+    let SimpleAsyncRuntime(AssertUnwindSafe(runtime)) = FLUTTER_RUST_BRIDGE_HANDLER.async_runtime();
+    let result = runtime.block_on(async {
+        let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_disclosure(pin).await.try_into()?;
+        wallet.accept_disclosure(pin).await.try_into()
+    })?;
 
     Ok(result)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
@@ -327,7 +321,6 @@ pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
     Ok(has_active_session)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn is_biometric_unlock_enabled() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
@@ -337,7 +330,6 @@ pub async fn is_biometric_unlock_enabled() -> anyhow::Result<bool> {
     Ok(is_biometrics_enabled)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn set_biometric_unlock(enable: bool) -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
@@ -352,7 +344,6 @@ pub async fn set_biometric_unlock(enable: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
@@ -362,7 +353,6 @@ pub async fn unlock_wallet_with_biometrics() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn get_history() -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
@@ -371,7 +361,6 @@ pub async fn get_history() -> anyhow::Result<Vec<WalletEvent>> {
     Ok(history)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn get_history_for_card(doc_type: String) -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
@@ -387,7 +376,6 @@ pub async fn get_history_for_card(doc_type: String) -> anyhow::Result<Vec<Wallet
     Ok(history)
 }
 
-#[async_runtime]
 #[flutter_api_error]
 pub async fn reset_wallet() -> anyhow::Result<()> {
     wallet().write().await.reset().await?;
