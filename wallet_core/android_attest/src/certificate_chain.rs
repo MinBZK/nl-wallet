@@ -162,16 +162,31 @@ fn verify_google_attestation_certificate_chain(
 
 #[cfg(test)]
 mod tests {
-    use crate::mock::MockCaChain;
+    use rasn::types::OctetString;
+
+    use crate::{
+        attestation_extension::key_description::{KeyDescription, SecurityLevel},
+        mock::MockCaChain,
+    };
 
     use super::*;
 
     #[test]
-    #[should_panic(expected = "NoKeyAttestationExtension")]
     fn test_google_key_attestation() {
+        let key_description = KeyDescription {
+            attestation_version: 200.into(),
+            attestation_security_level: SecurityLevel::TrustedEnvironment,
+            key_mint_version: 300.into(),
+            key_mint_security_level: SecurityLevel::TrustedEnvironment,
+            attestation_challenge: OctetString::copy_from_slice(b"challenge"),
+            unique_id: OctetString::copy_from_slice(b"unique_id"),
+            software_enforced: Default::default(),
+            hardware_enforced: Default::default(),
+        };
+
         // Generate root and intermediate ca.
         let mock_ca_chain = MockCaChain::generate(1);
-        let (certificates, _signing_keys) = mock_ca_chain.generate_leaf_certificate();
+        let (certificates, _signing_keys) = mock_ca_chain.generate_attested_leaf_certificate(&key_description);
         let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
 
         // Get root public key, the chain length is 3 now, root + intermediate + leaf.
