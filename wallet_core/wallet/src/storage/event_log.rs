@@ -83,7 +83,7 @@ pub enum WalletEvent {
         timestamp: DateTime<Utc>,
         reader_certificate: Box<BorrowingCertificate>,
         status: EventStatus,
-        typ: DisclosureType,
+        r#type: DisclosureType,
     },
 }
 
@@ -100,7 +100,7 @@ impl WalletEvent {
         documents: Option<EventDocuments>,
         reader_certificate: BorrowingCertificate,
         status: EventStatus,
-        typ: DisclosureType,
+        r#type: DisclosureType,
     ) -> Self {
         Self::Disclosure {
             id: Uuid::new_v4(),
@@ -108,7 +108,7 @@ impl WalletEvent {
             timestamp: Utc::now(),
             reader_certificate: Box::new(reader_certificate),
             status,
-            typ,
+            r#type,
         }
     }
 
@@ -141,7 +141,7 @@ impl TryFrom<disclosure_history_event::Model> for WalletEvent {
         let result = Self::Disclosure {
             id: event.id,
             status: EventStatus::from(&event),
-            typ: DisclosureType::from(&event),
+            r#type: DisclosureType::from(&event),
             documents: event.attributes.map(serde_json::from_value).transpose()?,
             timestamp: event.timestamp,
             reader_certificate: Box::new(BorrowingCertificate::from_der(event.relying_party_certificate).unwrap()), /* Unwrapping here is safe since the certificate has been parsed before */
@@ -183,14 +183,14 @@ impl TryFrom<WalletEvent> for WalletEventModel {
                 documents,
                 timestamp,
                 reader_certificate,
-                typ,
+                r#type,
             } => Self::Disclosure(disclosure_history_event::Model {
                 attributes: documents.map(serde_json::to_value).transpose()?,
                 id,
                 timestamp,
                 relying_party_certificate: (*reader_certificate).into(),
                 status: status.into(),
-                r#type: typ.into(),
+                r#type: r#type.into(),
             }),
         };
         Ok(result)
@@ -342,7 +342,7 @@ mod test {
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
                 status: EventStatus::Success,
-                typ: DisclosureType::Regular,
+                r#type: DisclosureType::Regular,
             }
         }
 
@@ -365,7 +365,7 @@ mod test {
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
                 status: EventStatus::Error,
-                typ: DisclosureType::Regular,
+                r#type: DisclosureType::Regular,
             }
         }
 
@@ -376,7 +376,7 @@ mod test {
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
                 status: EventStatus::Cancelled,
-                typ: DisclosureType::Regular,
+                r#type: DisclosureType::Regular,
             }
         }
 
@@ -387,7 +387,7 @@ mod test {
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
                 status: EventStatus::Error,
-                typ: DisclosureType::Regular,
+                r#type: DisclosureType::Regular,
             }
         }
     }

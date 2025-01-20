@@ -50,7 +50,7 @@ impl From<HistoryEvent> for WalletEvents {
                 .collect(),
             HistoryEvent::Disclosure {
                 status,
-                typ,
+                r#type,
                 timestamp,
                 reader_registration,
                 attributes,
@@ -63,7 +63,7 @@ impl From<HistoryEvent> for WalletEvents {
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
                     requested_cards: attributes.map(|mdocs| mdocs.into_iter().map(DisclosureCard::from).collect()),
                     status: status.into(),
-                    typ: typ.into(),
+                    typ: r#type.into(),
                 }]
             }
         };
