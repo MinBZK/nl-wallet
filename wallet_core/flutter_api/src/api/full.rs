@@ -38,13 +38,14 @@ fn wallet() -> &'static RwLock<Wallet> {
 #[frb(init)]
 pub async fn init() -> anyhow::Result<()> {
     if !is_initialized() {
-        // Enable backtraces to be caught on panics (but not errors) for Sentry.
-        std::env::set_var("RUST_LIB_BACKTRACE", "0");
-
         // Initialize platform specific logging and set the log level.
         // As creating the wallet below could fail and init() could be called again,
         // init_logging() should not fail when being called more than once.
         init_logging();
+
+        // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
+        setup_default_user_utils();
+        std::env::set_var("RUST_LIB_BACKTRACE", "0");
 
         // Initialize Sentry for Rust panics.
         // This MUST be called before initializing the async runtime.
@@ -54,10 +55,7 @@ pub async fn init() -> anyhow::Result<()> {
         // This function may also be called safely more than once.
         init_async_runtime();
 
-        setup_default_user_utils();
-
-        let initialized = create_wallet().await?;
-        assert!(initialized, "Wallet can only be initialized once");
+        create_wallet().await?;
     }
 
     Ok(())
