@@ -33,3 +33,4 @@ spec:
                   name: db-cluster-app
                   key: password
       restartPolicy: Never
+      ttlSecondsAfterFinished: 86400

@@ -12,6 +12,7 @@ spec:
         tier: zeer-vertrouwd
     spec:
       restartPolicy: Never
+      ttlSecondsAfterFinished: 86400
       imagePullSecrets:
         - name: harbor-puller
       serviceAccountName: sp-nonroot
