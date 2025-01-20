@@ -6,6 +6,7 @@ metadata:
     app: pid-issuer-migrations
 spec:
   backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
   template:
     metadata:
       labels:
@@ -31,4 +32,3 @@ spec:
             - name: DATABASE_URL
               value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-pi-rw:5432/pid_issuer"
       restartPolicy: Never
-      ttlSecondsAfterFinished: 86400
