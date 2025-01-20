@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wallet_core/core.dart' as core;
-import 'package:wallet_mock/mock.dart' as mock;
 
 import '../data/source/impl/wallet_datasource_impl.dart';
 import '../data/source/wallet_datasource.dart';
@@ -29,9 +27,7 @@ class WalletDataSourceProvider extends StatelessWidget {
           /// Re-exposing the [ActiveLocalizationDelegate] as [ActiveLocaleProvider] for saner lookup.
           create: (context) => context.read<ActiveLocalizationDelegate>(),
         ),
-        RepositoryProvider<TypedWalletCore>(
-          create: (context) => TypedWalletCore(provideMocks ? mock.api : core.api, context.read()),
-        ),
+        RepositoryProvider<TypedWalletCore>(create: (context) => TypedWalletCore(context.read())),
         RepositoryProvider<LanguageStore>(
           create: (context) => LanguageStoreImpl(SharedPreferences.getInstance),
         ),

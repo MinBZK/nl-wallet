@@ -15,18 +15,20 @@ const _kSamplePin = '112233';
 const _kSampleIssuer = CoreMockData.organization;
 
 void main() {
-  late WalletCore core;
-  late TypedWalletCore typedWalletCore;
+  final WalletCoreApi core = Mocks.create();
+  WalletCore.initMock(api: core);
+
   late MockMapper<String, CoreError> errorMapper;
+  late TypedWalletCore typedWalletCore;
 
-  setUp(() {
-    core = Mocks.create();
+  setUp(() async {
+    if (!await isInitialized()) {
+      await core.crateApiFullInit();
+    }
+
     errorMapper = MockMapper();
-    typedWalletCore = TypedWalletCore(core, errorMapper);
+    typedWalletCore = TypedWalletCore(errorMapper);
 
-    /// Setup default initialization mock
-    when(core.isInitialized()).thenAnswer((realInvocation) async => false);
-    when(core.init()).thenAnswer((realInvocation) async => true);
     // Setup default error mock
     when(errorMapper.map(any)).thenAnswer((invocation) {
       return CoreGenericError(invocation.positionalArguments.first);
@@ -35,55 +37,55 @@ void main() {
 
   group('isValidPin', () {
     test('pin validation is passed on to core', () async {
-      when(core.isValidPin(pin: _kSamplePin)).thenAnswer((realInvocation) async => PinValidationResult.Ok);
+      when(core.crateApiFullIsValidPin(pin: _kSamplePin)).thenAnswer((realInvocation) async => PinValidationResult.Ok);
       final result = await typedWalletCore.isValidPin(_kSamplePin);
       expect(result, PinValidationResult.Ok);
-      verify(core.isValidPin(pin: _kSamplePin)).called(1);
+      verify(core.crateApiFullIsValidPin(pin: _kSamplePin)).called(1);
     });
   });
 
   group('register', () {
     test('register is passed on to core', () async {
       await typedWalletCore.register(_kSamplePin);
-      verify(core.register(pin: _kSamplePin)).called(1);
+      verify(core.crateApiFullRegister(pin: _kSamplePin)).called(1);
     });
   });
 
   group('isRegistered', () {
     test('registration check is passed on to core', () async {
       await typedWalletCore.isRegistered();
-      verify(core.hasRegistration()).called(1);
+      verify(core.crateApiFullHasRegistration()).called(1);
     });
   });
 
   group('lockWallet', () {
     test('lock wallet is passed on to core', () async {
       await typedWalletCore.lockWallet();
-      verify(core.lockWallet()).called(1);
+      verify(core.crateApiFullLockWallet()).called(1);
     });
   });
 
   group('unlockWallet', () {
     test('unlock wallet is passed on to core', () async {
       await typedWalletCore.unlockWallet(_kSamplePin);
-      verify(core.unlockWallet(pin: _kSamplePin)).called(1);
+      verify(core.crateApiFullUnlockWallet(pin: _kSamplePin)).called(1);
     });
   });
 
   group('isLocked', () {
     test('locked state is fetched through core by setting the lock stream', () async {
       // Verify we don't observe the stream pre-emptively
-      verifyNever(core.setLockStream());
+      verifyNever(core.crateApiFullSetLockStream());
       // But make sure we do call into the core once we check the isLocked stream
       await typedWalletCore.isLocked.first;
-      verify(core.setLockStream()).called(1);
+      verify(core.crateApiFullSetLockStream()).called(1);
     });
   });
 
   group('createdPidIssuanceUri', () {
     test('create pid issuance redirect uri is passed on to core', () async {
       await typedWalletCore.createPidIssuanceRedirectUri();
-      verify(core.createPidIssuanceRedirectUri()).called(1);
+      verify(core.crateApiFullCreatePidIssuanceRedirectUri()).called(1);
     });
   });
 
@@ -91,60 +93,60 @@ void main() {
     test('identify uri is passed on to core', () async {
       const uri = 'https://example.org';
       await typedWalletCore.identifyUri(uri);
-      verify(core.identifyUri(uri: uri)).called(1);
+      verify(core.crateApiFullIdentifyUri(uri: uri)).called(1);
     });
   });
 
   group('cancelPidIssuance', () {
     test('cancel pid issuance is passed on to core', () async {
       await typedWalletCore.cancelPidIssuance();
-      verify(core.cancelPidIssuance()).called(1);
+      verify(core.crateApiFullCancelPidIssuance()).called(1);
     });
   });
 
   group('observeConfig', () {
     test('configuration is fetched through core by setting the configuration stream', () async {
-      when(core.setConfigurationStream()).thenAnswer(
+      when(core.crateApiFullSetConfigurationStream()).thenAnswer(
         (_) => Stream.value(
-          const FlutterConfiguration(
+          FlutterConfiguration(
             inactiveLockTimeout: 0,
             backgroundLockTimeout: 0,
-            version: 0,
+            version: BigInt.zero,
           ),
         ),
       );
       // Verify we don't observe the stream pre-emptively
-      verifyNever(core.setConfigurationStream());
+      verifyNever(core.crateApiFullSetConfigurationStream());
       // But make sure we do call into the core once we check the configuration stream
       await typedWalletCore.observeConfig().first;
-      verify(core.setConfigurationStream()).called(1);
+      verify(core.crateApiFullSetConfigurationStream()).called(1);
     });
   });
 
   group('observeVersionState', () {
     test('version state is fetched through core by setting the version state stream', () async {
-      when(core.setVersionStateStream()).thenAnswer(
+      when(core.crateApiFullSetVersionStateStream()).thenAnswer(
         (_) => Stream.value(const FlutterVersionState.ok()),
       );
       // Verify we don't observe the stream pre-emptively
-      verifyNever(core.setVersionStateStream());
+      verifyNever(core.crateApiFullSetVersionStateStream());
       // But make sure we do call into the core once we check the version state stream
       await typedWalletCore.observeVersionState().first;
-      verify(core.setVersionStateStream()).called(1);
+      verify(core.crateApiFullSetVersionStateStream()).called(1);
     });
   });
 
   group('acceptOfferedPid', () {
     test('accept offered pid is passed on to core', () async {
       await typedWalletCore.acceptOfferedPid(_kSamplePin);
-      verify(core.acceptPidIssuance(pin: _kSamplePin)).called(1);
+      verify(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).called(1);
     });
   });
 
   group('resetWallet', () {
     test('reset wallet pid is passed on to core', () async {
       await typedWalletCore.resetWallet();
-      verify(core.resetWallet()).called(1);
+      verify(core.crateApiFullResetWallet()).called(1);
     });
   });
 
@@ -164,9 +166,10 @@ void main() {
           issuer: _kSampleIssuer,
         ),
       ];
-      when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.value(mockCards));
+      when(core.crateApiFullSetCardsStream()).thenAnswer((realInvocation) => Stream.value(mockCards));
+
       expect(
-        typedWalletCore.observeCards(),
+        TypedWalletCore(errorMapper).observeCards(),
         emitsInOrder([hasLength(mockCards.length)]),
       );
     });
@@ -194,10 +197,11 @@ void main() {
           issuer: _kSampleIssuer,
         ),
       ];
-      when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([[], initialCards, updatedCards]));
+      when(core.crateApiFullSetCardsStream())
+          .thenAnswer((realInvocation) => Stream.fromIterable([[], initialCards, updatedCards]));
 
       expect(
-        typedWalletCore.observeCards(),
+        TypedWalletCore(errorMapper).observeCards(),
         emitsInOrder([hasLength(0), hasLength(initialCards.length), hasLength(updatedCards.length)]),
       );
     });
@@ -225,13 +229,16 @@ void main() {
           issuer: _kSampleIssuer,
         ),
       ];
-      when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
+      when(core.crateApiFullSetCardsStream())
+          .thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
+
+      final typedCore = TypedWalletCore(errorMapper);
 
       /// This makes sure the observeCards() had a chance initialize
-      await typedWalletCore.observeCards().take(2).last;
+      await typedCore.observeCards().take(2).last;
 
       /// On a new subscription we now only expect to see the last value
-      expect(typedWalletCore.observeCards(), emitsInOrder([hasLength(updatedCards.length)]));
+      expect(typedCore.observeCards(), emitsInOrder([hasLength(updatedCards.length)]));
     });
   });
 
@@ -239,55 +246,55 @@ void main() {
   group('handleCoreException', () {
     /// Create a [FfiException] that should be converted to a [CoreError]
     final flutterApiError = FlutterApiError(type: FlutterApiErrorType.generic, description: null, data: null);
-    final ffiException = FfiException('RESULT_ERROR', jsonEncode(flutterApiError));
+    final ffiException = AnyhowException(jsonEncode(flutterApiError));
 
     test('isValidPin', () async {
-      when(core.isValidPin(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullIsValidPin(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.isValidPin(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('register', () async {
-      when(core.register(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullRegister(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.register(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('isRegistered', () async {
-      when(core.hasRegistration()).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullHasRegistration()).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.isRegistered(), throwsA(isA<CoreError>()));
     });
 
     test('lockWallet', () async {
-      when(core.lockWallet()).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullLockWallet()).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.lockWallet(), throwsA(isA<CoreError>()));
     });
 
     test('unlockWallet', () async {
-      when(core.unlockWallet(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullUnlockWallet(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.unlockWallet(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('createPidIssuanceRedirectUri', () async {
-      when(core.createPidIssuanceRedirectUri()).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullCreatePidIssuanceRedirectUri()).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.createPidIssuanceRedirectUri(), throwsA(isA<CoreError>()));
     });
 
     test('identifyUri', () async {
-      when(core.identifyUri(uri: 'https://example.org')).thenThrow(ffiException);
+      when(core.crateApiFullIdentifyUri(uri: 'https://example.org')).thenThrow(ffiException);
       expect(() => typedWalletCore.identifyUri('https://example.org'), throwsA(isA<CoreError>()));
     });
 
     test('cancelPidIssuance', () async {
-      when(core.cancelPidIssuance()).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullCancelPidIssuance()).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.cancelPidIssuance(), throwsA(isA<CoreError>()));
     });
 
     test('acceptOfferedPid', () async {
-      when(core.acceptPidIssuance(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.acceptOfferedPid(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('resetWallet', () async {
-      when(core.resetWallet()).thenAnswer((_) async => throw ffiException);
+      when(core.crateApiFullResetWallet()).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.resetWallet(), throwsA(isA<CoreError>()));
     });
   });

@@ -394,12 +394,13 @@ sub-directories.
 ### Flutter <-> Rust Bridge
 
 Communication between the Flutter and Rust layers relies on the
-`flutter_rust_bridge` package, the bridge code is generated. The definition of
-this bridge can is located at `/wallet_core/src/api.rs` and generation is done
+`flutter_rust_bridge` package. The bridge code is generated. The definition of
+this bridge is located at `/wallet_core/flutter_api/src/api/` and generation is done
 with the following command:
 
 ```
-cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml
+cargo install flutter_rust_bridge_codegen && \
+flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
 ```
 
 The generated code is currently checked in, so that generation only has to be

@@ -18,6 +18,7 @@ import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart
 import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
+import 'package:wallet_core/core.dart' as core;
 
 import 'src/mocks/wallet_mock_data.dart';
 import 'src/mocks/wallet_mocks.dart';
@@ -49,6 +50,7 @@ void _setupMockitoDummies() {
   provideDummy<AttributeValue>(const StringValue(''));
   provideDummy<CardFront>(CardFront(title: ''.untranslated, backgroundImage: '', theme: CardFrontTheme.light));
   provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
+  provideDummy<core.WalletInstructionResult>(const core.WalletInstructionResult.ok());
   provideDummy<StartDisclosureResult>(
     StartDisclosureReadyToDisclose(
       WalletMockData.organization,

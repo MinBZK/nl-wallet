@@ -1,13 +1,36 @@
 /// This implementation communicates with the rust implementation of the wallet_core
 library;
 
-/// Export [FlutterRustBridgeTaskConstMeta] so wallet_mock can implement [WalletCore]
-export 'package:flutter_rust_bridge/flutter_rust_bridge.dart' show FlutterRustBridgeTaskConstMeta;
+import 'src/api/full.dart' as core;
 
-export 'src/bridge_generated.dart';
-export 'src/wallet_core.dart';
+export 'src/api/full.dart';
+export 'src/frb_generated.dart';
+export 'src/models/card.dart';
+export 'src/models/config.dart';
+export 'src/models/disclosure.dart';
+export 'src/models/instruction.dart';
+export 'src/models/pin.dart';
+export 'src/models/uri.dart';
+export 'src/models/version_state.dart';
+export 'src/models/wallet_event.dart';
 
 // Hardcoded docTypes, these are exposed here because the card data is still enriched
 // based on this docType inside wallet_app (see [CardFrontMapper]). To be removed #someday
 const kPidDocType = 'com.example.pid';
 const kAddressDocType = 'com.example.address';
+
+Future<void> postInit() async {
+  if (await core.isInitialized()) {
+    // We always reset the streams here to avoid an invalid state where the native code
+    // still contains references to the old Flutter engine. This can happen when the activity
+    // was killed by the operating system, this causes the flutter engine to be killed, but
+    // the native code might be kept alive.
+    await core.clearLockStream();
+    await core.clearConfigurationStream();
+    await core.clearVersionStateStream();
+    await core.clearCardsStream();
+    await core.clearRecentHistoryStream();
+    // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
+    await core.lockWallet();
+  }
+}
