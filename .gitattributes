@@ -2,7 +2,9 @@
 *.pbxproj -merge
 
 # generated files
-/wallet_core/flutter_api/src/bridge_generated/bridge.* -merge
-/wallet_app/packages/wallet_core/lib/src/bridge_generated*.dart -merge
+/wallet_core/flutter_api/src/frb_generated.rs -merge
+/wallet_app/packages/wallet_core/lib/src/api/** -merge
+/wallet_app/packages/wallet_core/lib/src/models/** -merge
+/wallet_app/packages/wallet_core/lib/src/frb_generated* -merge
 /wallet_app/ios/Runner/bridge_generated.h -merge
 /wallet_app/test/src/mocks/wallet_mocks.mocks.dart -merge
