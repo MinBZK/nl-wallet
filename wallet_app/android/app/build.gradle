@@ -83,13 +83,13 @@ android {
         }
     }
 
-//    packagingOptions {
-//        // Exclude the platform_support.so files that are added by the
-//        // platform_support module, as this code is also in libwallet_core.so
-//        jniLibs {
-//            excludes += "**/libplatform_support.so"
-//        }
-//    }
+    packagingOptions {
+        // Exclude the platform_support.so files that are added by the
+        // platform_support module, as this code is also in libwallet_core.so
+        jniLibs {
+            excludes += "**/libplatform_support.so"
+        }
+    }
 
     defaultConfig {
         applicationId "nl.ictu.edi.wallet.latest"
