@@ -31,3 +31,4 @@ spec:
             - name: DATABASE_URL
               value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/verification_server"
       restartPolicy: Never
+      ttlSecondsAfterFinished: 86400
