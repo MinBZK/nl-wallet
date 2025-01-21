@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use android_attest::android_crl::GoogleRevocationListClient;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -14,6 +15,7 @@ use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;
 use wallet_common::generator::Generator;
 use wallet_common::keys::EcdsaKey;
+use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
@@ -80,6 +82,8 @@ impl RouterState {
             .map(RootPublicKey::from)
             .collect();
 
+        let google_crl_client = GoogleRevocationListClient::new(default_reqwest_client_builder().build()?);
+
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
             "account_server".into(),
@@ -89,6 +93,7 @@ impl RouterState {
             apple_config,
             apple_trust_anchors,
             android_root_public_keys,
+            google_crl_client,
         )?;
 
         let db = Db::new(

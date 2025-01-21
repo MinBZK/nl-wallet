@@ -48,7 +48,7 @@ pub enum GoogleKeyAttestationError {
 //    associated with the hardware-backed keystore.
 //
 // 2. Send the certificates to a separate server that you trust for validation.
-pub fn google_key_attestation(
+pub fn verify_google_key_attestation(
     certificate_chain: &[CertificateDer],
     root_public_keys: &[RootPublicKey],
     revocation_list: &RevocationStatusList,
@@ -195,6 +195,6 @@ mod tests {
 
         let revocation_list = RevocationStatusList::default();
 
-        google_key_attestation(&certificate_chain, &root_public_keys, &revocation_list).unwrap();
+        verify_google_key_attestation(&certificate_chain, &root_public_keys, &revocation_list).unwrap();
     }
 }
