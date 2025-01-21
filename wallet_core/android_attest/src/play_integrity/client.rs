@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use reqwest::Client;
 use serde::Serialize;
 use url::Url;
@@ -6,6 +8,12 @@ use super::integrity_verdict::IntegrityVerdict;
 
 const URL_PREFIX: &str = "https://playintegrity.googleapis.com/v1/";
 const URL_SUFFIX: &str = ":decodeIntegrityToken";
+
+pub trait IntegrityTokenDecoder {
+    type Error: Error + Send + Sync + 'static;
+
+    async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error>;
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlayIntegrityClientError {
@@ -49,11 +57,12 @@ impl PlayIntegrityClient {
     pub fn package_name(&self) -> &str {
         &self.url.as_str()[self.package_name_offset..(self.package_name_offset + self.package_name_len)]
     }
+}
 
-    pub async fn decode_token(
-        &self,
-        integrity_token: &str,
-    ) -> Result<(IntegrityVerdict, String), PlayIntegrityClientError> {
+impl IntegrityTokenDecoder for PlayIntegrityClient {
+    type Error = PlayIntegrityClientError;
+
+    async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
         let request_body = IntegrityTokenRequest { integrity_token };
         let json = self
             .client
