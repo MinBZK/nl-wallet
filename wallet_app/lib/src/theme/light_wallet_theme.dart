@@ -104,7 +104,7 @@ class LightWalletTheme {
         },
       ),
       side: WidgetStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
-      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
+      iconColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );
 
@@ -118,7 +118,7 @@ class LightWalletTheme {
           );
         },
       ),
-      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
+      iconColor: WidgetStatePropertyAll(colorScheme.primary),
       foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );

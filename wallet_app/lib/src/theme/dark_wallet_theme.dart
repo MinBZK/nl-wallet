@@ -104,7 +104,7 @@ class DarkWalletTheme {
           );
         },
       ),
-      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
+      iconColor: WidgetStatePropertyAll(colorScheme.primary),
       side: WidgetStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
     ),
   );
@@ -119,7 +119,7 @@ class DarkWalletTheme {
           );
         },
       ),
-      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
+      iconColor: WidgetStatePropertyAll(colorScheme.primary),
       foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );
