@@ -1,7 +1,13 @@
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use webpki::ring::ECDSA_P256_SHA256;
+use webpki::ring::ECDSA_P256_SHA384;
+use webpki::ring::ECDSA_P384_SHA256;
+use webpki::ring::ECDSA_P384_SHA384;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
+use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
 use webpki::EndEntityCert;
 use webpki::KeyUsage;
 use x509_parser::prelude::FromDer;
@@ -147,7 +153,16 @@ fn verify_google_attestation_certificate_chain(
     // Verify that each certificate signs the next certificate in the chain.
     let _verified_path = end_certificate
         .verify_for_usage(
-            &[ECDSA_P256_SHA256, RSA_PKCS1_2048_8192_SHA256],
+            &[
+                ECDSA_P256_SHA256,
+                ECDSA_P256_SHA384,
+                ECDSA_P384_SHA256,
+                ECDSA_P384_SHA384,
+                RSA_PKCS1_2048_8192_SHA256,
+                RSA_PKCS1_2048_8192_SHA384,
+                RSA_PKCS1_2048_8192_SHA512,
+                RSA_PKCS1_3072_8192_SHA384,
+            ],
             &trust_anchors,
             &certificate_chain[1..root_id],
             UnixTime::now(),
