@@ -84,6 +84,7 @@ class DarkWalletTheme {
           return colorScheme.primary;
         },
       ),
+      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
       foregroundColor: WidgetStatePropertyAll(colorScheme.onPrimary),
       overlayColor: WidgetStateProperty.resolveWith(
         (states) {
@@ -103,6 +104,7 @@ class DarkWalletTheme {
           );
         },
       ),
+      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
       side: WidgetStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
     ),
   );
@@ -117,6 +119,7 @@ class DarkWalletTheme {
           );
         },
       ),
+      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
       foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );
