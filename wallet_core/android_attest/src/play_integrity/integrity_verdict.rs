@@ -52,14 +52,15 @@ pub struct AppIntegrity {
 #[serde(rename_all = "camelCase")]
 pub struct AppIntegrityDetails {
     pub package_name: String,
-    #[serde_as(as = "Vec<Hex>")]
-    pub certificate_sha256_digest: Vec<Vec<u8>>,
+    #[serde_as(as = "HashSet<Hex>")]
+    pub certificate_sha256_digest: HashSet<Vec<u8>>,
     pub version_code: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, strum::Display)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AppRecognitionVerdict {
     PlayRecognized,
     UnrecognizedVersion,
@@ -129,9 +130,10 @@ pub struct AccountDetails {
     pub app_licensing_verdict: AppLicensingVerdict,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, strum::Display)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AppLicensingVerdict {
     Licensed,
     Unlicensed,

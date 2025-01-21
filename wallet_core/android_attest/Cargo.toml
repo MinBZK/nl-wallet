@@ -9,13 +9,14 @@ workspace = true
 
 [features]
 encode = []
-mock = ["dep:derive_more", "dep:rcgen"]
+mock = ["dep:rcgen", "derive_more/debug"]
 network_test = []
 
 [dependencies]
 bitflags.workspace = true
-chrono = { workspace = true, features = ["serde"] }
+chrono = { workspace = true, features = ["serde", "now"] }
 const-decoder.workspace = true
+derive_more = { workspace = true, features = ["as_ref"] }
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
 int-enum.workspace = true
 num-bigint.workspace = true
@@ -31,11 +32,11 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono", "hex"] }
 spki = { workspace = true, features = ["std"] }
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 url.workspace = true
 x509-parser.workspace = true
 
-derive_more = { workspace = true, optional = true, features = ["debug"] }
 rcgen = { workspace = true, optional = true, features = ["aws_lc_rs"] }
 
 [dev-dependencies]
