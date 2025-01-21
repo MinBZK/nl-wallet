@@ -14,6 +14,8 @@ import Flutter
 
     let dummy = dummy_method_to_enforce_bundling()
     print(dummy)
+    let dummy_frb = dummy_method_to_enforce_bundling_frb()
+    print(dummy_frb)
 
     GeneratedPluginRegistrant.register(with: self)
 
