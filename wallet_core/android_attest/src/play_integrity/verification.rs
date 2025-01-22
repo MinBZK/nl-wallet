@@ -194,6 +194,41 @@ mod tests {
             .expect("integrity verdict should verify successfully");
     }
 
+    #[cfg(feature = "mock_play_integrity")]
+    #[test]
+    fn test_verified_integrity_verdict_mock() {
+        let package_name = "com.package.mock";
+        let request_hash = b"request_hash";
+
+        VerifiedIntegrityVerdict::verify(
+            IntegrityVerdict::new_mock(
+                package_name.to_string(),
+                request_hash.to_vec(),
+                VerifyPlayStore::NoVerify,
+            ),
+            package_name,
+            request_hash,
+            VerifyPlayStore::NoVerify,
+        )
+        .expect("integrity verdict should verify successfully");
+
+        let verify_play_store = VerifyPlayStore::Verify {
+            play_store_certificate_hashes: HashSet::from([b"hash_hash_hash".to_vec()]),
+        };
+
+        VerifiedIntegrityVerdict::verify(
+            IntegrityVerdict::new_mock(
+                package_name.to_string(),
+                request_hash.to_vec(),
+                verify_play_store.clone(),
+            ),
+            package_name,
+            request_hash,
+            verify_play_store,
+        )
+        .expect("integrity verdict should verify successfully");
+    }
+
     #[rstest]
     fn test_verified_integrity_verdict_request_package_name_mismatch_error(
         #[values(true, false)] verify_play_store: bool,

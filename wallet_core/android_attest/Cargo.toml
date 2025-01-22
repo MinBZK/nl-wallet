@@ -10,6 +10,7 @@ workspace = true
 [features]
 encode = []
 mock_chain = ["dep:rcgen", "derive_more/debug"]
+mock_play_integrity = []
 network_test = []
 
 [dependencies]

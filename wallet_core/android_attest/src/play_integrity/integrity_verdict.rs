@@ -194,6 +194,59 @@ pub enum PlayProtectVerdict {
     Unevaluated,
 }
 
+#[cfg(feature = "mock_play_integrity")]
+mod mock {
+    use super::super::verification::VerifyPlayStore;
+    use super::*;
+
+    impl IntegrityVerdict {
+        pub fn new_mock(package_name: String, request_hash: Vec<u8>, verify_play_store: VerifyPlayStore) -> Self {
+            let (app_integrity, account_details) = match verify_play_store {
+                VerifyPlayStore::NoVerify => (
+                    AppIntegrity {
+                        app_recognition_verdict: AppRecognitionVerdict::Unevaluated,
+                        details: None,
+                    },
+                    AccountDetails {
+                        app_licensing_verdict: AppLicensingVerdict::Unlicensed,
+                    },
+                ),
+                VerifyPlayStore::Verify {
+                    play_store_certificate_hashes,
+                } => (
+                    AppIntegrity {
+                        app_recognition_verdict: AppRecognitionVerdict::PlayRecognized,
+                        details: Some(AppIntegrityDetails {
+                            package_name: package_name.clone(),
+                            certificate_sha256_digest: play_store_certificate_hashes,
+                            version_code: "42".to_string(),
+                        }),
+                    },
+                    AccountDetails {
+                        app_licensing_verdict: AppLicensingVerdict::Licensed,
+                    },
+                ),
+            };
+
+            Self {
+                request_details: RequestDetails {
+                    request_package_name: package_name,
+                    request_hash,
+                    timestamp: Utc::now(),
+                },
+                app_integrity,
+                device_integrity: DeviceIntegrity {
+                    device_recognition_verdict: HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity]),
+                    recent_device_activity: None,
+                    device_attributes: None,
+                },
+                account_details,
+                environment_details: None,
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::tests::EXAMPLE_VERDICT;
