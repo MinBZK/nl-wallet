@@ -37,6 +37,7 @@ pub enum IntegrityVerdictVerificationError {
     DeviceIntegrityNotMet,
 }
 
+#[derive(Debug, Clone)]
 pub enum VerifyPlayStore {
     NoVerify,
     Verify {
