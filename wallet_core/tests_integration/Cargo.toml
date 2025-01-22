@@ -150,7 +150,6 @@ gba_pid_test = [
     "dep:rstest",
     "dep:serial_test",
     "dep:serde_urlencoded",
-    "dep:serde_yaml",
     "dep:tokio",
     "dep:wallet",
     "dep:wallet_common",
@@ -174,7 +173,6 @@ sea-orm = { workspace = true, optional = true, features = [
     "debug-print",
 ] }
 semver = { workspace = true, optional = true }
-serde_yaml = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true, features = ["pkcs8"] }
 rand_core = { workspace = true, optional = true }
