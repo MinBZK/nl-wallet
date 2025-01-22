@@ -272,14 +272,6 @@ platform :ios do
       api_key: api_key,
     )
   end
-#
-#   desc "Upload iOS app to BrowserStack from GitLab CI"
-#   lane :ci_browserstack do
-#     ipa_file = get_newest_file(extension: "ipa")
-#     credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
-#
-#     browserstack(ipa_file: ipa_file, user: credentials["user"], key: credentials["key"])
-#   end
 
   desc "Test iOS app"
   lane :test do

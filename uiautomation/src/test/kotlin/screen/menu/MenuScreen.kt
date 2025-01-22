@@ -14,6 +14,7 @@ class MenuScreen : MobileActions() {
     private val logoutButton = find.byText(l10n.getString("menuScreenLockCta"))
     private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
     private val browserTestButton = find.byText("Browser Test")
+    private val scrollableType = ScrollableType.CustomScrollView
 
     fun visible() = isElementVisible(screen)
 
@@ -33,11 +34,15 @@ class MenuScreen : MobileActions() {
 
     fun clickAboutButton() = clickElement(aboutButton)
 
-    fun clickLogoutButton() = clickElement(logoutButton)
+    fun clickLogoutButton() {
+        scrollToEnd(scrollableType)
+        clickElement(logoutButton)
+    }
 
     fun clickBottomBackButton() = clickElement(bottomBackButton)
 
     fun clickBrowserTestButton() {
+        scrollToEnd(scrollableType)
         clickElement(browserTestButton)
         switchToWebViewContext()
     }
