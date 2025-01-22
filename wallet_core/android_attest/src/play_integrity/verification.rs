@@ -58,7 +58,7 @@ impl VerifiedIntegrityVerdict {
         integrity_verdict: IntegrityVerdict,
         package_name: &str,
         request_hash: &[u8],
-        verify_play_store: VerifyPlayStore,
+        verify_play_store: &VerifyPlayStore,
     ) -> Result<Self, IntegrityVerdictVerificationError> {
         Self::verify_with_time(
             integrity_verdict,
@@ -73,7 +73,7 @@ impl VerifiedIntegrityVerdict {
         integrity_verdict: IntegrityVerdict,
         package_name: &str,
         request_hash: &[u8],
-        verify_play_store: VerifyPlayStore,
+        verify_play_store: &VerifyPlayStore,
         time: DateTime<Utc>,
     ) -> Result<Self, IntegrityVerdictVerificationError> {
         if integrity_verdict.request_details.request_package_name != package_name {
@@ -130,7 +130,7 @@ impl VerifiedIntegrityVerdict {
                 .details
                 .as_ref()
                 .map(|details| &details.certificate_sha256_digest)
-                != Some(&play_store_certificate_hashes)
+                != Some(play_store_certificate_hashes)
             {
                 return Err(IntegrityVerdictVerificationError::PlayStoreCertificateMismatch);
             }
@@ -171,7 +171,7 @@ mod tests {
             integrity_verdict,
             "com.package.name",
             b"hello wolrd there",
-            match verify_play_store {
+            &match verify_play_store {
                 false => VerifyPlayStore::NoVerify,
                 true => VerifyPlayStore::Verify {
                     play_store_certificate_hashes: HashSet::from([
