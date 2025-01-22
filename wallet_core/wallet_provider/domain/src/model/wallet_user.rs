@@ -73,6 +73,7 @@ pub enum WalletUserAttestationCreate {
     },
     Android {
         certificate_chain: Vec<Vec<u8>>,
+        integrity_verdict_json: String,
     },
 }
 
