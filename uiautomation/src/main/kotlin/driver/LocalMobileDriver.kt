@@ -4,6 +4,7 @@ import com.codeborne.selenide.WebDriverProvider
 import data.TestConfigRepository.Companion.testConfig
 import io.appium.java_client.android.AndroidDriver
 import io.appium.java_client.android.options.UiAutomator2Options
+import io.appium.java_client.ios.IOSDriver
 import io.appium.java_client.ios.options.XCUITestOptions
 import org.openqa.selenium.Capabilities
 import org.openqa.selenium.WebDriver
@@ -13,10 +14,9 @@ import util.TestInfoHandler
 class LocalMobileDriver : WebDriverProvider {
 
     private val apkPath = "../wallet_app/build/app/outputs/flutter-apk/app-profile.apk"
-    private val ipaPath = "../nl.ict.edi.wallet.latest-0.1.0.ipa"
+    private val ipaPath = "../wallet_app/build/ios/iphonesimulator/Runner.app"
 
     override fun createDriver(capabilities: Capabilities): WebDriver {
-
         // Set Android or iOS specific capabilities
         val options = when (testConfig.platformName) {
             "android" -> UiAutomator2Options().apply {
@@ -35,14 +35,26 @@ class LocalMobileDriver : WebDriverProvider {
         options.merge(capabilities)
 
         // Set other capabilities
-        options.setAutomationName("Flutter")
         options.setDeviceName(testConfig.deviceName)
         options.setPlatformName(testConfig.platformName)
         options.setPlatformVersion(testConfig.platformVersion)
         options.setLanguage(TestInfoHandler.language)
         options.setLocale(TestInfoHandler.locale)
+        options.setAutomationName("Flutter")
 
         // Initialise the local WebDriver with desired capabilities defined above
-        return AndroidDriver(AppiumServiceProvider.service?.url, options)
+        return when (testConfig.platformName) {
+            "android" -> {
+                AndroidDriver(AppiumServiceProvider.service?.url, options)
+            }
+            "ios" -> {
+                options.setCapability("appium:autoAcceptAlerts", true)
+                options.setCapability("includeSafariInWebviews", true)
+                IOSDriver(AppiumServiceProvider.service?.url, options)
+            }
+            else -> {
+                throw IllegalArgumentException("Invalid platform name: ${testConfig.platformName}")
+            }
+        }
     }
 }

@@ -30,7 +30,7 @@ reqwest-middleware.workspace = true
 rsa = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-serde_with = { workspace = true, features = ["chrono", "hex"] }
+serde_with = { workspace = true, features = ["chrono", "base64", "hex"] }
 spki = { workspace = true, features = ["std"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true

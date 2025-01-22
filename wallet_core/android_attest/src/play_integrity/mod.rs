@@ -50,7 +50,7 @@ mod tests {
     pub static EXAMPLE_VERDICT: LazyLock<IntegrityVerdict> = LazyLock::new(|| IntegrityVerdict {
         request_details: RequestDetails {
             request_package_name: "com.package.name".to_string(),
-            request_hash: "aGVsbG8gd29scmQgdGhlcmU".to_string(),
+            request_hash: b"hello wolrd there".to_vec(),
             timestamp: NaiveDate::from_ymd_opt(2023, 2, 6)
                 .unwrap()
                 .and_hms_milli_opt(3, 43, 29, 345)
