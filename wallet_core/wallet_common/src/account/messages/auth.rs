@@ -137,7 +137,7 @@ mod tests {
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
 
-    use android_attest::mock::MockCaChain;
+    use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AttestationEnvironment;

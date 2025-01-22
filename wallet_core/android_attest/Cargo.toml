@@ -9,7 +9,7 @@ workspace = true
 
 [features]
 encode = []
-mock = ["dep:rcgen", "derive_more/debug"]
+mock_chain = ["dep:rcgen", "derive_more/debug"]
 network_test = []
 
 [dependencies]

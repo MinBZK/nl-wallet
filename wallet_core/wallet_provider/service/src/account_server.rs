@@ -950,7 +950,7 @@ pub mod mock {
 
     use p256::ecdsa::SigningKey;
 
-    use android_attest::mock::MockCaChain;
+    use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
     use wallet_common::apple::MockAppleAttestedKey;
 
@@ -1090,7 +1090,7 @@ mod tests {
     use tokio::sync::OnceCell;
     use uuid::uuid;
 
-    use android_attest::mock::MockCaChain;
+    use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;

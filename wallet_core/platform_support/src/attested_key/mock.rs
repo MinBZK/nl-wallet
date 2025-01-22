@@ -12,7 +12,7 @@ use rand_core::OsRng;
 use uuid::Uuid;
 
 #[cfg(feature = "mock_attested_key_google")]
-use android_attest::mock::MockCaChain;
+use android_attest::mock_chain::MockCaChain;
 #[cfg(feature = "mock_attested_key_apple")]
 use apple_app_attest::AppIdentifier;
 #[cfg(feature = "mock_attested_key_apple")]
