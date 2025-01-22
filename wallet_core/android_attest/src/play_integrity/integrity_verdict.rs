@@ -193,7 +193,7 @@ pub enum PlayProtectVerdict {
 }
 
 #[cfg(test)]
-pub(super) mod tests {
+mod tests {
     use super::super::tests::EXAMPLE_VERDICT;
     use super::super::tests::EXAMPLE_VERDICT_JSON;
     use super::*;
