@@ -21,8 +21,8 @@ const FUTURE_SKEW_MARGIN: Duration = Duration::from_secs(5 * 60);
 pub enum IntegrityVerdictVerificationError {
     #[error("request package name does not match, received: {0}")]
     RequestPackageNameMismatch(String),
-    #[error("request hash does not match, received: {0}")]
-    RequestHashMismatch(String),
+    #[error("request hash does not match")]
+    RequestHashMismatch,
     #[error("integrity verdict was requested too long ago or in the future: {0}")]
     RequestTimestampInvalid(DateTime<Utc>),
     #[error("the app and certificate do not match the version distributed by Google Play: {0}")]
@@ -56,7 +56,7 @@ impl VerifiedIntegrityVerdict {
     pub fn verify(
         integrity_verdict: IntegrityVerdict,
         package_name: &str,
-        request_hash: &str,
+        request_hash: &[u8],
         verify_play_store: VerifyPlayStore,
     ) -> Result<Self, IntegrityVerdictVerificationError> {
         Self::verify_with_time(
@@ -71,7 +71,7 @@ impl VerifiedIntegrityVerdict {
     pub fn verify_with_time(
         integrity_verdict: IntegrityVerdict,
         package_name: &str,
-        request_hash: &str,
+        request_hash: &[u8],
         verify_play_store: VerifyPlayStore,
         time: DateTime<Utc>,
     ) -> Result<Self, IntegrityVerdictVerificationError> {
@@ -82,9 +82,7 @@ impl VerifiedIntegrityVerdict {
         }
 
         if integrity_verdict.request_details.request_hash != request_hash {
-            return Err(IntegrityVerdictVerificationError::RequestHashMismatch(
-                integrity_verdict.request_details.request_hash,
-            ));
+            return Err(IntegrityVerdictVerificationError::RequestHashMismatch);
         }
 
         // Note that this will also reject timestamps that are in the future,
@@ -171,7 +169,7 @@ mod tests {
         VerifiedIntegrityVerdict::verify_with_time(
             integrity_verdict,
             "com.package.name",
-            "aGVsbG8gd29scmQgdGhlcmU",
+            b"hello wolrd there",
             match verify_play_store {
                 false => VerifyPlayStore::NoVerify,
                 true => VerifyPlayStore::Verify {
@@ -214,15 +212,12 @@ mod tests {
     #[rstest]
     fn test_verified_integrity_verdict_request_hash_mismatch_error(#[values(true, false)] verify_play_store: bool) {
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.request_details.request_hash = "different_hash".to_string();
+        verdict.request_details.request_hash = b"different_hash".to_vec();
 
         let error =
             verify_example_verdict(verdict, verify_play_store).expect_err("integrity verdict should not verify");
 
-        assert_matches!(
-            error,
-            IntegrityVerdictVerificationError::RequestHashMismatch(name) if name == "different_hash"
-        )
+        assert_matches!(error, IntegrityVerdictVerificationError::RequestHashMismatch)
     }
 
     #[rstest]

@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
+use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::TimestampMilliSeconds;
@@ -29,7 +30,8 @@ pub struct IntegrityVerdict {
 #[serde(rename_all = "camelCase")]
 pub struct RequestDetails {
     pub request_package_name: String,
-    pub request_hash: String,
+    #[serde_as(as = "Base64")]
+    pub request_hash: Vec<u8>,
     #[serde(rename = "timestampMillis")]
     #[serde_as(as = "TimestampMilliSeconds<String>")]
     pub timestamp: DateTime<Utc>,
