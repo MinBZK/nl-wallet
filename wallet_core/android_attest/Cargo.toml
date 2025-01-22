@@ -10,7 +10,7 @@ workspace = true
 [features]
 encode = []
 mock_chain = ["dep:rcgen", "derive_more/debug"]
-mock_play_integrity = []
+mock_play_integrity = ["encode"]
 network_test = []
 
 [dependencies]
@@ -24,6 +24,7 @@ num-bigint.workspace = true
 num-traits.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
+parking_lot.workspace = true
 rasn = { workspace = true, features = ["std"] }
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
@@ -47,5 +48,5 @@ rand.workspace = true
 rstest.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
-tokio = { workspace = true, features = ["macros"] }
+tokio = { workspace = true, features = ["macros", "parking_lot"] }
 wiremock.workspace = true

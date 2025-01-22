@@ -125,6 +125,7 @@ dependencies = [
  "num-traits",
  "nutype",
  "p256",
+ "parking_lot",
  "rand",
  "rasn",
  "rcgen",

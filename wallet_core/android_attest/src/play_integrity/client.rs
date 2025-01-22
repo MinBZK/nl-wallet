@@ -163,3 +163,55 @@ mod tests {
         assert_matches!(error, PlayIntegrityClientError::Http(error) if error.status() == Some(StatusCode::NOT_FOUND));
     }
 }
+
+#[cfg(feature = "mock_play_integrity")]
+pub mod mock {
+    use parking_lot::Mutex;
+
+    use super::super::verification::VerifyPlayStore;
+    use super::*;
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("mock play integrity client error to be used in tests")]
+    pub struct MockPlayIntegrityClientError {}
+
+    pub struct MockPlayIntegrityClient {
+        pub package_name: String,
+        pub verify_play_store: VerifyPlayStore,
+        pub next_request_hash: Mutex<Option<Vec<u8>>>,
+        pub has_error: bool,
+    }
+
+    impl MockPlayIntegrityClient {
+        pub fn new(package_name: String, verify_play_store: VerifyPlayStore) -> Self {
+            Self {
+                package_name,
+                verify_play_store,
+                next_request_hash: Mutex::new(None),
+                has_error: false,
+            }
+        }
+    }
+
+    impl IntegrityTokenDecoder for MockPlayIntegrityClient {
+        type Error = MockPlayIntegrityClientError;
+
+        async fn decode_token(&self, _integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
+            if self.has_error {
+                return Err(MockPlayIntegrityClientError {});
+            }
+
+            let request_hash = self
+                .next_request_hash
+                .lock()
+                .take()
+                .expect("request hash should be configured before decoding integrity token");
+
+            let verdict =
+                IntegrityVerdict::new_mock(self.package_name.clone(), request_hash, self.verify_play_store.clone());
+            let json = serde_json::to_string(&verdict).unwrap();
+
+            Ok((verdict, json))
+        }
+    }
+}
