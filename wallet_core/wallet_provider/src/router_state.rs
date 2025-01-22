@@ -61,17 +61,18 @@ impl RouterState {
 
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
 
-        let apple_config = AppleAttestationConfiguration::new(
-            settings.ios.team_identifier,
-            settings.ios.bundle_identifier,
-            settings.ios.environment.into(),
-        );
         let apple_trust_anchors = settings
             .ios
             .root_certificates
             .into_iter()
             .map(|anchor| anchor.to_owned_trust_anchor())
             .collect();
+        let apple_config = AppleAttestationConfiguration::new(
+            settings.ios.team_identifier,
+            settings.ios.bundle_identifier,
+            settings.ios.environment.into(),
+            apple_trust_anchors,
+        );
 
         let android_root_public_keys = settings
             .android
@@ -87,7 +88,6 @@ impl RouterState {
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
             apple_config,
-            apple_trust_anchors,
             android_root_public_keys,
         )?;
 

@@ -250,15 +250,22 @@ impl JwtSubject for RegistrationChallengeClaims {
 pub struct AppleAttestationConfiguration {
     pub app_identifier: AppIdentifier,
     pub environment: AttestationEnvironment,
+    pub trust_anchors: Vec<TrustAnchor<'static>>,
 }
 
 impl AppleAttestationConfiguration {
-    pub fn new(team_identifier: String, bundle_identifier: String, environment: AttestationEnvironment) -> Self {
+    pub fn new(
+        team_identifier: String,
+        bundle_identifier: String,
+        environment: AttestationEnvironment,
+        trust_anchors: Vec<TrustAnchor<'static>>,
+    ) -> Self {
         let app_identifier = AppIdentifier::new(team_identifier, bundle_identifier);
 
         Self {
             app_identifier,
             environment,
+            trust_anchors,
         }
     }
 }
@@ -272,7 +279,6 @@ pub struct AccountServer {
     encryption_key_identifier: String,
     pin_public_disclosure_protection_key_identifier: String,
     pub apple_config: AppleAttestationConfiguration,
-    apple_trust_anchors: Vec<TrustAnchor<'static>>,
     android_root_public_keys: Vec<RootPublicKey>,
 }
 
@@ -285,7 +291,6 @@ impl AccountServer {
         encryption_key_identifier: String,
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
-        apple_trust_anchors: Vec<TrustAnchor<'static>>,
         android_root_public_keys: Vec<RootPublicKey>,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
@@ -295,7 +300,6 @@ impl AccountServer {
             encryption_key_identifier,
             pin_public_disclosure_protection_key_identifier,
             apple_config,
-            apple_trust_anchors,
             android_root_public_keys,
         })
     }
@@ -360,7 +364,7 @@ impl AccountServer {
 
                 let (_, hw_pubkey) = VerifiedAttestation::parse_and_verify_with_time(
                     &data,
-                    &self.apple_trust_anchors,
+                    &self.apple_config.trust_anchors,
                     attestation_timestamp,
                     &utils::sha256(challenge),
                     &self.apple_config.app_identifier,
@@ -972,8 +976,8 @@ pub mod mock {
             AppleAttestationConfiguration {
                 app_identifier: AppIdentifier::new_mock(),
                 environment: AttestationEnvironment::Development,
+                trust_anchors: vec![MOCK_APPLE_CA.trust_anchor().to_owned()],
             },
-            vec![MOCK_APPLE_CA.trust_anchor().to_owned()],
             vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
         )
         .unwrap()
