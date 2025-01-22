@@ -1,3 +1,4 @@
+use base64::prelude::*;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use rstest::rstest;
@@ -21,10 +22,10 @@ use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
 use wallet_provider_service::account_server::mock::AttestationType;
+use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
 use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
-use wallet_provider_service::account_server::AccountServer;
 use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
@@ -42,7 +43,7 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
 }
 
 async fn do_registration(
-    account_server: &AccountServer,
+    account_server: &MockAccountServer,
     hsm: &MockPkcs11Client<HsmError>,
     certificate_signing_key: &impl WalletCertificateSigningKey,
     pin_privkey: &SigningKey,
@@ -54,11 +55,12 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
+    let challenge_hash = utils::sha256(&challenge);
     let (registration_message, hw_privkey) = match attestation_ca {
         AttestationCa::Apple(apple_mock_ca) => {
             let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                 apple_mock_ca,
-                &utils::sha256(&challenge),
+                &challenge_hash,
                 account_server.apple_config.environment,
                 account_server.apple_config.app_identifier.clone(),
             );
@@ -71,11 +73,10 @@ async fn do_registration(
         }
         AttestationCa::Google(android_mock_ca_chain) => {
             let (attested_certificate_chain, attested_private_key) = android_mock_ca_chain.generate_leaf_certificate();
-            let integrity_token = utils::random_string(32);
             let registration_message = ChallengeResponse::new_google(
                 &attested_private_key,
                 attested_certificate_chain.try_into().unwrap(),
-                integrity_token,
+                BASE64_STANDARD_NO_PAD.encode(&challenge_hash),
                 pin_privkey,
                 challenge,
             )

@@ -18,6 +18,10 @@ use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::X509Certificate;
 
+use android_attest::play_integrity::client::IntegrityTokenDecoder;
+use android_attest::play_integrity::client::PlayIntegrityClient;
+use android_attest::play_integrity::verification::IntegrityVerdictVerificationError;
+use android_attest::play_integrity::verification::VerifiedIntegrityVerdict;
 use android_attest::play_integrity::verification::VerifyPlayStore;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
@@ -126,7 +130,7 @@ pub enum WalletCertificateError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum AndroidAttestationError {
+pub enum AndroidKeyAttestationError {
     #[error("could not decode certificate from chain: {0}")]
     CertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
     #[error("could not decode public key from leaf certificate: {0}")]
@@ -138,6 +142,14 @@ pub enum AndroidAttestationError {
 }
 
 #[derive(Debug, thiserror::Error)]
+pub enum AndroidAppAttestationError {
+    #[error("could not decode integrity toking using Play Integrity API: {0}")]
+    DecodeIntegrityToken(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("validation if integrity verdict failed: {0}")]
+    IntegrityVerdict(#[source] IntegrityVerdictVerificationError),
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
@@ -146,7 +158,9 @@ pub enum RegistrationError {
     #[error("validation of Apple key and/or app attestation failed: {0}")]
     AppleAttestation(#[from] apple_app_attest::AttestationError),
     #[error("validation of Google key attestation failed: {0}")]
-    AndroidAttestation(#[from] AndroidAttestationError),
+    AndroidKeyAttestation(#[from] AndroidKeyAttestationError),
+    #[error("validation of Google app attestation failed: {0}")]
+    AndroidAppAttestation(#[from] AndroidAppAttestationError),
     #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_common::account::errors::Error),
     #[error("registration message validation error: {0}")]
@@ -277,7 +291,7 @@ pub struct AndroidAttestationConfiguration {
     pub verify_play_store: VerifyPlayStore,
 }
 
-pub struct AccountServer {
+pub struct AccountServer<PIC = PlayIntegrityClient> {
     instruction_challenge_timeout: Duration,
 
     pub name: String,
@@ -287,9 +301,11 @@ pub struct AccountServer {
     pin_public_disclosure_protection_key_identifier: String,
     pub apple_config: AppleAttestationConfiguration,
     pub android_config: AndroidAttestationConfiguration,
+    play_integrity_client: PIC,
 }
 
-impl AccountServer {
+impl<PIC> AccountServer<PIC> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         instruction_challenge_timeout: Duration,
         name: String,
@@ -298,6 +314,7 @@ impl AccountServer {
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
         android_config: AndroidAttestationConfiguration,
+        play_integrity_client: PIC,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
             instruction_challenge_timeout,
@@ -307,6 +324,7 @@ impl AccountServer {
             pin_public_disclosure_protection_key_identifier,
             apple_config,
             android_config,
+            play_integrity_client,
         })
     }
 
@@ -340,6 +358,7 @@ impl AccountServer {
         registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
+        PIC: IntegrityTokenDecoder,
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
@@ -361,6 +380,7 @@ impl AccountServer {
         debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
 
         let attestation_timestamp = Utc::now();
+        let challenge_hash = utils::sha256(challenge);
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
         let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
 
@@ -372,10 +392,12 @@ impl AccountServer {
                     &data,
                     &self.apple_config.trust_anchors,
                     attestation_timestamp,
-                    &utils::sha256(challenge),
+                    &challenge_hash,
                     &self.apple_config.app_identifier,
                     self.apple_config.environment,
                 )?;
+
+                debug!("Checking registration signatures");
 
                 let attestation = registration_message
                     .parse_and_verify_apple(
@@ -395,22 +417,25 @@ impl AccountServer {
                 (hw_pubkey, attestation)
             }
             // TODO: Actually validate and process Google key and app attestation.
-            RegistrationAttestation::Google { certificate_chain, .. } => {
+            RegistrationAttestation::Google {
+                certificate_chain,
+                integrity_token,
+            } => {
                 debug!("Validating Android key attestation");
 
                 // Extract the leaf certificate's verifying key and check the
                 // root certificate's public key against the ones configured.
                 let (_, leaf_certificate) = X509Certificate::from_der(certificate_chain.first())
-                    .map_err(AndroidAttestationError::CertificateDecode)?;
+                    .map_err(AndroidKeyAttestationError::CertificateDecode)?;
                 let hw_pubkey = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw)
-                    .map_err(AndroidAttestationError::LeafPublicKey)?;
+                    .map_err(AndroidKeyAttestationError::LeafPublicKey)?;
 
                 let (_, root_certificate) = X509Certificate::from_der(certificate_chain.last())
-                    .map_err(AndroidAttestationError::CertificateDecode)?;
+                    .map_err(AndroidKeyAttestationError::CertificateDecode)?;
                 let root_public_key = root_certificate
                     .public_key()
                     .parsed()
-                    .map_err(AndroidAttestationError::RootPublicKey)?;
+                    .map_err(AndroidKeyAttestationError::RootPublicKey)?;
 
                 // TODO: This check should be part of `android_attest`.
                 if !self
@@ -419,15 +444,34 @@ impl AccountServer {
                     .iter()
                     .any(|public_key| root_public_key == *public_key)
                 {
-                    return Err(AndroidAttestationError::RootPublicKeyMismatch)?;
+                    return Err(AndroidKeyAttestationError::RootPublicKeyMismatch)?;
                 }
+
+                debug!("Validating Android app attestation");
+
+                let (integrity_verdict, integrity_verdict_json) = self
+                    .play_integrity_client
+                    .decode_token(&integrity_token)
+                    .await
+                    .map_err(|error| AndroidAppAttestationError::DecodeIntegrityToken(Box::new(error)))?;
+
+                let _ = VerifiedIntegrityVerdict::verify_with_time(
+                    integrity_verdict,
+                    &self.android_config.package_name,
+                    &challenge_hash,
+                    &self.android_config.verify_play_store,
+                    attestation_timestamp,
+                )
+                .map_err(AndroidAppAttestationError::IntegrityVerdict)?;
+
+                debug!("Checking registration signatures");
 
                 let attestation = registration_message
                     .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
                     .map(|_| WalletUserAttestationCreate::Android {
                         certificate_chain: certificate_chain.into_inner(),
                         // TODO: Actually exchange integrity token for an integrity verdict using the Google API.
-                        integrity_verdict_json: String::default(),
+                        integrity_verdict_json,
                     })
                     .map_err(RegistrationError::MessageValidation)?;
 
@@ -946,11 +990,13 @@ impl AccountServer {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use std::collections::HashSet;
     use std::sync::LazyLock;
 
     use p256::ecdsa::SigningKey;
 
     use android_attest::mock_chain::MockCaChain;
+    use android_attest::play_integrity::client::mock::MockPlayIntegrityClient;
     use apple_app_attest::MockAttestationCa;
     use wallet_common::apple::MockAppleAttestedKey;
 
@@ -960,6 +1006,8 @@ pub mod mock {
 
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
+
+    pub type MockAccountServer = AccountServer<MockPlayIntegrityClient>;
 
     #[derive(Clone, Copy)]
     pub enum AttestationType {
@@ -973,7 +1021,14 @@ pub mod mock {
         Google(&'a MockCaChain),
     }
 
-    pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> AccountServer {
+    pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> MockAccountServer {
+        let integrity_client = MockPlayIntegrityClient::new(
+            "com.example.app".to_string(),
+            VerifyPlayStore::Verify {
+                play_store_certificate_hashes: HashSet::from([utils::random_bytes(16)]),
+            },
+        );
+
         AccountServer::new(
             Duration::from_millis(15000),
             "mock_account_server".into(),
@@ -987,9 +1042,10 @@ pub mod mock {
             },
             AndroidAttestationConfiguration {
                 root_public_keys: vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
-                package_name: "com.example.app".to_string(),
-                verify_play_store: VerifyPlayStore::NoVerify,
+                package_name: integrity_client.package_name.clone(),
+                verify_play_store: integrity_client.verify_play_store.clone(),
             },
+            integrity_client,
         )
         .unwrap()
     }
@@ -1083,6 +1139,7 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use base64::prelude::*;
     use chrono::TimeZone;
     use hmac::digest::crypto_common::rand_core::OsRng;
     use p256::ecdsa::SigningKey;
@@ -1115,6 +1172,7 @@ mod tests {
 
     use super::mock::AttestationCa;
     use super::mock::AttestationType;
+    use super::mock::MockAccountServer;
     use super::mock::MockHardwareKey;
     use super::mock::MOCK_APPLE_CA;
     use super::mock::MOCK_GOOGLE_CA_CHAIN;
@@ -1127,7 +1185,7 @@ mod tests {
     }
 
     async fn do_registration(
-        account_server: &AccountServer,
+        account_server: &MockAccountServer,
         hsm: &MockPkcs11Client<HsmError>,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         pin_privkey: &SigningKey,
@@ -1138,11 +1196,12 @@ mod tests {
             .await
             .expect("Could not get registration challenge");
 
+        let challenge_hash = utils::sha256(&challenge);
         let (registration_message, hw_privkey) = match attestation_ca {
             AttestationCa::Apple(apple_mock_ca) => {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                     apple_mock_ca,
-                    &utils::sha256(&challenge),
+                    &challenge_hash,
                     account_server.apple_config.environment,
                     account_server.apple_config.app_identifier.clone(),
                 );
@@ -1156,11 +1215,10 @@ mod tests {
             AttestationCa::Google(android_mock_ca_chain) => {
                 let (attested_certificate_chain, attested_private_key) =
                     android_mock_ca_chain.generate_leaf_certificate();
-                let integrity_token = utils::random_string(32);
                 let registration_message = ChallengeResponse::new_google(
                     &attested_private_key,
                     attested_certificate_chain.try_into().unwrap(),
-                    integrity_token,
+                    BASE64_STANDARD_NO_PAD.encode(&challenge_hash),
                     pin_privkey,
                     challenge,
                 )
@@ -1189,7 +1247,7 @@ mod tests {
         attestation_type: AttestationType,
     ) -> (
         WalletCertificateSetup,
-        AccountServer,
+        MockAccountServer,
         MockHardwareKey,
         WalletCertificate,
         WalletUserTestRepo,
@@ -1229,7 +1287,7 @@ mod tests {
     }
 
     async fn do_instruction_challenge<I>(
-        account_server: &AccountServer,
+        account_server: &MockAccountServer,
         repo: &WalletUserTestRepo,
         hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
@@ -1253,7 +1311,7 @@ mod tests {
     }
 
     async fn do_check_pin(
-        account_server: &AccountServer,
+        account_server: &MockAccountServer,
         repo: WalletUserTestRepo,
         pin_privkey: &SigningKey,
         hw_privkey: &MockHardwareKey,
@@ -1326,7 +1384,7 @@ mod tests {
     }
 
     async fn do_pin_change_start(
-        account_server: &AccountServer,
+        account_server: &MockAccountServer,
         repo: WalletUserTestRepo,
         wallet_certificate_setup: &WalletCertificateSetup,
         hw_privkey: &MockHardwareKey,
@@ -1464,7 +1522,7 @@ mod tests {
         .await
         .expect_err("registering with an invalid Android attestation should fail");
 
-        assert_matches!(error, RegistrationError::AndroidAttestation(_));
+        assert_matches!(error, RegistrationError::AndroidKeyAttestation(_));
     }
 
     #[tokio::test]

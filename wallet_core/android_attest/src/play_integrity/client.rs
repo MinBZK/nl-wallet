@@ -9,6 +9,7 @@ use super::integrity_verdict::IntegrityVerdict;
 const URL_PREFIX: &str = "https://playintegrity.googleapis.com/v1/";
 const URL_SUFFIX: &str = ":decodeIntegrityToken";
 
+#[trait_variant::make(Send)]
 pub trait IntegrityTokenDecoder {
     type Error: Error + Send + Sync + 'static;
 
@@ -166,7 +167,7 @@ mod tests {
 
 #[cfg(feature = "mock_play_integrity")]
 pub mod mock {
-    use parking_lot::Mutex;
+    use base64::prelude::*;
 
     use super::super::verification::VerifyPlayStore;
     use super::*;
@@ -178,7 +179,6 @@ pub mod mock {
     pub struct MockPlayIntegrityClient {
         pub package_name: String,
         pub verify_play_store: VerifyPlayStore,
-        pub next_request_hash: Mutex<Option<Vec<u8>>>,
         pub has_error: bool,
     }
 
@@ -187,7 +187,6 @@ pub mod mock {
             Self {
                 package_name,
                 verify_play_store,
-                next_request_hash: Mutex::new(None),
                 has_error: false,
             }
         }
@@ -196,16 +195,13 @@ pub mod mock {
     impl IntegrityTokenDecoder for MockPlayIntegrityClient {
         type Error = MockPlayIntegrityClientError;
 
-        async fn decode_token(&self, _integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
+        async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
             if self.has_error {
                 return Err(MockPlayIntegrityClientError {});
             }
 
-            let request_hash = self
-                .next_request_hash
-                .lock()
-                .take()
-                .expect("request hash should be configured before decoding integrity token");
+            // For testing, assume the integrity token simply contains the Base64 encoded request hash.
+            let request_hash = BASE64_STANDARD_NO_PAD.decode(integrity_token).unwrap();
 
             let verdict =
                 IntegrityVerdict::new_mock(self.package_name.clone(), request_hash, self.verify_play_store.clone());

@@ -115,6 +115,7 @@ name = "android_attest"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "base64 0.22.1",
  "bitflags 2.6.0",
  "chrono",
  "const-decoder",
@@ -125,7 +126,6 @@ dependencies = [
  "num-traits",
  "nutype",
  "p256",
- "parking_lot",
  "rand",
  "rasn",
  "rcgen",
@@ -143,6 +143,7 @@ dependencies = [
  "strum 0.26.3",
  "thiserror",
  "tokio",
+ "trait-variant",
  "url",
  "wiremock",
  "x509-parser",
@@ -3844,6 +3845,7 @@ dependencies = [
  "android_logger 0.14.1",
  "apple_app_attest",
  "async-trait",
+ "base64 0.22.1",
  "cfg-if",
  "derive_more",
  "error_category",

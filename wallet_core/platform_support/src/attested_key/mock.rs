@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
+#[cfg(feature = "mock_attested_key_google")]
+use base64::prelude::*;
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
@@ -22,8 +24,6 @@ use apple_app_attest::MockAttestationCa;
 use wallet_common::apple::MockAppleAttestedKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
-#[cfg(feature = "mock_attested_key_google")]
-use wallet_common::utils;
 
 use super::AttestationError;
 use super::AttestedKey;
@@ -274,7 +274,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
     async fn attest(
         &self,
         key_identifier: String,
-        #[allow(unused_variables)] challenge: Vec<u8>,
+        challenge: Vec<u8>,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
         match self.error_scenario {
             KeyHolderErrorScenario::UnretryableAttestationError => {
@@ -329,11 +329,13 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
 
                 key_states.insert(key_identifier, Self::state_from_google_key(&key));
 
+                // The token is simply the Base64 encoded challenge hash, which can then be decoded by
+                // a mock Play Integrity implementation in order to generate an integrity verdict.
+                let app_attestation_token = BASE64_STANDARD_NO_PAD.encode(&challenge).into_bytes();
                 KeyWithAttestation::Google {
                     key,
                     certificate_chain,
-                    // As this token is opaque anyway, just provide some random data.
-                    app_attestation_token: utils::random_string(32).into_bytes(),
+                    app_attestation_token,
                 }
             }
         };
