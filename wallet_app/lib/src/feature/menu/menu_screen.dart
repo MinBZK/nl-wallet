@@ -27,8 +27,8 @@ class MenuScreen extends StatefulWidget {
   final bool showBrowserTestRow;
 
   const MenuScreen({
-    this.showDesignSystemRow = kDebugMode,
-    this.showBrowserTestRow = kProfileMode,
+    this.showDesignSystemRow = !kReleaseMode,
+    this.showBrowserTestRow = !kReleaseMode,
     super.key,
   });
 
