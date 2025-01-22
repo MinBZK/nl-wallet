@@ -333,7 +333,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
                     key,
                     certificate_chain,
                     // As this token is opaque anyway, just provide some random data.
-                    app_attestation_token: utils::random_bytes(32),
+                    app_attestation_token: utils::random_string(32).into_bytes(),
                 }
             }
         };

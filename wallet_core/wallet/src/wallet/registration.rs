@@ -240,7 +240,8 @@ where
                 certificate_chain
                     .try_into()
                     .map_err(WalletRegistrationError::AndroidCertificateChain)?,
-                app_attestation_token,
+                // TODO: Remove this conversion when the `app_attestation_token` type is updated in `platform_support`.
+                String::from_utf8(app_attestation_token).unwrap(),
                 &pin_key,
                 challenge,
             )
