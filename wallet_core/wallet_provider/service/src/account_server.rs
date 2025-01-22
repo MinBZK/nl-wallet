@@ -273,7 +273,7 @@ impl AppleAttestationConfiguration {
 
 pub struct AndroidAttestationConfiguration {
     pub root_public_keys: Vec<RootPublicKey>,
-    pub package_identifier: String,
+    pub package_name: String,
     pub verify_play_store: VerifyPlayStore,
 }
 
@@ -987,7 +987,7 @@ pub mod mock {
             },
             AndroidAttestationConfiguration {
                 root_public_keys: vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
-                package_identifier: "com.example.app".to_string(),
+                package_name: "com.example.app".to_string(),
                 verify_play_store: VerifyPlayStore::NoVerify,
             },
         )

@@ -93,7 +93,7 @@ impl RouterState {
         };
         let android_config = AndroidAttestationConfiguration {
             root_public_keys: android_root_public_keys,
-            package_identifier: settings.android.package_identifier,
+            package_name: settings.android.package_name,
             verify_play_store: android_verify_play_store,
         };
 

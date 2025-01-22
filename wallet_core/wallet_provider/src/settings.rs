@@ -99,7 +99,7 @@ pub enum AppleEnvironment {
 pub struct Android {
     #[serde_as(as = "Vec<Base64>")]
     pub root_public_keys: Vec<AndroidRootPublicKey>,
-    pub package_identifier: String,
+    pub package_name: String,
     #[serde_as(as = "Vec<Base64>")]
     pub play_store_certificate_hashes: Vec<Vec<u8>>,
 }
