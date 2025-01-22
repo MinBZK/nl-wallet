@@ -32,12 +32,10 @@ dependency-check:
 
 osv-scanner:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "$HARBOR_REGISTRY/ghcr-io-proxy/google/osv-scanner:latest"
   script:
     - |
-      /osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif \
-        || /osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format table --recursive "$CI_PROJECT_DIR"
+      osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif \
+        || osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format table --recursive "$CI_PROJECT_DIR"
   artifacts:
     when: always
     paths:
