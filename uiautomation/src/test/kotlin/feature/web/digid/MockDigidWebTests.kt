@@ -28,8 +28,8 @@ class MockDigidWebTests : TestBase() {
 
         val digidLoginMockWebPage = DigidLoginMockWebPage()
         assertTrue(digidLoginMockWebPage.visible(), "digid login mock web page is not visible")
-
-        digidLoginMockWebPage.enterBsn("999991771")
+//        Since a BSN is already prefilled entering is not necessary; for iOS entering caused more effort therefore this is commented out now.
+//        digidLoginMockWebPage.enterBsn("999991771")
         digidLoginMockWebPage.clickLoginButton()
     }
 }

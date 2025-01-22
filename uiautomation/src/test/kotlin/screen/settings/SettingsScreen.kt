@@ -14,8 +14,7 @@ class SettingsScreen : MobileActions() {
     fun visible() = isElementVisible(screen)
 
     fun settingsButtonsVisible(): Boolean =
-        isElementVisible(changePinButton) && isElementVisible(setupBiometricsButton) &&
-            isElementVisible(changeLanguageButton) && isElementVisible(clearDataButton)
+        isElementVisible(changePinButton) && isElementVisible(changeLanguageButton) && isElementVisible(clearDataButton)
 
     fun clickChangeLanguageButton() = clickElement(changeLanguageButton)
 
