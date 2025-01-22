@@ -2,13 +2,3 @@
 id = "RUSTSEC-2023-0071"
 ignoreUntil = 2025-07-01
 reason = "The vulnerability pertains to the use of RSA private keys in the rsa crate. We only use this crate to evaluate RSA public keys as found in Google CA certificates."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2021-0145"
-ignoreUntil = 2025-07-01
-reason = "potential unaligned read, but only on Windows, so suppressing here"
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2024-0320"
-ignoreUntil = 2025-03-01
-reason = "serde_yaml is unmaintained but contains no vulnerabilities. There is an issue on the backlog, so suppressing for now."
