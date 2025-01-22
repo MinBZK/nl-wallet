@@ -273,7 +273,6 @@ pub struct AccountServer {
     pin_public_disclosure_protection_key_identifier: String,
     pub apple_config: AppleAttestationConfiguration,
     apple_trust_anchors: Vec<TrustAnchor<'static>>,
-    #[allow(dead_code)]
     android_root_public_keys: Vec<RootPublicKey>,
 }
 
