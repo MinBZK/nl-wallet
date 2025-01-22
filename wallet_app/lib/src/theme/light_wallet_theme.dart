@@ -77,6 +77,7 @@ class LightWalletTheme {
           );
         },
       ),
+      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
       foregroundColor: WidgetStatePropertyAll(colorScheme.onPrimary),
       backgroundColor: WidgetStateProperty.resolveWith(
         (states) {
@@ -103,6 +104,7 @@ class LightWalletTheme {
         },
       ),
       side: WidgetStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
+      iconColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );
 
@@ -116,6 +118,7 @@ class LightWalletTheme {
           );
         },
       ),
+      iconColor: WidgetStatePropertyAll(colorScheme.primary),
       foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );
