@@ -18,6 +18,7 @@ use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::X509Certificate;
 
+use android_attest::play_integrity::verification::VerifyPlayStore;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
@@ -270,6 +271,12 @@ impl AppleAttestationConfiguration {
     }
 }
 
+pub struct AndroidAttestationConfiguration {
+    pub root_public_keys: Vec<RootPublicKey>,
+    pub package_identifier: String,
+    pub verify_play_store: VerifyPlayStore,
+}
+
 pub struct AccountServer {
     instruction_challenge_timeout: Duration,
 
@@ -279,11 +286,10 @@ pub struct AccountServer {
     encryption_key_identifier: String,
     pin_public_disclosure_protection_key_identifier: String,
     pub apple_config: AppleAttestationConfiguration,
-    android_root_public_keys: Vec<RootPublicKey>,
+    pub android_config: AndroidAttestationConfiguration,
 }
 
 impl AccountServer {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         instruction_challenge_timeout: Duration,
         name: String,
@@ -291,7 +297,7 @@ impl AccountServer {
         encryption_key_identifier: String,
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
-        android_root_public_keys: Vec<RootPublicKey>,
+        android_config: AndroidAttestationConfiguration,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
             instruction_challenge_timeout,
@@ -300,7 +306,7 @@ impl AccountServer {
             encryption_key_identifier,
             pin_public_disclosure_protection_key_identifier,
             apple_config,
-            android_root_public_keys,
+            android_config,
         })
     }
 
@@ -408,7 +414,8 @@ impl AccountServer {
 
                 // TODO: This check should be part of `android_attest`.
                 if !self
-                    .android_root_public_keys
+                    .android_config
+                    .root_public_keys
                     .iter()
                     .any(|public_key| root_public_key == *public_key)
                 {
@@ -978,7 +985,11 @@ pub mod mock {
                 environment: AttestationEnvironment::Development,
                 trust_anchors: vec![MOCK_APPLE_CA.trust_anchor().to_owned()],
             },
-            vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
+            AndroidAttestationConfiguration {
+                root_public_keys: vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
+                package_identifier: "com.example.app".to_string(),
+                verify_play_store: VerifyPlayStore::NoVerify,
+            },
         )
         .unwrap()
     }

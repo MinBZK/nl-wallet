@@ -99,6 +99,9 @@ pub enum AppleEnvironment {
 pub struct Android {
     #[serde_as(as = "Vec<Base64>")]
     pub root_public_keys: Vec<AndroidRootPublicKey>,
+    pub package_identifier: String,
+    #[serde_as(as = "Vec<Base64>")]
+    pub play_store_certificate_hashes: Vec<Vec<u8>>,
 }
 
 #[derive(Clone, From, Into)]
@@ -133,6 +136,7 @@ impl Settings {
             .set_default("instruction_challenge_timeout_in_ms", 15_000)?
             .set_default("hsm.max_sessions", 10)?
             .set_default("hsm.max_session_lifetime_in_sec", 900)?
+            .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
             .add_source(File::from(config_path.join("wallet_provider.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
@@ -141,6 +145,7 @@ impl Settings {
                     .list_separator(",")
                     .with_list_parse_key("ios.root_certificates")
                     .with_list_parse_key("android.root_public_keys")
+                    .with_list_parse_key("android.play_store_certificate_hashes")
                     .try_parsing(true),
             )
             .build()?

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::error::Error;
 
 use chrono::DateTime;
@@ -8,6 +9,7 @@ use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
 
+use android_attest::play_integrity::verification::VerifyPlayStore;
 use android_attest::root_public_key::RootPublicKey;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
@@ -17,6 +19,7 @@ use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
+use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
@@ -80,6 +83,19 @@ impl RouterState {
             .into_iter()
             .map(RootPublicKey::from)
             .collect();
+        let android_verify_play_store = match settings.android.play_store_certificate_hashes.is_empty() {
+            true => VerifyPlayStore::NoVerify,
+            false => VerifyPlayStore::Verify {
+                play_store_certificate_hashes: HashSet::from_iter(
+                    settings.android.play_store_certificate_hashes.into_iter(),
+                ),
+            },
+        };
+        let android_config = AndroidAttestationConfiguration {
+            root_public_keys: android_root_public_keys,
+            package_identifier: settings.android.package_identifier,
+            verify_play_store: android_verify_play_store,
+        };
 
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
@@ -88,7 +104,7 @@ impl RouterState {
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
             apple_config,
-            android_root_public_keys,
+            android_config,
         )?;
 
         let db = Db::new(

@@ -59,7 +59,6 @@ use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_common::vec_at_least::VecNonEmpty;
-use wallet_provider::settings::Android;
 use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
@@ -174,9 +173,7 @@ pub async fn setup_wallet_and_env(
             };
         }
         KeyHolderType::Google { ca_chain } => {
-            wp_settings.android = Android {
-                root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone()).into()],
-            }
+            wp_settings.android.root_public_keys = vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone()).into()]
         }
     }
 
