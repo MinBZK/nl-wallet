@@ -32,7 +32,7 @@ fn current_env() -> String {
     let env = env::var("CONFIG_ENV");
     let profile = env::var("PROFILE").unwrap();
     if profile == "release" {
-        env.expect("ENV environment variable should be set for releases")
+        env.expect("CONFIG_ENV environment variable should be set for releases")
     } else {
         env.unwrap_or(String::from("dev"))
     }
