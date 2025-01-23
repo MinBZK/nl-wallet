@@ -266,7 +266,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
-        key_factory: impl KeyFactory<Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
@@ -557,8 +557,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
     async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
-        trust_anchors: &[TrustAnchor<'_>],
-        key_factory: impl KeyFactory<Key = K>,
+        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        key_factory: &impl KeyFactory<Key = K>,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
@@ -584,7 +584,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             NL_WALLET_CLIENT_ID.to_string(),
             credential_issuer_identifier.clone(),
             types.len().try_into().unwrap(),
-            &key_factory,
+            key_factory,
         )
         .await?;
 
@@ -597,7 +597,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
         let (mut wte_disclosure, wte_privkey) = match wte {
             Some(wte) => {
-                let wte_privkey = wte.private_key(&key_factory)?;
+                let wte_privkey = wte.private_key(key_factory)?;
                 let wte_release =
                     Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
                 (Some(WteDisclosure::new(wte.jwt, wte_release)), Some(wte_privkey))
@@ -677,7 +677,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     .map(|(cred_response, (pubkey, key_id))| {
                         // Convert the response into an credential, verifying it against both the
                         // trust anchors and the credential preview we received in the preview.
-                        cred_response.into_credential::<K>(key_id, &pubkey, preview, trust_anchors)
+                        cred_response.into_credential::<K>(key_id, &pubkey, preview, mdoc_trust_anchors)
                     })
                     .collect::<Result<Vec<IssuedCredential>, _>>()?;
 
@@ -1099,7 +1099,7 @@ mod tests {
         }
         .accept_issuance(
             &[trust_anchor],
-            key_factory,
+            &key_factory,
             wte,
             "https://issuer.example.com".parse().unwrap(),
         )
@@ -1125,7 +1125,7 @@ mod tests {
         }
         .accept_issuance(
             &[trust_anchor],
-            MockRemoteKeyFactory::default(),
+            &MockRemoteKeyFactory::default(),
             None,
             "https://issuer.example.com".parse().unwrap(),
         )

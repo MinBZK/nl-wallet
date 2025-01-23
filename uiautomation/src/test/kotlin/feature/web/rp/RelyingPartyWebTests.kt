@@ -60,7 +60,6 @@ class RelyingPartyWebTests : TestBase() {
         overviewWebPage.clickXyzBankButton()
         assertTrue(xyzBankWebPage.customStartButtonVisible(), "Custom start button is not visible")
         xyzBankWebPage.body.clickBackButton()
-
         // Marketplace
         overviewWebPage.clickMarketplaceButton()
         assertTrue(marketplaceWebPage.customStartButtonVisible(), "Custom start button is not visible")

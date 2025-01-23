@@ -1,14 +1,6 @@
-/// Functions callable by Flutter.
 pub mod api;
-
-/// Generated code for the Flutter bridge using `flutter_rust_bridge_codegen`.
-#[allow(clippy::pedantic)]
-#[rustfmt::skip]
-mod bridge_generated;
-
-mod async_runtime;
 mod errors;
+mod frb_generated;
 mod logging;
 mod models;
 mod sentry;
-mod stream;

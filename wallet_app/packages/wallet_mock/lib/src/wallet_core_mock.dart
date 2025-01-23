@@ -10,7 +10,7 @@ import 'pin/pin_manager.dart';
 import 'util/extension/string_extension.dart';
 import 'wallet/wallet.dart';
 
-class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
+class WalletCoreMock implements WalletCoreApi {
   bool _isInitialized = false;
   StartDisclosureResult? _ongoingDisclosure;
 
@@ -22,7 +22,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   WalletCoreMock(this._pinManager, this._wallet, this._eventLog);
 
   @override
-  Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode, hint}) async {
+  Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode, hint}) async {
     // Look up the associated request
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
     final disclosureId = jsonPayload['id'] as String;
@@ -64,7 +64,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<String?> cancelDisclosure({hint}) async {
+  Future<String?> crateApiFullCancelDisclosure({hint}) async {
     final disclosure = _ongoingDisclosure;
     assert(disclosure != null, 'No ongoing disclosure to deny');
     _ongoingDisclosure = null;
@@ -73,7 +73,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<AcceptDisclosureResult> acceptDisclosure({required String pin, hint}) async {
+  Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin, hint}) async {
     final disclosure = _ongoingDisclosure;
     assert(disclosure != null, 'No ongoing disclosure to accept');
     assert(disclosure is StartDisclosureResult_Request, "Can't accept disclosure with missing attributes");
@@ -85,6 +85,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
         case WalletInstructionError_Timeout():
         case WalletInstructionError_Blocked():
           _wallet.lock();
+        case WalletInstructionError_IncorrectPin():
       }
       return AcceptDisclosureResult.instructionError(error: result.error);
     }
@@ -97,7 +98,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<WalletInstructionResult> acceptPidIssuance({required String pin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullAcceptPidIssuance({required String pin, hint}) async {
     final result = _pinManager.checkPin(pin);
     if (result is WalletInstructionResult_InstructionError && result.error is WalletInstructionError_Timeout) {
       /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
@@ -114,46 +115,46 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<void> cancelPidIssuance({hint}) async {
+  Future<void> crateApiFullCancelPidIssuance({hint}) async {
     // Stub only, no need to cancel it on the mock
   }
 
   @override
-  Future<void> clearCardsStream({hint}) async {
+  Future<void> crateApiFullClearCardsStream({hint}) async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> clearConfigurationStream({hint}) async {
+  Future<void> crateApiFullClearConfigurationStream({hint}) async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> clearVersionStateStream({hint}) async {
+  Future<void> crateApiFullClearVersionStateStream({hint}) async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> clearLockStream({hint}) async {
+  Future<void> crateApiFullClearLockStream({hint}) async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<void> clearRecentHistoryStream({hint}) async {
+  Future<void> crateApiFullClearRecentHistoryStream({hint}) async {
     // Stub only, no need to clear it on the mock
   }
 
   @override
-  Future<List<Card>> continuePidIssuance({required String uri, hint}) async => kPidCards;
+  Future<List<Card>> crateApiFullContinuePidIssuance({required String uri, hint}) async => kPidCards;
 
   @override
-  Future<String> createPidIssuanceRedirectUri({hint}) async => kMockPidIssuanceRedirectUri;
+  Future<String> crateApiFullCreatePidIssuanceRedirectUri({hint}) async => kMockPidIssuanceRedirectUri;
 
   @override
-  Future<bool> hasRegistration({hint}) async => _pinManager.isRegistered;
+  Future<bool> crateApiFullHasRegistration({hint}) async => _pinManager.isRegistered;
 
   @override
-  Future<IdentifyUriResult> identifyUri({required String uri, hint}) async {
+  Future<IdentifyUriResult> crateApiFullIdentifyUri({required String uri, hint}) async {
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
     final type = jsonPayload['type'] as String;
     if (type == 'verify') return IdentifyUriResult.Disclosure;
@@ -163,13 +164,13 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<void> init({hint}) async => _isInitialized = true;
+  Future<void> crateApiFullInit({hint}) async => _isInitialized = true;
 
   @override
-  Future<bool> isInitialized({hint}) async => _isInitialized;
+  Future<bool> crateApiFullIsInitialized({hint}) async => _isInitialized;
 
   @override
-  Future<PinValidationResult> isValidPin({required String pin, hint}) async {
+  Future<PinValidationResult> crateApiFullIsValidPin({required String pin, hint}) async {
     const digits = 6;
     if (pin.length != digits) return PinValidationResult.OtherIssue;
     if (pin.split('').toSet().length <= 1) return PinValidationResult.TooFewUniqueDigits;
@@ -192,45 +193,45 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<void> lockWallet({hint}) async => _wallet.lock();
+  Future<void> crateApiFullLockWallet({hint}) async => _wallet.lock();
 
   @override
-  Future<void> register({required String pin, hint}) async {
+  Future<void> crateApiFullRegister({required String pin, hint}) async {
     _pinManager.setPin(pin);
     _wallet.unlock();
   }
 
   @override
-  Future<void> resetWallet({hint}) async {
+  Future<void> crateApiFullResetWallet({hint}) async {
     await _pinManager.resetPin();
     _wallet.reset();
     _eventLog.reset();
   }
 
   @override
-  Stream<List<Card>> setCardsStream({hint}) => _wallet.cardsStream;
+  Stream<List<Card>> crateApiFullSetCardsStream({hint}) => _wallet.cardsStream;
 
   @override
-  Stream<FlutterConfiguration> setConfigurationStream({hint}) {
+  Stream<FlutterConfiguration> crateApiFullSetConfigurationStream({hint}) {
     return Stream.value(
       FlutterConfiguration(
         backgroundLockTimeout: Duration(seconds: 20).inSeconds,
         inactiveLockTimeout: Duration(minutes: 3).inSeconds,
-        version: 1,
+        version: BigInt.one,
       ),
     );
   }
 
   @override
-  Stream<FlutterVersionState> setVersionStateStream({hint}) {
+  Stream<FlutterVersionState> crateApiFullSetVersionStateStream({hint}) {
     return Stream.value(FlutterVersionState.ok());
   }
 
   @override
-  Stream<bool> setLockStream({hint}) => _wallet.lockedStream;
+  Stream<bool> crateApiFullSetLockStream({hint}) => _wallet.lockedStream;
 
   @override
-  Future<WalletInstructionResult> unlockWallet({required String pin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin, hint}) async {
     final result = _pinManager.checkPin(pin);
     final bool pinMatches = result is WalletInstructionResult_Ok;
     if (pinMatches) {
@@ -242,32 +243,32 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<List<WalletEvent>> getHistory({hint}) async => _eventLog.log;
+  Future<List<WalletEvent>> crateApiFullGetHistory({hint}) async => _eventLog.log;
 
   @override
-  Future<List<WalletEvent>> getHistoryForCard({required String docType, hint}) async =>
+  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String docType, hint}) async =>
       _eventLog.logForDocType(docType);
 
   @override
-  Stream<List<WalletEvent>> setRecentHistoryStream({hint}) => _eventLog.logStream;
+  Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream({hint}) => _eventLog.logStream;
 
   @override
-  Future<bool> hasActiveDisclosureSession({hint}) async => _ongoingDisclosure != null;
+  Future<bool> crateApiFullHasActiveDisclosureSession({hint}) async => _ongoingDisclosure != null;
 
   @override
-  Future<bool> hasActivePidIssuanceSession({hint}) async => false;
+  Future<bool> crateApiFullHasActivePidIssuanceSession({hint}) async => false;
 
   @override
-  Future<bool> isBiometricUnlockEnabled({hint}) async => _isBiometricsEnabled;
+  Future<bool> crateApiFullIsBiometricUnlockEnabled({hint}) async => _isBiometricsEnabled;
 
   @override
-  Future<void> unlockWalletWithBiometrics({hint}) async => _wallet.unlock();
+  Future<void> crateApiFullUnlockWalletWithBiometrics({hint}) async => _wallet.unlock();
 
   @override
-  Future<void> setBiometricUnlock({required bool enable, hint}) async => _isBiometricsEnabled = enable;
+  Future<void> crateApiFullSetBiometricUnlock({required bool enable, hint}) async => _isBiometricsEnabled = enable;
 
   @override
-  Future<WalletInstructionResult> changePin({required String oldPin, required String newPin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullChangePin({required String oldPin, required String newPin, hint}) async {
     final result = _pinManager.checkPin(oldPin);
     final validationResult = await isValidPin(pin: newPin);
     if (validationResult != PinValidationResult.Ok) throw StateError('Pin should be validated in the flow beforehand');
@@ -277,95 +278,15 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<WalletInstructionResult> continueChangePin({required String pin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin, hint}) async {
     _pinManager.updatePin(pin);
     await Future.delayed(const Duration(milliseconds: 500));
     return _pinManager.checkPin(pin);
   }
 
   @override
-  Future<WalletInstructionResult> checkPin({required String pin, hint}) async => _pinManager.checkPin(pin);
+  Future<WalletInstructionResult> crateApiFullCheckPin({required String pin, hint}) async => _pinManager.checkPin(pin);
 
   @override
-  Future<String> getVersionString({hint}) async => kMockVersionString;
-}
-
-/// Helper class to make [WalletCoreMock] satisfy [WalletCore]
-/// without cluttering it with getters we don't intend to implement.
-class _FlutterRustBridgeTasksMeta {
-  FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kAcceptPidIssuanceConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kCancelDisclosureConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kCancelPidIssuanceConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kClearCardsStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kClearVersionStateStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kClearLockStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kContinuePidIssuanceConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kHasRegistrationConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kIdentifyUriConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kInitConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kIsInitializedConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kLockWalletConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kRegisterConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kSetCardsStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kSetConfigurationStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kSetVersionStateStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kSetLockStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kHasActiveDisclosureSessionConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kHasActivePidIssuanceSessionConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kIsBiometricUnlockEnabledConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kUnlockWalletWithBiometricsConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kSetBiometricUnlockConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kChangePinConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kContinueChangePinConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kCheckPinConstMeta => throw UnimplementedError();
-
-  FlutterRustBridgeTaskConstMeta get kGetVersionStringConstMeta => throw UnimplementedError();
+  Future<String> crateApiFullGetVersionString({hint}) async => kMockVersionString;
 }

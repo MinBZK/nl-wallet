@@ -17,7 +17,7 @@ class FlutterAppConfiguration {
     return FlutterAppConfiguration(
       idleLockTimeout: Duration(seconds: config.inactiveLockTimeout),
       backgroundLockTimeout: Duration(seconds: config.backgroundLockTimeout),
-      version: config.version,
+      version: config.version.toInt(),
     );
   }
 

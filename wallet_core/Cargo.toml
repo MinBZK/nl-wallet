@@ -29,7 +29,7 @@ members = [
     "wallet_server",
     "wallet_server/migrations",
 ]
-exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
+exclude = ["uniffi-bindgen"]
 resolver = "2"
 
 [workspace.package]
@@ -39,6 +39,7 @@ rust-version = "1.83"
 
 [workspace.lints.rust]
 async_fn_in_trait = "allow"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 
 [workspace.lints.clippy]
 cloned_instead_of_copied = "warn"
@@ -88,7 +89,7 @@ der = "0.7.7"
 derive_more = "1.0.0"
 dotenvy = "0.15.7"
 etag = "4.0.0"
-flutter_rust_bridge = { version = "1.70.0", default-features = false }
+flutter_rust_bridge = { version = "2.7.0", default-features = false }
 futures = { version = "0.3.17", default-features = false }
 hex = "0.4.3"
 hex-literal = "0.4.1"
@@ -97,7 +98,7 @@ http-cache-reqwest = { version = "0.15.0", default-features = false }
 http-serde = "2.1.1"
 hmac = "0.12.1"
 indexmap = "2.0.2"
-insta = "1.39.0"
+insta = { version = "1.42.0", default-features = false }
 int-enum = "1.1.2"
 itertools = "0.13.0"
 jni = "0.21.1"
@@ -148,7 +149,6 @@ serde_bytes = "0.11.7"
 serde_json = { version = "1.0.92", default-features = false }
 serde_repr = "0.1.16"
 serde_urlencoded = "0.7.1"
-serde_yaml = "0.9.33"
 serde_with = "3.3.0"
 serial_test = "3.0.0"
 sha2 = "0.10.6"

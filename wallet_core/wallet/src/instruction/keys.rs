@@ -49,7 +49,7 @@ pub struct RemoteEcdsaKeyFactory<'a, S, AK, GK, A> {
 pub struct RemoteEcdsaKey<'a, S, AK, GK, A> {
     identifier: String,
     public_key: VerifyingKey,
-    key_factory: &'a RemoteEcdsaKeyFactory<'a, S, AK, GK, A>,
+    instruction_client: &'a InstructionClient<'a, S, AK, GK, A>,
 }
 
 impl<S, AK, GK, A> PartialEq for RemoteEcdsaKey<'_, S, AK, GK, A> {
@@ -72,7 +72,7 @@ impl<'a, S, AK, GK, A> RemoteEcdsaKeyFactory<'a, S, AK, GK, A> {
     }
 }
 
-impl<'a, S, AK, GK, A> KeyFactory for &'a RemoteEcdsaKeyFactory<'a, S, AK, GK, A>
+impl<'a, S, AK, GK, A> KeyFactory for RemoteEcdsaKeyFactory<'a, S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
@@ -92,7 +92,7 @@ where
             .map(|(identifier, public_key)| RemoteEcdsaKey {
                 identifier,
                 public_key: public_key.0,
-                key_factory: self,
+                instruction_client: self.instruction_client,
             })
             .collect();
 
@@ -103,7 +103,7 @@ where
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
-            key_factory: self,
+            instruction_client: self.instruction_client,
         }
     }
 
@@ -204,7 +204,6 @@ where
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         let result = self
-            .key_factory
             .instruction_client
             .send(Sign {
                 messages_with_identifiers: vec![(msg.to_vec(), vec![self.identifier.clone()])],

@@ -118,7 +118,7 @@ async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2
     let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     let issued_creds = session
-        .accept_issuance(trust_anchors, key_factory, Some(wte), server_url)
+        .accept_issuance(trust_anchors, &key_factory, Some(wte), server_url)
         .await
         .unwrap();
 
@@ -171,7 +171,7 @@ async fn start_and_accept_err(
     let wte = mock_wte(&key_factory, &wte_issuer_privkey).await;
 
     session
-        .accept_issuance(trust_anchors, key_factory, Some(wte), server_url)
+        .accept_issuance(trust_anchors, &key_factory, Some(wte), server_url)
         .await
         .unwrap_err()
 }

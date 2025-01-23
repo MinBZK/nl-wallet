@@ -4,5 +4,9 @@ linter:
   rules:
   # Optionally add or exclude extra rules
 
-exclude:
-  - lib/src/bridge_generated.dart
+analyzer:
+  exclude:
+    # exclude all generated source code
+    - "lib/src/api/**"
+    - "lib/src/models/**"
+    - "lib/src/frb_generated*"

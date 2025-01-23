@@ -1,4 +1,4 @@
 [advisories]
 ignore = [
-    "RUSTSEC-2023-0071", # rsa is a dependency of sqlx-mysql which is not used
+    "RUSTSEC-2023-0071", # The vulnerability pertains to the use of RSA private keys in the rsa crate. We only use this crate to evaluate RSA public keys as found in Google CA certificates.
 ]

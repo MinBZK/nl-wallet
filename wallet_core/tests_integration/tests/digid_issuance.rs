@@ -78,7 +78,7 @@ async fn test_pid_issuance_digid_bridge() {
     let mdocs = pid_issuer_client
         .accept_issuance(
             &wallet_config.mdoc_trust_anchors(),
-            MockRemoteKeyFactory::default(),
+            &MockRemoteKeyFactory::default(),
             None,
             server_url,
         )

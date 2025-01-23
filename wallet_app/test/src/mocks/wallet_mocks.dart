@@ -152,7 +152,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<GetVersionStringUseCase>()])
 
 /// Core
-@GenerateNiceMocks([MockSpec<WalletCore>()])
+@GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 
 /// Constants
 const kMockPidIssuanceUrl = 'https://example.org';
@@ -172,7 +172,7 @@ class Mocks {
 
   static void initialize() {
     // Core
-    sl.registerFactory<WalletCore>(MockWalletCore.new);
+    sl.registerFactory<WalletCoreApi>(MockWalletCoreApi.new);
 
     // Services
     sl.registerFactory<AppLifecycleService>(AppLifecycleService.new);

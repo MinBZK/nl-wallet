@@ -62,7 +62,6 @@ variables:
       variables:
         CACHE_POLICY: pull
     - if: $DEPLOY_DEMO_OVERRIDE == "true"
-      when: on_success
 
 .merge-request:
   rules:
@@ -106,7 +105,7 @@ variables:
       - "vendor/ruby"
   before_script:
     - ruby -v
-    - bundle config set --local path "vendor/ruby"
+    - bundle config set --local path "vendor"
 
 .ruby-cache-macos:
   extends: .ruby-cache
@@ -176,13 +175,13 @@ verify-flutter-localizations:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:01328503ba383967ec0fc02b0ac47be5b9e56fb39ed6bfa22bbe56ea6751ec3f"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:173637b27d8a4b4204d6dc12a2a8af4bddbffa6bbed984b85a5c235006bda0f6"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
   script:
     - flutter pub get --enforce-lockfile
-    - cargo run --manifest-path ../wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
+    - flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
     - flutter pub run build_runner build --delete-conflicting-outputs
     - dart format . --line-length 120
     - git diff
@@ -563,7 +562,6 @@ build-sbom:
   script:
     ## Rust
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
     ## NPM
     - cd wallet_web

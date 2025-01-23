@@ -119,9 +119,9 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets
                   key: proxy_password
-            - name: HTTP_PROXY
+            - name: http_proxy
               value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
-            - name: HTTPS_PROXY
+            - name: https_proxy
               value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
       volumes:
         - name: preloaded-gba-v-data-volume

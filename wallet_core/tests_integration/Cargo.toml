@@ -52,7 +52,6 @@ path = "tests/update_policy_server.rs"
 required-features = ["integration_test"]
 
 [features]
-default = ["integration_test"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc?/allow_insecure_url", "wallet_common?/allow_insecure_url"]
 # Initialize global logging using tracing-subscriber
@@ -151,7 +150,6 @@ gba_pid_test = [
     "dep:rstest",
     "dep:serial_test",
     "dep:serde_urlencoded",
-    "dep:serde_yaml",
     "dep:tokio",
     "dep:wallet",
     "dep:wallet_common",
@@ -164,7 +162,7 @@ gba_pid_test = [
 assert_matches = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
-insta = { workspace = true, optional = true, features = ["yaml"] }
+insta = { workspace = true, optional = true, features = ["ron"] }
 jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, optional = true, features = [
@@ -175,7 +173,6 @@ sea-orm = { workspace = true, optional = true, features = [
     "debug-print",
 ] }
 semver = { workspace = true, optional = true }
-serde_yaml = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true, features = ["pkcs8"] }
 rand_core = { workspace = true, optional = true }

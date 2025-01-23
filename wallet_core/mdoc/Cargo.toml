@@ -13,7 +13,7 @@ generate = ["dep:rcgen"]
 # Include examples from the ISO specification
 examples = []
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "dep:rstest", "dep:regex"]
+test = ["dep:assert_matches", "dep:rstest", "dep:regex", "generate", "mock", "sd_jwt/example_constructors"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include example based constructors to several types for testing
