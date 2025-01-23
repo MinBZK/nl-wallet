@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250122-13f7122c"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250123-e88295e7"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
@@ -563,23 +563,23 @@ build-sbom:
     - mv bom-bundled.json bom.json
     - cd ..
     ## Flutter
-    - cd wallet_app; cdxgen --spec-version 1.5 --type dart --output bom.json; cd -
+    - cd wallet_app && cdxgen --spec-version 1.5 --type dart --output bom.json && cd -
     ## iOS
-    # does not support json, so converting to it (we need it to be able to merge)
     - bundle install
     - cd wallet_app
     - flutter pub get --enforce-lockfile
     - flutter precache --ios
     - cd ios
     - bundle exec pod install --allow-root
-    - cyclonedx-cocoapods # only supports spec version 1.4
+    - cyclonedx-cocoapods # only supports single spec version (currently 1.6)
     - cyclonedx convert --output-version v1_5 --input-file bom.xml --output-file bom.json
     - cd ../..
     ## Android
-    - cd wallet_app/android/app; cdxgen --spec-version 1.5 --type gradle --output bom.json; cd -
-    - cd wallet_core/platform_support/android/platform_support; cdxgen --spec-version 1.5 --type gradle --output bom.json; cd -
+    # TODO PVW-3972: Android BOM is empty and with latest build image the generation fails
+    #- cd wallet_app/android && cdxgen --spec-version 1.5 --type gradle --output bom.json && cd -
+    #- cd wallet_core/platform_support/android/platform_support && cdxgen --spec-version 1.5 --type gradle --output bom.json && cd -
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
-    - cyclonedx merge --output-version v1_5 --input-files `find . -name bom.json` --output-file bom.json
+    - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
     # converting it to xml does work
     - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
   variables:
