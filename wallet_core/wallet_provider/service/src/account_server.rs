@@ -404,7 +404,7 @@ impl<GC> AccountServer<GC> {
 
                 (hw_pubkey, attestation)
             }
-            // TODO: Actually validate and process Google key and app attestation.
+            // TODO: Actually validate and process Google app attestation.
             RegistrationAttestation::Google { certificate_chain, .. } => {
                 debug!("Validating Android key attestation");
 
@@ -419,8 +419,13 @@ impl<GC> AccountServer<GC> {
                     .iter()
                     .map(|cert| CertificateDer::from_slice(cert))
                     .collect::<Vec<_>>();
-                verify_google_key_attestation(&attested_key_chain, &self.android_root_public_keys, &crl, challenge)
-                    .map_err(AndroidAttestationError::Verification)?;
+                verify_google_key_attestation(
+                    &attested_key_chain,
+                    &self.android_root_public_keys,
+                    &crl,
+                    &utils::sha256(challenge),
+                )
+                .map_err(AndroidAttestationError::Verification)?;
 
                 // Extract the leaf certificate's verifying key
                 let (_, leaf_certificate) = X509Certificate::from_der(certificate_chain.first())
@@ -1175,7 +1180,7 @@ mod tests {
                     attestation_security_level: SecurityLevel::TrustedEnvironment,
                     key_mint_version: 300.into(),
                     key_mint_security_level: SecurityLevel::TrustedEnvironment,
-                    attestation_challenge: OctetString::copy_from_slice(&challenge),
+                    attestation_challenge: OctetString::copy_from_slice(&utils::sha256(&challenge)),
                     unique_id: OctetString::copy_from_slice(b"unique_id"),
                     software_enforced: Default::default(),
                     hardware_enforced: Default::default(),
