@@ -116,6 +116,7 @@ version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "bitflags 2.6.0",
+ "cfg-if",
  "chrono",
  "const-decoder",
  "derive_more",

@@ -201,6 +201,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "emulator"))]
     fn key_description_insecure_attestation_security_level() -> KeyDescription {
         KeyDescription {
             attestation_security_level: SecurityLevel::Software,
@@ -208,6 +209,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "emulator"))]
     fn key_description_insecure_key_mint_security_level() -> KeyDescription {
         KeyDescription {
             key_mint_security_level: SecurityLevel::Software,
@@ -240,15 +242,21 @@ mod tests {
         b"other_challenge",
         KeyAttestationVerificationError::AttestationChallenge
     )]
-    #[case(
-        key_description_insecure_attestation_security_level(),
-        b"challenge",
-        KeyAttestationVerificationError::AttestationSecurityLevel(SecurityLevel::Software)
+    #[cfg_attr(
+        not(feature = "emulator"),
+        case(
+            key_description_insecure_attestation_security_level(),
+            b"challenge",
+            KeyAttestationVerificationError::AttestationSecurityLevel(SecurityLevel::Software)
+        )
     )]
-    #[case(
-        key_description_insecure_key_mint_security_level(),
-        b"challenge",
-        KeyAttestationVerificationError::KeyMintSecurityLevel(SecurityLevel::Software)
+    #[cfg_attr(
+        not(feature = "emulator"),
+        case(
+            key_description_insecure_key_mint_security_level(),
+            b"challenge",
+            KeyAttestationVerificationError::KeyMintSecurityLevel(SecurityLevel::Software)
+        )
     )]
     fn test_google_key_attestation_invalid_challenge(
         #[case] key_description: KeyDescription,

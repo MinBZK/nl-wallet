@@ -11,9 +11,12 @@ workspace = true
 encode = []
 mock = ["encode", "dep:derive_more", "dep:rcgen"]
 network_test = []
+# Accept attested keys from the emulator. This allows software security level.
+emulator = []
 
 [dependencies]
 bitflags.workspace = true
+cfg-if.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 const-decoder.workspace = true
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }

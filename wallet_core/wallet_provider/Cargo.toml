@@ -26,6 +26,10 @@ required-features = ["hsm_test"]
 [features]
 # Include and run test that depend on a configured HSM
 hsm_test = ["dep:rand_core", "dep:serial_test"]
+# Allow software key attestations coming from the android emulator
+android_emulator = [
+    "wallet_provider_service/android_emulator",
+]
 
 [dependencies]
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
