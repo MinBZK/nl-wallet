@@ -66,12 +66,14 @@ variables:
 .merge-request:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
       variables:
         CACHE_POLICY: pull
 
 .merge-request-manual:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
       variables:
         CACHE_POLICY: pull
       when: manual
