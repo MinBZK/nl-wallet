@@ -67,25 +67,21 @@ class TerminalScreen extends StatelessWidget {
 
   static Future<void> show(
     BuildContext context, {
+    required TerminalScreenConfig config,
     bool secured = true,
-    required String title,
-    required String description,
-    FitsWidthWidget? primaryButton,
-    FitsWidthWidget? secondaryButton,
-    required String illustration,
     bool replaceCurrentRoute = false,
   }) {
     final terminalScreen = TerminalScreen(
-      title: title,
-      description: description,
-      illustration: illustration,
-      primaryButton: primaryButton ??
+      title: config.title,
+      description: config.description,
+      illustration: config.illustration,
+      primaryButton: config.primaryButton ??
           PrimaryButton(
             text: Text(context.l10n.generalClose),
             icon: const Icon(Icons.close_outlined),
             onPressed: () => Navigator.maybePop(context),
           ),
-      secondaryButton: secondaryButton,
+      secondaryButton: config.secondaryButton,
     );
     final route = secured
         ? SecuredPageRoute(builder: (c) => terminalScreen)
@@ -98,4 +94,21 @@ class TerminalScreen extends StatelessWidget {
       return Navigator.push(context, route);
     }
   }
+}
+
+/// Wrapper for all the info needed to render the [TerminalScreen].
+class TerminalScreenConfig {
+  final String title;
+  final String description;
+  final FitsWidthWidget? primaryButton;
+  final FitsWidthWidget? secondaryButton;
+  final String illustration;
+
+  TerminalScreenConfig({
+    required this.title,
+    required this.description,
+    this.primaryButton,
+    this.secondaryButton,
+    required this.illustration,
+  });
 }
