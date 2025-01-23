@@ -11,6 +11,8 @@ lint-rust:
 
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
+  tags:
+    - wallet-ci
   variables:
     NEXTEST_PROFILE: "ci"
     SKIP_DIGID_CONNECTOR: "true"
@@ -45,6 +47,8 @@ test-rust:
 
 test-rust-doctest:
   rules: !reference [.default-or-release-or-merge-request, rules]
+  tags:
+    - wallet-ci
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -53,6 +57,8 @@ test-rust-doctest:
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
+  tags:
+    - wallet-ci
   variables:
     RUSTFLAGS: "-D warnings"
     CONFIG_ENV: "dev"

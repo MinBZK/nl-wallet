@@ -9,6 +9,6 @@ COPY --from=shared_library /libcs_pkcs11_R3.so .
 
 COPY ./target/x86_64-unknown-linux-gnu/release/wallet_provider .
 
-ENV WALLET_PROVIDER_HSM__LIBRARY_PATH=/home/nonroot/libcs_pkcs11_R3.so
+ENV WALLET_PROVIDER__HSM__LIBRARY_PATH=/home/nonroot/libcs_pkcs11_R3.so
 
 CMD ["./wallet_provider"]

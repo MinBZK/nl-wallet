@@ -69,7 +69,7 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("mock_relying_party")
                     .separator("__")
-                    .prefix_separator("_"),
+                    .prefix_separator("__"),
             )
             .build()?
             .try_deserialize()

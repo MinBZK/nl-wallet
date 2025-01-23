@@ -9,12 +9,13 @@ want to do are contained in the `wallet.pkr.hcl` file).
 
 In the `nl-wallet-app-builder-dockerfiles` repository:
 
-- In `rust.sh` update Rust to the desired version (see
+- In `rust-user.sh` update Rust to the desired version (see
   `nl-wallet-app-builder-dockerfiles` MR 60, as an example)
-- Optional: update Rust-related dependencies in `rust.sh`, `rust_android.sh` and
-  `cyclonedx.sh` to the desired version (beware for yanked versions)
+- Optional: update Rust-related dependencies in `rust-user.sh`, `cyclonedx.sh`
+  to the desired version (beware for yanked versions)
+- Run the pipeline manually and test out in your nl-wallet MR.
 - Get your MR approved and merged, images will be created and uploaded to Harbor
-  registry on merge to main
+  registry on merge to main. Update your MR with those images.
 
 ## Update Rust macOS Runner
 
@@ -60,7 +61,7 @@ In the `nl-wallet` repository:
 
 - Update all `Cargo.toml` files to the desired version (see commit
   `b72338fa25a4081678d7e5a0cf686ae6fa2f52c1`)
-- Update all hashes in `.gitlab-ci.yml` and `deploy/gitlab/*.yml`
+- Update the CI image in `.gitlab-ci.yml`
 - Update the version of the macOS image in `.gitlab-ci.yml`,
   `deploy/gitlab/ios.yml` and `deploy/gitlab/rust.yml`
 - Make sure the pipelines in your MR run successfully
