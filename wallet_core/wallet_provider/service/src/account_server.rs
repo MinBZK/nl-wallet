@@ -419,7 +419,7 @@ impl<GC> AccountServer<GC> {
                     .iter()
                     .map(|cert| CertificateDer::from_slice(cert))
                     .collect::<Vec<_>>();
-                verify_google_key_attestation(&attested_key_chain, &self.android_root_public_keys, &crl)
+                verify_google_key_attestation(&attested_key_chain, &self.android_root_public_keys, &crl, challenge)
                     .map_err(AndroidAttestationError::Verification)?;
 
                 // Extract the leaf certificate's verifying key
@@ -1175,7 +1175,7 @@ mod tests {
                     attestation_security_level: SecurityLevel::TrustedEnvironment,
                     key_mint_version: 300.into(),
                     key_mint_security_level: SecurityLevel::TrustedEnvironment,
-                    attestation_challenge: OctetString::copy_from_slice(b"challenge"),
+                    attestation_challenge: OctetString::copy_from_slice(&challenge),
                     unique_id: OctetString::copy_from_slice(b"unique_id"),
                     software_enforced: Default::default(),
                     hardware_enforced: Default::default(),

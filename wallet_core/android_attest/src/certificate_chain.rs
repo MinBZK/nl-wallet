@@ -58,6 +58,7 @@ pub fn verify_google_key_attestation(
     certificate_chain: &[CertificateDer],
     root_public_keys: &[RootPublicKey],
     revocation_list: &RevocationStatusList,
+    attestation_challenge: &[u8],
 ) -> Result<(), GoogleKeyAttestationError> {
     assert!(!certificate_chain.is_empty());
 
@@ -111,7 +112,7 @@ pub fn verify_google_key_attestation(
 
     // 7. Check the extension data that you've retrieved in the previous steps for consistency and compare with the set
     //    of values that you expect the hardware-backed key to contain.
-    key_attestation.verify()?;
+    key_attestation.verify(attestation_challenge)?;
 
     Ok(())
 }
@@ -177,7 +178,9 @@ fn verify_google_attestation_certificate_chain(
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use rasn::types::OctetString;
+    use rstest::rstest;
 
     use crate::{
         attestation_extension::key_description::{KeyDescription, SecurityLevel},
@@ -186,9 +189,8 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn test_google_key_attestation() {
-        let key_description = KeyDescription {
+    fn key_description() -> KeyDescription {
+        KeyDescription {
             attestation_version: 200.into(),
             attestation_security_level: SecurityLevel::TrustedEnvironment,
             key_mint_version: 300.into(),
@@ -197,7 +199,26 @@ mod tests {
             unique_id: OctetString::copy_from_slice(b"unique_id"),
             software_enforced: Default::default(),
             hardware_enforced: Default::default(),
-        };
+        }
+    }
+
+    fn key_description_insecure_attestation_security_level() -> KeyDescription {
+        KeyDescription {
+            attestation_security_level: SecurityLevel::Software,
+            ..key_description()
+        }
+    }
+
+    fn key_description_insecure_key_mint_security_level() -> KeyDescription {
+        KeyDescription {
+            key_mint_security_level: SecurityLevel::Software,
+            ..key_description()
+        }
+    }
+
+    #[test]
+    fn test_google_key_attestation() {
+        let key_description = key_description();
 
         // Generate root and intermediate ca.
         let mock_ca_chain = MockCaChain::generate(1);
@@ -210,6 +231,52 @@ mod tests {
 
         let revocation_list = RevocationStatusList::default();
 
-        verify_google_key_attestation(&certificate_chain, &root_public_keys, &revocation_list).unwrap();
+        verify_google_key_attestation(&certificate_chain, &root_public_keys, &revocation_list, b"challenge")
+            .expect("verification should succeed");
+    }
+
+    #[rstest]
+    #[case(
+        key_description(),
+        b"other_challenge",
+        KeyAttestationVerificationError::AttestationChallenge
+    )]
+    #[case(
+        key_description_insecure_attestation_security_level(),
+        b"challenge",
+        KeyAttestationVerificationError::AttestationSecurityLevel(SecurityLevel::Software)
+    )]
+    #[case(
+        key_description_insecure_key_mint_security_level(),
+        b"challenge",
+        KeyAttestationVerificationError::KeyMintSecurityLevel(SecurityLevel::Software)
+    )]
+    fn test_google_key_attestation_invalid_challenge(
+        #[case] key_description: KeyDescription,
+        #[case] attestation_challenge: &[u8],
+        #[case] expected_error: KeyAttestationVerificationError,
+    ) {
+        // Generate root and intermediate ca.
+        let mock_ca_chain = MockCaChain::generate(1);
+        let (certificates, _signing_keys) = mock_ca_chain.generate_attested_leaf_certificate(&key_description);
+        let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
+
+        // Get root public key, the chain length is 3 now, root + intermediate + leaf.
+        let (_, root_certificate) = X509Certificate::from_der(&certificates[2]).unwrap();
+        let root_public_keys = vec![RootPublicKey::rsa_from_der(root_certificate.public_key().raw).unwrap()];
+
+        let revocation_list = RevocationStatusList::default();
+
+        let error = verify_google_key_attestation(
+            &certificate_chain,
+            &root_public_keys,
+            &revocation_list,
+            attestation_challenge,
+        )
+        .expect_err("should fail for attestation verification");
+        assert_matches!(
+            error,
+            GoogleKeyAttestationError::KeyAttestationVerification(verification_error) if verification_error == expected_error
+        )
     }
 }

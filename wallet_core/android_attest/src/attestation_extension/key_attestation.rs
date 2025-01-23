@@ -29,7 +29,8 @@ use super::key_description::SecurityLevel;
 
 macro_rules! integer_int_enum_conversion {
     ($type:ty, $repr:ty, $error_type:ident, $invalid_error:ident) => {
-        #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+        #[derive(Debug, thiserror::Error)]
+        #[cfg_attr(test, derive(PartialEq, Eq))]
         pub enum $error_type {
             #[error("could not convert Integer to {}: {0}", stringify!($repr))]
             IntegerConversion(Integer),
@@ -363,7 +364,10 @@ pub struct KeyAttestation {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum KeyAttestationVerificationError {
+    #[error("attestation challenge mismatch")]
+    AttestationChallenge,
     #[error("security requirements not met for attestation_security_level: {0:?}")]
     AttestationSecurityLevel(SecurityLevel),
     #[error("security requirements not met for key_mint_security_level: {0:?}")]
@@ -371,7 +375,11 @@ pub enum KeyAttestationVerificationError {
 }
 
 impl KeyAttestation {
-    pub fn verify(&self) -> Result<(), KeyAttestationVerificationError> {
+    pub fn verify(&self, attestation_challenge: &[u8]) -> Result<(), KeyAttestationVerificationError> {
+        if self.attestation_challenge != attestation_challenge {
+            return Err(KeyAttestationVerificationError::AttestationChallenge);
+        }
+
         if !match self.attestation_security_level {
             SecurityLevel::Software => false,
             SecurityLevel::TrustedEnvironment | SecurityLevel::StrongBox => true,
