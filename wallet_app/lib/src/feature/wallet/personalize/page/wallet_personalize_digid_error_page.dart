@@ -80,7 +80,7 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     return Column(
       children: [
-        const Divider(height: 1),
+        const Divider(),
         ConfirmButtons(
           primaryButton: PrimaryButton(
             text: Text.rich(context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta.toTextSpan(context)),

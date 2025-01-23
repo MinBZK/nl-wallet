@@ -19,7 +19,7 @@ import '../card/detail/argument/card_detail_screen_argument.dart';
 import '../card/detail/card_detail_screen.dart';
 import '../common/widget/activity_summary.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
-import '../common/widget/button/icon/menu_icon_button.dart';
+import '../common/widget/button/icon/menu_icon_text_button.dart';
 import '../common/widget/button/icon/qr_icon_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -90,29 +90,8 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildLeadingMenuButton(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Semantics(
-        attributedLabel: context.l10n.dashboardScreenMenuWCAGLabel.toAttributedString(context),
-        button: true,
-        onTap: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
-        excludeSemantics: true,
-        child: GestureDetector(
-          onTap: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const MenuIconButton(),
-              Text(
-                context.l10n.dashboardScreenTitle,
-                style: context.theme.appBarTheme.titleTextStyle?.copyWith(
-                  color: context.colorScheme.primary,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(width: 16),
-            ],
-          ),
-        ),
+      child: MenuIconTextButton(
+        onPressed: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
       ),
     );
   }
@@ -233,12 +212,18 @@ class DashboardScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SvgPicture.asset(WalletAssets.svg_qr_button),
               TextButton(
                 onPressed: onTapQr,
-                child: Text(
-                  context.l10n.dashboardScreenQrCta,
-                  textAlign: TextAlign.center,
+                child: Column(
+                  children: [
+                    SvgPicture.asset(WalletAssets.svg_qr_button),
+                    const SizedBox(height: 16),
+                    Text(
+                      context.l10n.dashboardScreenQrCta,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
             ],

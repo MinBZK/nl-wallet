@@ -41,7 +41,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
             ),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
             const SliverSizedBox(height: 24),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
+            const SliverToBoxAdapter(child: Divider()),
             const SliverSizedBox(height: 12),
             SliverList(delegate: _getDataAttributesDelegate()),
             const SliverSizedBox(height: 12),
@@ -51,7 +51,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Divider(height: 1),
+                  const Divider(),
                   _buildBottomSection(context),
                 ],
               ),

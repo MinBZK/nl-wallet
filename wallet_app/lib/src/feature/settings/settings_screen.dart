@@ -53,7 +53,7 @@ class SettingsScreen extends StatelessWidget {
             Navigator.pushNamed(context, WalletRoutes.changePinRoute);
           },
         ),
-        const Divider(height: 1),
+        const Divider(),
         FutureBuilder<Biometrics>(
           future: context.read<GetSupportedBiometricsUseCase>().invoke(),
           initialData: Biometrics.some,
@@ -70,19 +70,19 @@ class SettingsScreen extends StatelessWidget {
             );
           },
         ),
-        const Divider(height: 1),
+        const Divider(),
         MenuRow(
           label: context.l10n.settingsScreenChangeLanguageCta,
           icon: Icons.translate,
           onTap: () => Navigator.pushNamed(context, WalletRoutes.changeLanguageRoute),
         ),
-        const Divider(height: 1),
+        const Divider(),
         MenuRow(
           label: context.l10n.settingsScreenClearDataCta,
           icon: Icons.delete_outline,
           onTap: () => ResetWalletDialog.show(context),
         ),
-        const Divider(height: 1),
+        const Divider(),
         const SizedBox(height: 24),
       ],
     );

@@ -12,8 +12,13 @@ class KeyboardDigitKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: InkWell(
-        onTap: onKeyPressed == null ? null : () => onKeyPressed!(digit),
+      child: TextButton(
+        onPressed: onKeyPressed == null ? null : () => onKeyPressed!(digit),
+        style: context.theme.textButtonTheme.style?.copyWith(
+          shape: WidgetStateProperty.all(
+            const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          ),
+        ),
         child: Center(
           child: Semantics(
             keyboardKey: true,
@@ -22,6 +27,7 @@ class KeyboardDigitKey extends StatelessWidget {
             child: Text.rich(
               digit.toString().toTextSpan(context),
               textAlign: TextAlign.center,
+              style: TextStyle(fontSize: context.textTheme.displayMedium?.fontSize),
             ),
           ),
         ),

@@ -135,7 +135,7 @@ class CardDetailScreen extends StatelessWidget {
           ),
         ),
         const SliverSizedBox(height: 32),
-        const SliverDivider(height: 1),
+        const SliverDivider(),
         const SliverFillRemaining(
           child: CenteredLoadingIndicator(),
         ),
@@ -227,7 +227,7 @@ class CardDetailScreen extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (c, i) => rows[i],
-      separatorBuilder: (c, i) => const Divider(height: 1),
+      separatorBuilder: (c, i) => const Divider(),
       itemCount: rows.length,
     );
   }

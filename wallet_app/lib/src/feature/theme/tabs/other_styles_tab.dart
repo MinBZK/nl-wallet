@@ -62,7 +62,7 @@ final _kSampleCardFront = CardFront(
   backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
   theme: CardFrontTheme.dark,
   info: 'Info'.untranslated,
-  logoImage: WalletAssets.logo_card_rijksoverheid,
+  logoImage: WalletAssets.illustration_digid_failure,
   subtitle: 'Subtitle'.untranslated,
 );
 

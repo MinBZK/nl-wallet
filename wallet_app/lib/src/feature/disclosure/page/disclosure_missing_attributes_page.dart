@@ -34,7 +34,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
             const SliverSizedBox(height: 32),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
             const SliverSizedBox(height: 32),
-            const SliverDivider(height: 1),
+            const SliverDivider(),
             const SliverSizedBox(height: 24),
             SliverList(delegate: _getDataAttributesDelegate()),
             const SliverSizedBox(height: 24),

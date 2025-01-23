@@ -107,7 +107,7 @@ class CheckAttributesScreen extends StatelessWidget {
             ),
           ),
           const SliverSizedBox(height: 24),
-          const SliverDivider(height: 1),
+          const SliverDivider(),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             sliver: SliverList.separated(

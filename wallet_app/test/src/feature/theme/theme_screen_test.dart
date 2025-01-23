@@ -12,16 +12,18 @@ void main() {
   setUp(TestUtils.mockSensorsPlugin);
 
   group('verify all tabs can be rendered', () {
-    testWidgets('text styles tab is shown', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
-      expect(find.byType(TextStylesTab), findsOneWidget);
-    });
-
     testWidgets('button styles tab is shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
       await tester.tap(find.text('Buttons'));
       await tester.pumpAndSettle();
       expect(find.byType(ButtonStylesTab), findsOneWidget);
+    });
+
+    testWidgets('text styles tab is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
+      await tester.tap(find.text('TextStyles'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextStylesTab), findsOneWidget);
     });
 
     testWidgets('color styles tab is shown', (tester) async {
