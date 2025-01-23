@@ -13,6 +13,7 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
+use tracing::warn;
 use uuid::Uuid;
 use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
@@ -143,8 +144,8 @@ pub enum AndroidKeyAttestationError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AndroidAppAttestationError {
-    #[error("could not decode integrity toking using Play Integrity API: {0}")]
-    DecodeIntegrityToken(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("could not decode integrity toking using Play Integrity API")]
+    DecodeIntegrityToken,
     #[error("validation if integrity verdict failed: {0}")]
     IntegrityVerdict(#[source] IntegrityVerdictVerificationError),
 }
@@ -453,7 +454,11 @@ impl<PIC> AccountServer<PIC> {
                     .play_integrity_client
                     .decode_token(&integrity_token)
                     .await
-                    .map_err(|error| AndroidAppAttestationError::DecodeIntegrityToken(Box::new(error)))?;
+                    .map_err(|error| {
+                        warn!("could not decode integrity token using Play Integrity API: {0}", error);
+
+                        AndroidAppAttestationError::DecodeIntegrityToken
+                    })?;
 
                 let _ = VerifiedIntegrityVerdict::verify_with_time(
                     integrity_verdict,

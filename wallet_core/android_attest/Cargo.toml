@@ -19,6 +19,7 @@ bitflags.workspace = true
 chrono = { workspace = true, features = ["serde", "now"] }
 const-decoder.workspace = true
 derive_more = { workspace = true, features = ["as_ref"] }
+futures.workspace = true
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
 int-enum.workspace = true
 num-bigint.workspace = true

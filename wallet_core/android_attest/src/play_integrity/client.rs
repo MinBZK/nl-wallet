@@ -1,6 +1,8 @@
 use std::error::Error;
 
+use futures::TryFutureExt;
 use reqwest::Client;
+use reqwest::StatusCode;
 use serde::Serialize;
 use url::Url;
 
@@ -22,6 +24,8 @@ pub enum PlayIntegrityClientError {
     PackageName(#[from] url::ParseError),
     #[error("could not send HTTP request: {0}")]
     Http(#[from] reqwest::Error),
+    #[error("received HTTP error response \"{0}\" from API: {1}")]
+    HttpResponse(StatusCode, String),
     #[error("could not decode integrity verdict JSON: {0}")]
     DecodeIntegrityVerdict(#[from] serde_json::Error),
 }
@@ -70,9 +74,17 @@ impl IntegrityTokenDecoder for PlayIntegrityClient {
             .get(self.url.clone())
             .json(&request_body)
             .send()
-            .await?
-            .error_for_status()?
-            .text()
+            .map_err(PlayIntegrityClientError::Http)
+            .and_then(|response| async {
+                let status = response.status();
+                let body = response.text().await?;
+
+                if status.is_client_error() || status.is_server_error() {
+                    return Err(PlayIntegrityClientError::HttpResponse(status, body));
+                }
+
+                Ok(body)
+            })
             .await?;
 
         let integrity_verdict = serde_json::from_str(&json)?;
@@ -151,7 +163,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_play_integrity_http_error() {
+    async fn test_play_integrity_http_response_error() {
         let client = PlayIntegrityClient::new(ClientBuilder::default().build().unwrap(), "com.package.name")
             .expect("package name should be valid in URL");
         let (client, _server) = inject_play_integrity_server(client).await;
@@ -161,7 +173,7 @@ mod tests {
             .await
             .expect_err("request to decode an unknown integrity token should return a error");
 
-        assert_matches!(error, PlayIntegrityClientError::Http(error) if error.status() == Some(StatusCode::NOT_FOUND));
+        assert_matches!(error, PlayIntegrityClientError::HttpResponse(status, _) if status == StatusCode::NOT_FOUND);
     }
 }
 

@@ -120,6 +120,7 @@ dependencies = [
  "chrono",
  "const-decoder",
  "derive_more",
+ "futures",
  "http-cache-reqwest",
  "int-enum",
  "num-bigint",
