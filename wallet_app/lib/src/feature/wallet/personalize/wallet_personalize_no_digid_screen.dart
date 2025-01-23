@@ -54,7 +54,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const Divider(height: 1),
+        const Divider(),
         ConfirmButtons(
           forceVertical: !context.isLandscape,
           primaryButton: PrimaryButton(

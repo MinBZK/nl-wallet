@@ -58,7 +58,7 @@ class DigidPinPage extends StatelessWidget {
           const Spacer(),
           _buildForgotPinCta(context),
           const SizedBox(height: 16),
-          const Divider(height: 1),
+          const Divider(),
           PinKeyboard(
             onKeyPressed: onKeyPressed,
             onBackspacePressed: onBackspacePressed,

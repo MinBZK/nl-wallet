@@ -51,7 +51,7 @@ class TerminalScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Divider(height: 1),
+                const Divider(),
                 ConfirmButtons(
                   primaryButton: primaryButton,
                   secondaryButton: secondaryButton ?? const NeverFitsWidthWidget(child: SizedBox.shrink()),

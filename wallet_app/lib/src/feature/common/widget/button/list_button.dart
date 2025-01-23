@@ -32,51 +32,37 @@ class ListButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: _resolveDividerDecoration(context),
-      child: TextButton(
-        style: _resolveButtonStyle(context),
-        onPressed: onPressed,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: _buildContent()),
-            trailing ?? const SizedBox.shrink(),
-          ],
+    return Column(
+      children: [
+        if (dividerSide.top) _buildDivider(context),
+        TextButton(
+          style: _resolveButtonStyle(context),
+          onPressed: onPressed,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: _buildContent()),
+              trailing ?? const SizedBox.shrink(),
+            ],
+          ),
         ),
-      ),
+        if (dividerSide.bottom) _buildDivider(context),
+      ],
     );
   }
 
   ButtonStyle _resolveButtonStyle(BuildContext context) => context.theme.textButtonTheme.style!.copyWith(
-        minimumSize: WidgetStateProperty.all(
+        minimumSize: WidgetStatePropertyAll(
           Size(0, context.isLandscape ? _kLandscapeButtonHeight : _kButtonHeight),
         ),
-        shape: WidgetStateProperty.all(
-          LinearBorder.none,
-        ),
-        padding: WidgetStateProperty.all(
+        padding: WidgetStatePropertyAll(
           EdgeInsets.symmetric(
             horizontal: 16,
             vertical: context.isLandscape ? _kLandscapeVerticalPadding : _kVerticalPadding,
           ),
         ),
-      );
-
-  BoxDecoration _resolveDividerDecoration(BuildContext context) => BoxDecoration(
-        border: Border(
-          top: dividerSide.top
-              ? BorderSide(
-                  color: context.theme.dividerTheme.color!,
-                  width: context.theme.dividerTheme.thickness!,
-                )
-              : BorderSide.none,
-          bottom: dividerSide.bottom
-              ? BorderSide(
-                  color: context.theme.dividerTheme.color!,
-                  width: context.theme.dividerTheme.thickness!,
-                )
-              : BorderSide.none,
+        shape: const WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
       );
 
@@ -86,6 +72,8 @@ class ListButton extends StatelessWidget {
         iconPosition: iconPosition,
         mainAxisAlignment: mainAxisAlignment,
       );
+
+  Divider _buildDivider(BuildContext context) => Divider(height: context.theme.dividerTheme.thickness);
 }
 
 enum DividerSide { none, top, bottom, horizontal }

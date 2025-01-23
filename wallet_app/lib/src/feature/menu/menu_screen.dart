@@ -14,6 +14,7 @@ import '../common/mixin/lock_state_mixin.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
+import '../common/widget/button/secondary_button.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
@@ -77,31 +78,23 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
     final menuItems = _buildMenuItems(context);
     final itemsList = SliverList.separated(
       itemBuilder: (c, i) => menuItems[i],
-      separatorBuilder: (c, i) => const Divider(height: 1),
+      separatorBuilder: (c, i) => const Divider(),
       itemCount: menuItems.length,
     );
     return SliverMainAxisGroup(
       slivers: [
         const SliverSizedBox(height: 16),
-        const SliverDivider(height: 1),
+        const SliverDivider(),
         itemsList,
-        const SliverDivider(height: 1),
+        const SliverDivider(),
         const SliverSizedBox(height: 40),
         SliverToBoxAdapter(
           child: Center(
             child: IntrinsicWidth(
-              child: OutlinedButton(
-                onPressed: () async {
-                  context.read<MenuBloc>().add(MenuLockWalletPressed());
-                  Navigator.popUntil(context, ModalRoute.withName(WalletRoutes.dashboardRoute));
-                },
-                child: Row(
-                  children: [
-                    const Icon(Icons.key_outlined, size: 14),
-                    const SizedBox(width: 8),
-                    Text.rich(context.l10n.menuScreenLockCta.toTextSpan(context)),
-                  ],
-                ),
+              child: SecondaryButton(
+                icon: const Icon(Icons.key_outlined),
+                text: Text.rich(context.l10n.menuScreenLockCta.toTextSpan(context)),
+                onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
               ),
             ),
           ),

@@ -53,12 +53,12 @@ class AboutScreen extends StatelessWidget {
           child: _buildDescription(context),
         ),
         const SizedBox(height: 16),
-        const Divider(height: 1),
+        const Divider(),
         MenuRow(
           label: context.l10n.aboutScreenPrivacyCta,
           onTap: () => Navigator.pushNamed(context, WalletRoutes.privacyPolicyRoute),
         ),
-        const Divider(height: 1),
+        const Divider(),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Column(

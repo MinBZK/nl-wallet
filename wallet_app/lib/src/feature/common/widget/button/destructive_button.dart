@@ -21,7 +21,7 @@ class DestructiveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final errorColor = context.colorScheme.error;
-    final overlayColor = errorColor.darken();
+    final overlayColor = context.brightness == Brightness.light ? errorColor.darken() : errorColor.lighten();
     return ElevatedButton(
       style: context.theme.elevatedButtonTheme.style?.copyWith(
         backgroundColor: WidgetStateColor.resolveWith((states) => errorColor),
