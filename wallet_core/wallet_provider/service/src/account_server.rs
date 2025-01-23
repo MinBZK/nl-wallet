@@ -269,6 +269,7 @@ impl AppleAttestationConfiguration {
     }
 }
 
+#[trait_variant::make(Send)]
 pub trait GoogleCrlClient {
     async fn get_crl(&self) -> Result<RevocationStatusList, CrlError>;
 }

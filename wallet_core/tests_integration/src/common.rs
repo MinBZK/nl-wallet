@@ -20,6 +20,7 @@ use tokio::time;
 use url::Url;
 use uuid::Uuid;
 
+use android_attest::android_crl::RevocationStatusList;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -331,7 +332,7 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTr
     let base_url = local_wp_base_url(&settings.webserver.port);
 
     tokio::spawn(async {
-        if let Err(error) = wallet_provider::server::serve(settings).await {
+        if let Err(error) = wallet_provider::server::serve(settings, RevocationStatusList::default()).await {
             println!("Could not start wallet_provider: {:?}", error);
 
             process::exit(1);

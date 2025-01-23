@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use android_attest::android_crl::GoogleRevocationListClient;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -15,7 +14,6 @@ use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;
 use wallet_common::generator::Generator;
 use wallet_common::keys::EcdsaKey;
-use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
@@ -32,8 +30,8 @@ use wallet_provider_service::wte_issuer::HsmWteIssuer;
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
 
-pub struct RouterState {
-    pub account_server: AccountServer,
+pub struct RouterState<GC> {
+    pub account_server: AccountServer<GC>,
     pub pin_policy: PinPolicy,
     pub repositories: Repositories,
     pub hsm: Pkcs11Hsm,
@@ -42,8 +40,11 @@ pub struct RouterState {
     pub wte_issuer: HsmWteIssuer<Pkcs11Hsm>,
 }
 
-impl RouterState {
-    pub async fn new_from_settings(settings: Settings) -> Result<RouterState, Box<dyn Error>> {
+impl<GC> RouterState<GC> {
+    pub async fn new_from_settings(
+        settings: Settings,
+        google_crl_client: GC,
+    ) -> Result<RouterState<GC>, Box<dyn Error>> {
         let hsm = Pkcs11Hsm::new(
             settings.hsm.library_path,
             settings.hsm.user_pin,
@@ -81,8 +82,6 @@ impl RouterState {
             .into_iter()
             .map(RootPublicKey::from)
             .collect();
-
-        let google_crl_client = GoogleRevocationListClient::new(default_reqwest_client_builder().build()?);
 
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
@@ -160,13 +159,13 @@ impl RouterState {
     }
 }
 
-impl Generator<uuid::Uuid> for RouterState {
+impl<GC> Generator<uuid::Uuid> for RouterState<GC> {
     fn generate(&self) -> Uuid {
         Uuid::new_v4()
     }
 }
 
-impl Generator<DateTime<Utc>> for RouterState {
+impl<GC> Generator<DateTime<Utc>> for RouterState<GC> {
     fn generate(&self) -> DateTime<Utc> {
         Utc::now()
     }

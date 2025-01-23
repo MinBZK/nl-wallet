@@ -83,7 +83,9 @@ test_common = [
     "dep:wallet_common",
     "dep:wallet_provider",
     "dep:wallet_provider_persistence",
+    "dep:wallet_provider_service",
     "dep:wallet_server",
+    "wallet_provider_service/mock",
 ]
 # Include the fake_digid submodule
 fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common"]
