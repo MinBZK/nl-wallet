@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:5b44cdb65c13ae10e01b0522245e349cff0f1a0b7d4a935076ff90ed068f2f0e"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250122-13f7122c"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
@@ -114,8 +114,6 @@ variables:
 
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:d3d70d3040d563c0668a13022f55e07e36c60854b772b636f7b4c8a5f6325ce1"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -124,7 +122,7 @@ test-flutter:
     - flutter pub get --enforce-lockfile
     - flutter analyze .
     - flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
-    - $HOME/.pub-cache/bin/tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
+    - tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
   after_script:
     - set -euxo pipefail
     - |
@@ -160,8 +158,6 @@ test-flutter-ui:
 # Checks .arb files for unused keys, indicating an update to Lokalise might be in order
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:d3d70d3040d563c0668a13022f55e07e36c60854b772b636f7b4c8a5f6325ce1"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -174,8 +170,6 @@ verify-flutter-localizations:
 
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:173637b27d8a4b4204d6dc12a2a8af4bddbffa6bbed984b85a5c235006bda0f6"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -189,8 +183,6 @@ test-codegen:
 
 build-wallet-web:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:5094c64b0692fd25878408229e0ace2db171912ff017613a640033e25bb87df0"
   variables:
     VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
   script:
@@ -557,8 +549,6 @@ deploy-gba-fetch-frontend-demo:
 
 build-sbom:
   rules: !reference [.default-branch, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:5c9dc61642166024ab4445555489e36f9caf42c4709359d1d72948689a40bc31"
   script:
     ## Rust
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
