@@ -91,8 +91,8 @@ pub fn verify_google_key_attestation(
         return Err(GoogleKeyAttestationError::RevokedCertificates);
     }
 
-    // 5. Optionally, inspect the provisioning information certificate extension that is only present in newer certificate chains.
-    //    We skip this step, as interpreting the provisioning information is not clearly defined.
+    // 5. Optionally, inspect the provisioning information certificate extension that is only present in newer
+    //    certificate chains. We skip this step, as interpreting the provisioning information is not clearly defined.
 
     // 6. Obtain a reference to the ASN.1 parser library that is most appropriate for your toolset. Find the nearest
     //    certificate to the root that contains the key attestation certificate extension. If the provisioning
@@ -182,10 +182,9 @@ mod tests {
     use rasn::types::OctetString;
     use rstest::rstest;
 
-    use crate::{
-        attestation_extension::key_description::{KeyDescription, SecurityLevel},
-        mock::MockCaChain,
-    };
+    use crate::attestation_extension::key_description::KeyDescription;
+    use crate::attestation_extension::key_description::SecurityLevel;
+    use crate::mock::MockCaChain;
 
     use super::*;
 
@@ -227,7 +226,7 @@ mod tests {
 
         // Get root public key, the chain length is 3 now, root + intermediate + leaf.
         let (_, root_certificate) = X509Certificate::from_der(&certificates[2]).unwrap();
-        let root_public_keys = vec![RootPublicKey::rsa_from_der(root_certificate.public_key().raw).unwrap()];
+        let root_public_keys = vec![RootPublicKey::try_from(root_certificate.public_key().raw).unwrap()];
 
         let revocation_list = RevocationStatusList::default();
 
@@ -263,7 +262,7 @@ mod tests {
 
         // Get root public key, the chain length is 3 now, root + intermediate + leaf.
         let (_, root_certificate) = X509Certificate::from_der(&certificates[2]).unwrap();
-        let root_public_keys = vec![RootPublicKey::rsa_from_der(root_certificate.public_key().raw).unwrap()];
+        let root_public_keys = vec![RootPublicKey::try_from(root_certificate.public_key().raw).unwrap()];
 
         let revocation_list = RevocationStatusList::default();
 

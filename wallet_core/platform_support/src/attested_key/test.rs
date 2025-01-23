@@ -2,7 +2,11 @@ use std::convert::Infallible;
 use std::fmt::Debug;
 use std::mem;
 
+use android_attest::android_crl::RevocationStatusList;
+use android_attest::certificate_chain::verify_google_key_attestation;
+use android_attest::root_public_key::RootPublicKey;
 use p256::ecdsa::signature::Verifier;
+use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 
 use apple_app_attest::AppIdentifier;
@@ -13,6 +17,8 @@ use apple_app_attest::VerifiedAssertion;
 use apple_app_attest::VerifiedAttestation;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::utils;
+use x509_parser::prelude::FromDer;
+use x509_parser::prelude::X509Certificate;
 
 use super::AppleAttestedKey;
 use super::AttestedKey;
@@ -138,10 +144,41 @@ pub async fn create_and_verify_attested_key<'a, H>(
         }
         KeyWithAttestation::Google {
             key,
-            certificate_chain: _certificate_chain,
+            certificate_chain,
             app_attestation_token: _app_attestation_token,
         } => {
             log::info!("Found Google Key: {key:?}");
+
+            log::info!("Verify certificate chain");
+
+            log::info!("Prepare chain");
+            let der_certificate_chain: Vec<_> = certificate_chain
+                .iter()
+                .map(|der| CertificateDer::from_slice(der))
+                .collect();
+            log::info!("chain: {der_certificate_chain:?}");
+
+            // TODO: configure trusted root public keys?
+            log::info!("Extract root public key from root certificate");
+            let (_, root_certificate) =
+                X509Certificate::from_der(der_certificate_chain.last().expect("certificate chain not empty")).unwrap();
+            let root_public_keys = vec![
+                RootPublicKey::try_from(root_certificate.public_key().raw).expect("valid root public key in chain")
+            ];
+
+            // TODO: configure CRL, so that revoked certs can be tested?
+            log::info!("Prepare CRL");
+            let revocation_list = RevocationStatusList {
+                entries: Default::default(),
+            };
+
+            // TODO: fail when verification failed, and reduced security level for emulator is introduced
+            log::info!("Invoke verify_google_key_attestation");
+            match verify_google_key_attestation(&der_certificate_chain, &root_public_keys, &revocation_list, &challenge)
+            {
+                Ok(()) => log::info!("key attestation verified successfully"),
+                Err(error) => log::error!("could not verify attestation key certificate chain: {error}"),
+            }
 
             log::info!("Sign payload with google key");
             let signature1 = key.try_sign(&payload).await.expect("could not sign payload");
