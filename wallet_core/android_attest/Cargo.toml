@@ -17,7 +17,7 @@ emulator = []
 [dependencies]
 bitflags.workspace = true
 cfg-if.workspace = true
-chrono = { workspace = true, features = ["serde"] }
+chrono = { workspace = true, features = ["serde", "now"] }
 const-decoder.workspace = true
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
 int-enum.workspace = true

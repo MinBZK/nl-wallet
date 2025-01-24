@@ -22,7 +22,7 @@ use x509_parser::prelude::X509Certificate;
 use android_attest::android_crl::Error as CrlError;
 use android_attest::android_crl::GoogleRevocationListClient;
 use android_attest::android_crl::RevocationStatusList;
-use android_attest::certificate_chain::verify_google_key_attestation;
+use android_attest::certificate_chain::verify_google_key_attestation_with_time;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
@@ -421,11 +421,12 @@ impl<GC> AccountServer<GC> {
                     .iter()
                     .map(|cert| CertificateDer::from_slice(cert))
                     .collect::<Vec<_>>();
-                verify_google_key_attestation(
+                verify_google_key_attestation_with_time(
                     &attested_key_chain,
                     &self.android_root_public_keys,
                     &crl,
                     &challenge_hash,
+                    attestation_timestamp,
                 )
                 .map_err(AndroidAttestationError::Verification)?;
 

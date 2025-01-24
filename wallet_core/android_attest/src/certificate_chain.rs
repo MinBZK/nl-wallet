@@ -1,3 +1,7 @@
+use std::time::Duration;
+
+use chrono::DateTime;
+use chrono::Utc;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use webpki::ring::ECDSA_P256_SHA256;
@@ -47,27 +51,51 @@ pub enum GoogleKeyAttestationError {
     KeyAttestationVerification(#[from] KeyAttestationVerificationError),
 }
 
-// This function implements the steps as described in: [Verify hardware-backed key pairs with key attestation](https://developer.android.com/privacy-and-security/security-key-attestation).
-// The first steps in the procedure are executed on the Android device, and are the prerequisite for this function.
-// Note that the certificate chain containing at least two values is a precondition for this function.
-// A panic will occur if this is not the case.
-//
-// 1. Use a KeyStore object's getCertificateChain() method to get a reference to the chain of X.509 certificates
-//    associated with the hardware-backed keystore.
-//
-// 2. Send the certificates to a separate server that you trust for validation.
 pub fn verify_google_key_attestation(
     certificate_chain: &[CertificateDer],
     root_public_keys: &[RootPublicKey],
     revocation_list: &RevocationStatusList,
     attestation_challenge: &[u8],
 ) -> Result<(), GoogleKeyAttestationError> {
+    verify_google_key_attestation_with_time(
+        certificate_chain,
+        root_public_keys,
+        revocation_list,
+        attestation_challenge,
+        Utc::now(),
+    )
+}
+
+// This function implements the steps as described in: [Verify hardware-backed key pairs with key attestation](https://developer.android.com/privacy-and-security/security-key-attestation).
+// The first steps in the procedure are executed on the Android device, and are the prerequisite for this function.
+//
+// Note that this function has two preconditions, either of which will cause a panic if not met:
+// * The certificate chain should contain at least two values.
+// * The provided time should be equal to or later than the Unix epoch.
+//
+// 1. Use a KeyStore object's getCertificateChain() method to get a reference to the chain of X.509 certificates
+//    associated with the hardware-backed keystore.
+//
+// 2. Send the certificates to a separate server that you trust for validation.
+pub fn verify_google_key_attestation_with_time(
+    certificate_chain: &[CertificateDer],
+    root_public_keys: &[RootPublicKey],
+    revocation_list: &RevocationStatusList,
+    attestation_challenge: &[u8],
+    time: DateTime<Utc>,
+) -> Result<(), GoogleKeyAttestationError> {
     assert!(certificate_chain.len() >= 2);
+
+    let timestamp = time
+        .timestamp()
+        .try_into()
+        .expect("provided time should be equal to or later than the Unix epoch");
+    let unix_time = UnixTime::since_unix_epoch(Duration::from_secs(timestamp));
 
     // 3. Obtain a reference to the X.509 certificate chain parsing and validation library that is most appropriate for
     //    your toolset. Verify that the root public certificate is trustworthy and that each certificate signs the next
     //    certificate in the chain.
-    verify_google_attestation_certificate_chain(certificate_chain, root_public_keys)?;
+    verify_google_attestation_certificate_chain(certificate_chain, root_public_keys, unix_time)?;
 
     // 4. Check each certificate's revocation status to ensure that none of the certificates have been revoked.
     let x509_certificates = certificate_chain
@@ -122,6 +150,7 @@ pub fn verify_google_key_attestation(
 fn verify_google_attestation_certificate_chain(
     certificate_chain: &[CertificateDer],
     root_public_keys: &[RootPublicKey],
+    unix_time: UnixTime,
 ) -> Result<(), GoogleKeyAttestationError> {
     let root_index = certificate_chain.len() - 1;
 
@@ -166,7 +195,7 @@ fn verify_google_attestation_certificate_chain(
             ],
             &trust_anchors,
             &certificate_chain[1..root_index],
-            UnixTime::now(),
+            unix_time,
             KeyUsage::client_auth(),
             None,
             None,
