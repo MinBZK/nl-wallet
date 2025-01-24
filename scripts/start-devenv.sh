@@ -353,7 +353,7 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
-        RUST_LOG=debug cargo run --bin wallet_provider --features=android_emulator > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
+        RUST_LOG=debug cargo run --bin wallet_provider --features=allow_android_emulator_keys > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
 
         echo -e "wallet_provider logs can be found at ${CYAN}${TARGET_DIR}/wallet_provider.log${NC}"
     fi

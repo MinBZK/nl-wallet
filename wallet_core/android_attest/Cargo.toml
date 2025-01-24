@@ -12,7 +12,7 @@ encode = []
 mock = ["encode", "dep:derive_more", "dep:rand", "dep:rcgen", "dep:time"]
 network_test = []
 # Accept attested keys from the emulator. This allows software security level.
-emulator = ["dep:tracing"]
+allow_emulator_keys = ["dep:tracing"]
 
 [dependencies]
 bitflags.workspace = true
