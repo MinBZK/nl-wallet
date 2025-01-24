@@ -141,7 +141,6 @@ test-flutter:
 
 test-flutter-ui:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  when: manual
   tags:
     - macos
   image: sonoma-wallet:0.1.5
@@ -154,8 +153,10 @@ test-flutter-ui:
     - cd wallet_app
     - set -euxo pipefail
   script:
-    - flutter --version
-    - flutter test --tags=golden --dart-define=MOCK_REPOSITORIES=true
+    - fvm flutter --version
+    - http_proxy='' https_proxy='' fvm flutter pub get --enforce-lockfile
+    - defaults -currentHost write -g AppleFontSmoothing -int 0 # Disable font smoothing, should match the generating platform.
+    - fvm flutter test --tags=golden
 
 # Checks .arb files for unused keys, indicating an update to Lokalise might be in order
 verify-flutter-localizations:
