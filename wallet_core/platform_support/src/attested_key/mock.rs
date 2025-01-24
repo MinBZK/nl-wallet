@@ -328,7 +328,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
                     attestation_security_level: SecurityLevel::TrustedEnvironment,
                     key_mint_version: 300.into(),
                     key_mint_security_level: SecurityLevel::TrustedEnvironment,
-                    attestation_challenge: OctetString::copy_from_slice(b"challenge"),
+                    attestation_challenge: OctetString::copy_from_slice(&challenge),
                     unique_id: OctetString::copy_from_slice(b"unique_id"),
                     software_enforced: Default::default(),
                     hardware_enforced: Default::default(),
