@@ -85,7 +85,6 @@ test_common = [
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
     "dep:wallet_server",
-    "wallet_provider_service/mock",
 ]
 # Include the fake_digid submodule
 fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common"]
@@ -209,7 +208,7 @@ wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps
 wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
-wallet_provider_service = { path = "../wallet_provider/service", optional = true }
+wallet_provider_service = { path = "../wallet_provider/service", optional = true, features = ["mock"] }
 wallet_server = { path = "../wallet_server", optional = true, features = ["issuance", "disclosure", "mock"] }
 
 [build-dependencies]
@@ -222,5 +221,4 @@ dotenvy = { workspace = true, optional = true }
 # * db_test
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
-wallet_provider_service.path = "../wallet_provider/service"
 wallet_server = { path = "../wallet_server", features = ["issuance", "integration_test"] }
