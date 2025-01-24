@@ -979,6 +979,8 @@ pub mod mock {
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 
+    pub type MockAccountServer = AccountServer<RevocationStatusList>;
+
     #[derive(Clone, Copy)]
     pub enum AttestationType {
         Apple,
@@ -1000,7 +1002,7 @@ pub mod mock {
     pub fn setup_account_server(
         certificate_signing_pubkey: &VerifyingKey,
         crl: RevocationStatusList,
-    ) -> AccountServer<RevocationStatusList> {
+    ) -> MockAccountServer {
         AccountServer::new(
             Duration::from_millis(15000),
             "mock_account_server".into(),
@@ -1142,6 +1144,7 @@ mod tests {
 
     use super::mock::AttestationCa;
     use super::mock::AttestationType;
+    use super::mock::MockAccountServer;
     use super::mock::MockHardwareKey;
     use super::mock::MOCK_APPLE_CA;
     use super::mock::MOCK_GOOGLE_CA_CHAIN;
@@ -1153,16 +1156,13 @@ mod tests {
         HSM.get_or_init(wallet_certificate::mock::setup_hsm).await
     }
 
-    async fn do_registration<GC>(
-        account_server: &AccountServer<GC>,
+    async fn do_registration(
+        account_server: &MockAccountServer,
         hsm: &MockPkcs11Client<HsmError>,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         pin_privkey: &SigningKey,
         attestation_ca: AttestationCa<'_>,
-    ) -> Result<(WalletCertificate, MockHardwareKey), RegistrationError>
-    where
-        GC: GoogleCrlProvider,
-    {
+    ) -> Result<(WalletCertificate, MockHardwareKey), RegistrationError> {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
             .await
@@ -1230,7 +1230,7 @@ mod tests {
         attestation_type: AttestationType,
     ) -> (
         WalletCertificateSetup,
-        AccountServer<RevocationStatusList>,
+        MockAccountServer,
         MockHardwareKey,
         WalletCertificate,
         WalletUserTestRepo,
@@ -1269,8 +1269,8 @@ mod tests {
         (setup, account_server, hw_privkey, cert, repo)
     }
 
-    async fn do_instruction_challenge<I, GC>(
-        account_server: &AccountServer<GC>,
+    async fn do_instruction_challenge<I>(
+        account_server: &MockAccountServer,
         repo: &WalletUserTestRepo,
         hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
@@ -1279,7 +1279,6 @@ mod tests {
     ) -> Result<Vec<u8>, ChallengeError>
     where
         I: InstructionAndResult,
-        GC: GoogleCrlProvider,
     {
         let instruction_challenge = hw_privkey
             .sign_instruction_challenge::<I>(
@@ -1294,18 +1293,15 @@ mod tests {
             .await
     }
 
-    async fn do_check_pin<GC>(
-        account_server: &AccountServer<GC>,
+    async fn do_check_pin(
+        account_server: &MockAccountServer,
         repo: WalletUserTestRepo,
         pin_privkey: &SigningKey,
         hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
         instruction_result_signing_key: &SigningKey,
-    ) -> Result<InstructionResult<()>, anyhow::Error>
-    where
-        GC: GoogleCrlProvider,
-    {
-        let challenge = do_instruction_challenge::<CheckPin, GC>(
+    ) -> Result<InstructionResult<()>, anyhow::Error> {
+        let challenge = do_instruction_challenge::<CheckPin>(
             account_server,
             &repo,
             hw_privkey,
@@ -1370,17 +1366,14 @@ mod tests {
         Ok(result)
     }
 
-    async fn do_pin_change_start<GC>(
-        account_server: &AccountServer<GC>,
+    async fn do_pin_change_start(
+        account_server: &MockAccountServer,
         repo: WalletUserTestRepo,
         wallet_certificate_setup: &WalletCertificateSetup,
         hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
         instruction_result_signing_key: &SigningKey,
-    ) -> (SigningKey, VerifyingKey, Encrypted<VerifyingKey>, WalletCertificate)
-    where
-        GC: GoogleCrlProvider,
-    {
+    ) -> (SigningKey, VerifyingKey, Encrypted<VerifyingKey>, WalletCertificate) {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
@@ -1392,7 +1385,7 @@ mod tests {
         .await
         .unwrap();
 
-        let challenge = do_instruction_challenge::<ChangePinStart, GC>(
+        let challenge = do_instruction_challenge::<ChangePinStart>(
             account_server,
             &repo,
             hw_privkey,
@@ -1530,7 +1523,7 @@ mod tests {
             )),
         };
 
-        let error = do_instruction_challenge::<CheckPin, RevocationStatusList>(
+        let error = do_instruction_challenge::<CheckPin>(
             &account_server,
             &repo,
             &wrong_hw_privkey,
@@ -1554,16 +1547,12 @@ mod tests {
             setup_and_do_registration(AttestationType::Apple).await;
         repo.apple_assertion_counter = Some(AssertionCounter::from(200));
 
-        let error = do_instruction_challenge::<CheckPin, RevocationStatusList>(
-            &account_server,
-            &repo,
-            &hw_privkey,
-            cert,
-            43,
-            get_global_hsm().await,
-        )
-        .await
-        .expect_err("requesting a challenge with a different signature type than used during registration should fail");
+        let error =
+            do_instruction_challenge::<CheckPin>(&account_server, &repo, &hw_privkey, cert, 43, get_global_hsm().await)
+                .await
+                .expect_err(
+                    "requesting a challenge with a different signature type than used during registration should fail",
+                );
 
         assert_matches!(
             error,
@@ -1731,7 +1720,7 @@ mod tests {
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
-        let challenge_error = do_instruction_challenge::<CheckPin, RevocationStatusList>(
+        let challenge_error = do_instruction_challenge::<CheckPin>(
             &account_server,
             &repo,
             &hw_privkey,
@@ -1807,7 +1796,7 @@ mod tests {
         .await
         .expect("verifying with the new pin_pubkey should succeed");
 
-        let challenge = do_instruction_challenge::<ChangePinCommit, RevocationStatusList>(
+        let challenge = do_instruction_challenge::<ChangePinCommit>(
             &account_server,
             &repo,
             &hw_privkey,
@@ -1922,7 +1911,7 @@ mod tests {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
-        let challenge = do_instruction_challenge::<ChangePinStart, RevocationStatusList>(
+        let challenge = do_instruction_challenge::<ChangePinStart>(
             &account_server,
             &repo,
             &hw_privkey,
@@ -1989,7 +1978,7 @@ mod tests {
         )
         .await;
 
-        let challenge = do_instruction_challenge::<ChangePinRollback, RevocationStatusList>(
+        let challenge = do_instruction_challenge::<ChangePinRollback>(
             &account_server,
             &repo,
             &hw_privkey,

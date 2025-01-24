@@ -24,11 +24,10 @@ use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
 use wallet_provider_service::account_server::mock::AttestationType;
+use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
 use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
-use wallet_provider_service::account_server::AccountServer;
-use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
@@ -45,17 +44,14 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
     Db::new(settings.database.connection_string(), Default::default()).await
 }
 
-async fn do_registration<GC>(
-    account_server: &AccountServer<GC>,
+async fn do_registration(
+    account_server: &MockAccountServer,
     hsm: &MockPkcs11Client<HsmError>,
     certificate_signing_key: &impl WalletCertificateSigningKey,
     pin_privkey: &SigningKey,
     repos: &Repositories,
     attestation_ca: AttestationCa<'_>,
-) -> (WalletCertificate, MockHardwareKey, WalletCertificateClaims)
-where
-    GC: GoogleCrlProvider,
-{
+) -> (WalletCertificate, MockHardwareKey, WalletCertificateClaims) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
         .await
