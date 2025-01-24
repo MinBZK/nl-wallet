@@ -213,26 +213,17 @@ fn verify_google_attestation_certificate_chain<'a>(
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use rasn::types::OctetString;
     use rstest::rstest;
 
     use crate::attestation_extension::key_description::KeyDescription;
+    #[cfg(not(feature = "emulator"))]
     use crate::attestation_extension::key_description::SecurityLevel;
     use crate::mock::MockCaChain;
 
     use super::*;
 
     fn key_description() -> KeyDescription {
-        KeyDescription {
-            attestation_version: 200.into(),
-            attestation_security_level: SecurityLevel::TrustedEnvironment,
-            key_mint_version: 300.into(),
-            key_mint_security_level: SecurityLevel::TrustedEnvironment,
-            attestation_challenge: OctetString::copy_from_slice(b"challenge"),
-            unique_id: OctetString::copy_from_slice(b"unique_id"),
-            software_enforced: Default::default(),
-            hardware_enforced: Default::default(),
-        }
+        KeyDescription::new_valid_mock(b"challenge".to_vec())
     }
 
     #[cfg(not(feature = "emulator"))]

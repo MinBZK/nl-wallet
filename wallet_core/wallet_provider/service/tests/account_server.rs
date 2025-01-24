@@ -3,8 +3,6 @@ use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
-use android_attest::attestation_extension::key_description::OctetString;
-use android_attest::attestation_extension::key_description::SecurityLevel;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
@@ -57,11 +55,12 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
+    let challenge_hash = utils::sha256(&challenge);
     let (registration_message, hw_privkey) = match attestation_ca {
         AttestationCa::Apple(apple_mock_ca) => {
             let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                 apple_mock_ca,
-                &utils::sha256(&challenge),
+                &challenge_hash,
                 account_server.apple_config.environment,
                 account_server.apple_config.app_identifier.clone(),
             );
@@ -73,16 +72,7 @@ async fn do_registration(
             (registration_message, MockHardwareKey::Apple(attested_key))
         }
         AttestationCa::Google(android_mock_ca_chain) => {
-            let key_description = KeyDescription {
-                attestation_version: 200.into(),
-                attestation_security_level: SecurityLevel::TrustedEnvironment,
-                key_mint_version: 300.into(),
-                key_mint_security_level: SecurityLevel::TrustedEnvironment,
-                attestation_challenge: OctetString::copy_from_slice(&utils::sha256(&challenge)),
-                unique_id: OctetString::copy_from_slice(b"unique_id"),
-                software_enforced: Default::default(),
-                hardware_enforced: Default::default(),
-            };
+            let key_description = KeyDescription::new_valid_mock(challenge_hash);
             let (attested_certificate_chain, attested_private_key) =
                 android_mock_ca_chain.generate_attested_leaf_certificate(&key_description);
             let app_attestation_token = utils::random_bytes(32);

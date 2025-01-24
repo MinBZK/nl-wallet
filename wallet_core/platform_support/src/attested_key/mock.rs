@@ -11,9 +11,9 @@ use parking_lot::RwLock;
 use rand_core::OsRng;
 use uuid::Uuid;
 
+#[cfg(feature = "mock_attested_key_google")]
 use android_attest::attestation_extension::key_description::KeyDescription;
-use android_attest::attestation_extension::key_description::OctetString;
-use android_attest::attestation_extension::key_description::SecurityLevel;
+#[cfg(feature = "mock_attested_key_google")]
 use android_attest::mock::MockCaChain;
 #[cfg(feature = "mock_attested_key_apple")]
 use apple_app_attest::AppIdentifier;
@@ -323,16 +323,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
             }
             #[cfg(feature = "mock_attested_key_google")]
             KeyHolderType::Google { ca_chain } => {
-                let key_description = KeyDescription {
-                    attestation_version: 200.into(),
-                    attestation_security_level: SecurityLevel::TrustedEnvironment,
-                    key_mint_version: 300.into(),
-                    key_mint_security_level: SecurityLevel::TrustedEnvironment,
-                    attestation_challenge: OctetString::copy_from_slice(&challenge),
-                    unique_id: OctetString::copy_from_slice(b"unique_id"),
-                    software_enforced: Default::default(),
-                    hardware_enforced: Default::default(),
-                };
+                let key_description = KeyDescription::new_valid_mock(challenge);
 
                 // Generate a new Google key and mock certificate chain.
                 let (certificate_chain, signing_key) = ca_chain.generate_attested_leaf_certificate(&key_description);

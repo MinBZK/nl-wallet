@@ -210,3 +210,23 @@ pub enum VerifiedBootState {
     Unverified,
     Failed,
 }
+
+#[cfg(any(test, feature = "mock"))]
+mod mock {
+    use super::*;
+
+    impl KeyDescription {
+        pub fn new_valid_mock(attestation_challenge: Vec<u8>) -> Self {
+            KeyDescription {
+                attestation_version: 200.into(),
+                attestation_security_level: SecurityLevel::TrustedEnvironment,
+                key_mint_version: 300.into(),
+                key_mint_security_level: SecurityLevel::TrustedEnvironment,
+                attestation_challenge: OctetString::from(attestation_challenge),
+                unique_id: OctetString::copy_from_slice(b"unique_id"),
+                software_enforced: Default::default(),
+                hardware_enforced: Default::default(),
+            }
+        }
+    }
+}
