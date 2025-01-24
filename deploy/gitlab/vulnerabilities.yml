@@ -89,8 +89,7 @@ trivy-scan:
       artifacts: false
       optional: true
   before_script:
-    - IMAGES=(
-      "nl-wallet-app-builder-ci"
+    - BUILD_IMAGES=(
       "nl-wallet-mock-relying-party"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
@@ -99,20 +98,55 @@ trivy-scan:
       "nl-verification-server"
       "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
+      )
+      OTHER_IMAGES=(
       "nl-rdo-max"
       "nl-wallet-hsm-simulator"
       )
-    - mkdir -p trivy
+    - mkdir trivy
+    - set -euo pipefail
   script:
     - |
       BASIC_AUTH="${HARBOR_GN2_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_GN2_ROBOT_SECRET})"
-      for IMAGE in "${IMAGES[@]}"; do
-        ARTIFACTS_URL="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${IMAGE}/artifacts?page_size=1&page=1&sort=-push_time"
-        VULNERABILITIES_HREF=$(curl --user "${BASIC_AUTH}" --url "${ARTIFACTS_URL}" | jq ".[] | .addition_links.vulnerabilities.href" | sed -e 's/^"//' -e 's/"$//')
-        VULNERABILITIES_URL="https://${HARBOR_REGISTRY}${VULNERABILITIES_HREF}"
-        curl --user "${BASIC_AUTH}" -o "trivy/${IMAGE}.json" $VULNERABILITIES_URL
+
+      vulnerability_url_last_push() {
+        local image=$1
+        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${image}/artifacts?page_size=1&page=1&sort=-push_time"
+        local href=$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.[0].addition_links.vulnerabilities.href')
+        [[ -n $href ]] || return 1
+        echo "https://${HARBOR_REGISTRY}${href}"
+      }
+
+      vulnerability_url_from_ref() {
+        local image=$1
+        local reference=$2
+        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${image}/artifacts/${reference}"
+        local href=$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.addition_links.vulnerabilities.href')
+        [[ -n $href ]] || return 1
+        echo "https://${HARBOR_REGISTRY}${href}"
+      }
+
+      declare -A urls
+
+      for image in "${BUILD_IMAGES[@]}"; do
+        urls[$image]="$(vulnerability_url_from_ref $image $CI_COMMIT_SHORT_SHA)"
+      done
+
+      for image in "${OTHER_IMAGES[@]}"; do
+        urls[$image]="$(vulnerability_url_last_push $image)"
+      done
+
+      image_tag=$(basename $CI_JOB_IMAGE)
+      image=${image_tag%:*}
+      tag=${image_tag##*:}
+      urls[$image]="$(vulnerability_url_from_ref $image $tag)"
+
+      for image in "${!urls[@]}"; do
+        url="${urls[$image]}"
+        curl -fsS --user "${BASIC_AUTH}" -o "trivy/${image}.json" "$url"
       done
     - deploy/bin/store-artifact.sh trivy/* qt/quality-time/trivy/
   artifacts:
     paths:
       - trivy
+  allow_failure: true
