@@ -137,6 +137,22 @@ impl MockCaChain {
 
         self.generate_certificate(certificate_params)
     }
+
+    #[cfg(any(test, feature = "encode"))]
+    /// Generates a new leaf certificate including the android key attestation extension, that expired yesterday.
+    /// Returns both the full certificate chain containing this leaf and the its corresponding private key.
+    pub fn generate_expired_leaf_certificate(&self, key_description: &KeyDescription) -> (Vec<Vec<u8>>, SigningKey) {
+        let mut certificate_params = CertificateParams::default();
+        certificate_params.not_after = time::OffsetDateTime::now_utc() - time::Duration::days(1);
+        certificate_params
+            .custom_extensions
+            .push(CustomExtension::from_oid_content(
+                &KEY_ATTESTATION_EXTENSION_OID.iter().unwrap().collect::<Vec<u64>>(),
+                rasn::der::encode(key_description).unwrap(),
+            ));
+
+        self.generate_certificate(certificate_params)
+    }
 }
 
 #[cfg(test)]

@@ -9,7 +9,7 @@ workspace = true
 
 [features]
 encode = []
-mock = ["encode", "dep:derive_more", "dep:rand", "dep:rcgen"]
+mock = ["encode", "dep:derive_more", "dep:rand", "dep:rcgen", "dep:time"]
 network_test = []
 # Accept attested keys from the emulator. This allows software security level.
 emulator = ["dep:tracing"]
@@ -42,6 +42,7 @@ x509-parser.workspace = true
 derive_more = { workspace = true, optional = true, features = ["debug"] }
 rand = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["aws_lc_rs"] }
+time = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 
 [dev-dependencies]

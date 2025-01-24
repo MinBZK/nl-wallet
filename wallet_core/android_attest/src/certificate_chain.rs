@@ -403,4 +403,54 @@ mod tests {
         .expect_err("should fail because certificate extension not found");
         assert_matches!(error, GoogleKeyAttestationError::NoKeyAttestationExtension);
     }
+
+    #[test]
+    fn test_google_key_attestation_invalid_certificate_chain() {
+        let challenge = b"challenge";
+
+        // Generate a certificate chain with an invalid intermediate
+        let certificates = {
+            let (mut certificates, _) = MOCK_CA_CHAIN.generate_attested_leaf_certificate(&key_description(challenge));
+            let (mut certificates_1, _) = OTHER_MOCK_CA_CHAIN.generate_leaf_certificate();
+
+            certificates[1] = certificates_1.remove(1);
+            certificates
+        };
+        let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
+
+        // Get root public key from the same MOCK_CA_CHAIN
+        let root_public_keys = vec![MOCK_CA_CHAIN.root_public_key.clone().into()];
+
+        // Verify the attested key
+        let error = verify_google_key_attestation(
+            &certificate_chain,
+            &root_public_keys,
+            &RevocationStatusList::default(),
+            challenge,
+        )
+        .expect_err("should fail because of invalid certificate chain");
+        assert_matches!(error, GoogleKeyAttestationError::InvalidCertificateChain(_));
+    }
+
+    #[test]
+    fn test_google_key_attestation_expired_certificate() {
+        let challenge = b"challenge";
+
+        // Generate a certificate chain with an expired intermediate
+        let (certificates, _) = MOCK_CA_CHAIN.generate_expired_leaf_certificate(&key_description(challenge));
+        let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
+
+        // Get root public key from the same MOCK_CA_CHAIN
+        let root_public_keys = vec![MOCK_CA_CHAIN.root_public_key.clone().into()];
+
+        // Verify the attested key
+        let error = verify_google_key_attestation(
+            &certificate_chain,
+            &root_public_keys,
+            &RevocationStatusList::default(),
+            challenge,
+        )
+        .expect_err("should fail because of invalid certificate chain");
+        assert_matches!(error, GoogleKeyAttestationError::InvalidCertificateChain(_));
+    }
 }
