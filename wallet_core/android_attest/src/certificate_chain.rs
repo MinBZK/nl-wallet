@@ -39,8 +39,8 @@ pub enum GoogleKeyAttestationError {
     RootPublicKey(#[source] X509Error),
     #[error("root CA in certificate chain does not contain any of the configured public keys")]
     RootPublicKeyMismatch,
-    #[error("certificate chain contains at least one revoked certificate")]
-    RevokedCertificates,
+    #[error("certificate chain contains at least one revoked certificate: {}", .0.join(" "))]
+    RevokedCertificates(Vec<String>),
     #[error("no key attestation extension found in certificate chain")]
     NoKeyAttestationExtension,
     #[error("could not extract key attestation extension: {0}")]
@@ -111,21 +111,21 @@ pub fn verify_google_key_attestation_with_time<'a>(
         .collect::<Result<Vec<_>, _>>()
         .map_err(GoogleKeyAttestationError::CertificateDecode)?;
 
-    let revoked_certificates = revocation_list.get_revoked_certificates(&x509_certificates);
-    if !revoked_certificates.is_empty() {
-        let revocation_log = revoked_certificates
-            .iter()
-            .map(|(cert, reason)| {
-                format!(
-                    "subject: {}, serial: {}, status: {:?}",
-                    cert.subject,
-                    cert.raw_serial_as_string(),
-                    reason
-                )
-            })
-            .collect::<Vec<_>>();
-        tracing::error!("revoked certificates in certificate chain: {:?}", revocation_log);
-        return Err(GoogleKeyAttestationError::RevokedCertificates);
+    let revocation_log = revocation_list
+        .get_revoked_certificates(&x509_certificates)
+        .into_iter()
+        .map(|(cert, reason)| {
+            format!(
+                "subject: {}, serial: {}, status: {:?}",
+                cert.subject,
+                cert.raw_serial_as_string(),
+                reason
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if !revocation_log.is_empty() {
+        return Err(GoogleKeyAttestationError::RevokedCertificates(revocation_log));
     }
 
     // 5. Optionally, inspect the provisioning information certificate extension that is only present in newer

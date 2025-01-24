@@ -14,6 +14,7 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
+use tracing::warn;
 use uuid::Uuid;
 
 use android_attest::android_crl::Error as CrlError;
@@ -135,6 +136,8 @@ pub enum AndroidAttestationError {
     CrlClient(#[from] CrlError),
     #[error("android key attestation verification failed: {0}")]
     Verification(#[from] GoogleKeyAttestationError),
+    #[error("certificate chain contains at least one revoked certificate")]
+    RevokedCertificates,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -423,7 +426,17 @@ impl<GC> AccountServer<GC> {
                     &challenge_hash,
                     attestation_timestamp,
                 )
-                .map_err(AndroidAttestationError::Verification)?;
+                .map_err(|error| match error {
+                    GoogleKeyAttestationError::RevokedCertificates(revocation_log) => {
+                        warn!(
+                            "found revoked certificates while verifying Android attested key certificate chain: {}",
+                            revocation_log.join(" ")
+                        );
+
+                        AndroidAttestationError::RevokedCertificates
+                    }
+                    error => AndroidAttestationError::Verification(error),
+                })?;
 
                 // Extract the leaf certificate's verifying key
                 let hw_pubkey = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw)
