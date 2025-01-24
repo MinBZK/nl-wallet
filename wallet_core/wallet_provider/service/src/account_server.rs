@@ -17,7 +17,7 @@ use tracing::debug;
 use tracing::warn;
 use uuid::Uuid;
 
-use android_attest::android_crl::Error as CrlError;
+use android_attest::android_crl;
 use android_attest::android_crl::GoogleRevocationListClient;
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::certificate_chain::verify_google_key_attestation_with_time;
@@ -132,8 +132,8 @@ pub enum WalletCertificateError {
 pub enum AndroidAttestationError {
     #[error("could not decode public key from leaf certificate: {0}")]
     LeafPublicKey(#[source] p256::pkcs8::spki::Error),
-    #[error("could not obtain Google revocation list: {0}")]
-    CrlClient(#[from] CrlError),
+    #[error("could not obtain Google certificate revocation list")]
+    CrlClient,
     #[error("android key attestation verification failed: {0}")]
     Verification(#[from] GoogleKeyAttestationError),
     #[error("certificate chain contains at least one revoked certificate")]
@@ -269,11 +269,11 @@ impl AppleAttestationConfiguration {
 
 #[trait_variant::make(Send)]
 pub trait GoogleCrlClient {
-    async fn get_crl(&self) -> Result<RevocationStatusList, CrlError>;
+    async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error>;
 }
 
 impl GoogleCrlClient for GoogleRevocationListClient {
-    async fn get_crl(&self) -> Result<RevocationStatusList, CrlError> {
+    async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
         self.get().await
     }
 }
@@ -409,11 +409,11 @@ impl<GC> AccountServer<GC> {
                 debug!("Validating Android key attestation");
 
                 // Verify the certificate chain according to the google key attestation verification rules
-                let crl = self
-                    .google_crl_client
-                    .get_crl()
-                    .await
-                    .map_err(AndroidAttestationError::CrlClient)?;
+                let crl = self.google_crl_client.get_crl().await.map_err(|error| {
+                    warn!("could not obtain Google certificate revocation list: {0}", error);
+
+                    AndroidAttestationError::CrlClient
+                })?;
                 let attested_key_chain = certificate_chain
                     .as_ref()
                     .iter()
@@ -992,7 +992,7 @@ pub mod mock {
     }
 
     impl GoogleCrlClient for RevocationStatusList {
-        async fn get_crl(&self) -> Result<RevocationStatusList, CrlError> {
+        async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
             Ok(self.clone())
         }
     }
