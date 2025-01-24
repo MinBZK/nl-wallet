@@ -21,7 +21,7 @@
     - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace test
       --tests $TESTS
-      -Dtest.config.app.identifier="$APP_IDENTIFIER"
+      -Dtest.config.app.identifier="$APP_IDENTIFIER_$CI_COMMIT_SHA"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
@@ -34,6 +34,7 @@
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
+    GITLAB_API_URL: "SSSS"
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -119,7 +120,7 @@ run-automation-smoke-test-ont:
   script:
     - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="$APP_IDENTIFIER"
+      -Dtest.config.app.identifier="$APP_IDENTIFIER_$CI_COMMIT_SHA"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
