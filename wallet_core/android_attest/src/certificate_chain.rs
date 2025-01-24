@@ -1,3 +1,4 @@
+use std::iter;
 use std::time::Duration;
 
 use chrono::DateTime;
@@ -32,8 +33,6 @@ pub enum GoogleKeyAttestationError {
     InvalidCertificateChain(#[source] webpki::Error),
     #[error("could not decode certificate from chain: {0}")]
     CertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
-    #[error("could not decode root certificate from chain: {0}")]
-    RootCertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
     #[error("could not decode end entity certificate from leaf certificate: {0}")]
     LeafCertificate(#[source] webpki::Error),
     #[error("could not decode public key from root certificate: {0}")]
@@ -50,12 +49,12 @@ pub enum GoogleKeyAttestationError {
     KeyAttestationVerification(#[from] KeyAttestationVerificationError),
 }
 
-pub fn verify_google_key_attestation(
-    certificate_chain: &[CertificateDer],
+pub fn verify_google_key_attestation<'a>(
+    certificate_chain: &'a [CertificateDer],
     root_public_keys: &[RootPublicKey],
     revocation_list: &RevocationStatusList,
     attestation_challenge: &[u8],
-) -> Result<(), GoogleKeyAttestationError> {
+) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
     verify_google_key_attestation_with_time(
         certificate_chain,
         root_public_keys,
@@ -72,17 +71,19 @@ pub fn verify_google_key_attestation(
 // * The certificate chain should contain at least two values.
 // * The provided time should be equal to or later than the Unix epoch.
 //
+// The return value of the function is the decoded leaf certificate.
+//
 // 1. Use a KeyStore object's getCertificateChain() method to get a reference to the chain of X.509 certificates
 //    associated with the hardware-backed keystore.
 //
 // 2. Send the certificates to a separate server that you trust for validation.
-pub fn verify_google_key_attestation_with_time(
-    certificate_chain: &[CertificateDer],
+pub fn verify_google_key_attestation_with_time<'a>(
+    certificate_chain: &'a [CertificateDer],
     root_public_keys: &[RootPublicKey],
     revocation_list: &RevocationStatusList,
     attestation_challenge: &[u8],
     time: DateTime<Utc>,
-) -> Result<(), GoogleKeyAttestationError> {
+) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
     assert!(certificate_chain.len() >= 2);
 
     let timestamp = time
@@ -94,12 +95,19 @@ pub fn verify_google_key_attestation_with_time(
     // 3. Obtain a reference to the X.509 certificate chain parsing and validation library that is most appropriate for
     //    your toolset. Verify that the root public certificate is trustworthy and that each certificate signs the next
     //    certificate in the chain.
-    verify_google_attestation_certificate_chain(certificate_chain, root_public_keys, unix_time)?;
+    let root_certificate = verify_google_attestation_certificate_chain(certificate_chain, root_public_keys, unix_time)?;
 
     // 4. Check each certificate's revocation status to ensure that none of the certificates have been revoked.
-    let x509_certificates = certificate_chain
+
+    // Create an iterator that decodes all certificates in the reverse chain, except for the root certificate.
+    let remaining_certificates = certificate_chain
         .iter()
-        .map(|der| X509Certificate::from_der(der.as_ref()).map(|(_, cert)| cert))
+        .rev()
+        .skip(1)
+        .map(|der| X509Certificate::from_der(der.as_ref()).map(|(_, cert)| cert));
+    // Append that iterator to the root certificate to create a full reverse chain, from root to leaf.
+    let mut x509_certificates = iter::once(Ok(root_certificate))
+        .chain(remaining_certificates)
         .collect::<Result<Vec<_>, _>>()
         .map_err(GoogleKeyAttestationError::CertificateDecode)?;
 
@@ -133,7 +141,6 @@ pub fn verify_google_key_attestation_with_time(
     //    from that certificate.
     let key_attestation = x509_certificates
         .iter()
-        .rev()
         .find_map(|cert| KeyAttestationExtension::parse_key_description(cert).transpose())
         .transpose()?
         .ok_or(GoogleKeyAttestationError::NoKeyAttestationExtension)?;
@@ -142,20 +149,20 @@ pub fn verify_google_key_attestation_with_time(
     //    of values that you expect the hardware-backed key to contain.
     key_attestation.verify(attestation_challenge)?;
 
-    Ok(())
+    Ok(x509_certificates.pop().unwrap())
 }
 
-fn verify_google_attestation_certificate_chain(
-    certificate_chain: &[CertificateDer],
+fn verify_google_attestation_certificate_chain<'a>(
+    certificate_chain: &'a [CertificateDer],
     root_public_keys: &[RootPublicKey],
     unix_time: UnixTime,
-) -> Result<(), GoogleKeyAttestationError> {
+) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
     let root_index = certificate_chain.len() - 1;
 
     // `unwrap` is safe because of guard that verifies the certificate chain is not empty.
     let root_certificate_der = certificate_chain.get(root_index).unwrap();
     let (_, root_certificate) =
-        X509Certificate::from_der(root_certificate_der).map_err(GoogleKeyAttestationError::RootCertificateDecode)?;
+        X509Certificate::from_der(root_certificate_der).map_err(GoogleKeyAttestationError::CertificateDecode)?;
     let root_public_key = root_certificate
         .public_key()
         .parsed()
@@ -200,7 +207,7 @@ fn verify_google_attestation_certificate_chain(
         )
         .map_err(GoogleKeyAttestationError::InvalidCertificateChain)?;
 
-    Ok(())
+    Ok(root_certificate)
 }
 
 #[cfg(test)]

@@ -15,9 +15,6 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
 use uuid::Uuid;
-use x509_parser::error::X509Error;
-use x509_parser::prelude::FromDer;
-use x509_parser::prelude::X509Certificate;
 
 use android_attest::android_crl::Error as CrlError;
 use android_attest::android_crl::GoogleRevocationListClient;
@@ -132,8 +129,6 @@ pub enum WalletCertificateError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AndroidAttestationError {
-    #[error("could not decode certificate from chain: {0}")]
-    CertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
     #[error("could not decode public key from leaf certificate: {0}")]
     LeafPublicKey(#[source] p256::pkcs8::spki::Error),
     #[error("could not obtain Google revocation list: {0}")]
@@ -421,7 +416,7 @@ impl<GC> AccountServer<GC> {
                     .iter()
                     .map(|cert| CertificateDer::from_slice(cert))
                     .collect::<Vec<_>>();
-                verify_google_key_attestation_with_time(
+                let leaf_certificate = verify_google_key_attestation_with_time(
                     &attested_key_chain,
                     &self.android_root_public_keys,
                     &crl,
@@ -431,8 +426,6 @@ impl<GC> AccountServer<GC> {
                 .map_err(AndroidAttestationError::Verification)?;
 
                 // Extract the leaf certificate's verifying key
-                let (_, leaf_certificate) = X509Certificate::from_der(certificate_chain.first())
-                    .map_err(AndroidAttestationError::CertificateDecode)?;
                 let hw_pubkey = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw)
                     .map_err(AndroidAttestationError::LeafPublicKey)?;
 
