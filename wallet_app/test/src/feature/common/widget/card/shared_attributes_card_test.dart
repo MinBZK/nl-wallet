@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 
 import '../../../../../wallet_app_test_widget.dart';

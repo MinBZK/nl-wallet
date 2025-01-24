@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../util/extension/text_style_extension.dart';
+
 /// Base Wallet Theme
 ///
 /// Dark / Light classes of the app specify the dedicated colors, but items like textStyles and
@@ -46,18 +48,86 @@ class BaseWalletTheme {
   //endregion Font & TextStyles
 
   //region Button Style & Themes
-  static const buttonMinHeight = 48.0;
-  static const buttonBorderRadius = 12.0;
-  static final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(buttonBorderRadius));
-  static const buttonTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: fontFamily);
+  static const _buttonBorderRadius = 12.0;
+  static const _buttonMinHeight = 48.0;
+  static const _buttonBorderWidthFocused = 2.0;
+  static const _outlineButtonBorderWidthDefault = 0.5;
+  static final _buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(_buttonBorderRadius));
+
+  static const buttonBorderSideFocused = BorderSide(
+    strokeAlign: BorderSide.strokeAlignInside,
+    width: _buttonBorderWidthFocused,
+  );
+
+  static const outlineButtonBorderSideDefault = BorderSide(
+    width: _outlineButtonBorderWidthDefault,
+  );
+
+  static final _baseButtonStyleIconSize = WidgetStateProperty.resolveWith(
+    (states) => states.isPressedOrFocused ? 20.0 : 16.0,
+  );
+
+  static final _baseIconButtonStyleIconSize = WidgetStateProperty.resolveWith(
+    (states) => states.isPressedOrFocused ? 30.0 : 24.0,
+  );
+
+  static const buttonTextStyle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+    fontFamily: fontFamily,
+  );
+
+  static final textButtonTextStyle = buttonTextStyle.copyWith(
+    letterSpacing: 1.15,
+  );
 
   static final baseElevatedButtonTheme = ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       elevation: 0,
-      textStyle: buttonTextStyle,
-      minimumSize: const Size.fromHeight(buttonMinHeight),
-      shape: buttonShape,
+      minimumSize: const Size.fromHeight(_buttonMinHeight),
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      shape: _buttonShape,
+    ).copyWith(
+      iconSize: _baseButtonStyleIconSize,
+      textStyle: WidgetStateTextStyle.resolveWith((states) {
+        if (states.isPressedOrFocused) return buttonTextStyle.underlined;
+        return buttonTextStyle;
+      }),
+    ),
+  );
+
+  static final baseOutlinedButtonTheme = OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      elevation: 0,
+      minimumSize: const Size.fromHeight(_buttonMinHeight),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      shape: _buttonShape,
+    ).copyWith(
+      iconSize: _baseButtonStyleIconSize,
+      textStyle: WidgetStateTextStyle.resolveWith((states) {
+        if (states.isPressedOrFocused) return buttonTextStyle.underlined;
+        return buttonTextStyle;
+      }),
+    ),
+  );
+
+  static final baseTextButtonTheme = TextButtonThemeData(
+    style: TextButton.styleFrom(
+      minimumSize: const Size(0, _buttonMinHeight),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      shape: _buttonShape,
+    ).copyWith(
+      iconSize: _baseButtonStyleIconSize,
+      textStyle: WidgetStateTextStyle.resolveWith((states) {
+        if (states.isPressedOrFocused) return textButtonTextStyle.underlined;
+        return textButtonTextStyle;
+      }),
+    ),
+  );
+
+  static final baseIconButtonTheme = IconButtonThemeData(
+    style: ButtonStyle(
+      iconSize: _baseIconButtonStyleIconSize,
     ),
   );
 
@@ -66,28 +136,13 @@ class BaseWalletTheme {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
   );
 
-  static final outlinedButtonTheme = OutlinedButtonThemeData(
-    style: OutlinedButton.styleFrom(
-      elevation: 0,
-      minimumSize: const Size.fromHeight(buttonMinHeight),
-      shape: buttonShape,
-      textStyle: buttonTextStyle,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-    ),
-  );
-
-  static final textButtonTheme = TextButtonThemeData(
-    style: TextButton.styleFrom(
-      minimumSize: const Size(0, buttonMinHeight),
-      shape: buttonShape,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-    ),
-  );
-
-  //endregion Button Themes
+  //endregion Button Style & Themes
 
   //region Other Themes
-  static const baseDividerTheme = DividerThemeData(thickness: 1);
+  static const baseDividerTheme = DividerThemeData(
+    space: 1,
+    thickness: 1,
+  );
 
   static const baseBottomSheetTheme = BottomSheetThemeData(
     shape: ContinuousRectangleBorder(),
@@ -106,7 +161,7 @@ class BaseWalletTheme {
     shape: LinearBorder.none, /* hides the app bar divider */
   );
 
-  static final tabBarTheme = TabBarTheme(
+  static final baseTabBarTheme = TabBarTheme(
     labelStyle: baseTextTheme.titleSmall,
     unselectedLabelStyle: baseTextTheme.bodyMedium,
     indicatorSize: TabBarIndicatorSize.tab,
@@ -128,5 +183,7 @@ class BaseWalletTheme {
 }
 
 extension WidgetStateExtensions on Set<WidgetState> {
-  bool get isHoveredOrFocused => contains(WidgetState.hovered) || contains(WidgetState.focused);
+  bool get isPressedOrFocused => contains(WidgetState.pressed) || contains(WidgetState.focused);
+  bool get isFocused => contains(WidgetState.focused);
+  bool get isPressed => contains(WidgetState.pressed);
 }

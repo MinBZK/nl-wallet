@@ -3,8 +3,6 @@ use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
-use android_attest::attestation_extension::key_description::OctetString;
-use android_attest::attestation_extension::key_description::SecurityLevel;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
@@ -24,11 +22,10 @@ use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
 use wallet_provider_service::account_server::mock::AttestationType;
+use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
 use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
-use wallet_provider_service::account_server::AccountServer;
-use wallet_provider_service::account_server::GoogleCrlClient;
 use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
@@ -45,27 +42,25 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
     Db::new(settings.database.connection_string(), Default::default()).await
 }
 
-async fn do_registration<GC>(
-    account_server: &AccountServer<GC>,
+async fn do_registration(
+    account_server: &MockAccountServer,
     hsm: &MockPkcs11Client<HsmError>,
     certificate_signing_key: &impl WalletCertificateSigningKey,
     pin_privkey: &SigningKey,
     repos: &Repositories,
     attestation_ca: AttestationCa<'_>,
-) -> (WalletCertificate, MockHardwareKey, WalletCertificateClaims)
-where
-    GC: GoogleCrlClient,
-{
+) -> (WalletCertificate, MockHardwareKey, WalletCertificateClaims) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
         .await
         .expect("Could not get registration challenge");
 
+    let challenge_hash = utils::sha256(&challenge);
     let (registration_message, hw_privkey) = match attestation_ca {
         AttestationCa::Apple(apple_mock_ca) => {
             let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                 apple_mock_ca,
-                &utils::sha256(&challenge),
+                &challenge_hash,
                 account_server.apple_config.environment,
                 account_server.apple_config.app_identifier.clone(),
             );
@@ -77,16 +72,7 @@ where
             (registration_message, MockHardwareKey::Apple(attested_key))
         }
         AttestationCa::Google(android_mock_ca_chain) => {
-            let key_description = KeyDescription {
-                attestation_version: 200.into(),
-                attestation_security_level: SecurityLevel::TrustedEnvironment,
-                key_mint_version: 300.into(),
-                key_mint_security_level: SecurityLevel::TrustedEnvironment,
-                attestation_challenge: OctetString::copy_from_slice(&utils::sha256(&challenge)),
-                unique_id: OctetString::copy_from_slice(b"unique_id"),
-                software_enforced: Default::default(),
-                hardware_enforced: Default::default(),
-            };
+            let key_description = KeyDescription::new_valid_mock(challenge_hash);
             let (attested_certificate_chain, attested_private_key) =
                 android_mock_ca_chain.generate_attested_leaf_certificate(&key_description);
             let app_attestation_token = utils::random_bytes(32);

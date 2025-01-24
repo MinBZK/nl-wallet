@@ -21,8 +21,11 @@ class WalletTheme {
     bottomSheetTheme: LightWalletTheme.bottomSheetTheme,
     brightness: Brightness.light,
     colorScheme: LightWalletTheme.colorScheme,
+    dialogTheme: LightWalletTheme.dialogTheme,
     dividerTheme: LightWalletTheme.dividerTheme,
     elevatedButtonTheme: LightWalletTheme.elevatedButtonTheme,
+    focusColor: LightWalletTheme.focusColor,
+    iconButtonTheme: LightWalletTheme.iconButtonTheme,
     iconTheme: LightWalletTheme.iconTheme,
     outlinedButtonTheme: LightWalletTheme.outlinedButtonTheme,
     primaryColorDark: LightWalletTheme.primaryColorDark,
@@ -32,8 +35,6 @@ class WalletTheme {
     tabBarTheme: LightWalletTheme.tabBarTheme,
     textButtonTheme: LightWalletTheme.textButtonTheme,
     textTheme: LightWalletTheme.textTheme,
-    dialogTheme: LightWalletTheme.dialogTheme,
-    focusColor: LightWalletTheme.focusColor,
   );
 
   static ThemeData dark = _baseTheme.copyWith(
@@ -42,8 +43,11 @@ class WalletTheme {
     bottomSheetTheme: DarkWalletTheme.bottomSheetTheme,
     brightness: Brightness.dark,
     colorScheme: DarkWalletTheme.colorScheme,
+    dialogTheme: DarkWalletTheme.dialogTheme,
     dividerTheme: DarkWalletTheme.dividerTheme,
     elevatedButtonTheme: DarkWalletTheme.elevatedButtonTheme,
+    focusColor: DarkWalletTheme.focusColor,
+    iconButtonTheme: DarkWalletTheme.iconButtonTheme,
     iconTheme: DarkWalletTheme.iconTheme,
     outlinedButtonTheme: DarkWalletTheme.outlinedButtonTheme,
     primaryColorDark: DarkWalletTheme.primaryColorDark,
@@ -53,7 +57,5 @@ class WalletTheme {
     tabBarTheme: DarkWalletTheme.tabBarTheme,
     textButtonTheme: DarkWalletTheme.textButtonTheme,
     textTheme: DarkWalletTheme.textTheme,
-    dialogTheme: DarkWalletTheme.dialogTheme,
-    focusColor: DarkWalletTheme.focusColor,
   );
 }

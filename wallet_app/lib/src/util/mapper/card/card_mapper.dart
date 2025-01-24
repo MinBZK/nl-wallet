@@ -1,6 +1,6 @@
 import 'package:wallet_core/core.dart' as core;
 
-import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card_config.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/organization.dart';

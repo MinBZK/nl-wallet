@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
 
-class DataAttributeRowMissing extends StatelessWidget {
+class MissingAttributeRow extends StatelessWidget {
   final String label;
 
-  const DataAttributeRowMissing({required this.label, super.key});
+  const MissingAttributeRow({required this.label, super.key});
 
   @override
   Widget build(BuildContext context) {

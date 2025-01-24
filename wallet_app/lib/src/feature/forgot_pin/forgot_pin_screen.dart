@@ -62,7 +62,7 @@ class ForgotPinScreen extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     return Column(
       children: [
-        const Divider(height: 1),
+        const Divider(),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
           child: Column(

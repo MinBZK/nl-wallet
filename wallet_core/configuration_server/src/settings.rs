@@ -31,7 +31,7 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("config_server")
                     .separator("__")
-                    .prefix_separator("_")
+                    .prefix_separator("__")
                     .list_separator(","),
             )
             .build()?

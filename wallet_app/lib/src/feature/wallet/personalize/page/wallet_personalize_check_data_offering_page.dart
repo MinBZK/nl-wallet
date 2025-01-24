@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../domain/model/attribute/ui_attribute.dart';
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
@@ -17,7 +17,7 @@ import '../wallet_personalize_data_incorrect_screen.dart';
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onAcceptPressed;
   final VoidCallback onRejectPressed;
-  final List<UiAttribute> attributes;
+  final List<Attribute> attributes;
   final FlowProgress progress;
 
   const WalletPersonalizeCheckDataOfferingPage({
@@ -41,7 +41,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
             ),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
             const SliverSizedBox(height: 24),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
+            const SliverToBoxAdapter(child: Divider()),
             const SliverSizedBox(height: 12),
             SliverList(delegate: _getDataAttributesDelegate()),
             const SliverSizedBox(height: 12),
@@ -51,7 +51,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Divider(height: 1),
+                  const Divider(),
                   _buildBottomSection(context),
                 ],
               ),

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';

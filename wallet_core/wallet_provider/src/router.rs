@@ -36,7 +36,7 @@ use wallet_common::account::messages::instructions::SignResult;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::keys::EcdsaKey;
-use wallet_provider_service::account_server::GoogleCrlClient;
+use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::wte_issuer::WteIssuer;
 
 use crate::errors::WalletProviderError;
@@ -57,7 +57,7 @@ type Result<T> = std::result::Result<T, WalletProviderError>;
 
 pub fn router<GC>(router_state: RouterState<GC>) -> Router
 where
-    GC: GoogleCrlClient + Send + Sync + 'static,
+    GC: GoogleCrlProvider + Send + Sync + 'static,
 {
     let state = Arc::new(router_state);
     Router::new()
@@ -122,7 +122,7 @@ async fn create_wallet<GC>(
     Json(payload): Json<ChallengeResponse<Registration>>,
 ) -> Result<(StatusCode, Json<Certificate>)>
 where
-    GC: GoogleCrlClient,
+    GC: GoogleCrlProvider,
 {
     info!("Received create wallet request, registering with account server");
 

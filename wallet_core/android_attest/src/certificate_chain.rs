@@ -1,3 +1,8 @@
+use std::iter;
+use std::time::Duration;
+
+use chrono::DateTime;
+use chrono::Utc;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::UnixTime;
 use webpki::ring::ECDSA_P256_SHA256;
@@ -15,7 +20,6 @@ use x509_parser::prelude::X509Certificate;
 use x509_parser::prelude::X509Error;
 
 use crate::android_crl::RevocationStatusList;
-use crate::attestation_extension::key_attestation::KeyAttestation;
 use crate::attestation_extension::key_attestation::KeyAttestationVerificationError;
 use crate::attestation_extension::KeyAttestationExtension;
 use crate::attestation_extension::KeyAttestationExtensionError;
@@ -29,106 +33,136 @@ pub enum GoogleKeyAttestationError {
     InvalidCertificateChain(#[source] webpki::Error),
     #[error("could not decode certificate from chain: {0}")]
     CertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
-    #[error("could not decode root certificate from chain: {0}")]
-    RootCertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
     #[error("could not decode end entity certificate from leaf certificate: {0}")]
     LeafCertificate(#[source] webpki::Error),
     #[error("could not decode public key from root certificate: {0}")]
     RootPublicKey(#[source] X509Error),
     #[error("root CA in certificate chain does not contain any of the configured public keys")]
     RootPublicKeyMismatch,
-    #[error("certificate chain contains at least one revoked certificate")]
-    RevokedCertificates,
+    #[error("certificate chain contains at least one revoked certificate: {}", .0.join(" "))]
+    RevokedCertificates(Vec<String>),
     #[error("no key attestation extension found in certificate chain")]
     NoKeyAttestationExtension,
     #[error("could not extract key attestation extension: {0}")]
     KeyAttestationExtension(#[from] KeyAttestationExtensionError),
-    #[error("key attestation extension is not strong enough: {0}")]
+    #[error("key attestation extension does not meet requirements: {0}")]
     KeyAttestationVerification(#[from] KeyAttestationVerificationError),
+}
+
+pub fn verify_google_key_attestation<'a>(
+    certificate_chain: &'a [CertificateDer],
+    root_public_keys: &[RootPublicKey],
+    revocation_list: &RevocationStatusList,
+    attestation_challenge: &[u8],
+) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
+    verify_google_key_attestation_with_time(
+        certificate_chain,
+        root_public_keys,
+        revocation_list,
+        attestation_challenge,
+        Utc::now(),
+    )
 }
 
 // This function implements the steps as described in: [Verify hardware-backed key pairs with key attestation](https://developer.android.com/privacy-and-security/security-key-attestation).
 // The first steps in the procedure are executed on the Android device, and are the prerequisite for this function.
 //
+// Note that this function has two preconditions, either of which will cause a panic if not met:
+// * The certificate chain should contain at least two values.
+// * The provided time should be equal to or later than the Unix epoch.
+//
+// The return value of the function is the decoded leaf certificate.
+//
 // 1. Use a KeyStore object's getCertificateChain() method to get a reference to the chain of X.509 certificates
 //    associated with the hardware-backed keystore.
 //
 // 2. Send the certificates to a separate server that you trust for validation.
-pub fn verify_google_key_attestation(
-    certificate_chain: &[CertificateDer],
+pub fn verify_google_key_attestation_with_time<'a>(
+    certificate_chain: &'a [CertificateDer],
     root_public_keys: &[RootPublicKey],
     revocation_list: &RevocationStatusList,
     attestation_challenge: &[u8],
-) -> Result<(), GoogleKeyAttestationError> {
-    assert!(!certificate_chain.is_empty());
+    time: DateTime<Utc>,
+) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
+    assert!(certificate_chain.len() >= 2);
+
+    let timestamp = time
+        .timestamp()
+        .try_into()
+        .expect("provided time should be equal to or later than the Unix epoch");
+    let unix_time = UnixTime::since_unix_epoch(Duration::from_secs(timestamp));
 
     // 3. Obtain a reference to the X.509 certificate chain parsing and validation library that is most appropriate for
     //    your toolset. Verify that the root public certificate is trustworthy and that each certificate signs the next
     //    certificate in the chain.
-    verify_google_attestation_certificate_chain(certificate_chain, root_public_keys)?;
+    let root_certificate = verify_google_attestation_certificate_chain(certificate_chain, root_public_keys, unix_time)?;
 
     // 4. Check each certificate's revocation status to ensure that none of the certificates have been revoked.
-    let x509_certificates = certificate_chain
+
+    // Create an iterator that decodes all certificates in the reverse chain, except for the root certificate.
+    let remaining_certificates = certificate_chain
         .iter()
-        .map(|der| X509Certificate::from_der(der.as_ref()).map(|(_, cert)| cert))
+        .rev()
+        .skip(1)
+        .map(|der| X509Certificate::from_der(der.as_ref()).map(|(_, cert)| cert));
+    // Append that iterator to the root certificate to create a full reverse chain, from root to leaf.
+    let mut x509_certificates = iter::once(Ok(root_certificate))
+        .chain(remaining_certificates)
         .collect::<Result<Vec<_>, _>>()
         .map_err(GoogleKeyAttestationError::CertificateDecode)?;
 
-    let revoked_certificates = revocation_list.get_revoked_certificates(&x509_certificates);
-    if !revoked_certificates.is_empty() {
-        let revocation_log = revoked_certificates
-            .iter()
-            .map(|(cert, reason)| {
-                format!(
-                    "subject: {}, serial: {}, status: {:?}",
-                    cert.subject,
-                    cert.raw_serial_as_string(),
-                    reason
-                )
-            })
-            .collect::<Vec<_>>();
-        tracing::error!("revoked certificates in certificate chain: {:?}", revocation_log);
-        return Err(GoogleKeyAttestationError::RevokedCertificates);
+    let revocation_log = revocation_list
+        .get_revoked_certificates(&x509_certificates)
+        .into_iter()
+        .map(|(cert, reason)| {
+            format!(
+                "subject: {}, serial: {}, status: {:?}",
+                cert.subject,
+                cert.raw_serial_as_string(),
+                reason
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if !revocation_log.is_empty() {
+        return Err(GoogleKeyAttestationError::RevokedCertificates(revocation_log));
     }
 
     // 5. Optionally, inspect the provisioning information certificate extension that is only present in newer
-    //    certificate chains. We skip this step, as interpreting the provisioning information is not clearly defined.
+    //    certificate chains.
+    //
+    // We skip this step, as the provisioning information only contains a rough estimate of the number of certificates
+    // issued on this device. Interpreting this metric is not clearly defined and is not particularly useful for us.
 
     // 6. Obtain a reference to the ASN.1 parser library that is most appropriate for your toolset. Find the nearest
     //    certificate to the root that contains the key attestation certificate extension. If the provisioning
     //    information certificate extension was present, the key attestation certificate extension must be in the
     //    immediately subsequent certificate. Use the parser to extract the key attestation certificate extension data
     //    from that certificate.
-    let key_attestation_extensions = x509_certificates
+    let key_attestation = x509_certificates
         .iter()
-        .rev()
-        .flat_map(|cert| KeyAttestationExtension::parse_key_description(cert).transpose())
-        .collect::<Result<Vec<KeyAttestation>, _>>()?;
-
-    let key_attestation = match key_attestation_extensions.first() {
-        None => return Err(GoogleKeyAttestationError::NoKeyAttestationExtension)?,
-        Some(extension) => extension,
-    };
+        .find_map(|cert| KeyAttestationExtension::parse_key_description(cert).transpose())
+        .transpose()?
+        .ok_or(GoogleKeyAttestationError::NoKeyAttestationExtension)?;
 
     // 7. Check the extension data that you've retrieved in the previous steps for consistency and compare with the set
     //    of values that you expect the hardware-backed key to contain.
     key_attestation.verify(attestation_challenge)?;
 
-    Ok(())
+    Ok(x509_certificates.pop().unwrap())
 }
 
-fn verify_google_attestation_certificate_chain(
-    certificate_chain: &[CertificateDer],
+fn verify_google_attestation_certificate_chain<'a>(
+    certificate_chain: &'a [CertificateDer],
     root_public_keys: &[RootPublicKey],
-) -> Result<(), GoogleKeyAttestationError> {
-    assert!(!certificate_chain.is_empty());
-
+    unix_time: UnixTime,
+) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
     let root_index = certificate_chain.len() - 1;
 
     // `unwrap` is safe because of guard that verifies the certificate chain is not empty.
     let root_certificate_der = certificate_chain.get(root_index).unwrap();
     let (_, root_certificate) =
-        X509Certificate::from_der(root_certificate_der).map_err(GoogleKeyAttestationError::RootCertificateDecode)?;
+        X509Certificate::from_der(root_certificate_der).map_err(GoogleKeyAttestationError::CertificateDecode)?;
     let root_public_key = root_certificate
         .public_key()
         .parsed()
@@ -166,14 +200,14 @@ fn verify_google_attestation_certificate_chain(
             ],
             &trust_anchors,
             &certificate_chain[1..root_index],
-            UnixTime::now(),
+            unix_time,
             KeyUsage::client_auth(),
             None,
             None,
         )
         .map_err(GoogleKeyAttestationError::InvalidCertificateChain)?;
 
-    Ok(())
+    Ok(root_certificate)
 }
 
 #[cfg(test)]
@@ -183,12 +217,12 @@ mod tests {
 
     use assert_matches::assert_matches;
     use num_bigint::BigUint;
-    use rasn::types::OctetString;
     use rstest::rstest;
 
     use crate::android_crl::AndroidCrlStatus;
     use crate::android_crl::RevocationStatusEntry;
     use crate::attestation_extension::key_description::KeyDescription;
+    #[cfg(not(feature = "emulator"))]
     use crate::attestation_extension::key_description::SecurityLevel;
     use crate::mock::MockCaChain;
 
@@ -198,16 +232,7 @@ mod tests {
     static OTHER_MOCK_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 
     fn key_description(challenge: &[u8]) -> KeyDescription {
-        KeyDescription {
-            attestation_version: 200.into(),
-            attestation_security_level: SecurityLevel::TrustedEnvironment,
-            key_mint_version: 300.into(),
-            key_mint_security_level: SecurityLevel::TrustedEnvironment,
-            attestation_challenge: OctetString::copy_from_slice(challenge),
-            unique_id: OctetString::copy_from_slice(b"unique_id"),
-            software_enforced: Default::default(),
-            hardware_enforced: Default::default(),
-        }
+        KeyDescription::new_valid_mock(challenge.to_vec())
     }
 
     #[cfg(not(feature = "emulator"))]
@@ -268,6 +293,7 @@ mod tests {
             revocation_list,
             attestation_challenge,
         )
+        .map(|_| ())
     }
 
     #[test]
@@ -353,7 +379,7 @@ mod tests {
             &revoked_intermediary_from(&MOCK_CA_CHAIN),
         )
         .expect_err("should fail on revoked certificates");
-        assert_matches!(error, GoogleKeyAttestationError::RevokedCertificates)
+        assert_matches!(error, GoogleKeyAttestationError::RevokedCertificates(_))
     }
 
     #[test]

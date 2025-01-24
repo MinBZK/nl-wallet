@@ -1,8 +1,6 @@
 #test-android:
 #  extends: .ruby-cache
 #  rules: !reference [.default-or-release-or-merge-request, rules]
-#  image:
-#    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-emulator-rust@sha256:somesha256hash"
 #  artifacts:
 #    when: always
 #    reports:
@@ -40,8 +38,6 @@
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:2450674118dd8d677142299b35faf233f407031ce038d57d4c9d04d83c778ac2"
   artifacts:
     name: "wallet-android"
     paths:
@@ -215,8 +211,6 @@ build-android-app-production:
 ### Android deploying
 .deploy-android-app:
   extends: [.env-ont-k8s, .ruby-cache]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:d052bea8c1309494042a6b1e50b27fa2c31a577e1756edd6147b8ff545d4ac8b"
   environment:
     action: start
   variables:

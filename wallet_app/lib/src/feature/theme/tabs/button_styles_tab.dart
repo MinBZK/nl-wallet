@@ -26,14 +26,14 @@ class ButtonStylesTab extends StatelessWidget {
           child: const Text('ElevatedButton'),
         ),
         const SizedBox(height: 16),
-        TextButton(
-          onPressed: () => {},
-          child: const Text('TextButton'),
-        ),
-        const SizedBox(height: 16),
         OutlinedButton(
           onPressed: () => {},
           child: const Text('OutlinedButton'),
+        ),
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () => {},
+          child: const Text('TextButton'),
         ),
         const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'Wallet Buttons'),

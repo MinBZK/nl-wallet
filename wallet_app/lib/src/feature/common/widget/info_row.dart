@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/text_style_extension.dart';
 
-class InfoRow extends StatelessWidget {
+const _kIconSize = 24.0;
+
+class InfoRow extends StatefulWidget {
   final Text? title;
   final Text? subtitle;
   final IconData? icon;
@@ -22,21 +26,54 @@ class InfoRow extends StatelessWidget {
         assert(leading != null || icon != null, 'Provide a leading widget or icon');
 
   @override
+  State<InfoRow> createState() => _InfoRowState();
+}
+
+class _InfoRowState extends State<InfoRow> {
+  late WidgetStatesController _statesController;
+
+  @override
+  void initState() {
+    super.initState();
+    _statesController = WidgetStatesController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _statesController.addListener(() => setState(() {})));
+  }
+
+  @override
+  void dispose() {
+    _statesController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final pressedForegroundColor = context.theme.textButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed});
     return Semantics(
-      button: onTap != null,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      button: widget.onTap != null,
+      child: TextButton.icon(
+        statesController: _statesController,
+        onPressed: widget.onTap,
+        icon: _buildIcon(context),
+        iconAlignment: IconAlignment.end,
+        style: context.theme.iconButtonTheme.style?.copyWith(
+          foregroundColor: WidgetStateProperty.resolveWith(
+            // Only override the color when the button is not pressed or focused
+            (states) => states.isPressedOrFocused ? null : context.colorScheme.onSurface,
+          ),
+          shape: const WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          ),
+        ),
+        label: Padding(
+          padding: widget.padding ?? const EdgeInsets.symmetric(horizontal: 0, vertical: 24),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              leading ??
+              widget.leading ??
                   Icon(
-                    icon,
+                    widget.icon,
                     color: context.colorScheme.onSurfaceVariant,
-                    size: 24,
+                    size: _kIconSize,
                   ),
               const SizedBox(width: 16),
               Expanded(
@@ -44,30 +81,32 @@ class InfoRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (title != null)
+                    if (widget.title != null)
                       DefaultTextStyle(
-                        style: context.textTheme.titleMedium!,
-                        child: title!,
+                        style: context.textTheme.titleMedium!
+                            .colorWhenPressedOrFocused(_statesController.value, pressedForegroundColor!)
+                            .underlineWhenPressedOrFocused(_statesController.value),
+                        child: widget.title!,
                       ),
-                    if (subtitle != null)
+                    if (widget.subtitle != null)
                       DefaultTextStyle(
-                        style: context.textTheme.bodyMedium!,
-                        child: subtitle!,
+                        style: context.textTheme.bodyMedium!
+                            .colorWhenPressedOrFocused(_statesController.value, pressedForegroundColor!)
+                            .underlineWhenPressedOrFocused(_statesController.value),
+                        child: widget.subtitle!,
                       ),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              if (onTap != null)
-                Icon(
-                  Icons.chevron_right,
-                  size: 24,
-                  color: context.colorScheme.primary,
-                ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget? _buildIcon(BuildContext context) {
+    if (widget.onTap == null) return null;
+    return const Icon(Icons.chevron_right);
   }
 }

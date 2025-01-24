@@ -14,15 +14,13 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use tracing::debug;
+use tracing::warn;
 use uuid::Uuid;
-use x509_parser::error::X509Error;
-use x509_parser::prelude::FromDer;
-use x509_parser::prelude::X509Certificate;
 
-use android_attest::android_crl::Error as CrlError;
+use android_attest::android_crl;
 use android_attest::android_crl::GoogleRevocationListClient;
 use android_attest::android_crl::RevocationStatusList;
-use android_attest::certificate_chain::verify_google_key_attestation;
+use android_attest::certificate_chain::verify_google_key_attestation_with_time;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
@@ -132,14 +130,14 @@ pub enum WalletCertificateError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AndroidAttestationError {
-    #[error("could not decode certificate from chain: {0}")]
-    CertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
     #[error("could not decode public key from leaf certificate: {0}")]
     LeafPublicKey(#[source] p256::pkcs8::spki::Error),
-    #[error("could not obtain Google revocation list: {0}")]
-    CrlClient(#[from] CrlError),
+    #[error("could not obtain Google certificate revocation list")]
+    CrlClient,
     #[error("android key attestation verification failed: {0}")]
     Verification(#[from] GoogleKeyAttestationError),
+    #[error("certificate chain contains at least one revoked certificate")]
+    RevokedCertificates,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -270,12 +268,12 @@ impl AppleAttestationConfiguration {
 }
 
 #[trait_variant::make(Send)]
-pub trait GoogleCrlClient {
-    async fn get_crl(&self) -> Result<RevocationStatusList, CrlError>;
+pub trait GoogleCrlProvider {
+    async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error>;
 }
 
-impl GoogleCrlClient for GoogleRevocationListClient {
-    async fn get_crl(&self) -> Result<RevocationStatusList, CrlError> {
+impl GoogleCrlProvider for GoogleRevocationListClient {
+    async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
         self.get().await
     }
 }
@@ -353,7 +351,7 @@ impl<GC> AccountServer<GC> {
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
-        GC: GoogleCrlClient,
+        GC: GoogleCrlProvider,
     {
         debug!("Parsing message to lookup public keys");
 
@@ -375,6 +373,7 @@ impl<GC> AccountServer<GC> {
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
         let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
 
+        let challenge_hash = utils::sha256(challenge);
         let (hw_pubkey, attestation) = match unverified.payload.attestation {
             RegistrationAttestation::Apple { data } => {
                 debug!("Validating Apple key and app attestation");
@@ -383,7 +382,7 @@ impl<GC> AccountServer<GC> {
                     &data,
                     &self.apple_trust_anchors,
                     attestation_timestamp,
-                    &utils::sha256(challenge),
+                    &challenge_hash,
                     &self.apple_config.app_identifier,
                     self.apple_config.environment,
                 )?;
@@ -410,27 +409,36 @@ impl<GC> AccountServer<GC> {
                 debug!("Validating Android key attestation");
 
                 // Verify the certificate chain according to the google key attestation verification rules
-                let crl = self
-                    .google_crl_client
-                    .get_crl()
-                    .await
-                    .map_err(AndroidAttestationError::CrlClient)?;
+                let crl = self.google_crl_client.get_crl().await.map_err(|error| {
+                    warn!("could not obtain Google certificate revocation list: {0}", error);
+
+                    AndroidAttestationError::CrlClient
+                })?;
                 let attested_key_chain = certificate_chain
                     .as_ref()
                     .iter()
                     .map(|cert| CertificateDer::from_slice(cert))
                     .collect::<Vec<_>>();
-                verify_google_key_attestation(
+                let leaf_certificate = verify_google_key_attestation_with_time(
                     &attested_key_chain,
                     &self.android_root_public_keys,
                     &crl,
-                    &utils::sha256(challenge),
+                    &challenge_hash,
+                    attestation_timestamp,
                 )
-                .map_err(AndroidAttestationError::Verification)?;
+                .map_err(|error| match error {
+                    GoogleKeyAttestationError::RevokedCertificates(revocation_log) => {
+                        warn!(
+                            "found revoked certificates while verifying Android attested key certificate chain: {}",
+                            revocation_log.join(" ")
+                        );
+
+                        AndroidAttestationError::RevokedCertificates
+                    }
+                    error => AndroidAttestationError::Verification(error),
+                })?;
 
                 // Extract the leaf certificate's verifying key
-                let (_, leaf_certificate) = X509Certificate::from_der(certificate_chain.first())
-                    .map_err(AndroidAttestationError::CertificateDecode)?;
                 let hw_pubkey = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw)
                     .map_err(AndroidAttestationError::LeafPublicKey)?;
 
@@ -971,6 +979,8 @@ pub mod mock {
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 
+    pub type MockAccountServer = AccountServer<RevocationStatusList>;
+
     #[derive(Clone, Copy)]
     pub enum AttestationType {
         Apple,
@@ -983,8 +993,8 @@ pub mod mock {
         Google(&'a MockCaChain),
     }
 
-    impl GoogleCrlClient for RevocationStatusList {
-        async fn get_crl(&self) -> Result<RevocationStatusList, CrlError> {
+    impl GoogleCrlProvider for RevocationStatusList {
+        async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
             Ok(self.clone())
         }
     }
@@ -992,7 +1002,7 @@ pub mod mock {
     pub fn setup_account_server(
         certificate_signing_pubkey: &VerifyingKey,
         crl: RevocationStatusList,
-    ) -> AccountServer<RevocationStatusList> {
+    ) -> MockAccountServer {
         AccountServer::new(
             Duration::from_millis(15000),
             "mock_account_server".into(),
@@ -1107,8 +1117,6 @@ mod tests {
     use uuid::uuid;
 
     use android_attest::attestation_extension::key_description::KeyDescription;
-    use android_attest::attestation_extension::key_description::OctetString;
-    use android_attest::attestation_extension::key_description::SecurityLevel;
     use android_attest::mock::MockCaChain;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AssertionError;
@@ -1134,6 +1142,7 @@ mod tests {
 
     use super::mock::AttestationCa;
     use super::mock::AttestationType;
+    use super::mock::MockAccountServer;
     use super::mock::MockHardwareKey;
     use super::mock::MOCK_APPLE_CA;
     use super::mock::MOCK_GOOGLE_CA_CHAIN;
@@ -1145,26 +1154,24 @@ mod tests {
         HSM.get_or_init(wallet_certificate::mock::setup_hsm).await
     }
 
-    async fn do_registration<GC>(
-        account_server: &AccountServer<GC>,
+    async fn do_registration(
+        account_server: &MockAccountServer,
         hsm: &MockPkcs11Client<HsmError>,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         pin_privkey: &SigningKey,
         attestation_ca: AttestationCa<'_>,
-    ) -> Result<(WalletCertificate, MockHardwareKey), RegistrationError>
-    where
-        GC: GoogleCrlClient,
-    {
+    ) -> Result<(WalletCertificate, MockHardwareKey), RegistrationError> {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
             .await
             .expect("Could not get registration challenge");
 
+        let challenge_hash = utils::sha256(&challenge);
         let (registration_message, hw_privkey) = match attestation_ca {
             AttestationCa::Apple(apple_mock_ca) => {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
                     apple_mock_ca,
-                    &utils::sha256(&challenge),
+                    &challenge_hash,
                     account_server.apple_config.environment,
                     account_server.apple_config.app_identifier.clone(),
                 );
@@ -1176,16 +1183,7 @@ mod tests {
                 (registration_message, MockHardwareKey::Apple(attested_key))
             }
             AttestationCa::Google(android_mock_ca_chain) => {
-                let key_description = KeyDescription {
-                    attestation_version: 200.into(),
-                    attestation_security_level: SecurityLevel::TrustedEnvironment,
-                    key_mint_version: 300.into(),
-                    key_mint_security_level: SecurityLevel::TrustedEnvironment,
-                    attestation_challenge: OctetString::copy_from_slice(&utils::sha256(&challenge)),
-                    unique_id: OctetString::copy_from_slice(b"unique_id"),
-                    software_enforced: Default::default(),
-                    hardware_enforced: Default::default(),
-                };
+                let key_description = KeyDescription::new_valid_mock(challenge_hash);
 
                 let (attested_certificate_chain, attested_private_key) =
                     android_mock_ca_chain.generate_attested_leaf_certificate(&key_description);
@@ -1222,7 +1220,7 @@ mod tests {
         attestation_type: AttestationType,
     ) -> (
         WalletCertificateSetup,
-        AccountServer<RevocationStatusList>,
+        MockAccountServer,
         MockHardwareKey,
         WalletCertificate,
         WalletUserTestRepo,
@@ -1261,8 +1259,8 @@ mod tests {
         (setup, account_server, hw_privkey, cert, repo)
     }
 
-    async fn do_instruction_challenge<I, GC>(
-        account_server: &AccountServer<GC>,
+    async fn do_instruction_challenge<I>(
+        account_server: &MockAccountServer,
         repo: &WalletUserTestRepo,
         hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
@@ -1271,7 +1269,6 @@ mod tests {
     ) -> Result<Vec<u8>, ChallengeError>
     where
         I: InstructionAndResult,
-        GC: GoogleCrlClient,
     {
         let instruction_challenge = hw_privkey
             .sign_instruction_challenge::<I>(
@@ -1286,18 +1283,15 @@ mod tests {
             .await
     }
 
-    async fn do_check_pin<GC>(
-        account_server: &AccountServer<GC>,
+    async fn do_check_pin(
+        account_server: &MockAccountServer,
         repo: WalletUserTestRepo,
         pin_privkey: &SigningKey,
         hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
         instruction_result_signing_key: &SigningKey,
-    ) -> Result<InstructionResult<()>, anyhow::Error>
-    where
-        GC: GoogleCrlClient,
-    {
-        let challenge = do_instruction_challenge::<CheckPin, GC>(
+    ) -> Result<InstructionResult<()>, anyhow::Error> {
+        let challenge = do_instruction_challenge::<CheckPin>(
             account_server,
             &repo,
             hw_privkey,
@@ -1362,17 +1356,14 @@ mod tests {
         Ok(result)
     }
 
-    async fn do_pin_change_start<GC>(
-        account_server: &AccountServer<GC>,
+    async fn do_pin_change_start(
+        account_server: &MockAccountServer,
         repo: WalletUserTestRepo,
         wallet_certificate_setup: &WalletCertificateSetup,
         hw_privkey: &MockHardwareKey,
         wallet_certificate: WalletCertificate,
         instruction_result_signing_key: &SigningKey,
-    ) -> (SigningKey, VerifyingKey, Encrypted<VerifyingKey>, WalletCertificate)
-    where
-        GC: GoogleCrlClient,
-    {
+    ) -> (SigningKey, VerifyingKey, Encrypted<VerifyingKey>, WalletCertificate) {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
@@ -1384,7 +1375,7 @@ mod tests {
         .await
         .unwrap();
 
-        let challenge = do_instruction_challenge::<ChangePinStart, GC>(
+        let challenge = do_instruction_challenge::<ChangePinStart>(
             account_server,
             &repo,
             hw_privkey,
@@ -1522,7 +1513,7 @@ mod tests {
             )),
         };
 
-        let error = do_instruction_challenge::<CheckPin, RevocationStatusList>(
+        let error = do_instruction_challenge::<CheckPin>(
             &account_server,
             &repo,
             &wrong_hw_privkey,
@@ -1546,16 +1537,12 @@ mod tests {
             setup_and_do_registration(AttestationType::Apple).await;
         repo.apple_assertion_counter = Some(AssertionCounter::from(200));
 
-        let error = do_instruction_challenge::<CheckPin, RevocationStatusList>(
-            &account_server,
-            &repo,
-            &hw_privkey,
-            cert,
-            43,
-            get_global_hsm().await,
-        )
-        .await
-        .expect_err("requesting a challenge with a different signature type than used during registration should fail");
+        let error =
+            do_instruction_challenge::<CheckPin>(&account_server, &repo, &hw_privkey, cert, 43, get_global_hsm().await)
+                .await
+                .expect_err(
+                    "requesting a challenge with a different signature type than used during registration should fail",
+                );
 
         assert_matches!(
             error,
@@ -1723,7 +1710,7 @@ mod tests {
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
-        let challenge_error = do_instruction_challenge::<CheckPin, RevocationStatusList>(
+        let challenge_error = do_instruction_challenge::<CheckPin>(
             &account_server,
             &repo,
             &hw_privkey,
@@ -1799,7 +1786,7 @@ mod tests {
         .await
         .expect("verifying with the new pin_pubkey should succeed");
 
-        let challenge = do_instruction_challenge::<ChangePinCommit, RevocationStatusList>(
+        let challenge = do_instruction_challenge::<ChangePinCommit>(
             &account_server,
             &repo,
             &hw_privkey,
@@ -1914,7 +1901,7 @@ mod tests {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
-        let challenge = do_instruction_challenge::<ChangePinStart, RevocationStatusList>(
+        let challenge = do_instruction_challenge::<ChangePinStart>(
             &account_server,
             &repo,
             &hw_privkey,
@@ -1981,7 +1968,7 @@ mod tests {
         )
         .await;
 
-        let challenge = do_instruction_challenge::<ChangePinRollback, RevocationStatusList>(
+        let challenge = do_instruction_challenge::<ChangePinRollback>(
             &account_server,
             &repo,
             &hw_privkey,

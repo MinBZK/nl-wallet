@@ -392,24 +392,22 @@ impl KeyAttestation {
 }
 
 impl SecurityLevel {
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "emulator")] {
-            pub fn verify(&self) -> Result<(), SecurityLevel> {
-                tracing::debug!("Allowing all security levels on android emulator");
+    pub fn verify(&self) -> Result<(), SecurityLevel> {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "emulator")] {
                 // Allow any security level on the emulator.
-                Ok(())
-            }
-        } else {
-            pub fn verify(&self) -> Result<(), SecurityLevel> {
+                tracing::debug!("Allowing all security levels on android emulator");
+            } else {
                 if !match self {
                     SecurityLevel::Software => false,
                     SecurityLevel::TrustedEnvironment | SecurityLevel::StrongBox => true,
                 } {
                     return Err(*self);
                 }
-                Ok(())
             }
         }
+
+        Ok(())
     }
 }
 

@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use tracing::info;
 
 use wallet_common::built_info::version_string;
-use wallet_provider_service::account_server::GoogleCrlClient;
+use wallet_provider_service::account_server::GoogleCrlProvider;
 
 use super::router;
 use super::router_state::RouterState;
@@ -12,7 +12,7 @@ use super::settings::Settings;
 
 pub async fn serve<GC>(settings: Settings, google_crl_client: GC) -> Result<(), Box<dyn Error>>
 where
-    GC: GoogleCrlClient + Send + Sync + 'static,
+    GC: GoogleCrlProvider + Send + Sync + 'static,
 {
     let socket = SocketAddr::new(settings.webserver.ip, settings.webserver.port);
     info!("{}", version_string());

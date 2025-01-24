@@ -77,7 +77,7 @@ class PinTimeoutScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const Divider(height: 1),
+            const Divider(),
             ConfirmButtons(
               forceVertical: !context.isLandscape,
               primaryButton: PrimaryButton(

@@ -192,6 +192,7 @@ platform :android do
   lane :ci_browserstack do |options|
     browserstack_user = ENV["BROWSERSTACK_USER"]
     browserstack_key = ENV["BROWSERSTACK_KEY"]
+    commit_sha = ENV["CI_COMMIT_SHA"]
 
     UI.user_error!("No BROWSERSTACK_USER environment variable set") if browserstack_user.blank?
     UI.user_error!("No BROWSERSTACK_KEY environment variable set") if browserstack_key.blank?
@@ -206,7 +207,8 @@ platform :android do
       file: "#{package_name}-#{version || local_version}-profile.apk",
       user: browserstack_user,
       key: browserstack_key,
-      package_name: package_name
+      package_name: package_name,
+      commit_sha: commit_sha
     )
   end
 
@@ -216,8 +218,9 @@ platform :android do
     user = options[:user]
     key = options[:key]
     package_name = options[:package_name]
+    commit_sha = options[:commit_sha]
 
-    upload_to_browserstack(file: file, user: user, key: key, custom_id: "NLWalletAndroid_#{package_name}")
+    upload_to_browserstack(file: file, user: user, key: key, custom_id: "NLWalletAndroid_#{package_name}_#{commit_sha}")
   end
 end
 

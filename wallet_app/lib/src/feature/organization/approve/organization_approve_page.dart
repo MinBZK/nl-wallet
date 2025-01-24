@@ -80,7 +80,7 @@ class OrganizationApprovePage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Divider(height: 1),
+                  const Divider(),
                   ConfirmButtons(
                     primaryButton: PrimaryButton(
                       key: const Key('acceptButton'),

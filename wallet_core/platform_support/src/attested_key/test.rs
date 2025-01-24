@@ -176,7 +176,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
             log::info!("Invoke verify_google_key_attestation");
             match verify_google_key_attestation(&der_certificate_chain, &root_public_keys, &revocation_list, &challenge)
             {
-                Ok(()) => log::info!("key attestation verified successfully"),
+                Ok(_) => log::info!("key attestation verified successfully"),
                 Err(error) => log::error!("could not verify attestation key certificate chain: {error}"),
             }
 

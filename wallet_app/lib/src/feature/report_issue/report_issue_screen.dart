@@ -41,9 +41,9 @@ class ReportIssueScreen extends StatelessWidget {
           ),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           const SliverSizedBox(height: 24),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverToBoxAdapter(child: Divider()),
           _buildOptionsSliver(context),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverToBoxAdapter(child: Divider()),
         ],
       ),
     );
@@ -73,7 +73,7 @@ class ReportIssueScreen extends StatelessWidget {
           onTap: () => PlaceholderScreen.showGeneric(context),
         );
       },
-      separatorBuilder: (c, i) => const Divider(height: 1),
+      separatorBuilder: (c, i) => const Divider(),
       itemCount: options.length,
     );
   }

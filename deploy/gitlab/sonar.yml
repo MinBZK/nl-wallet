@@ -1,7 +1,5 @@
 .default-sonar:
   rules: !reference [.default-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:a6f06dfaade25fdcf89d1349acf1e5e86fe1bdc68155eac05a8eafb9aa790e77"
 
 sonar-rust:
   extends: .default-sonar

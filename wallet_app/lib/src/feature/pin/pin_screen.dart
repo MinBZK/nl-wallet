@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecase/biometrics/biometric_authentication_result.dart';
 import '../../domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import '../../domain/usecase/biometrics/unlock_wallet_with_biometrics_usecase.dart';
-import '../../util/extension/build_context_extension.dart';
 import '../common/dialog/locked_out_dialog.dart';
 import '../common/widget/button/icon/info_icon_button.dart';
 import '../common/widget/utility/auto_biometric_unlock_trigger.dart';
@@ -36,7 +35,6 @@ class PinScreen extends StatelessWidget {
             onTriggerBiometricUnlock: _performBiometricUnlock,
             child: PinPage(
               onPinValidated: (_) => onUnlock,
-              keyboardColor: context.colorScheme.primary,
               showTopDivider: true,
               onBiometricUnlockRequested: showBiometricUnlock ? () => _performBiometricUnlock(context) : null,
             ),

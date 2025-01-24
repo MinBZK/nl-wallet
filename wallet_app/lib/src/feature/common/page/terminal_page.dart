@@ -89,7 +89,7 @@ class TerminalPage extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Divider(height: 1),
+        const Divider(),
         const SizedBox(height: 24),
         _buildPrimaryButton(context),
         SizedBox(height: hasSecondaryButton ? 16 : 0),

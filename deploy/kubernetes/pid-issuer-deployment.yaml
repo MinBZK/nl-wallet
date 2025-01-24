@@ -49,37 +49,37 @@ spec:
               mountPath: /address-metadata.json
               subPath: address-metadata.json
           env:
-            - name: PID_ISSUER_WALLET_SERVER__PORT
+            - name: PID_ISSUER__WALLET_SERVER__PORT
               value: "3007"
-            - name: PID_ISSUER_PUBLIC_URL
+            - name: PID_ISSUER__PUBLIC_URL
               value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
-            - name: PID_ISSUER_STRUCTURED_LOGGING
+            - name: PID_ISSUER__STRUCTURED_LOGGING
               value: "true"
-            - name: PID_ISSUER_ISSUER_TRUST_ANCHORS
+            - name: PID_ISSUER__ISSUER_TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: issuer_trust_anchors
-            - name: PID_ISSUER_ISSUER__DIGID__BSN_PRIVKEY
+            - name: PID_ISSUER__ISSUER__DIGID__BSN_PRIVKEY
               valueFrom:
                 secretKeyRef:
                   name: nl-pid-issuer-digid-bsn-privkey
                   key: bsn_privkey
-            - name: PID_ISSUER_ISSUER__DIGID__HTTP_CONFIG__BASE_URL
+            - name: PID_ISSUER__ISSUER__DIGID__HTTP_CONFIG__BASE_URL
               value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
-            - name: PID_ISSUER_ISSUER__DIGID__HTTP_CONFIG__TRUST_ANCHORS
+            - name: PID_ISSUER__ISSUER__DIGID__HTTP_CONFIG__TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
                   name: nl-pid-issuer-digid-http-trust-anchors
                   key: trust_anchors
-            - name: PID_ISSUER_ISSUER__BRP_SERVER
+            - name: PID_ISSUER__ISSUER__BRP_SERVER
               value: "http://brpproxy:5001/"
-            - name: PID_ISSUER_ISSUER__WTE_ISSUER_PUBKEY
+            - name: PID_ISSUER__ISSUER__WTE_ISSUER_PUBKEY
               valueFrom:
                 configMapKeyRef:
                   name: nl-pid-issuer-wte-issuer-pubkey
                   key: wte_issuer_pubkey
-            - name: PID_ISSUER_ISSUER__METADATA
+            - name: PID_ISSUER__ISSUER__METADATA
               value: "pid-metadata.json,address-metadata.json"
             - name: DB_USERNAME
               valueFrom:
@@ -91,7 +91,7 @@ spec:
                 secretKeyRef:
                   name: db-cluster-pi-app
                   key: password
-            - name: PID_ISSUER_STORAGE__URL
+            - name: PID_ISSUER__STORAGE__URL
               value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-pi-rw:5432/pid_issuer"
             - name: RUST_LOG
               value: "debug,hyper=warn"

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/card_front.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/extension/build_context_extension.dart';
