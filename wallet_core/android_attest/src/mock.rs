@@ -4,6 +4,7 @@ use std::rc::Rc;
 use derive_more::Debug;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
+use rand::Rng;
 use rcgen::BasicConstraints;
 use rcgen::CertificateParams;
 use rcgen::CustomExtension;
@@ -26,7 +27,7 @@ pub struct MockCaChain {
     certificates_der: Vec<Vec<u8>>,
     pub root_public_key: RsaPublicKey,
     #[debug("{:?}", last_ca_certificate.der())]
-    last_ca_certificate: rcgen::Certificate,
+    pub last_ca_certificate: rcgen::Certificate,
     last_ca_key_pair: rcgen::KeyPair,
 }
 
@@ -34,6 +35,8 @@ impl MockCaChain {
     /// Generate a chain of CAs, with the requested number of intermediates.
     /// If no intermediates are requested, only a root CA is generated.
     pub fn generate(intermediate_count: u8) -> Self {
+        let mut rng = rand::thread_rng();
+
         // Start with an iterator that runs backwards from `intermediate_count` down to and including 0.
         let mut certificates_and_key_pairs = (0..=intermediate_count)
             .rev()
@@ -44,6 +47,7 @@ impl MockCaChain {
                     // using a decrementing intermediate count as constraint.
                     let key_pair = rcgen::KeyPair::generate_rsa_for(&PKCS_RSA_SHA256, RsaKeySize::_2048).unwrap();
                     let mut params = CertificateParams::default();
+                    params.serial_number = Some((rng.gen::<u64>()).into());
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(constrained_count));
 
                     // Get the parent certificate and key pair from the previous iteration and use it to sign
