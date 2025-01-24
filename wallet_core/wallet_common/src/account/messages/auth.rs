@@ -135,9 +135,11 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use p256::pkcs8::DecodePublicKey;
     use rand_core::OsRng;
-    use x509_parser::prelude::FromDer;
-    use x509_parser::prelude::X509Certificate;
+    use rustls_pki_types::CertificateDer;
 
+    use android_attest::android_crl::RevocationStatusList;
+    use android_attest::attestation_extension::key_description::KeyDescription;
+    use android_attest::certificate_chain::verify_google_key_attestation;
     use android_attest::mock::MockCaChain;
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
@@ -211,7 +213,8 @@ mod tests {
 
         // Generate a mock certificate chain, a random app attestation token and a mock PIN signing key.
         let attested_ca_chain = MockCaChain::generate(1);
-        let (attested_certificate_chain, attested_private_key) = attested_ca_chain.generate_leaf_certificate();
+        let (attested_certificate_chain, attested_private_key) =
+            attested_ca_chain.generate_attested_leaf_certificate(&KeyDescription::new_valid_mock(challenge.to_vec()));
         let app_attestation_token = utils::random_bytes(32);
         let pin_signing_key = SigningKey::random(&mut OsRng);
 
@@ -233,8 +236,22 @@ mod tests {
             panic!("google registration message should contain certificate chain");
         };
 
-        // TODO: Verify mock certificate chain instead of just extracting the leaf certificate public key.
-        let (_, certificate) = X509Certificate::from_der(certificate_chain.first()).unwrap();
+        // Verify mock certificate chain and extract the leaf certificate public key.
+        let der_certificate_chain = certificate_chain
+            .as_ref()
+            .iter()
+            .map(|der| CertificateDer::from_slice(der))
+            .collect::<Vec<_>>();
+        let root_public_keys = vec![attested_ca_chain.root_public_key.clone().into()];
+
+        let certificate = verify_google_key_attestation(
+            &der_certificate_chain,
+            &root_public_keys,
+            &RevocationStatusList::default(),
+            challenge,
+        )
+        .unwrap();
+
         let attested_public_key = VerifyingKey::from_public_key_der(certificate.public_key().raw).unwrap();
 
         // The Wallet Provider takes the public keys from the message and verifies the signatures.
