@@ -6,9 +6,9 @@
 //! - 200
 //! - 300
 
-use rasn::types::Integer;
+pub use rasn::types::Integer;
 pub use rasn::types::OctetString;
-use rasn::types::SetOf;
+pub use rasn::types::SetOf;
 use rasn::AsnType;
 use rasn::Decode;
 use rasn::Decoder;
