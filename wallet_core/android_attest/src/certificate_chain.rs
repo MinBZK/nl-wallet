@@ -122,7 +122,10 @@ pub fn verify_google_key_attestation_with_time(
     }
 
     // 5. Optionally, inspect the provisioning information certificate extension that is only present in newer
-    //    certificate chains. We skip this step, as interpreting the provisioning information is not clearly defined.
+    //    certificate chains.
+    //
+    // We skip this step, as the provisioning information only contains a rough estimate of the number of certificates
+    // issued on this device. Interpreting this metric is not clearly defined and is not particularly useful for us.
 
     // 6. Obtain a reference to the ASN.1 parser library that is most appropriate for your toolset. Find the nearest
     //    certificate to the root that contains the key attestation certificate extension. If the provisioning
