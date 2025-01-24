@@ -43,7 +43,7 @@ pub enum GoogleKeyAttestationError {
     NoKeyAttestationExtension,
     #[error("could not extract key attestation extension: {0}")]
     KeyAttestationExtension(#[from] KeyAttestationExtensionError),
-    #[error("key attestation extension is not strong enough: {0}")]
+    #[error("key attestation extension does not meet requirements: {0}")]
     KeyAttestationVerification(#[from] KeyAttestationVerificationError),
 }
 
