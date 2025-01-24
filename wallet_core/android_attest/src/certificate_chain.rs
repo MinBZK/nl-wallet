@@ -49,6 +49,8 @@ pub enum GoogleKeyAttestationError {
 
 // This function implements the steps as described in: [Verify hardware-backed key pairs with key attestation](https://developer.android.com/privacy-and-security/security-key-attestation).
 // The first steps in the procedure are executed on the Android device, and are the prerequisite for this function.
+// Note that the certificate chain containing at least two values is a precondition for this function.
+// A panic will occur if this is not the case.
 //
 // 1. Use a KeyStore object's getCertificateChain() method to get a reference to the chain of X.509 certificates
 //    associated with the hardware-backed keystore.
@@ -60,7 +62,7 @@ pub fn verify_google_key_attestation(
     revocation_list: &RevocationStatusList,
     attestation_challenge: &[u8],
 ) -> Result<(), GoogleKeyAttestationError> {
-    assert!(!certificate_chain.is_empty());
+    assert!(certificate_chain.len() >= 2);
 
     // 3. Obtain a reference to the X.509 certificate chain parsing and validation library that is most appropriate for
     //    your toolset. Verify that the root public certificate is trustworthy and that each certificate signs the next
@@ -121,8 +123,6 @@ fn verify_google_attestation_certificate_chain(
     certificate_chain: &[CertificateDer],
     root_public_keys: &[RootPublicKey],
 ) -> Result<(), GoogleKeyAttestationError> {
-    assert!(!certificate_chain.is_empty());
-
     let root_index = certificate_chain.len() - 1;
 
     // `unwrap` is safe because of guard that verifies the certificate chain is not empty.
