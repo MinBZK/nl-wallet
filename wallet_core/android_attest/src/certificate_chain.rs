@@ -19,7 +19,6 @@ use x509_parser::prelude::X509Certificate;
 use x509_parser::prelude::X509Error;
 
 use crate::android_crl::RevocationStatusList;
-use crate::attestation_extension::key_attestation::KeyAttestation;
 use crate::attestation_extension::key_attestation::KeyAttestationVerificationError;
 use crate::attestation_extension::KeyAttestationExtension;
 use crate::attestation_extension::KeyAttestationExtensionError;
@@ -132,16 +131,12 @@ pub fn verify_google_key_attestation_with_time(
     //    information certificate extension was present, the key attestation certificate extension must be in the
     //    immediately subsequent certificate. Use the parser to extract the key attestation certificate extension data
     //    from that certificate.
-    let key_attestation_extensions = x509_certificates
+    let key_attestation = x509_certificates
         .iter()
         .rev()
-        .flat_map(|cert| KeyAttestationExtension::parse_key_description(cert).transpose())
-        .collect::<Result<Vec<KeyAttestation>, _>>()?;
-
-    let key_attestation = match key_attestation_extensions.first() {
-        None => return Err(GoogleKeyAttestationError::NoKeyAttestationExtension)?,
-        Some(extension) => extension,
-    };
+        .find_map(|cert| KeyAttestationExtension::parse_key_description(cert).transpose())
+        .transpose()?
+        .ok_or(GoogleKeyAttestationError::NoKeyAttestationExtension)?;
 
     // 7. Check the extension data that you've retrieved in the previous steps for consistency and compare with the set
     //    of values that you expect the hardware-backed key to contain.
