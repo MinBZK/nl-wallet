@@ -222,7 +222,7 @@ mod tests {
     use crate::android_crl::AndroidCrlStatus;
     use crate::android_crl::RevocationStatusEntry;
     use crate::attestation_extension::key_description::KeyDescription;
-    #[cfg(not(feature = "emulator"))]
+    #[cfg(not(feature = "allow_emulator_keys"))]
     use crate::attestation_extension::key_description::SecurityLevel;
     use crate::mock::MockCaChain;
 
@@ -235,7 +235,7 @@ mod tests {
         KeyDescription::new_valid_mock(challenge.to_vec())
     }
 
-    #[cfg(not(feature = "emulator"))]
+    #[cfg(not(feature = "allow_emulator_keys"))]
     fn key_description_insecure_attestation_security_level(challenge: &[u8]) -> KeyDescription {
         KeyDescription {
             attestation_security_level: SecurityLevel::Software,
@@ -243,7 +243,7 @@ mod tests {
         }
     }
 
-    #[cfg(not(feature = "emulator"))]
+    #[cfg(not(feature = "allow_emulator_keys"))]
     fn key_description_insecure_key_mint_security_level(challenge: &[u8]) -> KeyDescription {
         KeyDescription {
             key_mint_security_level: SecurityLevel::Software,
@@ -316,7 +316,7 @@ mod tests {
         KeyAttestationVerificationError::AttestationChallenge
     )]
     #[cfg_attr(
-        not(feature = "emulator"),
+        not(feature = "allow_emulator_keys"),
         case(
             key_description_insecure_attestation_security_level(b"challenge"),
             b"challenge",
@@ -324,7 +324,7 @@ mod tests {
         )
     )]
     #[cfg_attr(
-        not(feature = "emulator"),
+        not(feature = "allow_emulator_keys"),
         case(
             key_description_insecure_key_mint_security_level(b"challenge"),
             b"challenge",

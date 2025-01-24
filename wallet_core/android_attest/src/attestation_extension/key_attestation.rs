@@ -394,7 +394,7 @@ impl KeyAttestation {
 impl SecurityLevel {
     pub fn verify(&self) -> Result<(), SecurityLevel> {
         cfg_if::cfg_if! {
-            if #[cfg(feature = "emulator")] {
+            if #[cfg(feature = "allow_emulator_keys")] {
                 // Allow any security level on the emulator.
                 tracing::debug!("Allowing all security levels on android emulator");
             } else {
