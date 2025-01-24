@@ -262,7 +262,7 @@ mod tests {
 
         // Get root public key, the chain length is 3 now, root + intermediate + leaf.
         let (_, root_certificate) = X509Certificate::from_der(&certificates[2]).unwrap();
-        let root_public_keys = vec![RootPublicKey::try_from(root_certificate.public_key().raw).unwrap()];
+        let root_public_keys = vec![RootPublicKey::rsa_from_der(root_certificate.public_key().raw).unwrap()];
 
         let revocation_list = RevocationStatusList::default();
 
@@ -304,7 +304,7 @@ mod tests {
 
         // Get root public key, the chain length is 3 now, root + intermediate + leaf.
         let (_, root_certificate) = X509Certificate::from_der(&certificates[2]).unwrap();
-        let root_public_keys = vec![RootPublicKey::try_from(root_certificate.public_key().raw).unwrap()];
+        let root_public_keys = vec![RootPublicKey::rsa_from_der(root_certificate.public_key().raw).unwrap()];
 
         let revocation_list = RevocationStatusList::default();
 
