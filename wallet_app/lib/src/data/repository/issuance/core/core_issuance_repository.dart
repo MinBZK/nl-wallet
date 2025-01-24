@@ -1,7 +1,7 @@
 import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' hide StartIssuanceResult;
 
-import '../../../../domain/model/attribute/missing_attribute.dart';
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../../domain/model/organization.dart';
