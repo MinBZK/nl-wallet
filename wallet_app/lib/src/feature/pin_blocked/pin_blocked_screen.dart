@@ -54,7 +54,7 @@ class PinBlockedScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const Divider(height: 1),
+            const Divider(),
             SizedBox(height: context.orientationBasedVerticalPadding),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),

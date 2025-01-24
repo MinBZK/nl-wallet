@@ -183,7 +183,7 @@ class ErrorPage extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       child: Column(
         children: [
-          const Divider(height: 1),
+          const Divider(),
           ConfirmButtons(
             forceVertical: !context.isLandscape,
             flipVertical: true,

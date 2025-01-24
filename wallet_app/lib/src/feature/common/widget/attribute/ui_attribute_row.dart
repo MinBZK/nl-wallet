@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/attribute/ui_attribute.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/formatter/attribute_value_formatter.dart';
 import '../../../../util/helper/bsn_helper.dart';
@@ -14,9 +13,9 @@ class UiAttributeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final prettyValue = attribute.value.prettyPrint(context);
+    // Render a simplified version when no icon is provided.
+    if (attribute.icon == null) return _buildDataColumn(context);
     return Row(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(
@@ -25,22 +24,26 @@ class UiAttributeRow extends StatelessWidget {
           color: context.colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                attribute.label.l10nValue(context),
-                style: context.textTheme.bodySmall,
-              ),
-              Text(
-                prettyValue,
-                style: context.textTheme.titleMedium,
-                semanticsLabel:
-                    BsnHelper.isValidBsnFormat(prettyValue) ? SemanticsHelper.splitNumberString(prettyValue) : null,
-              ),
-            ],
-          ),
+        Expanded(child: _buildDataColumn(context)),
+      ],
+    );
+  }
+
+  /// Column that renders the label and the value
+  Widget _buildDataColumn(BuildContext context) {
+    final prettyValue = attribute.value.prettyPrint(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text.rich(
+          attribute.label.l10nSpan(context),
+          style: context.textTheme.bodySmall,
+        ),
+        Text(
+          prettyValue,
+          style: context.textTheme.titleMedium,
+          semanticsLabel:
+              BsnHelper.isValidBsnFormat(prettyValue) ? SemanticsHelper.splitNumberString(prettyValue) : null,
         ),
       ],
     );

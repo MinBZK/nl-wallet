@@ -42,9 +42,9 @@ spec:
               mountPath: /update_policy_server.toml
               subPath: config.toml
           env:
-            - name: UPDATE_POLICY_SERVER_PORT
+            - name: UPDATE_POLICY_SERVER__PORT
               value: "3009"
-            - name: UPDATE_POLICY_SERVER_STRUCTURED_LOGGING
+            - name: UPDATE_POLICY_SERVER__STRUCTURED_LOGGING
               value: "true"
             - name: RUST_LOG
               value: "debug,hyper=warn"

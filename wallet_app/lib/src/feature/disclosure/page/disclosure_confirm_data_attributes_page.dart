@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
@@ -57,9 +56,9 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           slivers: <Widget>[
             const SliverSizedBox(height: 8),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
-            const SliverDivider(height: 1),
+            const SliverDivider(),
             SliverToBoxAdapter(child: _buildReasonSection(context)),
-            const SliverDivider(height: 1),
+            const SliverDivider(),
             const SliverSizedBox(height: 32),
             SliverToBoxAdapter(child: _buildCardsSectionHeader(context)),
             SliverPadding(
@@ -67,7 +66,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
               sliver: _buildSharedAttributeCardsSliver(),
             ),
             const SliverSizedBox(height: 8),
-            const SliverDivider(height: 1),
+            const SliverDivider(),
             SliverToBoxAdapter(child: _buildPrivacySection(context)),
             SliverFillRemaining(
               hasScrollBody: false,
@@ -123,7 +122,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const Divider(height: 1),
+        const Divider(),
         ConfirmButtons(
           primaryButton: PrimaryButton(
             key: const Key('acceptButton'),

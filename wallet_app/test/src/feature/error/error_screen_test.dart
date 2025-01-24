@@ -13,7 +13,7 @@ void main() {
     return DeviceUtils.deviceBuilderWithPrimaryScrollController
       ..addScenario(
         widget: ErrorScreen(
-          headline: 'Headline',
+          title: 'Headline',
           description: 'Description',
           primaryButton: PrimaryButton(
             text: const Text('Primary'),
@@ -105,7 +105,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         ErrorScreen(
           description: 'D',
-          headline: 'H',
+          title: 'H',
           primaryButton: PrimaryButton(
             text: const Text('P'),
             onPressed: () {},

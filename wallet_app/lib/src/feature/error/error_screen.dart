@@ -17,15 +17,15 @@ import 'error_button_builder.dart';
 export 'error_cta_style.dart';
 
 class ErrorScreen extends StatelessWidget {
-  final String? illustration;
-  final String headline;
+  final String title;
   final String description;
   final FitsWidthWidget primaryButton;
   final FitsWidthWidget? secondaryButton;
+  final String? illustration;
   final List<Widget> actions;
 
   const ErrorScreen({
-    required this.headline,
+    required this.title,
     required this.description,
     required this.primaryButton,
     this.secondaryButton,
@@ -45,7 +45,7 @@ class ErrorScreen extends StatelessWidget {
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(
-                      title: headline,
+                      title: title,
                       scrollController: PrimaryScrollController.maybeOf(context),
                       automaticallyImplyLeading: false,
                       actions: actions,
@@ -80,7 +80,7 @@ class ErrorScreen extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       child: Column(
         children: [
-          const Divider(height: 1),
+          const Divider(),
           ConfirmButtons(
             forceVertical: !context.isLandscape,
             flipVertical: true,
@@ -95,21 +95,16 @@ class ErrorScreen extends StatelessWidget {
 
   static void show(
     BuildContext context, {
+    required ErrorScreenConfig config,
     bool secured = true,
-    required String headline,
-    required String description,
-    String? illustration,
-    required FitsWidthWidget primaryButton,
-    FitsWidthWidget? secondaryButton,
-    List<Widget> actions = const [CloseIconButton()],
   }) {
     final errorScreen = ErrorScreen(
-      headline: headline,
-      description: description,
-      illustration: illustration,
-      primaryButton: primaryButton,
-      secondaryButton: secondaryButton,
-      actions: actions,
+      title: config.title,
+      description: config.description,
+      illustration: config.illustration,
+      primaryButton: config.primaryButton,
+      secondaryButton: config.secondaryButton,
+      actions: config.actions,
     );
     Navigator.push(
       context,
@@ -131,14 +126,16 @@ class ErrorScreen extends StatelessWidget {
     show(
       context,
       secured: secured,
-      headline: context.l10n.errorScreenGenericHeadline,
-      description: style == ErrorCtaStyle.close
-          ? context.l10n.errorScreenGenericDescriptionCloseVariant
-          : context.l10n.errorScreenGenericDescription,
-      illustration: WalletAssets.svg_error_general,
-      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
-      actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+      config: ErrorScreenConfig(
+        title: context.l10n.errorScreenGenericHeadline,
+        description: style == ErrorCtaStyle.close
+            ? context.l10n.errorScreenGenericDescriptionCloseVariant
+            : context.l10n.errorScreenGenericDescription,
+        illustration: WalletAssets.svg_error_general,
+        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+        actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+      ),
     );
   }
 
@@ -160,14 +157,16 @@ class ErrorScreen extends StatelessWidget {
       show(
         context,
         secured: secured,
-        headline: context.l10n.errorScreenServerHeadline,
-        description: style == ErrorCtaStyle.close
-            ? context.l10n.errorScreenServerDescriptionCloseVariant
-            : context.l10n.errorScreenServerDescription,
-        illustration: WalletAssets.svg_error_server_outage,
-        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
-        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
-        actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+        config: ErrorScreenConfig(
+          title: context.l10n.errorScreenServerHeadline,
+          description: style == ErrorCtaStyle.close
+              ? context.l10n.errorScreenServerDescriptionCloseVariant
+              : context.l10n.errorScreenServerDescription,
+          illustration: WalletAssets.svg_error_server_outage,
+          primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
+          secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+          actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+        ),
       );
     }
   }
@@ -180,14 +179,16 @@ class ErrorScreen extends StatelessWidget {
     show(
       context,
       secured: secured,
-      headline: context.l10n.errorScreenNoInternetHeadline,
-      description: style == ErrorCtaStyle.close
-          ? context.l10n.errorScreenNoInternetDescriptionCloseVariant
-          : context.l10n.errorScreenNoInternetDescription,
-      illustration: WalletAssets.svg_error_no_internet,
-      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
-      actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+      config: ErrorScreenConfig(
+        title: context.l10n.errorScreenNoInternetHeadline,
+        description: style == ErrorCtaStyle.close
+            ? context.l10n.errorScreenNoInternetDescriptionCloseVariant
+            : context.l10n.errorScreenNoInternetDescription,
+        illustration: WalletAssets.svg_error_no_internet,
+        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+        actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+      ),
     );
   }
 
@@ -195,22 +196,24 @@ class ErrorScreen extends StatelessWidget {
     show(
       context,
       secured: false,
-      headline: context.l10n.errorScreenDeviceIncompatibleHeadline,
-      description: context.l10n.errorScreenDeviceIncompatibleDescription,
-      illustration: WalletAssets.svg_error_config_update,
-      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
-        context,
-        ErrorCtaStyle.close,
-        onPressed: () {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            WalletRoutes.splashRoute,
-            ModalRoute.withName(WalletRoutes.splashRoute),
-          );
-        },
+      config: ErrorScreenConfig(
+        title: context.l10n.errorScreenDeviceIncompatibleHeadline,
+        description: context.l10n.errorScreenDeviceIncompatibleDescription,
+        illustration: WalletAssets.svg_error_config_update,
+        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+          context,
+          ErrorCtaStyle.close,
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              WalletRoutes.splashRoute,
+              ModalRoute.withName(WalletRoutes.splashRoute),
+            );
+          },
+        ),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+        actions: [],
       ),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
-      actions: [],
     );
   }
 
@@ -222,14 +225,35 @@ class ErrorScreen extends StatelessWidget {
     show(
       context,
       secured: secured,
-      headline: context.l10n.errorScreenSessionExpiredHeadline,
-      description: style == ErrorCtaStyle.close
-          ? context.l10n.errorScreenSessionExpiredDescriptionCloseVariant
-          : context.l10n.errorScreenSessionExpiredDescription,
-      illustration: WalletAssets.svg_error_session_expired,
-      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
-      actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+      config: ErrorScreenConfig(
+        title: context.l10n.errorScreenSessionExpiredHeadline,
+        description: style == ErrorCtaStyle.close
+            ? context.l10n.errorScreenSessionExpiredDescriptionCloseVariant
+            : context.l10n.errorScreenSessionExpiredDescription,
+        illustration: WalletAssets.svg_error_session_expired,
+        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+        actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+      ),
     );
   }
+}
+
+/// Wrapper for all the info needed to render the [ErrorScreen].
+class ErrorScreenConfig {
+  final String title;
+  final String description;
+  final FitsWidthWidget primaryButton;
+  final FitsWidthWidget? secondaryButton;
+  final String illustration;
+  final List<Widget> actions;
+
+  ErrorScreenConfig({
+    required this.title,
+    required this.description,
+    required this.primaryButton,
+    this.secondaryButton,
+    required this.illustration,
+    this.actions = const [CloseIconButton()],
+  });
 }

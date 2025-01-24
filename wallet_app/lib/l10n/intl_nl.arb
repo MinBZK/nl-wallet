@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-12-11T19:02:24+01:00",
+    "@@last_modified": "2025-01-20T14:57:45+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1083,30 +1083,8 @@
     },
     "updateNotificationDialogTitle": "Update nodig",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Toevoegen",
-    "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
-    "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",
-    "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
-    "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {
-        "placeholders": {
-            "birthCountry": {
-                "example": "Nederland",
-                "type": "String"
-            },
-            "birthDate": {
-                "example": "01-01-1980",
-                "type": "String"
-            },
-            "birthPlace": {
-                "example": "Leiden",
-                "type": "String"
-            }
-        }
-    },
-    "walletPersonalizeCheckDataOfferingPageCitizenIdLabel": "Burger­service­nummer (BSN)",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "Nee",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
-    "walletPersonalizeCheckDataOfferingPageGenderLabel": "Geslacht",
-    "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Als je gegevens kloppen, kun je ze als kaarten toevoegen.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Wil je deze gegevens toevoegen?",
     "walletPersonalizeConfirmPinPageTitle": "Geef akkoord met je pincode",

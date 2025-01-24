@@ -60,7 +60,7 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("pid_issuer")
                     .separator("__")
-                    .prefix_separator("_"),
+                    .prefix_separator("__"),
             )
             .build()?
             .try_deserialize()

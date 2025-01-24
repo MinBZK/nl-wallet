@@ -117,7 +117,7 @@ class LegacyTerminalPage extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Divider(height: 1),
+        const Divider(),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
           child: Column(

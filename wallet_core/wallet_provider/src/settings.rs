@@ -137,7 +137,7 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("wallet_provider")
                     .separator("__")
-                    .prefix_separator("_")
+                    .prefix_separator("__")
                     .list_separator(",")
                     .with_list_parse_key("ios.root_certificates")
                     .with_list_parse_key("android.root_public_keys")

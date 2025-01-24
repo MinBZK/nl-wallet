@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/formatter/attribute_value_formatter.dart';
 import '../../../../util/helper/bsn_helper.dart';
@@ -17,7 +16,6 @@ class DataAttributeRow extends StatelessWidget {
     final prettyValue = attribute.value.prettyPrint(context);
     return MergeSemantics(
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text.rich(

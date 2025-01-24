@@ -63,7 +63,7 @@ class SelectCardRow extends StatelessWidget {
             ),
           ),
         ),
-        const Divider(height: 1),
+        const Divider(),
       ],
     );
   }
