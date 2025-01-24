@@ -58,7 +58,7 @@ class DigidPinPage extends StatelessWidget {
           const Spacer(),
           _buildForgotPinCta(context),
           const SizedBox(height: 16),
-          const Divider(height: 1),
+          const Divider(),
           PinKeyboard(
             onKeyPressed: onKeyPressed,
             onBackspacePressed: onBackspacePressed,
@@ -159,7 +159,7 @@ class DigidPinPage extends StatelessWidget {
       width: min(60, maxWidth),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(selected || filled ? 0.01 : 0.4),
+        color: Colors.grey.withValues(alpha: selected || filled ? 0.01 : 0.4),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.grey, width: 2),
       ),

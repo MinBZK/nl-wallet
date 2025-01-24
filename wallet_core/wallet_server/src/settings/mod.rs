@@ -10,24 +10,21 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use p256::ecdsa::SigningKey;
-use p256::pkcs8::DecodePrivateKey;
-#[cfg(feature = "integration_test")]
-use p256::pkcs8::EncodePrivateKey;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
-use nl_wallet_mdoc::holder::TrustAnchor;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
+use wallet_common::account::serialization::DerSigningKey;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 cfg_if::cfg_if! {
@@ -54,6 +51,7 @@ pub struct Urls {
     pub universal_link_base_url: BaseUrl,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
@@ -77,7 +75,8 @@ pub struct Settings {
 
     /// Issuer trust anchors are used to validate the keys and certificates in the `issuer.private_keys` configuration
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
-    pub issuer_trust_anchors: Vec<DerTrustAnchor>,
+    #[serde_as(as = "Vec<Base64>")]
+    pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
 
     #[cfg(feature = "disclosure")]
     pub verifier: Verifier,
@@ -85,7 +84,8 @@ pub struct Settings {
     /// Reader trust anchors are used to verify the keys and certificates in the `verifier.usecases` configuration on
     /// application startup.
     #[cfg(feature = "disclosure")]
-    pub reader_trust_anchors: Vec<DerTrustAnchor>,
+    #[serde_as(as = "Vec<Base64>")]
+    pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -127,9 +127,8 @@ pub struct Storage {
 #[derive(Clone, Deserialize)]
 pub struct KeyPair {
     #[serde_as(as = "Base64")]
-    pub certificate: Vec<u8>,
-    #[serde_as(as = "Base64")]
-    pub private_key: Vec<u8>,
+    pub certificate: BorrowingCertificate,
+    pub private_key: DerSigningKey,
 }
 
 impl From<&Storage> for SessionStoreTimeouts {
@@ -142,36 +141,22 @@ impl From<&Storage> for SessionStoreTimeouts {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum KeyPairError {
-    #[error("failed to parse private key: {0}")]
-    ParsePrivateKey(#[from] p256::pkcs8::Error),
-    #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
-}
+impl KeyPair {
+    pub fn try_into_mdoc_key_pair(self) -> Result<nl_wallet_mdoc::server_keys::KeyPair, CertificateError> {
+        let key_pair =
+            nl_wallet_mdoc::server_keys::KeyPair::new_from_signing_key(self.private_key.0, self.certificate)?;
 
-impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
-    type Error = KeyPairError;
-
-    fn try_from(value: &KeyPair) -> Result<Self, Self::Error> {
-        Ok(Self::new_from_signing_key(
-            SigningKey::from_pkcs8_der(&value.private_key)?,
-            Certificate::from(&value.certificate),
-        )?)
+        Ok(key_pair)
     }
 }
 
 #[cfg(feature = "integration_test")]
-impl TryFrom<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
-    type Error = KeyPairError;
-    fn try_from(source: nl_wallet_mdoc::server_keys::KeyPair) -> Result<Self, Self::Error> {
-        let private_key = source.private_key().to_pkcs8_der()?.as_bytes().to_vec();
-        let certificate = source.certificate().as_bytes().to_vec();
-
-        Ok(Self {
-            certificate,
-            private_key,
-        })
+impl From<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
+    fn from(value: nl_wallet_mdoc::server_keys::KeyPair) -> Self {
+        Self {
+            certificate: value.certificate().clone(),
+            private_key: DerSigningKey(value.private_key().clone()),
+        }
     }
 }
 
@@ -182,7 +167,7 @@ pub enum CertificateVerificationError {
     #[error("invalid certificate `{1}`: {0}")]
     InvalidCertificate(#[source] CertificateError, String),
     #[error("invalid key pair `{1}`: {0}")]
-    InvalidKeyPair(#[source] KeyPairError, String),
+    InvalidKeyPair(#[source] CertificateError, String),
     #[error("no CertificateType found in certificate `{1}`: {0}")]
     NoCertificateType(#[source] CertificateError, String),
     #[error("certificate `{0}` is missing CertificateType registration data")]
@@ -238,13 +223,18 @@ impl Settings {
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
-            .prefix_separator("_")
+            .prefix_separator("__")
             .list_separator(",");
 
         let environment_parser = environment_parser.with_list_parse_key("issuer_trust_anchors");
 
         #[cfg(feature = "disclosure")]
         let environment_parser = environment_parser.with_list_parse_key("reader_trust_anchors");
+
+        #[cfg(feature = "issuance")]
+        let environment_parser = environment_parser.with_list_parse_key("issuer.digid.http_config.trust_anchors");
+        #[cfg(feature = "issuance")]
+        let environment_parser = environment_parser.with_list_parse_key("issuer.metadata");
 
         let environment_parser = environment_parser.try_parsing(true);
 
@@ -281,7 +271,7 @@ impl Settings {
         let trust_anchors: Vec<TrustAnchor<'a>> = self
             .reader_trust_anchors
             .iter()
-            .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect::<Vec<_>>();
 
         let key_pairs: Vec<(String, KeyPair)> = self
@@ -308,7 +298,7 @@ impl Settings {
         let trust_anchors: Vec<TrustAnchor<'a>> = self
             .issuer_trust_anchors
             .iter()
-            .map(|trust_anchor| (&trust_anchor.owned_trust_anchor).into())
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect::<Vec<_>>();
 
         let key_pairs: Vec<(String, KeyPair)> = self
@@ -345,8 +335,9 @@ where
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
-        let key_pair: nl_wallet_mdoc::server_keys::KeyPair = key_pair
-            .try_into()
+        let key_pair = key_pair
+            .clone()
+            .try_into_mdoc_key_pair()
             .map_err(|error| CertificateVerificationError::InvalidKeyPair(error, key_pair_id.clone()))?;
 
         let certificate = key_pair.certificate();

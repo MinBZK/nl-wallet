@@ -379,40 +379,45 @@ pub mod tests {
     use chrono::Utc;
     use rstest::rstest;
 
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::Tdate;
+    use sd_jwt::metadata::TypeMetadata;
 
     use super::super::ADDRESS_DOCTYPE;
     use super::super::PID_DOCTYPE;
     use super::*;
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
     });
 
     /// This creates an `UnsignedMdoc` that only contains a bsn entry.
-    pub fn create_bsn_only_unsigned_pid_mdoc() -> UnsignedMdoc {
-        UnsignedMdoc {
-            doc_type: PID_DOCTYPE.to_string(),
-            copy_count: NonZeroU8::new(1).unwrap(),
-            valid_from: Tdate::now(),
-            valid_until: (Utc::now() + Days::new(365)).into(),
-            attributes: IndexMap::from([(
-                PID_DOCTYPE.to_string(),
-                vec![Entry {
-                    name: "bsn".to_string(),
-                    value: DataElementValue::Text("999999999".to_string()),
-                }],
-            )])
-            .try_into()
-            .unwrap(),
-        }
+    pub fn create_bsn_only_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+        (
+            UnsignedMdoc {
+                doc_type: PID_DOCTYPE.to_string(),
+                copy_count: NonZeroU8::new(1).unwrap(),
+                valid_from: Tdate::now(),
+                valid_until: (Utc::now() + Days::new(365)).into(),
+                attributes: IndexMap::from([(
+                    PID_DOCTYPE.to_string(),
+                    vec![Entry {
+                        name: "bsn".to_string(),
+                        value: DataElementValue::Text("999999999".to_string()),
+                    }],
+                )])
+                .try_into()
+                .unwrap(),
+            },
+            TypeMetadata::new_example(),
+        )
     }
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
-    pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
-        let mut unsigned_mdoc = create_bsn_only_unsigned_pid_mdoc();
+    pub fn create_minimal_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+        let (mut unsigned_mdoc, metadata) = create_bsn_only_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
 
         attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![
@@ -436,12 +441,12 @@ pub mod tests {
 
         unsigned_mdoc.attributes = attributes.try_into().unwrap();
 
-        unsigned_mdoc
+        (unsigned_mdoc, metadata)
     }
 
     /// This creates a full `UnsignedMdoc` that is valid.
-    pub fn create_full_unsigned_pid_mdoc() -> UnsignedMdoc {
-        let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+    pub fn create_full_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+        let (mut unsigned_mdoc, metadata) = create_minimal_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
 
         attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![
@@ -477,45 +482,48 @@ pub mod tests {
 
         unsigned_mdoc.attributes = attributes.try_into().unwrap();
 
-        unsigned_mdoc
+        (unsigned_mdoc, metadata)
     }
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
-    pub fn create_minimal_unsigned_address_mdoc() -> UnsignedMdoc {
-        UnsignedMdoc {
-            doc_type: ADDRESS_DOCTYPE.to_string(),
-            copy_count: NonZeroU8::new(1).unwrap(),
-            valid_from: Tdate::now(),
-            valid_until: (Utc::now() + Days::new(365)).into(),
-            attributes: IndexMap::from([(
-                ADDRESS_DOCTYPE.to_string(),
-                vec![
-                    Entry {
-                        name: "resident_street".to_string(),
-                        value: DataElementValue::Text("Turfmarkt".to_string()),
-                    },
-                    Entry {
-                        name: "resident_house_number".to_string(),
-                        value: DataElementValue::Text("147".to_string()),
-                    },
-                    Entry {
-                        name: "resident_postal_code".to_string(),
-                        value: DataElementValue::Text("2511 DP".to_string()),
-                    },
-                    Entry {
-                        name: "resident_city".to_string(),
-                        value: DataElementValue::Text("Den Haag".to_string()),
-                    },
-                ],
-            )])
-            .try_into()
-            .unwrap(),
-        }
+    pub fn create_minimal_unsigned_address_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+        (
+            UnsignedMdoc {
+                doc_type: ADDRESS_DOCTYPE.to_string(),
+                copy_count: NonZeroU8::new(1).unwrap(),
+                valid_from: Tdate::now(),
+                valid_until: (Utc::now() + Days::new(365)).into(),
+                attributes: IndexMap::from([(
+                    ADDRESS_DOCTYPE.to_string(),
+                    vec![
+                        Entry {
+                            name: "resident_street".to_string(),
+                            value: DataElementValue::Text("Turfmarkt".to_string()),
+                        },
+                        Entry {
+                            name: "resident_house_number".to_string(),
+                            value: DataElementValue::Text("147".to_string()),
+                        },
+                        Entry {
+                            name: "resident_postal_code".to_string(),
+                            value: DataElementValue::Text("2511 DP".to_string()),
+                        },
+                        Entry {
+                            name: "resident_city".to_string(),
+                            value: DataElementValue::Text("Den Haag".to_string()),
+                        },
+                    ],
+                )])
+                .try_into()
+                .unwrap(),
+            },
+            TypeMetadata::new_example(),
+        )
     }
 
     /// This creates a full `UnsignedMdoc` that is valid.
-    pub fn create_full_unsigned_address_mdoc() -> UnsignedMdoc {
-        let mut unsigned_mdoc = create_minimal_unsigned_address_mdoc();
+    pub fn create_full_unsigned_address_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+        let (mut unsigned_mdoc, metadata) = create_minimal_unsigned_address_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
 
         attributes.get_mut(ADDRESS_DOCTYPE).unwrap().extend(vec![
@@ -535,12 +543,12 @@ pub mod tests {
 
         unsigned_mdoc.attributes = attributes.try_into().unwrap();
 
-        unsigned_mdoc
+        (unsigned_mdoc, metadata)
     }
 
     #[test]
     fn test_minimal_unsigned_mdoc_to_document_mapping() {
-        let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+        let (unsigned_mdoc, _metadata) = create_minimal_unsigned_pid_mdoc();
 
         let document = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock())
             .expect("Could not convert minimal mdoc to document");
@@ -591,7 +599,7 @@ pub mod tests {
 
     #[test]
     fn test_full_unsigned_mdoc_to_document_mapping() {
-        let unsigned_mdoc = create_full_unsigned_pid_mdoc();
+        let (unsigned_mdoc, _metadata) = create_full_unsigned_pid_mdoc();
 
         let document = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock())
             .expect("Could not convert full mdoc to document");
@@ -608,7 +616,7 @@ pub mod tests {
     #[test]
     fn test_unsigned_mdoc_to_document_mapping_doc_type_error() {
         // Test changing the doc_type.
-        let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, _metadata) = create_minimal_unsigned_pid_mdoc();
         unsigned_mdoc.doc_type = "com.example.foobar".to_string();
 
         let result = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock());
@@ -622,7 +630,7 @@ pub mod tests {
     #[test]
     fn test_unsigned_mdoc_to_document_mapping_missing_attribute_error() {
         // Test removing the `age_over_18` attribute.
-        let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, _metadata) = create_minimal_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
         attributes.get_mut(PID_DOCTYPE).unwrap().pop();
         unsigned_mdoc.attributes = attributes.try_into().unwrap();
@@ -639,7 +647,7 @@ pub mod tests {
         );
 
         // Test removing the "gender" attribute, conversion should still succeed.
-        unsigned_mdoc = create_full_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, _) = create_full_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
         attributes.get_mut(PID_DOCTYPE).unwrap().pop();
         unsigned_mdoc.attributes = attributes.try_into().unwrap();
@@ -651,7 +659,7 @@ pub mod tests {
     #[test]
     fn test_unsigned_mdoc_to_document_mapping_attribute_value_type_mismatch_error() {
         // Test changing the "bsn" attribute to an integer.
-        let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, _metadata) = create_minimal_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
         _ = mem::replace(
             &mut attributes.get_mut(PID_DOCTYPE).unwrap()[0],
@@ -677,7 +685,7 @@ pub mod tests {
         );
 
         // Test changing the "birth_date" attribute to an invalid date.
-        let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, _metadata) = create_minimal_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
         _ = mem::replace(
             &mut attributes.get_mut(PID_DOCTYPE).unwrap()[3],
@@ -703,7 +711,7 @@ pub mod tests {
         );
 
         // Test changing the "gender" attribute to an invalid value.
-        let mut unsigned_mdoc = create_full_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, _metadata) = create_full_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
         _ = mem::replace(
             attributes.get_mut(PID_DOCTYPE).unwrap().last_mut().unwrap(),
@@ -732,7 +740,7 @@ pub mod tests {
     #[test]
     fn test_unsigned_mdoc_to_document_mapping_unknown_attribute_error() {
         // Test adding an unknown entry.
-        let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, _metadata) = create_minimal_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
         attributes.get_mut(PID_DOCTYPE).unwrap().push(Entry {
             name: "foobar".to_string(),
@@ -756,7 +764,7 @@ pub mod tests {
 
     #[test]
     fn test_mdoc_to_proposed_disclosure_document_mapping_minimal() {
-        let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
+        let (unsigned_mdoc, _metadata) = create_minimal_unsigned_pid_mdoc();
 
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             &unsigned_mdoc.doc_type,
@@ -990,11 +998,15 @@ pub mod tests {
     #[case(create_bsn_only_unsigned_pid_mdoc(), DisclosureType::Login)]
     #[case(create_minimal_unsigned_pid_mdoc(), DisclosureType::Regular)]
     #[case(create_full_unsigned_pid_mdoc(), DisclosureType::Regular)]
-    fn test_disclosure_type_from_proposed_attributes(#[case] input: UnsignedMdoc, #[case] expected: DisclosureType) {
+    fn test_disclosure_type_from_proposed_attributes(
+        #[case] input: (UnsignedMdoc, TypeMetadata),
+        #[case] expected: DisclosureType,
+    ) {
+        let (unsigned_mdoc, _metadata) = input;
         let pa = ProposedAttributes::from([(
             PID_DOCTYPE.to_string(),
             ProposedDocumentAttributes {
-                attributes: input.attributes.into_inner(),
+                attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_KEY.certificate().clone(),
             },
         )]);

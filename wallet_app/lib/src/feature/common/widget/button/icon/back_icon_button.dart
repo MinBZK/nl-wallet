@@ -16,10 +16,12 @@ class BackIconButton extends StatelessWidget {
       onTap: onPressed ?? () => Navigator.pop(context),
       attributedLabel: context.l10n.generalWCAGBack.toAttributedString(context),
       excludeSemantics: true,
-      child: IconButton(
-        onPressed: onPressed ?? () => Navigator.pop(context),
-        icon: const Icon(Icons.arrow_back_rounded),
-        tooltip: context.l10n.generalWCAGBack,
+      child: Center(
+        child: IconButton(
+          onPressed: onPressed ?? () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: context.l10n.generalWCAGBack,
+        ),
       ),
     );
   }

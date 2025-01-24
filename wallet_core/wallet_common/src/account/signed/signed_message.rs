@@ -8,8 +8,9 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use apple_app_attest::AppIdentifier;
-use apple_app_attest::Assertion;
+use apple_app_attest::AssertionCounter;
 use apple_app_attest::ClientData;
+use apple_app_attest::VerifiedAssertion;
 
 use crate::apple::AppleAssertion;
 use crate::apple::AppleAttestedKey;
@@ -31,7 +32,7 @@ struct ParsedValueWithSource<'a, T> {
     source: &'a [u8],
 }
 
-impl<'a, T> ParsedValueWithSource<'a, T> {
+impl<T> ParsedValueWithSource<'_, T> {
     fn into_value(self) -> T {
         self.value
     }
@@ -55,7 +56,7 @@ where
     }
 }
 
-impl<'a, T> ClientData for ParsedValueWithSource<'a, T>
+impl<T> ClientData for ParsedValueWithSource<'_, T>
 where
     T: ContainsChallenge,
 {
@@ -86,7 +87,7 @@ pub(super) struct SignedMessage<T> {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub(super) enum MessageSignature {
     Pin { signature: DerSignature },
-    Hw { signature: DerSignature },
+    Google { signature: DerSignature },
     AppleAssertion { assertion: AppleAssertion },
 }
 
@@ -96,23 +97,22 @@ impl MessageSignature {
 
         match r#type {
             EcdsaSignatureType::Pin => Self::Pin { signature },
-            EcdsaSignatureType::Hw => Self::Hw { signature },
+            EcdsaSignatureType::Google => Self::Google { signature },
         }
     }
 
     fn signature_type(&self) -> SignatureType {
         match self {
             Self::Pin { .. } => SignatureType::Ecdsa(EcdsaSignatureType::Pin),
-            Self::Hw { .. } => SignatureType::Ecdsa(EcdsaSignatureType::Hw),
+            Self::Google { .. } => SignatureType::Ecdsa(EcdsaSignatureType::Google),
             Self::AppleAssertion { .. } => SignatureType::AppleAssertion,
         }
     }
 
     fn ecdsa_signature(&self, r#type: EcdsaSignatureType) -> Option<&Signature> {
         match (self, r#type) {
-            (Self::Pin { signature }, EcdsaSignatureType::Pin) | (Self::Hw { signature }, EcdsaSignatureType::Hw) => {
-                Some(&signature.0)
-            }
+            (Self::Pin { signature }, EcdsaSignatureType::Pin)
+            | (Self::Google { signature }, EcdsaSignatureType::Google) => Some(&signature.0),
             _ => None,
         }
     }
@@ -175,7 +175,7 @@ impl<T> SignedMessage<T> {
         let signature = self
             .signature
             .ecdsa_signature(r#type)
-            .ok_or_else(|| Error::TypeMismatch {
+            .ok_or_else(|| Error::SignatureTypeMismatch {
                 expected: SignatureType::Ecdsa(r#type),
                 received: self.signature.signature_type(),
             })?;
@@ -192,22 +192,22 @@ impl<T> SignedMessage<T> {
         &self,
         verifying_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
-        previous_counter: u32,
+        previous_counter: AssertionCounter,
         expected_challenge: &[u8],
-    ) -> Result<(T, u32)>
+    ) -> Result<(T, AssertionCounter)>
     where
         T: DeserializeOwned + ContainsChallenge,
     {
         let parsed = ParsedValueWithSource::try_from(&self.signed)?;
 
         let MessageSignature::AppleAssertion { assertion } = &self.signature else {
-            return Err(Error::TypeMismatch {
+            return Err(Error::SignatureTypeMismatch {
                 expected: SignatureType::AppleAssertion,
                 received: self.signature.signature_type(),
             });
         };
 
-        let (_, counter) = Assertion::parse_and_verify(
+        let (_, counter) = VerifiedAssertion::parse_and_verify(
             assertion.as_ref(),
             &parsed,
             verifying_key,
@@ -319,9 +319,9 @@ impl<T> SignedSubjectMessage<T> {
         &self,
         verifying_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
-        previous_counter: u32,
+        previous_counter: AssertionCounter,
         expected_challenge: &[u8],
-    ) -> Result<(T, u32)>
+    ) -> Result<(T, AssertionCounter)>
     where
         T: DeserializeOwned + ContainsChallenge + SubjectPayload,
     {
@@ -370,20 +370,20 @@ mod tests {
     }
 
     fn create_mock_apple_attested_key() -> MockAppleAttestedKey {
-        let app_identifier = AppIdentifier::new("1234567890", "com.example.app");
+        let app_identifier = AppIdentifier::new_mock();
 
-        MockAppleAttestedKey::new(app_identifier)
+        MockAppleAttestedKey::new_random(app_identifier)
     }
 
     #[tokio::test]
     async fn test_ecdsa_signed_message() {
         let key = SigningKey::random(&mut OsRng);
-        let signed_message = SignedMessage::sign_ecdsa(&ToyPayload::default(), EcdsaSignatureType::Hw, &key)
+        let signed_message = SignedMessage::sign_ecdsa(&ToyPayload::default(), EcdsaSignatureType::Google, &key)
             .await
             .expect("should sign message with ECDSA key");
 
         let payload = signed_message
-            .parse_and_verify_ecdsa(EcdsaSignatureType::Hw, key.verifying_key())
+            .parse_and_verify_ecdsa(EcdsaSignatureType::Google, key.verifying_key())
             .expect("should parse and verify SignedMessage successfully using its ECDSA signature");
 
         assert_eq!(payload.string, "Some payload.");
@@ -399,28 +399,28 @@ mod tests {
 
         let (output_payload, counter) = signed_message
             .parse_and_verify_apple(
-                key.signing_key.verifying_key(),
+                key.verifying_key(),
                 &key.app_identifier,
-                0,
+                AssertionCounter::default(),
                 &input_payload.challenge,
             )
             .expect("should parse and verify SignedMessage successfully using its Apple assertion");
 
         assert_eq!(output_payload.string, "Some payload.");
-        assert_eq!(counter, 1);
+        assert_eq!(*counter, 1);
     }
 
     #[tokio::test]
     async fn test_signed_message_signature_verification_error() {
         let key = SigningKey::random(&mut OsRng);
-        let signed_message = SignedMessage::sign_ecdsa(&ToyPayload::default(), EcdsaSignatureType::Hw, &key)
+        let signed_message = SignedMessage::sign_ecdsa(&ToyPayload::default(), EcdsaSignatureType::Google, &key)
             .await
             .expect("should sign message with ECDSA key");
 
         // Verifying with a wrong public key should return a `Error::SignatureVerification`.
         let other_key = SigningKey::random(&mut OsRng);
         let error = signed_message
-            .parse_and_verify_ecdsa(EcdsaSignatureType::Hw, other_key.verifying_key())
+            .parse_and_verify_ecdsa(EcdsaSignatureType::Google, other_key.verifying_key())
             .expect_err("verifying SignedMessage should return an error");
 
         assert_matches!(error, Error::SignatureVerification(_));
@@ -437,9 +437,9 @@ mod tests {
         // Verifying with a wrong challenge should return a `Error::AssertionVerification`.
         let error = signed_message
             .parse_and_verify_apple(
-                key.signing_key.verifying_key(),
+                key.verifying_key(),
                 &key.app_identifier,
-                0,
+                AssertionCounter::default(),
                 b"wrong_challenge",
             )
             .expect_err("verifying SignedMessage should return an error");
@@ -452,15 +452,15 @@ mod tests {
     async fn test_signed_message_error_type_mismatch(
         #[values(
             SignatureType::Ecdsa(EcdsaSignatureType::Pin),
-            SignatureType::Ecdsa(EcdsaSignatureType::Hw),
+            SignatureType::Ecdsa(EcdsaSignatureType::Google),
             SignatureType::AppleAssertion
         )]
         signature_type: SignatureType,
     ) {
         // Pick a wrong signature type to verify for every input signature type.
         let verify_signature_type = match signature_type {
-            SignatureType::Ecdsa(EcdsaSignatureType::Pin) => SignatureType::Ecdsa(EcdsaSignatureType::Hw),
-            SignatureType::Ecdsa(EcdsaSignatureType::Hw) => SignatureType::AppleAssertion,
+            SignatureType::Ecdsa(EcdsaSignatureType::Pin) => SignatureType::Ecdsa(EcdsaSignatureType::Google),
+            SignatureType::Ecdsa(EcdsaSignatureType::Google) => SignatureType::AppleAssertion,
             SignatureType::AppleAssertion => SignatureType::Ecdsa(EcdsaSignatureType::Pin),
         };
 
@@ -479,9 +479,9 @@ mod tests {
             SignatureType::Ecdsa(r#type) => signed_message.parse_and_verify_ecdsa(r#type, ecdsa_key.verifying_key()),
             SignatureType::AppleAssertion => signed_message
                 .parse_and_verify_apple(
-                    attested_key.signing_key.verifying_key(),
+                    attested_key.verifying_key(),
                     &attested_key.app_identifier,
-                    0,
+                    AssertionCounter::default(),
                     &payload.challenge,
                 )
                 .map(|(payload, _)| payload),
@@ -490,7 +490,7 @@ mod tests {
 
         assert_matches!(
             error,
-            Error::TypeMismatch {
+            Error::SignatureTypeMismatch {
                 expected,
                 received
             } if expected == verify_signature_type && received == signature_type
@@ -500,12 +500,12 @@ mod tests {
     #[tokio::test]
     async fn test_subject_ecdsa_signed_message() {
         let key = SigningKey::random(&mut OsRng);
-        let signed_message = SignedSubjectMessage::sign_ecdsa(ToyPayload::default(), EcdsaSignatureType::Hw, &key)
+        let signed_message = SignedSubjectMessage::sign_ecdsa(ToyPayload::default(), EcdsaSignatureType::Google, &key)
             .await
             .expect("should sign message successfully");
 
         let payload = signed_message
-            .parse_and_verify_ecdsa(EcdsaSignatureType::Hw, key.verifying_key())
+            .parse_and_verify_ecdsa(EcdsaSignatureType::Google, key.verifying_key())
             .expect("should parse and verify SignedSubjectMessage successfully using its ECDSA signature");
 
         assert_eq!(payload.string, "Some payload.");
@@ -521,15 +521,15 @@ mod tests {
 
         let (output_payload, counter) = signed_message
             .parse_and_verify_apple(
-                key.signing_key.verifying_key(),
+                key.verifying_key(),
                 &key.app_identifier,
-                0,
+                AssertionCounter::default(),
                 &input_payload.challenge,
             )
             .expect("should parse and verify SignedSubjectMessage successfully using its Apple assertion");
 
         assert_eq!(output_payload.string, "Some payload.");
-        assert_eq!(counter, 1);
+        assert_eq!(*counter, 1);
     }
 
     #[rstest]
@@ -537,7 +537,7 @@ mod tests {
     async fn test_subject_signed_message_error_subject_mismatch(
         #[values(
             SignatureType::Ecdsa(EcdsaSignatureType::Pin),
-            SignatureType::Ecdsa(EcdsaSignatureType::Hw),
+            SignatureType::Ecdsa(EcdsaSignatureType::Google),
             SignatureType::AppleAssertion
         )]
         signature_type: SignatureType,
@@ -578,9 +578,9 @@ mod tests {
             SignatureType::Ecdsa(r#type) => decoded_message.parse_and_verify_ecdsa(r#type, ecdsa_key.verifying_key()),
             SignatureType::AppleAssertion => decoded_message
                 .parse_and_verify_apple(
-                    attested_key.signing_key.verifying_key(),
+                    attested_key.verifying_key(),
                     &attested_key.app_identifier,
-                    0,
+                    AssertionCounter::default(),
                     &payload.challenge,
                 )
                 .map(|(payload, _)| payload),

@@ -18,4 +18,4 @@ sea-orm-migration = { workspace = true, features = [
 ] }
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
 
-wallet_provider_database_settings = { path = "../database_settings" }
+wallet_provider_database_settings.path = "../database_settings"

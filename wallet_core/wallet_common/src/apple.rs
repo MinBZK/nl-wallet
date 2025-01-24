@@ -19,47 +19,92 @@ pub trait AppleAttestedKey {
 }
 
 #[cfg(any(test, feature = "mock_apple_attested_key"))]
-pub use mock_apple_attested_key::MockAppleAttestedKey;
+pub use mock_apple_attested_key::*;
 
 #[cfg(any(test, feature = "mock_apple_attested_key"))]
 mod mock_apple_attested_key {
-    use std::convert::Infallible;
+    use std::sync::atomic::AtomicU32;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
 
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::Assertion;
+    use apple_app_attest::AssertionCounter;
+    use apple_app_attest::Attestation;
+    use apple_app_attest::AttestationEnvironment;
+    use apple_app_attest::MockAttestationCa;
 
     use super::AppleAssertion;
     use super::AppleAttestedKey;
 
+    #[derive(Debug, thiserror::Error)]
+    #[error("mock error to be used in tests")]
+    pub struct MockAppleAttestedKeyError {}
+
+    #[derive(Debug)]
     pub struct MockAppleAttestedKey {
-        pub signing_key: SigningKey,
         pub app_identifier: AppIdentifier,
-        pub counter: u32,
+        pub signing_key: Arc<SigningKey>,
+        pub next_counter: Arc<AtomicU32>,
+        pub has_error: bool,
     }
 
     impl MockAppleAttestedKey {
-        pub fn new(app_identifier: AppIdentifier) -> Self {
+        fn new(app_identifier: AppIdentifier, signing_key: SigningKey) -> Self {
             Self {
-                signing_key: SigningKey::random(&mut OsRng),
                 app_identifier,
-                counter: 1,
+                signing_key: Arc::new(signing_key),
+                next_counter: Arc::new(AtomicU32::new(1)),
+                has_error: false,
             }
+        }
+
+        pub fn new_random(app_identifier: AppIdentifier) -> Self {
+            Self::new(app_identifier, SigningKey::random(&mut OsRng))
+        }
+
+        pub fn new_with_attestation(
+            mock_ca: &MockAttestationCa,
+            challenge: &[u8],
+            environment: AttestationEnvironment,
+            app_identifier: AppIdentifier,
+        ) -> (Self, Vec<u8>) {
+            let (attestation, signing_key) =
+                Attestation::new_mock_bytes(mock_ca, challenge, environment, &app_identifier);
+            let attested_key = Self::new(app_identifier, signing_key);
+
+            (attested_key, attestation)
+        }
+
+        pub fn verifying_key(&self) -> &VerifyingKey {
+            self.signing_key.verifying_key()
+        }
+
+        pub fn next_counter(&self) -> AssertionCounter {
+            AssertionCounter::from(self.next_counter.load(Ordering::Relaxed))
         }
     }
 
     impl AppleAttestedKey for MockAppleAttestedKey {
-        type Error = Infallible;
+        type Error = MockAppleAttestedKeyError;
 
         async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error> {
-            let assertion = Assertion::new_mock(&self.signing_key, &self.app_identifier, self.counter, &payload);
+            if self.has_error {
+                return Err(MockAppleAttestedKeyError {});
+            }
 
-            let mut bytes = Vec::<u8>::new();
-            ciborium::into_writer(&assertion, &mut bytes).unwrap();
+            let assertion_bytes = Assertion::new_mock_bytes(
+                &self.signing_key,
+                &self.app_identifier,
+                AssertionCounter::from(self.next_counter.fetch_add(1, Ordering::Relaxed)),
+                &payload,
+            );
 
-            Ok(bytes.into())
+            Ok(assertion_bytes.into())
         }
     }
 }

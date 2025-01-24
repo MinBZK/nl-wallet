@@ -50,6 +50,7 @@ Where:
     mrp, mock_relying_party:    Start the mock_relying_party.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
+    ups, update_policy_server:  Start the update policy server
     brp:                        Start the Haal-Centraal BRP proxy with GBA HC converter.
     brpproxy:                   Start the Haal-Centraal BRP proxy.
     gba, gba_hc_converter:      Start the GBA HC converter.
@@ -81,6 +82,7 @@ PID_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
 CONFIG_SERVER=1
+UPDATE_POLICY_SERVER=1
 BRP_PROXY=1
 GBA_HC=1
 POSTGRES=1
@@ -126,6 +128,10 @@ do
             CONFIG_SERVER=0
             shift
             ;;
+        ups|update_policy_server)
+            UPDATE_POLICY_SERVER=0
+            shift
+            ;;
         brp)
             BRP_PROXY=0
             GBA_HC=0
@@ -150,6 +156,7 @@ do
             PID_ISSUER=0
             WALLET_PROVIDER=0
             CONFIG_SERVER=0
+            UPDATE_POLICY_SERVER=0
             BRP_PROXY=0
             GBA_HC=0
             shift # past argument
@@ -163,6 +170,7 @@ do
             WALLET_PROVIDER=0
             WALLET=0
             CONFIG_SERVER=0
+            UPDATE_POLICY_SERVER=0
             BRP_PROXY=0
             GBA_HC=0
 
@@ -246,13 +254,6 @@ then
 
     cd "${MOCK_RELYING_PARTY_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export MOCK_RELYING_PARTY_SENTRY__DSN="${SENTRY_DSN}"
-        export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
-
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}mock_relying_party${NC}"
@@ -278,13 +279,6 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export PID_ISSUER_SENTRY__DSN="${SENTRY_DSN}"
-        export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
-
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}pid_issuer${NC}"
@@ -294,7 +288,7 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running pid_issuer database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migration -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
@@ -316,13 +310,6 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export VERIFICATION_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-        export VERIFICATION_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
-
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}verification_server${NC}"
@@ -332,7 +319,7 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running verification_server database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --bin wallet_server_migration -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
@@ -352,13 +339,6 @@ then
     echo -e "${SECTION}Manage wallet_provider${NC}"
 
     cd "${WP_DIR}"
-
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export WALLET_PROVIDER_SENTRY__DSN="${SENTRY_DSN}"
-        export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
 
     if [ "${STOP}" == "0" ]
     then
@@ -390,13 +370,6 @@ then
 
     cd "${CS_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export CONFIG_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-        export CONFIG_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
-
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}configuration_server${NC}"
@@ -408,6 +381,30 @@ then
         RUST_LOG=debug cargo run --bin configuration_server > "${TARGET_DIR}/configuration_server.log" 2>&1 &
 
         echo -e "configuration_server logs can be found at ${CYAN}${TARGET_DIR}/configuration_server.log${NC}"
+    fi
+fi
+
+########################################################################
+# Manage update_policy_server
+
+if [ "${UPDATE_POLICY_SERVER}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage update_policy_server${NC}"
+
+    cd "${UPS_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}update_policy_server${NC}"
+        killall update_policy_server || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "${INFO}Start ${ORANGE}update_policy_server${NC}"
+        RUST_LOG=debug cargo run --bin update_policy_server > "${TARGET_DIR}/update_policy_server.log" 2>&1 &
+
+        echo -e "update_policy_server logs can be found at ${CYAN}${TARGET_DIR}/update_policy_server.log${NC}"
     fi
 fi
 
@@ -443,13 +440,6 @@ then
 
     cd "${GBA_HC_CONVERTER_DIR}"
 
-    if [ -n "${SENTRY_DSN+x}" ]
-    then
-        echo "Sentry DSN: '${SENTRY_DSN}'"
-        export GBA_HC_CONVERTER_SENTRY__DSN="${SENTRY_DSN}"
-        export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
-    fi
-
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Stopping ${ORANGE}gba_hc_converter${NC}"
@@ -481,7 +471,6 @@ then
         flutter run \
             --dart-define MOCK_REPOSITORIES=false \
             --dart-define ALLOW_INSECURE_URL=true \
-            --dart-define ENV_CONFIGURATION=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \
             --dart-define SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT}"

@@ -28,11 +28,10 @@ use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::VerifiedJwt;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::PoaError;
 use wallet_common::keys::poa::PoaVerificationError;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
+use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
 use crate::credential::CredentialRequest;
@@ -44,9 +43,9 @@ use crate::credential::WteDisclosure;
 use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::metadata;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerMetadata;
-use crate::metadata::{self};
 use crate::oidc;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
@@ -150,8 +149,6 @@ pub enum CredentialRequestError {
     WteAlreadyUsed,
     #[error("missing PoA")]
     MissingPoa,
-    #[error("PoA error: {0}")]
-    Poa(#[from] PoaError),
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
 }
@@ -248,7 +245,7 @@ pub trait AttributeService {
         &self,
         session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error>;
+    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error>;
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
@@ -345,7 +342,7 @@ where
                     display: None,
                     credential_configurations_supported: HashMap::new(),
                 },
-                signed_metadata: None,
+                protected_metadata: None,
             },
         }
     }
@@ -805,7 +802,7 @@ impl Session<WaitingForResponse> {
         let previews_and_holder_pubkeys = try_join_all(
             credential_requests
                 .credential_requests
-                .as_ref()
+                .as_slice()
                 .iter()
                 .zip(
                     session_data
@@ -920,12 +917,16 @@ impl CredentialResponse {
             .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 
         match preview {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
+            CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                metadata_chain,
+                ..
+            } => {
                 let cose_pubkey = (&holder_pubkey)
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, cose_pubkey, issuer_privkey)
+                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, cose_pubkey, issuer_privkey)
                     .await
                     .map_err(CredentialRequestError::CredentialSigning)?;
 

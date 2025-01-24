@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/page/check_data_offering_page.dart';

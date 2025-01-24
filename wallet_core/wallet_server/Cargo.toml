@@ -26,7 +26,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["disclosure"]
+required-features = ["integration_test"]
 
 [[test]]
 name = "postgres"
@@ -36,7 +36,7 @@ required-features = ["db_test"]
 [[test]]
 name = "wallet_server_settings"
 path = "tests/wallet_server_settings.rs"
-required-features = ["disclosure", "issuance", "integration_test", "allow_insecure_url"]
+required-features = ["integration_test"]
 
 [features]
 default = ["disclosure", "postgres"]
@@ -45,7 +45,7 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insec
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "dep:serial_test", "openid4vc/test"]
+db_test = ["postgres", "allow_insecure_url", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
 # Enable issuance
 issuance = [
     "axum/form",
@@ -62,7 +62,7 @@ disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:serde_jso
 # Enable mock PID issuance
 mock = ["issuance"]
 # Enable integration tests
-integration_test = []
+integration_test = ["disclosure", "allow_insecure_url"]
 
 [dependencies]
 anyhow.workspace = true
@@ -73,9 +73,9 @@ chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 http.workspace = true
-mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
+rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
@@ -115,6 +115,7 @@ strum = { workspace = true, optional = true, features = ["derive"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
+sd_jwt.path = "../sd_jwt"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 [dev-dependencies]
@@ -128,5 +129,6 @@ rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "mock_time"] }
-wallet_common = { path = "../wallet_common", features = ["mock_remote_key", "insecure_http_client"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors"] }
+sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
+wallet_common = { path = "../wallet_common", features = ["insecure_http_client", "mock_remote_key", "mock_time"] }

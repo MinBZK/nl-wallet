@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../environment.dart';
 import '../../domain/model/bloc/error_state.dart';
@@ -71,16 +72,12 @@ class PinPage extends StatelessWidget {
   /// Draw a divider at the top of the screen when in landscape mode
   final bool showTopDivider;
 
-  /// The color used to draw the keyboard keys & pin dots
-  final Color? keyboardColor;
-
   const PinPage({
     required this.onPinValidated,
     this.onStateChanged,
     this.onPinError,
     this.onBiometricUnlockRequested,
     this.headerBuilder,
-    this.keyboardColor,
     this.showTopDivider = false,
     super.key,
   });
@@ -89,18 +86,7 @@ class PinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
       listener: (context, state) async {
-        final l10n = context.l10n;
-        if (state is PinEntryInProgress) {
-          unawaited(
-            Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then((value) {
-              if (state.afterBackspacePressed) {
-                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
-              } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
-              }
-            }),
-          );
-        }
+        _runEnteredDigitsAnnouncement(state, context.l10n);
 
         /// Check for state interceptions
         if (onStateChanged?.call(context, state) ?? false) return;
@@ -137,6 +123,21 @@ class PinPage extends StatelessWidget {
               return _buildPortrait(context);
             case Orientation.landscape:
               return _buildLandscape(context);
+          }
+        },
+      ),
+    );
+  }
+
+  void _runEnteredDigitsAnnouncement(PinState state, AppLocalizations l10n) {
+    if (state is! PinEntryInProgress) return;
+    unawaited(
+      Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then(
+        (value) {
+          if (state.afterBackspacePressed) {
+            AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+            AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
           }
         },
       ),
@@ -201,7 +202,7 @@ class PinPage extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.max,
       children: [
-        showTopDivider ? const Divider(height: 1) : const SizedBox.shrink(),
+        showTopDivider ? const Divider() : const SizedBox.shrink(),
         Expanded(
           child: Row(
             children: [
@@ -249,7 +250,6 @@ class PinPage extends StatelessWidget {
     return BlocBuilder<PinBloc, PinState>(
       builder: (context, state) {
         return PinField(
-          color: keyboardColor,
           digits: kPinDigits,
           enteredDigits: _resolveEnteredDigits(state),
           state: _resolvePinFieldState(state),
@@ -276,7 +276,6 @@ class PinPage extends StatelessWidget {
           duration: kDefaultAnimationDuration,
           opacity: state is PinValidateInProgress ? 0.3 : 1,
           child: PinKeyboard(
-            color: keyboardColor,
             onKeyPressed: _digitKeysEnabled(state) ? (digit) => context.bloc.add(PinDigitPressed(digit)) : null,
             onBackspacePressed:
                 _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinBackspacePressed()) : null,

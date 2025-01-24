@@ -2,6 +2,7 @@ use anyhow::Result;
 
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
 use super::*;
 use crate::settings::Settings;
@@ -16,7 +17,11 @@ where
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.urls,
         settings.verifier,
-        settings.issuer_trust_anchors,
+        settings
+            .issuer_trust_anchors
+            .iter()
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
+            .collect(),
         disclosure_sessions,
     )?;
 

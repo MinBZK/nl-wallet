@@ -9,6 +9,7 @@ import 'package:wallet/src/data/repository/configuration/configuration_repositor
 import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
+import 'package:wallet/src/data/repository/version/version_state_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
@@ -51,7 +52,9 @@ import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart';
+import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
+import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
@@ -91,6 +94,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ConfigurationRepository>()])
 @GenerateNiceMocks([MockSpec<LanguageRepository>()])
 @GenerateNiceMocks([MockSpec<BiometricRepository>()])
+@GenerateNiceMocks([MockSpec<VersionStateRepository>()])
 
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
@@ -144,9 +148,11 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<SetBiometricsUseCase>()])
 @GenerateNiceMocks([MockSpec<GetSupportedBiometricsUseCase>()])
 @GenerateNiceMocks([MockSpec<IsBiometricLoginEnabledUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveVersionStateUsecase>()])
+@GenerateNiceMocks([MockSpec<GetVersionStringUseCase>()])
 
 /// Core
-@GenerateNiceMocks([MockSpec<WalletCore>()])
+@GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 
 /// Constants
 const kMockPidIssuanceUrl = 'https://example.org';
@@ -166,7 +172,7 @@ class Mocks {
 
   static void initialize() {
     // Core
-    sl.registerFactory<WalletCore>(MockWalletCore.new);
+    sl.registerFactory<WalletCoreApi>(MockWalletCoreApi.new);
 
     // Services
     sl.registerFactory<AppLifecycleService>(AppLifecycleService.new);
@@ -225,6 +231,7 @@ class Mocks {
     sl.registerFactory<SetBiometricsUseCase>(MockSetBiometricsUseCase.new);
     sl.registerFactory<GetSupportedBiometricsUseCase>(MockGetSupportedBiometricsUseCase.new);
     sl.registerFactory<IsBiometricLoginEnabledUseCase>(MockIsBiometricLoginEnabledUseCase.new);
+    sl.registerFactory<GetVersionStringUseCase>(MockGetVersionStringUseCase.new);
 
     // Repositories
     sl.registerFactory<PidRepository>(getMockPidRepository);
@@ -233,6 +240,7 @@ class Mocks {
     sl.registerFactory<WalletCardRepository>(MockWalletCardRepository.new);
     sl.registerFactory<WalletEventRepository>(MockWalletEventRepository.new);
     sl.registerFactory<BiometricRepository>(MockBiometricRepository.new);
+    sl.registerFactory<VersionStateRepository>(MockVersionStateRepository.new);
     sl.registerFactory<ConfigurationRepository>(() {
       final repository = MockConfigurationRepository();
       when(repository.appConfiguration).thenAnswer(

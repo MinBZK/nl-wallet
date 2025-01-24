@@ -21,7 +21,15 @@
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
-      --cache=true
+
+build-update-policy-server-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-update-policy-server-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/update_policy_server/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-update-policy-server
 
 build-wallet-provider-image:
   extends: .build-docker-image
@@ -56,7 +64,6 @@ build-wp-migrations-image:
       --build-arg WALLET_WEB_SHA256="${ARG_WALLET_WEB_SHA256}"
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
-      --cache=true
 
 build-mock-relying-party-image:
   extends: .build-docker-image-mrp
@@ -108,7 +115,7 @@ build-ws-migrations-image:
     - job: build-wallet-server-migrations-binary
       artifacts: true
   variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/migration/Dockerfile
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-server-migrations
 
 build-gba-hc-converter-image:

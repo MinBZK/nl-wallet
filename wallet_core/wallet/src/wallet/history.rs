@@ -10,12 +10,16 @@ use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use platform_support::attested_key::AttestedKeyHolder;
+use wallet_common::update_policy::VersionState;
+
+pub use crate::storage::EventStatus;
 
 use crate::document::DisclosureType;
 use crate::document::DocumentMdocError;
 use crate::errors::StorageError;
+use crate::repository::Repository;
 use crate::storage::EventDocuments;
-pub use crate::storage::EventStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
 use crate::DisclosureDocument;
@@ -27,6 +31,9 @@ use super::Wallet;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum HistoryError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -77,9 +84,11 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<HistoryEvent>) + Send + Sync>;
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
+    UR: Repository<VersionState>,
+    AKH: AttestedKeyHolder,
 {
     pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), EventStorageError> {
         info!("Storing history event");
@@ -94,8 +103,13 @@ where
     pub async fn get_history(&self) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving history");
 
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(HistoryError::VersionBlocked);
+        }
+
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(HistoryError::NotRegistered);
         }
 
@@ -116,8 +130,13 @@ where
     pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving Card history");
 
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(HistoryError::VersionBlocked);
+        }
+
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(HistoryError::NotRegistered);
         }
 
@@ -160,7 +179,7 @@ where
 
         // If the `Wallet` is not registered, the database will not be open.
         // In that case don't emit anything.
-        if self.registration.is_some() {
+        if self.registration.is_registered() {
             self.emit_recent_history().await?;
         }
 
@@ -258,21 +277,22 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
-    use nl_wallet_mdoc::server_keys::KeyPair;
+
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 
     use super::Wallet;
 
     use crate::storage::WalletEvent;
-    use crate::wallet::test::WalletWithMocks;
-    use crate::wallet::test::ISSUER_KEY;
-    use crate::wallet::test::{self};
     use crate::HistoryEvent;
 
+    use super::super::test;
+    use super::super::test::WalletDeviceVendor;
+    use super::super::test::WalletWithMocks;
+    use super::super::test::ISSUER_KEY;
     use super::EventStorageError;
     use super::HistoryError;
 
@@ -281,7 +301,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_history_fails_when_not_registered() {
-        let wallet = WalletWithMocks::new_unregistered().await;
+        let wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         let error = wallet
             .get_history()
@@ -298,7 +318,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_history_fails_when_locked() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -317,9 +337,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_history() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_key = reader_ca
             .generate_reader_mock(ReaderRegistration::new_mock().into())
             .unwrap();
@@ -384,7 +404,7 @@ mod tests {
     #[tokio::test]
     async fn test_set_clear_recent_history_callback() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Register mock recent history callback
         let events = test::setup_mock_recent_history_callback(&mut wallet)
@@ -410,7 +430,7 @@ mod tests {
     // Tests both setting and clearing the recent_history callback on a registered `Wallet`.
     #[tokio::test]
     async fn test_set_clear_recent_history_callback_registered() {
-        let mut wallet = Wallet::new_registered_and_unlocked().await;
+        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single Issuance Event
         let event = WalletEvent::new_issuance(Default::default());
@@ -443,7 +463,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_recent_history_callback_error() {
-        let mut wallet = Wallet::new_registered_and_unlocked().await;
+        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the database return an error on query.
         wallet.storage.get_mut().has_query_error = true;

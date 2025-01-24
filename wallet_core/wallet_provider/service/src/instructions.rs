@@ -1,7 +1,9 @@
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::sync::Arc;
 
 use base64::prelude::*;
-use futures::future::{self};
+use futures::future;
 use itertools::Itertools;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -325,13 +327,13 @@ impl HandleInstruction for ConstructPoa {
         let tx = instruction_state.repositories.begin_transaction().await?;
         let mut keys = instruction_state
             .repositories
-            .find_keys_by_identifiers(&tx, wallet_user.id, self.key_identifiers.as_ref())
+            .find_keys_by_identifiers(&tx, wallet_user.id, self.key_identifiers.as_slice())
             .await?;
         tx.commit().await?;
 
         let keys = self
             .key_identifiers
-            .as_ref()
+            .as_slice()
             .iter()
             .map(|key_identifier| {
                 let wrapped_key = keys
@@ -358,7 +360,21 @@ struct HsmCredentialSigningKey<'a, H> {
     wrapped_key: WrappedKey,
 }
 
-impl<'a, H> EcdsaKey for HsmCredentialSigningKey<'a, H>
+impl<H> PartialEq for HsmCredentialSigningKey<'_, H> {
+    fn eq(&self, other: &Self) -> bool {
+        self.wrapped_key == other.wrapped_key
+    }
+}
+
+impl<H> Eq for HsmCredentialSigningKey<'_, H> {}
+
+impl<H> Hash for HsmCredentialSigningKey<'_, H> {
+    fn hash<HASH: Hasher>(&self, state: &mut HASH) {
+        self.wrapped_key.hash(state);
+    }
+}
+
+impl<H> EcdsaKey for HsmCredentialSigningKey<'_, H>
 where
     H: WalletUserHsm<Error = HsmError>,
 {
@@ -439,8 +455,8 @@ mod tests {
     use wallet_common::keys::poa::PoaPayload;
     use wallet_common::utils::random_bytes;
     use wallet_common::utils::random_string;
+    use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::WalletUser;
-    use wallet_provider_domain::model::wallet_user::{self};
     use wallet_provider_domain::model::wrapped_key::WrappedKey;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::FixedUuidGenerator;

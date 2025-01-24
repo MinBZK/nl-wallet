@@ -59,7 +59,6 @@
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
-		6117501E299543F800ABDA02 /* bridge_generated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge_generated.h; sourceTree = "<group>"; };
 		61723C802BADC2280030B4DE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PlatformSupport.xcodeproj; path = ../../wallet_core/platform_support/ios/PlatformSupport.xcodeproj; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -72,6 +71,9 @@
 		97C146FB1CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A349176F2D3FEC8000FF4407 /* frb_rust.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = frb_rust.h; sourceTree = "<group>"; };
+		A349182D2D40F46C00FF4407 /* frb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = frb.h; sourceTree = "<group>"; };
+		A349182E2D40F5FA00FF4407 /* frb_generated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = frb_generated.h; sourceTree = "<group>"; };
 		B92F0A5B2987DBAF00EBE987 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B9ABBFEC2B051D91002807E5 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		D14B777650202078B8D2B5FB /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
@@ -146,6 +148,9 @@
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
+				A349182E2D40F5FA00FF4407 /* frb_generated.h */,
+				A349182D2D40F46C00FF4407 /* frb.h */,
+				A349176F2D3FEC8000FF4407 /* frb_rust.h */,
 				B9ABBFEC2B051D91002807E5 /* Runner.entitlements */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
@@ -154,7 +159,6 @@
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
-				6117501E299543F800ABDA02 /* bridge_generated.h */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				61723C802BADC2280030B4DE /* PrivacyInfo.xcprivacy */,
 			);
@@ -335,7 +339,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nfunction get_dart_define {\n    IFS=\",\"\n\n    for DART_DEFINE in $DART_DEFINES\n    do\n        local DECODED=$(echo ${DART_DEFINE} | base64 -d)\n        local KEY=`echo ${DECODED} | cut -d = -f1`\n        local VALUE=`echo ${DECODED} | cut -d = -f2-`\n\n        if [ $KEY == $1 ]\n        then\n            echo $VALUE\n        fi\n    done\n}\n\nALLOW_INSECURE_URL=$(get_dart_define \"ALLOW_INSECURE_URL\")\nENV_CONFIGURATION=$(get_dart_define \"ENV_CONFIGURATION\")\n\nCARGO_FLAGS=\"--package flutter_api\"\n\nif [ \"$ALLOW_INSECURE_URL\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/allow_insecure_url\"\nfi\n\nif [ \"$ENV_CONFIGURATION\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/env_config\"\nfi\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../../wallet_core/Cargo.toml\" ${CARGO_FLAGS}\n";
+			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nexec > ${PROJECT_DIR}/compile_rust_core.log 2>&1\n\nfunction get_dart_define {\n    IFS=\",\"\n\n    for DART_DEFINE in $DART_DEFINES\n    do\n        local DECODED=$(echo ${DART_DEFINE} | base64 -d)\n        local KEY=`echo ${DECODED} | cut -d = -f1`\n        local VALUE=`echo ${DECODED} | cut -d = -f2-`\n\n        if [ $KEY == $1 ]\n        then\n            echo $VALUE\n        fi\n    done\n}\n\nALLOW_INSECURE_URL=$(get_dart_define \"ALLOW_INSECURE_URL\")\nFAKE_ATTESTATION=$(get_dart_define \"FAKE_ATTESTATION\")\n\nCARGO_FLAGS=\"--package flutter_api\"\n\nif [ \"$ALLOW_INSECURE_URL\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/allow_insecure_url\"\nfi\n\nif [ \"$FAKE_ATTESTATION\" == \"true\" ] || [ \"$PLATFORM_NAME\" == \"iphonesimulator\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/fake_attestation\"\nfi\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../../wallet_core/Cargo.toml\" ${CARGO_FLAGS}\n";
 		};
 		6C455936181F94502FED24CA /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -489,6 +493,7 @@
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
+				"DEVELOPMENT_TEAM[sdk=iphonesimulator*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";
@@ -636,6 +641,7 @@
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
+				"DEVELOPMENT_TEAM[sdk=iphonesimulator*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";
@@ -678,6 +684,7 @@
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
+				"DEVELOPMENT_TEAM[sdk=iphonesimulator*]" = XGL6UKBPLP;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "NL Wallet";

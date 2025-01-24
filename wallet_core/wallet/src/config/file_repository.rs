@@ -3,27 +3,24 @@ use std::sync::Arc;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::reqwest::RequestBuilder;
+use wallet_common::reqwest::ReqwestBuilder;
+
+use crate::repository::Repository;
+use crate::repository::RepositoryUpdateState;
+use crate::repository::UpdateableRepository;
 
 use super::config_file;
 use super::ConfigurationError;
-use super::ConfigurationRepository;
-use super::ConfigurationUpdateState;
 use super::HttpConfigurationRepository;
-use super::UpdateableConfigurationRepository;
 
 pub struct FileStorageConfigurationRepository<T> {
     wrapped: T,
     storage_path: PathBuf,
 }
 
-impl<C> FileStorageConfigurationRepository<HttpConfigurationRepository<C>>
-where
-    C: RequestBuilder,
-{
+impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
     pub async fn init(
         storage_path: PathBuf,
-        http_config: C,
         signing_public_key: EcdsaDecodingKey,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
@@ -39,8 +36,7 @@ where
         };
 
         Ok(Self::new(
-            HttpConfigurationRepository::new(http_config, signing_public_key, storage_path.clone(), default_config)
-                .await?,
+            HttpConfigurationRepository::new(signing_public_key, storage_path.clone(), default_config).await?,
             storage_path,
         ))
     }
@@ -48,32 +44,34 @@ where
 
 impl<T> FileStorageConfigurationRepository<T>
 where
-    T: ConfigurationRepository,
+    T: Repository<Arc<WalletConfiguration>>,
 {
     fn new(wrapped: T, storage_path: PathBuf) -> FileStorageConfigurationRepository<T> {
         Self { wrapped, storage_path }
     }
 }
 
-impl<T> ConfigurationRepository for FileStorageConfigurationRepository<T>
+impl<T> Repository<Arc<WalletConfiguration>> for FileStorageConfigurationRepository<T>
 where
-    T: ConfigurationRepository,
+    T: Repository<Arc<WalletConfiguration>>,
 {
-    fn config(&self) -> Arc<WalletConfiguration> {
-        self.wrapped.config()
+    fn get(&self) -> Arc<WalletConfiguration> {
+        self.wrapped.get()
     }
 }
 
-impl<T> UpdateableConfigurationRepository for FileStorageConfigurationRepository<T>
+impl<T, B> UpdateableRepository<Arc<WalletConfiguration>, B> for FileStorageConfigurationRepository<T>
 where
-    T: UpdateableConfigurationRepository + Sync,
+    T: UpdateableRepository<Arc<WalletConfiguration>, B, Error = ConfigurationError> + Sync,
+    B: ReqwestBuilder + Send + Sync,
 {
-    async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
-        let result = self.wrapped.fetch().await?;
+    type Error = ConfigurationError;
 
-        if let ConfigurationUpdateState::Updated = result {
-            let wrapped_config = self.wrapped.config();
-            config_file::update_config_file(self.storage_path.as_path(), wrapped_config.as_ref()).await?;
+    async fn fetch(&self, config: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+        let result = self.wrapped.fetch(config).await?;
+
+        if let RepositoryUpdateState::Updated { ref to, .. } = result {
+            config_file::update_config_file(self.storage_path.as_path(), to).await?;
         }
 
         Ok(result)
@@ -88,37 +86,48 @@ mod tests {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use wallet_common::config::http::test::HttpConfig;
+    use wallet_common::config::http::TlsPinningConfig;
     use wallet_common::config::wallet_config::WalletConfiguration;
     use wallet_common::jwt::EcdsaDecodingKey;
 
     use crate::config::config_file;
-    use crate::config::default_configuration;
+    use crate::config::default_wallet_config;
     use crate::config::ConfigurationError;
-    use crate::config::ConfigurationRepository;
-    use crate::config::ConfigurationUpdateState;
     use crate::config::FileStorageConfigurationRepository;
-    use crate::config::UpdateableConfigurationRepository;
+    use crate::config::HttpConfigurationRepository;
+    use crate::repository::Repository;
+    use crate::repository::RepositoryUpdateState;
+    use crate::repository::UpdateableRepository;
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
 
-    impl ConfigurationRepository for TestConfigRepo {
-        fn config(&self) -> Arc<WalletConfiguration> {
+    impl Repository<Arc<WalletConfiguration>> for TestConfigRepo {
+        fn get(&self) -> Arc<WalletConfiguration> {
             Arc::new(self.0.read().clone())
         }
     }
 
-    impl UpdateableConfigurationRepository for TestConfigRepo {
-        async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
+    impl<B> UpdateableRepository<Arc<WalletConfiguration>, B> for TestConfigRepo
+    where
+        B: Send + Sync,
+    {
+        type Error = ConfigurationError;
+
+        async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
             let mut config = self.0.write();
+            let from = config.clone();
             config.lock_timeouts.background_timeout = 700;
-            Ok(ConfigurationUpdateState::Updated)
+            Ok(RepositoryUpdateState::Updated {
+                from: Arc::new(from),
+                to: Arc::new(config.clone()),
+            })
         }
     }
 
     #[tokio::test]
+
     async fn should_store_config_to_filesystem() {
-        let mut initial_wallet_config = default_configuration();
+        let mut initial_wallet_config = default_wallet_config();
         initial_wallet_config.lock_timeouts.background_timeout = 500;
 
         let config_dir = tempfile::tempdir().unwrap();
@@ -129,15 +138,20 @@ mod tests {
             path.clone(),
         );
 
-        let config = repo.config();
+        let config = repo.get();
         assert_eq!(
             500, config.lock_timeouts.background_timeout,
             "should return initial_wallet_config"
         );
 
-        repo.fetch().await.unwrap();
+        repo.fetch(&TlsPinningConfig {
+            base_url: "http://localhost".parse().unwrap(),
+            trust_anchors: vec![],
+        })
+        .await
+        .unwrap();
 
-        let config = repo.config();
+        let config = repo.get();
         assert_eq!(
             700, config.lock_timeouts.background_timeout,
             "should return value set by TestConfigRepo.fetch()"
@@ -147,7 +161,7 @@ mod tests {
 
         let repo = FileStorageConfigurationRepository::new(TestConfigRepo(RwLock::new(file_config)), path);
 
-        let config = repo.config();
+        let config = repo.get();
         assert_eq!(
             700, config.lock_timeouts.background_timeout,
             "should return value read from filesystem"
@@ -155,13 +169,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_use_newer_embedded_wallet_config() {
+    async fn should_use_newer_embedded_wallet_get() {
         let config_dir = tempfile::tempdir().unwrap();
         let path = config_dir.into_path();
         let verifying_key = *SigningKey::random(&mut OsRng).verifying_key();
         let config_decoding_key: EcdsaDecodingKey = (&verifying_key).into();
 
-        let mut initially_stored_wallet_config = default_configuration();
+        let mut initially_stored_wallet_config = default_wallet_config();
         initially_stored_wallet_config.version = 10;
 
         // store initial wallet config having version 10
@@ -169,32 +183,24 @@ mod tests {
             .await
             .unwrap();
 
-        let repo = FileStorageConfigurationRepository::init(
-            path.clone(),
-            HttpConfig {
-                base_url: "http://localhost".parse().unwrap(),
-            },
-            config_decoding_key.clone(),
-            default_configuration(),
-        )
-        .await
-        .unwrap();
-        assert_eq!(10, repo.config().version, "should use stored config");
+        let repo: FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>> =
+            FileStorageConfigurationRepository::init(
+                path.clone(),
+                config_decoding_key.clone(),
+                default_wallet_config(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(10, repo.get().version, "should use stored config");
 
-        let mut embedded_wallet_config = default_configuration();
+        let mut embedded_wallet_config = default_wallet_config();
         embedded_wallet_config.version = 20;
 
-        let repo = FileStorageConfigurationRepository::init(
-            path.clone(),
-            HttpConfig {
-                base_url: "http://localhost".parse().unwrap(),
-            },
-            config_decoding_key,
-            embedded_wallet_config,
-        )
-        .await
-        .unwrap();
-        assert_eq!(20, repo.config().version, "should use newer embedded config");
+        let repo: FileStorageConfigurationRepository<HttpConfigurationRepository<TlsPinningConfig>> =
+            FileStorageConfigurationRepository::init(path.clone(), config_decoding_key, embedded_wallet_config)
+                .await
+                .unwrap();
+        assert_eq!(20, repo.get().version, "should use newer embedded config");
 
         let stored_config = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
         assert_eq!(

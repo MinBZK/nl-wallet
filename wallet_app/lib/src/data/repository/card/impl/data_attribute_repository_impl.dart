@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../source/wallet_datasource.dart';
 import '../data_attribute_repository.dart';

@@ -31,8 +31,8 @@ use tokio::fs;
 use tracing::warn;
 use uuid::Uuid;
 
+use entity::disclosure_history_event;
 use entity::disclosure_history_event::EventStatus;
-use entity::disclosure_history_event::{self};
 use entity::disclosure_history_event_doc_type;
 use entity::history_doc_type;
 use entity::issuance_history_event;
@@ -43,6 +43,7 @@ use entity::mdoc_copy;
 use nl_wallet_mdoc::utils::serialization::cbor_deserialize;
 use nl_wallet_mdoc::utils::serialization::cbor_serialize;
 use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
@@ -400,6 +401,16 @@ where
         Ok(())
     }
 
+    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()> {
+        let database = self.database()?;
+
+        keyed_data::Entity::delete_by_id(D::KEY.to_string())
+            .exec(database.connection())
+            .await?;
+
+        Ok(())
+    }
+
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
         // Construct a vec of tuples of 1 `mdoc` and 1 or more `mdoc_copy` models,
         // based on the unique `MdocCopies`, to be inserted into the database.
@@ -601,14 +612,11 @@ where
         Self::combine_history_events(issuance_events, disclosure_events)
     }
 
-    async fn did_share_data_with_relying_party(
-        &self,
-        certificate: &nl_wallet_mdoc::utils::x509::Certificate,
-    ) -> StorageResult<bool> {
+    async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column(disclosure_history_event::Column::RelyingPartyCertificate)
             .from(disclosure_history_event::Entity)
-            .and_where(Expr::col(disclosure_history_event::Column::RelyingPartyCertificate).eq(certificate.as_bytes()))
+            .and_where(Expr::col(disclosure_history_event::Column::RelyingPartyCertificate).eq(certificate.as_ref()))
             .and_where(Expr::col(disclosure_history_event::Column::Status).eq(EventStatus::Success))
             .and_where(Expr::col(disclosure_history_event::Column::Attributes).is_not_null())
             .limit(1)
@@ -638,6 +646,7 @@ pub(crate) mod tests {
     use tokio::fs;
 
     use nl_wallet_mdoc::holder::Mdoc;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
@@ -655,14 +664,14 @@ pub(crate) mod tests {
     const ADDRESS_DOCTYPE: &str = "com.example.address";
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         issuer_ca
             .generate_issuer_mock(IssuerRegistration::new_mock().into())
             .unwrap()
     });
 
     static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let reader_ca = Ca::generate_reader_mock_ca().unwrap();
         reader_ca
             .generate_reader_mock(ReaderRegistration::new_mock().into())
             .unwrap()
@@ -755,6 +764,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_database_keyed_storage() {
         let registration = RegistrationData {
+            attested_key_identifier: "key_id".to_string(),
             pin_salt: vec![1, 2, 3, 4],
             wallet_id: "wallet_123".to_string(),
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
@@ -800,6 +810,7 @@ pub(crate) mod tests {
         // Upsert registration
         let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
+            attested_key_identifier: "key_id".to_string(),
             pin_salt: new_salt,
             wallet_id: registration.wallet_id.clone(),
             wallet_certificate: registration.wallet_certificate.clone(),
@@ -823,6 +834,17 @@ pub(crate) mod tests {
             fetched_after_update_registration.wallet_certificate.0,
             registration.wallet_certificate.0
         );
+
+        // Delete registration
+        storage
+            .delete_data::<RegistrationData>()
+            .await
+            .expect("Could not delete registration");
+        let no_registration = storage
+            .fetch_data::<RegistrationData>()
+            .await
+            .expect("Could not get registration");
+        assert!(no_registration.is_none());
 
         // Clear database, state should be uninitialized.
         storage.clear().await;

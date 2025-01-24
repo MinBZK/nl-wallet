@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.8.0"
+    kotlin("jvm") version "2.0.21"
     application
 }
 
@@ -10,6 +10,11 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
@@ -56,10 +61,6 @@ tasks.register<Test>("smokeTest") {
         // duplicated test executions and ensure only the actual tagged tests are run.
         exclude("suite/**")
     }
-}
-
-kotlin {
-    jvmToolchain(17)
 }
 
 val compileKotlin: KotlinCompile by tasks

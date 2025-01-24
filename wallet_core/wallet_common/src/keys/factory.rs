@@ -1,14 +1,16 @@
 use std::error::Error;
+use std::hash::Hash;
 
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
+use crate::vec_at_least::VecAtLeastTwoUnique;
+
 use super::poa::Poa;
-use super::poa::VecAtLeastTwo;
 use super::CredentialEcdsaKey;
 
 pub trait KeyFactory {
-    type Key: CredentialEcdsaKey;
+    type Key: CredentialEcdsaKey + Eq + Hash;
     type Error: Error + Send + Sync + 'static;
 
     async fn generate_new(&self) -> Result<Self::Key, Self::Error> {
@@ -33,7 +35,7 @@ pub trait KeyFactory {
     /// are managed by this one key factory.
     async fn poa(
         &self,
-        keys: VecAtLeastTwo<&Self::Key>,
+        keys: VecAtLeastTwoUnique<&Self::Key>,
         aud: String,
         nonce: Option<String>,
     ) -> Result<Poa, Self::Error>;

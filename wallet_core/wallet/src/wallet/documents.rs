@@ -6,6 +6,7 @@ use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use platform_support::attested_key::AttestedKeyHolder;
 
 use crate::document::Document;
 use crate::document::DocumentPersistence;
@@ -31,9 +32,10 @@ pub enum DocumentsError {
 
 pub type DocumentsCallback = Box<dyn FnMut(Vec<Document>) + Send + Sync>;
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
+    AKH: AttestedKeyHolder,
 {
     pub(super) async fn emit_documents(&mut self) -> Result<(), DocumentsError> {
         info!("Emit mdocs from storage");
@@ -79,7 +81,7 @@ where
     ) -> Result<Option<DocumentsCallback>, DocumentsError> {
         let previous_callback = self.documents_callback.replace(callback);
 
-        if self.registration.is_some() {
+        if self.registration.is_registered() {
             self.emit_documents().await?;
         }
 
@@ -97,15 +99,16 @@ mod tests {
 
     use assert_matches::assert_matches;
 
+    use super::super::test;
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
-    use super::super::test::{self};
     use super::*;
 
     // Tests both setting and clearing the documents callback on an unregistered `Wallet`.
     #[tokio::test]
     async fn test_wallet_set_clear_documents_callback() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Register mock document_callback
         let documents = test::setup_mock_documents_callback(&mut wallet)
@@ -132,10 +135,10 @@ mod tests {
     // Tests both setting and clearing the documents callback on a registered `Wallet`.
     #[tokio::test]
     async fn test_wallet_set_clear_documents_callback_registered() {
-        let mut wallet = Wallet::new_registered_and_unlocked().await;
+        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single `Mdoc`.
-        let mdoc = test::create_full_pid_mdoc().await;
+        let mdoc = test::create_full_pid_mdoc();
         let mdoc_doc_type = mdoc.doc_type.clone();
         wallet
             .storage
@@ -174,10 +177,10 @@ mod tests {
     // a `MissingIssuerRegistration` error.
     #[tokio::test]
     async fn test_wallet_set_clear_documents_callback_registered_no_issuer_registration() {
-        let mut wallet = Wallet::new_registered_and_unlocked().await;
+        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single `Mdoc`, without Issuer registration.
-        let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
+        let mdoc = test::create_full_pid_mdoc_unauthenticated();
         wallet
             .storage
             .get_mut()
@@ -198,7 +201,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_set_documents_callback_error() {
-        let mut wallet = Wallet::new_registered_and_unlocked().await;
+        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the database return an error on query.
         wallet.storage.get_mut().has_query_error = true;

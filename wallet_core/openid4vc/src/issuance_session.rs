@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::hash::Hash;
 
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -13,6 +14,7 @@ use p256::elliptic_curve::rand_core::OsRng;
 use reqwest::header::ToStrError;
 use reqwest::header::AUTHORIZATION;
 use reqwest::Method;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
@@ -20,13 +22,13 @@ use url::Url;
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::IssuedAttributesMismatch;
 use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::utils::serialization::TaggedBytes;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::ATTR_RANDOM_LENGTH;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::JwkConversionError;
 use wallet_common::jwt::Jwt;
@@ -35,10 +37,10 @@ use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::VecAtLeastTwo;
 use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::urls::BaseUrl;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
 use crate::credential::CredentialCopies;
@@ -97,6 +99,9 @@ pub enum IssuanceSessionError {
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("jwt credential verification failed: {0}")]
     JwtCredentialVerification(#[from] JwtCredentialError),
+    #[error("type metadata verification failed: {0}")]
+    #[category(critical)]
+    TypeMetadataVerification(#[from] TypeMetadataError),
     #[error("error requesting access token: {0:?}")]
     #[category(pd)]
     TokenRequest(ErrorResponse<TokenErrorCode>),
@@ -214,13 +219,13 @@ impl TryFrom<IssuedCredentialCopies> for MdocCopies {
     }
 }
 
-impl<T> TryFrom<NonEmpty<Vec<IssuedCredential>>> for CredentialCopies<T>
+impl<T> TryFrom<VecNonEmpty<IssuedCredential>> for CredentialCopies<T>
 where
     T: TryFrom<IssuedCredential>,
 {
     type Error = <T as TryFrom<IssuedCredential>>::Error;
 
-    fn try_from(creds: NonEmpty<Vec<IssuedCredential>>) -> Result<Self, Self::Error> {
+    fn try_from(creds: VecNonEmpty<IssuedCredential>) -> Result<Self, Self::Error> {
         let copies = creds
             .into_inner()
             .into_iter()
@@ -239,7 +244,9 @@ impl TryFrom<Vec<IssuedCredential>> for IssuedCredentialCopies {
     fn try_from(creds: Vec<IssuedCredential>) -> Result<Self, Self::Error> {
         let copies = match creds.first().ok_or(IssuanceSessionError::NoCredentialCopies)? {
             // We can unwrap in these arms because we just checked that we have at least one credential
-            IssuedCredential::MsoMdoc(_) => IssuedCredentialCopies::MsoMdoc(NonEmpty::new(creds).unwrap().try_into()?),
+            IssuedCredential::MsoMdoc(_) => {
+                IssuedCredentialCopies::MsoMdoc(VecNonEmpty::try_from(creds).unwrap().try_into()?)
+            }
         };
 
         Ok(copies)
@@ -256,10 +263,10 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     where
         Self: Sized;
 
-    async fn accept_issuance<K: CredentialEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
-        key_factory: impl KeyFactory<Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
@@ -453,7 +460,7 @@ impl HttpVcMessageClient {
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
-    credential_previews: NonEmpty<Vec<CredentialPreview>>,
+    credential_previews: VecNonEmpty<CredentialPreview>,
     issuer_url: BaseUrl,
     #[debug(skip)]
     dpop_private_key: SigningKey,
@@ -523,7 +530,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         token_response
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .try_for_each(|preview| preview.verify(trust_anchors))?;
 
@@ -548,10 +555,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok((issuance_client, credential_previews))
     }
 
-    async fn accept_issuance<K: CredentialEcdsaKey>(
+    async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
-        trust_anchors: &[TrustAnchor<'_>],
-        key_factory: impl KeyFactory<Key = K>,
+        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        key_factory: &impl KeyFactory<Key = K>,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
@@ -563,7 +570,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let types = self
             .session_state
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count().into()))
             .collect_vec();
@@ -577,7 +584,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             NL_WALLET_CLIENT_ID.to_string(),
             credential_issuer_identifier.clone(),
             types.len().try_into().unwrap(),
-            &key_factory,
+            key_factory,
         )
         .await?;
 
@@ -590,7 +597,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
         let (mut wte_disclosure, wte_privkey) = match wte {
             Some(wte) => {
-                let wte_privkey = wte.private_key(&key_factory)?;
+                let wte_privkey = wte.private_key(key_factory)?;
                 let wte_release =
                     Jwt::<JwtPopClaims>::sign(&pop_claims, &Header::new(Algorithm::ES256), &wte_privkey).await?;
                 (Some(WteDisclosure::new(wte.jwt, wte_release)), Some(wte_privkey))
@@ -606,7 +613,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec();
 
         // We need a minimum of two keys to associate for a PoA to be sensible.
-        let poa = VecAtLeastTwo::try_new(poa_keys).ok().map(|poa_keys| async {
+        let poa = VecAtLeastTwoUnique::try_from(poa_keys).ok().map(|poa_keys| async {
             key_factory
                 .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
                 .await
@@ -649,7 +656,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 vec![self.request_credential(&credential_request).await?]
             }
             _ => {
-                let credential_requests = NonEmpty::new(credential_requests).unwrap();
+                let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
                 self.request_batch_credentials(credential_requests, wte_disclosure.take(), poa.take())
                     .await?
             }
@@ -659,7 +666,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let mdocs = self
             .session_state
             .credential_previews
-            .as_ref()
+            .as_slice()
             .iter()
             .map(|preview| {
                 let copy_count: usize = preview.copy_count().into();
@@ -670,7 +677,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     .map(|(cred_response, (pubkey, key_id))| {
                         // Convert the response into an credential, verifying it against both the
                         // trust anchors and the credential preview we received in the preview.
-                        cred_response.into_credential::<K>(key_id, &pubkey, preview, trust_anchors)
+                        cred_response.into_credential::<K>(key_id, &pubkey, preview, mdoc_trust_anchors)
                     })
                     .collect::<Result<Vec<IssuedCredential>, _>>()?;
 
@@ -714,7 +721,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     async fn request_batch_credentials(
         &self,
-        credential_requests: NonEmpty<Vec<CredentialRequest>>,
+        credential_requests: VecNonEmpty<CredentialRequest>,
         wte_disclosure: Option<WteDisclosure>,
         poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
@@ -765,7 +772,11 @@ impl CredentialResponse {
                 credential: issuer_signed,
             } => {
                 let CborBase64(issuer_signed) = *issuer_signed;
-                let CredentialPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
+                let CredentialPreview::MsoMdoc {
+                    unsigned_mdoc,
+                    issuer,
+                    metadata_chain,
+                } = preview;
 
                 if issuer_signed
                     .public_key()
@@ -808,6 +819,11 @@ impl CredentialResponse {
                 // Check that our mdoc contains exactly the attributes the issuer said it would have
                 mdoc.compare_unsigned(unsigned_mdoc)
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
+
+                // Verify and parse the type metadata
+                let _metadata = metadata_chain.verify_and_parse_root()?;
+
+                // TODO: verify JSON representation of mdoc against metadata schema (PVW-3812)
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
@@ -862,19 +878,18 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::test::data;
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-    use nl_wallet_mdoc::utils::x509::Certificate;
     use nl_wallet_mdoc::IssuerSigned;
+    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::keys::factory::KeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::keys::EcdsaKey;
-    use wallet_common::nonempty::NonEmpty;
 
     use crate::token::TokenResponse;
 
@@ -894,25 +909,34 @@ mod tests {
     async fn create_credential_response() -> (
         CredentialResponse,
         CredentialPreview,
-        Certificate,
+        TrustAnchor<'static>,
         VerifyingKey,
         MockRemoteKeyFactory,
     ) {
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = MockRemoteKeyFactory::default();
+        let trust_anchor = ca.to_trust_anchor().to_owned();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
+        let metadata = TypeMetadata::new_example();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         let preview = CredentialPreview::MsoMdoc {
             unsigned_mdoc: unsigned_mdoc.clone(),
             issuer: issuance_key.certificate().clone(),
+            metadata_chain: metadata_chain.clone(),
         };
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
-        let mdoc_public_key = mdoc_key.verifying_key().await.unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned_mdoc, (&mdoc_public_key).try_into().unwrap(), &issuance_key)
-            .await
-            .unwrap();
+        let mdoc_public_key = mdoc_key.verifying_key();
+        let issuer_signed = IssuerSigned::sign(
+            unsigned_mdoc,
+            metadata_chain,
+            mdoc_public_key.try_into().unwrap(),
+            &issuance_key,
+        )
+        .await
+        .unwrap();
         let credential_response = CredentialResponse::MsoMdoc {
             credential: Box::new(issuer_signed.into()),
         };
@@ -920,17 +944,15 @@ mod tests {
         (
             credential_response,
             preview,
-            ca.certificate().clone(),
-            mdoc_public_key,
+            trust_anchor,
+            *mdoc_public_key,
             key_factory,
         )
     }
 
     #[tokio::test]
     async fn test_start_issuance_untrusted_credential_preview() {
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-        let ca_cert = ca.certificate();
-        let trust_anchors = &[(ca_cert.try_into().unwrap())];
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
@@ -938,18 +960,21 @@ mod tests {
             .return_once(|_url, _token_request, _dpop_header| {
                 // Generate the credential previews with some other CA than what the
                 // HttpIssuanceSession::start_issuance() will accept
-                let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+                let ca = Ca::generate_issuer_mock_ca().unwrap();
                 let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+                let metadata = TypeMetadata::new_example();
+                let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
                 let preview = CredentialPreview::MsoMdoc {
                     unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
                     issuer: issuance_key.certificate().clone(),
+                    metadata_chain,
                 };
 
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        credential_previews: NonEmpty::new(vec![preview]).unwrap(),
+                        credential_previews: VecNonEmpty::try_from(vec![preview]).unwrap(),
                     },
                     None,
                 ))
@@ -961,7 +986,7 @@ mod tests {
             mock_msg_client,
             "https://example.com".parse().unwrap(),
             token_request,
-            trust_anchors,
+            &[ca.to_trust_anchor()],
         )
         .await
         .unwrap_err();
@@ -977,7 +1002,7 @@ mod tests {
         IssuanceState {
             access_token: "access_token".to_string().into(),
             c_nonce: "c_nonce".to_string(),
-            credential_previews: NonEmpty::new(previews).unwrap(),
+            credential_previews: VecNonEmpty::try_from(previews).unwrap(),
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
@@ -1016,7 +1041,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_accept_issuance(#[values(true, false)] use_wte: bool, #[values(true, false)] multiple_creds: bool) {
-        let (cred_response, preview, ca_cert, _, key_factory) = create_credential_response().await;
+        let (cred_response, preview, trust_anchor, _, key_factory) = create_credential_response().await;
         let wte = if use_wte {
             Some(mock_wte(&key_factory, &SigningKey::random(&mut OsRng)).await)
         } else {
@@ -1073,8 +1098,8 @@ mod tests {
             session_state,
         }
         .accept_issuance(
-            &[((&ca_cert).try_into().unwrap())],
-            key_factory,
+            &[trust_anchor],
+            &key_factory,
             wte,
             "https://issuer.example.com".parse().unwrap(),
         )
@@ -1084,7 +1109,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_issuance_wrong_response_count() {
         let mut mock_msg_client = mock_openid_message_client();
-        let (cred_response, preview, ca_cert, _, _) = create_credential_response().await;
+        let (cred_response, preview, trust_anchor, _, _) = create_credential_response().await;
 
         mock_msg_client.expect_request_credentials().return_once(
             |_url, _credential_requests, _dpop_header, _access_token_header| {
@@ -1099,8 +1124,8 @@ mod tests {
             session_state: new_session_state(vec![preview.clone(), preview]),
         }
         .accept_issuance(
-            &[((&ca_cert).try_into().unwrap())],
-            MockRemoteKeyFactory::default(),
+            &[trust_anchor],
+            &MockRemoteKeyFactory::default(),
             None,
             "https://issuer.example.com".parse().unwrap(),
         )
@@ -1115,32 +1140,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc() {
-        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         let _ = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &mdoc_public_key,
-                &preview,
-                &[((&ca_cert).try_into().unwrap())],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
             .expect("should be able to convert CredentialResponse into Mdoc");
     }
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_public_key_mismatch_error() {
-        let (credential_response, preview, ca_cert, _, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, _, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
         // public key than the one contained within the response should fail.
         let other_public_key = *SigningKey::random(&mut OsRng).verifying_key();
         let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &other_public_key,
-                &preview,
-                &[((&ca_cert).try_into().unwrap())],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &other_public_key, &preview, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::PublicKeyMismatch);
@@ -1148,7 +1163,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_attribute_random_length_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` from a response
         // that contains insufficient random data should fail.
@@ -1168,12 +1183,7 @@ mod tests {
         };
 
         let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &mdoc_public_key,
-                &preview,
-                &[((&ca_cert).try_into().unwrap())],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(
@@ -1184,11 +1194,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
-        let other_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let other_ca = Ca::generate_issuer_mock_ca().unwrap();
         let other_issuance_key = other_ca
             .generate_issuer_mock(IssuerRegistration::new_mock().into())
             .unwrap();
@@ -1196,19 +1206,16 @@ mod tests {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
                 issuer: _,
+                metadata_chain,
             } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
                 issuer: other_issuance_key.certificate().clone(),
+                metadata_chain,
             },
         };
 
         let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &mdoc_public_key,
-                &preview,
-                &[((&ca_cert).try_into().unwrap())],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::IssuerMismatch);
@@ -1229,7 +1236,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
-        let (credential_response, preview, ca_cert, mdoc_public_key, _) = create_credential_response().await;
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail.
@@ -1237,19 +1244,16 @@ mod tests {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc: _,
                 issuer,
+                metadata_chain,
             } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
                 issuer,
+                metadata_chain,
             },
         };
 
         let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &mdoc_public_key,
-                &preview,
-                &[((&ca_cert).try_into().unwrap())],
-            )
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(

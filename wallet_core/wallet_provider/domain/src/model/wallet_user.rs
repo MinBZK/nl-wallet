@@ -5,6 +5,7 @@ use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use uuid::Uuid;
 
+use apple_app_attest::AssertionCounter;
 use wallet_common::account::serialization::DerVerifyingKey;
 
 use crate::model::encrypted::Encrypted;
@@ -13,18 +14,26 @@ use crate::model::wrapped_key::WrappedKey;
 pub type WalletId = String;
 
 #[derive(Debug)]
-#[debug("{wallet_id}")]
 pub struct WalletUser {
     pub id: Uuid,
     pub wallet_id: WalletId,
     pub hw_pubkey: DerVerifyingKey,
+    #[debug(skip)]
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    #[debug(skip)]
     pub encrypted_previous_pin_pubkey: Option<Encrypted<VerifyingKey>>,
     pub unsuccessful_pin_entries: u8,
     pub last_unsuccessful_pin_entry: Option<DateTime<Utc>>,
     pub instruction_challenge: Option<InstructionChallenge>,
     pub instruction_sequence_number: u64,
     pub has_wte: bool,
+    pub attestation: WalletUserAttestation,
+}
+
+#[derive(Debug)]
+pub enum WalletUserAttestation {
+    Apple { assertion_counter: AssertionCounter },
+    Android,
 }
 
 impl WalletUser {
@@ -46,11 +55,25 @@ pub enum WalletUserQueryResult {
     Blocked,
 }
 
+#[derive(Debug)]
 pub struct WalletUserCreate {
-    pub id: Uuid,
     pub wallet_id: String,
     pub hw_pubkey: VerifyingKey,
+    #[debug(skip)]
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
+    pub attestation_date_time: DateTime<Utc>,
+    pub attestation: WalletUserAttestationCreate,
+}
+
+#[derive(Debug)]
+pub enum WalletUserAttestationCreate {
+    Apple {
+        data: Vec<u8>,
+        assertion_counter: AssertionCounter,
+    },
+    Android {
+        certificate_chain: Vec<Vec<u8>>,
+    },
 }
 
 #[derive(Clone)]
@@ -101,6 +124,7 @@ SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
             instruction_challenge: None,
             instruction_sequence_number: 0,
             has_wte: false,
+            attestation: super::WalletUserAttestation::Android,
         }
     }
 }

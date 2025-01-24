@@ -59,7 +59,7 @@ source "${SCRIPTS_DIR}/utils.sh"
 
 # Use gsed on macOS, sed on others
 is_macos && SED="gsed" || SED="sed"
-have cargo jq tr xxd openssl softhsm2-util p11tool ${SED}
+have cargo jq tr xxd openssl p11tool softhsm2-util "${SED}"
 
 # Check if openssl is "real" OpenSSL
 check_openssl
@@ -108,6 +108,7 @@ mkdir -p "${TARGET_DIR}"
 mkdir -p "${TARGET_DIR}/configuration_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
 mkdir -p "${TARGET_DIR}/mock_relying_party"
+mkdir -p "${TARGET_DIR}/update_policy_server"
 mkdir -p "${TARGET_DIR}/wallet_provider"
 
 ########################################################################
@@ -182,13 +183,13 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
     export VITE_HELP_BASE_URL
     npm ci && npm run build
-    WALLET_WEB_SHA256=$(cat dist/nl-wallet-web.iife.js | openssl sha256 -binary | ${BASE64})
+    WALLET_WEB_SHA256=$(< dist/nl-wallet-web.iife.js openssl sha256 -binary | ${BASE64})
     export WALLET_WEB_SHA256
-    WALLET_WEB_SHA256_FILENAME=$(cat dist/nl-wallet-web.iife.js | openssl sha256 -binary | base64_url_encode) # url safe to prevent '/' to appear in filename
+    WALLET_WEB_SHA256_FILENAME=$(< dist/nl-wallet-web.iife.js openssl sha256 -binary | base64_url_encode) # url safe to prevent '/' to appear in filename
     export WALLET_WEB_SHA256_FILENAME
     WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
     export WALLET_WEB_FILENAME
-    cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME}
+    cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/"${WALLET_WEB_FILENAME}"
 fi
 
 
@@ -268,10 +269,10 @@ export MOCK_RELYING_PARTY_KEY_MONKEY_BIKE
 MOCK_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_bike.crt.der" ${BASE64})
 export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
 
-if [[ -z "${SKIP_MOCK_RELYING_PARTY:-}" ]]; then
+if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     WALLET_WEB_FILENAME="${WALLET_WEB_FILENAME:-nl-wallet-web.iife.js}"
     export WALLET_WEB_FILENAME
-    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(cat ../wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME} | openssl sha256 -binary | ${BASE64})}"
+    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(< ../wallet_core/mock_relying_party/assets/"${WALLET_WEB_FILENAME}" openssl sha256 -binary | ${BASE64})}"
     export WALLET_WEB_SHA256
     render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
 fi
@@ -280,6 +281,14 @@ fi
 generate_ws_random_key ephemeral_id_secret
 MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
 export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
+
+# Base64 encode the Technical Attestation Schemas
+cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${WALLET_SERVER_DIR}"
+cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${BASE_DIR}/wallet_core/tests_integration"
+ISSUER_METADATA_PID_PATH="com_example_pid_metadata.json"
+export ISSUER_METADATA_PID_PATH
+ISSUER_METADATA_ADDRESS_PATH="com_example_address_metadata.json"
+export ISSUER_METADATA_ADDRESS_PATH
 
 # And the mrp's wallet_server config
 render_template "${DEVENV}/mrp_verification_server.toml.template" "${WALLET_SERVER_DIR}/verification_server.toml"
@@ -294,6 +303,40 @@ render_template_append "${DEVENV}/mrp_verification_server.it.toml.template" "${B
 render_template "${DEVENV}/pid_issuer.toml.template" "${WALLET_SERVER_DIR}/pid_issuer.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
+
+########################################################################
+# Configure update-policy-server
+
+echo
+echo -e "${SECTION}Configure update-policy-server${NC}"
+
+cd "${BASE_DIR}"
+
+# Generate root CA
+if [ ! -f "${TARGET_DIR}/update_policy_server/ca.key.pem" ]; then
+    generate_root_ca "${TARGET_DIR}/update_policy_server" "nl-wallet-update-policy-server"
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/update_policy_server/ca.key.pem' already exists, not (re-)generating root CA"
+fi
+
+generate_ssl_key_pair_with_san "${TARGET_DIR}/update_policy_server" update_policy_server "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${TARGET_DIR}/update_policy_server/ca.key.pem"
+
+cp "${TARGET_DIR}/update_policy_server/ca.crt.pem" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.pem"
+cp "${TARGET_DIR}/update_policy_server/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/ups.ca.crt.der"
+UPDATE_POLICY_SERVER_CA_CRT=$(< "${TARGET_DIR}/update_policy_server/ca.crt.der" ${BASE64})
+export UPDATE_POLICY_SERVER_CA_CRT
+
+UPDATE_POLICY_SERVER_CERT=$(< "${TARGET_DIR}/update_policy_server/update_policy_server.crt.der" ${BASE64})
+export UPDATE_POLICY_SERVER_CERT
+
+UPDATE_POLICY_SERVER_KEY=$(< "${TARGET_DIR}/update_policy_server/update_policy_server.key.der" ${BASE64})
+export UPDATE_POLICY_SERVER_KEY
+
+UPDATE_POLICY_SERVER_TRUST_ANCHORS=$(IFS="|" ; echo "${UPDATE_POLICY_SERVER_CERT[*]}")
+export UPDATE_POLICY_SERVER_TRUST_ANCHORS
+
+render_template "${DEVENV}/update_policy_server.toml.template" "${UPS_DIR}/update_policy_server.toml"
+cp "${UPS_DIR}/update_policy_server.toml" "${BASE_DIR}/wallet_core/tests_integration/update_policy_server.toml"
 
 ########################################################################
 # Configure wallet_provider
@@ -343,6 +386,24 @@ generate_wp_random_key pin_pubkey_encryption
 WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
 export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
 
+APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/apple_app_attest/assets/Apple_App_Attestation_Root_CA.pem" -outform DER | ${BASE64})
+export APPLE_ROOT_CA
+
+MOCK_APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/apple_app_attest/assets/mock_ca.crt.pem" -outform DER | ${BASE64})
+export MOCK_APPLE_ROOT_CA
+
+# Source: https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
+ANDROID_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/android_attest/assets/google_hardware_attestation_root_pubkey.pem" -outform DER | ${BASE64})
+export ANDROID_ROOT_PUBKEY
+
+# Source: repository https://android.googlesource.com/platform/hardware/interfaces, file security/keymint/aidl/default/ta/attest.rs, variable EC_ATTEST_ROOT_CERT
+ANDROID_EMULATOR_EC_ROOT_PUBKEY=$(openssl ec -pubin -in "${SCRIPTS_DIR}/../wallet_core/android_attest/assets/android_emulator_ec_root_pubkey.pem" -outform DER | ${BASE64})
+export ANDROID_EMULATOR_EC_ROOT_PUBKEY
+
+# Source: repository https://android.googlesource.com/platform/hardware/interfaces, file security/keymint/aidl/default/ta/attest.rs, variable RSA_ATTEST_ROOT_CERT
+ANDROID_EMULATOR_RSA_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/android_attest/assets/android_emulator_rsa_root_pubkey.pem" -outform DER | ${BASE64})
+export ANDROID_EMULATOR_RSA_ROOT_PUBKEY
+
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
@@ -354,6 +415,11 @@ render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-co
 
 echo
 echo -e "${SECTION}Configure HSM${NC}"
+
+if [[ ! -f "$HSM_LIBRARY_PATH" ]]; then
+    error "No valid HSM library path configured: $HSM_LIBRARY_PATH"
+    exit 1
+fi
 
 mkdir -p "${HOME}/.config/softhsm2"
 if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
@@ -376,7 +442,6 @@ p11tool --login --write \
   --label="pin_public_disclosure_protection_key" \
   --provider="${HSM_LIBRARY_PATH}" \
   "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
-
 
 ########################################################################
 # Configure configuration-server
@@ -428,10 +493,8 @@ cp "${TARGET_DIR}/wallet_provider/config_signing.pem" "${BASE_DIR}/wallet_core/t
 
 WALLET_CONFIG_JWT=$(< "${TARGET_DIR}/wallet-config-jws-compact.txt")
 export WALLET_CONFIG_JWT
-
 render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
 cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
-
 
 ########################################################################
 # Configure gba-hc-converter
@@ -453,7 +516,9 @@ encrypt_gba_v_responses
 echo
 echo -e "${SECTION}Configure wallet${NC}"
 
-render_template "${DEVENV}/wallet.env.template" "${BASE_DIR}/wallet_core/wallet/.env"
+rm -f "${BASE_DIR}/wallet_core/wallet/config-server-config.json" "${BASE_DIR}/wallet_core/wallet/wallet-config.json"
+render_template "${DEVENV}/config-server-config.json.template" "${BASE_DIR}/wallet_core/wallet/config-server-config.json"
+render_template "${DEVENV}/wallet-config.json.template" "${BASE_DIR}/wallet_core/wallet/wallet-config.json"
 
 ########################################################################
 # Configure Android Emulator

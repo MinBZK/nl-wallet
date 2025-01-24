@@ -11,9 +11,12 @@ use futures::future;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 use ring::hmac;
 use ring::rand;
 use rstest::rstest;
+use rustls_pki_types::TrustAnchor;
 
 use nl_wallet_mdoc::examples::example_items_requests;
 use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
@@ -22,7 +25,7 @@ use nl_wallet_mdoc::holder::DisclosureRequestMatch;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::holder::MdocDataSource;
 use nl_wallet_mdoc::holder::StoredMdoc;
-use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::test::data::addr_street;
 use nl_wallet_mdoc::test::data::pid_full_name;
@@ -64,13 +67,17 @@ use openid4vc::VpAuthorizationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::examples::Examples;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-use wallet_common::trust_anchor::OwnedTrustAnchor;
+use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
+use wallet_common::keys::poa::Poa;
 use wallet_common::urls::BaseUrl;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 #[tokio::test]
 async fn disclosure_direct() {
-    let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+    let ca = Ca::generate("myca", Default::default()).unwrap();
     let auth_keypair = ca.generate_reader_mock(None).unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
@@ -90,7 +97,7 @@ async fn disclosure_direct() {
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
-    let jwe = disclosure_jwe(auth_request_jws, &[ca.certificate().try_into().unwrap()]).await;
+    let jwe = disclosure_jwe(auth_request_jws, &[ca.to_trust_anchor()]).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
@@ -138,18 +145,29 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 
     // Compute the disclosure.
     let key_factory = MockRemoteKeyFactory::default();
-    let device_response = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
+    let (device_response, keys) = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
         .await
         .unwrap();
 
+    let poa = match VecAtLeastTwoUnique::try_from(keys) {
+        Ok(keys) => {
+            let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
+            let poa = key_factory
+                .poa(keys, auth_request.client_id.clone(), Some(mdoc_nonce.clone()))
+                .await
+                .unwrap();
+            Some(poa)
+        }
+        Err(_) => None,
+    };
+
     // Put the disclosure in an Authorization Response and encrypt it.
-    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce).unwrap()
+    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce, poa).unwrap()
 }
 
 #[tokio::test]
 async fn disclosure_using_message_client() {
-    let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-    let trust_anchors = &[ca.certificate().try_into().unwrap()];
+    let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = ca
         .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
             &example_items_requests(),
@@ -158,7 +176,6 @@ async fn disclosure_using_message_client() {
 
     // Initialize the "wallet"
     let mdocs = IsoMockMdocDataSource::new_with_example();
-    let key_factory = &MockRemoteKeyFactory::default();
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair);
@@ -170,7 +187,7 @@ async fn disclosure_using_message_client() {
         &request_uri,
         DisclosureUriSource::Link,
         &mdocs,
-        trust_anchors,
+        &[ca.to_trust_anchor()],
     )
     .await
     .unwrap();
@@ -180,7 +197,8 @@ async fn disclosure_using_message_client() {
     };
 
     // Finish the disclosure.
-    proposal.disclose(key_factory).await.unwrap();
+    let key_factory = MockRemoteKeyFactory::default();
+    proposal.disclose(&key_factory).await.unwrap();
 }
 
 // A mock implementation of the `VpMessageClient` trait that implements the RP side of OpenID4VP
@@ -234,7 +252,7 @@ impl DirectMockVpMessageClient {
     fn start_session(&self) -> String {
         serde_urlencoded::to_string(VpRequestUriObject {
             request_uri: self.request_uri.clone(),
-            client_id: self.auth_keypair.certificate().san_dns_name().unwrap().unwrap(),
+            client_id: String::from(self.auth_keypair.certificate().san_dns_name().unwrap().unwrap()),
             request_uri_method: Default::default(),
         })
         .unwrap()
@@ -408,6 +426,7 @@ impl MdocDataSource for MockMdocDataSource {
     (pid_given_name() + addr_street()).into(),
     pid_given_name() + addr_street()
 )]
+// attributes from different documents, so this case also tests the PoA
 #[case(
     SessionType::SameDevice,
     None,
@@ -467,13 +486,15 @@ async fn test_client_and_server(
     };
 
     // Start session in the wallet
-    let (session, key_factory) = start_disclosure_session(
+    let key_factory = MockRemoteKeyFactory::default();
+    let session = start_disclosure_session(
         Arc::clone(&verifier),
         stored_documents,
         &issuer_ca,
         uri_source,
         &request_uri,
-        &rp_trust_anchor,
+        rp_trust_anchor,
+        &key_factory,
     )
     .await
     .unwrap();
@@ -567,7 +588,8 @@ async fn test_client_and_server_cancel_after_created() {
         &issuer_ca,
         DisclosureUriSource::Link,
         &request_uri,
-        &trust_anchor,
+        trust_anchor,
+        &MockRemoteKeyFactory::default(),
     )
     .await
     .expect_err("should not be able to start the disclosure session in the wallet");
@@ -602,13 +624,15 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Start session in the wallet
-    let (session, key_factory) = start_disclosure_session(
+    let key_factory = MockRemoteKeyFactory::default();
+    let session = start_disclosure_session(
         Arc::clone(&verifier),
         stored_documents,
         &issuer_ca,
         DisclosureUriSource::Link,
         &request_uri,
-        &trust_anchor,
+        trust_anchor,
+        &key_factory,
     )
     .await
     .unwrap();
@@ -641,11 +665,100 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     );
 }
 
-fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTrustAnchor, KeyPair) {
+#[tokio::test]
+async fn test_disclosure_invalid_poa() {
+    /// A mock key factory that returns a wrong PoA.
+    #[derive(Default)]
+    struct WrongPoaKeyFactory(MockRemoteKeyFactory);
+    impl KeyFactory for WrongPoaKeyFactory {
+        type Key = MockRemoteEcdsaKey;
+        type Error = MockRemoteKeyFactoryError;
+
+        fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+            self.0.generate_existing(identifier, public_key)
+        }
+
+        async fn sign_multiple_with_existing_keys(
+            &self,
+            messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+        ) -> Result<Vec<Vec<Signature>>, Self::Error> {
+            self.0.sign_multiple_with_existing_keys(messages_and_keys).await
+        }
+
+        async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+            unimplemented!()
+        }
+
+        async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+            self.0.generate_new_multiple(count).await
+        }
+
+        async fn poa(
+            &self,
+            keys: VecAtLeastTwoUnique<&Self::Key>,
+            _: String,
+            _: Option<String>,
+        ) -> Result<Poa, Self::Error> {
+            self.0.poa(keys, "".to_owned(), Some("".to_owned())).await
+        }
+    }
+
+    let stored_documents = pid_full_name() + addr_street();
+    let items_requests = (pid_given_name() + addr_street()).into();
+    let session_type = SessionType::SameDevice;
+    let use_case = NO_RETURN_URL_USE_CASE;
+
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests);
+
+    // Start the session
+    let session_token = verifier
+        .new_session(items_requests, use_case.to_string(), None)
+        .await
+        .unwrap();
+
+    // frontend receives the UL to feed to the wallet when fetching the session status
+    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
+
+    // Determine the correct source for the session type
+    let uri_source = match session_type {
+        SessionType::SameDevice => DisclosureUriSource::Link,
+        SessionType::CrossDevice => DisclosureUriSource::QrCode,
+    };
+
+    // Start session in the wallet
+    let key_factory = WrongPoaKeyFactory::default();
+    let session = start_disclosure_session(
+        Arc::clone(&verifier),
+        stored_documents,
+        &issuer_ca,
+        uri_source,
+        &request_uri,
+        rp_trust_anchor,
+        &key_factory,
+    )
+    .await
+    .unwrap();
+
+    let DisclosureSession::Proposal(proposal) = session else {
+        panic!("should have requested attributes")
+    };
+
+    // Finish the disclosure.
+    let error = proposal
+        .disclose(&key_factory)
+        .await
+        .expect_err("should not be able to disclose attributes");
+    assert_matches!(
+        error.error,
+        VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
+            if error.error_response.error == PostAuthResponseErrorCode::InvalidRequest
+    );
+}
+
+fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAnchor<'static>, Ca) {
     // Initialize key material
-    let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
-    let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor: TrustAnchor = rp_ca.certificate().try_into().unwrap();
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     // Initialize the verifier
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(items_requests));
@@ -680,34 +793,30 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTr
     let verifier = Arc::new(MockVerifier::new(
         usecases,
         MemorySessionStore::default(),
-        vec![OwnedTrustAnchor::from(&(issuer_ca.certificate().try_into().unwrap()))],
+        vec![issuer_ca.to_trust_anchor().to_owned()],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     ));
 
-    (verifier, (&rp_trust_anchor).into(), issuer_ca)
+    (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
 }
 
-async fn start_disclosure_session(
+async fn start_disclosure_session<KF, K>(
     verifier: Arc<MockVerifier>,
     stored_documents: TestDocuments,
-    issuer_ca: &KeyPair,
+    issuer_ca: &Ca,
     uri_source: DisclosureUriSource,
     request_uri: &str,
-    trust_anchor: &OwnedTrustAnchor,
-) -> Result<
-    (
-        DisclosureSession<VerifierMockVpMessageClient, String>,
-        MockRemoteKeyFactory,
-    ),
-    VpClientError,
-> {
-    let key_factory = MockRemoteKeyFactory::default();
-
+    trust_anchor: TrustAnchor<'static>,
+    key_factory: &KF,
+) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpClientError>
+where
+    KF: KeyFactory<Key = K>,
+{
     // Populate the wallet with the specified test documents
     let mdocs = future::join_all(
         stored_documents
             .into_iter()
-            .map(|doc| async { doc.sign(issuer_ca, &key_factory, NonZeroU8::new(1).unwrap()).await }),
+            .map(|doc| async { doc.sign(issuer_ca, key_factory, NonZeroU8::new(1).unwrap()).await }),
     )
     .await;
     let mdocs = MockMdocDataSource::from(mdocs);
@@ -718,10 +827,9 @@ async fn start_disclosure_session(
         request_uri,
         uri_source,
         &mdocs,
-        &[(trust_anchor).into()],
+        &[trust_anchor],
     )
     .await
-    .map(|session| (session, key_factory))
 }
 
 async fn request_uri_from_status_endpoint(

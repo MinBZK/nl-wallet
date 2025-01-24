@@ -22,7 +22,7 @@ class DigidLoadingPage extends StatelessWidget {
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Container(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 alignment: Alignment.center,
               ),
             ),

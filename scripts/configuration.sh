@@ -8,6 +8,7 @@ WALLET_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server"
 WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 MOCK_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/mock_relying_party"
 CS_DIR="${WALLET_CORE_DIR}/configuration_server"
+UPS_DIR="${WALLET_CORE_DIR}/update_policy_server"
 GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
 DEVENV="${SCRIPTS_DIR}/devenv"
@@ -34,6 +35,7 @@ export MOCK_RP_WS_PORT=3005
 export MOCK_RP_RS_PORT=3006
 export BRP_SERVER_PORT=3007
 export GBA_HC_CONV_PORT=3008
+export UPDATE_POLICY_SERVER_PORT=3009
 
 export RDO_MAX_PORT=8006
 
@@ -54,8 +56,7 @@ export DB_NAME="${DB_NAME:-wallet_provider}"
 export PGADMIN_DEFAULT_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-admin}"
 
 # HSM properties, with defaults
-HSM_LIBRARY_PATH=$(detect_softhsm)
-export HSM_LIBRARY_PATH
+export HSM_LIBRARY_PATH="${HSM_LIBRARY_PATH:-$(detect_softhsm)}"
 export HSM_SO_PIN=${HSM_SO_PIN:-12345678}
 export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
 export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"

@@ -82,10 +82,10 @@ class PolicyScreen extends StatelessWidget {
             ),
           ),
           const SliverSizedBox(height: 24),
-          const SliverDivider(height: 1),
+          const SliverDivider(),
           SliverList.separated(
             itemBuilder: (context, index) => PolicyEntryRow.fromPolicyEntry(entries[index]),
-            separatorBuilder: (context, i) => const Divider(height: 1),
+            separatorBuilder: (context, i) => const Divider(),
             itemCount: entries.length,
           ),
           SliverToBoxAdapter(child: _buildReportIssueButton(context)),

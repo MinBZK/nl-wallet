@@ -15,8 +15,8 @@ use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::engagement::DeviceAuthenticationBytes;
+use crate::test;
 use crate::test::DebugCollapseBts;
-use crate::test::{self};
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
 use crate::SessionTranscript;
@@ -46,7 +46,7 @@ async fn create_example_device_response(
         _ => panic!("should have found a valid candidate in DeviceRequest"),
     };
 
-    let device_response =
+    let (device_response, _) =
         DeviceResponse::from_proposed_documents(vec![proposed_document], &MockRemoteKeyFactory::default())
             .await
             .unwrap();
@@ -77,13 +77,14 @@ async fn do_and_verify_iso_example_disclosure() {
         .first()
         .unwrap()
         .verify(&session_transcript, &IsoCertTimeGenerator, reader_trust_anchors)
+        .unwrap()
         .unwrap();
-    let reader_x509_subject = certificate.unwrap().subject();
+    let reader_x509_subject = certificate.subject();
 
     // The reader's certificate contains who it is
     assert_eq!(
         reader_x509_subject.as_ref().unwrap().first().unwrap(),
-        (&"CN".to_string(), &"reader".to_string())
+        (&"CN".to_string(), &"reader")
     );
     println!("Reader: {:#?}", reader_x509_subject);
 

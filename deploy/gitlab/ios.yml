@@ -3,21 +3,28 @@ test-ios:
   rules: !reference [.default-or-release-or-merge-request, rules]
   tags:
     - macos
-  image: sonoma-wallet:0.1.2
+  image: sonoma-wallet:0.1.5
   artifacts:
     when: always
     reports:
       coverage_report:
-        path: wallet_core/platform_support/ios/cobertura.xml
+        path: fastlane/test_output/cobertura.xml
         coverage_format: cobertura
+      junit: fastlane/test_output/report.junit
     paths:
       - "fastlane/test_output/*"
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
+    BUNDLE_FROZEN: "true"
   script:
     - bundle install
     - bundle exec fastlane ios test
-    - cp fastlane/test_output/cobertura.xml wallet_core/platform_support/ios/
+  after_script:
+    - set -euxo pipefail
+    - |
+      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
+        mc put fastlane/test_output/report.junit qt/quality-time/junit-results/ios.xml
+      fi
 
 ### iOS Building
 .build-ios-app:
@@ -29,13 +36,15 @@ test-ios:
       artifacts: false
     - job: test-rust
       artifacts: false
+    - job: test-rust-doctest
+      artifacts: false
     - job: test-ios
       artifacts: false
     - job: test-rust-compilation-ios
       artifacts: false
   tags:
     - macos
-  image: sonoma-wallet:0.1.2
+  image: sonoma-wallet:0.1.5
   artifacts:
     name: "wallet-ios"
     paths:
@@ -43,6 +52,8 @@ test-ios:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
+    APPLE_ATTESTATION_ENVIRONMENT: "production"
+    BUNDLE_FROZEN: "true"
   before_script:
     - !reference [.env-macos-runner, before_script]
     - !reference [.ruby-cache-macos, before_script]
@@ -51,7 +62,7 @@ test-ios:
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
     - export MATCH_PASSWORD
     - (git config --global url.https://gitlab-ci-token:$CI_JOB_TOKEN@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST)
-    - HTTP_PROXY="" HTTPS_PROXY="" bundle install --retry=10
+    - http_proxy="" https_proxy="" bundle install
     - bundle exec fastlane disable_flutter_analytics
     - |
       bundle exec fastlane ios ci_build \
@@ -59,6 +70,7 @@ test-ios:
         app_name:"${APP_NAME}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
+        fake_attestation:"${FAKE_ATTESTATION:-false}" \
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
@@ -69,13 +81,14 @@ test-ios:
   rules: !reference [.default-branch, rules]
   needs:
     - !reference [.build-ios-app, needs]
-    - job: wallet-env-config-ont
+    - job: wallet-config-ont
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
+    CONFIG_ENV: "ont"
 
 build-ios-app-ont:
   extends: .build-ios-app-ont
@@ -92,6 +105,7 @@ build-ios-app-ont-profile:
   extends: .build-ios-app-ont
   variables:
     APP_BUILD_MODE: "profile"
+    FAKE_ATTESTATION: "true"
     MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 .build-ios-app-release-tag:
@@ -112,6 +126,7 @@ build-ios-app-mock:
     APP_MOCK: "true" # override .build-ios-app-release-tag
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
+    CONFIG_ENV: "dev"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
@@ -123,12 +138,13 @@ build-ios-app-mock:
   extends: .build-ios-app-release-tag
   needs:
     - !reference [.build-ios-app, needs]
-    - job: wallet-env-config-demo
+    - job: wallet-config-demo
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
+    CONFIG_ENV: "demo"
 
 build-ios-app-demo:
   extends: .build-ios-app-demo
@@ -140,22 +156,17 @@ build-ios-app-demo:
     SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
     SENTRY_URL: "https://sentry.io/"
 
-build-ios-app-demo-profile:
-  extends: .build-ios-app-demo
-  variables:
-    APP_BUILD_MODE: "profile" # override .build-ios-app-release-tag
-    MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
-
 build-ios-app-acceptance:
   extends: .build-ios-app-release-tag
   needs:
     - !reference [.build-ios-app, needs]
-    - job: wallet-env-config-acceptance
+    - job: wallet-config-acceptance
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
     APP_NAME: "NL Wallet (acceptance)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ACC}"
+    CONFIG_ENV: "acceptance"
     SENTRY_DSN: "${SENTRY_DSN_ACC}"
     SENTRY_ENVIRONMENT: "acceptance"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
@@ -167,12 +178,13 @@ build-ios-app-preproduction:
   extends: .build-ios-app-release-tag
   needs:
     - !reference [.build-ios-app, needs]
-    - job: wallet-env-config-preproduction
+    - job: wallet-config-preproduction
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
     APP_NAME: "NL Wallet (pre-production)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PREPROD}"
+    CONFIG_ENV: "preproduction"
     SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
     SENTRY_ENVIRONMENT: "preproduction"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
@@ -184,12 +196,13 @@ build-ios-app-production:
   extends: .build-ios-app-release-tag
   needs:
     - !reference [.build-ios-app, needs]
-    - job: wallet-env-config-production
+    - job: wallet-config-production
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: ""
     APP_NAME: "NL Wallet"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PROD}"
+    CONFIG_ENV: "production"
     SENTRY_DSN: "${SENTRY_DSN_PROD}"
     SENTRY_ENVIRONMENT: "production"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"
@@ -197,15 +210,15 @@ build-ios-app-production:
     SENTRY_PROJECT: "${SENTRY_PROJECT_PROD}"
     SENTRY_URL: "https://sentry.io/"
 
-
 ## iOS Deploying
 .deploy-ios-app:
   extends: [.env-macos-runner, .ruby-cache-macos]
   tags:
     - macos
-  image: sonoma-wallet:0.1.2
+  image: sonoma-wallet:0.1.5
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
+    BUNDLE_FROZEN: "true"
   before_script:
     - !reference [.env-macos-runner, before_script]
     - !reference [.ruby-cache-macos, before_script]

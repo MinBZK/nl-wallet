@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/attribute/data_attribute.dart';
 import '../../mapper.dart';
 
 class CardAttributeMapper extends Mapper<CardAttributeWithDocType, DataAttribute> {

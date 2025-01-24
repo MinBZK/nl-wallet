@@ -12,6 +12,8 @@ import '../wallet_repository.dart';
 
 typedef ExitFn = Function(int code);
 
+final walletNotRegisteredError = StateError('Wallet not yet registered!');
+
 class CoreWalletRepository implements WalletRepository {
   @visibleForTesting
   ExitFn exit = io.exit;
@@ -25,7 +27,6 @@ class CoreWalletRepository implements WalletRepository {
   Future<void> validatePin(String pin) async {
     final result = await _walletCore.isValidPin(pin);
     final error = _pinValidationErrorMapper.map(result);
-
     if (error != null) {
       throw error;
     }
@@ -58,31 +59,31 @@ class CoreWalletRepository implements WalletRepository {
 
   @override
   Future<WalletInstructionResult> unlockWallet(String pin) async {
-    if (!(await isRegistered())) throw UnsupportedError('Wallet not yet registered!');
+    if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.unlockWallet(pin);
   }
 
   @override
   Future<void> unlockWalletWithBiometrics() async {
-    if (!(await isRegistered())) throw UnsupportedError('Wallet not yet registered!');
+    if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.unlockWithBiometrics();
   }
 
   @override
   Future<WalletInstructionResult> checkPin(String pin) async {
-    if (!(await isRegistered())) throw UnsupportedError('Wallet not yet registered!');
+    if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.checkPin(pin);
   }
 
   @override
   Future<WalletInstructionResult> changePin(String oldPin, String newPin) async {
-    if (!(await isRegistered())) throw UnsupportedError('Wallet not yet registered!');
+    if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.changePin(oldPin, newPin);
   }
 
   @override
   Future<WalletInstructionResult> continueChangePin(String pin) async {
-    if (!(await isRegistered())) throw UnsupportedError('Wallet not yet registered!');
+    if (!(await isRegistered())) throw walletNotRegisteredError;
     return _walletCore.continueChangePin(pin);
   }
 

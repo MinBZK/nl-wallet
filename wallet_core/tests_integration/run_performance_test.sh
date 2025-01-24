@@ -5,6 +5,7 @@ set -e
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 NUM="${1:-1}"
 
+export CONFIG_ENV=${CONFIG_ENV:dev}
 cargo build --manifest-path "${SCRIPTS_DIR}/Cargo.toml" --release --bin performance_test --features performance_test,allow_insecure_url
 
 pids=()

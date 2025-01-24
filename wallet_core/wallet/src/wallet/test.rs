@@ -1,36 +1,37 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::LazyLock;
-use std::time::Duration;
 
-use p256::ecdsa::Signature;
+use futures::future::FutureExt;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::AttestationEnvironment;
 use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use platform_support::attested_key::AttestedKey;
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
+use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
-use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
-use wallet_common::keys::StoredByIdentifier;
-use wallet_common::keys::WithIdentifier;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
-use crate::config::default_configuration;
+use crate::config::default_config_server_config;
+use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::disclosure::MockMdocDisclosureSession;
@@ -42,18 +43,17 @@ use crate::storage::KeyedDataResult;
 use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::StorageState;
+use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wte::tests::MockWteIssuanceClient;
 use crate::Document;
 use crate::HistoryEvent;
 
 use super::documents::DocumentsError;
+use super::init::RegistrationStatus;
 use super::HistoryError;
 use super::Wallet;
 use super::WalletInitError;
 use super::WalletRegistration;
-
-static FALLIBLE_KEY_ERRORS: LazyLock<Mutex<HashMap<String, FallibleMockHardwareEcdsaKeyErrors>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {
@@ -63,28 +63,22 @@ pub struct AccountServerKeys {
 
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
-    pub issuance_key: KeyPair<SigningKey>,
-    pub trust_anchor: DerTrustAnchor,
+    pub issuance_key: KeyPair,
+    pub trust_anchor: BorrowingTrustAnchor,
 }
 
-/// This is used as a mock for `PlatformEcdsaKey`, so we can introduce failure conditions.
-#[derive(Debug)]
-pub struct FallibleMockHardwareEcdsaKey {
-    key: MockHardwareEcdsaKey,
-    pub next_public_key_error: Mutex<Option<<MockHardwareEcdsaKey as EcdsaKey>::Error>>,
-    pub next_private_key_error: Mutex<Option<<MockHardwareEcdsaKey as EcdsaKey>::Error>>,
-}
-
-struct FallibleMockHardwareEcdsaKeyErrors {
-    public_key_error: Option<<MockHardwareEcdsaKey as EcdsaKey>::Error>,
-    private_key_error: Option<<MockHardwareEcdsaKey as EcdsaKey>::Error>,
+#[derive(Debug, Clone, Copy)]
+pub enum WalletDeviceVendor {
+    Apple,
+    Google,
 }
 
 /// An alias for the `Wallet<>` with all mock dependencies.
 pub type WalletWithMocks = Wallet<
     UpdatingConfigurationRepository<LocalConfigurationRepository>,
+    MockUpdatePolicyRepository,
     MockStorage,
-    FallibleMockHardwareEcdsaKey,
+    MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
     MockDigidSession,
     MockIssuanceSession,
@@ -100,165 +94,81 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
-    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: ca.certificate().try_into().unwrap(),
+        trust_anchor,
     }
 });
 
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
-    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(None).unwrap();
+    let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: ca.certificate().try_into().unwrap(),
+        trust_anchor,
     }
 });
 
 /// Generates a valid `Mdoc` that contains a full PID.
-pub async fn create_full_pid_mdoc() -> Mdoc {
-    let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+pub fn create_full_pid_mdoc() -> Mdoc {
+    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY).await
+    mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY)
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
-pub async fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
-    let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+pub fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
+    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY_UNAUTHENTICATED).await
+    mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY_UNAUTHENTICATED)
 }
 
-/// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and issuer key.
-pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -> Mdoc {
+/// Generates a valid `Mdoc`, based on an `UnsignedMdoc`, the `TypeMetadata` and issuer key.
+pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: &TypeMetadata, issuer_key: &IssuerKey) -> Mdoc {
     let private_key_id = utils::random_string(16);
-    let mdoc_public_key = (&MockRemoteEcdsaKey::new_random(private_key_id.clone())
-        .verifying_key()
-        .await
-        .unwrap())
-        .try_into()
-        .unwrap();
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuer_key.issuance_key)
-        .await
+    let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
+    let mdoc_public_key = mdoc_remote_key.verifying_key().try_into().unwrap();
+    let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![]).unwrap();
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, &issuer_key.issuance_key)
+        .now_or_never()
+        .unwrap()
         .unwrap();
 
     Mdoc::new::<MockRemoteEcdsaKey>(
         private_key_id,
         issuer_signed,
         &TimeGenerator,
-        &[(&issuer_key.trust_anchor.owned_trust_anchor).into()],
+        &[issuer_key.trust_anchor.as_trust_anchor().clone()],
     )
     .unwrap()
 }
 
-impl FallibleMockHardwareEcdsaKey {
-    /// Sets the next public key error value for the next
-    /// [`FallibleMockHardwareEcdsaKey`] to be returned for the given identifier.
-    pub fn next_public_key_error_for_identifier(identifier: String, error: <MockHardwareEcdsaKey as EcdsaKey>::Error) {
-        FALLIBLE_KEY_ERRORS.lock().insert(
-            identifier,
-            FallibleMockHardwareEcdsaKeyErrors {
-                public_key_error: error.into(),
-                private_key_error: None,
-            },
-        );
-    }
-
-    /// Sets the next private key error value for the next
-    /// [`FallibleMockHardwareEcdsaKey`] to be returned for the given identifier.
-    pub fn next_private_key_error_for_identifier(identifier: String, error: <MockHardwareEcdsaKey as EcdsaKey>::Error) {
-        FALLIBLE_KEY_ERRORS.lock().insert(
-            identifier,
-            FallibleMockHardwareEcdsaKeyErrors {
-                public_key_error: None,
-                private_key_error: error.into(),
-            },
-        );
-    }
-}
-
-// Implement traits for `FallibleMockHardwareEcdsaKey` so all calls can be forwarded to `MockHardwareEcdsaKey`.
-impl From<MockHardwareEcdsaKey> for FallibleMockHardwareEcdsaKey {
-    fn from(value: MockHardwareEcdsaKey) -> Self {
-        FallibleMockHardwareEcdsaKey {
-            key: value,
-            next_public_key_error: Mutex::new(None),
-            next_private_key_error: Mutex::new(None),
-        }
-    }
-}
-
-impl PlatformEcdsaKey for FallibleMockHardwareEcdsaKey {}
-
-impl StoredByIdentifier for FallibleMockHardwareEcdsaKey {
-    type Error = <MockHardwareEcdsaKey as StoredByIdentifier>::Error;
-
-    fn new_unique(identifier: &str) -> Option<Self> {
-        let mut key = MockHardwareEcdsaKey::new_unique(identifier).map(Self::from);
-
-        if let Some(key) = key.as_mut() {
-            if let Some(FallibleMockHardwareEcdsaKeyErrors {
-                public_key_error,
-                private_key_error,
-            }) = FALLIBLE_KEY_ERRORS.lock().remove(identifier)
-            {
-                key.next_public_key_error = public_key_error.into();
-                key.next_private_key_error = private_key_error.into();
-            }
-        }
-
-        key
-    }
-
-    async fn delete(self) -> Result<(), Self::Error> {
-        self.key.delete().await
-    }
-}
-
-impl WithIdentifier for FallibleMockHardwareEcdsaKey {
-    fn identifier(&self) -> &str {
-        self.key.identifier()
-    }
-}
-
-impl SecureEcdsaKey for FallibleMockHardwareEcdsaKey {}
-
-impl EcdsaKey for FallibleMockHardwareEcdsaKey {
-    type Error = <MockHardwareEcdsaKey as EcdsaKey>::Error;
-
-    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let next_error = self.next_public_key_error.lock().take();
-
-        match next_error {
-            None => self.key.verifying_key().await,
-            Some(error) => Err(error),
-        }
-    }
-
-    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        let next_error = self.next_private_key_error.lock().take();
-
-        match next_error {
-            None => self.key.try_sign(msg).await,
-            Some(error) => Err(error),
-        }
+pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {
+    match vendor {
+        WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
+            AttestationEnvironment::Development,
+            AppIdentifier::new_mock(),
+        ),
+        WalletDeviceVendor::Google => MockHardwareAttestedKeyHolder::generate_google(),
     }
 }
 
 // Implement a number of methods on the the `Wallet<>` alias that can be used during testing.
 impl WalletWithMocks {
     /// Creates an unregistered `Wallet` with mock dependencies.
-    pub async fn new_unregistered() -> Self {
+    pub fn new_unregistered(vendor: WalletDeviceVendor) -> Self {
         let keys = LazyLock::force(&ACCOUNT_SERVER_KEYS);
 
         // Override public key material in the `Configuration`.
         let config = {
-            let mut config = default_configuration();
+            let mut config = default_wallet_config();
 
             config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
             config.account_server.instruction_result_public_key =
@@ -269,27 +179,37 @@ impl WalletWithMocks {
             config
         };
 
+        let config_server_config = default_config_server_config();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), Duration::from_secs(300))
-                .await;
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), config_server_config)
+                .now_or_never()
+                .unwrap();
 
         Wallet::new(
             config_repository,
+            MockUpdatePolicyRepository::default(),
             MockStorage::default(),
+            generate_key_holder(vendor),
             MockAccountProviderClient::default(),
-            None,
+            RegistrationStatus::Unregistered,
         )
     }
 
     /// Creates a registered and unlocked `Wallet` with mock dependencies.
-    pub async fn new_registered_and_unlocked() -> Self {
-        let mut wallet = Self::new_unregistered().await;
+    pub fn new_registered_and_unlocked(vendor: WalletDeviceVendor) -> Self {
+        let mut wallet = Self::new_unregistered(vendor);
 
-        let wallet_certificate = wallet.valid_certificate().await;
+        let (attested_key, attested_key_identifier) = wallet.key_holder.random_key();
+        let verifying_key = match &attested_key {
+            AttestedKey::Apple(key) => *key.verifying_key(),
+            AttestedKey::Google(key) => *key.verifying_key(),
+        };
+        let wallet_certificate = Self::valid_certificate(None, verifying_key);
         let wallet_id = wallet_certificate.dangerous_parse_unverified().unwrap().1.wallet_id;
 
         // Generate registration data.
         let registration_data = RegistrationData {
+            attested_key_identifier,
             pin_salt: pin_key::new_pin_salt(),
             wallet_id,
             wallet_certificate,
@@ -302,43 +222,33 @@ impl WalletWithMocks {
             <RegistrationData as KeyedData>::KEY,
             KeyedDataResult::Data(serde_json::to_string(&registration_data).unwrap()),
         );
-        wallet.registration = WalletRegistration {
-            hw_privkey: Self::hw_privkey(),
+        wallet.registration = WalletRegistration::Registered {
+            attested_key,
             data: registration_data,
-        }
-        .into();
+        };
         wallet.lock.unlock();
 
         wallet
     }
 
     /// Generates a valid certificate for the `Wallet`.
-    pub async fn valid_certificate(&self) -> WalletCertificate {
+    pub fn valid_certificate(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificate {
         Jwt::sign_with_sub(
-            &Self::valid_certificate_claims(self).await,
+            &Self::valid_certificate_claims(wallet_id, hw_pubkey),
             &ACCOUNT_SERVER_KEYS.certificate_signing_key,
         )
-        .await
+        .now_or_never()
+        .unwrap()
         .unwrap()
     }
 
     /// Generates valid certificate claims for the `Wallet`.
-    pub async fn valid_certificate_claims(&self) -> WalletCertificateClaims {
-        let wallet_id = self
-            .registration
-            .as_ref()
-            .map(|registration| registration.data.wallet_id.clone())
-            .unwrap_or_else(|| utils::random_string(32));
-        // Workaround to make sure the is only ever one hardware key instance.
-        let verifying_key = match self.registration.as_ref() {
-            Some(registration) => registration.hw_privkey.verifying_key().await,
-            None => Self::hw_privkey().verifying_key().await,
-        }
-        .unwrap();
+    pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificateClaims {
+        let wallet_id = wallet_id.unwrap_or_else(|| utils::random_string(32));
 
         WalletCertificateClaims {
             wallet_id,
-            hw_pubkey: verifying_key.into(),
+            hw_pubkey: DerVerifyingKey(hw_pubkey),
             pin_pubkey_hash: utils::random_bytes(32),
             version: 0,
             iss: "wallet_unit_test".to_string(),
@@ -347,17 +257,28 @@ impl WalletWithMocks {
     }
 
     /// Creates all mocks and calls `Wallet::init_registration()`.
-    pub async fn init_registration_mocks() -> Result<Self, WalletInitError> {
-        Self::init_registration_mocks_with_storage(MockStorage::default()).await
+    pub async fn new_init_registration(vendor: WalletDeviceVendor) -> Result<Self, WalletInitError> {
+        Self::new_init_registration_with_mocks(MockStorage::default(), generate_key_holder(vendor)).await
     }
 
-    /// Creates mocks and calls `Wallet::init_registration()`, except for the `MockStorage` instance.
-    pub async fn init_registration_mocks_with_storage(storage: MockStorage) -> Result<Self, WalletInitError> {
+    /// Creates mocks and calls `Wallet::init_registration()`, except for
+    /// the `MockStorage` and `MockHardwareAttestedKeyHolder` instances.
+    pub async fn new_init_registration_with_mocks(
+        storage: MockStorage,
+        key_holder: MockHardwareAttestedKeyHolder,
+    ) -> Result<Self, WalletInitError> {
+        let config_server_config = default_config_server_config();
         let config_repository =
-            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), Duration::from_secs(300))
-                .await;
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
 
-        Wallet::init_registration(config_repository, storage, MockAccountProviderClient::default()).await
+        Wallet::init_registration(
+            config_repository,
+            MockUpdatePolicyRepository::default(),
+            storage,
+            key_holder,
+            MockAccountProviderClient::default(),
+        )
+        .await
     }
 }
 

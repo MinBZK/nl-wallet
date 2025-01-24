@@ -1,4 +1,3 @@
-use futures::try_join;
 use futures::TryFutureExt;
 use serde::Deserialize;
 use serde::Serialize;
@@ -9,10 +8,12 @@ use crate::account::errors::Error;
 use crate::account::errors::Result;
 use crate::account::serialization::DerVerifyingKey;
 use crate::account::signed::ChallengeResponse;
+use crate::apple::AppleAttestedKey;
 use crate::jwt::Jwt;
 use crate::jwt::JwtSubject;
 use crate::keys::EphemeralEcdsaKey;
 use crate::keys::SecureEcdsaKey;
+use crate::vec_at_least::VecAtLeastTwo;
 
 // Registration challenge response
 #[serde_as]
@@ -26,30 +27,79 @@ pub struct Challenge {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Registration {
+    pub attestation: RegistrationAttestation,
     pub pin_pubkey: DerVerifyingKey,
-    pub hw_pubkey: DerVerifyingKey,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "platform", rename_all = "snake_case")]
+pub enum RegistrationAttestation {
+    Apple {
+        #[serde_as(as = "Base64")]
+        data: Vec<u8>,
+    },
+    Google {
+        // TODO: Consider using `BorrowingCertificate` here when it becomes available.
+        #[serde_as(as = "Vec<Base64>")]
+        certificate_chain: VecAtLeastTwo<Vec<u8>>,
+        #[serde_as(as = "Base64")]
+        app_attestation_token: Vec<u8>,
+    },
 }
 
 impl ChallengeResponse<Registration> {
-    pub async fn new_signed(
-        hw_privkey: &impl SecureEcdsaKey,
-        pin_privkey: &impl EphemeralEcdsaKey,
+    pub async fn new_apple<AK, PK>(
+        attested_key: &AK,
+        attestation_data: Vec<u8>,
+        pin_signing_key: &PK,
         challenge: Vec<u8>,
-    ) -> Result<Self> {
-        let (pin_pubkey, hw_pubkey) = try_join!(
-            pin_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
-            hw_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
-        )?;
+    ) -> Result<Self>
+    where
+        AK: AppleAttestedKey,
+        PK: EphemeralEcdsaKey,
+    {
+        let pin_pubkey = pin_signing_key
+            .verifying_key()
+            .map_err(|e| Error::VerifyingKey(Box::new(e)))
+            .await?;
 
-        Self::sign_ecdsa(
+        let registration = Registration {
+            attestation: RegistrationAttestation::Apple { data: attestation_data },
+            pin_pubkey: pin_pubkey.into(),
+        };
+
+        Self::sign_apple(registration, challenge, 0, attested_key, pin_signing_key).await
+    }
+
+    pub async fn new_google<SK, PK>(
+        secure_key: &SK,
+        certificate_chain: VecAtLeastTwo<Vec<u8>>,
+        app_attestation_token: Vec<u8>,
+        pin_signing_key: &PK,
+        challenge: Vec<u8>,
+    ) -> Result<Self>
+    where
+        SK: SecureEcdsaKey,
+        PK: EphemeralEcdsaKey,
+    {
+        let pin_pubkey = pin_signing_key
+            .verifying_key()
+            .map_err(|e| Error::VerifyingKey(Box::new(e)))
+            .await?;
+
+        Self::sign_google(
             Registration {
+                attestation: RegistrationAttestation::Google {
+                    certificate_chain,
+                    app_attestation_token,
+                },
                 pin_pubkey: pin_pubkey.into(),
-                hw_pubkey: hw_pubkey.into(),
             },
             challenge,
             0,
-            hw_privkey,
-            pin_privkey,
+            secure_key,
+            pin_signing_key,
         )
         .await
     }
@@ -81,33 +131,119 @@ pub struct Certificate {
 
 #[cfg(test)]
 mod tests {
-    use crate::account::signed::SequenceNumberComparison;
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
+    use p256::pkcs8::DecodePublicKey;
     use rand_core::OsRng;
+    use x509_parser::prelude::FromDer;
+    use x509_parser::prelude::X509Certificate;
 
-    use super::*;
+    use android_attest::mock::MockCaChain;
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AssertionCounter;
+    use apple_app_attest::AttestationEnvironment;
+    use apple_app_attest::MockAttestationCa;
+    use apple_app_attest::VerifiedAttestation;
+
+    use crate::account::signed::ChallengeResponse;
+    use crate::account::signed::SequenceNumberComparison;
+    use crate::apple::MockAppleAttestedKey;
+    use crate::utils;
+
+    use super::Registration;
+    use super::RegistrationAttestation;
 
     #[tokio::test]
-    async fn registration() -> Result<()> {
-        let hw_privkey = SigningKey::random(&mut OsRng);
-        let pin_privkey = SigningKey::random(&mut OsRng);
-
-        // wallet provider generates a challenge
+    async fn test_apple_registration() {
+        // The Wallet Provider generates a challenge.
         let challenge = b"challenge";
 
-        // wallet calculates wallet provider registration message
-        let msg = ChallengeResponse::<Registration>::new_signed(&hw_privkey, &pin_privkey, challenge.to_vec()).await?;
+        // Generate a mock assertion, a mock attested key and a mock PIN siging key.
+        let environment = AttestationEnvironment::Development;
+        let app_identifier = AppIdentifier::new_mock();
+        let mock_ca = MockAttestationCa::generate();
+        let (attested_key, attestation) =
+            MockAppleAttestedKey::new_with_attestation(&mock_ca, challenge, environment, app_identifier.clone());
+        let pin_signing_key = SigningKey::random(&mut OsRng);
 
-        let unverified = msg.dangerous_parse_unverified()?;
+        // The Wallet generates a registration message.
+        let msg = ChallengeResponse::<Registration>::new_apple(
+            &attested_key,
+            attestation,
+            &pin_signing_key,
+            challenge.to_vec(),
+        )
+        .await
+        .expect("challenge response with apple registration should be created successfully");
 
-        // wallet provider takes the public keys from the message, and verifies the signatures
-        msg.parse_and_verify_ecdsa(
+        let unverified = msg
+            .dangerous_parse_unverified()
+            .expect("registration should parse successfully");
+        let RegistrationAttestation::Apple { data: attestation_data } = &unverified.payload.attestation else {
+            panic!("apple registration message should contain attestation data");
+        };
+
+        let (_attestation, public_key) = VerifiedAttestation::parse_and_verify(
+            attestation_data,
+            &[mock_ca.trust_anchor()],
+            challenge,
+            &app_identifier,
+            environment,
+        )
+        .expect("apple attestation should validate succesfully");
+
+        // The Wallet Provider takes the public keys from the message and verifies the signatures.
+        msg.parse_and_verify_apple(
             challenge,
             SequenceNumberComparison::EqualTo(0),
-            &unverified.payload.hw_pubkey.0,
+            &public_key,
+            &app_identifier,
+            AssertionCounter::default(),
             &unverified.payload.pin_pubkey.0,
-        )?;
+        )
+        .expect("apple registration should verify successfully");
+    }
 
-        Ok(())
+    #[tokio::test]
+    async fn test_google_registration() {
+        // The Wallet Provider generates a challenge.
+        let challenge = b"challenge";
+
+        // Generate a mock certificate chain, a random app attestation token and a mock PIN signing key.
+        let attested_ca_chain = MockCaChain::generate(1);
+        let (attested_certificate_chain, attested_private_key) = attested_ca_chain.generate_leaf_certificate();
+        let app_attestation_token = utils::random_bytes(32);
+        let pin_signing_key = SigningKey::random(&mut OsRng);
+
+        // The Wallet generates a registration message.
+        let msg = ChallengeResponse::<Registration>::new_google(
+            &attested_private_key,
+            attested_certificate_chain.try_into().unwrap(),
+            app_attestation_token,
+            &pin_signing_key,
+            challenge.to_vec(),
+        )
+        .await
+        .expect("challenge response with google registration should be created successfully");
+
+        let unverified = msg
+            .dangerous_parse_unverified()
+            .expect("registration should parse successfully");
+        let RegistrationAttestation::Google { certificate_chain, .. } = &unverified.payload.attestation else {
+            panic!("google registration message should contain certificate chain");
+        };
+
+        // TODO: Verify mock certificate chain instead of just extracting the leaf certificate public key.
+        let (_, certificate) = X509Certificate::from_der(certificate_chain.first()).unwrap();
+        let attested_public_key = VerifyingKey::from_public_key_der(certificate.public_key().raw).unwrap();
+
+        // The Wallet Provider takes the public keys from the message and verifies the signatures.
+        msg.parse_and_verify_google(
+            challenge,
+            SequenceNumberComparison::EqualTo(0),
+            &attested_public_key,
+            &unverified.payload.pin_pubkey.0,
+        )
+        .expect("google registration should verify successfully");
     }
 }

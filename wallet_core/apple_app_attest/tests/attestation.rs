@@ -1,3 +1,4 @@
+use apple_app_attest::VerifiedAttestation;
 use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
@@ -6,7 +7,6 @@ use rstest::fixture;
 use rstest::rstest;
 
 use apple_app_attest::AppIdentifier;
-use apple_app_attest::Attestation;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::AttestationError;
 use apple_app_attest::AttestationValidationError;
@@ -101,8 +101,8 @@ fn different_environment_parameters() -> AttestationParameters {
     |error| assert_matches!(error, AttestationError::Validation(AttestationValidationError::EnvironmentMismatch {
         expected,
         received
-    }) if expected == AttestationEnvironment::Development.aaguid()
-        && received == AttestationEnvironment::Production.aaguid())
+    }) if expected == AttestationEnvironment::Development.to_aaguid()
+        && received == AttestationEnvironment::Production.to_aaguid())
 )]
 fn test_attestation<F>(
     attestation_data: &[u8],
@@ -112,7 +112,7 @@ fn test_attestation<F>(
 ) where
     F: FnOnce(AttestationError),
 {
-    let result = Attestation::parse_and_verify(
+    let result = VerifiedAttestation::parse_and_verify_with_time(
         attestation_data,
         &APPLE_TRUST_ANCHORS,
         parameters.time,
@@ -127,5 +127,55 @@ fn test_attestation<F>(
         let error = result.expect_err("attestation object should not be valid");
 
         error_matcher(error);
+    }
+}
+
+// These tests are optional, depending on the feature flags enabled.
+#[cfg(feature = "mock")]
+mod mock {
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::Attestation;
+    use apple_app_attest::AttestationEnvironment;
+    use apple_app_attest::MockAttestationCa;
+    use apple_app_attest::VerifiedAttestation;
+    use rustls_pki_types::TrustAnchor;
+
+    fn test_mock_attestation(
+        mock_ca: &MockAttestationCa,
+        trust_anchors: &[TrustAnchor],
+        environment: AttestationEnvironment,
+    ) {
+        let app_identifier = AppIdentifier::new_mock();
+        let challenge = b"generated_mock_attestation_challenge";
+        let (attestation_bytes, _signing_key) =
+            Attestation::new_mock_bytes(mock_ca, challenge, environment, &app_identifier);
+
+        VerifiedAttestation::parse_and_verify(
+            &attestation_bytes,
+            trust_anchors,
+            challenge,
+            &app_identifier,
+            environment,
+        )
+        .expect("mock attestation should validate successfully");
+    }
+
+    #[test]
+    fn test_generated_mock_attestation() {
+        let mock_ca = MockAttestationCa::generate();
+
+        test_mock_attestation(&mock_ca, &[mock_ca.trust_anchor()], AttestationEnvironment::Development);
+    }
+
+    #[cfg(feature = "mock_ca")]
+    #[test]
+    fn test_static_mock_attestation() {
+        let mock_ca = MockAttestationCa::new_mock();
+
+        test_mock_attestation(
+            &mock_ca,
+            &apple_app_attest::MOCK_APPLE_TRUST_ANCHORS,
+            AttestationEnvironment::Production,
+        );
     }
 }

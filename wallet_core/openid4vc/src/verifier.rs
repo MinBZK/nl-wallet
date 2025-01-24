@@ -10,12 +10,12 @@ use chrono::SecondsFormat;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::From;
-use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwk::Jwk;
 use josekit::JoseError;
 use ring::hmac;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::hex::Hex;
@@ -26,7 +26,6 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
@@ -34,7 +33,6 @@ use nl_wallet_mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtError;
-use wallet_common::trust_anchor::OwnedTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -464,10 +462,12 @@ impl UseCase {
         key_pair: KeyPair,
         session_type_return_url: SessionTypeReturnUrl,
     ) -> Result<Self, UseCaseCertificateError> {
-        let client_id = key_pair
-            .certificate()
-            .san_dns_name()?
-            .ok_or(UseCaseCertificateError::MissingSAN)?;
+        let client_id = String::from(
+            key_pair
+                .certificate()
+                .san_dns_name()?
+                .ok_or(UseCaseCertificateError::MissingSAN)?,
+        );
         let use_case = Self {
             key_pair,
             client_id,
@@ -483,7 +483,7 @@ pub struct Verifier<S> {
     use_cases: UseCases,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
-    trust_anchors: Vec<OwnedTrustAnchor>,
+    trust_anchors: Vec<TrustAnchor<'static>>,
     ephemeral_id_secret: hmac::Key,
 }
 
@@ -510,7 +510,7 @@ where
     pub fn new(
         use_cases: UseCases,
         sessions: S,
-        trust_anchors: Vec<OwnedTrustAnchor>,
+        trust_anchors: Vec<TrustAnchor<'static>>,
         ephemeral_id_secret: hmac::Key,
     ) -> Self
     where
@@ -676,15 +676,7 @@ where
     ) -> Result<VpResponse, WithRedirectUri<PostAuthResponseError>> {
         let session: Session<WaitingForResponse> = self.get_session(session_token).await?;
 
-        let (result, next) = session.process_authorization_response(
-            wallet_response,
-            time,
-            self.trust_anchors
-                .iter()
-                .map(Into::<TrustAnchor<'_>>::into)
-                .collect_vec()
-                .as_slice(),
-        );
+        let (result, next) = session.process_authorization_response(wallet_response, time, &self.trust_anchors);
 
         self.sessions.write(next.into(), false).await.map_err(|err| {
             WithRedirectUri::new(
@@ -1131,12 +1123,11 @@ mod tests {
     use ring::rand;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
     use nl_wallet_mdoc::ItemsRequest;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::trust_anchor::DerTrustAnchor;
 
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionToken;
@@ -1191,12 +1182,8 @@ mod tests {
 
     fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
         // Initialize server state
-        let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![
-            DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec())
-                .unwrap()
-                .owned_trust_anchor,
-        ];
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let reader_registration = Some(ReaderRegistration::new_mock());
 
         let use_cases = HashMap::from([

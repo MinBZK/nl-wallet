@@ -20,24 +20,37 @@ name = "attestation"
 path = "tests/attestation.rs"
 
 [features]
+# Have the main crate types implement serde::Serialize in addition to serde::Deserialize.
 serialize = []
-mock = ["serialize"]
+# Implement Default on AppIdentifier by reading Xcode environment variables.
+xcode_env = []
+# Include the MockAttestationCa type and mock constructors for for the main crate types for use in testing.
+mock = ["serialize", "dep:rand", "dep:rcgen", "derive_more/debug"]
+# Include constants for the self-signed mock Apple CA (see the assets dir).
+mock_ca_root = []
+# Include support for the self-signed mock Apple CA on the MockAttestationCa type.
+mock_ca = ["mock_ca_root", "rcgen?/x509-parser"]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
 ciborium.workspace = true
 const-decoder.workspace = true
 coset.workspace = true
-derive_more = { workspace = true, features = ["as_ref"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from", "deref"] }
 nutype.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
 passkey-types.workspace = true
+rasn = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
 x509-parser.workspace = true
+rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
+
+rand = { workspace = true, optional = true }
+rcgen = { workspace = true, optional = true, features = ["ring"] }
 
 [dev-dependencies]
 assert_matches.workspace = true

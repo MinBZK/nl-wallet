@@ -1,3 +1,5 @@
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::iter;
 
 use itertools::Itertools;
@@ -6,20 +8,21 @@ use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::attested_key::GoogleAttestedKey;
 use wallet_common::account::messages::instructions::ConstructPoa;
 use wallet_common::account::messages::instructions::GenerateKey;
 use wallet_common::account::messages::instructions::GenerateKeyResult;
 use wallet_common::account::messages::instructions::Sign;
+use wallet_common::apple::AppleAttestedKey;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::VecAtLeastTwo;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::keys::WithIdentifier;
 use wallet_common::utils::random_string;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;
@@ -39,29 +42,44 @@ pub enum RemoteEcdsaKeyError {
     KeyNotFound(String),
 }
 
-pub struct RemoteEcdsaKeyFactory<'a, S, K, A> {
-    instruction_client: &'a InstructionClient<'a, S, K, A>,
+pub struct RemoteEcdsaKeyFactory<'a, S, AK, GK, A> {
+    instruction_client: &'a InstructionClient<'a, S, AK, GK, A>,
 }
 
-pub struct RemoteEcdsaKey<'a, S, K, A> {
+pub struct RemoteEcdsaKey<'a, S, AK, GK, A> {
     identifier: String,
     public_key: VerifyingKey,
-    key_factory: &'a RemoteEcdsaKeyFactory<'a, S, K, A>,
+    instruction_client: &'a InstructionClient<'a, S, AK, GK, A>,
 }
 
-impl<'a, S, K, A> RemoteEcdsaKeyFactory<'a, S, K, A> {
-    pub fn new(instruction_client: &'a InstructionClient<'a, S, K, A>) -> Self {
+impl<S, AK, GK, A> PartialEq for RemoteEcdsaKey<'_, S, AK, GK, A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.identifier == other.identifier
+    }
+}
+
+impl<S, AK, GK, A> Eq for RemoteEcdsaKey<'_, S, AK, GK, A> {}
+
+impl<S, AK, GK, A> Hash for RemoteEcdsaKey<'_, S, AK, GK, A> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.identifier.hash(state);
+    }
+}
+
+impl<'a, S, AK, GK, A> RemoteEcdsaKeyFactory<'a, S, AK, GK, A> {
+    pub fn new(instruction_client: &'a InstructionClient<'a, S, AK, GK, A>) -> Self {
         Self { instruction_client }
     }
 }
 
-impl<'a, S, K, A> KeyFactory for &'a RemoteEcdsaKeyFactory<'a, S, K, A>
+impl<'a, S, AK, GK, A> KeyFactory for RemoteEcdsaKeyFactory<'a, S, AK, GK, A>
 where
     S: Storage,
-    K: PlatformEcdsaKey,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
-    type Key = RemoteEcdsaKey<'a, S, K, A>;
+    type Key = RemoteEcdsaKey<'a, S, AK, GK, A>;
     type Error = RemoteEcdsaKeyError;
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
@@ -74,7 +92,7 @@ where
             .map(|(identifier, public_key)| RemoteEcdsaKey {
                 identifier,
                 public_key: public_key.0,
-                key_factory: self,
+                instruction_client: self.instruction_client,
             })
             .collect();
 
@@ -85,7 +103,7 @@ where
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
-            key_factory: self,
+            instruction_client: self.instruction_client,
         }
     }
 
@@ -141,7 +159,7 @@ where
 
     async fn poa(
         &self,
-        keys: VecAtLeastTwo<&Self::Key>,
+        keys: VecAtLeastTwoUnique<&Self::Key>,
         aud: String,
         nonce: Option<String>,
     ) -> Result<Poa, Self::Error> {
@@ -149,12 +167,12 @@ where
             .instruction_client
             .send(ConstructPoa {
                 key_identifiers: keys
-                    .as_ref()
+                    .as_slice()
                     .iter()
                     .map(|key| key.identifier.clone())
                     .collect_vec()
                     .try_into()
-                    .unwrap(), // our iterable is a VecAtLeastTwo
+                    .unwrap(), // our iterable is a VecAtLeastTwoUnique
                 aud,
                 nonce,
             })
@@ -165,16 +183,17 @@ where
     }
 }
 
-impl<S, K, A> WithIdentifier for RemoteEcdsaKey<'_, S, K, A> {
+impl<S, AK, GK, A> WithIdentifier for RemoteEcdsaKey<'_, S, AK, GK, A> {
     fn identifier(&self) -> &str {
         &self.identifier
     }
 }
 
-impl<S, K, A> EcdsaKey for RemoteEcdsaKey<'_, S, K, A>
+impl<S, AK, GK, A> EcdsaKey for RemoteEcdsaKey<'_, S, AK, GK, A>
 where
     S: Storage,
-    K: PlatformEcdsaKey,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
     type Error = RemoteEcdsaKeyError;
@@ -185,7 +204,6 @@ where
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         let result = self
-            .key_factory
             .instruction_client
             .send(Sign {
                 messages_with_identifiers: vec![(msg.to_vec(), vec![self.identifier.clone()])],
@@ -204,18 +222,20 @@ where
     }
 }
 
-impl<S, K, A> SecureEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
+impl<S, AK, GK, A> SecureEcdsaKey for RemoteEcdsaKey<'_, S, AK, GK, A>
 where
     S: Storage,
-    K: PlatformEcdsaKey,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
 }
 
-impl<S, K, A> CredentialEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
+impl<S, AK, GK, A> CredentialEcdsaKey for RemoteEcdsaKey<'_, S, AK, GK, A>
 where
     S: Storage,
-    K: PlatformEcdsaKey,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
     const KEY_TYPE: CredentialKeyType = CredentialKeyType::Remote;

@@ -11,7 +11,7 @@ use crate::iso::disclosure::Document;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DocType;
 use crate::unsigned::Entry;
-use crate::utils::x509::Certificate;
+use crate::utils::x509::BorrowingCertificate;
 use crate::NameSpace;
 
 use super::StoredMdoc;
@@ -20,7 +20,7 @@ pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProposedDocumentAttributes {
-    pub issuer: Certificate,
+    pub issuer: BorrowingCertificate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,
 }
 
@@ -32,7 +32,7 @@ pub struct ProposedDocument<I> {
     pub doc_type: DocType,
     pub issuer_signed: IssuerSigned,
     pub device_signed_challenge: Vec<u8>,
-    pub issuer_certificate: Certificate,
+    pub issuer_certificate: BorrowingCertificate,
 }
 
 impl<I> ProposedDocument<I> {
@@ -151,18 +151,7 @@ impl<I> ProposedDocument<I> {
     /// Return the issuer and attributes contained within this [`ProposedDocument`].
     pub fn proposed_attributes(&self) -> ProposedDocumentAttributes {
         let issuer = self.issuer_certificate.clone();
-        let attributes = self
-            .issuer_signed
-            .name_spaces
-            .as_ref()
-            .map(|name_spaces| {
-                name_spaces
-                    .as_ref()
-                    .iter()
-                    .map(|(name_space, attributes)| (name_space.clone(), attributes.into()))
-                    .collect()
-            })
-            .unwrap_or_default();
+        let attributes = self.issuer_signed.to_entries_by_namespace();
         ProposedDocumentAttributes { issuer, attributes }
     }
 
@@ -170,7 +159,7 @@ impl<I> ProposedDocument<I> {
     pub(super) async fn sign_multiple<KF, K>(
         key_factory: &KF,
         proposed_documents: Vec<ProposedDocument<I>>,
-    ) -> Result<Vec<Document>>
+    ) -> Result<(Vec<Document>, Vec<K>)>
     where
         KF: KeyFactory<Key = K>,
         K: CredentialEcdsaKey,
@@ -185,7 +174,7 @@ impl<I> ProposedDocument<I> {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
+        let (device_signed, keys) = DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
 
         let documents = proposed_documents
             .into_iter()
@@ -198,7 +187,7 @@ impl<I> ProposedDocument<I> {
             })
             .collect();
 
-        Ok(documents)
+        Ok((documents, keys))
     }
 }
 
@@ -238,8 +227,8 @@ mod tests {
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceAuth;
+    use crate::utils::cose;
     use crate::utils::cose::CoseError;
-    use crate::utils::cose::{self};
     use crate::utils::serialization::TaggedBytes;
 
     use super::*;
@@ -386,9 +375,10 @@ mod tests {
         .await
         .unwrap();
 
-        let mut documents = ProposedDocument::sign_multiple(&MockRemoteKeyFactory::default(), vec![proposed_document])
-            .await
-            .expect("Could not sign ProposedDocument");
+        let (mut documents, _) =
+            ProposedDocument::sign_multiple(&MockRemoteKeyFactory::default(), vec![proposed_document])
+                .await
+                .expect("Could not sign ProposedDocument");
 
         let document = documents.remove(0);
 

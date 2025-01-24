@@ -37,8 +37,8 @@ class _ThemeScreenState extends State<ThemeScreen> with SingleTickerProviderStat
               onTap: (index) => setState(() => _tabController.index = index),
               controller: _tabController,
               tabs: const [
-                Tab(text: 'TextStyles'),
                 Tab(text: 'Buttons'),
+                Tab(text: 'TextStyles'),
                 Tab(text: 'Colors'),
                 Tab(text: 'Other'),
               ],
@@ -57,9 +57,9 @@ class _ThemeScreenState extends State<ThemeScreen> with SingleTickerProviderStat
   Widget _buildContent(BuildContext context) {
     switch (_tabController.index) {
       case 0:
-        return const TextStylesTab();
-      case 1:
         return const ButtonStylesTab();
+      case 1:
+        return const TextStylesTab();
       case 2:
         return const ColorStylesTab();
       case 3:

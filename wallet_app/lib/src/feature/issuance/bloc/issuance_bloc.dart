@@ -6,7 +6,6 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/attribute/missing_attribute.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';

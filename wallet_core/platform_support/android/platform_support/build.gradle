@@ -9,11 +9,15 @@ android {
     compileSdk 34
 
     defaultConfig {
-        minSdk 23
+        minSdk 24
         targetSdk 34
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -25,17 +29,33 @@ android {
             }
         }
         release {
-            minifyEnabled true
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Note: When using flutter >= 3.27.1 with Java 21, you will see the
+    // following (harmless) warnings:
+    //
+    //   warning: [options] source value 8 is obsolete and will be removed in a future release
+    //   warning: [options] target value 8 is obsolete and will be removed in a future release
+    //
+    // This will be fixed in a future flutter version, see:
+    // https://github.com/flutter/flutter/issues/156111
+    //
+    // The above warnings are not due to these jvmTarget, sourceCompatibility,
+    // and targetCompatibility options, but due to the flutter gradle plugin.
+    // When the above-linked issue is merged and released, the above warnings
+    // should disappear.
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '11'
+        freeCompilerArgs = ["-Xstring-concat=inline"]
     }
 
     sourceSets {
@@ -70,6 +90,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1'
 }
 
 // Target directory for the Rust library files & bindings

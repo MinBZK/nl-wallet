@@ -229,9 +229,7 @@ pub mod mock {
 
     #[derive(Clone)]
     pub struct WalletCertificateSetup {
-        pub hw_privkey: SigningKey,
         pub pin_privkey: SigningKey,
-        pub hw_pubkey: VerifyingKey,
         pub pin_pubkey: VerifyingKey,
         pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
         pub signing_key: SigningKey,
@@ -240,14 +238,11 @@ pub mod mock {
 
     impl WalletCertificateSetup {
         pub async fn new() -> Self {
+            let pin_privkey = SigningKey::random(&mut OsRng);
+            let pin_pubkey = *pin_privkey.verifying_key();
+
             let signing_key = SigningKey::random(&mut OsRng);
             let signing_pubkey = *signing_key.verifying_key();
-
-            let hw_privkey = SigningKey::random(&mut OsRng);
-            let pin_privkey = SigningKey::random(&mut OsRng);
-
-            let hw_pubkey = *hw_privkey.verifying_key();
-            let pin_pubkey = *pin_privkey.verifying_key();
 
             let encrypted_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
                 &MockPkcs11Client::<HsmError>::default(),
@@ -258,9 +253,7 @@ pub mod mock {
             .unwrap();
 
             Self {
-                hw_privkey,
                 pin_privkey,
-                hw_pubkey,
                 pin_pubkey,
                 encrypted_pin_pubkey,
                 signing_key,
@@ -308,13 +301,14 @@ mod tests {
     async fn verify_new_wallet_certificate() {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
+        let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
             String::from("wallet_id_1"),
-            setup.hw_pubkey,
+            hw_pubkey,
             &setup.pin_pubkey,
             &hsm,
         )
@@ -323,11 +317,12 @@ mod tests {
 
         let instruction_state = instruction_state(
             WalletUserTestRepo {
-                hw_pubkey: setup.hw_pubkey,
+                hw_pubkey,
                 encrypted_pin_pubkey: setup.encrypted_pin_pubkey,
                 previous_encrypted_pin_pubkey: None,
                 challenge: None,
                 instruction_sequence_number: 42,
+                apple_assertion_counter: None,
             },
             hsm,
         );
@@ -348,13 +343,14 @@ mod tests {
     async fn wrong_hw_key_should_not_validate() {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
+        let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
             String::from("wallet_id_1"),
-            setup.hw_pubkey,
+            hw_pubkey,
             &setup.pin_pubkey,
             &hsm,
         )
@@ -368,6 +364,7 @@ mod tests {
                 previous_encrypted_pin_pubkey: None,
                 challenge: None,
                 instruction_sequence_number: 0,
+                apple_assertion_counter: None,
             },
             setup_hsm().await,
         );
@@ -387,13 +384,14 @@ mod tests {
     async fn wrong_pin_key_should_not_validate() {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
+        let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             &setup.signing_key,
             String::from("wallet_id_1"),
-            setup.hw_pubkey,
+            hw_pubkey,
             &setup.pin_pubkey,
             &hsm,
         )
@@ -410,11 +408,12 @@ mod tests {
 
         let instruction_state = instruction_state(
             WalletUserTestRepo {
-                hw_pubkey: setup.hw_pubkey,
+                hw_pubkey,
                 encrypted_pin_pubkey: other_encrypted_pin_pubkey,
                 previous_encrypted_pin_pubkey: None,
                 challenge: None,
                 instruction_sequence_number: 0,
+                apple_assertion_counter: None,
             },
             hsm,
         );

@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/feature/common/page/generic_loading_page.dart';
@@ -20,8 +19,6 @@ import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_di
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_intro_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_success_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
-import 'package:wallet/src/util/mapper/pid/mock_pid_attribute_mapper.dart';
-import 'package:wallet/src/util/mapper/pid/pid_attribute_mapper.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../../wallet_app_test_widget.dart';
@@ -243,12 +240,9 @@ void main() {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
-            widget: RepositoryProvider<PidAttributeMapper>(
-              create: (c) => MockPidAttributeMapper(),
-              child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-                MockWalletPersonalizeBloc(),
-                WalletPersonalizeCheckData(availableAttributes: sampleMaleAttributes),
-              ),
+            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+              MockWalletPersonalizeBloc(),
+              WalletPersonalizeCheckData(availableAttributes: sampleMaleAttributes),
             ),
             name: 'check_data',
           ),
@@ -367,12 +361,9 @@ void main() {
 
         // Show the loading state (which contains the cancel button)
         await tester.pumpWidgetWithAppWrapper(
-          RepositoryProvider<PidAttributeMapper>(
-            create: (c) => MockPidAttributeMapper(),
-            child: BlocProvider<WalletPersonalizeBloc>(
-              create: (c) => mockBloc,
-              child: Builder(builder: (context) => const WalletPersonalizeScreen()),
-            ),
+          BlocProvider<WalletPersonalizeBloc>(
+            create: (c) => mockBloc,
+            child: Builder(builder: (context) => const WalletPersonalizeScreen()),
           ),
         );
 
@@ -514,12 +505,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeInitial shows WalletPersonalizeIntroPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeInitial(),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeInitial(),
         ),
       );
       expect(find.byType(WalletPersonalizeIntroPage), findsOneWidget);
@@ -527,12 +515,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeLoadingIssuanceUrl shows GenericLoadingPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeLoadingIssuanceUrl(),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeLoadingIssuanceUrl(),
         ),
       );
       expect(find.byType(GenericLoadingPage), findsOneWidget);
@@ -540,12 +525,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeConnectDigid shows GenericLoadingPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeConnectDigid('auth_url'),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeConnectDigid('auth_url'),
         ),
       );
       expect(find.byType(GenericLoadingPage), findsOneWidget);
@@ -553,12 +535,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeAuthenticating shows GenericLoadingPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeAuthenticating(),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeAuthenticating(),
         ),
       );
       expect(find.byType(GenericLoadingPage), findsOneWidget);
@@ -566,12 +545,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeLoadInProgress shows GenericLoadingPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeLoadInProgress(FlowProgress(totalSteps: 5, currentStep: 1)),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeLoadInProgress(FlowProgress(totalSteps: 5, currentStep: 1)),
         ),
       );
       expect(find.byType(GenericLoadingPage), findsOneWidget);
@@ -579,12 +555,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeCheckData shows y', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            WalletPersonalizeCheckData(availableAttributes: sampleMaleAttributes),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeCheckData(availableAttributes: sampleMaleAttributes),
         ),
       );
       expect(find.byType(WalletPersonalizeCheckDataOfferingPage), findsOneWidget);
@@ -592,12 +565,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeConfirmPin shows WalletPersonalizeConfirmPinPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            WalletPersonalizeConfirmPin(sampleMaleAttributes),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeConfirmPin(sampleMaleAttributes),
         ),
         providers: [
           RepositoryProvider<PinBloc>(create: (_) => MockPinBloc()),
@@ -609,12 +579,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeSuccess shows y', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
         ),
       );
       expect(find.byType(WalletPersonalizeSuccessPage), findsOneWidget);
@@ -622,12 +589,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeFailure shows TerminalPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            WalletPersonalizeFailure(),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeFailure(),
         ),
       );
       expect(find.byType(TerminalPage), findsOneWidget);
@@ -637,12 +601,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeDigidCancelled shows WalletPersonalizeDigidErrorPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            WalletPersonalizeDigidCancelled(),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeDigidCancelled(),
         ),
       );
       expect(find.byType(WalletPersonalizeDigidErrorPage), findsOneWidget);
@@ -650,12 +611,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeDigidFailure shows WalletPersonalizeDigidErrorPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeDigidFailure(error: 'error'),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeDigidFailure(error: 'error'),
         ),
       );
       expect(find.byType(WalletPersonalizeDigidErrorPage), findsOneWidget);
@@ -663,12 +621,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeNetworkError shows ErrorPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeNetworkError(error: 'error', hasInternet: true),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeNetworkError(error: 'error', hasInternet: true),
         ),
       );
       expect(find.byType(ErrorPage), findsOneWidget);
@@ -676,12 +631,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeGenericError shows ErrorPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeGenericError(error: 'error'),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeGenericError(error: 'error'),
         ),
       );
       expect(find.byType(ErrorPage), findsOneWidget);
@@ -689,12 +641,9 @@ void main() {
 
     testWidgets('Verify WalletPersonalizeSessionExpired shows ErrorPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<PidAttributeMapper>(
-          create: (c) => MockPidAttributeMapper(),
-          child: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-            MockWalletPersonalizeBloc(),
-            const WalletPersonalizeSessionExpired(error: 'error'),
-          ),
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeSessionExpired(error: 'error'),
         ),
       );
       expect(find.byType(ErrorPage), findsOneWidget);

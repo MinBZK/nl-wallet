@@ -1,20 +1,53 @@
-pub use crate::config::ConfigCallback;
+use std::sync::Arc;
 
-use crate::config::ObservableConfigurationRepository;
+use platform_support::attested_key::AttestedKeyHolder;
+use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::update_policy::VersionState;
+
+use crate::repository::ObservableRepository;
+use crate::repository::Repository;
+use crate::repository::RepositoryCallback;
 
 use super::Wallet;
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
-    CR: ObservableConfigurationRepository,
+    UR: Repository<VersionState>,
+    AKH: AttestedKeyHolder,
 {
-    pub fn set_config_callback(&self, mut callback: ConfigCallback) -> Option<ConfigCallback> {
-        callback(self.config_repository.config());
+    pub fn is_blocked(&self) -> bool {
+        self.update_policy_repository.get() == VersionState::Block
+    }
+}
+
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+where
+    CR: ObservableRepository<Arc<WalletConfiguration>>,
+    UR: ObservableRepository<VersionState>,
+    AKH: AttestedKeyHolder,
+{
+    pub fn set_config_callback(
+        &self,
+        mut callback: RepositoryCallback<Arc<WalletConfiguration>>,
+    ) -> Option<RepositoryCallback<Arc<WalletConfiguration>>> {
+        callback(self.config_repository.get());
         self.config_repository.register_callback_on_update(callback)
     }
 
-    pub fn clear_config_callback(&self) -> Option<ConfigCallback> {
+    pub fn clear_config_callback(&self) -> Option<RepositoryCallback<Arc<WalletConfiguration>>> {
         self.config_repository.clear_callback()
+    }
+
+    pub fn set_version_state_callback(
+        &self,
+        mut callback: RepositoryCallback<VersionState>,
+    ) -> Option<RepositoryCallback<VersionState>> {
+        callback(self.update_policy_repository.get());
+        self.update_policy_repository.register_callback_on_update(callback)
+    }
+
+    pub fn clear_version_state_callback(&self) -> Option<RepositoryCallback<VersionState>> {
+        self.update_policy_repository.clear_callback()
     }
 }
 
@@ -27,15 +60,16 @@ mod tests {
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
-    use crate::config::default_configuration;
+    use crate::config::default_wallet_config;
 
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
 
     // Tests both setting and clearing the configuration callback.
     #[tokio::test]
     async fn test_wallet_set_clear_config_callback() {
         // Prepare an unregistered wallet.
-        let wallet = WalletWithMocks::new_unregistered().await;
+        let wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Wrap a `Vec<Configuration>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
@@ -67,7 +101,7 @@ mod tests {
             assert_eq!(configs.len(), 1);
             assert_eq!(
                 configs.first().unwrap().account_server.http_config.base_url,
-                default_configuration().account_server.http_config.base_url
+                default_wallet_config().account_server.http_config.base_url
             );
         }
 

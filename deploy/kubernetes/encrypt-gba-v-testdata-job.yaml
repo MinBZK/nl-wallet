@@ -6,6 +6,7 @@ metadata:
     app: encrypt-gba-v-testdata
 spec:
   backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
   template:
     metadata:
       labels:
@@ -34,16 +35,16 @@ spec:
               value: "1"
             - name: RUST_LOG
               value: "debug,hyper=warn"
-            - name: GBA_HC_CONVERTER_PORT
+            - name: GBA_HC_CONVERTER__PORT
               value: "3006"
-            - name: GBA_HC_CONVERTER_RUN_MODE__PRELOADED__XML_PATH
+            - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__XML_PATH
               value: "/data"
-            - name: GBA_HC_CONVERTER_RUN_MODE__PRELOADED__ENCRYPTION_KEY
+            - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets
                   key: encryption_key
-            - name: GBA_HC_CONVERTER_RUN_MODE__PRELOADED__HMAC_KEY
+            - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__HMAC_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets

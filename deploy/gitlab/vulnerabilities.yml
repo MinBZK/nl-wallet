@@ -1,8 +1,6 @@
 dependency-check:
   extends: .env-ont-k8s
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:8d50280e3385c8439bba1e93baf5230cbcd3b01578c02b1f6ab18c4eace935f4"
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - (cd wallet_web; npm ci)
@@ -34,12 +32,10 @@ dependency-check:
 
 osv-scanner:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "$HARBOR_REGISTRY/ghcr-io-proxy/google/osv-scanner:latest"
   script:
     - |
-      /osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif \
-        || /osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format table --recursive "$CI_PROJECT_DIR"
+      osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif \
+        || osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format table --recursive "$CI_PROJECT_DIR"
   artifacts:
     when: always
     paths:
@@ -48,17 +44,12 @@ osv-scanner:
 
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
   before_script:
-    - mkdir $CI_PROJECT_DIR/dependency_check_data
+    - mkdir -p $CI_PROJECT_DIR/.cargo
+    - cp $CI_PROJECT_DIR/deploy/dependencies/cargo-audit.toml $CI_PROJECT_DIR/.cargo/audit.toml
   script:
-    # Note: RUSTSEC-2023-0071 is currently unfixable, a false positive and irrelevant for us, therefore we ignore it
-    # Note: RUSTSEC-2024-0363 will be fixed when we upgrade `sea-orm` 1.1.0, which is not released yet
     - |
       cargo audit \
-        --ignore RUSTSEC-2023-0071 \
-        --ignore RUSTSEC-2024-0363 \
         --file wallet_core/Cargo.lock \
         --json | tee audit.json | jq
   artifacts:
@@ -84,8 +75,6 @@ dependency-check-images:
       artifacts: false
     - job: build-pid-issuer-image
       artifacts: false
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:1c71f773947eaa9c4d0e24b726bb7a1036e3c6f8b20dbc89dd4d19aaca88a8ef"
   variables:
     GIT_STRATEGY: none
   before_script:
@@ -104,6 +93,7 @@ dependency-check-images:
       "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
       "nl-rdo-max"
+      "nl-wallet-hsm-simulator"
       )
     - mkdir -p trivy
   script:

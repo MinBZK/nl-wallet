@@ -1,28 +1,18 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
-assertion_line: 184
+assertion_line: 188
 description: "BSN: 000009842"
 expression: attributes
 ---
-com.example.pid__given_name:
-  String: Artem
-com.example.pid__family_name:
-  String: Sahakian
-com.example.pid__gender:
-  Gender: Male
-com.example.pid__birth_date:
-  Date: 1993-10-08
-com.example.pid__age_over_18:
-  Boolean: true
-com.example.pid__bsn:
-  String: "000009842"
-com.example.address__resident_street:
-  String: Koningskade
-com.example.address__resident_house_number:
-  String: "4"
-com.example.address__resident_postal_code:
-  String: 2596AA
-com.example.address__resident_city:
-  String: "'s-Gravenhage"
-com.example.address__resident_country:
-  String: Nederland
+{
+  "com.example.pid__given_name": String("Artem"),
+  "com.example.pid__family_name": String("Sahakian"),
+  "com.example.pid__birth_date": Date("1993-10-08"),
+  "com.example.pid__age_over_18": Boolean(true),
+  "com.example.pid__bsn": String("000009842"),
+  "com.example.address__resident_street": String("Koningskade"),
+  "com.example.address__resident_house_number": String("4"),
+  "com.example.address__resident_postal_code": String("2596AA"),
+  "com.example.address__resident_city": String("\'s-Gravenhage"),
+  "com.example.address__resident_country": String("Nederland"),
+}

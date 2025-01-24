@@ -11,9 +11,9 @@ use crate::holder::HolderError;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::mdocs::DocType;
+use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::utils::serialization::{self};
 use crate::ItemsRequest;
 
 use super::proposed_document::ProposedDocument;
@@ -36,7 +36,6 @@ use super::MdocDataSource;
 ///   request contains the same `DocType` multiple times.
 /// * It is a known limitation that `DisclosureRequestMatch::MissingAttributes` only contains the missing attributes for
 ///   one of the `Mdoc`s for a particular `DocType`. Which one it chooses is undefined.
-#[derive(Debug)]
 pub enum DisclosureRequestMatch<I> {
     Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
     // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
@@ -204,7 +203,7 @@ mod tests {
     use crate::iso::mdocs::IssuerNameSpaces;
     use crate::iso::mdocs::IssuerSignedItem;
     use crate::iso::unsigned::Entry;
-    use crate::server_keys::KeyPair;
+    use crate::server_keys::generate::Ca;
     use crate::test::data::addr_street;
     use crate::test::data::empty;
     use crate::test::data::pid_family_name;
@@ -242,7 +241,7 @@ mod tests {
     ) {
         use crate::DeviceRequest;
 
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let key_factory = MockRemoteKeyFactory::default();
 
         let mdoc_data_source = MockMdocDataSource::new(

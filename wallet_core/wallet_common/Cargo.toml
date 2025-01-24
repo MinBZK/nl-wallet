@@ -3,6 +3,7 @@ name = "wallet_common"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+build = "build.rs"
 
 [lints]
 workspace = true
@@ -20,8 +21,10 @@ examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
+# Include MockTimeGenerator
+mock_time = ["dep:parking_lot"]
 # Include MockAppleAttestedKey for generating Apple assertions in tests.
-mock_apple_attested_key = ["apple_app_attest/mock", "dep:ciborium", "dep:rand_core"]
+mock_apple_attested_key = ["apple_app_attest/mock", "dep:rand_core"]
 # Include MockHardwareEcdsaKey and MockHardwareEncryptionKey for use in tests
 mock_hardware_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
@@ -30,6 +33,9 @@ mock_remote_key = ["dep:parking_lot", "dep:rand_core"]
 integration_test = []
 # Various test related functionality
 insecure_http_client = []
+
+[build-dependencies]
+built = { workspace = true, features = ["chrono", "git2"] }
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -41,7 +47,7 @@ derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"]
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
-indexmap = { workspace = true, features = ["serde"] }
+indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true
@@ -51,6 +57,9 @@ rand.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 ring.workspace = true
 rustls-webpki.workspace = true
+rustls-pki-types.workspace = true
+sanitize-filename.workspace = true
+semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
@@ -61,9 +70,9 @@ tokio = { workspace = true, features = ["rt", "parking_lot"] }
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
+yoke = { workspace = true, features = ["derive"] }
 
 anyhow = { workspace = true, optional = true }
-ciborium = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
 hex = { workspace = true, optional = true }
@@ -76,15 +85,16 @@ apple_app_attest.path = "../apple_app_attest"
 error_category.path = "../error_category"
 
 [dev-dependencies]
-anyhow = { workspace = true }
+anyhow.workspace = true
 assert_matches.workspace = true
 aes-gcm = { workspace = true, features = ["std"] }
 ciborium.workspace = true
-hex = { workspace = true }
-hex-literal = { workspace = true }
+hex.workspace = true
+hex-literal.workspace = true
 parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
+android_attest = { path = "../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }

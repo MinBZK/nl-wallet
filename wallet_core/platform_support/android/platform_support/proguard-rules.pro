@@ -5,12 +5,6 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
--keep class androidx.startup.AppInitializer
-
--keepnames class * extends androidx.startup.Initializer
--keep class * extends androidx.startup.Initializer {
-    # Keep the public no-argument constructor while allowing other methods to be optimized.
-    <init>();
-}
-
--keep class com.sun.jna.** { *; }
+-dontobfuscate
+-dontoptimize
+-dontshrink

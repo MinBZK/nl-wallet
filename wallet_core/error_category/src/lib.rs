@@ -1,9 +1,9 @@
 #[cfg(feature = "sentry")]
 pub mod sentry;
 
+use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::fmt::{self};
 use std::str::FromStr;
 
 pub use error_category_derive::sentry_capture_error;

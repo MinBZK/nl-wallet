@@ -1,0 +1,10 @@
+ip = "0.0.0.0"
+port = ${UPDATE_POLICY_SERVER_PORT}
+
+[tls_config]
+cert = "${UPDATE_POLICY_SERVER_CERT}"
+key = "${UPDATE_POLICY_SERVER_KEY}"
+
+[update_policy]
+"<=0.1.0" = "Block"
+">0.1.0, <0.2.1" = "Notify"

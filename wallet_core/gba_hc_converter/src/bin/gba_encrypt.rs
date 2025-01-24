@@ -9,13 +9,15 @@ use clap::Parser;
 use clio::ClioPath;
 use clio::Input;
 
+use wallet_common::built_info::version_string;
+
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::gba::encryption::HmacSha256;
 use gba_hc_converter::settings::RunMode;
 use gba_hc_converter::settings::Settings;
 
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version=version_string(), about, long_about = None)]
 struct Cli {
     /// Input to encrypt
     #[clap(value_parser, default_value = "-")]

@@ -1,56 +1,44 @@
 .run-automation-tests-common-setup:
   resource_group: automation-tests
   extends: .env-ont-k8s
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk17@sha256:ce269f6e5875ceb41bfd69f0fe7bce4d6076387f9915dd85767c457f9a32a638"
+  environment:
+    action: access
   artifacts:
     when: always
     paths:
       - uiautomation/build/test-results
       - uiautomation/build/reports
   before_script:
-    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-    - export BROWSERSTACK_USER
-    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
-    - export BROWSERSTACK_KEY
-    - set -euxo pipefail
+    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
     - java -version
-    - git fetch origin
-    - git checkout $CI_DEFAULT_BRANCH
     - cd uiautomation
+    - set -euxo pipefail
 
-.run-automation-tests:
+.run-automation-tests-default:
   extends: .run-automation-tests-common-setup
   script:
-    - gradle wrapper --gradle-version=7.5
+    - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace test
       --tests $TESTS
-      -Dtest.config.app.identifier="$APP_IDENTIFIER"
+      -Dtest.config.app.identifier="$APP_IDENTIFIER_$CI_COMMIT_SHA"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
-      -Dfile.encoding=UTF-8
-  allow_failure: true # Allow failure as only the test results of succeeding pipelines are read into Quality Time.
-
-.run-automation-tests-default-rules: &run-automation-tests-default-rules
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
-      when: always
-    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
-      when: manual
-
-.run-automation-tests-default-variables: &run-automation-tests-default-variables
+      -Dfile.encoding=UTF-8 || true
+    # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
+    - compgen -G "build/test-results/test/*.xml"
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
-
-.run-automation-tests-default:
-  extends: .run-automation-tests
-  <<: *run-automation-tests-default-rules
-  <<: *run-automation-tests-default-variables
+    GITLAB_API_URL: "SSSS"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
 
 run-automation-tests-suite-appstart:
   extends: .run-automation-tests-default
@@ -58,58 +46,66 @@ run-automation-tests-suite-appstart:
 
 run-automation-tests-suite-introduction:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-appstart }]
   variables: { TESTS: "suite.IntroductionTestSuite" }
 
 run-automation-tests-suite-security:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-introduction }]
   variables: { TESTS: "suite.SecurityTestSuite" }
 
 run-automation-tests-suite-confirm:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-security }]
   variables: { TESTS: "suite.ConfirmTestSuite" }
 
 run-automation-tests-suite-personalize:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-confirm }]
   variables: { TESTS: "suite.PersonalizeTestSuite" }
 
 run-automation-tests-suite-dashboard:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-personalize }]
   variables: { TESTS: "suite.DashboardTestSuite" }
 
 run-automation-tests-suite-card:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-dashboard }]
   variables: { TESTS: "suite.CardTestSuite" }
 
 run-automation-tests-suite-menu:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-card }]
   variables: { TESTS: "suite.MenuTestSuite" }
 
 run-automation-tests-suite-history:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-menu }]
   variables: { TESTS: "suite.HistoryTestSuite" }
 
 run-automation-tests-suite-settings:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-history }]
   variables: { TESTS: "suite.SettingsTestSuite" }
 
 run-automation-tests-suite-lock:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-settings }]
   variables: { TESTS: "suite.LockTestSuite" }
 
 run-automation-tests-suite-web:
   extends: .run-automation-tests-default
-  needs: [{ job: run-automation-tests-suite-lock }]
   variables: { TESTS: "suite.WebTestSuite" }
+
+run-automation-tests-publish-results:
+  rules: !reference [.run-automation-tests-default, rules]
+  needs:
+    - { job: run-automation-tests-suite-appstart }
+    - { job: run-automation-tests-suite-introduction }
+    - { job: run-automation-tests-suite-security }
+    - { job: run-automation-tests-suite-confirm }
+    - { job: run-automation-tests-suite-personalize }
+    - { job: run-automation-tests-suite-dashboard }
+    - { job: run-automation-tests-suite-card }
+    - { job: run-automation-tests-suite-menu }
+    - { job: run-automation-tests-suite-history }
+    - { job: run-automation-tests-suite-settings }
+    - { job: run-automation-tests-suite-lock }
+    - { job: run-automation-tests-suite-web }
+  script:
+    - zip e2e.zip uiautomation/build/test-results/test/*.xml
+    - mc put e2e.zip qt/quality-time/junit-results/
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
@@ -122,20 +118,19 @@ run-automation-smoke-test-ont:
     - job: deploy-wallet-provider-ont
       artifacts: false
   script:
-    - gradle wrapper --gradle-version=7.5
+    - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
-      -Dtest.config.device.name="Google Pixel 8"
-      -Dtest.config.platform.name="Android"
-      -Dtest.config.platform.version="14.0"
+      -Dtest.config.app.identifier="$APP_IDENTIFIER_$CI_COMMIT_SHA"
+      -Dtest.config.device.name="$DEVICE_NAME"
+      -Dtest.config.platform.name="$PLATFORM_NAME"
+      -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
+  variables: !reference [.run-automation-tests-default, variables]
   allow_failure: true # Only meant as a warning indicator.
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
   extends: .env-ont-k8s
   needs:
     - job: deploy-mock-relying-party-ont
@@ -144,12 +139,15 @@ run-performance-test-ont:
       artifacts: false
     - job: deploy-pid-issuer-ont
       artifacts: false
-    - job: wallet-env-config-ont
+    - job: wallet-config-ont
       artifacts: true
   variables:
+    CONFIG_ENV: ont
+    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
     RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
+    APPLE_ATTESTATION_ENVIRONMENT: "production"
   script: |
     cd ./wallet_core/
     cargo build --release --bin performance_test --features performance_test,allow_insecure_url
@@ -160,14 +158,3 @@ run-performance-test-ont:
     echo "Load: 100"
     echo "Duration: ${PT_DURATION} seconds"
   allow_failure: true
-
-# Warns when '.gitlab-ci.yaml' in '$CI_DEFAULT_BRANCH' & '$AUTOMATION_TESTS_BRANCH' branch are out-of-sync
-check-gitlab-ci-changed:
-  rules:
-    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
-      when: always
-      allow_failure: true # Only meant as a warning as it's not a critical failure
-  script:
-    - git fetch origin
-    # fails if .gitlab-ci.yml is different on CI_DEFAULT_BRANCH
-    - git diff --exit-code origin/$CI_DEFAULT_BRANCH -- .gitlab-ci.yml

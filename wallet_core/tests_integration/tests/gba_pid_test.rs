@@ -8,16 +8,19 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::errors::PidIssuanceError;
-use wallet::mock::default_configuration;
 use wallet::mock::LocalConfigurationRepository;
 use wallet::mock::MockStorage;
-use wallet::wallet_deps::ConfigurationRepository;
+use wallet::mock::MockUpdatePolicyRepository;
+use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpDigidSession;
+use wallet::wallet_deps::Repository;
+use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
-use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
 
 #[derive(Debug, Eq, PartialEq)]
 enum TestError {
@@ -39,7 +42,7 @@ async fn test_gba_pid_conversion_error(
 
 #[tokio::test]
 #[rstest]
-async fn test_gba_pid_unknown_bsn(#[values("999992306", "999995657")] bsn: &str) {
+async fn test_gba_pid_unknown_bsn(#[values("900265462", "900253010")] bsn: &str) {
     assert_eq!(
         TestError::UnknownBsn,
         gba_pid(bsn).await.expect_err("should return error")
@@ -79,7 +82,6 @@ async fn test_gba_pid_success(
         "000009878",
         "999991516",
         "999991292",
-        "999991401",
         "999992569",
         "999991814",
         "999994359",
@@ -115,20 +117,24 @@ async fn test_gba_pid_success(
 }
 
 async fn gba_pid(bsn: &str) -> Result<(), TestError> {
-    let config_repository = LocalConfigurationRepository::new(default_configuration());
-    let pid_issuance_config = &config_repository.config().pid_issuance;
+    let config_repository = LocalConfigurationRepository::new(default_wallet_config());
+    let pid_issuance_config = &config_repository.get().pid_issuance;
 
     let mut wallet: Wallet<
         LocalConfigurationRepository,
+        MockUpdatePolicyRepository,
         MockStorage,
-        MockHardwareEcdsaKey,
+        MockHardwareAttestedKeyHolder,
         HttpAccountProviderClient,
         HttpDigidSession,
         HttpIssuanceSession,
         DisclosureSession<HttpVpMessageClient, Uuid>,
+        WpWteIssuanceClient,
     > = Wallet::init_registration(
         config_repository,
+        MockUpdatePolicyRepository::default(),
         MockStorage::default(),
+        MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
     )
     .await
@@ -178,7 +184,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         snapshot_suffix => bsn,
         prepend_module_to_snapshot => false,
     }, {
-        insta::assert_yaml_snapshot!(attributes);
+        insta::assert_ron_snapshot!(attributes);
     });
 
     Ok(())

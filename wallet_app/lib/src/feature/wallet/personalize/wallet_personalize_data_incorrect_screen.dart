@@ -41,7 +41,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
               ),
             ),
           ),
-          const Divider(height: 1),
+          const Divider(),
           _buildBottomSection(context),
         ],
       ),

@@ -14,24 +14,26 @@ mod uri;
 #[cfg(test)]
 mod test;
 
+use cfg_if::cfg_if;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
-use platform_support::hw_keystore::hardware::HardwareEcdsaKey;
+use platform_support::attested_key::AttestedKey;
+use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 
 use crate::account_provider::HttpAccountProviderClient;
-use crate::config::UpdatingFileHttpConfigurationRepository;
+use crate::config::WalletConfigurationRepository;
 use crate::issuance::HttpDigidSession;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
+use crate::update_policy::UpdatePolicyRepository;
 use crate::wte::WpWteIssuanceClient;
 
-pub use self::config::ConfigCallback;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposal;
 pub use self::documents::DocumentsCallback;
@@ -53,29 +55,64 @@ pub use self::uri::UriType;
 
 use self::issuance::PidIssuanceSession;
 
-struct WalletRegistration<K> {
-    hw_privkey: K,
-    data: RegistrationData,
+cfg_if! {
+    if #[cfg(feature = "fake_attestation")] {
+        type KeyHolderType = platform_support::attested_key::mock::PersistentMockAttestedKeyHolder;
+    } else {
+        type KeyHolderType = platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
+    }
+}
+
+#[derive(Debug, Default)]
+enum WalletRegistration<A, G> {
+    #[default]
+    Unregistered,
+    KeyIdentifierGenerated(String),
+    Registered {
+        attested_key: AttestedKey<A, G>,
+        data: RegistrationData,
+    },
+}
+
+impl<A, G> WalletRegistration<A, G> {
+    fn is_registered(&self) -> bool {
+        match self {
+            Self::Unregistered | Self::KeyIdentifierGenerated(_) => false,
+            Self::Registered { .. } => true,
+        }
+    }
+
+    fn as_key_and_registration_data(&self) -> Option<(&AttestedKey<A, G>, &RegistrationData)> {
+        match self {
+            Self::Unregistered | Self::KeyIdentifierGenerated(_) => None,
+            Self::Registered { attested_key, data } => Some((attested_key, data)),
+        }
+    }
 }
 
 pub struct Wallet<
-    CR = UpdatingFileHttpConfigurationRepository, // ConfigurationRepository
-    S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
-    PEK = HardwareEcdsaKey,                       // PlatformEcdsaKey
-    APC = HttpAccountProviderClient,              // AccountProviderClient
-    DS = HttpDigidSession,                        // DigidSession
-    IC = HttpIssuanceSession,                     // IssuanceSession
+    CR = WalletConfigurationRepository,                 // Repository<WalletConfiguration>
+    UR = UpdatePolicyRepository,                        // Repository<VersionState>
+    S = DatabaseStorage<HardwareEncryptionKey>,         // Storage
+    AKH = KeyHolderType,                                // AttestedKeyHolder
+    APC = HttpAccountProviderClient,                    // AccountProviderClient
+    DS = HttpDigidSession,                              // DigidSession
+    IS = HttpIssuanceSession,                           // IssuanceSession
     MDS = DisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
-    WIC = WpWteIssuanceClient,                    // WteIssuanceClient
-> {
+    WIC = WpWteIssuanceClient,                          // WteIssuanceClient
+> where
+    AKH: AttestedKeyHolder,
+{
     config_repository: CR,
+    update_policy_repository: UR,
     storage: RwLock<S>,
+    key_holder: AKH,
+    registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: APC,
-    issuance_session: Option<PidIssuanceSession<DS, IC>>,
+    issuance_session: Option<PidIssuanceSession<DS, IS>>,
     disclosure_session: Option<MDS>,
+    wte_issuance_client: WIC,
     lock: WalletLock,
-    registration: Option<WalletRegistration<PEK>>,
     documents_callback: Option<DocumentsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,
-    wte_issuance_client: WIC,
 }

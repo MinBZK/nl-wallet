@@ -94,7 +94,7 @@ impl EncryptionKey for Aes256Gcm {
     }
 }
 
-/// This trait is included with keys that are uniquely identified by an string.
+/// This trait is included with keys that are uniquely identified by a string.
 pub trait WithIdentifier {
     fn identifier(&self) -> &str;
 }

@@ -43,7 +43,7 @@ class PinManager {
     if (_attempts % _kAttemptsBeforeTimeout == 0) {
       final int timeoutMillis = Duration(seconds: _attempts * 2).inMilliseconds;
       return WalletInstructionResult.instructionError(
-        error: WalletInstructionError.timeout(timeoutMillis: timeoutMillis),
+        error: WalletInstructionError.timeout(timeoutMillis: BigInt.from(timeoutMillis)),
       );
     }
     // No timeout, not yet blocked, notify about the attempts left

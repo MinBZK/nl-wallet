@@ -10,7 +10,7 @@ class LightWalletTheme {
   // ColorScheme
   static const colorScheme = ColorScheme.light(
     brightness: Brightness.light,
-    primary: primary,
+    primary: _Colors.primary,
     secondary: Color(0x332065E0),
     onSecondary: Color(0XFF383EDE),
     error: Color(0xFFAB0065),
@@ -19,6 +19,7 @@ class LightWalletTheme {
     primaryContainer: Color(0xFFF1F5FF),
     onPrimaryContainer: textColor,
     secondaryContainer: Color(0xFFF3F4F7),
+    tertiaryContainer: _Colors.pageGutter,
     onPrimary: Color(0xFFFCFCFC),
     onSurface: primaryColorDark,
     onSurfaceVariant: Color(0xFF445581),
@@ -27,11 +28,11 @@ class LightWalletTheme {
   );
 
   // Other Colors
-  static const primary = Color(0xFF383EDE);
+  static const bottomNavigationUnselectedColor = Color(0xFF445581);
+  static const focusColor = _Colors.actionPrimaryBgHover;
   static const primaryColorDark = Color(0xFF152A62);
   static const sheetBackgroundColor = Color(0xFFFFFFFF);
   static const textColor = primaryColorDark;
-  static const bottomNavigationUnselectedColor = Color(0xFF445581);
 
   // TextTheme
   static final textTheme = BaseWalletTheme.baseTextTheme.apply(
@@ -57,7 +58,6 @@ class LightWalletTheme {
   static final appBarTheme = BaseWalletTheme.baseAppBarTheme.copyWith(
     backgroundColor: colorScheme.surface,
     surfaceTintColor: colorScheme.surface,
-    iconTheme: const IconThemeData(color: primary, size: 24),
     titleTextStyle: textTheme.displayMedium,
     shadowColor: colorScheme.shadow,
   );
@@ -69,57 +69,79 @@ class LightWalletTheme {
 
   static final elevatedButtonTheme = ElevatedButtonThemeData(
     style: BaseWalletTheme.baseElevatedButtonTheme.style?.copyWith(
-      textStyle: WidgetStateTextStyle.resolveWith(
-        (states) {
-          return BaseWalletTheme.buttonTextStyle.copyWith(
-            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
-          );
-        },
+      backgroundColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : colorScheme.primary,
       ),
       foregroundColor: WidgetStatePropertyAll(colorScheme.onPrimary),
-      backgroundColor: WidgetStateProperty.resolveWith(
-        (states) {
-          if (states.isHoveredOrFocused) return _Colors.actionFocused;
-          return colorScheme.primary;
-        },
-      ),
+      iconColor: WidgetStatePropertyAll(colorScheme.onPrimary),
       overlayColor: WidgetStateProperty.resolveWith(
-        (states) {
-          if (states.isHoveredOrFocused) return _Colors.actionFocused;
-          return colorScheme.secondary;
-        },
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : null,
+      ),
+      side: WidgetStateBorderSide.resolveWith(
+        (states) => states.isFocused ? _Sides.buttonBorderSideFocused : null,
       ),
     ),
   );
 
   static final outlinedButtonTheme = OutlinedButtonThemeData(
-    style: BaseWalletTheme.outlinedButtonTheme.style?.copyWith(
-      textStyle: WidgetStateTextStyle.resolveWith(
+    style: BaseWalletTheme.baseOutlinedButtonTheme.style?.copyWith(
+      backgroundColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryBgHover : _Colors.actionPrimaryBg,
+      ),
+      foregroundColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.textAction,
+      ),
+      iconColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.textAction,
+      ),
+      overlayColor: WidgetStateProperty.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryBgHover : null,
+      ),
+      side: WidgetStateBorderSide.resolveWith(
         (states) {
-          return BaseWalletTheme.buttonTextStyle.copyWith(
-            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
-          );
+          if (states.isPressed) return _Sides.outlineButtonBorderSidePressed;
+          if (states.isFocused) return _Sides.buttonBorderSideFocused;
+          return _Sides.outlineButtonBorderSideDefault;
         },
       ),
-      side: WidgetStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
     ),
   );
 
   static final textButtonTheme = TextButtonThemeData(
-    style: BaseWalletTheme.textButtonTheme.style?.copyWith(
-      textStyle: WidgetStateTextStyle.resolveWith(
-        (states) {
-          return BaseWalletTheme.buttonTextStyle.copyWith(
-            letterSpacing: 1.15,
-            decoration: states.isHoveredOrFocused ? TextDecoration.underline : null,
-          );
-        },
+    style: BaseWalletTheme.baseTextButtonTheme.style?.copyWith(
+      backgroundColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryBgHover : _Colors.actionPrimaryBg,
       ),
-      foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
+      foregroundColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.textAction,
+      ),
+      iconColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.textAction,
+      ),
+      overlayColor: WidgetStateProperty.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryBgHover : null,
+      ),
+      side: WidgetStateBorderSide.resolveWith(
+        (states) => states.isFocused ? _Sides.buttonBorderSideFocused : null,
+      ),
     ),
   );
 
-  static final tabBarTheme = BaseWalletTheme.tabBarTheme.copyWith(
+  static final iconButtonTheme = IconButtonThemeData(
+    style: BaseWalletTheme.baseIconButtonTheme.style?.copyWith(
+      foregroundColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.iconsAction,
+      ),
+      iconColor: WidgetStateColor.resolveWith(
+        (states) => states.isPressedOrFocused ? _Colors.actionPrimaryHover : _Colors.iconsAction,
+      ),
+      side: WidgetStateProperty.resolveWith(
+        (states) => states.isFocused ? _Sides.buttonBorderSideFocused : null,
+      ),
+    ),
+  );
+
+  static final tabBarTheme = BaseWalletTheme.baseTabBarTheme.copyWith(
     labelColor: colorScheme.primary,
     unselectedLabelColor: colorScheme.onSurface,
     indicatorColor: colorScheme.primary,
@@ -139,19 +161,33 @@ class LightWalletTheme {
   //endregion Modified (colored) BaseThemes
 
   static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFFF2F2FA));
+}
 
-  static const focusColor = Colors.black12;
+class _Sides {
+  static final BorderSide buttonBorderSideFocused = BaseWalletTheme.buttonBorderSideFocused.copyWith(
+    color: _Colors.actionPrimaryHover,
+  );
+
+  static final BorderSide outlineButtonBorderSideDefault = BaseWalletTheme.outlineButtonBorderSideDefault.copyWith(
+    color: _Colors.primary,
+  );
+  static final BorderSide outlineButtonBorderSidePressed = BaseWalletTheme.outlineButtonBorderSideDefault.copyWith(
+    color: _Colors.actionPrimaryHover,
+  );
 }
 
 // ignore: unused_element
 class _Colors {
+  // Color scheme
+  static const Color primary = Color(0xFF383EDE);
+
   // Icons
   static const Color inactive = Color(0xFF445581);
   static const Color iconsAction = Color(0xFF383EDE);
   static const Color iconsWhite = Color(0xFFFFFFFF);
 
   // Text
-  static const Color textIcon = Color(0xFF383EDE);
+  static const Color textAction = Color(0xFF383EDE);
   static const Color textWhite = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFF445581);
   static const Color textPrimary = Color(0xFF152A62);
@@ -163,7 +199,10 @@ class _Colors {
   static const Color actionActive = Color(0xFF152A62);
   static const Color actionDestructive = Color(0xFFAB0065);
   static const Color actionPrimary = Color(0xFF383EDE);
+  static const Color actionPrimaryBg = Color(0xFFFCFCFC);
+  static const Color actionPrimaryHover = Color(0xFF0C1195);
   static const Color actionFocused = Color(0xFF3237C4);
+  static const Color actionPrimaryBgHover = Color(0x1A7F8CB0);
 
   // Pages
   static const Color pageOverlay = Color(0xFFFFFFFF);

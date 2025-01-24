@@ -4,12 +4,16 @@ use base64::DecodeError;
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexSet;
+use itertools::Itertools;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use josekit::jwe::JweHeader;
 use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwk::Jwk;
 use josekit::jwt::JwtPayload;
 use josekit::JoseError;
+use nutype::nutype;
+use p256::ecdsa::VerifyingKey;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::formats::PreferOne;
@@ -18,9 +22,9 @@ use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::errors::Error as MdocError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use nl_wallet_mdoc::verifier::ItemsRequests;
@@ -29,14 +33,17 @@ use nl_wallet_mdoc::SessionTranscript;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
+use wallet_common::jwt::NL_WALLET_CLIENT_ID;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::poa::PoaVerificationError;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
+use crate::jwt;
 use crate::jwt::JwtX5cError;
-use crate::jwt::{self};
 use crate::presentation_exchange::InputDescriptorMappingObject;
 use crate::presentation_exchange::PdConversionError;
 use crate::presentation_exchange::PresentationDefinition;
@@ -218,7 +225,6 @@ pub struct WalletRequest {
     pub wallet_nonce: Option<String>,
 }
 
-use nutype::nutype;
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
     validate(predicate = |u| JwePublicKey::validate(u).is_ok()),
@@ -306,7 +312,7 @@ impl VpAuthorizationRequest {
     pub fn try_new(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(VpAuthorizationRequest, Certificate), AuthRequestValidationError> {
+    ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
         Ok(jwt::verify_against_trust_anchors(
             jws,
             &[VpAuthorizationRequestAudience::SelfIssued],
@@ -325,14 +331,14 @@ impl VpAuthorizationRequest {
     /// contains only the fields we need and use.
     pub fn validate(
         self,
-        rp_cert: &Certificate,
+        rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
     ) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
         if dns_san != self.oauth_request.client_id {
             return Err(AuthRequestValidationError::UnauthorizedClientId {
                 client_id: self.oauth_request.client_id,
-                dns_san,
+                dns_san: String::from(dns_san),
             });
         }
 
@@ -369,7 +375,7 @@ pub struct IsoVpAuthorizationRequest {
 impl IsoVpAuthorizationRequest {
     pub fn new(
         items_requests: &ItemsRequests,
-        rp_certificate: &Certificate,
+        rp_certificate: &BorrowingCertificate,
         nonce: String,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
@@ -378,10 +384,12 @@ impl IsoVpAuthorizationRequest {
         let encryption_pubkey = encryption_pubkey.into_inner();
 
         Ok(Self {
-            client_id: rp_certificate
-                .san_dns_name()
-                .map_err(AuthRequestError::CertificateParsing)?
-                .ok_or(AuthRequestError::MissingSAN)?,
+            client_id: String::from(
+                rp_certificate
+                    .san_dns_name()
+                    .map_err(AuthRequestError::CertificateParsing)?
+                    .ok_or(AuthRequestError::MissingSAN)?,
+            ),
             nonce,
             encryption_pubkey: encryption_pubkey.clone(),
             response_uri,
@@ -564,6 +572,12 @@ pub enum AuthResponseError {
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
     PresentationSubmission(#[from] PsError),
+    #[error("error collecting keys to verify PoA: {0}")]
+    PoaKeys(#[source] nl_wallet_mdoc::Error),
+    #[error("missing PoA")]
+    MissingPoa,
+    #[error("error verifying PoA: {0}")]
+    PoaVerification(#[from] PoaVerificationError),
 }
 
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
@@ -582,6 +596,8 @@ pub struct VpAuthorizationResponse {
     /// May be used by the RP to link incoming Authorization Responses to its corresponding Authorization Request,
     /// for example in case the `response_uri` contains no session token or other identifier.
     pub state: Option<String>,
+
+    pub poa: Option<Poa>,
 }
 
 /// Disclosure of an credential, generally containing the issuer-signed credential itself, the disclosed attributes,
@@ -597,7 +613,7 @@ pub enum VerifiablePresentation {
 }
 
 impl VpAuthorizationResponse {
-    fn new(device_response: DeviceResponse, auth_request: &IsoVpAuthorizationRequest) -> Self {
+    fn new(device_response: DeviceResponse, auth_request: &IsoVpAuthorizationRequest, poa: Option<Poa>) -> Self {
         let presentation_submission = PresentationSubmission {
             id: random_string(16),
             definition_id: auth_request.presentation_definition.id.clone(),
@@ -618,6 +634,7 @@ impl VpAuthorizationResponse {
             vp_token: vec![VerifiablePresentation::MsoMdoc(device_response.into())],
             presentation_submission,
             state: auth_request.state.clone(),
+            poa,
         }
     }
 
@@ -626,8 +643,9 @@ impl VpAuthorizationResponse {
         device_response: DeviceResponse,
         auth_request: &IsoVpAuthorizationRequest,
         mdoc_nonce: &str,
+        poa: Option<Poa>,
     ) -> Result<String, AuthResponseError> {
-        Self::new(device_response, auth_request).encrypt(auth_request, mdoc_nonce)
+        Self::new(device_response, auth_request, poa).encrypt(auth_request, mdoc_nonce)
     }
 
     fn encrypt(&self, auth_request: &IsoVpAuthorizationRequest, mdoc_nonce: &str) -> Result<String, AuthResponseError> {
@@ -653,12 +671,11 @@ impl VpAuthorizationResponse {
         let payload = JwtPayload::from_map(payload).unwrap();
 
         // The key the RP wants us to encrypt our response to.
-
         let encrypter = EcdhEsJweAlgorithm::EcdhEs
             .encrypter_from_jwk(&auth_request.encryption_pubkey)
             .map_err(AuthResponseError::JwkConversion)?;
-        let jwe = josekit::jwt::encode_with_encrypter(&payload, &header, &encrypter).map_err(AuthResponseError::Jwe)?;
 
+        let jwe = josekit::jwt::encode_with_encrypter(&payload, &header, &encrypter).map_err(AuthResponseError::Jwe)?;
         Ok(jwe)
     }
 
@@ -703,6 +720,33 @@ impl VpAuthorizationResponse {
         Ok(&device_response.0)
     }
 
+    fn keys(&self) -> Result<Vec<VerifyingKey>, MdocError> {
+        let keys = self
+            .vp_token
+            .iter()
+            .map(|vp| match vp {
+                VerifiablePresentation::MsoMdoc(device_response) => device_response
+                    .0
+                    .documents
+                    .as_ref()
+                    .map(|docs| {
+                        docs.iter()
+                            .map(|doc| {
+                                doc.issuer_signed.public_key() // VerifyingKey implements Copy, thereby saving use a
+                                                               // clone here
+                            })
+                            .collect::<Result<Vec<_>, MdocError>>()
+                    })
+                    .unwrap_or(Ok(Default::default())), // empty list if no documents are present
+            })
+            .collect::<Result<Vec<_>, MdocError>>()?
+            .into_iter()
+            .flatten()
+            .collect_vec();
+
+        Ok(keys)
+    }
+
     pub fn verify(
         &self,
         auth_request: &IsoVpAuthorizationRequest,
@@ -721,6 +765,19 @@ impl VpAuthorizationResponse {
         let disclosed_attrs = device_response
             .verify(None, &session_transcript, time, trust_anchors)
             .map_err(AuthResponseError::Verification)?;
+
+        // Verify PoA
+        let used_keys = self
+            .keys()
+            .expect("should always succeed when called after DeviceResponse::verify");
+        if used_keys.len() >= 2 {
+            self.poa.as_ref().ok_or(AuthResponseError::MissingPoa)?.clone().verify(
+                &used_keys,
+                auth_request.client_id.as_str(),
+                NL_WALLET_CLIENT_ID,
+                mdoc_nonce,
+            )?
+        }
 
         // Check that we received all attributes that we requested
         auth_request
@@ -756,33 +813,49 @@ pub struct VpResponse {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
+    use std::num::NonZeroU8;
 
+    use chrono::DateTime;
+    use chrono::Utc;
+    use futures::future::join_all;
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
+    use rustls_pki_types::TrustAnchor;
     use serde_json::json;
-
-    use wallet_common::keys::examples::Examples;
-    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use nl_wallet_mdoc::examples::example_items_requests;
     use nl_wallet_mdoc::examples::Example;
     use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
-    use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::test::data::addr_street;
+    use nl_wallet_mdoc::test::data::pid_full_name;
     use nl_wallet_mdoc::utils::serialization::cbor_serialize;
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::CborSeq;
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+    use nl_wallet_mdoc::verifier::ItemsRequests;
     use nl_wallet_mdoc::DeviceAuthenticationKeyed;
     use nl_wallet_mdoc::DeviceResponse;
     use nl_wallet_mdoc::DeviceResponseVersion;
     use nl_wallet_mdoc::DeviceSigned;
     use nl_wallet_mdoc::Document;
+    use nl_wallet_mdoc::IssuerSigned;
     use nl_wallet_mdoc::SessionTranscript;
+    use wallet_common::generator::mock::MockTimeGenerator;
+    use wallet_common::generator::Generator;
+    use wallet_common::generator::TimeGenerator;
+    use wallet_common::keys::examples::Examples;
+    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
+    use wallet_common::keys::factory::KeyFactory;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+    use wallet_common::keys::poa::Poa;
+    use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
+    use crate::openid4vp::AuthResponseError;
     use crate::openid4vp::IsoVpAuthorizationRequest;
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
@@ -805,14 +878,21 @@ mod tests {
         );
     }
 
-    fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+    fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
+        setup_with_items_requests(&example_items_requests())
+    }
+
+    fn setup_with_items_requests(
+        items_request: &ItemsRequests,
+    ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let trust_anchor = ca.to_trust_anchor().to_owned();
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = IsoVpAuthorizationRequest::new(
-            &example_items_requests(),
+            items_request,
             rp_keypair.certificate(),
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
@@ -822,7 +902,7 @@ mod tests {
         .unwrap()
         .into();
 
-        (ca, rp_keypair, encryption_privkey, auth_request)
+        (trust_anchor, rp_keypair, encryption_privkey, auth_request)
     }
 
     #[test]
@@ -836,7 +916,8 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce".to_string();
         let device_response = DeviceResponse::example();
         let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
-        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
+        // the ISO examples only use one Mdoc and therefore there is no need for a PoA
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, None);
         let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
 
         let (decrypted, jwe_mdoc_nonce) =
@@ -856,12 +937,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_authorization_request_jwt() {
-        let (ca, rp_keypair, _, auth_request) = setup();
+        let (trust_anchor, rp_keypair, _, auth_request) = setup();
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
-        let (auth_request, cert) =
-            VpAuthorizationRequest::try_new(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
+        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();
     }
 
@@ -1022,55 +1102,136 @@ mod tests {
         assert_eq!(decrypted_document.doc_type, "org.iso.18013.5.1.mDL".to_string());
     }
 
-    /// Given a `session_transcript`, manually construct a mock `DeviceResponse` using the examples from ISO 18013-5.
-    async fn mock_device_response(session_transcript: &SessionTranscript) -> DeviceResponse {
-        let issuer_signed = DeviceResponse::example()
-            .documents
-            .unwrap()
-            .pop()
-            .unwrap()
-            .issuer_signed;
+    fn challenges(auth_request: &IsoVpAuthorizationRequest, session_transcript: &SessionTranscript) -> Vec<Vec<u8>> {
+        auth_request
+            .items_requests
+            .0
+            .iter()
+            .map(|it| {
+                // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
+                let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
+                    device_authentication: Default::default(),
+                    session_transcript: Cow::Borrowed(session_transcript),
+                    doc_type: Cow::Borrowed(&it.doc_type),
+                    device_name_spaces_bytes: IndexMap::new().into(),
+                }));
 
-        // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
-        let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
-            device_authentication: Default::default(),
-            session_transcript: Cow::Borrowed(session_transcript),
-            doc_type: Cow::Borrowed(EXAMPLE_DOC_TYPE),
-            device_name_spaces_bytes: IndexMap::new().into(),
-        }));
-        let challenge = cbor_serialize(&device_authentication).unwrap();
-        let key = MockRemoteEcdsaKey::new(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key());
-        let keys_and_challenges = vec![(key, challenge.as_ref())];
+                cbor_serialize(&device_authentication).unwrap()
+            })
+            .collect_vec()
+    }
 
-        // Sign the challenge using the mdoc key
-        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &MockRemoteKeyFactory::default())
-            .await
-            .unwrap()
-            .first()
-            .unwrap()
-            .clone();
+    /// Build a valid `DeviceResponse` using the given `issuer_signed`, `device_signed` and `session_transcript`.
+    fn device_response(
+        issuer_signed: Vec<IssuerSigned>,
+        device_signed: Vec<DeviceSigned>,
+        session_transcript: &SessionTranscript,
+        cas: &[TrustAnchor],
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> DeviceResponse {
+        let documents = Some(
+            issuer_signed
+                .into_iter()
+                .zip(device_signed)
+                .map(|(issuer_signed, device_signed)| {
+                    let doc_type = issuer_signed.issuer_auth.doc_type().unwrap();
+
+                    Document {
+                        doc_type,
+                        issuer_signed,
+                        device_signed,
+                        errors: None,
+                    }
+                })
+                .collect(),
+        );
 
         let device_response = DeviceResponse {
             version: DeviceResponseVersion::V1_0,
-            documents: Some(vec![Document {
-                doc_type: EXAMPLE_DOC_TYPE.to_string(),
-                issuer_signed,
-                device_signed,
-                errors: None,
-            }]),
+            documents,
             document_errors: None,
             status: 0,
         };
-        device_response
-            .verify(
-                None,
-                session_transcript,
-                &IsoCertTimeGenerator,
-                Examples::iaca_trust_anchors(),
-            )
-            .unwrap();
+        device_response.verify(None, session_transcript, time, cas).unwrap();
 
         device_response
+    }
+
+    /// Helper function to use `setup_device_response`, given the examples from ISO 18013-5.
+    async fn example_device_response(
+        auth_request: &IsoVpAuthorizationRequest,
+        mdoc_nonce: &str,
+    ) -> (DeviceResponse, Option<Poa>) {
+        let issuer_signed_and_keys = DeviceResponse::example()
+            .documents
+            .unwrap()
+            .iter()
+            .map(|d| {
+                (
+                    d.issuer_signed.clone(),
+                    MockRemoteEcdsaKey::new(EXAMPLE_KEY_IDENTIFIER.to_owned(), Examples::static_device_key()),
+                )
+            })
+            .collect_vec();
+
+        setup_device_response(
+            auth_request,
+            mdoc_nonce,
+            &issuer_signed_and_keys,
+            Examples::iaca_trust_anchors(),
+            &IsoCertTimeGenerator,
+        )
+        .await
+    }
+
+    /// Manually construct a mock `DeviceResponse` and PoA using the given `auth_request`, `issuer_signed` and
+    /// `mdoc_nonce`.
+    async fn setup_device_response(
+        auth_request: &IsoVpAuthorizationRequest,
+        mdoc_nonce: &str,
+        issuer_signed_and_keys: &[(IssuerSigned, MockRemoteEcdsaKey)],
+        cas: &[TrustAnchor<'_>],
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> (DeviceResponse, Option<Poa>) {
+        let session_transcript = SessionTranscript::new_oid4vp(
+            &auth_request.response_uri,
+            &auth_request.client_id,
+            auth_request.nonce.clone(),
+            mdoc_nonce,
+        );
+
+        let (issuer_signed, keys): (_, Vec<MockRemoteEcdsaKey>) =
+            issuer_signed_and_keys.iter().map(ToOwned::to_owned).unzip();
+
+        let challenges = challenges(auth_request, &session_transcript);
+        let keys_and_challenges = challenges
+            .iter()
+            .zip(&keys)
+            .map(|(c, k)| (k.to_owned(), c.as_ref()))
+            .collect_vec();
+
+        // Sign the challenges using the mdoc key
+        let key_factory = MockRemoteKeyFactory::default();
+        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &key_factory)
+            .await
+            .unwrap()
+            .0;
+
+        let device_response = device_response(issuer_signed, device_signed, &session_transcript, cas, time);
+
+        let poa = match VecAtLeastTwoUnique::try_from(keys) {
+            Ok(keys) => {
+                let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
+                let poa = key_factory
+                    .poa(keys, auth_request.client_id.clone(), Some(mdoc_nonce.to_owned()))
+                    .await
+                    .unwrap();
+                Some(poa)
+            }
+            Err(_) => None,
+        };
+
+        (device_response, poa)
     }
 
     #[tokio::test]
@@ -1079,14 +1240,8 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce";
 
         let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
-        let session_transcript = SessionTranscript::new_oid4vp(
-            &auth_request.response_uri,
-            &auth_request.client_id,
-            auth_request.nonce.clone(),
-            mdoc_nonce,
-        );
-        let device_response = mock_device_response(&session_transcript).await;
-        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
+        let (device_response, poa) = example_device_response(&auth_request, mdoc_nonce).await;
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
 
         auth_response
             .verify(
@@ -1096,5 +1251,92 @@ mod tests {
                 Examples::iaca_trust_anchors(),
             )
             .unwrap();
+    }
+
+    async fn setup_poa_test(ca: &Ca) -> (Vec<(IssuerSigned, MockRemoteEcdsaKey)>, IsoVpAuthorizationRequest) {
+        let stored_documents = pid_full_name() + addr_street();
+        let items_request = stored_documents.clone().into();
+
+        let (_, _, _, auth_request) = setup_with_items_requests(&items_request);
+
+        let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
+
+        let key_factory = MockRemoteKeyFactory::default();
+        let issuer_signed_and_keys = join_all(
+            stored_documents
+                .into_iter()
+                .map(|doc| doc.issuer_signed(ca, &key_factory, NonZeroU8::new(10).unwrap())),
+        )
+        .await;
+
+        (issuer_signed_and_keys, auth_request)
+    }
+
+    #[tokio::test]
+    async fn test_verify_poa() {
+        let mdoc_nonce = "mdoc_nonce";
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = &[ca.to_trust_anchor()];
+        let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
+        let (device_response, poa) = setup_device_response(
+            &auth_request,
+            mdoc_nonce,
+            &issuer_signed_and_keys,
+            trust_anchors,
+            &MockTimeGenerator::default(),
+        )
+        .await;
+
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
+        auth_response
+            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_verify_missing_poa() {
+        let mdoc_nonce = "mdoc_nonce";
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = &[ca.to_trust_anchor()];
+        let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
+        let (device_response, _) = setup_device_response(
+            &auth_request,
+            mdoc_nonce,
+            &issuer_signed_and_keys,
+            trust_anchors,
+            &MockTimeGenerator::default(),
+        )
+        .await;
+
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, None);
+        let error = auth_response
+            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
+            .expect_err("should fail due to missing PoA");
+        assert!(matches!(error, AuthResponseError::MissingPoa));
+    }
+
+    #[tokio::test]
+    async fn test_verify_invalid_poa() {
+        let mdoc_nonce = "mdoc_nonce";
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let trust_anchors = &[ca.to_trust_anchor()];
+        let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
+        let (device_response, poa) = setup_device_response(
+            &auth_request,
+            mdoc_nonce,
+            &issuer_signed_and_keys,
+            trust_anchors,
+            &MockTimeGenerator::default(),
+        )
+        .await;
+
+        let mut poa = poa.unwrap();
+        poa.payload = "edited".to_owned();
+
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, Some(poa));
+        let error = auth_response
+            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
+            .expect_err("should fail due to missing PoA");
+        assert!(matches!(error, AuthResponseError::PoaVerification(_)));
     }
 }

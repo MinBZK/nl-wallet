@@ -9,7 +9,10 @@ class DigidLoginMockWebPage : MobileActions() {
     private val bsnInputLocator = By.id("bsn_inp")
     private val mockLoginButtonLocator = By.linkText("Login / Submit")
 
-    fun visible() = isWebElementVisible(findElement(headlineTextLocator))
+    fun visible(): Boolean {
+        Thread.sleep(PAGE_LOAD_TIMEOUT)
+        return isWebElementVisible(findElement(headlineTextLocator))
+    }
 
     fun enterBsn(bsn: String) {
         val bsnInput = findElement(bsnInputLocator)
@@ -18,6 +21,7 @@ class DigidLoginMockWebPage : MobileActions() {
     }
 
     fun clickLoginButton() {
+        Thread.sleep(PAGE_LOAD_TIMEOUT)
         findElement(mockLoginButtonLocator).click()
         switchToAppContext()
     }

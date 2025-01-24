@@ -8,6 +8,7 @@ use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
 
+use android_attest::root_public_key::RootPublicKey;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;
@@ -16,6 +17,7 @@ use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
+use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::account_server::InstructionState;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
@@ -58,12 +60,34 @@ impl RouterState {
 
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
 
+        let apple_config = AppleAttestationConfiguration::new(
+            settings.ios.team_identifier,
+            settings.ios.bundle_identifier,
+            settings.ios.environment.into(),
+        );
+        let apple_trust_anchors = settings
+            .ios
+            .root_certificates
+            .into_iter()
+            .map(|anchor| anchor.to_owned_trust_anchor())
+            .collect();
+
+        let android_root_public_keys = settings
+            .android
+            .root_public_keys
+            .into_iter()
+            .map(RootPublicKey::from)
+            .collect();
+
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout,
             "account_server".into(),
             (&certificate_signing_pubkey).into(),
             settings.pin_pubkey_encryption_key_identifier,
             settings.pin_public_disclosure_protection_key_identifier,
+            apple_config,
+            apple_trust_anchors,
+            android_root_public_keys,
         )?;
 
         let db = Db::new(

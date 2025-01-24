@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::DocType;
 use openid4vc::credential::MdocCopies;
 
@@ -128,6 +128,12 @@ impl Storage for MockStorage {
         Ok(())
     }
 
+    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()> {
+        self.data.remove(D::KEY);
+
+        Ok(())
+    }
+
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
         self.check_query_error()?;
 
@@ -237,12 +243,12 @@ impl Storage for MockStorage {
         Ok(events)
     }
 
-    async fn did_share_data_with_relying_party(&self, certificate: &Certificate) -> StorageResult<bool> {
+    async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool> {
         self.check_query_error()?;
 
         let exists = self.event_log.iter().any(|event| match event {
             WalletEvent::Issuance { .. } => false,
-            WalletEvent::Disclosure { reader_certificate, .. } => reader_certificate == certificate,
+            WalletEvent::Disclosure { reader_certificate, .. } => reader_certificate.as_ref() == certificate,
         });
         Ok(exists)
     }
@@ -294,6 +300,9 @@ mod tests {
 
         let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
         assert_eq!(updated, fetched);
+
+        storage.delete_data::<Data>().await.unwrap();
+        assert!(storage.fetch_data::<Data>().await.unwrap().is_none());
     }
 
     #[tokio::test]

@@ -14,19 +14,21 @@ use axum::routing::post;
 use axum::Form;
 use axum::Json;
 use axum::Router;
+use axum_extra::headers;
 use axum_extra::headers::authorization::Credentials;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
-use axum_extra::headers::{self};
 use axum_extra::TypedHeader;
 use derive_more::AsRef;
 use derive_more::From;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
+use tracing::warn;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::server_keys::KeyRing;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -47,9 +49,8 @@ use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings::KeyPairError;
+use crate::settings;
 use crate::settings::Urls;
-use crate::settings::{self};
 
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
@@ -71,13 +72,13 @@ impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
 }
 
 impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing<SigningKey> {
-    type Error = KeyPairError;
+    type Error = CertificateError;
 
     fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
         let key_ring = private_keys
             .into_iter()
             .map(|(doctype, key_pair)| {
-                let key_pair = (&key_pair).try_into()?;
+                let key_pair = key_pair.try_into_mdoc_key_pair()?;
 
                 Ok((doctype, key_pair))
             })
@@ -140,15 +141,15 @@ where
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
-    let metadata = state
-        .issuer
-        .oauth_metadata()
-        .await
-        .map_err(|error| openid4vc::ErrorResponse {
+    let metadata = state.issuer.oauth_metadata().await.map_err(|error| {
+        warn!("retrieving OAuth metadata failed: {}", error);
+
+        openid4vc::ErrorResponse {
             error: MetadataError::Metadata,
             error_description: Some(error.to_string()),
             error_uri: None,
-        })?;
+        }
+    })?;
 
     Ok(Json(metadata))
 }
@@ -168,7 +169,14 @@ where
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
-    let (response, dpop_nonce) = state.issuer.process_token_request(token_request, dpop).await?;
+    let (response, dpop_nonce) = state
+        .issuer
+        .process_token_request(token_request, dpop)
+        .await
+        .inspect_err(|error| {
+            warn!("processing token request failed: {}", error);
+        })?;
+
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),
@@ -192,7 +200,9 @@ where
     let response = state
         .issuer
         .process_credential(access_token, dpop, credential_request)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("processing credential failed: {}", error))?;
+
     Ok(Json(response))
 }
 
@@ -212,7 +222,9 @@ where
     let response = state
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("processing batch credential failed: {}", error))?;
+
     Ok(Json(response))
 }
 
@@ -234,7 +246,9 @@ where
     state
         .issuer
         .process_reject_issuance(access_token, dpop, uri_path)
-        .await?;
+        .await
+        .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
+
     Ok(StatusCode::NO_CONTENT)
 }
 

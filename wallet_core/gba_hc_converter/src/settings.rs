@@ -14,12 +14,12 @@ use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use wallet_common::reqwest::deserialize_certificate;
+use wallet_common::reqwest::ReqwestTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
+use crate::gba;
 use crate::gba::client::FileGbavClient;
 use crate::gba::client::HttpGbavClient;
-use crate::gba::{self};
 
 #[derive(Deserialize)]
 pub struct Settings {
@@ -45,8 +45,8 @@ pub struct GbavSettings {
     #[serde_as(as = "Base64")]
     pub client_cert_key: Vec<u8>,
 
-    #[serde(deserialize_with = "deserialize_certificate")]
-    pub trust_anchor: reqwest::Certificate,
+    #[serde_as(as = "Base64")]
+    pub trust_anchor: ReqwestTrustAnchor,
 
     pub ca_api_key: Option<String>,
 }
@@ -57,7 +57,7 @@ impl HttpGbavClient {
             settings.adhoc_url,
             settings.username,
             settings.password,
-            settings.trust_anchor,
+            settings.trust_anchor.into_certificate(),
             settings.client_cert,
             settings.client_cert_key,
             settings.ca_api_key,
@@ -135,8 +135,8 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("gba_hc_converter")
                     .separator("__")
-                    .prefix_separator("_")
-                    .list_separator("|"),
+                    .prefix_separator("__")
+                    .list_separator(","),
             )
             .build()?
             .try_deserialize()

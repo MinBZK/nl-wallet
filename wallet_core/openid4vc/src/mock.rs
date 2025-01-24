@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use indexmap::IndexSet;
+use rustls_pki_types::TrustAnchor;
 
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::wte::WteClaims;
 
-use nl_wallet_mdoc::holder::TrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 use crate::issuance_session::HttpVcMessageClient;
@@ -55,7 +55,7 @@ impl IssuanceSession for MockIssuanceSession {
     async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         _: &[TrustAnchor<'_>],
-        _: impl KeyFactory<Key = K>,
+        _: &impl KeyFactory<Key = K>,
         _: Option<JwtCredential<WteClaims>>,
         _: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
@@ -132,7 +132,7 @@ impl IssuerMetadata {
                 display: None,
                 credential_configurations_supported: HashMap::new(),
             },
-            signed_metadata: None,
+            protected_metadata: None,
         }
     }
 }

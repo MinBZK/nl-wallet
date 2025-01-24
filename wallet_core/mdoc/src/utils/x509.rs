@@ -1,42 +1,40 @@
-use std::borrow::Cow;
+use std::sync::Arc;
 use std::time::Duration;
 
-use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::Debug;
 use indexmap::IndexMap;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
 use p256::pkcs8::der::asn1::Utf8StringRef;
 use p256::pkcs8::der::Decode;
 use p256::pkcs8::der::SliceReader;
+use rustls_pki_types::pem::PemObject;
+use rustls_pki_types::CertificateDer;
+use rustls_pki_types::TrustAnchor;
+use rustls_pki_types::UnixTime;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
-use serde::Serializer;
-use serde_bytes::ByteBuf;
-use webpki::anchor_from_trusted_cert;
 use webpki::ring::ECDSA_P256_SHA256;
-use webpki::types::CertificateDer;
-use webpki::types::TrustAnchor;
-use webpki::types::UnixTime;
 use webpki::EndEntityCert;
 use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
+use x509_parser::nom;
 use x509_parser::nom::AsBytes;
-use x509_parser::nom::{self};
-use x509_parser::pem;
+use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
 use x509_parser::prelude::X509Certificate;
 use x509_parser::prelude::X509Error;
 use x509_parser::x509::X509Name;
+use yoke::Yoke;
+use yoke::Yokeable;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
-use wallet_common::trust_anchor::DerTrustAnchor;
 
 use super::issuer_auth::IssuerRegistration;
 use super::reader_auth::ReaderRegistration;
@@ -47,19 +45,29 @@ pub enum CertificateError {
     #[error("certificate verification failed: {0}")]
     Verification(#[source] webpki::Error),
     #[error("certificate parsing for validation failed: {0}")]
-    ValidationParsing(#[from] webpki::Error),
+    EndEntityCertificateParsing(#[from] webpki::Error),
     #[error("certificate content parsing failed: {0}")]
-    ContentParsing(#[from] x509_parser::nom::Err<X509Error>),
+    X509CertificateParsing(#[from] x509_parser::nom::Err<X509Error>),
+    #[error("pem parsing failed: {0}")]
+    PemParsing(#[from] rustls_pki_types::pem::Error),
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate private key generation failed: {0}")]
     #[category(unexpected)]
-    GeneratingPrivateKey(p256::pkcs8::Error),
+    GeneratingPrivateKey(#[source] p256::pkcs8::Error),
     #[cfg(any(test, feature = "generate"))]
     #[error("certificate creation failed: {0}")]
     #[category(unexpected)]
-    GeneratingFailed(#[from] rcgen::RcgenError),
+    GeneratingFailed(#[from] rcgen::Error),
+    #[cfg(any(test, feature = "generate"))]
+    #[error("parsed X.509 certificate is not a root CA")]
+    #[category(unexpected)]
+    NotRootCa,
+    #[cfg(any(test, feature = "generate"))]
+    #[error("the basic constraint of this CA does not allow generating an intermediate CA")]
+    #[category(unexpected)]
+    BasicConstraintViolation,
     #[error("failed to parse certificate public key: {0}")]
-    KeyParsingFailed(p256::pkcs8::spki::Error),
+    PublicKeyParsing(p256::pkcs8::spki::Error),
     #[error("EKU count incorrect ({0})")]
     #[category(critical)]
     IncorrectEkuCount(usize),
@@ -83,129 +91,81 @@ pub enum CertificateError {
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
-
 /// An x509 certificate, unifying functionality from the following crates:
 ///
 /// - parsing data: `x509_parser`
 /// - verification of certificate chains: `webpki`
 /// - signing and generating: `rcgen`
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Certificate(CertificateDer<'static>);
-
-// Use base64 when we (de)serialize to JSON
-impl Serialize for Certificate {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        if serializer.is_human_readable() {
-            BASE64_STANDARD.encode(&self.0).serialize(serializer)
-        } else {
-            self.0.serialize(serializer)
-        }
-    }
+/// - verification of ecdsa signatures: `ecdsa`
+#[derive(Yokeable, Debug)]
+struct ParsedCertificate<'a> {
+    #[debug(skip)]
+    end_entity_cert: EndEntityCert<'a>,
+    x509_cert: X509Certificate<'a>,
+    public_key: VerifyingKey,
 }
 
-impl<'de> Deserialize<'de> for Certificate {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        if deserializer.is_human_readable() {
-            let buffer = ByteBuf::from(
-                BASE64_STANDARD
-                    .decode(String::deserialize(deserializer).map_err(serde::de::Error::custom)?)
-                    .map_err(serde::de::Error::custom)?,
-            );
-            Ok(Certificate::from_byte_buffer(&buffer))
-        } else {
-            let buffer = ByteBuf::deserialize(deserializer)?;
-            Ok(Certificate::from_byte_buffer(&buffer))
-        }
-    }
-}
+type YokedCertificate = Yoke<ParsedCertificate<'static>, Arc<CertificateDer<'static>>>;
 
-impl<'a> TryInto<TrustAnchor<'a>> for &'a Certificate {
-    type Error = CertificateError;
-    fn try_into(self) -> Result<TrustAnchor<'a>, Self::Error> {
-        Ok(anchor_from_trusted_cert(self.as_certificate_der())?)
-    }
-}
+/// The main struct for working with certificates. It represents the following types:
+///
+/// - webpki::end_entity::EndEntityCert
+/// - x509_parser::certificate::X509Certificate
+/// - p256::ecdsa::VerifyingKey
+///
+/// It can be constructed using the `from_der`, `from_pem` or `from_certificate_der` methods. The various types are
+/// parsed on construction as borrowed types.
+#[derive(Debug)]
+pub struct BorrowingCertificate(YokedCertificate);
 
-impl<'a> TryInto<EndEntityCert<'a>> for &'a Certificate {
-    type Error = CertificateError;
-    fn try_into(self) -> Result<EndEntityCert<'a>, Self::Error> {
-        Ok(self.as_certificate_der().try_into()?)
-    }
-}
-
-impl<'a> TryInto<X509Certificate<'a>> for &'a Certificate {
-    type Error = CertificateError;
-    fn try_into(self) -> Result<X509Certificate<'a>, Self::Error> {
-        let (_, parsed) = X509Certificate::from_der(self.as_bytes())?;
-        Ok(parsed)
-    }
-}
-
-impl From<Certificate> for Vec<u8> {
-    fn from(source: Certificate) -> Vec<u8> {
-        source.0.to_vec()
-    }
-}
-
-impl TryInto<DerTrustAnchor> for &Certificate {
-    type Error = CertificateError;
-
-    fn try_into(self) -> Result<DerTrustAnchor, Self::Error> {
-        Ok(DerTrustAnchor::from_der(self.0.to_vec())?)
-    }
-}
-
-impl<T: AsRef<[u8]>> From<T> for Certificate {
-    fn from(value: T) -> Self {
-        Certificate::from_byte_buffer(&ByteBuf::from(value.as_ref()))
-    }
-}
-
-const PEM_CERTIFICATE_HEADER: &str = "CERTIFICATE";
-
-impl Certificate {
-    fn from_byte_buffer(buffer: &ByteBuf) -> Self {
-        Certificate(CertificateDer::from(buffer.to_vec()))
+impl BorrowingCertificate {
+    pub fn from_der(der_bytes: impl Into<Vec<u8>>) -> Result<Self, CertificateError> {
+        let certificate_der = CertificateDer::from(der_bytes.into());
+        Self::from_certificate_der(certificate_der)
     }
 
-    fn as_certificate_der(&self) -> &CertificateDer {
-        &self.0
+    pub fn from_pem(pem: impl AsRef<[u8]>) -> Result<Self, CertificateError> {
+        let certificate_der = CertificateDer::from_pem_slice(pem.as_ref()).map_err(CertificateError::PemParsing)?;
+        Self::from_certificate_der(certificate_der)
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
+    pub fn from_certificate_der(certificate_der: CertificateDer<'_>) -> Result<Self, CertificateError> {
+        Self::from_certificate_der_arc(Arc::from(certificate_der.into_owned()))
     }
 
-    pub fn from_pem(pem: &str) -> Result<Self, CertificateError> {
-        let (_, pem) = pem::parse_x509_pem(pem.as_bytes())?;
-        if pem.label == PEM_CERTIFICATE_HEADER {
-            Ok(pem.contents.into())
-        } else {
-            Err(CertificateError::UnexpectedPemHeader {
-                found: pem.label,
-                expected: PEM_CERTIFICATE_HEADER.to_string(),
+    fn from_certificate_der_arc(certificate_der: Arc<CertificateDer<'static>>) -> Result<Self, CertificateError> {
+        let yoke = Yoke::try_attach_to_cart(certificate_der, |cert| {
+            let end_entity_cert = cert.try_into().map_err(CertificateError::EndEntityCertificateParsing)?;
+            let (_, x509_cert) =
+                X509Certificate::from_der(cert.as_bytes()).map_err(CertificateError::X509CertificateParsing)?;
+            let public_key = VerifyingKey::from_public_key_der(x509_cert.public_key().raw)
+                .map_err(CertificateError::PublicKeyParsing)?;
+
+            Ok::<_, CertificateError>(ParsedCertificate {
+                end_entity_cert,
+                x509_cert,
+                public_key,
             })
-        }
+        })?;
+
+        Ok(BorrowingCertificate(yoke))
     }
 
     /// Verify the certificate against the specified trust anchors.
     pub fn verify(
         &self,
         usage: CertificateUsage,
-        intermediate_certs: &[&[u8]],
+        intermediate_certs: &[CertificateDer],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(), CertificateError> {
-        self.to_webpki()?
+        self.end_entity_certificate()
             .verify_for_usage(
                 &[ECDSA_P256_SHA256],
                 trust_anchors,
-                &intermediate_certs
-                    .iter()
-                    .map(|der| CertificateDer::from(*der))
-                    .collect::<Vec<_>>(),
-                UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp() as u64)),
+                intermediate_certs,
+                // unwrap is safe here because we assume the time that is generated lies after the epoch
+                UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())),
                 webpki::KeyUsage::required(usage.eku()),
                 None,
                 None,
@@ -214,48 +174,60 @@ impl Certificate {
             .map_err(CertificateError::Verification)
     }
 
-    pub fn public_key(&self) -> Result<VerifyingKey, CertificateError> {
-        VerifyingKey::from_public_key_der(self.to_x509()?.public_key().raw).map_err(CertificateError::KeyParsingFailed)
+    pub fn end_entity_certificate(&self) -> &EndEntityCert {
+        &self.0.get().end_entity_cert
     }
 
-    /// Convert the certificate to a [`X509Certificate`] from the `x509_parser` crate, to read its contents.
-    pub fn to_x509(&self) -> Result<X509Certificate, CertificateError> {
-        self.try_into()
+    pub fn x509_certificate(&self) -> &X509Certificate {
+        &self.0.get().x509_cert
     }
 
-    /// Convert the certificate to a [`EndEntityCert`] from the `webpki` crate, to verify it (possibly along with a
-    /// certificate chain) against a set of trust roots.
-    pub fn to_webpki(&self) -> Result<EndEntityCert, CertificateError> {
-        Ok(EndEntityCert::try_from(self.as_certificate_der())?)
+    pub fn public_key(&self) -> &VerifyingKey {
+        &self.0.get().public_key
     }
 
-    pub fn subject(&self) -> Result<IndexMap<String, String>, CertificateError> {
-        self.to_x509()?
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.as_ref().to_vec()
+    }
+
+    pub fn subject(&self) -> Result<IndexMap<String, &str>, CertificateError> {
+        self.x509_certificate()
             .subject
             .iter_attributes()
             .map(|attr| {
                 Ok((
                     x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
-                        .map_or(attr.attr_type().to_id_string(), |v| v.to_string()),
-                    attr.as_str()?.to_string(),
+                        .map_or(attr.attr_type().to_id_string(), String::from),
+                    attr.as_str()?,
                 ))
             })
             .collect::<Result<_, _>>()
     }
 
-    pub fn issuer_common_names(&self) -> Result<Vec<String>, CertificateError> {
-        x509_common_names(&self.to_x509()?.issuer)
+    pub fn issuer_common_names(&self) -> Result<Vec<&str>, CertificateError> {
+        x509_common_names(&self.x509_certificate().issuer)
     }
 
-    pub fn common_names(&self) -> Result<Vec<String>, CertificateError> {
-        x509_common_names(&self.to_x509()?.subject)
+    pub fn common_names(&self) -> Result<Vec<&str>, CertificateError> {
+        x509_common_names(&self.x509_certificate().subject)
     }
 
-    pub(crate) fn extract_custom_ext<'a, T: Deserialize<'a>>(
+    /// Returns the first DNS SAN, if any, from the certificate.
+    pub fn san_dns_name(&self) -> Result<Option<&str>, CertificateError> {
+        let san = self.x509_certificate().subject_alternative_name()?.and_then(|ext| {
+            ext.value.general_names.iter().find_map(|name| match name {
+                GeneralName::DNSName(name) => Some(*name),
+                _ => None,
+            })
+        });
+        Ok(san)
+    }
+
+    pub(crate) fn parse_and_extract_custom_ext<'a, T: Deserialize<'a>>(
         &'a self,
         oid: &Oid,
     ) -> Result<Option<T>, CertificateError> {
-        let x509_cert = self.to_x509()?;
+        let x509_cert = self.x509_certificate();
         let ext = x509_cert.iter_extensions().find(|ext| ext.oid == *oid);
         ext.map(|ext| {
             let mut reader = SliceReader::new(ext.value)?;
@@ -265,23 +237,47 @@ impl Certificate {
         })
         .transpose()
     }
+}
 
-    /// Returns the first DNS SAN, if any, from the certificate.
-    pub fn san_dns_name(&self) -> Result<Option<String>, CertificateError> {
-        let san = self.to_x509()?.subject_alternative_name()?.and_then(|ext| {
-            ext.value.general_names.iter().find_map(|name| match name {
-                GeneralName::DNSName(name) => Some(name.to_string()),
-                _ => None,
-            })
-        });
-        Ok(san)
+impl Clone for BorrowingCertificate {
+    fn clone(&self) -> Self {
+        // Unwrap is safe here since the der bytes have been parsed before
+        BorrowingCertificate::from_certificate_der_arc(Arc::clone(self.0.backing_cart())).unwrap()
     }
 }
 
-fn x509_common_names(x509name: &X509Name) -> Result<Vec<String>, CertificateError> {
+impl AsRef<[u8]> for BorrowingCertificate {
+    fn as_ref(&self) -> &[u8] {
+        self.0.backing_cart().as_ref()
+    }
+}
+
+impl TryFrom<Vec<u8>> for BorrowingCertificate {
+    type Error = CertificateError;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        BorrowingCertificate::from_der(value.as_slice())
+    }
+}
+
+impl From<BorrowingCertificate> for Vec<u8> {
+    fn from(value: BorrowingCertificate) -> Self {
+        value.to_vec()
+    }
+}
+
+impl PartialEq for BorrowingCertificate {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl Eq for BorrowingCertificate {}
+
+fn x509_common_names<'a>(x509name: &'a X509Name) -> Result<Vec<&'a str>, CertificateError> {
     x509name
         .iter_common_name()
-        .map(|cn| cn.as_str().map(ToOwned::to_owned).map_err(CertificateError::X509Error))
+        .map(|cn| cn.as_str().map_err(CertificateError::X509Error))
         .collect()
 }
 
@@ -294,22 +290,12 @@ pub enum CertificateUsage {
     ReaderAuth,
 }
 
-/// OID 1.0.18013.5.1.2
-pub const EXTENDED_KEY_USAGE_MDL: &[u8] = &[40, 129, 140, 93, 5, 1, 2];
-/// OID 1.0.18013.5.1.6
-pub const EXTENDED_KEY_USAGE_READER_AUTH: &[u8] = &[40, 129, 140, 93, 5, 1, 6];
-
-pub const EKU_MDL_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_MDL);
-pub const EKU_READER_AUTH_OID: Oid = oid_from_bytes(EXTENDED_KEY_USAGE_READER_AUTH);
-
-const fn oid_from_bytes(bytes: &'static [u8]) -> Oid {
-    Oid::new(Cow::Borrowed(bytes))
-}
+pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013 .5 .1 .2);
+pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013 .5 .1 .6);
 
 impl CertificateUsage {
-    pub fn from_certificate(cert: &Certificate) -> Result<Self, CertificateError> {
+    fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateError> {
         let usage = cert
-            .to_x509()?
             .extended_key_usage()?
             .map(|eku| Self::from_key_usage(eku.value))
             .transpose()?
@@ -326,9 +312,9 @@ impl CertificateUsage {
         let key_usage_oid = ext_key_usage.other.first().unwrap();
 
         // Unfortunately we cannot use a match statement here.
-        if key_usage_oid == &EKU_MDL_OID {
+        if key_usage_oid == EXTENDED_KEY_USAGE_MDL {
             return Ok(Self::Mdl);
-        } else if key_usage_oid == &EKU_READER_AUTH_OID {
+        } else if key_usage_oid == EXTENDED_KEY_USAGE_READER_AUTH {
             return Ok(Self::ReaderAuth);
         }
 
@@ -340,6 +326,7 @@ impl CertificateUsage {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
         }
+        .as_bytes()
     }
 }
 
@@ -351,8 +338,8 @@ pub enum CertificateType {
 }
 
 impl CertificateType {
-    pub fn from_certificate(cert: &Certificate) -> Result<Self, CertificateError> {
-        let usage = CertificateUsage::from_certificate(cert)?;
+    pub fn from_certificate(cert: &BorrowingCertificate) -> Result<Self, CertificateError> {
+        let usage = CertificateUsage::from_certificate(cert.x509_certificate())?;
         let result = match usage {
             CertificateUsage::Mdl => {
                 let registration: Option<IssuerRegistration> = IssuerRegistration::from_certificate(cert)?;
@@ -382,12 +369,10 @@ pub trait MdocCertificateExtension
 where
     Self: Serialize + DeserializeOwned + Sized,
 {
-    const OID: &'static [u64];
+    const OID: Oid<'static>;
 
-    fn from_certificate(source: &Certificate) -> Result<Option<Self>, CertificateError> {
-        // unwrap() is safe here, because we process a fixed value
-        let oid = Oid::from(Self::OID).unwrap();
-        source.extract_custom_ext(&oid)
+    fn from_certificate(source: &BorrowingCertificate) -> Result<Option<Self>, CertificateError> {
+        source.parse_and_extract_custom_ext(&Self::OID)
     }
 
     #[cfg(any(test, feature = "generate"))]
@@ -396,7 +381,12 @@ where
 
         let json_string = serde_json::to_string(self)?;
         let string = Utf8StringRef::new(&json_string)?;
-        let ext = rcgen::CustomExtension::from_oid_content(Self::OID, string.to_der()?);
+
+        let sub_identifiers = Self::OID
+            .iter()
+            .ok_or(CertificateError::IncorrectEku(Self::OID.to_id_string()))?
+            .collect::<Vec<_>>();
+        let ext = rcgen::CustomExtension::from_oid_content(sub_identifiers.as_slice(), string.to_der()?);
         Ok(ext)
     }
 }
@@ -417,16 +407,16 @@ mod test {
     use p256::pkcs8::ObjectIdentifier;
     use time::macros::datetime;
     use time::OffsetDateTime;
-    use webpki::types::TrustAnchor;
-
-    use wallet_common::generator::TimeGenerator;
     use x509_parser::certificate::X509Certificate;
 
-    use crate::server_keys::KeyPair;
+    use wallet_common::generator::TimeGenerator;
+
+    use crate::server_keys::generate::Ca;
     use crate::utils::issuer_auth::IssuerRegistration;
     use crate::utils::reader_auth::ReaderRegistration;
     use crate::utils::x509::CertificateType;
 
+    use super::BorrowingCertificate;
     use super::CertificateConfiguration;
     use super::CertificateError;
     use super::CertificateUsage;
@@ -446,11 +436,13 @@ mod test {
 
     #[test]
     fn generate_ca() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+            .expect("self signed CA should contain a valid X.509 certificate");
 
-        let x509_cert = ca.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, &["myca"]);
-        assert_certificate_default_validity(&x509_cert);
+        let x509_cert = certificate.x509_certificate();
+        assert_certificate_common_name(x509_cert, &["myca"]);
+        assert_certificate_default_validity(x509_cert);
     }
 
     #[test]
@@ -462,11 +454,13 @@ mod test {
             not_before: Some(now),
             not_after: Some(later),
         };
-        let ca = KeyPair::generate_ca("myca", config).unwrap();
+        let ca = Ca::generate("myca", config).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())
+            .expect("self signed CA should contain a valid X.509 certificate");
 
-        let x509_cert = ca.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, &["myca"]);
-        assert_certificate_validity(&x509_cert, now, later);
+        let x509_cert = certificate.x509_certificate();
+        assert_certificate_common_name(x509_cert, &["myca"]);
+        assert_certificate_validity(x509_cert, now, later);
     }
 
     fn generate_and_verify_issuer_for_validity(
@@ -478,11 +472,10 @@ mod test {
         let config = CertificateConfiguration { not_before, not_after };
         let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
-        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", &mdl, config).unwrap();
         issuer_key_pair
             .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .expect_err("Expected verify to fail")
     }
 
@@ -508,24 +501,23 @@ mod test {
 
     #[test]
     fn generate_and_verify_issuer_cert() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", &mdl, Default::default()).unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", &mdl, Default::default()).unwrap();
 
-        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         issuer_key_pair
             .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
         let cert_usage = CertificateType::from_certificate(issuer_key_pair.certificate()).unwrap();
         assert_eq!(cert_usage, mdl);
 
-        let x509_cert = issuer_key_pair.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, &["mycert"]);
-        assert_certificate_default_validity(&x509_cert);
+        let x509_cert = issuer_key_pair.certificate().x509_certificate();
+        assert_certificate_common_name(x509_cert, &["mycert"]);
+        assert_certificate_default_validity(x509_cert);
     }
 
     #[test]
@@ -538,46 +530,51 @@ mod test {
             not_after: Some(later),
         };
 
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let mdl = IssuerRegistration::new_mock().into();
 
-        let issuer_key_pair = ca.generate("mycert", &mdl, config).unwrap();
+        let issuer_key_pair = ca.generate_key_pair("mycert", &mdl, config).unwrap();
 
-        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         issuer_key_pair
             .certificate()
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
         let cert_usage = CertificateType::from_certificate(issuer_key_pair.certificate()).unwrap();
         assert_eq!(cert_usage, mdl);
 
-        let x509_cert = issuer_key_pair.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, &["mycert"]);
-        assert_certificate_validity(&x509_cert, now, later);
+        let x509_cert = issuer_key_pair.certificate().x509_certificate();
+        assert_certificate_common_name(x509_cert, &["mycert"]);
+        assert_certificate_validity(x509_cert, now, later);
     }
 
     #[test]
     fn generate_and_verify_reader_cert() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
-        let reader_key_pair = ca.generate("mycert", &reader_auth, Default::default()).unwrap();
+        let reader_key_pair = ca
+            .generate_key_pair("mycert", &reader_auth, Default::default())
+            .unwrap();
 
-        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         reader_key_pair
             .certificate()
-            .verify(CertificateUsage::ReaderAuth, &[], &TimeGenerator, &[ca_trustanchor])
+            .verify(
+                CertificateUsage::ReaderAuth,
+                &[],
+                &TimeGenerator,
+                &[ca.to_trust_anchor()],
+            )
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original ReaderAuth usage
         let cert_usage = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
         assert_eq!(cert_usage, reader_auth);
 
-        let x509_cert = reader_key_pair.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, &["mycert"]);
-        assert_certificate_default_validity(&x509_cert);
+        let x509_cert = reader_key_pair.certificate().x509_certificate();
+        assert_certificate_common_name(x509_cert, &["mycert"]);
+        assert_certificate_default_validity(x509_cert);
     }
 
     #[test]
@@ -590,24 +587,28 @@ mod test {
             not_after: Some(later),
         };
 
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let ca = Ca::generate("myca", Default::default()).unwrap();
         let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
-        let reader_key_pair = ca.generate("mycert", &reader_auth, config).unwrap();
+        let reader_key_pair = ca.generate_key_pair("mycert", &reader_auth, config).unwrap();
 
-        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
         reader_key_pair
             .certificate()
-            .verify(CertificateUsage::ReaderAuth, &[], &TimeGenerator, &[ca_trustanchor])
+            .verify(
+                CertificateUsage::ReaderAuth,
+                &[],
+                &TimeGenerator,
+                &[ca.to_trust_anchor()],
+            )
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original ReaderAuth usage
         let cert_usage = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
         assert_eq!(cert_usage, reader_auth);
 
-        let x509_cert = reader_key_pair.certificate().to_x509().unwrap();
-        assert_certificate_common_name(&x509_cert, &["mycert"]);
-        assert_certificate_validity(&x509_cert, now, later);
+        let x509_cert = reader_key_pair.certificate().x509_certificate();
+        assert_certificate_common_name(x509_cert, &["mycert"]);
+        assert_certificate_validity(x509_cert, now, later);
     }
 
     fn assert_certificate_default_validity(certificate: &X509Certificate) {
@@ -642,7 +643,7 @@ mod test {
         assert_eq!(actual_common_name, expected_common_name);
     }
 
-    fn generate_ca_for_validity_test() -> KeyPair {
+    fn generate_ca_for_validity_test() -> Ca {
         let now = Utc::now();
         let start = now - Duration::weeks(52);
         let end = now + Duration::weeks(52);
@@ -651,6 +652,7 @@ mod test {
             not_before: Some(start),
             not_after: Some(end),
         };
-        KeyPair::generate_ca("myca", config).unwrap()
+
+        Ca::generate("myca", config).unwrap()
     }
 }

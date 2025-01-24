@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::iter;
 
 use derive_more::Debug;
@@ -13,11 +15,11 @@ use rand_core::OsRng;
 use crate::jwt::JwtPopClaims;
 use crate::jwt::NL_WALLET_CLIENT_ID;
 use crate::utils;
+use crate::vec_at_least::VecAtLeastTwoUnique;
 
 use super::factory::KeyFactory;
 use super::poa::Poa;
 use super::poa::PoaError;
-use super::poa::VecAtLeastTwo;
 use super::CredentialEcdsaKey;
 use super::CredentialKeyType;
 use super::EcdsaKey;
@@ -42,7 +44,21 @@ pub enum MockRemoteKeyFactoryError {
 pub struct MockRemoteEcdsaKey {
     identifier: String,
     #[debug(skip)]
-    key: SigningKey,
+    pub key: SigningKey,
+}
+
+impl PartialEq for MockRemoteEcdsaKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.identifier == other.identifier
+    }
+}
+
+impl Eq for MockRemoteEcdsaKey {}
+
+impl Hash for MockRemoteEcdsaKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.identifier.hash(state);
+    }
 }
 
 impl MockRemoteEcdsaKey {
@@ -52,6 +68,10 @@ impl MockRemoteEcdsaKey {
 
     pub fn new_random(identifier: String) -> Self {
         Self::new(identifier, SigningKey::random(&mut OsRng))
+    }
+
+    pub fn verifying_key(&self) -> &VerifyingKey {
+        self.key.verifying_key()
     }
 }
 
@@ -229,7 +249,7 @@ impl KeyFactory for MockRemoteKeyFactory {
 
     async fn poa(
         &self,
-        keys: VecAtLeastTwo<&Self::Key>,
+        keys: VecAtLeastTwoUnique<&Self::Key>,
         aud: String,
         nonce: Option<String>,
     ) -> Result<Poa, Self::Error> {

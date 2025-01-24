@@ -1,22 +1,28 @@
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use std::sync::Arc;
+
+use platform_support::attested_key::AttestedKey;
+use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::EcdsaDecodingKey;
+use wallet_common::update_policy::VersionState;
 
 use crate::account_provider::AccountProviderClient;
-use crate::config::ConfigurationRepository;
 use crate::errors::ChangePinError;
 use crate::instruction::InstructionClient;
 use crate::pin::change::ChangePinStorage;
+use crate::repository::Repository;
+use crate::storage::RegistrationData;
 use crate::storage::Storage;
 
 use super::Wallet;
-use super::WalletRegistration;
 
-impl<CR, S, PEK, APC, DS, IC, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IC, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
-    CR: ConfigurationRepository,
+    CR: Repository<Arc<WalletConfiguration>>,
+    UR: Repository<VersionState>,
     S: Storage,
-    PEK: PlatformEcdsaKey,
+    AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
     WIC: Default,
 {
@@ -26,10 +32,11 @@ where
     pub(super) async fn new_instruction_client<'a>(
         &'a self,
         pin: String,
-        registration: &'a WalletRegistration<PEK>,
+        attested_key: &'a AttestedKey<AKH::AppleKey, AKH::GoogleKey>,
+        registration_data: &'a RegistrationData,
         client_config: &'a TlsPinningConfig,
         instruction_result_public_key: &'a EcdsaDecodingKey,
-    ) -> Result<InstructionClient<'a, S, PEK, APC>, ChangePinError> {
+    ) -> Result<InstructionClient<'a, S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError> {
         tracing::info!("Try to finalize PIN change if it is in progress");
 
         if self.storage.get_change_pin_state().await?.is_some() {
@@ -39,9 +46,9 @@ where
         let client = InstructionClient::new(
             pin,
             &self.storage,
-            &registration.hw_privkey,
+            attested_key,
             &self.account_provider_client,
-            &registration.data,
+            registration_data,
             client_config,
             instruction_result_public_key,
         );

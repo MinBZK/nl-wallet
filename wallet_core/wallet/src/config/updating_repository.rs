@@ -1,33 +1,34 @@
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
 
 use parking_lot::Mutex;
 use tokio::task::JoinHandle;
+use tokio::time;
 use tokio::time::MissedTickBehavior;
-use tokio::time::{self};
 use tracing::error;
 use tracing::info;
 
+use wallet_common::config::config_server_config::ConfigServerConfiguration;
+use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
-use super::ConfigCallback;
-use super::ConfigServerConfiguration;
+use crate::repository::ObservableRepository;
+use crate::repository::Repository;
+use crate::repository::RepositoryCallback;
+use crate::repository::RepositoryUpdateState;
+use crate::repository::UpdateableRepository;
+
 use super::ConfigurationError;
-use super::ConfigurationRepository;
-use super::ConfigurationUpdateState;
 use super::FileStorageConfigurationRepository;
-use super::ObservableConfigurationRepository;
-use super::UpdateableConfigurationRepository;
-use super::UpdatingFileHttpConfigurationRepository;
+use super::WalletConfigurationRepository;
 
 pub struct UpdatingConfigurationRepository<T> {
     wrapped: Arc<T>,
-    callback: Arc<Mutex<Option<ConfigCallback>>>,
+    callback: Arc<Mutex<Option<RepositoryCallback<Arc<WalletConfiguration>>>>>,
     updating_task: JoinHandle<()>,
 }
 
-impl UpdatingFileHttpConfigurationRepository {
+impl WalletConfigurationRepository {
     pub async fn init(
         storage_path: PathBuf,
         config: ConfigServerConfiguration,
@@ -35,30 +36,28 @@ impl UpdatingFileHttpConfigurationRepository {
     ) -> Result<Self, ConfigurationError> {
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
-            config.http_config,
-            (&config.signing_public_key).into(),
+            (&config.signing_public_key.0).into(),
             initial_config,
         )
         .await?;
-        let config = Self::new(wrapped, config.update_frequency).await;
-        Ok(config)
+        let updating_repository = Self::new(wrapped, config).await;
+        Ok(updating_repository)
     }
 }
 
 impl<T> UpdatingConfigurationRepository<T>
 where
-    T: UpdateableConfigurationRepository + Send + Sync + 'static,
+    T: UpdateableRepository<Arc<WalletConfiguration>, TlsPinningConfig> + Send + Sync + 'static,
 {
-    pub async fn new(wrapped: T, update_frequency: Duration) -> UpdatingConfigurationRepository<T> {
+    pub async fn new(wrapped: T, config: ConfigServerConfiguration) -> UpdatingConfigurationRepository<T> {
         let wrapped = Arc::new(wrapped);
         let callback = Arc::new(Mutex::new(None));
-        let updating_task =
-            Self::start_update_task(Arc::clone(&wrapped), Arc::clone(&callback), update_frequency).await;
+        let updating_task = Self::start_update_task(Arc::clone(&wrapped), Arc::clone(&callback), config).await;
 
         Self {
             wrapped,
-            updating_task,
             callback,
+            updating_task,
         }
     }
 
@@ -66,11 +65,11 @@ where
     #[allow(clippy::unused_async)]
     async fn start_update_task(
         wrapped: Arc<T>,
-        callback: Arc<Mutex<Option<ConfigCallback>>>,
-        interval: Duration,
+        callback: Arc<Mutex<Option<RepositoryCallback<Arc<WalletConfiguration>>>>>,
+        config: ConfigServerConfiguration,
     ) -> JoinHandle<()> {
         tokio::spawn(async move {
-            let mut interval = time::interval(interval);
+            let mut interval = time::interval(config.update_frequency);
             interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
             loop {
@@ -78,10 +77,10 @@ where
 
                 info!("Wallet configuration update timer expired, fetching from remote...");
 
-                match wrapped.fetch().await {
+                match wrapped.fetch(&config.http_config).await {
                     Ok(state) => {
-                        if let ConfigurationUpdateState::Updated = state {
-                            let config = wrapped.config();
+                        if let RepositoryUpdateState::Updated { .. } = state {
+                            let config = wrapped.get();
 
                             if let Some(callback) = callback.lock().as_deref_mut() {
                                 callback(config);
@@ -95,24 +94,27 @@ where
     }
 }
 
-impl<T> ConfigurationRepository for UpdatingConfigurationRepository<T>
+impl<T> Repository<Arc<WalletConfiguration>> for UpdatingConfigurationRepository<T>
 where
-    T: ConfigurationRepository,
+    T: Repository<Arc<WalletConfiguration>>,
 {
-    fn config(&self) -> Arc<WalletConfiguration> {
-        self.wrapped.config()
+    fn get(&self) -> Arc<WalletConfiguration> {
+        self.wrapped.get()
     }
 }
 
-impl<T> ObservableConfigurationRepository for UpdatingConfigurationRepository<T>
+impl<T> ObservableRepository<Arc<WalletConfiguration>> for UpdatingConfigurationRepository<T>
 where
-    T: ConfigurationRepository,
+    T: Repository<Arc<WalletConfiguration>>,
 {
-    fn register_callback_on_update(&self, callback: ConfigCallback) -> Option<ConfigCallback> {
+    fn register_callback_on_update(
+        &self,
+        callback: RepositoryCallback<Arc<WalletConfiguration>>,
+    ) -> Option<RepositoryCallback<Arc<WalletConfiguration>>> {
         self.callback.lock().replace(callback)
     }
 
-    fn clear_callback(&self) -> Option<ConfigCallback> {
+    fn clear_callback(&self) -> Option<RepositoryCallback<Arc<WalletConfiguration>>> {
         self.callback.lock().take()
     }
 }
@@ -136,43 +138,56 @@ mod tests {
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
-    use crate::config::default_configuration;
+    use crate::config::default_config_server_config;
+    use crate::config::default_wallet_config;
     use crate::config::ConfigurationError;
-    use crate::config::ConfigurationRepository;
-    use crate::config::ConfigurationUpdateState;
-    use crate::config::ObservableConfigurationRepository;
-    use crate::config::UpdateableConfigurationRepository;
     use crate::config::UpdatingConfigurationRepository;
+    use crate::repository::ObservableRepository;
+    use crate::repository::Repository;
+    use crate::repository::RepositoryUpdateState;
+    use crate::repository::UpdateableRepository;
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
 
-    impl ConfigurationRepository for TestConfigRepo {
-        fn config(&self) -> Arc<WalletConfiguration> {
+    impl Repository<Arc<WalletConfiguration>> for TestConfigRepo {
+        fn get(&self) -> Arc<WalletConfiguration> {
             Arc::new(self.0.read().clone())
         }
     }
 
-    impl UpdateableConfigurationRepository for TestConfigRepo {
-        async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
+    impl<B> UpdateableRepository<Arc<WalletConfiguration>, B> for TestConfigRepo
+    where
+        B: Send + Sync,
+    {
+        type Error = ConfigurationError;
+
+        async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, ConfigurationError> {
             let mut config = self.0.write();
+            let from = config.clone();
             config.lock_timeouts.background_timeout = 900;
-            Ok(ConfigurationUpdateState::Updated)
+            Ok(RepositoryUpdateState::Updated {
+                from: Arc::new(from),
+                to: Arc::new(config.clone()),
+            })
         }
     }
 
     #[tokio::test]
     async fn should_update_config() {
-        let initial_wallet_config = default_configuration();
+        let mut config_server_config = default_config_server_config();
+        let initial_wallet_config = default_wallet_config();
 
         // pause time so we can advance it later
         time::pause();
-        let update_frequency = Duration::from_millis(1000);
+        config_server_config.update_frequency = Duration::from_millis(1000);
 
-        let config =
-            UpdatingConfigurationRepository::new(TestConfigRepo(RwLock::new(initial_wallet_config)), update_frequency)
-                .await;
+        let config = UpdatingConfigurationRepository::new(
+            TestConfigRepo(RwLock::new(initial_wallet_config)),
+            config_server_config,
+        )
+        .await;
 
-        assert_eq!(300, config.config().lock_timeouts.background_timeout);
+        assert_eq!(300, config.get().lock_timeouts.background_timeout);
 
         let notifier = Arc::new(Notify::new());
         let callback_notifier = notifier.clone();
@@ -193,7 +208,7 @@ mod tests {
 
         config.clear_callback();
 
-        assert_eq!(900, config.config().lock_timeouts.background_timeout);
+        assert_eq!(900, config.get().lock_timeouts.background_timeout);
         assert_eq!(3, counter.load(Ordering::SeqCst));
 
         time::advance(Duration::from_millis(3000)).await;
@@ -202,11 +217,12 @@ mod tests {
 
     #[tokio::test]
     async fn drop_should_abort_updating_task() {
-        let initial_wallet_config = default_configuration();
+        let mut config_server_config = default_config_server_config();
+        let initial_wallet_config = default_wallet_config();
 
         // pause time so we can advance it later
         time::pause();
-        let update_frequency = Duration::from_millis(100);
+        config_server_config.update_frequency = Duration::from_millis(100);
 
         let mut counted = 0;
         let counter = Arc::new(AtomicU64::new(0));
@@ -215,7 +231,7 @@ mod tests {
         {
             let config = UpdatingConfigurationRepository::new(
                 TestConfigRepo(RwLock::new(initial_wallet_config)),
-                update_frequency,
+                config_server_config,
             )
             .await;
 

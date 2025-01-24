@@ -4,6 +4,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
+use x509_parser::der_parser::asn1_rs::oid;
+use x509_parser::der_parser::Oid;
 
 use error_category::ErrorCategory;
 
@@ -15,11 +17,6 @@ use crate::ItemsRequest;
 
 use super::LocalizedStrings;
 use super::Organization;
-
-/// oid: 2.1.123.1
-/// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
-/// suffix: 1, unofficial id for Reader Authentication
-const OID_EXT_READER_AUTH: &[u64] = &[2, 1, 123, 1];
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -113,7 +110,10 @@ pub enum ValidationError {
 }
 
 impl MdocCertificateExtension for ReaderRegistration {
-    const OID: &'static [u64] = OID_EXT_READER_AUTH;
+    /// oid: 2.1.123.1
+    /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
+    /// suffix: 1, unofficial id for Reader Authentication
+    const OID: Oid<'static> = oid!(2.1.123 .1);
 }
 
 #[cfg(any(test, feature = "mock"))]

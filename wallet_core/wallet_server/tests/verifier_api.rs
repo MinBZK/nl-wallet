@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::future;
+use std::future::Future;
 use std::net::IpAddr;
 use std::net::TcpListener;
 use std::process;
@@ -15,13 +17,13 @@ use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
-use p256::pkcs8::EncodePrivateKey;
 use parking_lot::RwLock;
 #[cfg(feature = "issuance")]
 use rand_core::OsRng;
 use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
+use rustls_pki_types::TrustAnchor;
 use tokio::time;
 use url::Url;
 
@@ -32,12 +34,11 @@ use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
 use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
 use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::holder::TrustAnchor;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::mock_time::MockTimeGenerator;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::serialization::TaggedBytes;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
@@ -58,14 +59,16 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
+#[cfg(feature = "issuance")]
 use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-use wallet_common::keys::EcdsaKey;
 use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::trust_anchor::OwnedTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_server::settings::Authentication;
@@ -118,6 +121,7 @@ fn fake_issuer_settings() -> Issuer {
 
     Issuer {
         private_keys: Default::default(),
+        metadata: Default::default(),
         wallet_client_ids: Default::default(),
         digid: Digid {
             bsn_privkey: Default::default(),
@@ -131,7 +135,7 @@ fn fake_issuer_settings() -> Issuer {
     }
 }
 
-fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor) {
+fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'static>) {
     // Set up the hostname and ports.
     let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
@@ -140,17 +144,18 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
     // Set up the default storage timeouts.
     let default_store_timeouts = SessionStoreTimeouts::default();
 
-    // Create the issuer CA and derive the trust anchor from it.
-    let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    // Create the issuer CA and derive the trust anchors from it.
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_key_pair = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
         .unwrap();
-    let issuer_trust_anchor = issuer_ca.certificate().try_into().unwrap();
+    let issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
-    let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let rp_trust_anchor = OwnedTrustAnchor::from(&rp_ca.certificate().try_into().unwrap());
+    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
+    let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
+    let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
     let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
         &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
     ));
@@ -161,15 +166,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         USECASE_NAME.to_string(),
         VerifierUseCase {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
-            key_pair: wallet_server::settings::KeyPair {
-                certificate: usecase_keypair.certificate().as_bytes().to_vec(),
-                private_key: usecase_keypair
-                    .private_key()
-                    .to_pkcs8_der()
-                    .unwrap()
-                    .as_bytes()
-                    .to_vec(),
-            },
+            key_pair: usecase_keypair.into(),
         },
     )])
     .into();
@@ -203,14 +200,14 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, OwnedTrustAnchor)
         },
         #[cfg(feature = "issuance")]
         issuer: fake_issuer_settings(),
-        issuer_trust_anchors: vec![issuer_trust_anchor],
+        issuer_trust_anchors,
         verifier: Verifier {
             usecases,
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
             allow_origins: None,
         },
         #[cfg(feature = "disclosure")]
-        reader_trust_anchors: vec![rp_ca.certificate().try_into().unwrap()],
+        reader_trust_anchors,
     };
 
     (settings, issuer_key_pair, rp_trust_anchor)
@@ -541,7 +538,7 @@ async fn start_disclosure<S>(
     SessionToken,
     BaseUrl,
     KeyPair<SigningKey>,
-    OwnedTrustAnchor,
+    TrustAnchor<'static>,
 )
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -636,13 +633,15 @@ async fn test_disclosure_cancel() {
     );
 }
 
-async fn test_disclosure_expired<S>(
+async fn test_disclosure_expired<S, F, Fut>(
     settings: Settings,
     session_store: S,
     mock_time: &RwLock<DateTime<Utc>>,
-    use_delay: bool,
+    create_cleanup_awaiter: F,
 ) where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    F: Fn() -> Fut,
+    Fut: Future<Output = ()>,
 {
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
 
@@ -667,13 +666,14 @@ async fn test_disclosure_expired<S>(
     *mock_time.write() = expiry_time;
 
     time::pause();
+    let cleanup_awaiter = create_cleanup_awaiter();
     time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
     time::resume();
 
     // Wait for the database to have run the cleanup.
-    if use_delay {
-        time::sleep(Duration::from_millis(100)).await;
-    }
+    time::timeout(Duration::from_secs(10), cleanup_awaiter)
+        .await
+        .expect("timeout waiting for database cleanup");
 
     // Fetching the status should return OK and be in the Expired state.
     assert_matches!(
@@ -690,13 +690,14 @@ async fn test_disclosure_expired<S>(
     *mock_time.write() = expiry_time + timeouts.failed_deletion + Duration::from_millis(1);
 
     time::pause();
+    let cleanup_awaiter = create_cleanup_awaiter();
     time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
     time::resume();
 
     // Wait for the database to have run the cleanup.
-    if use_delay {
-        time::sleep(Duration::from_millis(100)).await;
-    }
+    time::timeout(Duration::from_secs(10), cleanup_awaiter)
+        .await
+        .expect("timeout waiting for database cleanup");
 
     // Both the status and disclosed attribute requests should now return 404.
     let response = client.get(status_url).send().await.unwrap();
@@ -717,38 +718,133 @@ async fn test_disclosure_expired_memory() {
     let mock_time = Arc::clone(&time_generator.time);
     let session_store = MemorySessionStore::new_with_time(timeouts, time_generator);
 
-    test_disclosure_expired(settings, session_store, mock_time.as_ref(), false).await;
+    // The `MemorySessionStore` performs cleanup instantly, so we simply pass
+    // an already completed future as the cleanup awaiter in the closure.
+    test_disclosure_expired(settings, session_store, mock_time.as_ref(), || future::ready(())).await;
 }
 
 #[cfg(feature = "db_test")]
-#[tokio::test]
-async fn test_disclosure_expired_postgres() {
+mod db_test {
+    use std::future::Future;
+    use std::mem;
+    use std::sync::Arc;
+
+    use futures::FutureExt;
+    use parking_lot::Mutex;
+    use tokio::sync::oneshot;
+
+    use openid4vc::server_state::SessionState;
+    use openid4vc::server_state::SessionStore;
+    use openid4vc::server_state::SessionStoreError;
+    use openid4vc::server_state::SessionStoreTimeouts;
+    use openid4vc::server_state::SessionToken;
+    use openid4vc::verifier::DisclosureData;
+    use wallet_common::generator::mock::MockTimeGenerator;
+    use wallet_server::settings::Settings;
+    use wallet_server::store::postgres;
     use wallet_server::store::postgres::PostgresSessionStore;
-    use wallet_server::store::postgres::{self};
 
-    // Combine the generated settings with the storage settings from the configuration file.
-    let (mut settings, _, _) = wallet_server_settings();
-    let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
-        .unwrap()
-        .storage;
-    settings.storage = storage_settings;
+    use super::test_disclosure_expired;
+    use super::wallet_server_settings;
 
-    assert_eq!(
-        settings.storage.url.scheme(),
-        "postgres",
-        "should be configured to use PostgreSQL storage"
-    );
+    /// Helper type created along with [`PostgresSessionStoreProxy`]
+    /// that can be used to register awaiters for the cleanup task.
+    struct PostgresSessionStoreNotifier {
+        cleanup_oneshots: Arc<Mutex<Vec<oneshot::Sender<()>>>>,
+    }
 
-    let timeouts = SessionStoreTimeouts::from(&settings.storage);
-    let time_generator = MockTimeGenerator::default();
-    let mock_time = Arc::clone(&time_generator.time);
-    let session_store = PostgresSessionStore::new_with_time(
-        postgres::new_connection(settings.storage.url.clone()).await.unwrap(),
-        timeouts,
-        time_generator,
-    );
+    impl PostgresSessionStoreNotifier {
+        // Note that this method is not async, which means it creates a new
+        // oneshot channel as soon as it is called, i.e. hot instead of cold.
+        fn register_cleanup_awaiter(&self) -> impl Future<Output = ()> {
+            let (tx, rx) = oneshot::channel();
 
-    test_disclosure_expired(settings, session_store, mock_time.as_ref(), true).await;
+            self.cleanup_oneshots.lock().push(tx);
+
+            // Ignore errors.
+            rx.map(|result| result.unwrap())
+        }
+    }
+
+    /// A wrapper for [`PostgresSessionStore`] that can be used to
+    /// monitor execution of cleanups from another tokio task.
+    struct PostgresSessionStoreProxy {
+        session_store: PostgresSessionStore<MockTimeGenerator>,
+        cleanup_oneshots: Arc<Mutex<Vec<oneshot::Sender<()>>>>,
+    }
+
+    impl PostgresSessionStoreProxy {
+        /// This creates both a [`PostgresSessionStoreProxy`] and a [`PostgresSessionStoreNotifier`].
+        fn new(session_store: PostgresSessionStore<MockTimeGenerator>) -> (Self, PostgresSessionStoreNotifier) {
+            let cleanup_oneshots = Arc::new(Mutex::new(Vec::new()));
+
+            let proxy = PostgresSessionStoreProxy {
+                session_store,
+                cleanup_oneshots: Arc::clone(&cleanup_oneshots),
+            };
+            let notifier = PostgresSessionStoreNotifier {
+                cleanup_oneshots: Arc::clone(&cleanup_oneshots),
+            };
+
+            (proxy, notifier)
+        }
+    }
+
+    impl SessionStore<DisclosureData> for PostgresSessionStoreProxy {
+        async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<DisclosureData>>, SessionStoreError> {
+            self.session_store.get(token).await
+        }
+
+        async fn write(&self, session: SessionState<DisclosureData>, is_new: bool) -> Result<(), SessionStoreError> {
+            self.session_store.write(session, is_new).await
+        }
+
+        async fn cleanup(&self) -> Result<(), SessionStoreError> {
+            // Before performing cleanup, take all of the oneshots that are currently
+            // waiting and replace the value of the mutex with an empty Vec.
+            let cleanup_oneshots: Vec<oneshot::Sender<()>> = mem::take(&mut self.cleanup_oneshots.lock());
+
+            <PostgresSessionStore<MockTimeGenerator> as SessionStore<DisclosureData>>::cleanup(&self.session_store)
+                .await
+                .inspect(|_| {
+                    // Then after the cleanup, notify all of the those oneshots, which consumes them.
+                    for cleanup_oneshot in cleanup_oneshots {
+                        cleanup_oneshot.send(()).unwrap()
+                    }
+                })
+        }
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_expired_postgres() {
+        // Combine the generated settings with the storage settings from the configuration file.
+        let (mut settings, _, _) = wallet_server_settings();
+        let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
+            .unwrap()
+            .storage;
+        settings.storage = storage_settings;
+
+        assert_eq!(
+            settings.storage.url.scheme(),
+            "postgres",
+            "should be configured to use PostgreSQL storage"
+        );
+
+        let timeouts = SessionStoreTimeouts::from(&settings.storage);
+        let time_generator = MockTimeGenerator::default();
+        let mock_time = Arc::clone(&time_generator.time);
+        let session_store = PostgresSessionStore::new_with_time(
+            postgres::new_connection(settings.storage.url.clone()).await.unwrap(),
+            timeouts,
+            time_generator,
+        );
+        let (store_proxy, cleanup_notify) = PostgresSessionStoreProxy::new(session_store);
+
+        test_disclosure_expired(settings, store_proxy, mock_time.as_ref(), || {
+            cleanup_notify.register_cleanup_awaiter()
+        })
+        .await;
+    }
 }
 
 /// This utility function is used to prepare the two mocks necessary to emulate a valid holder.
@@ -790,11 +886,14 @@ async fn prepare_example_holder_mocks(
         copy_count: 1.try_into().unwrap(),
     };
 
+    let metadata = TypeMetadata::new_example();
+    let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
-    let mdoc_public_key = (&mdoc_private_key.verifying_key().await.unwrap()).try_into().unwrap();
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, issuer_key_pair)
+    let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, issuer_key_pair)
         .await
         .unwrap();
     let mdoc =
@@ -828,7 +927,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         &settings
             .issuer_trust_anchors
             .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
+            .map(|anchor| anchor.as_trust_anchor().clone())
             .collect_vec(),
     )
     .await;
@@ -843,7 +942,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         &request_uri_query,
         uri_source,
         &mdoc_data_source,
-        &[rp_trust_anchor].iter().map(Into::into).collect_vec(),
+        &[rp_trust_anchor],
     )
     .await
     .expect("disclosure session should start at client side");
@@ -971,7 +1070,7 @@ async fn test_disclosed_attributes_failed_session() {
         &request_uri_query,
         DisclosureUriSource::QrCode,
         &MockMdocDataSource::new_with_example(),
-        &[rp_trust_anchor].iter().map(Into::into).collect_vec(),
+        &[rp_trust_anchor],
     )
     .await
     .expect("disclosure session should start at client side");

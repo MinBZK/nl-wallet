@@ -3,17 +3,14 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::oidc::HttpOidcClient;
-
-use nl_wallet_mdoc::holder::TrustAnchor;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
-use wallet::mock::default_configuration;
-use wallet::wallet_common::WalletConfiguration;
+use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::DigidSession;
 use wallet::wallet_deps::HttpDigidSession;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+use wallet_common::urls;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use wallet_common::urls::{self};
 use wallet_server::pid::attributes::BrpPidAttributeService;
 use wallet_server::pid::brp::client::HttpBrpClient;
 
@@ -39,13 +36,14 @@ async fn test_pid_issuance_digid_bridge() {
         &settings.issuer.digid.bsn_privkey,
         settings.issuer.digid.http_config.clone(),
         settings.issuer.certificates(),
+        settings.issuer.metadata(),
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
-    let wallet_config = default_configuration();
+    let wallet_config = default_wallet_config();
 
     // Prepare DigiD flow
     let (digid_session, authorization_url) = HttpDigidSession::<HttpOidcClient>::start(
@@ -79,8 +77,8 @@ async fn test_pid_issuance_digid_bridge() {
 
     let mdocs = pid_issuer_client
         .accept_issuance(
-            &trust_anchors(&default_configuration()),
-            MockRemoteKeyFactory::default(),
+            &wallet_config.mdoc_trust_anchors(),
+            &MockRemoteKeyFactory::default(),
             None,
             server_url,
         )
@@ -89,12 +87,4 @@ async fn test_pid_issuance_digid_bridge() {
 
     assert_eq!(2, mdocs.len());
     assert_eq!(2, <&MdocCopies>::try_from(&mdocs[0]).unwrap().len());
-}
-
-fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {
-    wallet_conf
-        .mdoc_trust_anchors
-        .iter()
-        .map(|a| (&a.owned_trust_anchor).into())
-        .collect()
 }

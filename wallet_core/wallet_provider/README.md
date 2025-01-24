@@ -35,9 +35,9 @@ the main [`README.md`](../../README.md#configuring-the-development-environment).
 
 Default settings (in `wallet_provider/src/settings.rs`) and settings specified
 in `wallet_provider.toml` can both be overriden by environment variables. All
-environment variables should be prefixed with `WALLET_PROVIDER`, e.g.
-`WALLET_PROVIDER_SIGNING_PRIVATE_KEY`. Grouped settings can be specified as
-follows: `WALLET_PROVIDER_DATABASE__HOST`, where the group name is separated
+environment variables should be prefixed with `WALLET_PROVIDER__`, e.g.
+`WALLET_PROVIDER__SIGNING_PRIVATE_KEY`. Grouped settings can be specified as
+follows: `WALLET_PROVIDER__DATABASE__HOST`, where the group name is separated
 from the key by a double underscore `__`.
 
 ## Generating entity files
@@ -61,7 +61,13 @@ sea-orm-cli generate entity -o wallet_provider/persistence/src/entity --database
 There are database-specific integration test that can be run with:
 
 ```bash
-cargo test --features db_test --test '*'
+cargo test --features db_test
+```
+
+There are HSM specific test that can be run with:
+
+```bash
+cargo test --features hsm_test
 ```
 
 ## Running the server & retrieving the public keys

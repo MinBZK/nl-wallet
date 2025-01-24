@@ -4,9 +4,9 @@ use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
-use webpki::types::TrustAnchor;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
@@ -18,7 +18,7 @@ use crate::iso::*;
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
-use crate::utils::x509::Certificate;
+use crate::utils::x509::BorrowingCertificate;
 use crate::verifier::ValidityRequirement;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
@@ -58,20 +58,10 @@ impl Mdoc {
 
     /// Get a list of attributes ([`Entry`] instances) contained in the mdoc, mapped per [`NameSpace`].
     pub fn attributes(&self) -> IndexMap<NameSpace, Vec<Entry>> {
-        self.issuer_signed
-            .name_spaces
-            .as_ref()
-            .map(|name_spaces| {
-                name_spaces
-                    .as_ref()
-                    .iter()
-                    .map(|(name_space, attrs)| (name_space.clone(), attrs.into()))
-                    .collect()
-            })
-            .unwrap_or_default()
+        self.issuer_signed.to_entries_by_namespace()
     }
 
-    pub fn issuer_certificate(&self) -> Result<Certificate, CoseError> {
+    pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
     }
 

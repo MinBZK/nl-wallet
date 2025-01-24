@@ -20,6 +20,9 @@ use tokio::time;
 use url::Url;
 use uuid::Uuid;
 
+use android_attest::root_public_key::RootPublicKey;
+use apple_app_attest::AppIdentifier;
+use apple_app_attest::AttestationEnvironment;
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::utils::x509;
@@ -32,24 +35,33 @@ use openid4vc::oidc;
 use openid4vc::server_state::SessionState;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
-use platform_support::utils::mock::MockHardwareUtilities;
-use platform_support::utils::PlatformUtilities;
-use wallet::mock::default_configuration;
+use platform_support::attested_key::mock::KeyHolderType;
+use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
+use update_policy_server::settings::Settings as UpsSettings;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
-use wallet::wallet_deps::ConfigServerConfiguration;
+use wallet::wallet_deps::default_config_server_config;
+use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
 use wallet::wallet_deps::HttpConfigurationRepository;
-use wallet::wallet_deps::UpdateableConfigurationRepository;
+use wallet::wallet_deps::UpdatePolicyRepository;
+use wallet::wallet_deps::UpdateableRepository;
+use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
+use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::keys::mock_hardware::MockHardwareEcdsaKey;
-use wallet_common::nonempty::NonEmpty;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::reqwest::ReqwestTrustAnchor;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
+use wallet_common::vec_at_least::VecNonEmpty;
+use wallet_provider::settings::Android;
+use wallet_provider::settings::AppleEnvironment;
+use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::pid::mock::MockAttributesLookup;
@@ -77,13 +89,19 @@ pub fn local_wp_base_url(port: &u16) -> BaseUrl {
 pub fn local_config_base_url(port: &u16) -> BaseUrl {
     format!("https://localhost:{}/config/v1/", port)
         .parse()
-        .expect("hardcode values should always parse successfully")
+        .expect("hardcoded values should always parse successfully")
+}
+
+pub fn local_ups_base_url(port: &u16) -> BaseUrl {
+    format!("https://localhost:{}/update/v1/", port)
+        .parse()
+        .expect("hardcoded values should always parse successfully")
 }
 
 pub fn local_pid_base_url(port: &u16) -> BaseUrl {
     format!("http://localhost:{}/issuance/", port)
         .parse()
-        .expect("hardcode values should always parse successfully")
+        .expect("hardcoded values should always parse successfully")
 }
 
 pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
@@ -92,19 +110,29 @@ pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
         .expect("Could not open database connection")
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum WalletDeviceVendor {
+    Apple,
+    Google,
+}
+
 pub type WalletWithMocks = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
+    UpdatePolicyRepository,
     MockStorage,
-    MockHardwareEcdsaKey,
+    MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     MockDigidSession,
     HttpIssuanceSession,
     DisclosureSession<HttpVpMessageClient, Uuid>,
+    WpWteIssuanceClient,
 >;
 
-pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
+pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithMocks {
     setup_wallet_and_env(
+        vendor,
         config_server_settings(),
+        update_policy_server_settings(),
         wallet_provider_settings(),
         wallet_server_settings(),
     )
@@ -113,48 +141,94 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
 
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
-    (mut cs_settings, cs_root_ca): (CsSettings, DerTrustAnchor),
-    (wp_settings, wp_root_ca): (WpSettings, DerTrustAnchor),
+    vendor: WalletDeviceVendor,
+    (mut cs_settings, cs_root_ca): (CsSettings, ReqwestTrustAnchor),
+    (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
+    (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
+    let key_holder = match vendor {
+        WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
+            AttestationEnvironment::Development,
+            AppIdentifier::new_mock(),
+        ),
+        WalletDeviceVendor::Google => MockHardwareAttestedKeyHolder::generate_google(),
+    };
+
+    match &key_holder.holder_type {
+        KeyHolderType::Apple {
+            ca,
+            environment,
+            app_identifier,
+        } => {
+            let apple_environment = match environment {
+                AttestationEnvironment::Development => AppleEnvironment::Development,
+                AttestationEnvironment::Production => AppleEnvironment::Production,
+            };
+
+            wp_settings.ios = Ios {
+                team_identifier: app_identifier.prefix().to_string(),
+                bundle_identifier: app_identifier.bundle_identifier().to_string(),
+                environment: apple_environment,
+                root_certificates: vec![BorrowingTrustAnchor::from_der(ca.as_certificate_der().as_ref()).unwrap()],
+            };
+        }
+        KeyHolderType::Google { ca_chain } => {
+            wp_settings.android = Android {
+                root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone()).into()],
+            }
+        }
+    }
+
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
             base_url: local_config_base_url(&cs_settings.port),
             trust_anchors: vec![cs_root_ca.clone()],
         },
-        ..Default::default()
+        ..default_config_server_config()
     };
 
-    let mut wallet_config = default_configuration();
+    let mut wallet_config = default_wallet_config();
     wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
+    wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
+    wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
     served_wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
+    served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
+    served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
     let certificates = ws_settings.issuer.certificates();
 
-    start_config_server(cs_settings, &cs_root_ca).await;
-    start_wallet_provider(wp_settings, &wp_root_ca).await;
+    start_config_server(cs_settings, cs_root_ca).await;
+    start_update_policy_server(ups_settings, ups_root_ca).await;
+    start_wallet_provider(wp_settings, wp_root_ca).await;
     start_wallet_server(ws_settings, MockAttributeService(certificates)).await;
 
     let config_repository = HttpConfigurationRepository::new(
-        config_server_config.http_config,
-        (&config_server_config.signing_public_key).into(),
-        MockHardwareUtilities::storage_path().await.unwrap(),
+        (&config_server_config.signing_public_key.0).into(),
+        tempfile::tempdir().unwrap().into_path(),
         wallet_config,
     )
     .await
     .unwrap();
-    config_repository.fetch().await.unwrap();
+    config_repository
+        .fetch(&config_server_config.http_config)
+        .await
+        .unwrap();
+
+    let update_policy_repository = UpdatePolicyRepository::init();
 
     Wallet::init_registration(
         config_repository,
+        update_policy_repository,
         MockStorage::default(),
+        key_holder,
         HttpAccountProviderClient::default(),
     )
     .await
@@ -176,14 +250,26 @@ pub fn find_listener_port() -> u16 {
         .port()
 }
 
-pub fn config_server_settings() -> (CsSettings, DerTrustAnchor) {
+pub fn config_server_settings() -> (CsSettings, ReqwestTrustAnchor) {
     let port = find_listener_port();
 
     let mut settings = CsSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.port = port;
 
-    let root_ca = DerTrustAnchor::from_der(read_file("cs.ca.crt.der")).unwrap();
+    let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
+
+    (settings, root_ca)
+}
+
+pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
+    let port = find_listener_port();
+
+    let mut settings = UpsSettings::new().expect("Could not read settings");
+    settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
+    settings.port = port;
+
+    let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
@@ -202,7 +288,7 @@ pub fn config_jwt(wallet_config: &WalletConfiguration) -> String {
     .unwrap()
 }
 
-pub fn wallet_provider_settings() -> (WpSettings, DerTrustAnchor) {
+pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
     let port = find_listener_port();
 
     let mut settings = WpSettings::new().expect("Could not read settings");
@@ -210,12 +296,12 @@ pub fn wallet_provider_settings() -> (WpSettings, DerTrustAnchor) {
     settings.webserver.port = port;
     settings.pin_policy.timeouts = vec![200, 400, 600].into_iter().map(Duration::from_millis).collect();
 
-    let root_ca = DerTrustAnchor::from_der(read_file("wp.ca.crt.der")).unwrap();
+    let root_ca = read_file("wp.ca.crt.der").try_into().unwrap();
 
     (settings, root_ca)
 }
 
-pub async fn start_config_server(settings: CsSettings, trust_anchor: &DerTrustAnchor) {
+pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_config_base_url(&settings.port);
 
     tokio::spawn(async {
@@ -225,14 +311,23 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: &DerTrustAn
         }
     });
 
-    wait_for_server(
-        remove_path(&base_url),
-        vec![Certificate::from_der(&trust_anchor.der_bytes).unwrap()],
-    )
-    .await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
-pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: &DerTrustAnchor) {
+pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) {
+    let base_url = local_ups_base_url(&settings.port);
+
+    tokio::spawn(async {
+        if let Err(error) = update_policy_server::server::serve(settings).await {
+            println!("Could not start update_policy_server: {:?}", error);
+            process::exit(1);
+        }
+    });
+
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
+}
+
+pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_wp_base_url(&settings.webserver.port);
 
     tokio::spawn(async {
@@ -243,11 +338,7 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: &DerTrust
         }
     });
 
-    wait_for_server(
-        remove_path(&base_url),
-        vec![Certificate::from_der(&trust_anchor.der_bytes).unwrap()],
-    )
-    .await;
+    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
 pub fn wallet_server_settings() -> WsSettings {
@@ -391,7 +482,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
     wallet
 }
 
-pub struct MockAttributeService(pub IndexMap<String, x509::Certificate>);
+pub struct MockAttributeService(pub IndexMap<String, x509::BorrowingCertificate>);
 
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
@@ -400,7 +491,7 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<CredentialPreview>>, Self::Error> {
+    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error> {
         let attributes = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()
@@ -408,6 +499,7 @@ impl AttributeService for MockAttributeService {
             .map(|unsigned_mdoc| CredentialPreview::MsoMdoc {
                 issuer: self.0[&unsigned_mdoc.doc_type].clone(),
                 unsigned_mdoc,
+                metadata_chain: TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap(),
             })
             .collect::<Vec<_>>();
         Ok(attributes.try_into().unwrap())

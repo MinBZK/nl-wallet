@@ -7,14 +7,14 @@ towards the requester.
 ## Migrate database
 
 The Wallet Server comes with a separate binary to update the postgres database
-tables, i.e. `wallet_server_migration`.
+tables, i.e. `wallet_server_migrations`.
 As an example how to use it, the following snippet can be used to upgrade the
 databases in the local development environment, where we use 2 different
 instances of the Wallet Server.
 
 ```sh
-DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/verification_server" cargo run --bin wallet_server_migration -- fresh
-DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/pid_issuer" cargo run --bin wallet_server_migration -- fresh
+DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/verification_server" cargo run --bin wallet_server_migrations -- fresh
+DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/pid_issuer" cargo run --bin wallet_server_migrations -- fresh
 ```
 
 ## Generate entities

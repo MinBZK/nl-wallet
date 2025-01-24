@@ -22,9 +22,6 @@ class PinKeyboard extends StatefulWidget {
   /// Called when the user presses the 'Biometrics' key. This key is only visible when the callback is provided.
   final VoidCallback? onBiometricsPressed;
 
-  /// The color used to draw the digits and backspace icon, defaults to [ColorScheme.onSurface]
-  final Color? color;
-
   bool get showBiometricsButton => onBiometricsPressed != null;
 
   const PinKeyboard({
@@ -32,7 +29,6 @@ class PinKeyboard extends StatefulWidget {
     this.onBackspacePressed,
     this.onBackspaceLongPressed,
     this.onBiometricsPressed,
-    this.color,
     super.key,
   });
 
@@ -46,7 +42,7 @@ class _PinKeyboardState extends State<PinKeyboard> with AfterLayoutMixin<PinKeyb
   @override
   void initState() {
     super.initState();
-    keyboardFocusNode = FocusNode();
+    keyboardFocusNode = FocusNode(skipTraversal: true);
   }
 
   @override
@@ -62,54 +58,49 @@ class _PinKeyboardState extends State<PinKeyboard> with AfterLayoutMixin<PinKeyb
 
   @override
   Widget build(BuildContext context) {
-    final keyColor = widget.color ?? context.colorScheme.onSurface;
     return KeyboardListener(
       focusNode: keyboardFocusNode,
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: _maxKeyboardHeight(context)),
-        child: DefaultTextStyle(
-          style: context.textTheme.displayMedium!.copyWith(color: keyColor, height: 0.8),
-          child: Column(
-            children: [
-              KeyboardRow(
-                children: [
-                  KeyboardDigitKey(digit: 1, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#1')),
-                  KeyboardDigitKey(digit: 2, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#2')),
-                  KeyboardDigitKey(digit: 3, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#3')),
-                ],
-              ),
-              KeyboardRow(
-                children: [
-                  KeyboardDigitKey(digit: 4, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#4')),
-                  KeyboardDigitKey(digit: 5, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#5')),
-                  KeyboardDigitKey(digit: 6, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#6')),
-                ],
-              ),
-              KeyboardRow(
-                children: [
-                  KeyboardDigitKey(digit: 7, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#7')),
-                  KeyboardDigitKey(digit: 8, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#8')),
-                  KeyboardDigitKey(digit: 9, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#9')),
-                ],
-              ),
-              KeyboardRow(
-                children: [
-                  widget.showBiometricsButton
-                      ? KeyboardBiometricKey(onPressed: widget.onBiometricsPressed, color: keyColor)
-                      : const Spacer(),
-                  KeyboardDigitKey(digit: 0, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#0')),
-                  KeyboardBackspaceKey(
-                    color: keyColor,
-                    onBackspacePressed: widget.onBackspacePressed,
-                    onBackspaceLongPressed: widget.onBackspaceLongPressed,
-                    key: const Key('keyboardKeyBackspace'),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        child: Column(
+          children: [
+            KeyboardRow(
+              children: [
+                KeyboardDigitKey(digit: 1, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#1')),
+                KeyboardDigitKey(digit: 2, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#2')),
+                KeyboardDigitKey(digit: 3, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#3')),
+              ],
+            ),
+            KeyboardRow(
+              children: [
+                KeyboardDigitKey(digit: 4, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#4')),
+                KeyboardDigitKey(digit: 5, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#5')),
+                KeyboardDigitKey(digit: 6, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#6')),
+              ],
+            ),
+            KeyboardRow(
+              children: [
+                KeyboardDigitKey(digit: 7, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#7')),
+                KeyboardDigitKey(digit: 8, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#8')),
+                KeyboardDigitKey(digit: 9, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#9')),
+              ],
+            ),
+            KeyboardRow(
+              children: [
+                widget.showBiometricsButton
+                    ? KeyboardBiometricKey(onPressed: widget.onBiometricsPressed)
+                    : const Spacer(),
+                KeyboardDigitKey(digit: 0, onKeyPressed: widget.onKeyPressed, key: const Key('keyboardDigitKey#0')),
+                KeyboardBackspaceKey(
+                  onBackspacePressed: widget.onBackspacePressed,
+                  onBackspaceLongPressed: widget.onBackspaceLongPressed,
+                  key: const Key('keyboardKeyBackspace'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

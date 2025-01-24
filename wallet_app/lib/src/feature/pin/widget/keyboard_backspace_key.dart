@@ -6,12 +6,10 @@ import '../../../util/extension/string_extension.dart';
 class KeyboardBackspaceKey extends StatelessWidget {
   final VoidCallback? onBackspacePressed;
   final VoidCallback? onBackspaceLongPressed;
-  final Color? color;
 
   const KeyboardBackspaceKey({
     this.onBackspacePressed,
     this.onBackspaceLongPressed,
-    this.color,
     super.key,
   });
 
@@ -19,18 +17,19 @@ class KeyboardBackspaceKey extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Semantics(
-        button: true,
         keyboardKey: true,
         onLongPressHint: context.l10n.pinKeyboardWCAGBackspaceLongPressHint,
         attributedLabel: context.l10n.pinKeyboardWCAGBackspaceLabel.toAttributedString(context),
-        child: InkWell(
+        child: TextButton.icon(
           onLongPress: onBackspaceLongPressed == null ? null : () => onBackspaceLongPressed!(),
-          onTap: onBackspacePressed == null ? null : () => onBackspacePressed!(),
-          child: Icon(
-            Icons.keyboard_backspace_rounded,
-            color: color,
-            size: 24,
+          onPressed: onBackspacePressed == null ? null : () => onBackspacePressed!(),
+          label: const SizedBox.shrink(),
+          style: context.theme.iconButtonTheme.style?.copyWith(
+            shape: WidgetStateProperty.all(
+              const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            ),
           ),
+          icon: const Icon(Icons.keyboard_backspace_rounded),
         ),
       ),
     );

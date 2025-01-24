@@ -2,8 +2,12 @@ use std::fmt::Debug;
 use std::num::NonZeroU8;
 
 use ciborium::Value;
+use coset::CoseSign1;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
+
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
@@ -13,9 +17,13 @@ use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::mdocs::DataElementValue;
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;
+use crate::utils::cose::CoseError;
+use crate::utils::cose::MdocCose;
+use crate::utils::serialization::TaggedBytes;
 use crate::verifier::DisclosedAttributes;
 use crate::verifier::DocumentDisclosedAttributes;
 use crate::verifier::ItemsRequests;
+use crate::MobileSecurityObject;
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
 /// but with byte sequences (which can take a lot of vertical space) replaced with
@@ -150,11 +158,10 @@ impl TestDocument {
         Self { doc_type, namespaces }
     }
 
-    #[cfg(any(test, all(feature = "generate", feature = "mock")))]
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
     pub async fn sign<KF>(
         self,
-        ca: &crate::server_keys::KeyPair,
+        ca: &crate::server_keys::generate::Ca,
         key_factory: &KF,
         copy_count: NonZeroU8,
     ) -> crate::holder::Mdoc
@@ -162,10 +169,34 @@ impl TestDocument {
         KF: wallet_common::keys::factory::KeyFactory,
     {
         use wallet_common::generator::TimeGenerator;
-        use wallet_common::keys::EcdsaKey;
         use wallet_common::keys::WithIdentifier;
 
         use crate::holder::Mdoc;
+
+        let (issuer_signed, mdoc_key) = self.issuer_signed(ca, key_factory, copy_count).await;
+
+        let trust_anchor = ca.to_trust_anchor();
+        Mdoc::new::<KF::Key>(
+            mdoc_key.identifier().to_string(),
+            issuer_signed,
+            &TimeGenerator,
+            &[trust_anchor],
+        )
+        .unwrap()
+    }
+
+    /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
+    pub async fn issuer_signed<KF>(
+        self,
+        ca: &crate::server_keys::generate::Ca,
+        key_factory: &KF,
+        copy_count: NonZeroU8,
+    ) -> (crate::IssuerSigned, KF::Key)
+    where
+        KF: wallet_common::keys::factory::KeyFactory,
+    {
+        use wallet_common::keys::EcdsaKey;
+
         use crate::iso::disclosure::IssuerSigned;
         use crate::utils::issuer_auth::IssuerRegistration;
 
@@ -174,21 +205,17 @@ impl TestDocument {
             unsigned.copy_count = copy_count;
             unsigned
         };
+        let metadata = TypeMetadata::new_example();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned, mdoc_public_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned, metadata_chain, mdoc_public_key, &issuance_key)
             .await
             .unwrap();
 
-        Mdoc::new::<KF::Key>(
-            mdoc_key.identifier().to_string(),
-            issuer_signed,
-            &TimeGenerator,
-            &[(ca.certificate().try_into().unwrap())],
-        )
-        .unwrap()
+        (issuer_signed, mdoc_key)
     }
 }
 
@@ -238,7 +265,7 @@ impl From<TestDocument> for ItemsRequest {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TestDocuments(Vec<TestDocument>);
+pub struct TestDocuments(pub Vec<TestDocument>);
 impl TestDocuments {
     pub fn len(&self) -> usize {
         self.0.len()
@@ -284,11 +311,13 @@ impl TestDocuments {
         }
     }
 }
+
 impl From<Vec<TestDocument>> for TestDocuments {
     fn from(value: Vec<TestDocument>) -> Self {
         Self(value)
     }
 }
+
 impl IntoIterator for TestDocuments {
     type Item = TestDocument;
     type IntoIter = std::vec::IntoIter<Self::Item>;
@@ -296,12 +325,14 @@ impl IntoIterator for TestDocuments {
         self.0.into_iter()
     }
 }
+
 impl From<TestDocuments> for ItemsRequests {
     fn from(value: TestDocuments) -> Self {
         let requests: Vec<_> = value.into_iter().map(ItemsRequest::from).collect();
         Self::from(requests)
     }
 }
+
 impl std::ops::Add for TestDocuments {
     type Output = TestDocuments;
 
@@ -310,12 +341,14 @@ impl std::ops::Add for TestDocuments {
         self
     }
 }
+
 impl From<TestDocuments> for DeviceRequest {
     fn from(value: TestDocuments) -> Self {
         let items_requests = ItemsRequests::from(value);
         Self::from_items_requests(items_requests.0)
     }
 }
+
 impl AttributeIdentifierHolder for TestDocuments {
     fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.0
@@ -330,6 +363,12 @@ impl AttributeIdentifierHolder for TestDocuments {
                 })
             })
             .collect()
+    }
+}
+
+impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
+    pub fn doc_type(&self) -> Result<String, CoseError> {
+        Ok(self.dangerous_parse_unverified()?.0.doc_type)
     }
 }
 

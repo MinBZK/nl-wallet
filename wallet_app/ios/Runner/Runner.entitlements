@@ -6,5 +6,7 @@
 	<array>
 		<string>applinks:$(UL_HOSTNAME:default=app.example.com)</string>
 	</array>
+	<key>com.apple.developer.devicecheck.appattest-environment</key>
+	<string>$(APPLE_ATTESTATION_ENVIRONMENT:default=development)</string>
 </dict>
 </plist>

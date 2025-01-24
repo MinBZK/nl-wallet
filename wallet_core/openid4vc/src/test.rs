@@ -7,19 +7,19 @@ use derive_more::Debug;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use parking_lot::Mutex;
+use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
 use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
 use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::iso::device_retrieval::ItemsRequest;
+use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::verifier::ItemsRequests;
 use wallet_common::jwt::Jwt;
-use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -49,7 +49,7 @@ pub const VERIFIER_URL: &str = "http://example.com/disclosure";
 pub struct MockVerifierSession<F> {
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
-    pub trust_anchors: Vec<DerTrustAnchor>,
+    pub trust_anchors: Vec<TrustAnchor<'static>>,
     pub items_requests: ItemsRequests,
     pub nonce: String,
     pub encryption_keypair: EcKeyPair,
@@ -92,8 +92,8 @@ where
         transform_auth_request: F,
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
-        let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let key_pair = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
         // Generate some OpenID4VP specific session material.
@@ -103,7 +103,7 @@ where
         let request_uri_object = request_uri_object(
             verifier_url.join_base_url("request_uri").into_inner(),
             session_type,
-            key_pair.certificate().san_dns_name().unwrap().unwrap(),
+            String::from(key_pair.certificate().san_dns_name().unwrap().unwrap()),
         );
         let items_requests = vec![ItemsRequest::new_example()].into();
 
@@ -123,15 +123,8 @@ where
         }
     }
 
-    pub fn client_id(&self) -> String {
+    pub fn client_id(&self) -> &str {
         self.key_pair.certificate().san_dns_name().unwrap().unwrap()
-    }
-
-    fn trust_anchors(&self) -> Vec<TrustAnchor> {
-        self.trust_anchors
-            .iter()
-            .map(|anchor| (&anchor.owned_trust_anchor).into())
-            .collect()
     }
 
     pub fn request_uri_query(&self) -> String {
@@ -272,7 +265,7 @@ where
         &verifier_session.request_uri_query(),
         disclosure_uri_source,
         &mdoc_data_source,
-        &verifier_session.trust_anchors(),
+        &verifier_session.trust_anchors,
     )
     .await;
 
@@ -405,7 +398,7 @@ where
 }
 
 pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
-    let ca = KeyPair::generate_reader_mock_ca().unwrap();
+    let ca = Ca::generate_reader_mock_ca().unwrap();
     let key_pair = ca
         .generate_reader_mock(Some(ReaderRegistration {
             attributes: ReaderRegistration::create_attributes(

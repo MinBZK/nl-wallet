@@ -16,6 +16,12 @@ const _kCreateMonkeyBikeAccount = 'CREATE_MB_ACCOUNT';
 const _kPharmacy = 'PHARMACY';
 const _kAmsterdamLoginId = 'AMSTERDAM_LOGIN';
 
+const _kMockBirthDateKey = 'mock.birthDate';
+const _kMockStreetNameKey = 'mock.streetName';
+const _kMockPostalCodeKey = 'mock.postalCode';
+const _kMockHouseNumberKey = 'mock.houseNumber';
+const _kMockUrl = 'https://www.example.org';
+
 final List<DisclosureRequest> kDisclosureRequests = [
   DisclosureRequest(
     id: _kJobApplicationId,
@@ -134,19 +140,19 @@ final _kMarketplaceLoginRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   RequestedAttribute(
     label: 'Straatnaam',
-    key: 'mock.streetName',
+    key: _kMockStreetNameKey,
   ),
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
 ];
 
@@ -165,7 +171,7 @@ final _kCarRentalRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   RequestedAttribute(
     label: 'Rijbewijscategorieën',
@@ -185,7 +191,7 @@ final _kFirstAidRequestedAttributes = [
   ),
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   RequestedAttribute(
     label: 'Klantnummer',
@@ -209,11 +215,11 @@ final _kPharmacyRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
 ];
 
@@ -224,11 +230,11 @@ final _kParkingPermitRequestedAttributes = [
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
 ];
 
@@ -236,20 +242,20 @@ final _kOpenBankAccountRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   ..._kCitizenshipNumberRequest,
   RequestedAttribute(
     label: 'Straatnaam',
-    key: 'mock.streetName',
+    key: _kMockStreetNameKey,
   ),
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
 ];
 
@@ -257,7 +263,7 @@ final _kProvideContractDetailsRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
 ];
 
@@ -265,19 +271,19 @@ final _kCreateMbAccountRequestedAttributes = [
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geboortedatum',
-    key: 'mock.birthDate',
+    key: _kMockBirthDateKey,
   ),
   RequestedAttribute(
     label: 'Straatnaam',
-    key: 'mock.streetName',
+    key: _kMockStreetNameKey,
   ),
   RequestedAttribute(
     label: 'Huisnummer',
-    key: 'mock.houseNumber',
+    key: _kMockHouseNumberKey,
   ),
   RequestedAttribute(
     label: 'Postcode',
-    key: 'mock.postalCode',
+    key: _kMockPostalCodeKey,
   ),
   RequestedAttribute(
     label: 'Woonplaats',
@@ -289,81 +295,81 @@ final _kCreateMbAccountRequestedAttributes = [
 
 // region InteractionPolicies
 
-const _kEmployerPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 90,
+final _kEmployerPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
 // dataPurpose: 'Gegevens controle',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMockMarketPlacePolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 90,
+final _kMockMarketPlacePolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
 // dataPurpose: 'Registreren',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMockBarPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 0,
+final _kMockBarPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.zero,
 // dataPurpose: 'Leeftijd controle',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: false,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMockCarRentalPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 90,
+final _kMockCarRentalPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
 // dataPurpose: 'Rijvaardigheid',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMockFirstAidPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 365,
+final _kMockFirstAidPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 365),
 // dataPurpose: 'Zorgverlening',
   dataSharedWithThirdParties: true,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMockMunicipalityGenericPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 90,
+final _kMockMunicipalityGenericPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
 // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMockBankPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 90,
+final _kMockBankPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
 // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMockHousingCorpPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 90,
+final _kMockHousingCorpPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
 // dataPurpose: 'Gegevens dienen uitsluitend als bewijs',
   dataSharedWithThirdParties: false,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMonkeyBikePolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 90,
+final _kMonkeyBikePolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 90),
 // dataPurpose: 'Gegevens worden ook gebruikt voor andere doelen',
 // dataPurposeDescription: 'De gegevens kunnen worden gebruikt voor marketing en personalisatie.',
   dataSharedWithThirdParties: true,
   dataDeletionPossible: true,
-  policyUrl: 'https://www.example.org',
+  policyUrl: _kMockUrl,
 );
 
-const _kMunicipalityAmsterdamPolicy = RequestPolicy(
-  dataStorageDurationInMinutes: 60 * 24 * 365,
+final _kMunicipalityAmsterdamPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: BigInt.from(60 * 24 * 365),
   dataSharedWithThirdParties: false,
   dataDeletionPossible: false,
   policyUrl: 'https://www.amsterdam.nl/privacy',

@@ -3,6 +3,10 @@ use ciborium::value::Value;
 use coset::CoseSign1;
 use coset::HeaderBuilder;
 
+use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt::metadata::COSE_METADATA_HEADER_LABEL;
+use sd_jwt::metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
 use wallet_common::keys::EcdsaKey;
 
 use crate::iso::*;
@@ -17,6 +21,7 @@ use crate::Result;
 impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
+        metadata_chain: TypeMetadataChain,
         device_public_key: CoseKey,
         key: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self> {
@@ -40,10 +45,27 @@ impl IssuerSigned {
             validity_info: validity,
         };
 
+        // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3808)
+
+        let (chain, integrity) = metadata_chain.into_destructured();
+
         let headers = HeaderBuilder::new()
-            .value(
-                COSE_X5CHAIN_HEADER_LABEL,
-                Value::Bytes(key.certificate().as_bytes().to_vec()),
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))
+            .text_value(
+                String::from(COSE_METADATA_HEADER_LABEL),
+                Value::Array(
+                    chain
+                        .into_iter()
+                        .map(|m| {
+                            let encoded = m.try_as_base64()?;
+                            Ok(Value::Text(encoded))
+                        })
+                        .collect::<Result<_, TypeMetadataError>>()?,
+                ),
+            )
+            .text_value(
+                String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL),
+                Value::Text(integrity.into()),
             )
             .build();
         let mso_tagged = mso.into();
@@ -68,12 +90,13 @@ mod tests {
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-
+    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
-    use crate::server_keys::KeyPair;
+    use crate::server_keys::generate::Ca;
     use crate::unsigned::Entry;
     use crate::unsigned::UnsignedMdoc;
     use crate::utils::cose::CoseKey;
@@ -88,9 +111,9 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-        let trust_anchors = &[ca.certificate().try_into().unwrap()];
+        let trust_anchors = &[ca.to_trust_anchor()];
 
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
@@ -110,9 +133,11 @@ mod tests {
             .try_into()
             .unwrap(),
         };
+        let metadata = TypeMetadata::new_example();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned.clone(), device_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned.clone(), metadata_chain, device_key, &issuance_key)
             .await
             .unwrap();
 

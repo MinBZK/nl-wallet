@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-11-07T12:20:41+01:00",
+    "@@last_modified": "2025-01-20T14:57:45+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -21,6 +21,9 @@
     "activitySummarySharedWithMultiple": "shared with {organizations} and {organization}",
     "activitySummarySharedWithOthers": "{nrOrganizations} other organizations",
     "activitySummaryToday": "Activities today",
+    "appBlockedScreenDescription": "You can no longer use this version of the app. Go to the Play Store to update the app.",
+    "appBlockedScreenDescriptioniOSVariant": "You can no longer use this version of the app. Go to the App Store to update the app.",
+    "appBlockedScreenTitle": "A new app version is needed",
     "appTitle": "NL Wallet",
     "biometricSettingsScreenDescription": "This will open your NL Wallet faster. You'll use your {supportedBiometrics} instead of your PIN.\nEnable {supportedBiometrics} and confirm with your PIN.",
     "@biometricSettingsScreenDescription": {
@@ -299,7 +302,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Only the following data is shared. Nothing more.} other {Only the following {count} pieces of data are shared. Nothing more.}}",
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Only the following detail will be shared. Nothing more.} other {Only the following {count} details will be shared. Nothing more.}}",
     "@disclosureConfirmDataAttributesSharedAttributesInfo": {
         "placeholders": {
             "count": {
@@ -415,6 +418,8 @@
     "forgotPinScreenCta": "Delete Wallet",
     "forgotPinScreenDescription": "When you forget your PIN, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN.",
     "forgotPinScreenTitle": "Forgot PIN?",
+    "generalAppStoreAndroid": "Play Store",
+    "generalAppStoreiOS": "App Store",
     "generalBottomBackCta": "Back",
     "generalCancelCta": "Cancel",
     "generalClose": "Close",
@@ -447,6 +452,7 @@
             }
         }
     },
+    "generalNeedHelpCta": "Need help?",
     "generalOff": "Off",
     "generalOkCta": "OK",
     "generalOn": "On",
@@ -481,6 +487,8 @@
     "generalShowDetailsCta": "See details",
     "generalTimeAgo": "ago",
     "generalTimeAgoLessThenOneMinute": "less then a minute",
+    "generalToAppStoreCta": "To App Store",
+    "generalToPlayStoreCta": "To Play Store",
     "generalVersionText": "App version:",
     "generalWCAGBack": "Back",
     "generalWCAGChangeLanguage": "Change language",
@@ -559,7 +567,7 @@
     "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
     "historyDetailScreenPurposeTitle": "Sharing reason",
     "historyDetailScreenReportIssueCta": "Would you like to report a problem?",
-    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Only the following data was shared. Nothing more.} other {Only the following {count} pieces of data were shared. Nothing more.}}",
+    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Only the following detail was shared. Nothing more.} other {Only the following {count} details were shared. Nothing more.}}",
     "@historyDetailScreenSharedAttributesSubtitle": {
         "placeholders": {
             "count": {
@@ -715,6 +723,8 @@
     "issuanceSuccessPageCloseCta": "To my overview",
     "issuanceSuccessPageTitle": "Success!",
     "localAuthMessageAndroidBiometricHint": "Use fingerprint or face scan",
+    "localAuthMessageAndroidBiometricHintFaceScanOnly": "Use face scan",
+    "localAuthMessageAndroidBiometricHintFingerPrintOnly": "Use fingerprint",
     "localAuthMessageAndroidBiometricNotRecognized": "Not recognized. Try again.",
     "localAuthMessageAndroidBiometricRequiredTitle": "Turn on fingerprint of face scan first",
     "localAuthMessageAndroidBiometricSuccess": "Success",
@@ -723,6 +733,8 @@
     "localAuthMessageAndroidDeviceCredentialsSetupDescription": "Turn on face scan or fingerprint first",
     "localAuthMessageAndroidGoToSettingsDescription": "Turn on face scan or fingerprint in Settings > Face Scan or Fingerprint.",
     "localAuthMessageAndroidSignInTitle": "Scan fingerprint or face",
+    "localAuthMessageAndroidSignInTitleFaceScanOnly": "Use your face scan",
+    "localAuthMessageAndroidSignInTitleFingerPrintOnly": "Use your fingerprint",
     "localAuthMessageGoToSettingsButton": "Go to Settings",
     "localAuthMessageiOSCancelButton": "Close",
     "localAuthMessageiOSGoToSettingsDescription": "Turn on Face ID first.",
@@ -931,7 +943,7 @@
     "reportOptionUnreasonableTerms": "I disagree with the terms",
     "reportOptionUntrusted": "I do not trust this",
     "requestDetailScreenTitle": "Request details",
-    "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Only the following data was requested. Nothing more.} other {Only the following {count} pieces of data were requested. Nothing more.}}",
+    "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Only the following detail was requested. Nothing more.} other {Only the following {count} details were requested. Nothing more.}}",
     "@requestDetailsScreenAttributesSubtitle": {
         "placeholders": {
             "count": {
@@ -1034,31 +1046,49 @@
     "signSuccessPageHistoryCta": "Activities",
     "signSuccessPageTitle": "Success!",
     "unlockWithBiometricsReason": "Unlock the NL Wallet",
-    "walletPersonalizeCheckDataOfferingPageAcceptCta": "Add",
-    "walletPersonalizeCheckDataOfferingPageAddressLabel": "Address",
-    "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Born",
-    "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
-    "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {
+    "updateBannerNotifyDescription": "This way, you get the best experience.",
+    "updateBannerNotifyTitle": "Update the app",
+    "updateBannerRecommendDescription": "This way, you solve the problems.",
+    "updateBannerRecommendTitle": "Update urgently needed",
+    "updateBannerWarnDescription": "This version stops within {time_left}.",
+    "@updateBannerWarnDescription": {
         "placeholders": {
-            "birthCountry": {
-                "example": "Nederland",
-                "type": "String"
-            },
-            "birthDate": {
-                "example": "01-01-1980",
-                "type": "String"
-            },
-            "birthPlace": {
-                "example": "Leiden",
+            "time_left": {
+                "example": "3 days",
                 "type": "String"
             }
         }
     },
-    "walletPersonalizeCheckDataOfferingPageCitizenIdLabel": "Citizen service number (BSN)",
+    "updateBannerWarnTitle": "Update urgently needed",
+    "updateInfoScreenDescription": "There are problems with this version of the app. Get the latest version from the Play Store for a better experience.",
+    "updateInfoScreenDescriptioniOSVariant": "There are problems with this version of the app. Get the latest version from the App Store for a better experience.",
+    "updateInfoScreenTitle": "Update urgently needed",
+    "updateNotificationDialogCountdownDescription": "Within {time_left}, this app version will stop. Update now via the {app_store} to continue using the app.",
+    "@updateNotificationDialogCountdownDescription": {
+        "placeholders": {
+            "app_store": {
+                "example": "Play Store",
+                "type": "String"
+            },
+            "time_left": {
+                "example": "3 days",
+                "type": "String"
+            }
+        }
+    },
+    "updateNotificationDialogDescription": "There are problems found in this version of the app. Update the app in the {app_store} to fix them.",
+    "@updateNotificationDialogDescription": {
+        "placeholders": {
+            "app_store": {
+                "example": "Play Store",
+                "type": "String"
+            }
+        }
+    },
+    "updateNotificationDialogTitle": "Update urgently needed",
+    "walletPersonalizeCheckDataOfferingPageAcceptCta": "Add",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
-    "walletPersonalizeCheckDataOfferingPageGenderLabel": "Gender",
-    "walletPersonalizeCheckDataOfferingPageNameLabel": "Name",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "If your details are correct, you can add them as cards.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Do you want to add these details?",
     "walletPersonalizeConfirmPinPageTitle": "Agree with your PIN",

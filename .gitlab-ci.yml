@@ -2,12 +2,11 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:5c5495f178c5b44b89b038f402b9062f6b9ba0b3f86f88e0ffeb81dd3ce27c02"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250123-e88295e7"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
   FF_USE_FASTZIP: "true"
-  FLUTTER_APP_PROJECT_DIR: "wallet_app"
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
@@ -62,16 +61,19 @@ variables:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
       variables:
         CACHE_POLICY: pull
+    - if: $DEPLOY_DEMO_OVERRIDE == "true"
 
 .merge-request:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
       variables:
         CACHE_POLICY: pull
 
 .merge-request-manual:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
       variables:
         CACHE_POLICY: pull
       when: manual
@@ -105,7 +107,7 @@ variables:
       - "vendor/ruby"
   before_script:
     - ruby -v
-    - bundle config set --local path "vendor/ruby"
+    - bundle config set --local path "vendor"
 
 .ruby-cache-macos:
   extends: .ruby-cache
@@ -114,68 +116,77 @@ variables:
 
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:e91e97e25b1f9c9fdd25fe9df28880e54c7878bdf7ee61f879f605a9957c02e8"
-  script:
+  before_script:
+    - cd wallet_app
     - set -euxo pipefail
+  script:
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
-    - flutter analyze $FLUTTER_APP_PROJECT_DIR
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json")
+    - flutter pub get --enforce-lockfile
+    - flutter analyze .
+    - flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
+    - tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
+  after_script:
+    - set -euxo pipefail
+    - |
+      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
+        mc put wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
+      fi
   artifacts:
+    reports:
+      junit: wallet_app/build/reports/test-results.xml
     paths:
-      - $FLUTTER_APP_PROJECT_DIR/coverage/lcov.info
-      - $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.json
+      - wallet_app/coverage/lcov.info
+      - wallet_app/build/reports/test-results.json
+      - wallet_app/build/reports/test-results.xml
 
 test-flutter-ui:
   rules: !reference [.default-or-release-or-merge-request, rules]
   when: manual
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.5
   artifacts:
     name: "ui-test-failures"
     when: on_failure
     paths:
       - "**/failures/*.png"
-  script:
+  before_script:
+    - cd wallet_app
     - set -euxo pipefail
+  script:
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
+    - flutter test --tags=golden --dart-define=MOCK_REPOSITORIES=true
 
 # Checks .arb files for unused keys, indicating an update to Lokalise might be in order
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:e91e97e25b1f9c9fdd25fe9df28880e54c7878bdf7ee61f879f605a9957c02e8"
-  script:
+  before_script:
+    - cd wallet_app
     - set -euxo pipefail
+  script:
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter pub get --enforce-lockfile)
-    - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms) # List any unused keys
-    - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms --abort-on-unused) # Fail if unused keys are found
+    - flutter pub get --enforce-lockfile
+    - dart run translations_cleaner list-unused-terms # List any unused keys
+    - dart run translations_cleaner list-unused-terms --abort-on-unused # Fail if unused keys are found
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
 
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:f106eae7f5fdd9489cfc548d67a6b61f761f112907c638b6436d21b763cbcb4d"
-  cache: !reference [.rust-cache, cache]
-  script:
+  before_script:
+    - cd wallet_app
     - set -euxo pipefail
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get --enforce-lockfile)
-    - cargo run --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --locked
-    - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub run build_runner build --delete-conflicting-outputs)
-    - dart format wallet_app --line-length 120
+  script:
+    - flutter pub get --enforce-lockfile
+    - flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
+    - flutter pub run build_runner build --delete-conflicting-outputs
+    - dart format . --line-length 120
     - git diff
-    - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
+    - if [[ $(git diff --shortstat | wc -l) -gt 0 ]]; then echo "Code generation results in different files!"; exit 1; fi
 
 build-wallet-web:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:bbb57ef5a98486308c6875efb0d765abc6674a3053c27e2bbc6b0bf516be27c7"
   variables:
-    VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_ACC
+    VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
   script:
     - set -euxo pipefail
     - (cd wallet_web; npm ci && npm run type-check && npm run coverage -- --run)
@@ -200,7 +211,15 @@ build-wallet-web:
     - echo $CSP_STYLE_SRC_MRP | base64 > wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt
     - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
     - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
+  after_script:
+    - set -euxo pipefail
+    - |
+      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
+        mc put wallet_web/coverage/tests.xml qt/quality-time/junit-results/web.xml
+      fi
   artifacts:
+    reports:
+      junit: wallet_web/coverage/tests.xml
     paths:
       - wallet_web/dist
       - wallet_web/coverage
@@ -225,6 +244,34 @@ run-wp-migrations-demo:
   extends: [.env-demo-k8s, .run-wp-migrations]
   rules: !reference [.release-tag, rules]
 
+.deploy-update-policy-server:
+  needs:
+    - job: build-update-policy-server-image
+      artifacts: false
+  variables:
+    UPDATE_POLICY_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-update-policy-server:${CI_COMMIT_SHORT_SHA}
+  script:
+    - envsubst < deploy/kubernetes/update-policy-server-deployment.yaml | kubectl apply -f -
+    - envsubst < deploy/kubernetes/update-policy-server-ingress.yaml | kubectl apply -f -
+    - kubectl apply -f deploy/kubernetes/update-policy-server-service.yaml
+    - kubectl rollout status deployment/update-policy-server
+
+deploy-update-policy-server-ont:
+  extends: [.env-ont-k8s, .deploy-update-policy-server]
+  rules: !reference [.default-or-merge-request, rules]
+  needs:
+    - !reference [.deploy-update-policy-server, needs]
+  variables:
+    UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME: $UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME_ONT
+
+deploy-update-policy-server-demo:
+  extends: [.env-demo-k8s, .deploy-update-policy-server]
+  rules: !reference [.release-tag, rules]
+  needs:
+    - !reference [.deploy-update-policy-server, needs]
+  variables:
+    UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME: $UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME_DEMO
+
 .deploy-wallet-provider:
   needs:
     - job: build-wallet-provider-image
@@ -233,7 +280,7 @@ run-wp-migrations-demo:
     WALLET_PROVIDER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA}
   script:
     - envsubst < deploy/kubernetes/servicemonitors.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/wallet-provider-configmap.yaml
+    - kubectl apply -f deploy/kubernetes/${ENV}/wallet-provider-configmap.yaml
     - envsubst < deploy/kubernetes/wallet-provider-deployment.yaml | kubectl apply -f -
     - envsubst < deploy/kubernetes/wallet-provider-ingress.yaml | kubectl apply -f -
     - kubectl apply -f deploy/kubernetes/wallet-provider-service.yaml
@@ -248,10 +295,10 @@ deploy-wallet-provider-ont:
     - job: run-wp-migrations-ont
       artifacts: false
   variables:
+    ENV: ont
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_ONT
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_ONT
-    SENTRY_DSN: "${SENTRY_DSN_ONT}"
-    SENTRY_ENVIRONMENT: "ont"
+    APP_IDENTIFIER: "${INTERNAL_APP_IDENTIFIER}.latest"
 
 deploy-wallet-provider-demo:
   extends: [.env-demo-k8s, .deploy-wallet-provider]
@@ -261,10 +308,10 @@ deploy-wallet-provider-demo:
     - job: run-wp-migrations-demo
       artifacts: false
   variables:
+    ENV: demo
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_DEMO
-    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
-    SENTRY_ENVIRONMENT: "demo"
+    APP_IDENTIFIER: "${INTERNAL_APP_IDENTIFIER}.demo"
 
 .run-mrp-vs-migrations:
   needs:
@@ -331,8 +378,6 @@ deploy-mock-relying-party-ont:
     MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_ONT
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
-    SENTRY_DSN: "${SENTRY_DSN_ONT}"
-    SENTRY_ENVIRONMENT: "ont"
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
@@ -347,8 +392,6 @@ deploy-mock-relying-party-demo:
     MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
-    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
-    SENTRY_ENVIRONMENT: "demo"
 
 .run-pi-migrations:
   needs:
@@ -393,8 +436,6 @@ deploy-pid-issuer-ont:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_ONT
     PID_ISSUER_INTERNAL_HOSTNAME: $PID_ISSUER_INTERNAL_HOSTNAME_ONT
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
-    SENTRY_DSN: "${SENTRY_DSN_ONT}"
-    SENTRY_ENVIRONMENT: "ont"
 
 deploy-pid-issuer-demo:
   extends: [.env-demo-k8s, .deploy-pid-issuer]
@@ -408,8 +449,6 @@ deploy-pid-issuer-demo:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_DEMO
     PID_ISSUER_INTERNAL_HOSTNAME: $PID_ISSUER_INTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
-    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
-    SENTRY_ENVIRONMENT: "demo"
 
 .deploy-gba-hc-converter:
   needs:
@@ -512,40 +551,37 @@ deploy-gba-fetch-frontend-demo:
 
 build-sbom:
   rules: !reference [.default-branch, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:6eec67d53367780d54d1a66fdbaceab1dcf06dbd5be4d6c587ebc67b329cf545"
   script:
     ## Rust
-    - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json --override-filename bom
-    - cargo cyclonedx --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
     ## NPM
     - cd wallet_web
-    - cyclonedx-npm --output-format json --output-file bom.json --package-lock-only
+    - cyclonedx-npm --spec-version 1.5 --output-format json --output-file bom.json --package-lock-only
     # only keep bundled dependencies
     - jq '.components |= map(select(.properties|any(.name == "cdx:npm:package:bundled")))' bom.json > bom-bundled.json
     - mv bom-bundled.json bom.json
     - cd ..
     ## Flutter
-    - cd wallet_app; cdxgen --type dart --output bom.json; cd -
+    - cd wallet_app && cdxgen --spec-version 1.5 --type dart --output bom.json && cd -
     ## iOS
-    # does not support json, so converting to it (we need it to be able to merge)
     - bundle install
     - cd wallet_app
     - flutter pub get --enforce-lockfile
     - flutter precache --ios
     - cd ios
     - bundle exec pod install --allow-root
-    - cyclonedx-cocoapods
-    - cyclonedx convert --input-file bom.xml --output-file bom.json
+    - cyclonedx-cocoapods # only supports single spec version (currently 1.6)
+    - cyclonedx convert --output-version v1_5 --input-file bom.xml --output-file bom.json
     - cd ../..
     ## Android
-    - cd wallet_app/android/app; cdxgen --type gradle --output bom.json; cd -
-    - cd wallet_core/platform_support/android/platform_support; cdxgen --type gradle --output bom.json; cd -
+    # TODO PVW-3972: Android BOM is empty and with latest build image the generation fails
+    #- cd wallet_app/android && cdxgen --spec-version 1.5 --type gradle --output bom.json && cd -
+    #- cd wallet_core/platform_support/android/platform_support && cdxgen --spec-version 1.5 --type gradle --output bom.json && cd -
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
-    - cyclonedx merge --input-files `find . -name bom.json` --output-file bom.json
+    - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
     # converting it to xml does work
-    - cyclonedx convert --input-file bom.json --output-file bom.xml
+    - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"

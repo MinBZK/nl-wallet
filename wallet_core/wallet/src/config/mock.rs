@@ -2,14 +2,14 @@ use std::sync::Arc;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
-use crate::config::data::default_configuration;
+use crate::config::data::default_wallet_config;
+use crate::repository::ObservableRepository;
+use crate::repository::Repository;
+use crate::repository::RepositoryCallback;
+use crate::repository::RepositoryUpdateState;
+use crate::repository::UpdateableRepository;
 
-use super::ConfigCallback;
 use super::ConfigurationError;
-use super::ConfigurationRepository;
-use super::ConfigurationUpdateState;
-use super::ObservableConfigurationRepository;
-use super::UpdateableConfigurationRepository;
 
 pub struct LocalConfigurationRepository {
     config: Arc<WalletConfiguration>,
@@ -25,28 +25,39 @@ impl LocalConfigurationRepository {
 
 impl Default for LocalConfigurationRepository {
     fn default() -> Self {
-        Self::new(default_configuration())
+        Self::new(default_wallet_config())
     }
 }
 
-impl ConfigurationRepository for LocalConfigurationRepository {
-    fn config(&self) -> Arc<WalletConfiguration> {
+impl Repository<Arc<WalletConfiguration>> for LocalConfigurationRepository {
+    fn get(&self) -> Arc<WalletConfiguration> {
         Arc::clone(&self.config)
     }
 }
 
-impl UpdateableConfigurationRepository for LocalConfigurationRepository {
-    async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
-        Ok(ConfigurationUpdateState::Updated)
+impl<B> UpdateableRepository<Arc<WalletConfiguration>, B> for LocalConfigurationRepository
+where
+    B: Send + Sync,
+{
+    type Error = ConfigurationError;
+
+    async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+        Ok(RepositoryUpdateState::Updated {
+            from: self.get(),
+            to: self.get(),
+        })
     }
 }
 
-impl ObservableConfigurationRepository for LocalConfigurationRepository {
-    fn register_callback_on_update(&self, _callback: ConfigCallback) -> Option<ConfigCallback> {
+impl ObservableRepository<Arc<WalletConfiguration>> for LocalConfigurationRepository {
+    fn register_callback_on_update(
+        &self,
+        _callback: RepositoryCallback<Arc<WalletConfiguration>>,
+    ) -> Option<RepositoryCallback<Arc<WalletConfiguration>>> {
         None
     }
 
-    fn clear_callback(&self) -> Option<ConfigCallback> {
+    fn clear_callback(&self) -> Option<RepositoryCallback<Arc<WalletConfiguration>>> {
         None
     }
 }

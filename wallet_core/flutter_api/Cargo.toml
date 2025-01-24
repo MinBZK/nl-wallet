@@ -15,22 +15,14 @@ doctest = false
 [dependencies]
 anyhow.workspace = true
 backtrace.workspace = true
-flutter_rust_bridge.workspace = true
+flutter_rust_bridge = "=2.7.0"
 itertools.workspace = true
 parking_lot.workspace = true
-sentry = { workspace = true, features = [
-    "backtrace",
-    "contexts",
-    "panic",
-    "debug-images",
-    "reqwest",
-    "rustls",
-] }
-sentry-panic.workspace = true
+sentry = { workspace = true, features = ["backtrace", "contexts", "panic", "debug-images", "reqwest", "rustls"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
+tokio = { workspace = true, features = ["sync", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "fmt", "tracing-log", "parking_lot"] }
 url.workspace = true

@@ -33,7 +33,7 @@ class DataIncorrectScreen extends StatelessWidget {
                 ),
               ),
               const SliverSizedBox(height: 32),
-              const SliverToBoxAdapter(child: Divider(height: 1)),
+              const SliverToBoxAdapter(child: Divider()),
               SliverToBoxAdapter(
                 child: DataIncorrectOptionRow(
                   title: context.l10n.dataIncorrectScreenDeclineTitle,
@@ -43,7 +43,7 @@ class DataIncorrectScreen extends StatelessWidget {
                   onTap: () => Navigator.pop(context, DataIncorrectResult.declineCard),
                 ),
               ),
-              const SliverToBoxAdapter(child: Divider(height: 1)),
+              const SliverToBoxAdapter(child: Divider()),
               SliverToBoxAdapter(
                 child: DataIncorrectOptionRow(
                   title: context.l10n.dataIncorrectScreenApproveTitle,
@@ -53,7 +53,7 @@ class DataIncorrectScreen extends StatelessWidget {
                   onTap: () => Navigator.pop(context, DataIncorrectResult.acceptCard),
                 ),
               ),
-              const SliverToBoxAdapter(child: Divider(height: 1)),
+              const SliverToBoxAdapter(child: Divider()),
               const SliverSizedBox(height: 24),
               const SliverFillRemaining(
                 hasScrollBody: false,

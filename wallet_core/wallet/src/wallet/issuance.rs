@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
@@ -17,24 +19,30 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::jwt::JwtCredentialError;
 use openid4vc::token::CredentialPreviewError;
-use platform_support::hw_keystore::PlatformEcdsaKey;
+use platform_support::attested_key::AttestedKeyHolder;
+use sd_jwt::metadata::TypeMetadataError;
+use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
 use wallet_common::reqwest::default_reqwest_client_builder;
+use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
-use crate::config::ConfigurationRepository;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::document::Document;
 use crate::document::DocumentMdocError;
 use crate::document::PID_DOCTYPE;
 use crate::errors::ChangePinError;
+use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
 use crate::issuance::DigidSession;
 use crate::issuance::DigidSessionError;
 use crate::issuance::HttpDigidSession;
+use crate::repository::Repository;
+use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::WalletEvent;
@@ -52,6 +60,9 @@ pub(super) enum PidIssuanceSession<DS = HttpDigidSession, IS = HttpIssuanceSessi
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum PidIssuanceError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
@@ -100,11 +111,18 @@ pub enum PidIssuanceError {
     ChangePin(#[from] ChangePinError),
     #[error("JWT credential error: {0}")]
     JwtCredential(#[from] JwtCredentialError),
+    #[error("error fetching update policy: {0}")]
+    UpdatePolicy(#[from] UpdatePolicyError),
+    #[error("type metadata verification failed: {0}")]
+    #[category(critical)]
+    TypeMetadataVerification(#[from] TypeMetadataError),
 }
 
-impl<CR, S, PEK, APC, DS, IS, MDS, WIC> Wallet<CR, S, PEK, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
-    CR: ConfigurationRepository,
+    CR: Repository<Arc<WalletConfiguration>>,
+    UR: Repository<VersionState>,
+    AKH: AttestedKeyHolder,
     DS: DigidSession,
     IS: IssuanceSession,
     S: Storage,
@@ -115,8 +133,13 @@ where
     pub async fn create_pid_issuance_auth_url(&mut self) -> Result<Url, PidIssuanceError> {
         info!("Generating DigiD auth URL, starting OpenID connect discovery");
 
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
+
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(PidIssuanceError::NotRegistered);
         }
 
@@ -141,7 +164,7 @@ where
             return Err(PidIssuanceError::PidAlreadyPresent);
         }
 
-        let pid_issuance_config = &self.config_repository.config().pid_issuance;
+        let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let (session, auth_url) = DS::start(
             pid_issuance_config.digid.clone(),
             &pid_issuance_config.digid_http_config,
@@ -161,8 +184,13 @@ where
     pub fn has_active_pid_issuance_session(&self) -> Result<bool, PidIssuanceError> {
         info!("Checking for active PID issuance session");
 
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
+
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(PidIssuanceError::NotRegistered);
         }
 
@@ -181,8 +209,13 @@ where
     pub async fn cancel_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
         info!("PID issuance cancelled / rejected");
 
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
+
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(PidIssuanceError::NotRegistered);
         }
 
@@ -207,8 +240,13 @@ where
     pub async fn continue_pid_issuance(&mut self, redirect_uri: Url) -> Result<Vec<Document>, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
+
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.registration.is_registered() {
             return Err(PidIssuanceError::NotRegistered);
         }
 
@@ -240,8 +278,7 @@ where
             )]))
             .build()
             .expect("Could not build reqwest HTTP client");
-
-        let config = self.config_repository.config();
+        let config = self.config_repository.get();
 
         let (pid_issuer, attestation_previews) = IS::start_issuance(
             pid_issuer_http_client.into(),
@@ -255,7 +292,10 @@ where
         let mut documents = attestation_previews
             .into_iter()
             .map(|preview| {
-                let (unsigned_mdoc, issuer) = preview.try_into()?;
+                let (unsigned_mdoc, protected_metadata, issuer) = preview.try_into()?;
+                let _metadata = protected_metadata.verify_and_parse_root()?;
+                // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
+
                 Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer)?)
             })
             .collect::<Result<Vec<_>, PidIssuanceError>>()?;
@@ -271,17 +311,27 @@ where
     #[sentry_capture_error]
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
-        PEK: PlatformEcdsaKey,
         APC: AccountProviderClient,
         WIC: WteIssuanceClient + Default,
     {
         info!("Accepting PID issuance");
 
+        let config = &self.config_repository.get().update_policy_server;
+
+        info!("Fetching update policy");
+        self.update_policy_repository.fetch(&config.http_config).await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(PidIssuanceError::VersionBlocked);
+        }
+
         info!("Checking if registered");
-        let registration = self
+        let (attested_key, registration_data) = self
             .registration
-            .as_ref()
+            .as_key_and_registration_data()
             .ok_or_else(|| PidIssuanceError::NotRegistered)?;
 
         info!("Checking if locked");
@@ -295,25 +345,26 @@ where
             PidIssuanceSession::Openid4vci(pid_issuer) => pid_issuer,
         };
 
-        let config = self.config_repository.config();
+        let config = self.config_repository.get();
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
 
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                registration,
+                attested_key,
+                registration_data,
                 &config.account_server.http_config,
                 &instruction_result_public_key,
             )
             .await?;
 
-        let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
-
         let wte = self
             .wte_issuance_client
             .obtain_wte(&config.account_server.wte_public_key.0, &remote_instruction)
             .await?;
+
+        let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
@@ -403,35 +454,48 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
+    use rstest::rstest;
+    use serial_test::serial;
+    use url::Url;
+
+    use nl_wallet_mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use rstest::rstest;
-    use serial_test::serial;
-    use url::Url;
-
+    use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::config::http::TlsPinningConfig;
 
+    use crate::document;
     use crate::document::DocumentPersistence;
-    use crate::document::{self};
     use crate::issuance::MockDigidSession;
     use crate::storage::StorageState;
     use crate::wallet::history::HistoryEvent;
 
+    use super::super::test;
+    use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
     use super::super::test::ISSUER_KEY;
-    use super::super::test::{self};
     use super::*;
+
+    fn mock_issuance_session(mdoc: Mdoc) -> MockIssuanceSession {
+        let mut client = MockIssuanceSession::new();
+        client.expect_accept().return_once(|| {
+            Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
+                .try_into()
+                .unwrap()])
+        });
+        client
+    }
 
     #[tokio::test]
     #[serial(MockDigidSession)]
     async fn test_create_pid_issuance_auth_url() {
         const AUTH_URL: &str = "http://example.com/auth";
 
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         assert!(wallet.issuance_session.is_none());
 
@@ -454,7 +518,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_pid_issuance_auth_url_error_locked() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -471,7 +535,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_pid_issuance_auth_url_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Creating a DigiD authentication URL on an
         // unregistered wallet should result in an error.
@@ -485,7 +549,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_pid_issuance_auth_url_error_session_state_digid() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session.
         wallet.issuance_session = Some(PidIssuanceSession::Digid(MockDigidSession::default()));
@@ -502,7 +566,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_pid_issuance_auth_url_error_session_state_pid_issuer() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Setup a mock OpenID4VCI session.
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(MockIssuanceSession::default()));
@@ -520,7 +584,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockDigidSession)]
     async fn test_create_pid_issuance_auth_url_error_digid_session_start() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Make DigiD session starting return an error.
         let session_start_context = MockDigidSession::start_context();
@@ -539,7 +603,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_cancel_pid_issuance_digid() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session.
         wallet.issuance_session = Some(PidIssuanceSession::Digid(MockDigidSession::default()));
@@ -558,7 +622,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_pid_issuance_pid() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up the `PidIssuerClient`
         let pid_issuer = {
@@ -580,7 +644,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_pid_issuance_error_locked() {
         // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -596,7 +660,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_pid_issuance_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Cancelling PID issuance on an unregistered wallet should result in an error.
         let error = wallet
@@ -610,7 +674,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_pid_issuance_error_session_state() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Cancelling PID issuance on a wallet with no
         // active DigiD session should result in an error.
@@ -627,16 +691,19 @@ mod tests {
     #[tokio::test]
     #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance() {
-        let mut wallet = setup_wallet_with_digid_session().await;
+        let mut wallet = setup_wallet_with_digid_session();
 
+        let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
-                    unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
+                    unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                    metadata_chain,
                 }],
             ))
         });
@@ -654,7 +721,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_locked() {
         // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -670,7 +737,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Continuing PID issuance on an unregistered wallet should result in an error.
         let error = wallet
@@ -684,7 +751,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_session_state() {
         // Prepare a registered wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Continuing PID issuance on a wallet with no active `DigidSession` should result in an error.
         let error = wallet
@@ -695,9 +762,9 @@ mod tests {
         assert_matches!(error, PidIssuanceError::SessionState);
     }
 
-    async fn setup_wallet_with_digid_session() -> WalletWithMocks {
+    fn setup_wallet_with_digid_session() -> WalletWithMocks {
         // Prepare a registered wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session that returns a token request.
         let digid_session = {
@@ -724,7 +791,7 @@ mod tests {
     #[tokio::test]
     #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance_error_pid_issuer() {
-        let mut wallet = setup_wallet_with_digid_session().await;
+        let mut wallet = setup_wallet_with_digid_session();
 
         // Set up the `MockIssuanceSession` to return an error.
         let start_context = MockIssuanceSession::start_context();
@@ -744,19 +811,21 @@ mod tests {
     #[tokio::test]
     #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance_error_document() {
-        let mut wallet = setup_wallet_with_digid_session().await;
+        let mut wallet = setup_wallet_with_digid_session();
 
         // Set up the `MockIssuanceSession` to return an `AttestationPreview` with an unknown doctype.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
-            let mut unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+            let (mut unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
             unsigned_mdoc.doc_type = "foobar".to_string();
+            let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
             Ok((
                 MockIssuanceSession::new(),
                 vec![CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                    metadata_chain,
                 }],
             ))
         });
@@ -773,7 +842,7 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_pid_issuance_error_pid_issuer() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock OpenID4VCI session that expects to be rejected, which returns an error.
         let pid_issuer = {
@@ -799,7 +868,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Register mock document_callback
         let documents = test::setup_mock_documents_callback(&mut wallet).await.unwrap();
@@ -809,16 +878,8 @@ mod tests {
 
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
-        let mdoc = test::create_full_pid_mdoc().await;
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| {
-                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
-                    .try_into()
-                    .unwrap()])
-            });
-            client
-        };
+        let mdoc = test::create_full_pid_mdoc();
+        let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Accept the PID issuance with the PIN.
@@ -871,20 +932,12 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_missing_issuer_registration() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Create a mock OpenID4VCI session that accepts the PID with a single instance of `MdocCopies`, which contains
         // a single valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
-        let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| {
-                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
-                    .try_into()
-                    .unwrap()])
-            });
-            client
-        };
+        let mdoc = test::create_full_pid_mdoc_unauthenticated();
+        let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Accept the PID issuance with the PIN.
@@ -906,7 +959,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
+        let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Accepting PID issuance on an unregistered wallet should result in an error.
         let error = wallet
@@ -920,7 +973,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_locked() {
         // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         wallet.lock();
 
@@ -939,7 +992,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_session_state() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
@@ -958,7 +1011,7 @@ mod tests {
         key_error: RemoteEcdsaKeyError,
     ) -> (WalletWithMocks, PidIssuanceError) {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the mock OpenID4VCI session return a particular `RemoteEcdsaKeyError` upon accepting.
         let pid_issuer = {
@@ -1037,7 +1090,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_error_pid_issuer() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the mock OpenID4VCI session return an error upon accepting.
         let pid_issuer = {
@@ -1064,19 +1117,11 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_error_storage() {
         // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
-        let mdoc = test::create_full_pid_mdoc().await;
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client.expect_accept().return_once(|| {
-                Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
-                    .try_into()
-                    .unwrap()])
-            });
-            client
-        };
+        let mdoc = test::create_full_pid_mdoc();
+        let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Have the mdoc storage return an error on query.

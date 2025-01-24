@@ -7,6 +7,7 @@ use mime::Mime;
 use reqwest::header::ACCEPT;
 use reqwest::Method;
 use reqwest::Response;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use tracing::info;
 use tracing::warn;
@@ -18,18 +19,17 @@ use nl_wallet_mdoc::holder::DisclosureRequestMatch;
 use nl_wallet_mdoc::holder::MdocDataSource;
 use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::ProposedDocument;
-use nl_wallet_mdoc::holder::TrustAnchor;
 use nl_wallet_mdoc::identifiers::AttributeIdentifier;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ValidationError;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::openid4vp::AuthRequestValidationError;
 use crate::openid4vp::AuthResponseError;
@@ -89,6 +89,9 @@ pub enum VpClientError {
     #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
     #[category(critical)]
     DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
+    #[error("error constructing PoA: {0}")]
+    #[category(pd)]
+    Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -385,7 +388,7 @@ pub struct DisclosureProposal<H, I> {
 #[derive(Debug)]
 struct CommonDisclosureData<H> {
     client: H,
-    certificate: Certificate,
+    certificate: BorrowingCertificate,
     reader_registration: ReaderRegistration,
     auth_request: IsoVpAuthorizationRequest,
     session_type: SessionType,
@@ -400,12 +403,12 @@ impl<H, I> DisclosureSession<H, I>
 where
     H: VpMessageClient,
 {
-    pub async fn start<'a, S>(
+    pub async fn start<S>(
         client: H,
         request_uri_query: &str,
         uri_source: DisclosureUriSource,
         mdoc_data_source: &S,
-        trust_anchors: &[TrustAnchor<'a>],
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, VpClientError>
     where
         S: MdocDataSource<MdocIdentifier = I>,
@@ -534,9 +537,9 @@ where
 
     /// Internal helper function for processing and checking the Authorization Request,
     /// including checking whether or not we have the requested attributes.
-    async fn process_request<'a, S>(
+    async fn process_request<S>(
         auth_request: &IsoVpAuthorizationRequest,
-        certificate: &Certificate,
+        certificate: &BorrowingCertificate,
         session_transcript: &SessionTranscript,
         request_uri_object: &VpRequestUriObject,
         mdoc_data_source: &S,
@@ -618,7 +621,7 @@ where
         &self.data().reader_registration
     }
 
-    pub fn verifier_certificate(&self) -> &Certificate {
+    pub fn verifier_certificate(&self) -> &BorrowingCertificate {
         &self.data().certificate
     }
 
@@ -661,10 +664,9 @@ where
             .collect()
     }
 
-    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
+    pub async fn disclose<KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
     where
-        KF: KeyFactory<Key = K>,
-        K: CredentialEcdsaKey,
+        KF: KeyFactory,
     {
         info!("disclose proposed documents");
 
@@ -674,14 +676,35 @@ where
 
         info!("sign proposed documents");
 
-        let device_response = DeviceResponse::from_proposed_documents(proposed_documents, key_factory)
+        let (device_response, keys) = DeviceResponse::from_proposed_documents(proposed_documents, key_factory)
             .await
             .map_err(|err| DisclosureError::before_sharing(VpClientError::DeviceResponse(err)))?;
 
+        let poa = match VecAtLeastTwoUnique::try_from(keys) {
+            Ok(keys) => {
+                info!("create Proof of Association");
+
+                // Poa::new() needs a vec of references. We can unwrap because we only get here if the conversion was
+                // successful.
+                let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
+                let poa = key_factory
+                    .poa(
+                        keys,
+                        self.data.auth_request.client_id.clone(),
+                        Some(self.mdoc_nonce.clone()),
+                    )
+                    .await
+                    .map_err(|e| DisclosureError::before_sharing(VpClientError::Poa(Box::new(e))))?;
+                Some(poa)
+            }
+            Err(_) => None,
+        };
+
         info!("serialize and encrypt Authorization Response");
 
-        let jwe = VpAuthorizationResponse::new_encrypted(device_response, &self.data.auth_request, &self.mdoc_nonce)
-            .map_err(|err| DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(err)))?;
+        let jwe =
+            VpAuthorizationResponse::new_encrypted(device_response, &self.data.auth_request, &self.mdoc_nonce, poa)
+                .map_err(|err| DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(err)))?;
 
         info!("send Authorization Response to verifier");
 
@@ -727,14 +750,6 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
-    use wallet_common::keys::factory::KeyFactory;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
-    use wallet_common::keys::poa::Poa;
-    use wallet_common::keys::poa::VecAtLeastTwo;
-    use wallet_common::utils::random_string;
-
     use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
     use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
     use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
@@ -743,6 +758,7 @@ mod tests {
     use nl_wallet_mdoc::holder::ProposedDocument;
     use nl_wallet_mdoc::identifiers::AttributeIdentifier;
     use nl_wallet_mdoc::identifiers::AttributeIdentifierHolder;
+    use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::utils::cose::ClonePayload;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
     use nl_wallet_mdoc::utils::reader_auth::ValidationError;
@@ -751,12 +767,21 @@ mod tests {
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::CborSeq;
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+    use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
     use nl_wallet_mdoc::utils::x509::CertificateError;
+    use nl_wallet_mdoc::utils::x509::CertificateType;
     use nl_wallet_mdoc::DeviceAuth;
     use nl_wallet_mdoc::DeviceAuthenticationKeyed;
     use nl_wallet_mdoc::ItemsRequest;
     use nl_wallet_mdoc::MobileSecurityObject;
     use nl_wallet_mdoc::SessionTranscript;
+    use wallet_common::keys::factory::KeyFactory;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
+    use wallet_common::keys::poa::Poa;
+    use wallet_common::utils::random_string;
+    use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::jwt::JwtX5cError;
     use crate::openid4vp::AuthRequestValidationError;
@@ -869,7 +894,7 @@ mod tests {
 
         let session_transcript = SessionTranscript::new_oid4vp(
             &verifier_session.response_uri,
-            &verifier_session.client_id(),
+            verifier_session.client_id(),
             verifier_session.nonce.clone(),
             &mdoc_nonce,
         );
@@ -1479,10 +1504,19 @@ mod tests {
 
         let mdoc_nonce = random_string(32);
 
+        let ca = Ca::generate("my_ca", CertificateConfiguration::default()).unwrap();
+        let mock_key_pair = ca
+            .generate_key_pair(
+                "mock_keypair",
+                &CertificateType::ReaderAuth(None),
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
+
         let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
             data: CommonDisclosureData {
                 client,
-                certificate: vec![].into(),
+                certificate: mock_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_type,
                 auth_request: iso_auth_request(),
@@ -1524,10 +1558,14 @@ mod tests {
     where
         F: Fn() -> Option<VpMessageClientError>,
     {
+        let mock_key_pair = Ca::generate_reader_mock_ca()
+            .unwrap()
+            .generate_reader_mock(None)
+            .unwrap();
         DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,
-                certificate: vec![].into(),
+                certificate: mock_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_type: SessionType::SameDevice,
                 auth_request: iso_auth_request(),
@@ -1628,7 +1666,7 @@ mod tests {
 
             async fn poa(
                 &self,
-                _: VecAtLeastTwo<&Self::Key>,
+                _: VecAtLeastTwoUnique<&Self::Key>,
                 _: String,
                 _: Option<String>,
             ) -> Result<Poa, Self::Error> {

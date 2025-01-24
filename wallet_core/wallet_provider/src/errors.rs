@@ -40,6 +40,7 @@ impl HttpJsonErrorType for WalletProviderErrorType {
         let title = match self.as_ref() {
             AccountErrorType::Unexpected => "An unexpected error occurred",
             AccountErrorType::ChallengeValidation => "Could not validate registration challenge",
+            AccountErrorType::AttestationValidation => "Could not validate key / app attestation",
             AccountErrorType::RegistrationParsing => "Could not parse or validate registration message",
             AccountErrorType::IncorrectPin => "The PIN provided is incorrect",
             AccountErrorType::PinTimeout => "PIN checking is currently in timeout",
@@ -54,6 +55,7 @@ impl HttpJsonErrorType for WalletProviderErrorType {
         match self.as_ref() {
             AccountErrorType::Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
             AccountErrorType::ChallengeValidation => StatusCode::UNAUTHORIZED,
+            AccountErrorType::AttestationValidation => StatusCode::UNAUTHORIZED,
             AccountErrorType::RegistrationParsing => StatusCode::BAD_REQUEST,
             AccountErrorType::IncorrectPin => StatusCode::FORBIDDEN,
             AccountErrorType::PinTimeout => StatusCode::FORBIDDEN,
@@ -74,6 +76,8 @@ impl From<WalletProviderError> for AccountError {
             WalletProviderError::Registration(error) => match error {
                 RegistrationError::ChallengeDecoding(_) => Self::ChallengeValidation,
                 RegistrationError::ChallengeValidation(_) => Self::ChallengeValidation,
+                RegistrationError::AppleAttestation(_) => Self::AttestationValidation,
+                RegistrationError::AndroidAttestation(_) => Self::AttestationValidation,
                 RegistrationError::MessageParsing(_) => Self::RegistrationParsing,
                 RegistrationError::MessageValidation(_) => Self::RegistrationParsing,
                 RegistrationError::SerialNumberMismatch { .. } => Self::RegistrationParsing,

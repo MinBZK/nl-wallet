@@ -6,8 +6,6 @@ import 'package:wallet_mock/mock.dart' as core show Document;
 
 import '../domain/model/app_image_data.dart';
 import '../domain/model/attribute/attribute.dart';
-import '../domain/model/attribute/data_attribute.dart';
-import '../domain/model/attribute/missing_attribute.dart';
 import '../domain/model/card_config.dart';
 import '../domain/model/card_front.dart';
 import '../domain/model/disclosure/disclosure_session_type.dart';
@@ -17,6 +15,7 @@ import '../domain/model/organization.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/policy/organization_policy.dart';
 import '../domain/model/policy/policy.dart';
+import '../domain/model/update/version_state.dart';
 import '../domain/model/wallet_card.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
@@ -35,12 +34,10 @@ import '../util/mapper/event/wallet_event_mapper.dart';
 import '../util/mapper/image/image_mapper.dart';
 import '../util/mapper/mapper.dart';
 import '../util/mapper/organization/organization_mapper.dart';
-import '../util/mapper/pid/core_pid_attribute_mapper.dart';
-import '../util/mapper/pid/mock_pid_attribute_mapper.dart';
-import '../util/mapper/pid/pid_attribute_mapper.dart';
 import '../util/mapper/pin/pin_validation_error_mapper.dart';
 import '../util/mapper/policy/policy_body_text_mapper.dart';
 import '../util/mapper/policy/request_policy_mapper.dart';
+import '../util/mapper/version/flutter_version_state_mapper.dart';
 import '../wallet_core/error/core_error.dart';
 import '../wallet_core/error/core_error_mapper.dart';
 
@@ -111,11 +108,6 @@ class WalletMapperProvider extends StatelessWidget {
           create: (context) => DocumentMapper(),
         ),
 
-        /// Pid mappers
-        RepositoryProvider<PidAttributeMapper>(
-          create: (context) => (provideMocks ? MockPidAttributeMapper() : CorePidAttributeMapper()),
-        ),
-
         /// Pin mappers
         RepositoryProvider<Mapper<PinValidationResult, PinValidationError?>>(
           create: (context) => PinValidationErrorMapper(),
@@ -139,6 +131,11 @@ class WalletMapperProvider extends StatelessWidget {
             context.read(),
             context.read(),
           ),
+        ),
+
+        /// Version state mapper
+        RepositoryProvider<Mapper<core.FlutterVersionState, VersionState>>(
+          create: (context) => FlutterVersionStateMapper(),
         ),
       ],
       child: child,

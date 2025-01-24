@@ -113,8 +113,8 @@ mod tests {
 
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use wallet_common::jwt;
     use wallet_common::jwt::jwk_to_p256;
-    use wallet_common::jwt::{self};
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 
     use crate::hsm::HsmError;

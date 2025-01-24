@@ -1,12 +1,12 @@
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::{self};
-
+use derive_more::derive::AsRef;
+use derive_more::derive::Display;
 use sha2::Digest;
 use sha2::Sha256;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, AsRef, Display)]
+#[display("{identifier}")]
 pub struct AppIdentifier {
+    #[as_ref(str)]
     identifier: String,
     bundle_identifier_offset: usize,
     hash: [u8; 32],
@@ -41,14 +41,29 @@ impl AppIdentifier {
     }
 }
 
-impl Display for AppIdentifier {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.identifier.fmt(f)
+#[cfg(feature = "xcode_env")]
+impl Default for AppIdentifier {
+    fn default() -> Self {
+        // When this crate is compiled as part of an Xcode build
+        // chain the environment variables below should be set.
+        let (Some(team_id), Some(bundle_id)) = (
+            option_env!("DEVELOPMENT_TEAM"),
+            option_env!("PRODUCT_BUNDLE_IDENTIFIER"),
+        ) else {
+            panic!("Xcode environment variables are not defined")
+        };
+
+        Self::new(team_id, bundle_id)
     }
 }
 
-impl AsRef<str> for AppIdentifier {
-    fn as_ref(&self) -> &str {
-        &self.identifier
+#[cfg(feature = "mock")]
+mod mock {
+    use super::AppIdentifier;
+
+    impl AppIdentifier {
+        pub fn new_mock() -> Self {
+            AppIdentifier::new("1234567890", "com.example.app")
+        }
     }
 }

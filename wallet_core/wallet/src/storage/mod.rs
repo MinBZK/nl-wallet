@@ -21,11 +21,12 @@ use uuid::Uuid;
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::credential::MdocCopies;
 
 pub use self::data::ChangePinData;
 pub use self::data::InstructionData;
+pub use self::data::KeyData;
 pub use self::data::KeyedData;
 pub use self::data::RegistrationData;
 pub use self::data::UnlockData;
@@ -93,9 +94,18 @@ pub trait Storage {
     async fn open(&mut self) -> StorageResult<()>;
     async fn clear(&mut self);
 
+    async fn open_if_needed(&mut self) -> StorageResult<()> {
+        let StorageState::Opened = self.state().await? else {
+            return self.open().await;
+        };
+
+        Ok(())
+    }
+
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
     async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
+    async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()>;
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;
@@ -107,5 +117,5 @@ pub trait Storage {
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>>;
-    async fn did_share_data_with_relying_party(&self, certificate: &Certificate) -> StorageResult<bool>;
+    async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
 }

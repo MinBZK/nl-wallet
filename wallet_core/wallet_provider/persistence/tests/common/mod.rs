@@ -15,12 +15,14 @@ use sea_orm::FromQueryResult;
 use sea_orm::QueryFilter;
 use uuid::Uuid;
 
+use apple_app_attest::AssertionCounter;
 use wallet_common::utils::random_bytes;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::encrypted::Encrypted;
 use wallet_provider_domain::model::encrypter::Encrypter;
 use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
+use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::database::Db;
@@ -55,7 +57,7 @@ pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {
     .unwrap()
 }
 
-pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, id: Uuid, wallet_id: String)
+pub async fn create_wallet_user_with_random_keys<S, T>(db: &T, wallet_id: String) -> Uuid
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -63,14 +65,18 @@ where
     create_wallet_user(
         db,
         WalletUserCreate {
-            id,
             wallet_id,
             hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
             encrypted_pin_pubkey: encrypted_pin_key("key1").await,
+            attestation_date_time: Utc::now(),
+            attestation: WalletUserAttestationCreate::Apple {
+                data: random_bytes(64),
+                assertion_counter: AssertionCounter::default(),
+            },
         },
     )
     .await
-    .expect("Could not create wallet user");
+    .expect("Could not create wallet user")
 }
 
 pub async fn find_wallet_user<S, T>(db: &T, id: Uuid) -> Option<wallet_user::Model>
@@ -85,14 +91,14 @@ where
         .expect("Could not fetch wallet user")
 }
 
-pub async fn create_instruction_challenge_with_random_data<S, T>(db: &T, wallet_id: String)
+pub async fn create_instruction_challenge_with_random_data<S, T>(db: &T, wallet_id: &str)
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     update_instruction_challenge_and_sequence_number(
         db,
-        &wallet_id,
+        wallet_id,
         InstructionChallenge {
             expiration_date_time: Utc::now(), // irrelevant for these tests
             bytes: random_bytes(32),
@@ -111,10 +117,7 @@ pub struct InstructionChallengeResult {
     pub expiration_date_time: DateTime<Utc>,
 }
 
-pub async fn find_instruction_challenges_by_wallet_id<S, T>(
-    db: &T,
-    wallet_id: String,
-) -> Vec<InstructionChallengeResult>
+pub async fn find_instruction_challenges_by_wallet_id<S, T>(db: &T, wallet_id: &str) -> Vec<InstructionChallengeResult>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,

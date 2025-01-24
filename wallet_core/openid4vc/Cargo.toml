@@ -49,14 +49,15 @@ rand_core.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
-serde = { workspace = true, features = ["serde_derive"] }
+rustls-pki-types.workspace = true
+serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with = { workspace = true }
+serde_with.workspace = true
 strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio = { workspace = true }
+tokio.workspace = true
 tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
@@ -70,6 +71,7 @@ parking_lot = { workspace = true, optional = true }
 
 error_category.path = "../error_category"
 nl_wallet_mdoc.path = "../mdoc"
+sd_jwt.path = "../sd_jwt"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
@@ -82,5 +84,11 @@ serde_bytes = { workspace = true, features = ["std"] }
 tracing-test.workspace = true
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors", "mock_time"] }
-wallet_common = { path = "../wallet_common", features = ["examples", "mock_remote_key", "insecure_http_client"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
+sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
+wallet_common = { path = "../wallet_common", features = [
+    "examples",
+    "insecure_http_client",
+    "mock_remote_key",
+    "mock_time",
+] }

@@ -35,6 +35,7 @@ db_test = [
 ]
 
 [dependencies]
+base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ctor = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
@@ -60,6 +61,10 @@ uuid.workspace = true
 
 mockall = { workspace = true, optional = true }
 
+apple_app_attest.path = "../../apple_app_attest"
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain.path = "../domain"
 wallet_common.path = "../../wallet_common"
+
+[dev-dependencies]
+assert_matches.workspace = true

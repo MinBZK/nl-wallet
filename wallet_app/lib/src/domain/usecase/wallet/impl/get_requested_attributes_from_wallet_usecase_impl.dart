@@ -1,7 +1,5 @@
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../model/attribute/attribute.dart';
-import '../../../model/attribute/data_attribute.dart';
-import '../../../model/attribute/missing_attribute.dart';
 import '../../../model/wallet_card.dart';
 import '../get_requested_attributes_from_wallet_usecase.dart';
 

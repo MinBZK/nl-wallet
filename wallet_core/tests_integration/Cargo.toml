@@ -46,6 +46,11 @@ name = "registration"
 path = "tests/registration.rs"
 required-features = ["integration_test"]
 
+[[test]]
+name = "update_policy_server"
+path = "tests/update_policy_server.rs"
+required-features = ["integration_test"]
+
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc?/allow_insecure_url", "wallet_common?/allow_insecure_url"]
@@ -54,6 +59,8 @@ logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
     "logging",
+    "dep:android_attest",
+    "dep:apple_app_attest",
     "dep:ctor",
     "dep:indexmap",
     "dep:jsonwebtoken",
@@ -66,6 +73,10 @@ test_common = [
     "dep:nl_wallet_mdoc",
     "dep:openid4vc",
     "dep:platform_support",
+    "dep:semver",
+    "dep:sd_jwt",
+    "dep:tempfile",
+    "dep:update_policy_server",
     "dep:uuid",
     "dep:url",
     "dep:wallet",
@@ -98,12 +109,13 @@ integration_test = [
     "tokio/sync",
 ]
 # Optional feature for running integration tests that depend on the DigiD connector
-digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter"]
+digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter", "dep:rustls-pki-types"]
 # Should be enabled when building the performance_test binary
 performance_test = [
     "logging",
     "fake_digid",
     "dep:ctor",
+    "dep:apple_app_attest",
     "dep:indexmap",
     "dep:reqwest",
     "dep:tokio",
@@ -119,12 +131,13 @@ performance_test = [
     "dep:wallet_common",
     "dep:wallet_server",
     "dep:dotenvy",
+    "platform_support/mock_attested_key_apple_ca",
 ]
 gba_pid_test = [
     "logging",
     "fake_digid",
+    "dep:apple_app_attest",
     "dep:ctor",
-    "dep:dotenvy",
     "dep:indexmap",
     "dep:insta",
     "dep:reqwest",
@@ -137,11 +150,11 @@ gba_pid_test = [
     "dep:rstest",
     "dep:serial_test",
     "dep:serde_urlencoded",
-    "dep:serde_yaml",
     "dep:tokio",
     "dep:wallet",
     "dep:wallet_common",
     "dep:wallet_server",
+    "platform_support/mock_attested_key_apple_ca",
     "wallet/snapshot_test",
 ]
 
@@ -149,7 +162,7 @@ gba_pid_test = [
 assert_matches = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
-insta = { workspace = true, optional = true, features = ["yaml"] }
+insta = { workspace = true, optional = true, features = ["ron"] }
 jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, optional = true, features = [
@@ -159,12 +172,13 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-uuid",
     "debug-print",
 ] }
-serde_yaml = { workspace = true, optional = true }
+semver = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 p256 = { workspace = true, optional = true, features = ["pkcs8"] }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
+rustls-pki-types = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
@@ -180,12 +194,16 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 
+android_attest = { path = "../android_attest", optional = true }
+apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
 platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
-wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "env_config", "test"] }
+sd_jwt = { path = "../sd_jwt", optional = true, features = ["example_constructors"] }
+update_policy_server = { path = "../update_policy_server", optional = true }
+wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
 wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
@@ -200,7 +218,7 @@ dotenvy = { workspace = true, optional = true }
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
 # * db_test
-apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
+platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
 wallet_provider_service.path = "../wallet_provider/service"
-wallet_server = { path = "../wallet_server", features = ["issuance"] }
+wallet_server = { path = "../wallet_server", features = ["issuance", "integration_test"] }

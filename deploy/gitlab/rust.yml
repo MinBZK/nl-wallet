@@ -1,22 +1,8 @@
-.rust-cache:
-  cache:
-    key: rust-${CI_JOB_NAME_SLUG}-${CI_DEFAULT_BRANCH}
-    paths:
-      - ".cargo/git"
-      - ".cargo/registry/index"
-      - ".cargo/registry/cache"
-      - "wallet_core/target/"
-      - "wallet_core/flutter_rust_bridge_codegen/target"
-      - "wallet_core/uniffi-bindgen/target"
-    policy: ${CACHE_POLICY}
-
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
-  cache: !reference [.rust-cache, cache]
-  script:
+  before_script:
     - set -euxo pipefail
+  script:
     # Check Rust formatting
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo fmt --manifest-path {} -- --check
     # Check clippy
@@ -25,49 +11,60 @@ lint-rust:
 
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
-  cache: !reference [.rust-cache, cache]
+  tags:
+    - wallet-ci
   variables:
+    NEXTEST_PROFILE: "ci"
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
-    SKIP_MOCK_RELYING_PARTY: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:5da1ca66c23dca82ce706ecd0250118e86e688ce4405830c6ab7e775fd2dfa0e"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:250123-e88295e7"
       alias: postgres
       variables:
-        POSTGRES_USER: "postgres"
-        POSTGRES_PASSWORD: "postgres"
-        POSTGRES_INITDB_ARGS: "--encoding=UTF8"
-        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server"
+        POSTGRESQL_USER: "postgres"
+        POSTGRESQL_PASSWORD: "postgres"
+        POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server"
   before_script:
     - set -euxo pipefail
     - ./scripts/setup-devenv.sh
     - cd wallet_core
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
-    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
-    - RUST_BACKTRACE=1 cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
+    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
+    - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
     reports:
       coverage_report:
         path: wallet_core/rust-coverage.xml
         coverage_format: cobertura
+      junit: wallet_core/target/nextest/ci/junit.xml
     paths:
       - wallet_core/lcov.info
+      - wallet_core/target/nextest/ci/junit.xml
+
+test-rust-doctest:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  tags:
+    - wallet-ci
+  before_script:
+    - set -euxo pipefail
+    - cd wallet_core
+  script:
+    - RUST_BACKTRACE=1 cargo test --doc --locked
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
+  tags:
+    - wallet-ci
   variables:
     RUSTFLAGS: "-D warnings"
+    CONFIG_ENV: "dev"
 
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a18d15cc70eba96f4178776721d251e0edec9cba4d2730b4a64748a5e40435ed"
   script:
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
@@ -75,17 +72,16 @@ test-rust-compilation-ios:
   extends: .test-rust-compilation
   tags:
     - macos
-  image: sonoma-wallet:0.1.1
+  image: sonoma-wallet:0.1.5
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
 
 .build-binary:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:b7c068ab9c8c4b09434e54f628ed072a916cb090c3984fa23aed35bc4cfb12bb"
-  cache: !reference [.rust-cache, cache]
   needs:
     - job: test-rust
+      artifacts: false
+    - job: test-rust-doctest
       artifacts: false
   variables:
     RUSTFLAGS: "-D warnings"
@@ -97,6 +93,16 @@ test-configuration-server-compilation:
   extends: .build-binary
   script:
     - cargo check --locked --release --package configuration_server --bin configuration_server
+
+build-update-policy-server-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "update_policy_server" --bin update_policy_server
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "update_policy_server" --bin update_policy_server
+  artifacts:
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/update_policy_server
+      - wallet_core/target/x86_64-unknown-linux-musl/release/update_policy_server
 
 build-wallet-provider-binary:
   extends: .build-binary
@@ -149,10 +155,10 @@ build-wallet-server-binary:
 build-wallet-server-migrations-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_server_migration" --bin wallet_server_migration
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_server_migrations" --bin wallet_server_migrations
   artifacts:
     paths:
-      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_server_migration
+      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_server_migrations
 
 build-demo-relying-party-binary:
   extends: .build-binary

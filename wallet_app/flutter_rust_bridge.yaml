@@ -1,0 +1,12 @@
+rust_input: crate::api,crate::model
+rust_root: ../wallet_core/flutter_api/
+dart_output: packages/wallet_core/lib/src
+dart_format_line_length: 120
+dart_entrypoint_class_name: WalletCore
+dart_enums_style: false #todo: set to true?
+enable_lifetime: true
+web: false
+add_mod_to_lib: false
+c_output: ios/Runner/frb_generated.h
+type_64bit_int: false
+full_dep: true

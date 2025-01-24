@@ -1,13 +1,16 @@
 {
-  "version": 10,
+  "version": 1,
+  "environment": "dev",
   "lock_timeouts": {
     "inactive_timeout": 300,
     "background_timeout": 300
   },
   "account_server": {
     "http_config": {
-        "base_url": "https://${SERVICES_HOST}:${WALLET_PROVIDER_PORT}/api/v1/",
-        "trust_anchors": ["${WALLET_PROVIDER_SERVER_CA_CRT}"]
+      "base_url": "https://${SERVICES_HOST}:${WALLET_PROVIDER_PORT}/api/v1/",
+      "trust_anchors": [
+        "${WALLET_PROVIDER_SERVER_CA_CRT}"
+      ]
     },
     "certificate_public_key": "${WP_CERTIFICATE_PUBLIC_KEY}",
     "instruction_result_public_key": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}",
@@ -16,16 +19,29 @@
   "pid_issuance": {
     "pid_issuer_url": "http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/issuance/",
     "digid": {
-        "client_id": "${WALLET_CLIENT_ID}"
+      "client_id": "${WALLET_CLIENT_ID}"
     },
     "digid_http_config": {
-        "base_url": "https://${SERVICES_HOST}:${RDO_MAX_PORT}/",
-        "trust_anchors": ["${DIGID_CA_CRT}"]
+      "base_url": "https://${SERVICES_HOST}:${RDO_MAX_PORT}/",
+      "trust_anchors": [
+        "${DIGID_CA_CRT}"
+      ]
     }
   },
   "disclosure": {
-    "uri_base_path": "disclosure",
-    "rp_trust_anchors": ["${RP_CA_CRT}"]
+    "rp_trust_anchors": [
+      "${RP_CA_CRT}"
+    ]
   },
-  "mdoc_trust_anchors": ["${PID_CA_CRT}"]
+  "mdoc_trust_anchors": [
+    "${PID_CA_CRT}"
+  ],
+  "update_policy_server": {
+    "http_config": {
+      "base_url": "https://${SERVICES_HOST}:${UPDATE_POLICY_SERVER_PORT}/update/v1/",
+      "trust_anchors": [
+        "${UPDATE_POLICY_SERVER_CA_CRT}"
+      ]
+    }
+  }
 }

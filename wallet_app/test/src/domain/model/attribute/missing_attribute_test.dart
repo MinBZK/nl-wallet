@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 
 void main() {
   test('Missing attribute equals works as expected', () {

@@ -23,7 +23,7 @@ void main() {
   });
 
   group('invoke', () {
-    test('should return 1 card on repository stream emit', () {
+    test('should return a list of cards on repository stream emit', () {
       when(mockWalletCardRepository.observeWalletCards()).thenAnswer((_) => mockWalletCardsStream);
 
       expectLater(usecase.invoke(WalletMockData.card.id), emits(WalletMockData.card));

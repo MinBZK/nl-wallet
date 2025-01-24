@@ -17,6 +17,7 @@ import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
+import '../common/widget/button/icon/animation_control_icon_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
@@ -226,22 +227,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   Widget _buildPlayPauseButton(BuildContext context) {
-    return Semantics(
-      button: true,
-      excludeSemantics: true,
-      attributedLabel: _playAnimations
-          ? context.l10n.introductionWCAGPauseButtonLabel.toAttributedString(context)
-          : context.l10n.introductionWCAGPlayButtonLabel.toAttributedString(context),
-      child: FloatingActionButton.small(
-        elevation: 0,
-        backgroundColor: context.colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        onPressed: () => setState(() => _playAnimations = !_playAnimations),
-        child: Icon(
-          _playAnimations ? Icons.pause_outlined : Icons.play_arrow_rounded,
-          color: context.colorScheme.primary,
-        ),
-      ),
+    return AnimationControlIconButton(
+      animationState: _playAnimations ? AnimationState.playing : AnimationState.paused,
+      onPressed: () => setState(() => _playAnimations = !_playAnimations),
     );
   }
 

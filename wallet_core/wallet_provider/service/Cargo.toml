@@ -19,7 +19,17 @@ required-features = ["db_test"]
 # Implement InstructionResultSigningKey and related traits on SigningKey
 mock_secure_keys = ["wallet_common/mock_secure_keys"]
 # Include mock implementations and constructors for testing
-mock = ["dep:anyhow", "dep:hmac", "dep:rand_core", "wallet_provider_domain/mock", "wallet_provider_persistence"]
+mock = [
+    "dep:anyhow",
+    "dep:hmac",
+    "dep:rand_core",
+    "android_attest/mock",
+    "apple_app_attest/mock",
+    "wallet_provider_domain/mock",
+    "wallet_provider_persistence",
+    "wallet_common/mock_secure_keys",
+    "wallet_common/mock_apple_attested_key",
+]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["mock_secure_keys", "mock", "dep:tracing-subscriber", "dep:wallet_provider_database_settings"]
 
@@ -29,12 +39,15 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
+derive_more = { workspace = true, features = ["into"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 r2d2-cryptoki.workspace = true
+rustls-pki-types.workspace = true
+rustls-webpki.workspace = true
 sec1.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -49,11 +62,15 @@ tracing-subscriber = { workspace = true, optional = true, features = [
     "tracing-log",
     "parking_lot",
 ] }
+x509-parser.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
 rand_core = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true, features = ["std"] }
 
+android_attest.path = "../../android_attest"
+apple_app_attest.path = "../../apple_app_attest"
+nl_wallet_mdoc.path = "../../mdoc"
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"], optional = true }
 wallet_provider_domain.path = "../domain"
@@ -68,6 +85,8 @@ rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 
-wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys"] }
+android_attest = { path = "../../android_attest", features = ["mock"] }
+apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
+wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys", "mock_apple_attested_key"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }
