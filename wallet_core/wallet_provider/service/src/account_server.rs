@@ -375,6 +375,7 @@ impl<GC> AccountServer<GC> {
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
         let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
 
+        let challenge_hash = utils::sha256(challenge);
         let (hw_pubkey, attestation) = match unverified.payload.attestation {
             RegistrationAttestation::Apple { data } => {
                 debug!("Validating Apple key and app attestation");
@@ -383,7 +384,7 @@ impl<GC> AccountServer<GC> {
                     &data,
                     &self.apple_trust_anchors,
                     attestation_timestamp,
-                    &utils::sha256(challenge),
+                    &challenge_hash,
                     &self.apple_config.app_identifier,
                     self.apple_config.environment,
                 )?;
@@ -424,7 +425,7 @@ impl<GC> AccountServer<GC> {
                     &attested_key_chain,
                     &self.android_root_public_keys,
                     &crl,
-                    &utils::sha256(challenge),
+                    &challenge_hash,
                 )
                 .map_err(AndroidAttestationError::Verification)?;
 
