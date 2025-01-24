@@ -268,11 +268,11 @@ impl AppleAttestationConfiguration {
 }
 
 #[trait_variant::make(Send)]
-pub trait GoogleCrlClient {
+pub trait GoogleCrlProvider {
     async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error>;
 }
 
-impl GoogleCrlClient for GoogleRevocationListClient {
+impl GoogleCrlProvider for GoogleRevocationListClient {
     async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
         self.get().await
     }
@@ -351,7 +351,7 @@ impl<GC> AccountServer<GC> {
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
-        GC: GoogleCrlClient,
+        GC: GoogleCrlProvider,
     {
         debug!("Parsing message to lookup public keys");
 
@@ -991,7 +991,7 @@ pub mod mock {
         Google(&'a MockCaChain),
     }
 
-    impl GoogleCrlClient for RevocationStatusList {
+    impl GoogleCrlProvider for RevocationStatusList {
         async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
             Ok(self.clone())
         }
@@ -1161,7 +1161,7 @@ mod tests {
         attestation_ca: AttestationCa<'_>,
     ) -> Result<(WalletCertificate, MockHardwareKey), RegistrationError>
     where
-        GC: GoogleCrlClient,
+        GC: GoogleCrlProvider,
     {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
@@ -1279,7 +1279,7 @@ mod tests {
     ) -> Result<Vec<u8>, ChallengeError>
     where
         I: InstructionAndResult,
-        GC: GoogleCrlClient,
+        GC: GoogleCrlProvider,
     {
         let instruction_challenge = hw_privkey
             .sign_instruction_challenge::<I>(
@@ -1303,7 +1303,7 @@ mod tests {
         instruction_result_signing_key: &SigningKey,
     ) -> Result<InstructionResult<()>, anyhow::Error>
     where
-        GC: GoogleCrlClient,
+        GC: GoogleCrlProvider,
     {
         let challenge = do_instruction_challenge::<CheckPin, GC>(
             account_server,
@@ -1379,7 +1379,7 @@ mod tests {
         instruction_result_signing_key: &SigningKey,
     ) -> (SigningKey, VerifyingKey, Encrypted<VerifyingKey>, WalletCertificate)
     where
-        GC: GoogleCrlClient,
+        GC: GoogleCrlProvider,
     {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();

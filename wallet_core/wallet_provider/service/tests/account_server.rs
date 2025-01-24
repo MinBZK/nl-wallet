@@ -28,7 +28,7 @@ use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
 use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
 use wallet_provider_service::account_server::AccountServer;
-use wallet_provider_service::account_server::GoogleCrlClient;
+use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
@@ -54,7 +54,7 @@ async fn do_registration<GC>(
     attestation_ca: AttestationCa<'_>,
 ) -> (WalletCertificate, MockHardwareKey, WalletCertificateClaims)
 where
-    GC: GoogleCrlClient,
+    GC: GoogleCrlProvider,
 {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
