@@ -12,7 +12,7 @@ pub use rasn::types::SetOf;
 use rasn::AsnType;
 use rasn::Decode;
 use rasn::Decoder;
-#[cfg(any(test, feature = "encode"))]
+#[cfg(feature = "encode")]
 use rasn::Encoder;
 
 // KeyDescription ::= SEQUENCE {
@@ -26,7 +26,7 @@ use rasn::Encoder;
 //     hardwareEnforced  AuthorizationList,
 // }
 #[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode)]
-#[cfg_attr(any(test, feature = "encode"), derive(rasn::Encode))]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 pub struct KeyDescription {
     pub attestation_version: Integer,
     pub attestation_security_level: SecurityLevel,
@@ -44,7 +44,7 @@ pub struct KeyDescription {
 //     StrongBox  (2),
 // }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode)]
-#[cfg_attr(any(test, feature = "encode"), derive(rasn::Encode))]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 #[rasn(enumerated)]
 pub enum SecurityLevel {
     Software,
@@ -95,7 +95,7 @@ pub enum SecurityLevel {
 //     attestationIdSecondImei  [723] EXPLICIT OCTET_STRING OPTIONAL,
 // }
 #[derive(Debug, Clone, PartialEq, Eq, Default, AsnType, Decode)]
-#[cfg_attr(any(test, feature = "encode"), derive(rasn::Encode))]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 pub struct AuthorizationList {
     #[rasn(tag(explicit(1)))]
     pub purpose: Option<SetOf<Integer>>,
@@ -187,7 +187,7 @@ pub struct AuthorizationList {
 //     verifiedBootHash OCTET_STRING,
 // }
 #[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode)]
-#[cfg_attr(any(test, feature = "encode"), derive(rasn::Encode))]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 pub struct RootOfTrust {
     pub verified_boot_key: OctetString,
     pub device_locked: bool,
@@ -202,7 +202,7 @@ pub struct RootOfTrust {
 //     Failed  (3),
 // }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode)]
-#[cfg_attr(any(test, feature = "encode"), derive(rasn::Encode))]
+#[cfg_attr(feature = "encode", derive(rasn::Encode))]
 #[rasn(enumerated)]
 pub enum VerifiedBootState {
     Verified,
@@ -211,7 +211,7 @@ pub enum VerifiedBootState {
     Failed,
 }
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(feature = "encode")]
 mod mock {
     use super::*;
 

@@ -7,6 +7,11 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[[test]]
+name = "certificate_chain"
+path = "tests/certificate_chain.rs"
+required-features = ["mock"]
+
 [features]
 encode = []
 mock = ["encode", "dep:derive_more", "dep:rand", "dep:rcgen", "dep:time"]
@@ -49,10 +54,7 @@ tracing = { workspace = true, optional = true }
 assert_matches.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa", "pem", "pkcs8"] }
 rand.workspace = true
-rcgen = { workspace = true, features = ["aws_lc_rs"] }
 rstest.workspace = true
-rustls-pki-types.workspace = true
-rustls-webpki.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true

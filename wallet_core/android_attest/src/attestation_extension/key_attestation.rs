@@ -363,8 +363,7 @@ pub struct KeyAttestation {
     pub hardware_enforced: AuthorizationList,
 }
 
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum KeyAttestationVerificationError {
     #[error("attestation challenge mismatch")]
     AttestationChallenge,
