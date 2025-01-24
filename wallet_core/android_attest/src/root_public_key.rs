@@ -27,7 +27,6 @@ pub static EMULATOR_PUBKEYS: LazyLock<Vec<RootPublicKey>> = LazyLock::new(|| {
 });
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(any(test, feature = "mock"), derive(derive_more::From))]
 pub enum RootPublicKey {
     Rsa(RsaPublicKey),
     Ecdsa(VerifyingKey),

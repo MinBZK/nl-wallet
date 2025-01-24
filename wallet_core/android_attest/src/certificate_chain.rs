@@ -284,7 +284,7 @@ mod tests {
         let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
 
         // Get root public key
-        let root_public_keys = vec![trusted_root_mock_ca.root_public_key.clone().into()];
+        let root_public_keys = vec![RootPublicKey::Rsa(trusted_root_mock_ca.root_public_key.clone())];
 
         // Verify the attested key
         verify_google_key_attestation(
@@ -391,7 +391,7 @@ mod tests {
         let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
 
         // Get root public key from the same MOCK_CA_CHAIN
-        let root_public_keys = vec![MOCK_CA_CHAIN.root_public_key.clone().into()];
+        let root_public_keys = vec![RootPublicKey::Rsa(MOCK_CA_CHAIN.root_public_key.clone())];
 
         // Verify the attested key
         let error = verify_google_key_attestation(
@@ -419,7 +419,7 @@ mod tests {
         let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
 
         // Get root public key from the same MOCK_CA_CHAIN
-        let root_public_keys = vec![MOCK_CA_CHAIN.root_public_key.clone().into()];
+        let root_public_keys = vec![RootPublicKey::Rsa(MOCK_CA_CHAIN.root_public_key.clone())];
 
         // Verify the attested key
         let error = verify_google_key_attestation(
@@ -441,7 +441,7 @@ mod tests {
         let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
 
         // Get root public key from the same MOCK_CA_CHAIN
-        let root_public_keys = vec![MOCK_CA_CHAIN.root_public_key.clone().into()];
+        let root_public_keys = vec![RootPublicKey::Rsa(MOCK_CA_CHAIN.root_public_key.clone())];
 
         // Verify the attested key
         let error = verify_google_key_attestation(

@@ -141,6 +141,7 @@ mod tests {
     use android_attest::attestation_extension::key_description::KeyDescription;
     use android_attest::certificate_chain::verify_google_key_attestation;
     use android_attest::mock::MockCaChain;
+    use android_attest::root_public_key::RootPublicKey;
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AttestationEnvironment;
@@ -242,7 +243,7 @@ mod tests {
             .iter()
             .map(|der| CertificateDer::from_slice(der))
             .collect::<Vec<_>>();
-        let root_public_keys = vec![attested_ca_chain.root_public_key.clone().into()];
+        let root_public_keys = vec![RootPublicKey::Rsa(attested_ca_chain.root_public_key.clone())];
 
         let certificate = verify_google_key_attestation(
             &der_certificate_chain,
