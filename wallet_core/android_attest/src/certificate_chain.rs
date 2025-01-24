@@ -37,7 +37,7 @@ pub enum GoogleKeyAttestationError {
     RootPublicKey(#[source] X509Error),
     #[error("root CA in certificate chain does not contain any of the configured public keys")]
     RootPublicKeyMismatch,
-    #[error("certificate chain contains revoked certificates")]
+    #[error("certificate chain contains at least one revoked certificate")]
     RevokedCertificates,
     #[error("no key attestation extension found in certificate chain")]
     NoKeyAttestationExtension,
@@ -148,7 +148,7 @@ fn verify_google_attestation_certificate_chain(
 
     // EndEntityCert is the first certificate in the list.
     // `unwrap` is safe because of guard that verifies the certificate chain is not empty.
-    let end_certificate: EndEntityCert = EndEntityCert::try_from(certificate_chain.first().unwrap())
+    let end_certificate = EndEntityCert::try_from(certificate_chain.first().unwrap())
         .map_err(GoogleKeyAttestationError::LeafCertificate)?;
 
     // Verify that each certificate signs the next certificate in the chain.
