@@ -2,13 +2,15 @@ use std::convert::Infallible;
 use std::fmt::Debug;
 use std::mem;
 
-use android_attest::android_crl::RevocationStatusList;
-use android_attest::certificate_chain::verify_google_key_attestation;
-use android_attest::root_public_key::RootPublicKey;
 use p256::ecdsa::signature::Verifier;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
+use x509_parser::prelude::FromDer;
+use x509_parser::prelude::X509Certificate;
 
+use android_attest::android_crl::RevocationStatusList;
+use android_attest::certificate_chain::verify_google_key_attestation;
+use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
@@ -17,8 +19,6 @@ use apple_app_attest::VerifiedAssertion;
 use apple_app_attest::VerifiedAttestation;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::utils;
-use x509_parser::prelude::FromDer;
-use x509_parser::prelude::X509Certificate;
 
 use super::AppleAttestedKey;
 use super::AttestedKey;

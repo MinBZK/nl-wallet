@@ -123,10 +123,10 @@ fn verify_google_attestation_certificate_chain(
 ) -> Result<(), GoogleKeyAttestationError> {
     assert!(!certificate_chain.is_empty());
 
-    let root_id = certificate_chain.len() - 1;
+    let root_index = certificate_chain.len() - 1;
 
     // `unwrap` is safe because of guard that verifies the certificate chain is not empty.
-    let root_certificate_der = certificate_chain.get(root_id).unwrap();
+    let root_certificate_der = certificate_chain.get(root_index).unwrap();
     let (_, root_certificate) =
         X509Certificate::from_der(root_certificate_der).map_err(GoogleKeyAttestationError::RootCertificateDecode)?;
     let root_public_key = root_certificate
@@ -165,7 +165,7 @@ fn verify_google_attestation_certificate_chain(
                 RSA_PKCS1_3072_8192_SHA384,
             ],
             &trust_anchors,
-            &certificate_chain[1..root_id],
+            &certificate_chain[1..root_index],
             UnixTime::now(),
             KeyUsage::client_auth(),
             None,
