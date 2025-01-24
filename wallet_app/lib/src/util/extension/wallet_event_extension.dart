@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 
-import '../../domain/model/attribute/data_attribute.dart';
+import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/event/event_section.dart';
 import '../../domain/model/event/wallet_event.dart';
 import '../../domain/model/organization.dart';

@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/attribute/data_attribute.dart';
-import '../../../domain/model/attribute/missing_attribute.dart';
-import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';

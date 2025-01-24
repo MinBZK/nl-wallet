@@ -1,4 +1,4 @@
-import '../attribute/data_attribute.dart';
+import '../attribute/attribute.dart';
 import '../document.dart';
 import '../organization.dart';
 import '../policy/policy.dart';

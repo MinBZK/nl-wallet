@@ -2,7 +2,6 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_detail.dart';
@@ -10,6 +9,7 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/localized_text_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';

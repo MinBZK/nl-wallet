@@ -1,9 +1,8 @@
 import 'package:equatable/equatable.dart';
 
-import '../attribute/data_attribute.dart';
+import '../attribute/attribute.dart';
 import '../disclosure/disclosure_type.dart';
 import '../document.dart';
-import '../localized_text.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
 import '../wallet_card.dart';

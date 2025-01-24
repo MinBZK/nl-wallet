@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../domain/model/attribute/ui_attribute.dart';
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
@@ -17,7 +17,7 @@ import '../wallet_personalize_data_incorrect_screen.dart';
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onAcceptPressed;
   final VoidCallback onRejectPressed;
-  final List<UiAttribute> attributes;
+  final List<Attribute> attributes;
   final FlowProgress progress;
 
   const WalletPersonalizeCheckDataOfferingPage({
