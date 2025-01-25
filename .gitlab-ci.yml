@@ -100,6 +100,15 @@ variables:
     - !reference [.default-or-release, rules]
     - !reference [.merge-request-manual, rules]
 
+.on-schedule:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+.on-web-trigger:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+
 .ruby-cache:
   cache:
     key: ruby-${CI_COMMIT_REF_SLUG}
@@ -126,11 +135,7 @@ test-flutter:
     - flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
     - tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
   after_script:
-    - set -euxo pipefail
-    - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
-        mc put wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
-      fi
+    - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
   artifacts:
     reports:
       junit: wallet_app/build/reports/test-results.xml
@@ -213,11 +218,7 @@ build-wallet-web:
     - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
     - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
   after_script:
-    - set -euxo pipefail
-    - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
-        mc put wallet_web/coverage/tests.xml qt/quality-time/junit-results/web.xml
-      fi
+    - deploy/bin/store-artifact.sh wallet_web/coverage/tests.xml qt/quality-time/junit-results/web.xml
   artifacts:
     reports:
       junit: wallet_web/coverage/tests.xml
@@ -583,11 +584,15 @@ build-sbom:
     - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
     # converting it to xml does work
     - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
+    - deploy/bin/store-artifact.sh bom.* qt/quality-time/sbom/
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
   artifacts:
     when: always
+    reports:
+      cyclonedx: bom.json
     paths:
-      - ./bom.xml
-      - ./bom.json
+      - bom.xml
+      - bom.json
+  allow_failure: true

@@ -35,6 +35,8 @@ test-rust:
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
+  after_script:
+    - deploy/bin/store-artifact.sh wallet_core/target/nextest/ci/junit.xml qt/quality-time/junit-results/rust.xml
   artifacts:
     reports:
       coverage_report:

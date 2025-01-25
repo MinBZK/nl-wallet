@@ -29,16 +29,39 @@
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
+  artifacts:
+    reports:
+      junit: uiautomation/build/test-results/test/*.xml
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
-    GITLAB_API_URL: "SSSS"
+  needs:
+    - job: build-wallet-provider-image
+      artifacts: false
+      optional: true
+    - job: build-wp-migrations-image
+      artifacts: false
+      optional: true
+    - job: build-ws-migrations-image
+      artifacts: false
+      optional: true
+    - job: build-mock-relying-party-image
+      artifacts: false
+      optional: true
+    - job: build-wallet-server-image
+      artifacts: false
+      optional: true
+    - job: build-verification-server-image
+      artifacts: false
+      optional: true
+    - job: build-pid-issuer-image
+      artifacts: false
+      optional: true
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
+    - !reference [.on-schedule, rules]
+    - !reference [.on-web-trigger, rules]
 
 run-automation-tests-suite-appstart:
   extends: .run-automation-tests-default
@@ -105,7 +128,7 @@ run-automation-tests-publish-results:
     - { job: run-automation-tests-suite-web }
   script:
     - zip e2e.zip uiautomation/build/test-results/test/*.xml
-    - mc put e2e.zip qt/quality-time/junit-results/
+    - deploy/bin/store-artifact.sh e2e.zip qt/quality-time/junit-results/
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
