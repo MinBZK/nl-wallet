@@ -8,6 +8,8 @@
     paths:
       - uiautomation/build/test-results
       - uiautomation/build/reports
+    reports:
+      junit: uiautomation/build/test-results/test/*.xml
   before_script:
     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
@@ -29,9 +31,6 @@
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
-  artifacts:
-    reports:
-      junit: uiautomation/build/test-results/test/*.xml
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
     DEVICE_NAME: "Google Pixel 8"
