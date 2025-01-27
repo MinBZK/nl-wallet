@@ -165,23 +165,20 @@ pub async fn create_and_verify_attested_key<'a, H>(
                 .collect();
             log::info!("chain: {der_certificate_chain:?}");
 
-            // TODO: configure CRL, so that revoked certs can be tested?
-            log::info!("Prepare CRL");
+            log::info!("Prepare empty CRL");
+            // No revoked certificates
             let revocation_list = RevocationStatusList {
                 entries: Default::default(),
             };
 
-            // TODO: fail when verification failed, and reduced security level for emulator is introduced
             log::info!("Invoke verify_google_key_attestation");
-            match verify_google_key_attestation(
+            verify_google_key_attestation(
                 &der_certificate_chain,
                 &android_test_data.root_public_keys,
                 &revocation_list,
                 &challenge,
-            ) {
-                Ok(_) => log::info!("key attestation verified successfully"),
-                Err(error) => panic!("could not verify attestation key certificate chain: {error}"),
-            }
+            )
+            .expect("could not verify attestation key certificate chain");
 
             log::info!("Sign payload with google key");
             let signature1 = key.try_sign(&payload).await.expect("could not sign payload");
