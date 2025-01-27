@@ -3863,7 +3863,6 @@ dependencies = [
  "uniffi",
  "uuid",
  "wallet_common",
- "x509-parser",
 ]
 
 [[package]]

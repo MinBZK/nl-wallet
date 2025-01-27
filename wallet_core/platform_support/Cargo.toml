@@ -58,10 +58,10 @@ hardware_integration_test = [
     "dep:jni",
     "dep:log",
     "dep:rustls-pki-types",
-    "dep:x509-parser",
     "tokio/fs",
     "tokio/io-util",
     "tokio/rt",
+    "android_attest/allow_emulator_keys",
     "apple_app_attest/xcode_env",
     "wallet_common/integration_test",
 ]
@@ -83,7 +83,6 @@ serde_with = { workspace = true, optional = true, features = ["base64"] }
 rustls-pki-types = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 uuid = { workspace = true, optional = true, features = ["v4"] }
-x509-parser = { workspace = true, optional = true }
 
 error_category.path = "../error_category"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
@@ -101,7 +100,6 @@ jni = { workspace = true, optional = true }
 rustls-pki-types.workspace = true
 log.workspace = true
 tokio = { workspace = true, features = ["macros", "fs", "io-util"] }
-x509-parser.workspace = true
 
 [build-dependencies]
 uniffi = { workspace = true, features = ["build"] }

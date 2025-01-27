@@ -5,8 +5,6 @@ use std::mem;
 use p256::ecdsa::signature::Verifier;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
-use x509_parser::prelude::FromDer;
-use x509_parser::prelude::X509Certificate;
 
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::certificate_chain::verify_google_key_attestation;
@@ -57,9 +55,14 @@ pub struct AppleTestData<'a> {
     pub trust_anchors: Vec<TrustAnchor<'a>>,
 }
 
+pub struct AndroidTestData {
+    pub root_public_keys: Vec<RootPublicKey>,
+}
+
 pub async fn create_and_verify_attested_key<'a, H>(
     holder: &'a H,
     apple_test_data: Option<AppleTestData<'a>>,
+    android_test_data: Option<AndroidTestData>,
     challenge: Vec<u8>,
     payload: Vec<u8>,
 ) where
@@ -147,6 +150,10 @@ pub async fn create_and_verify_attested_key<'a, H>(
             certificate_chain,
             app_attestation_token: _app_attestation_token,
         } => {
+            let Some(android_test_data) = android_test_data else {
+                panic!("android test data should be provided to test");
+            };
+
             log::info!("Found Google Key: {key:?}");
 
             log::info!("Verify certificate chain");
@@ -158,14 +165,6 @@ pub async fn create_and_verify_attested_key<'a, H>(
                 .collect();
             log::info!("chain: {der_certificate_chain:?}");
 
-            // TODO: configure trusted root public keys?
-            log::info!("Extract root public key from root certificate");
-            let (_, root_certificate) =
-                X509Certificate::from_der(der_certificate_chain.last().expect("certificate chain not empty")).unwrap();
-            let root_public_keys = vec![
-                RootPublicKey::try_from(root_certificate.public_key().raw).expect("valid root public key in chain")
-            ];
-
             // TODO: configure CRL, so that revoked certs can be tested?
             log::info!("Prepare CRL");
             let revocation_list = RevocationStatusList {
@@ -174,10 +173,14 @@ pub async fn create_and_verify_attested_key<'a, H>(
 
             // TODO: fail when verification failed, and reduced security level for emulator is introduced
             log::info!("Invoke verify_google_key_attestation");
-            match verify_google_key_attestation(&der_certificate_chain, &root_public_keys, &revocation_list, &challenge)
-            {
+            match verify_google_key_attestation(
+                &der_certificate_chain,
+                &android_test_data.root_public_keys,
+                &revocation_list,
+                &challenge,
+            ) {
                 Ok(_) => log::info!("key attestation verified successfully"),
-                Err(error) => log::error!("could not verify attestation key certificate chain: {error}"),
+                Err(error) => panic!("could not verify attestation key certificate chain: {error}"),
             }
 
             log::info!("Sign payload with google key");

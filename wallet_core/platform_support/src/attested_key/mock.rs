@@ -708,6 +708,7 @@ mod persistent {
             test::create_and_verify_attested_key(
                 &mock_holder,
                 mock_holder_inner.to_apple_test_data(),
+                None,
                 challenge.to_vec(),
                 payload.to_vec(),
             )
@@ -718,10 +719,12 @@ mod persistent {
 
 #[cfg(test)]
 mod tests {
+    use android_attest::root_public_key::RootPublicKey;
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AttestationEnvironment;
 
     use crate::attested_key::test;
+    use crate::attested_key::test::AndroidTestData;
     use crate::attested_key::test::AppleTestData;
 
     use super::KeyHolderType;
@@ -737,6 +740,15 @@ mod tests {
                 KeyHolderType::Google { .. } => None,
             }
         }
+
+        pub fn to_android_test_data(&self) -> Option<AndroidTestData> {
+            match &self.holder_type {
+                KeyHolderType::Apple { .. } => None,
+                KeyHolderType::Google { ca_chain } => Some(AndroidTestData {
+                    root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone())],
+                }),
+            }
+        }
     }
 
     async fn test_mock_hardware_attested_key_holder(mock_holder: MockHardwareAttestedKeyHolder) {
@@ -746,6 +758,7 @@ mod tests {
         test::create_and_verify_attested_key(
             &mock_holder,
             mock_holder.to_apple_test_data(),
+            mock_holder.to_android_test_data(),
             challenge.to_vec(),
             payload.to_vec(),
         )

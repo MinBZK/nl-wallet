@@ -1,10 +1,15 @@
+use std::sync::LazyLock;
+
 use tokio::runtime;
 
+use android_attest::root_public_key::EMULATOR_PUBKEYS;
+use android_attest::root_public_key::GOOGLE_ROOT_PUBKEYS;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::APPLE_TRUST_ANCHORS;
 
 use crate::attested_key::hardware::HardwareAttestedKeyHolder;
 use crate::attested_key::test;
+use crate::attested_key::test::AndroidTestData;
 use crate::attested_key::test::AppleTestData;
 
 #[no_mangle]
@@ -20,6 +25,14 @@ extern "C" fn attested_key_test(has_xcode_env: bool) {
             trust_anchors: APPLE_TRUST_ANCHORS.clone(),
         });
 
+        let android_test_data = Some(AndroidTestData {
+            root_public_keys: LazyLock::force(&GOOGLE_ROOT_PUBKEYS)
+                .iter()
+                .chain(LazyLock::force(&EMULATOR_PUBKEYS))
+                .cloned()
+                .collect(),
+        });
+
         let rt = runtime::Builder::new_current_thread().enable_all().build().unwrap();
 
         let holder = HardwareAttestedKeyHolder::default();
@@ -27,6 +40,7 @@ extern "C" fn attested_key_test(has_xcode_env: bool) {
         rt.block_on(test::create_and_verify_attested_key(
             &holder,
             apple_test_data,
+            android_test_data,
             challenge.to_vec(),
             payload.to_vec(),
         ));
