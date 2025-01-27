@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/model/attribute/attribute.dart';
-import '../../domain/model/attribute/data_attribute.dart';
 import '../../domain/model/organization.dart';
 import '../../domain/model/policy/organization_policy.dart';
 import '../../domain/model/policy/policy.dart';
@@ -79,11 +78,11 @@ class LoginDetailScreen extends StatelessWidget {
             actions: const [HelpIconButton()],
           ),
           const SliverSizedBox(height: 24),
-          const SliverDivider(height: 1),
+          const SliverDivider(),
           _buildOrganizationSection(context),
-          const SliverDivider(height: 1),
+          const SliverDivider(),
           _buildAttributesSection(context),
-          const SliverDivider(height: 1),
+          const SliverDivider(),
           _buildAgreementSection(context),
         ],
       ),

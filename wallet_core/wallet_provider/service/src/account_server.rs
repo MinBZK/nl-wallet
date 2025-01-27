@@ -6,6 +6,7 @@ use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
+use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -15,10 +16,12 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 use uuid::Uuid;
-use x509_parser::error::X509Error;
-use x509_parser::prelude::FromDer;
-use x509_parser::prelude::X509Certificate;
 
+use android_attest::android_crl;
+use android_attest::android_crl::GoogleRevocationListClient;
+use android_attest::android_crl::RevocationStatusList;
+use android_attest::certificate_chain::verify_google_key_attestation_with_time;
+use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::play_integrity::client::IntegrityTokenDecoder;
 use android_attest::play_integrity::client::PlayIntegrityClient;
 use android_attest::play_integrity::verification::IntegrityVerdictVerificationError;
@@ -132,14 +135,14 @@ pub enum WalletCertificateError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AndroidKeyAttestationError {
-    #[error("could not decode certificate from chain: {0}")]
-    CertificateDecode(#[source] x509_parser::nom::Err<X509Error>),
     #[error("could not decode public key from leaf certificate: {0}")]
     LeafPublicKey(#[source] p256::pkcs8::spki::Error),
-    #[error("could not decode public key from root certificate: {0}")]
-    RootPublicKey(#[source] X509Error),
-    #[error("root CA in certificate chain does not contain any of the configured public keys")]
-    RootPublicKeyMismatch,
+    #[error("could not obtain Google certificate revocation list")]
+    CrlClient,
+    #[error("android key attestation verification failed: {0}")]
+    Verification(#[from] GoogleKeyAttestationError),
+    #[error("certificate chain contains at least one revoked certificate")]
+    RevokedCertificates,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -286,13 +289,24 @@ impl AppleAttestationConfiguration {
     }
 }
 
+#[trait_variant::make(Send)]
+pub trait GoogleCrlProvider {
+    async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error>;
+}
+
+impl GoogleCrlProvider for GoogleRevocationListClient {
+    async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
+        self.get().await
+    }
+}
+
 pub struct AndroidAttestationConfiguration {
     pub root_public_keys: Vec<RootPublicKey>,
     pub package_name: String,
     pub verify_play_store: VerifyPlayStore,
 }
 
-pub struct AccountServer<PIC = PlayIntegrityClient> {
+pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityClient> {
     instruction_challenge_timeout: Duration,
 
     pub name: String,
@@ -302,10 +316,11 @@ pub struct AccountServer<PIC = PlayIntegrityClient> {
     pin_public_disclosure_protection_key_identifier: String,
     pub apple_config: AppleAttestationConfiguration,
     pub android_config: AndroidAttestationConfiguration,
+    google_crl_client: GRC,
     play_integrity_client: PIC,
 }
 
-impl<PIC> AccountServer<PIC> {
+impl<GRC, PIC> AccountServer<GRC, PIC> {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         instruction_challenge_timeout: Duration,
@@ -315,6 +330,7 @@ impl<PIC> AccountServer<PIC> {
         pin_public_disclosure_protection_key_identifier: String,
         apple_config: AppleAttestationConfiguration,
         android_config: AndroidAttestationConfiguration,
+        google_crl_client: GRC,
         play_integrity_client: PIC,
     ) -> Result<Self, AccountServerInitError> {
         Ok(AccountServer {
@@ -325,6 +341,7 @@ impl<PIC> AccountServer<PIC> {
             pin_public_disclosure_protection_key_identifier,
             apple_config,
             android_config,
+            google_crl_client,
             play_integrity_client,
         })
     }
@@ -359,6 +376,7 @@ impl<PIC> AccountServer<PIC> {
         registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, RegistrationError>
     where
+        GRC: GoogleCrlProvider,
         PIC: IntegrityTokenDecoder,
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -417,36 +435,45 @@ impl<PIC> AccountServer<PIC> {
 
                 (hw_pubkey, attestation)
             }
-            // TODO: Actually validate and process Google key and app attestation.
             RegistrationAttestation::Google {
                 certificate_chain,
                 integrity_token,
             } => {
                 debug!("Validating Android key attestation");
 
-                // Extract the leaf certificate's verifying key and check the
-                // root certificate's public key against the ones configured.
-                let (_, leaf_certificate) = X509Certificate::from_der(certificate_chain.first())
-                    .map_err(AndroidKeyAttestationError::CertificateDecode)?;
+                // Verify the certificate chain according to the google key attestation verification rules
+                let crl = self.google_crl_client.get_crl().await.map_err(|error| {
+                    warn!("could not obtain Google certificate revocation list: {0}", error);
+
+                    AndroidKeyAttestationError::CrlClient
+                })?;
+                let attested_key_chain = certificate_chain
+                    .as_ref()
+                    .iter()
+                    .map(|cert| CertificateDer::from_slice(cert))
+                    .collect::<Vec<_>>();
+                let leaf_certificate = verify_google_key_attestation_with_time(
+                    &attested_key_chain,
+                    &self.android_config.root_public_keys,
+                    &crl,
+                    &challenge_hash,
+                    attestation_timestamp,
+                )
+                .map_err(|error| match error {
+                    GoogleKeyAttestationError::RevokedCertificates(revocation_log) => {
+                        warn!(
+                            "found revoked certificates while verifying Android attested key certificate chain: {}",
+                            revocation_log.join(" ")
+                        );
+
+                        AndroidKeyAttestationError::RevokedCertificates
+                    }
+                    error => AndroidKeyAttestationError::Verification(error),
+                })?;
+
+                // Extract the leaf certificate's verifying key
                 let hw_pubkey = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw)
                     .map_err(AndroidKeyAttestationError::LeafPublicKey)?;
-
-                let (_, root_certificate) = X509Certificate::from_der(certificate_chain.last())
-                    .map_err(AndroidKeyAttestationError::CertificateDecode)?;
-                let root_public_key = root_certificate
-                    .public_key()
-                    .parsed()
-                    .map_err(AndroidKeyAttestationError::RootPublicKey)?;
-
-                // TODO: This check should be part of `android_attest`.
-                if !self
-                    .android_config
-                    .root_public_keys
-                    .iter()
-                    .any(|public_key| root_public_key == *public_key)
-                {
-                    return Err(AndroidKeyAttestationError::RootPublicKeyMismatch)?;
-                }
 
                 debug!("Validating Android app attestation");
 
@@ -1012,7 +1039,7 @@ pub mod mock {
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 
-    pub type MockAccountServer = AccountServer<MockPlayIntegrityClient>;
+    pub type MockAccountServer = AccountServer<RevocationStatusList, MockPlayIntegrityClient>;
 
     #[derive(Clone, Copy)]
     pub enum AttestationType {
@@ -1026,7 +1053,16 @@ pub mod mock {
         Google(&'a MockCaChain),
     }
 
-    pub fn setup_account_server(certificate_signing_pubkey: &VerifyingKey) -> MockAccountServer {
+    impl GoogleCrlProvider for RevocationStatusList {
+        async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
+            Ok(self.clone())
+        }
+    }
+
+    pub fn setup_account_server(
+        certificate_signing_pubkey: &VerifyingKey,
+        crl: RevocationStatusList,
+    ) -> MockAccountServer {
         let integrity_client = MockPlayIntegrityClient::new(
             "com.example.app".to_string(),
             VerifyPlayStore::Verify {
@@ -1050,6 +1086,7 @@ pub mod mock {
                 package_name: integrity_client.package_name.clone(),
                 verify_play_store: integrity_client.verify_play_store.clone(),
             },
+            crl,
             integrity_client,
         )
         .unwrap()
@@ -1152,6 +1189,7 @@ mod tests {
     use tokio::sync::OnceCell;
     use uuid::uuid;
 
+    use android_attest::attestation_extension::key_description::KeyDescription;
     use android_attest::mock_chain::MockCaChain;
     use android_attest::play_integrity::client::mock::MockPlayIntegrityClient;
     use apple_app_attest::AssertionCounter;
@@ -1219,12 +1257,15 @@ mod tests {
                 (registration_message, MockHardwareKey::Apple(attested_key))
             }
             AttestationCa::Google(android_mock_ca_chain) => {
+                let integrity_token = BASE64_STANDARD_NO_PAD.encode(&challenge_hash);
+                let key_description = KeyDescription::new_valid_mock(challenge_hash);
+
                 let (attested_certificate_chain, attested_private_key) =
-                    android_mock_ca_chain.generate_leaf_certificate();
+                    android_mock_ca_chain.generate_attested_leaf_certificate(&key_description);
                 let registration_message = ChallengeResponse::new_google(
                     &attested_private_key,
                     attested_certificate_chain.try_into().unwrap(),
-                    BASE64_STANDARD_NO_PAD.encode(&challenge_hash),
+                    integrity_token,
                     pin_privkey,
                     challenge,
                 )
@@ -1259,7 +1300,7 @@ mod tests {
         WalletUserTestRepo,
     ) {
         let setup = WalletCertificateSetup::new().await;
-        let account_server = mock::setup_account_server(&setup.signing_pubkey);
+        let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
         let attestation_ca = match attestation_type {
             AttestationType::Apple => AttestationCa::Apple(&MOCK_APPLE_CA),
@@ -1491,7 +1532,7 @@ mod tests {
     #[rstest]
     async fn test_register_invalid_apple_attestation() {
         let setup = WalletCertificateSetup::new().await;
-        let account_server = mock::setup_account_server(&setup.signing_pubkey);
+        let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
         // Have a `MockAppleAttestedKey` be generated under a different CA to make the attestation validation fail.
         let other_apple_mock_ca = MockAttestationCa::generate();
@@ -1513,7 +1554,7 @@ mod tests {
     #[rstest]
     async fn test_register_invalid_android_key_attestation() {
         let setup = WalletCertificateSetup::new().await;
-        let account_server = mock::setup_account_server(&setup.signing_pubkey);
+        let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
         // Generate the Google certificate chain using a different set of CAs to make the attestation validation fail.
         let other_android_mock_ca_chain = MockCaChain::generate(1);
@@ -1535,7 +1576,7 @@ mod tests {
     #[rstest]
     async fn test_register_android_play_integrity_client_error() {
         let setup = WalletCertificateSetup::new().await;
-        let mut account_server = mock::setup_account_server(&setup.signing_pubkey);
+        let mut account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
         // Have the Play Integrity client return an error.
         account_server.play_integrity_client.has_error = true;
@@ -1560,7 +1601,7 @@ mod tests {
     #[rstest]
     async fn test_register_invalid_android_integrity_verdict() {
         let setup = WalletCertificateSetup::new().await;
-        let mut account_server = mock::setup_account_server(&setup.signing_pubkey);
+        let mut account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
         // Have the Play Integrity API expect a different package name.
         account_server.play_integrity_client =

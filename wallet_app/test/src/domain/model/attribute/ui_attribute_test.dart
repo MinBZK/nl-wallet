@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test/test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/attribute/ui_attribute.dart';
 
 void main() {
   test('UiAttribute key should throw', () {

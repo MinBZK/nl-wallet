@@ -21,6 +21,7 @@ use tokio::time;
 use url::Url;
 use uuid::Uuid;
 
+use android_attest::android_crl::RevocationStatusList;
 use android_attest::play_integrity::client::mock::MockPlayIntegrityClient;
 use android_attest::play_integrity::verification::VerifyPlayStore;
 use android_attest::root_public_key::RootPublicKey;
@@ -341,7 +342,9 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTr
     let play_integrity_client = MockPlayIntegrityClient::new(settings.android.package_name.clone(), verify_play_store);
 
     tokio::spawn(async {
-        if let Err(error) = wallet_provider::server::serve(settings, play_integrity_client).await {
+        if let Err(error) =
+            wallet_provider::server::serve(settings, RevocationStatusList::default(), play_integrity_client).await
+        {
             println!("Could not start wallet_provider: {:?}", error);
 
             process::exit(1);

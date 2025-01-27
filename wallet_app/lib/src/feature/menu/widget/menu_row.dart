@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/store/active_locale_provider.dart';
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 const _kMinHeight = 72.0;
@@ -27,14 +28,24 @@ class MenuRow extends StatelessWidget {
       button: true,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: _kMinHeight),
-        child: InkWell(
-          onTap: onTap,
-          child: Row(
+        child: TextButton.icon(
+          onPressed: onTap,
+          icon: _buildIcon(context),
+          iconAlignment: IconAlignment.end,
+          style: context.theme.iconButtonTheme.style?.copyWith(
+            foregroundColor: WidgetStateProperty.resolveWith(
+              // Only override the color when the button is not pressed or focused
+              (states) => states.isPressedOrFocused ? null : context.colorScheme.onSurface,
+            ),
+            shape: WidgetStateProperty.all(
+              const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            ),
+          ),
+          label: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildLeading(context),
               _buildContent(context),
-              _buildTrailing(context),
             ],
           ),
         ),
@@ -43,10 +54,9 @@ class MenuRow extends StatelessWidget {
   }
 
   Widget _buildLeading(BuildContext context) {
-    const edgeInsets = EdgeInsets.symmetric(horizontal: 16, vertical: 24);
     if (icon == null) return const SizedBox(width: 16);
     return Container(
-      padding: edgeInsets,
+      padding: const EdgeInsets.only(right: 16),
       alignment: Alignment.center,
       child: Icon(
         icon,
@@ -57,53 +67,38 @@ class MenuRow extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
-    const verticalPadding = EdgeInsets.symmetric(vertical: 24);
-
     if (subtitle == null) {
       return Expanded(
-        child: Padding(
-          padding: verticalPadding,
-          child: Text.rich(
-            TextSpan(text: label, locale: context.read<ActiveLocaleProvider>().activeLocale),
-            style: context.textTheme.titleMedium,
+        child: Text.rich(
+          TextSpan(
+            text: label,
+            locale: context.read<ActiveLocaleProvider>().activeLocale,
           ),
         ),
       );
     }
 
     return Expanded(
-      child: Padding(
-        padding: verticalPadding,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label,
-              style: context.textTheme.titleMedium,
-            ),
-            Text(
-              subtitle ?? '',
-              style: context.textTheme.bodyMedium,
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: context.textTheme.titleMedium,
+          ),
+          Text(
+            subtitle ?? '',
+            style: context.textTheme.bodyMedium,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTrailing(BuildContext context) {
-    if (onTap == null) return const SizedBox(width: 16);
-    const edgeInsets = EdgeInsets.symmetric(horizontal: 16, vertical: 24);
-    return Container(
-      padding: edgeInsets,
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.chevron_right,
-        size: _kIconSize,
-        color: context.colorScheme.primary,
-      ),
-    );
+  Widget? _buildIcon(BuildContext context) {
+    if (onTap == null) return null;
+    return const Icon(Icons.chevron_right);
   }
 }

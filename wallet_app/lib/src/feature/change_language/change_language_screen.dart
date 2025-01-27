@@ -60,7 +60,7 @@ class ChangeLanguageScreen extends StatelessWidget {
       slivers: [
         const SliverDivider(),
         SliverList.separated(
-          separatorBuilder: (c, i) => const Divider(height: 1),
+          separatorBuilder: (c, i) => const Divider(),
           itemBuilder: (c, i) {
             final language = state.availableLanguages[i];
             final isSelectedLanguage = state.availableLanguages[i].locale == state.selectedLocale;

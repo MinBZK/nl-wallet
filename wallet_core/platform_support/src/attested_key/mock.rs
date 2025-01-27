@@ -14,6 +14,8 @@ use rand_core::OsRng;
 use uuid::Uuid;
 
 #[cfg(feature = "mock_attested_key_google")]
+use android_attest::attestation_extension::key_description::KeyDescription;
+#[cfg(feature = "mock_attested_key_google")]
 use android_attest::mock_chain::MockCaChain;
 #[cfg(feature = "mock_attested_key_apple")]
 use apple_app_attest::AppIdentifier;
@@ -321,17 +323,20 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
             }
             #[cfg(feature = "mock_attested_key_google")]
             KeyHolderType::Google { ca_chain } => {
+                // The token is simply the Base64 encoded challenge hash, which can then be decoded by
+                // a mock Play Integrity implementation in order to generate an integrity verdict.
+                let app_attestation_token = BASE64_STANDARD_NO_PAD.encode(&challenge).into_bytes();
+
+                let key_description = KeyDescription::new_valid_mock(challenge);
+
                 // Generate a new Google key and mock certificate chain.
-                let (certificate_chain, signing_key) = ca_chain.generate_leaf_certificate();
+                let (certificate_chain, signing_key) = ca_chain.generate_attested_leaf_certificate(&key_description);
                 let mut key =
                     MockGoogleAttestedKey::new(Arc::clone(&self.key_states), key_identifier.clone(), signing_key);
                 key.has_error = has_error;
 
                 key_states.insert(key_identifier, Self::state_from_google_key(&key));
 
-                // The token is simply the Base64 encoded challenge hash, which can then be decoded by
-                // a mock Play Integrity implementation in order to generate an integrity verdict.
-                let app_attestation_token = BASE64_STANDARD_NO_PAD.encode(&challenge).into_bytes();
                 KeyWithAttestation::Google {
                     key,
                     certificate_chain,
@@ -705,7 +710,7 @@ mod persistent {
 
             test::create_and_verify_attested_key(
                 &mock_holder,
-                mock_holder_inner.to_apple_test_data(),
+                mock_holder_inner.to_test_data(),
                 challenge.to_vec(),
                 payload.to_vec(),
             )
@@ -716,23 +721,28 @@ mod persistent {
 
 #[cfg(test)]
 mod tests {
+    use android_attest::root_public_key::RootPublicKey;
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AttestationEnvironment;
 
     use crate::attested_key::test;
+    use crate::attested_key::test::AndroidTestData;
     use crate::attested_key::test::AppleTestData;
+    use crate::attested_key::test::TestData;
 
     use super::KeyHolderType;
     use super::MockHardwareAttestedKeyHolder;
 
     impl MockHardwareAttestedKeyHolder {
-        pub fn to_apple_test_data(&self) -> Option<AppleTestData> {
+        pub fn to_test_data(&self) -> TestData {
             match &self.holder_type {
-                KeyHolderType::Apple { ca, app_identifier, .. } => Some(AppleTestData {
+                KeyHolderType::Apple { ca, app_identifier, .. } => TestData::Apple(AppleTestData {
                     app_identifier,
                     trust_anchors: vec![ca.trust_anchor()],
                 }),
-                KeyHolderType::Google { .. } => None,
+                KeyHolderType::Google { ca_chain } => TestData::Android(AndroidTestData {
+                    root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone())],
+                }),
             }
         }
     }
@@ -743,7 +753,7 @@ mod tests {
 
         test::create_and_verify_attested_key(
             &mock_holder,
-            mock_holder.to_apple_test_data(),
+            mock_holder.to_test_data(),
             challenge.to_vec(),
             payload.to_vec(),
         )

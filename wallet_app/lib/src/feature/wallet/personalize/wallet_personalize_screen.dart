@@ -9,14 +9,12 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wallet_mock/mock.dart';
 
 import '../../../../environment.dart';
-import '../../../domain/model/attribute/data_attribute.dart';
-import '../../../domain/model/attribute/ui_attribute.dart';
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../../../util/mapper/mapper.dart';
-import '../../../util/mapper/pid/pid_attribute_mapper.dart';
 import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
 import '../../../wallet_core/typed/typed_wallet_core.dart';
@@ -124,19 +122,11 @@ class WalletPersonalizeScreen extends StatelessWidget {
   void _closeOpenDialogs(BuildContext context) => Navigator.popUntil(context, (route) => route is! DialogRoute);
 
   Widget _buildCheckDataOfferingPage(BuildContext context, WalletPersonalizeCheckData state) {
-    /// Note that mapping occurs in the UI layer since we need a fresh context (with l10n).
-    List<UiAttribute> attributes = [];
-    try {
-      attributes = context.read<PidAttributeMapper>().map(context, state.availableAttributes);
-    } catch (ex) {
-      Fimber.e('Failed to map pid attributes to expected preview attributes', ex: ex);
-      context.bloc.add(const WalletPersonalizeLoginWithDigidFailed());
-    }
     return WalletPersonalizeCheckDataOfferingPage(
       key: const Key('personalizePidPreviewPage'),
       onAcceptPressed: () => context.bloc.add(WalletPersonalizeOfferingAccepted(state.availableAttributes)),
       onRejectPressed: () => context.bloc.add(WalletPersonalizeOfferingRejected()),
-      attributes: attributes,
+      attributes: state.availableAttributes,
       progress: state.stepperProgress,
     );
   }

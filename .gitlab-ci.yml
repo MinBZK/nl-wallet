@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:5b44cdb65c13ae10e01b0522245e349cff0f1a0b7d4a935076ff90ed068f2f0e"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250123-e88295e7"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
@@ -66,12 +66,14 @@ variables:
 .merge-request:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
       variables:
         CACHE_POLICY: pull
 
 .merge-request-manual:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
       variables:
         CACHE_POLICY: pull
       when: manual
@@ -98,6 +100,15 @@ variables:
     - !reference [.default-or-release, rules]
     - !reference [.merge-request-manual, rules]
 
+.on-schedule:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+.on-web-trigger:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+
 .ruby-cache:
   cache:
     key: ruby-${CI_COMMIT_REF_SLUG}
@@ -114,8 +125,6 @@ variables:
 
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:d3d70d3040d563c0668a13022f55e07e36c60854b772b636f7b4c8a5f6325ce1"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -124,13 +133,9 @@ test-flutter:
     - flutter pub get --enforce-lockfile
     - flutter analyze .
     - flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
-    - $HOME/.pub-cache/bin/tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
+    - tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
   after_script:
-    - set -euxo pipefail
-    - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
-        mc put wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
-      fi
+    - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
   artifacts:
     reports:
       junit: wallet_app/build/reports/test-results.xml
@@ -141,7 +146,6 @@ test-flutter:
 
 test-flutter-ui:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  when: manual
   tags:
     - macos
   image: sonoma-wallet:0.1.5
@@ -154,14 +158,14 @@ test-flutter-ui:
     - cd wallet_app
     - set -euxo pipefail
   script:
-    - flutter --version
-    - flutter test --tags=golden --dart-define=MOCK_REPOSITORIES=true
+    - fvm flutter --version
+    - http_proxy='' https_proxy='' fvm flutter pub get --enforce-lockfile
+    - defaults -currentHost write -g AppleFontSmoothing -int 0 # Disable font smoothing, should match the generating platform.
+    - fvm flutter test --tags=golden
 
 # Checks .arb files for unused keys, indicating an update to Lokalise might be in order
 verify-flutter-localizations:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:d3d70d3040d563c0668a13022f55e07e36c60854b772b636f7b4c8a5f6325ce1"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -174,8 +178,6 @@ verify-flutter-localizations:
 
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:173637b27d8a4b4204d6dc12a2a8af4bddbffa6bbed984b85a5c235006bda0f6"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
@@ -189,8 +191,6 @@ test-codegen:
 
 build-wallet-web:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:5094c64b0692fd25878408229e0ace2db171912ff017613a640033e25bb87df0"
   variables:
     VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
   script:
@@ -218,11 +218,7 @@ build-wallet-web:
     - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
     - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
   after_script:
-    - set -euxo pipefail
-    - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
-        mc put wallet_web/coverage/tests.xml qt/quality-time/junit-results/web.xml
-      fi
+    - deploy/bin/store-artifact.sh wallet_web/coverage/tests.xml qt/quality-time/junit-results/web.xml
   artifacts:
     reports:
       junit: wallet_web/coverage/tests.xml
@@ -557,8 +553,6 @@ deploy-gba-fetch-frontend-demo:
 
 build-sbom:
   rules: !reference [.default-branch, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:5c9dc61642166024ab4445555489e36f9caf42c4709359d1d72948689a40bc31"
   script:
     ## Rust
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
@@ -571,30 +565,34 @@ build-sbom:
     - mv bom-bundled.json bom.json
     - cd ..
     ## Flutter
-    - cd wallet_app; cdxgen --spec-version 1.5 --type dart --output bom.json; cd -
+    - cd wallet_app && cdxgen --spec-version 1.5 --type dart --output bom.json && cd -
     ## iOS
-    # does not support json, so converting to it (we need it to be able to merge)
     - bundle install
     - cd wallet_app
     - flutter pub get --enforce-lockfile
     - flutter precache --ios
     - cd ios
     - bundle exec pod install --allow-root
-    - cyclonedx-cocoapods # only supports spec version 1.4
+    - cyclonedx-cocoapods # only supports single spec version (currently 1.6)
     - cyclonedx convert --output-version v1_5 --input-file bom.xml --output-file bom.json
     - cd ../..
     ## Android
-    - cd wallet_app/android/app; cdxgen --spec-version 1.5 --type gradle --output bom.json; cd -
-    - cd wallet_core/platform_support/android/platform_support; cdxgen --spec-version 1.5 --type gradle --output bom.json; cd -
+    # TODO PVW-3972: Android BOM is empty and with latest build image the generation fails
+    #- cd wallet_app/android && cdxgen --spec-version 1.5 --type gradle --output bom.json && cd -
+    #- cd wallet_core/platform_support/android/platform_support && cdxgen --spec-version 1.5 --type gradle --output bom.json && cd -
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
-    - cyclonedx merge --output-version v1_5 --input-files `find . -name bom.json` --output-file bom.json
+    - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
     # converting it to xml does work
     - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
+    - deploy/bin/store-artifact.sh bom.* qt/quality-time/sbom/
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
   artifacts:
     when: always
+    reports:
+      cyclonedx: bom.json
     paths:
-      - ./bom.xml
-      - ./bom.json
+      - bom.xml
+      - bom.json
+  allow_failure: true

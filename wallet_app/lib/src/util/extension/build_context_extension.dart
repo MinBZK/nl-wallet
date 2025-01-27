@@ -7,6 +7,8 @@ import '../../data/store/active_locale_provider.dart';
 extension BuildContextExtension on BuildContext {
   MediaQueryData get mediaQuery => MediaQuery.of(this);
 
+  Brightness get brightness => MediaQuery.platformBrightnessOf(this);
+
   TextScaler get textScaler => mediaQuery.textScaler;
 
   /// Checks whether the device is currently rendering the app in landscape mode

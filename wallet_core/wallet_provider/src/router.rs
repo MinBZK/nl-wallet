@@ -37,6 +37,7 @@ use wallet_common::account::messages::instructions::SignResult;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::keys::EcdsaKey;
+use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::wte_issuer::WteIssuer;
 
 use crate::errors::WalletProviderError;
@@ -55,8 +56,9 @@ use crate::router_state::RouterState;
 /// be able to handle these errors appropriately.
 type Result<T> = std::result::Result<T, WalletProviderError>;
 
-pub fn router<PIC>(router_state: RouterState<PIC>) -> Router
+pub fn router<GRC, PIC>(router_state: RouterState<GRC, PIC>) -> Router
 where
+    GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
 {
     let state = Arc::new(router_state);
@@ -101,7 +103,7 @@ fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-async fn enroll<PIC>(State(state): State<Arc<RouterState<PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {
+async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received enroll request, creating registration challenge");
 
     let challenge = state
@@ -117,11 +119,12 @@ async fn enroll<PIC>(State(state): State<Arc<RouterState<PIC>>>) -> Result<(Stat
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn create_wallet<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn create_wallet<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<ChallengeResponse<Registration>>,
 ) -> Result<(StatusCode, Json<Certificate>)>
 where
+    GRC: GoogleCrlProvider,
     PIC: IntegrityTokenDecoder,
 {
     info!("Received create wallet request, registering with account server");
@@ -139,8 +142,8 @@ where
     Ok((StatusCode::CREATED, body.into()))
 }
 
-async fn instruction_challenge<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn instruction_challenge<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<InstructionChallengeRequest>,
 ) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received challenge request, creating challenge");
@@ -158,8 +161,8 @@ async fn instruction_challenge<PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn check_pin<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn check_pin<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<CheckPin>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received check pin request, handling the CheckPin instruction");
@@ -171,8 +174,8 @@ async fn check_pin<PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_start<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn change_pin_start<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ChangePinStart>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)> {
     info!("Received change pin start request, handling the ChangePinStart instruction");
@@ -195,8 +198,8 @@ async fn change_pin_start<PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_commit<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn change_pin_commit<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ChangePinCommit>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received change pin commit request, handling the ChangePinCommit instruction");
@@ -208,8 +211,8 @@ async fn change_pin_commit<PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_rollback<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn change_pin_rollback<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ChangePinRollback>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received change pin rollback request, handling the ChangePinRollback instruction");
@@ -234,8 +237,8 @@ async fn change_pin_rollback<PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn generate_key<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn generate_key<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<GenerateKey>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<GenerateKeyResult>>)> {
     info!("Received generate key request, handling the GenerateKey instruction");
@@ -247,8 +250,8 @@ async fn generate_key<PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn sign<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn sign<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<Sign>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<SignResult>>)> {
     info!("Received sign request, handling the SignRequest instruction");
@@ -260,8 +263,8 @@ async fn sign<PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn issue_wte<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn issue_wte<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<IssueWte>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<IssueWteResult>>)> {
     info!("Received issue WTE request, handling the IssueWte instruction");
@@ -273,8 +276,8 @@ async fn issue_wte<PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn construct_poa<PIC>(
-    State(state): State<Arc<RouterState<PIC>>>,
+async fn construct_poa<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
     Json(payload): Json<Instruction<ConstructPoa>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<ConstructPoaResult>>)> {
     info!("Received new PoA request, handling the ConstructPoa instruction");
@@ -293,7 +296,9 @@ struct PublicKeys {
     wte_signing_key: DerVerifyingKey,
 }
 
-async fn public_keys<PIC>(State(state): State<Arc<RouterState<PIC>>>) -> Result<(StatusCode, Json<PublicKeys>)> {
+async fn public_keys<GRC, PIC>(
+    State(state): State<Arc<RouterState<GRC, PIC>>>,
+) -> Result<(StatusCode, Json<PublicKeys>)> {
     let (certificate_public_key, instruction_result_public_key, wte_signing_key) = try_join!(
         state
             .certificate_signing_key

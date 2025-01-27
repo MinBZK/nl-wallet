@@ -1,10 +1,9 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/object_extension.dart';
 
-const _kIconSize = 16.0;
+const _kIconSize = 20.0;
 const _kSpacing = 8.0;
 
 /// Widget that horizontally renders the icon (optional) and text as:

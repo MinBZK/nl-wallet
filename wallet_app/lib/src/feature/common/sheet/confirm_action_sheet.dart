@@ -67,10 +67,10 @@ class ConfirmActionSheet extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             if (extraContent != null) ...[
-              const Divider(height: 1),
+              const Divider(),
               extraContent!,
             ],
-            const Divider(height: 1),
+            const Divider(),
             ConfirmButtons(
               primaryButton: PrimaryButton(
                 key: const Key('acceptButton'),

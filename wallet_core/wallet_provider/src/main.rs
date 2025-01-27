@@ -3,6 +3,7 @@ use std::error::Error;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
+use android_attest::android_crl::GoogleRevocationListClient;
 use android_attest::play_integrity::client::PlayIntegrityClient;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_provider::server;
@@ -23,10 +24,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         builder.init();
     }
 
+    let google_crl_client = GoogleRevocationListClient::new(default_reqwest_client_builder().build()?);
+
     let play_integrity_client = PlayIntegrityClient::new(
         default_reqwest_client_builder().build()?,
         &settings.android.package_name,
     )?;
 
-    server::serve(settings, play_integrity_client).await
+    server::serve(settings, google_crl_client, play_integrity_client).await
 }

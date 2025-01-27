@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import 'attribute/data_attribute.dart';
+import 'attribute/attribute.dart';
 import 'card_config.dart';
 import 'card_front.dart';
 import 'organization.dart';

@@ -72,16 +72,12 @@ class PinPage extends StatelessWidget {
   /// Draw a divider at the top of the screen when in landscape mode
   final bool showTopDivider;
 
-  /// The color used to draw the keyboard keys & pin dots
-  final Color? keyboardColor;
-
   const PinPage({
     required this.onPinValidated,
     this.onStateChanged,
     this.onPinError,
     this.onBiometricUnlockRequested,
     this.headerBuilder,
-    this.keyboardColor,
     this.showTopDivider = false,
     super.key,
   });
@@ -206,7 +202,7 @@ class PinPage extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.max,
       children: [
-        showTopDivider ? const Divider(height: 1) : const SizedBox.shrink(),
+        showTopDivider ? const Divider() : const SizedBox.shrink(),
         Expanded(
           child: Row(
             children: [
@@ -254,7 +250,6 @@ class PinPage extends StatelessWidget {
     return BlocBuilder<PinBloc, PinState>(
       builder: (context, state) {
         return PinField(
-          color: keyboardColor,
           digits: kPinDigits,
           enteredDigits: _resolveEnteredDigits(state),
           state: _resolvePinFieldState(state),
@@ -281,7 +276,6 @@ class PinPage extends StatelessWidget {
           duration: kDefaultAnimationDuration,
           opacity: state is PinValidateInProgress ? 0.3 : 1,
           child: PinKeyboard(
-            color: keyboardColor,
             onKeyPressed: _digitKeysEnabled(state) ? (digit) => context.bloc.add(PinDigitPressed(digit)) : null,
             onBackspacePressed:
                 _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinBackspacePressed()) : null,

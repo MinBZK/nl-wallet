@@ -78,7 +78,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const Divider(height: 1),
+        const Divider(),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.orientationBasedVerticalPadding),
           child: nextButton,

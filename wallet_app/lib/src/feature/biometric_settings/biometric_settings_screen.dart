@@ -102,17 +102,19 @@ class BiometricSettingScreen extends StatelessWidget {
         TerminalScreen.show(
           context,
           replaceCurrentRoute: true,
-          title: context.l10n.biometricSettingsScreenSuccessTitle,
-          description: context.l10n.biometricSettingsScreenSuccessDescription(supportedBiometricsText),
-          illustration: illustration,
-          secondaryButton: TertiaryButton(
-            text: Text(context.l10n.biometricSettingsScreenSuccessToSettingsCta),
-            onPressed: () {
-              Navigator.popUntil(
-                context,
-                ModalRoute.withName(WalletRoutes.settingsRoute),
-              );
-            },
+          config: TerminalScreenConfig(
+            title: context.l10n.biometricSettingsScreenSuccessTitle,
+            description: context.l10n.biometricSettingsScreenSuccessDescription(supportedBiometricsText),
+            illustration: illustration,
+            secondaryButton: TertiaryButton(
+              text: Text(context.l10n.biometricSettingsScreenSuccessToSettingsCta),
+              onPressed: () {
+                Navigator.popUntil(
+                  context,
+                  ModalRoute.withName(WalletRoutes.settingsRoute),
+                );
+              },
+            ),
           ),
         );
       },
@@ -221,7 +223,7 @@ class BiometricSettingScreen extends StatelessWidget {
 
   Widget _buildError(BuildContext context, BiometricSettingsError state) {
     return ErrorScreen(
-      headline: context.l10n.errorScreenGenericHeadline,
+      title: context.l10n.errorScreenGenericHeadline,
       description: context.l10n.errorScreenGenericDescription,
       primaryButton: PrimaryButton(
         text: Text(context.l10n.generalRetry),

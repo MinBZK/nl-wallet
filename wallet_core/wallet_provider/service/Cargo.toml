@@ -63,6 +63,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 ] }
 x509-parser.workspace = true
 uuid = { workspace = true, features = ["v4"] }
+trait-variant.workspace = true
 
 rand_core = { workspace = true, optional = true }
 hmac = { workspace = true, optional = true, features = ["std"] }

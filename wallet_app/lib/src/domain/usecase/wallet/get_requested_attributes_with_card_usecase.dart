@@ -1,5 +1,4 @@
-import '../../model/attribute/data_attribute.dart';
-import '../../model/attribute/missing_attribute.dart';
+import '../../model/attribute/attribute.dart';
 import '../../model/wallet_card.dart';
 
 abstract class GetRequestedAttributesWithCardUseCase {

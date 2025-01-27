@@ -215,42 +215,4 @@ void main() {
     final ctaFinder = find.text(l10n.cardDetailScreenCardDeleteCta);
     expect(ctaFinder, findsOneWidget);
   });
-
-  testWidgets('no update sheet is shown when update cta is pressed', (tester) async {
-    await tester.pumpWidgetWithAppWrapper(
-      CardDetailScreen(
-        cardTitle: WalletMockData.card.front.title.testValue,
-      ).withState<CardDetailBloc, CardDetailState>(
-        MockCardSummaryBloc(),
-        CardDetailLoadSuccess(
-          WalletCardDetail(
-            card: WalletCard(
-              docType: 'com.example.docType',
-              front: WalletMockData.cardFront,
-              issuer: WalletMockData.organization,
-              attributes: const [],
-              id: 'id',
-              config: const CardConfig(updatable: true),
-            ),
-            mostRecentIssuance: WalletMockData.issuanceEvent,
-            mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
-          ),
-        ),
-      ),
-    );
-
-    final l10n = await TestUtils.englishLocalizations;
-    // Validate that the widget exists
-    final ctaFinder = find.text(l10n.cardDetailScreenCardUpdateCta);
-    await tester.tap(ctaFinder);
-    await tester.pumpAndSettle();
-
-    // Verify all expected sheet texts are here
-    final noUpdateSheetTitleFinder = find.text(l10n.cardDetailScreenNoUpdateAvailableSheetTitle);
-    expect(noUpdateSheetTitleFinder, findsOneWidget);
-    final noUpdateSheetDescriptionFinder = find.text(l10n.cardDetailScreenNoUpdateAvailableSheetDescription);
-    expect(noUpdateSheetDescriptionFinder, findsOneWidget);
-    final noUpdateSheetCloseCta = find.text(l10n.cardDetailScreenNoUpdateAvailableSheetCloseCta);
-    expect(noUpdateSheetCloseCta, findsOneWidget);
-  });
 }

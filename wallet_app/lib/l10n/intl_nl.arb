@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-12-11T19:02:24+01:00",
+    "@@last_modified": "2025-01-27T11:54:19+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -298,7 +298,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Alleen het volgende gegeven wordt gedeeld. Niet meer.} other {Alleen de volgende {count} gegevens worden gedeeld. Niet meer.}}",
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Alleen het volgende gegeven wordt gedeeld.} other {Alleen de volgende {count} gegevens worden gedeeld.}}",
     "@disclosureConfirmDataAttributesSharedAttributesInfo": {
         "placeholders": {
             "count": {
@@ -563,7 +563,7 @@
     "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
     "historyDetailScreenPurposeTitle": "Reden voor delen",
     "historyDetailScreenReportIssueCta": "Wil je een probleem melden?",
-    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven is gedeeld. Niet meer.} other {Alleen deze volgende {count} gegevens zijn gedeeld. Niet meer.}}",
+    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven is gedeeld.} other {Alleen deze volgende {count} gegevens zijn gedeeld.}}",
     "@historyDetailScreenSharedAttributesSubtitle": {
         "placeholders": {
             "count": {
@@ -939,7 +939,7 @@
     "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
     "reportOptionUntrusted": "Ik vertrouw het niet",
     "requestDetailScreenTitle": "Aanvraag details",
-    "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven werd gevraagd. Niet meer.} other {Alleen deze volgende {count} gegevens werden gevraagd. Niet meer.}}",
+    "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven werd gevraagd.} other {Alleen deze volgende {count} gegevens werden gevraagd.}}",
     "@requestDetailsScreenAttributesSubtitle": {
         "placeholders": {
             "count": {
@@ -1083,30 +1083,8 @@
     },
     "updateNotificationDialogTitle": "Update nodig",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Toevoegen",
-    "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
-    "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",
-    "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
-    "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {
-        "placeholders": {
-            "birthCountry": {
-                "example": "Nederland",
-                "type": "String"
-            },
-            "birthDate": {
-                "example": "01-01-1980",
-                "type": "String"
-            },
-            "birthPlace": {
-                "example": "Leiden",
-                "type": "String"
-            }
-        }
-    },
-    "walletPersonalizeCheckDataOfferingPageCitizenIdLabel": "Burger­service­nummer (BSN)",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "Nee",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
-    "walletPersonalizeCheckDataOfferingPageGenderLabel": "Geslacht",
-    "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Als je gegevens kloppen, kun je ze als kaarten toevoegen.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Wil je deze gegevens toevoegen?",
     "walletPersonalizeConfirmPinPageTitle": "Geef akkoord met je pincode",
