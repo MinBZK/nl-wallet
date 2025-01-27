@@ -9,7 +9,7 @@
       - uiautomation/build/test-results
       - uiautomation/build/reports
     reports:
-      junit: uiautomation/build/test-results/test/*.xml
+      junit: uiautomation/build/test-results/**/*.xml
   before_script:
     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
@@ -149,7 +149,6 @@ run-automation-smoke-test-ont:
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
   variables: !reference [.run-automation-tests-default, variables]
-  allow_failure: true # Only meant as a warning indicator.
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
