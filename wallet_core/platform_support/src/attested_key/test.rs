@@ -59,10 +59,14 @@ pub struct AndroidTestData {
     pub root_public_keys: Vec<RootPublicKey>,
 }
 
+pub enum TestData<'a> {
+    Android(AndroidTestData),
+    Apple(AppleTestData<'a>),
+}
+
 pub async fn create_and_verify_attested_key<'a, H>(
     holder: &'a H,
-    apple_test_data: Option<AppleTestData<'a>>,
-    android_test_data: Option<AndroidTestData>,
+    test_data: TestData<'a>,
     challenge: Vec<u8>,
     payload: Vec<u8>,
 ) where
@@ -84,7 +88,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
 
     match key_with_attestation {
         KeyWithAttestation::Apple { key, attestation_data } => {
-            let Some(apple_test_data) = apple_test_data else {
+            let TestData::Apple(apple_test_data) = test_data else {
                 panic!("apple test data should be provided to test");
             };
 
@@ -150,7 +154,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
             certificate_chain,
             app_attestation_token: _app_attestation_token,
         } => {
-            let Some(android_test_data) = android_test_data else {
+            let TestData::Android(android_test_data) = test_data else {
                 panic!("android test data should be provided to test");
             };
 

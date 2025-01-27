@@ -707,8 +707,7 @@ mod persistent {
 
             test::create_and_verify_attested_key(
                 &mock_holder,
-                mock_holder_inner.to_apple_test_data(),
-                None,
+                mock_holder_inner.to_test_data(),
                 challenge.to_vec(),
                 payload.to_vec(),
             )
@@ -726,25 +725,19 @@ mod tests {
     use crate::attested_key::test;
     use crate::attested_key::test::AndroidTestData;
     use crate::attested_key::test::AppleTestData;
+    use crate::attested_key::test::TestData;
 
     use super::KeyHolderType;
     use super::MockHardwareAttestedKeyHolder;
 
     impl MockHardwareAttestedKeyHolder {
-        pub fn to_apple_test_data(&self) -> Option<AppleTestData> {
+        pub fn to_test_data(&self) -> TestData {
             match &self.holder_type {
-                KeyHolderType::Apple { ca, app_identifier, .. } => Some(AppleTestData {
+                KeyHolderType::Apple { ca, app_identifier, .. } => TestData::Apple(AppleTestData {
                     app_identifier,
                     trust_anchors: vec![ca.trust_anchor()],
                 }),
-                KeyHolderType::Google { .. } => None,
-            }
-        }
-
-        pub fn to_android_test_data(&self) -> Option<AndroidTestData> {
-            match &self.holder_type {
-                KeyHolderType::Apple { .. } => None,
-                KeyHolderType::Google { ca_chain } => Some(AndroidTestData {
+                KeyHolderType::Google { ca_chain } => TestData::Android(AndroidTestData {
                     root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone())],
                 }),
             }
@@ -757,8 +750,7 @@ mod tests {
 
         test::create_and_verify_attested_key(
             &mock_holder,
-            mock_holder.to_apple_test_data(),
-            mock_holder.to_android_test_data(),
+            mock_holder.to_test_data(),
             challenge.to_vec(),
             payload.to_vec(),
         )
