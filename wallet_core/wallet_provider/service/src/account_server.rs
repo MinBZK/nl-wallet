@@ -1153,6 +1153,7 @@ mod tests {
     use uuid::uuid;
 
     use android_attest::mock_chain::MockCaChain;
+    use android_attest::play_integrity::client::mock::MockPlayIntegrityClient;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
@@ -1510,7 +1511,7 @@ mod tests {
 
     #[tokio::test]
     #[rstest]
-    async fn test_register_invalid_android_attestation() {
+    async fn test_register_invalid_android_key_attestation() {
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(&setup.signing_pubkey);
 
@@ -1528,6 +1529,57 @@ mod tests {
         .expect_err("registering with an invalid Android attestation should fail");
 
         assert_matches!(error, RegistrationError::AndroidKeyAttestation(_));
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_register_android_play_integrity_client_error() {
+        let setup = WalletCertificateSetup::new().await;
+        let mut account_server = mock::setup_account_server(&setup.signing_pubkey);
+
+        // Have the Play Integrity client return an error.
+        account_server.play_integrity_client.has_error = true;
+
+        let error = do_registration(
+            &account_server,
+            get_global_hsm().await,
+            &setup.signing_key,
+            &setup.pin_privkey,
+            AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
+        )
+        .await
+        .expect_err("registering should fail when the Play Integrity API fails to decode the token");
+
+        assert_matches!(
+            error,
+            RegistrationError::AndroidAppAttestation(AndroidAppAttestationError::DecodeIntegrityToken)
+        );
+    }
+
+    #[tokio::test]
+    #[rstest]
+    async fn test_register_invalid_android_integrity_verdict() {
+        let setup = WalletCertificateSetup::new().await;
+        let mut account_server = mock::setup_account_server(&setup.signing_pubkey);
+
+        // Have the Play Integrity API expect a different package name.
+        account_server.play_integrity_client =
+            MockPlayIntegrityClient::new("com.example.other".to_string(), VerifyPlayStore::NoVerify);
+
+        let error = do_registration(
+            &account_server,
+            get_global_hsm().await,
+            &setup.signing_key,
+            &setup.pin_privkey,
+            AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
+        )
+        .await
+        .expect_err("registering with an invalid Android Integrity Verdict should fail");
+
+        assert_matches!(
+            error,
+            RegistrationError::AndroidAppAttestation(AndroidAppAttestationError::IntegrityVerdict(_))
+        );
     }
 
     #[tokio::test]
