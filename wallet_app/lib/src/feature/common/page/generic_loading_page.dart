@@ -70,7 +70,12 @@ class GenericLoadingPage extends StatelessWidget {
             ),
             loadingIndicator,
             Expanded(
-              child: _buildOptionalCancelButton(context),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _buildOptionalCancelButton(context),
+                ],
+              ),
             ),
           ],
         ),
@@ -83,15 +88,12 @@ class GenericLoadingPage extends StatelessWidget {
     return SafeArea(
       left: false,
       right: false,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: ListButton(
-          icon: const Icon(Icons.block_outlined),
-          onPressed: onCancel,
-          dividerSide: DividerSide.top,
-          mainAxisAlignment: MainAxisAlignment.center,
-          text: Text(cancelCta ?? context.l10n.generalCancelCta),
-        ),
+      child: ListButton(
+        icon: const Icon(Icons.block_outlined),
+        onPressed: onCancel,
+        dividerSide: DividerSide.top,
+        mainAxisAlignment: MainAxisAlignment.center,
+        text: Text(cancelCta ?? context.l10n.generalCancelCta),
       ),
     );
   }
