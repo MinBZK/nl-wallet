@@ -1,7 +1,5 @@
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   before_script:
     - set -euxo pipefail
   script:
@@ -13,8 +11,8 @@ lint-rust:
 
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
+  tags:
+    - wallet-ci
   variables:
     NEXTEST_PROFILE: "ci"
     SKIP_DIGID_CONNECTOR: "true"
@@ -22,13 +20,12 @@ test-rust:
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:027f3965467f19c36455a3a2bb6f77d13f4fd5220d1741f635f0a6adc50936b7"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:250123-e88295e7"
       alias: postgres
       variables:
-        POSTGRES_USER: "postgres"
-        POSTGRES_PASSWORD: "postgres"
-        POSTGRES_INITDB_ARGS: "--encoding=UTF8"
-        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server"
+        POSTGRESQL_USER: "postgres"
+        POSTGRESQL_PASSWORD: "postgres"
+        POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server"
   before_script:
     - set -euxo pipefail
     - ./scripts/setup-devenv.sh
@@ -38,6 +35,8 @@ test-rust:
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
+  after_script:
+    - deploy/bin/store-artifact.sh wallet_core/target/nextest/ci/junit.xml qt/quality-time/junit-results/rust.xml
   artifacts:
     reports:
       coverage_report:
@@ -50,8 +49,8 @@ test-rust:
 
 test-rust-doctest:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
+  tags:
+    - wallet-ci
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -60,14 +59,14 @@ test-rust-doctest:
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
+  tags:
+    - wallet-ci
   variables:
     RUSTFLAGS: "-D warnings"
     CONFIG_ENV: "dev"
 
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:e7d15ca08ac783d73ea0d375eafa593633cde7fd411d2713573b5eb8d51920a1"
   script:
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
@@ -81,8 +80,6 @@ test-rust-compilation-ios:
 
 .build-binary:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   needs:
     - job: test-rust
       artifacts: false

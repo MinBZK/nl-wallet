@@ -38,7 +38,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
           const SliverSizedBox(height: 24),
           SliverToBoxAdapter(child: _buildHeader(context)),
           const SliverSizedBox(height: 24),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverToBoxAdapter(child: Divider()),
           SliverList(delegate: _cardBuilderDelegate()),
           SliverToBoxAdapter(child: _buildDataIncorrect(context)),
           SliverFillRemaining(

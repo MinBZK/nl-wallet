@@ -137,7 +137,7 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("wallet_provider")
                     .separator("__")
-                    .prefix_separator("_")
+                    .prefix_separator("__")
                     .list_separator(",")
                     .with_list_parse_key("ios.root_certificates")
                     .with_list_parse_key("android.root_public_keys")
@@ -161,10 +161,7 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
     type Error = spki::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        let public_key = RootPublicKey::rsa_from_der(&value)
-            // Choose to return the RSA parsing error here, as this will most likely be used in production.
-            .or_else(|error| RootPublicKey::ecdsa_from_der(&value).map_err(|_| error))?;
-
+        let public_key = RootPublicKey::try_from(value.as_slice())?;
         Ok(AndroidRootPublicKey(public_key))
     }
 }

@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/attribute/data_attribute.dart';
-import '../../../domain/model/attribute/missing_attribute.dart';
-import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
@@ -62,7 +59,7 @@ final _kSampleCardFront = CardFront(
   backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
   theme: CardFrontTheme.dark,
   info: 'Info'.untranslated,
-  logoImage: WalletAssets.logo_card_rijksoverheid,
+  logoImage: WalletAssets.illustration_digid_failure,
   subtitle: 'Subtitle'.untranslated,
 );
 

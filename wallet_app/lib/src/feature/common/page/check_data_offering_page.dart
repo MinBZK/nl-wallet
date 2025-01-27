@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card_front.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/attribute/data_attribute_row.dart';
@@ -41,12 +41,12 @@ class CheckDataOfferingPage extends StatelessWidget {
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           SliverToBoxAdapter(child: _buildCardFront(context)),
           SliverSizedBox(height: showHeaderAttributesDivider ? 24 : 12),
-          if (showHeaderAttributesDivider) const SliverToBoxAdapter(child: Divider(height: 1)),
+          if (showHeaderAttributesDivider) const SliverToBoxAdapter(child: Divider()),
           const SliverSizedBox(height: 12),
           SliverList(delegate: _getDataAttributesDelegate()),
           const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildFooterSection(context)),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverToBoxAdapter(child: Divider()),
           SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection()),
         ],
       ),

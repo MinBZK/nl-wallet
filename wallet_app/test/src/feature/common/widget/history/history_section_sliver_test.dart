@@ -63,7 +63,7 @@ void main() {
       },
     );
     testGoldens(
-      'light text',
+      'dark text',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           CustomScrollView(

@@ -37,7 +37,7 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("update_policy_server")
                     .separator("__")
-                    .prefix_separator("_")
+                    .prefix_separator("__")
                     .list_separator("|"),
             )
             .build()?

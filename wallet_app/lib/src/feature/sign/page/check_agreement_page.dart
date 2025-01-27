@@ -39,7 +39,7 @@ class CheckAgreementPage extends StatelessWidget {
         slivers: <Widget>[
           const SliverSizedBox(height: 8),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverToBoxAdapter(child: Divider()),
           SliverToBoxAdapter(
             child: DocumentSection(
               document: document,

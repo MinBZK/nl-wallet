@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/date_time_extension.dart';
+import '../../../util/extension/localized_text_extension.dart';
 import '../../../util/extension/string_extension.dart';
 
 class ActivitySummary extends StatelessWidget {

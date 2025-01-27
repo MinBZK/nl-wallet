@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../domain/model/attribute/data_attribute.dart';
+import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';

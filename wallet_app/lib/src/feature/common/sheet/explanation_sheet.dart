@@ -49,7 +49,7 @@ class ExplanationSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const Divider(height: 1),
+          const Divider(),
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

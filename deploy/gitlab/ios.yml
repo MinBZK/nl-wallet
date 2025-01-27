@@ -20,11 +20,8 @@ test-ios:
     - bundle install
     - bundle exec fastlane ios test
   after_script:
-    - set -euxo pipefail
-    - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" && $CI_JOB_STATUS == "success" ]]; then
-        mc put fastlane/test_output/report.junit qt/quality-time/junit-results/ios.xml
-      fi
+    - deploy/bin/store-artifact.sh fastlane/test_output/report.junit qt/quality-time/junit-results/ios.xml
+    - deploy/bin/store-artifact.sh fastlane/test_output/cobertura.xml qt/quality-time/ios-cobertura.xml
 
 ### iOS Building
 .build-ios-app:

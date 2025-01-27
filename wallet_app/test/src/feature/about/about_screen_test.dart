@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/feature/about/about_screen.dart';
@@ -12,6 +13,13 @@ import '../../util/device_utils.dart';
 import '../../util/test_utils.dart';
 
 void main() {
+  late GetVersionStringUseCase getVersionUsecase;
+
+  setUp(() async {
+    getVersionUsecase = MockGetVersionStringUseCase();
+    when(getVersionUsecase.invoke()).thenAnswer((_) async => '1.2.3 (123)');
+  });
+
   group('goldens', () {
     DeviceBuilder deviceBuilder(WidgetTester tester) {
       return DeviceUtils.deviceBuilderWithPrimaryScrollController
@@ -26,7 +34,7 @@ void main() {
         deviceBuilder(tester),
         wrapper: walletAppWrapper(
           providers: [
-            RepositoryProvider<GetVersionStringUseCase>(create: (c) => Mocks.create()),
+            RepositoryProvider<GetVersionStringUseCase>(create: (c) => getVersionUsecase),
             RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
           ],
         ),
@@ -40,7 +48,7 @@ void main() {
         wrapper: walletAppWrapper(
           brightness: Brightness.dark,
           providers: [
-            RepositoryProvider<GetVersionStringUseCase>(create: (c) => Mocks.create()),
+            RepositoryProvider<GetVersionStringUseCase>(create: (c) => getVersionUsecase),
             RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
           ],
         ),
@@ -54,7 +62,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(
         const AboutScreen()
-            .withDependency<GetVersionStringUseCase>((context) => MockGetVersionStringUseCase())
+            .withDependency<GetVersionStringUseCase>((context) => getVersionUsecase)
             .withDependency<ConfigurationRepository>((context) => MockConfigurationRepository()),
       );
 

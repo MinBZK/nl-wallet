@@ -67,7 +67,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const Divider(height: 1),
+        const Divider(),
         ConfirmButtons(
           primaryButton: PrimaryButton(
             key: const Key('loginWithDigidCta'),

@@ -3,8 +3,6 @@
   extends: .env-ont-k8s
   environment:
     action: access
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk17@sha256:633d0e2af68455c1a062c82d75b2883a07a568816d760fe04508fed2ded4588d"
   artifacts:
     when: always
     paths:
@@ -23,7 +21,7 @@
     - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace test
       --tests $TESTS
-      -Dtest.config.app.identifier="$APP_IDENTIFIER"
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
@@ -31,15 +29,39 @@
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
+  artifacts:
+    reports:
+      junit: uiautomation/build/test-results/test/*.xml
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
+  needs:
+    - job: build-wallet-provider-image
+      artifacts: false
+      optional: true
+    - job: build-wp-migrations-image
+      artifacts: false
+      optional: true
+    - job: build-ws-migrations-image
+      artifacts: false
+      optional: true
+    - job: build-mock-relying-party-image
+      artifacts: false
+      optional: true
+    - job: build-wallet-server-image
+      artifacts: false
+      optional: true
+    - job: build-verification-server-image
+      artifacts: false
+      optional: true
+    - job: build-pid-issuer-image
+      artifacts: false
+      optional: true
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
+    - !reference [.on-schedule, rules]
+    - !reference [.on-web-trigger, rules]
 
 run-automation-tests-suite-appstart:
   extends: .run-automation-tests-default
@@ -105,9 +127,8 @@ run-automation-tests-publish-results:
     - { job: run-automation-tests-suite-lock }
     - { job: run-automation-tests-suite-web }
   script:
-    # TODO: Install proper zip or rely on python explicitly in image
-    - python3 -m zipfile -c e2e.zip uiautomation/build/test-results/test/*.xml
-    - mc put e2e.zip qt/quality-time/junit-results/
+    - zip e2e.zip uiautomation/build/test-results/test/*.xml
+    - deploy/bin/store-artifact.sh e2e.zip qt/quality-time/junit-results/
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
@@ -122,7 +143,7 @@ run-automation-smoke-test-ont:
   script:
     - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="$APP_IDENTIFIER"
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
@@ -133,8 +154,6 @@ run-automation-smoke-test-ont:
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:f636c5d9d8ac790a0b254fcf0e85bb7b21745194807da70704e507706e64807c"
   extends: .env-ont-k8s
   needs:
     - job: deploy-mock-relying-party-ont

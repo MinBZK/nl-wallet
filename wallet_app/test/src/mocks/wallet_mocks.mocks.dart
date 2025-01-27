@@ -32,7 +32,7 @@ import 'package:wallet/src/data/repository/version/version_state_repository.dart
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i22;
 import 'package:wallet/src/data/service/navigation_service.dart' as _i33;
 import 'package:wallet/src/data/store/active_locale_provider.dart' as _i40;
-import 'package:wallet/src/domain/model/attribute/data_attribute.dart' as _i18;
+import 'package:wallet/src/domain/model/attribute/attribute.dart' as _i18;
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart' as _i27;
 import 'package:wallet/src/domain/model/disclosure/start_disclosure_result.dart' as _i21;
 import 'package:wallet/src/domain/model/event/wallet_event.dart' as _i25;

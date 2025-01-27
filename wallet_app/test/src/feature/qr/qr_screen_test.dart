@@ -17,15 +17,18 @@ class MockQrScanBloc extends MockBloc<QrEvent, QrState> implements QrBloc {}
 
 void main() {
   setUp(() {
-    // Mock the scanner
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('dev.steenbakker.mobile_scanner/scanner/method'), (MethodCall methodCall) async {
-      return null;
-    });
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('dev.steenbakker.mobile_scanner/scanner/event'), (MethodCall methodCall) async {
-      return null;
-    });
+    final dummyChannels = [
+      'dev.steenbakker.mobile_scanner/scanner/method',
+      'dev.steenbakker.mobile_scanner/scanner/event',
+      'native_device_orientation',
+      'native_device_orientation_events',
+    ];
+    for (final channel in dummyChannels) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        MethodChannel(channel),
+        (MethodCall methodCall) async => null,
+      );
+    }
   });
 
   group('goldens', () {

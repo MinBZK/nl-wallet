@@ -8,8 +8,8 @@ import '../../util/launch_util.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
 import '../common/widget/sliver_divider.dart';
-import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 
 final kRequestDigidUri = Uri.parse('https://www.digid.nl/aanvragen-en-activeren/digid-aanvragen');
 final kDigidHelpUri = Uri.parse('https://www.digid.nl/hulp/');
@@ -36,29 +36,31 @@ class DigidHelpScreen extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverWalletAppBar(
-          title: context.l10n.digidHelpScreenTitle,
-          scrollController: PrimaryScrollController.maybeOf(context),
+    return Column(
+      children: [
+        Expanded(
+          child: WalletScrollbar(
+            child: CustomScrollView(
+              slivers: [
+                SliverWalletAppBar(
+                  title: context.l10n.digidHelpScreenTitle,
+                  scrollController: PrimaryScrollController.maybeOf(context),
+                ),
+                const SliverDivider(),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  sliver: SliverToBoxAdapter(child: _buildNoDigidSection(context)),
+                ),
+                const SliverDivider(),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  sliver: SliverToBoxAdapter(child: _buildHelpNeededSection(context)),
+                ),
+              ],
+            ),
+          ),
         ),
-        const SliverDivider(),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          sliver: SliverToBoxAdapter(child: _buildNoDigidSection(context)),
-        ),
-        const SliverDivider(),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          sliver: SliverToBoxAdapter(child: _buildHelpNeededSection(context)),
-        ),
-        const SliverDivider(),
-        const SliverFillRemaining(
-          fillOverscroll: true,
-          hasScrollBody: false,
-          child: BottomBackButton(),
-        ),
-        const SliverSizedBox(height: 32),
+        const BottomBackButton(),
       ],
     );
   }

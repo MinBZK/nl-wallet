@@ -7,13 +7,21 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[[test]]
+name = "certificate_chain"
+path = "tests/certificate_chain.rs"
+required-features = ["mock"]
+
 [features]
 encode = []
-mock = ["dep:rcgen", "derive_more/debug"]
+mock = ["encode", "dep:rand", "dep:rcgen", "dep:time", "derive_more/debug"]
 network_test = []
+# Accept attested keys from the emulator. This allows software security level.
+allow_emulator_keys = ["dep:tracing"]
 
 [dependencies]
 bitflags.workspace = true
+cfg-if.workspace = true
 chrono = { workspace = true, features = ["serde", "now"] }
 const-decoder.workspace = true
 derive_more = { workspace = true, features = ["as_ref"] }
@@ -28,6 +36,8 @@ regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 reqwest-middleware.workspace = true
 rsa = { workspace = true, features = ["std"] }
+rustls-pki-types.workspace = true
+rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono", "base64", "hex"] }
@@ -37,14 +47,15 @@ thiserror.workspace = true
 url.workspace = true
 x509-parser.workspace = true
 
+rand = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["aws_lc_rs"] }
+time = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
-p256 = { workspace = true, features = ["pem"] }
+p256 = { workspace = true, features = ["std", "ecdsa", "pem", "pkcs8"] }
 rand.workspace = true
 rstest.workspace = true
-rustls-pki-types.workspace = true
-rustls-webpki.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true

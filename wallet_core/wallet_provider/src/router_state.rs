@@ -30,8 +30,8 @@ use wallet_provider_service::wte_issuer::HsmWteIssuer;
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
 
-pub struct RouterState {
-    pub account_server: AccountServer,
+pub struct RouterState<GC> {
+    pub account_server: AccountServer<GC>,
     pub pin_policy: PinPolicy,
     pub repositories: Repositories,
     pub hsm: Pkcs11Hsm,
@@ -40,8 +40,11 @@ pub struct RouterState {
     pub wte_issuer: HsmWteIssuer<Pkcs11Hsm>,
 }
 
-impl RouterState {
-    pub async fn new_from_settings(settings: Settings) -> Result<RouterState, Box<dyn Error>> {
+impl<GC> RouterState<GC> {
+    pub async fn new_from_settings(
+        settings: Settings,
+        google_crl_client: GC,
+    ) -> Result<RouterState<GC>, Box<dyn Error>> {
         let hsm = Pkcs11Hsm::new(
             settings.hsm.library_path,
             settings.hsm.user_pin,
@@ -89,6 +92,7 @@ impl RouterState {
             apple_config,
             apple_trust_anchors,
             android_root_public_keys,
+            google_crl_client,
         )?;
 
         let db = Db::new(
@@ -155,13 +159,13 @@ impl RouterState {
     }
 }
 
-impl Generator<uuid::Uuid> for RouterState {
+impl<GC> Generator<uuid::Uuid> for RouterState<GC> {
     fn generate(&self) -> Uuid {
         Uuid::new_v4()
     }
 }
 
-impl Generator<DateTime<Utc>> for RouterState {
+impl<GC> Generator<DateTime<Utc>> for RouterState<GC> {
     fn generate(&self) -> DateTime<Utc> {
         Utc::now()
     }

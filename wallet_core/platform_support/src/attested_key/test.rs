@@ -3,8 +3,12 @@ use std::fmt::Debug;
 use std::mem;
 
 use p256::ecdsa::signature::Verifier;
+use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 
+use android_attest::android_crl::RevocationStatusList;
+use android_attest::certificate_chain::verify_google_key_attestation;
+use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
@@ -51,9 +55,18 @@ pub struct AppleTestData<'a> {
     pub trust_anchors: Vec<TrustAnchor<'a>>,
 }
 
+pub struct AndroidTestData {
+    pub root_public_keys: Vec<RootPublicKey>,
+}
+
+pub enum TestData<'a> {
+    Android(AndroidTestData),
+    Apple(AppleTestData<'a>),
+}
+
 pub async fn create_and_verify_attested_key<'a, H>(
     holder: &'a H,
-    apple_test_data: Option<AppleTestData<'a>>,
+    test_data: TestData<'a>,
     challenge: Vec<u8>,
     payload: Vec<u8>,
 ) where
@@ -75,7 +88,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
 
     match key_with_attestation {
         KeyWithAttestation::Apple { key, attestation_data } => {
-            let Some(apple_test_data) = apple_test_data else {
+            let TestData::Apple(apple_test_data) = test_data else {
                 panic!("apple test data should be provided to test");
             };
 
@@ -138,10 +151,38 @@ pub async fn create_and_verify_attested_key<'a, H>(
         }
         KeyWithAttestation::Google {
             key,
-            certificate_chain: _certificate_chain,
+            certificate_chain,
             app_attestation_token: _app_attestation_token,
         } => {
+            let TestData::Android(android_test_data) = test_data else {
+                panic!("android test data should be provided to test");
+            };
+
             log::info!("Found Google Key: {key:?}");
+
+            log::info!("Verify certificate chain");
+
+            log::info!("Prepare chain");
+            let der_certificate_chain: Vec<_> = certificate_chain
+                .iter()
+                .map(|der| CertificateDer::from_slice(der))
+                .collect();
+            log::info!("chain: {der_certificate_chain:?}");
+
+            log::info!("Prepare empty CRL");
+            // No revoked certificates
+            let revocation_list = RevocationStatusList {
+                entries: Default::default(),
+            };
+
+            log::info!("Invoke verify_google_key_attestation");
+            verify_google_key_attestation(
+                &der_certificate_chain,
+                &android_test_data.root_public_keys,
+                &revocation_list,
+                &challenge,
+            )
+            .expect("could not verify attestation key certificate chain");
 
             log::info!("Sign payload with google key");
             let signature1 = key.try_sign(&payload).await.expect("could not sign payload");

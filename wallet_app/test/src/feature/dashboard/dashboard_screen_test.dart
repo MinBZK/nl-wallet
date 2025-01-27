@@ -30,6 +30,7 @@ void main() {
         wrapper: walletAppWrapper(
           providers: [
             RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+            RepositoryProvider<ObserveVersionStateUsecase>(create: (c) => MockObserveVersionStateUsecase()),
           ],
         ),
       );
@@ -49,6 +50,7 @@ void main() {
           brightness: Brightness.dark,
           providers: [
             RepositoryProvider<NavigationService>(create: (c) => MockNavigationService()),
+            RepositoryProvider<ObserveVersionStateUsecase>(create: (c) => MockObserveVersionStateUsecase()),
           ],
         ),
       );

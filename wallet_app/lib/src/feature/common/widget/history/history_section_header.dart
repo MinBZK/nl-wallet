@@ -16,7 +16,7 @@ class HistorySectionHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Divider(height: 1),
+          const Divider(),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Semantics(
@@ -31,7 +31,7 @@ class HistorySectionHeader extends StatelessWidget {
               ),
             ),
           ),
-          const Divider(height: 1),
+          const Divider(),
         ],
       ),
     );

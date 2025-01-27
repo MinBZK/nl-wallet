@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
-import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
-import 'package:wallet/src/domain/model/attribute/ui_attribute.dart';
 import 'package:wallet/src/feature/common/widget/attribute/attribute_row.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
@@ -55,7 +52,7 @@ void main() {
       );
 
       testGoldens(
-        'light requested text attribute',
+        'light missing text attribute',
         (tester) async {
           await tester.pumpWidgetBuilder(
             AttributeRow(
@@ -68,22 +65,6 @@ void main() {
             surfaceSize: kGoldenSize,
           );
           await screenMatchesGolden(tester, 'attribute_row/light.requested.text');
-        },
-      );
-      testGoldens(
-        'light requested image attribute',
-        (tester) async {
-          await tester.pumpWidgetBuilder(
-            AttributeRow(
-              attribute: MissingAttribute.untranslated(
-                label: 'Image',
-                key: 'mock.other',
-              ),
-            ),
-            wrapper: walletAppWrapper(brightness: Brightness.light),
-            surfaceSize: const Size(160, 90),
-          );
-          await screenMatchesGolden(tester, 'attribute_row/light.requested.image');
         },
       );
 

@@ -85,7 +85,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const Divider(height: 1),
+        const Divider(),
         ConfirmButtons(
           secondaryButton: context.isLandscape ? privacyButton : nextButton,
           primaryButton: context.isLandscape ? nextButton : privacyButton,

@@ -118,10 +118,10 @@ class OrganizationDetailScreen extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         if (state.sharedDataWithOrganizationBefore) ...[
-          const Divider(height: 1),
+          const Divider(),
           _buildInteractionRow(context, state),
         ],
-        const Divider(height: 1),
+        const Divider(),
         ListView.separated(
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: 16),
