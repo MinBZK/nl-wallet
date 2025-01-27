@@ -1239,8 +1239,7 @@ mod tests {
         AccountServer,
         MockHardwareKey,
         WalletCertificate,
-        WalletUserTestRepo,
-        MockPkcs11Client<HsmError>,
+        MockInstructionState,
     ) {
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(&setup.signing_pubkey);
@@ -1259,6 +1258,7 @@ mod tests {
             AttestationType::Apple => Some(AssertionCounter::from(1)),
             AttestationType::Google => None,
         };
+
         let repo = WalletUserTestRepo {
             hw_pubkey: *hw_privkey.verifying_key(),
             encrypted_pin_pubkey: setup.encrypted_pin_pubkey.clone(),
@@ -1268,7 +1268,9 @@ mod tests {
             apple_assertion_counter,
         };
 
-        (setup, account_server, hw_privkey, cert, repo, hsm)
+        let instruction_state = mock::instruction_state(repo, hsm);
+
+        (setup, account_server, hw_privkey, cert, instruction_state)
     }
 
     async fn do_instruction_challenge<I>(
@@ -1439,7 +1441,8 @@ mod tests {
     async fn test_register(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, repo, hsm) = setup_and_do_registration(attestation_type).await;
+        let (setup, account_server, hw_privkey, cert, instruction_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let cert_data = cert
             .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
@@ -1447,7 +1450,6 @@ mod tests {
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(&cert_data.hw_pubkey.0, hw_privkey.verifying_key());
 
-        let instruction_state = mock::instruction_state(repo, hsm);
         verify_wallet_certificate(
             &cert,
             &EcdsaDecodingKey::from(&setup.signing_pubkey),
@@ -1509,7 +1511,8 @@ mod tests {
     async fn test_challenge_request_error_signature_type_mismatch(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (_setup, account_server, _hw_privkey, cert, repo, hsm) = setup_and_do_registration(attestation_type).await;
+        let (_setup, account_server, _hw_privkey, cert, instruction_state) =
+            setup_and_do_registration(attestation_type).await;
 
         // Create a hardware key that is the opposite type of the one used during registration.
         let wrong_hw_privkey = match attestation_type {
@@ -1519,15 +1522,12 @@ mod tests {
             )),
         };
 
-        let error = do_instruction_challenge::<CheckPin>(
-            &account_server,
-            &wrong_hw_privkey,
-            cert,
-            43,
-            &InstructionState::new(repo, hsm, MockWteIssuer),
-        )
-        .await
-        .expect_err("requesting a challenge with a different signature type than used during registration should fail");
+        let error =
+            do_instruction_challenge::<CheckPin>(&account_server, &wrong_hw_privkey, cert, 43, &instruction_state)
+                .await
+                .expect_err(
+                    "requesting a challenge with a different signature type than used during registration should fail",
+                );
 
         assert_matches!(
             error,
@@ -1538,19 +1538,15 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_challenge_request_error_apple_assertion_counter() {
-        let (_setup, account_server, hw_privkey, cert, mut repo, hsm) =
+        let (_setup, account_server, hw_privkey, cert, mut instruction_state) =
             setup_and_do_registration(AttestationType::Apple).await;
-        repo.apple_assertion_counter = Some(AssertionCounter::from(200));
+        instruction_state.repositories.apple_assertion_counter = Some(AssertionCounter::from(200));
 
-        let error = do_instruction_challenge::<CheckPin>(
-            &account_server,
-            &hw_privkey,
-            cert,
-            43,
-            &InstructionState::new(repo, hsm, MockWteIssuer),
-        )
-        .await
-        .expect_err("requesting a challenge with a different signature type than used during registration should fail");
+        let error = do_instruction_challenge::<CheckPin>(&account_server, &hw_privkey, cert, 43, &instruction_state)
+            .await
+            .expect_err(
+                "requesting a challenge with a different signature type than used during registration should fail",
+            );
 
         assert_matches!(
             error,
@@ -1565,7 +1561,8 @@ mod tests {
     async fn valid_instruction_challenge_should_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, repo, hsm) = setup_and_do_registration(attestation_type).await;
+        let (setup, account_server, hw_privkey, cert, mut instruction_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
@@ -1575,7 +1572,6 @@ mod tests {
             )
             .await;
 
-        let mut instruction_state = mock::instruction_state(repo, hsm);
         let challenge = account_server
             .instruction_challenge(challenge_request, &EpochGenerator, &instruction_state)
             .await
@@ -1609,7 +1605,8 @@ mod tests {
     async fn wrong_instruction_challenge_should_not_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, repo, hsm) = setup_and_do_registration(attestation_type).await;
+        let (setup, account_server, hw_privkey, cert, mut instruction_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
@@ -1619,7 +1616,6 @@ mod tests {
             )
             .await;
 
-        let mut instruction_state = mock::instruction_state(repo, hsm);
         let challenge = account_server
             .instruction_challenge(challenge_request, &EpochGenerator, &instruction_state)
             .await
@@ -1680,7 +1676,8 @@ mod tests {
     async fn expired_instruction_challenge_should_not_verify(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, repo, hsm) = setup_and_do_registration(attestation_type).await;
+        let (setup, account_server, hw_privkey, cert, instruction_state) =
+            setup_and_do_registration(attestation_type).await;
 
         let challenge_request = hw_privkey
             .sign_instruction_challenge::<CheckPin>(
@@ -1690,14 +1687,17 @@ mod tests {
             )
             .await;
 
-        let instruction_state = mock::instruction_state(repo.clone(), hsm);
         let challenge = account_server
             .instruction_challenge(challenge_request, &EpochGenerator, &instruction_state)
             .await
             .unwrap();
 
-        let tx = repo.begin_transaction().await.unwrap();
-        let wallet_user = repo.find_wallet_user_by_wallet_id(&tx, "0").await.unwrap();
+        let tx = instruction_state.repositories.begin_transaction().await.unwrap();
+        let wallet_user = instruction_state
+            .repositories
+            .find_wallet_user_by_wallet_id(&tx, "0")
+            .await
+            .unwrap();
 
         if let WalletUserQueryResult::Found(mut user) = wallet_user {
             user.instruction_challenge = Some(InstructionChallenge {
@@ -1724,13 +1724,12 @@ mod tests {
     async fn test_check_pin(
         #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
     ) {
-        let (setup, account_server, hw_privkey, cert, mut repo, hsm) =
+        let (setup, account_server, hw_privkey, cert, mut instruction_state) =
             setup_and_do_registration(attestation_type).await;
-        repo.instruction_sequence_number = 42;
+        instruction_state.repositories.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
-        let mut instruction_state = mock::instruction_state(repo, hsm);
         let challenge_error =
             do_instruction_challenge::<CheckPin>(&account_server, &hw_privkey, cert.clone(), 9, &instruction_state)
                 .await
@@ -1759,13 +1758,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_commit() {
-        let (setup, account_server, hw_privkey, cert, mut repo, hsm) =
+        let (setup, account_server, hw_privkey, cert, mut instruction_state) =
             setup_and_do_registration(AttestationType::Google).await;
-        repo.instruction_sequence_number = 42;
+        instruction_state.repositories.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
-        let mut instruction_state = mock::instruction_state(repo, hsm);
         let (new_pin_privkey, _new_pin_pubkey, encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
             &account_server,
             &setup,
@@ -1897,16 +1895,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_invalid_pop() {
-        let (setup, account_server, hw_privkey, cert, mut repo, hsm) =
+        let (setup, account_server, hw_privkey, cert, mut instruction_state) =
             setup_and_do_registration(AttestationType::Google).await;
-        repo.instruction_sequence_number = 42;
+        instruction_state.repositories.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
-        let mut instruction_state = mock::instruction_state(repo.clone(), hsm);
         let challenge = do_instruction_challenge::<ChangePinStart>(
             &account_server,
             &hw_privkey,
@@ -1958,13 +1955,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_start_rollback() {
-        let (setup, account_server, hw_privkey, cert, mut repo, hsm) =
+        let (setup, account_server, hw_privkey, cert, mut instruction_state) =
             setup_and_do_registration(AttestationType::Google).await;
-        repo.instruction_sequence_number = 42;
+        instruction_state.repositories.instruction_sequence_number = 42;
 
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
-        let mut instruction_state = mock::instruction_state(repo, hsm);
         let (new_pin_privkey, _new_pin_pubkey, _encrypted_new_pin_pubkey, new_cert) = do_pin_change_start(
             &account_server,
             &setup,
@@ -2080,12 +2076,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_pin_no_other_instructions_allowed() {
-        let (setup, account_server, hw_privkey, cert, mut repo, hsm) =
+        let (setup, account_server, hw_privkey, cert, mut instruction_state) =
             setup_and_do_registration(AttestationType::Google).await;
-        repo.instruction_sequence_number = 42;
+        instruction_state.repositories.instruction_sequence_number = 42;
         let instruction_result_signing_key = SigningKey::random(&mut OsRng);
 
-        let mut instruction_state = mock::instruction_state(repo, hsm);
         let (_new_pin_privkey, _new_pin_pubkey, encrypted_new_pin_pubkey, _new_cert) = do_pin_change_start(
             &account_server,
             &setup,
