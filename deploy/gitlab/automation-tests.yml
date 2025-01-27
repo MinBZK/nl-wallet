@@ -21,7 +21,7 @@
     - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace test
       --tests $TESTS
-      -Dtest.config.app.identifier="$APP_IDENTIFIER_$CI_COMMIT_SHA"
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
@@ -143,7 +143,7 @@ run-automation-smoke-test-ont:
   script:
     - gradle wrapper --gradle-version=8.12
     - ./gradlew --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="$APP_IDENTIFIER_$CI_COMMIT_SHA"
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
