@@ -1,7 +1,7 @@
 use std::collections::HashSet;
-use std::time::Duration;
 
 use chrono::DateTime;
+use chrono::TimeDelta;
 use chrono::Utc;
 use derive_more::AsRef;
 
@@ -11,11 +11,11 @@ use super::integrity_verdict::DeviceRecognitionVerdict;
 use super::integrity_verdict::IntegrityVerdict;
 
 // The oldest an integrity verdict request can be is 15 minutes.
-const MAX_REQUEST_AGE: Duration = Duration::from_secs(15 * 60);
+const MAX_REQUEST_AGE: TimeDelta = TimeDelta::minutes(15);
 
 // To prevent clocks skew issues to some degree, have some margin
 // when determining that a request timestamp is in the future.
-const FUTURE_SKEW_MARGIN: Duration = Duration::from_secs(5 * 60);
+const FUTURE_SKEW_MARGIN: TimeDelta = TimeDelta::minutes(5);
 
 #[derive(Debug, thiserror::Error)]
 pub enum IntegrityVerdictVerificationError {
@@ -88,13 +88,8 @@ impl VerifiedIntegrityVerdict {
 
         // This is sensitive to clock skews on the host machine. As this will also reject timestamps
         // that are in the future, we apply some amount of margin here in that direction.
-        let request_time_delta = time - integrity_verdict.request_details.timestamp;
-        if !request_time_delta
-            .to_std()
-            .map(|duration| duration <= MAX_REQUEST_AGE)
-            // The time difference is negative. This means we are now in the future.
-            .unwrap_or_else(|_| request_time_delta.abs().to_std().unwrap() <= FUTURE_SKEW_MARGIN)
-        {
+        let request_time_delta = time.signed_duration_since(integrity_verdict.request_details.timestamp);
+        if request_time_delta > MAX_REQUEST_AGE || request_time_delta < -FUTURE_SKEW_MARGIN {
             return Err(IntegrityVerdictVerificationError::RequestTimestampInvalid(
                 integrity_verdict.request_details.timestamp,
             ));
