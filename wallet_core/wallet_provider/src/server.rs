@@ -3,9 +3,9 @@ use std::net::SocketAddr;
 
 use tracing::info;
 
-use android_attest::play_integrity::client::IntegrityTokenDecoder;
 use wallet_common::built_info::version_string;
 use wallet_provider_service::account_server::GoogleCrlProvider;
+use wallet_provider_service::account_server::IntegrityTokenDecoder;
 
 use super::router;
 use super::router_state::RouterState;

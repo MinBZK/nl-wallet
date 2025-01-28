@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::time::Duration;
 
 use chrono::DateTime;
@@ -22,8 +23,9 @@ use android_attest::android_crl::GoogleRevocationListClient;
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::certificate_chain::verify_google_key_attestation_with_time;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
-use android_attest::play_integrity::client::IntegrityTokenDecoder;
 use android_attest::play_integrity::client::PlayIntegrityClient;
+use android_attest::play_integrity::client::PlayIntegrityClientError;
+use android_attest::play_integrity::integrity_verdict::IntegrityVerdict;
 use android_attest::play_integrity::verification::IntegrityVerdictVerificationError;
 use android_attest::play_integrity::verification::VerifiedIntegrityVerdict;
 use android_attest::play_integrity::verification::VerifyPlayStore;
@@ -200,7 +202,7 @@ pub enum InstructionError {
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
     #[error("WTE issuance: {0}")]
-    WteIssuance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    WteIssuance(#[source] Box<dyn Error + Send + Sync + 'static>),
     #[error("instruction referenced nonexisting key: {0}")]
     NonexistingKey(String),
     #[error("PoA construction error: {0}")]
@@ -297,6 +299,21 @@ pub trait GoogleCrlProvider {
 impl GoogleCrlProvider for GoogleRevocationListClient {
     async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
         self.get().await
+    }
+}
+
+#[trait_variant::make(Send)]
+pub trait IntegrityTokenDecoder {
+    type Error: Error + Send + Sync + 'static;
+
+    async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error>;
+}
+
+impl IntegrityTokenDecoder for PlayIntegrityClient {
+    type Error = PlayIntegrityClientError;
+
+    async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
+        self.decode_token(integrity_token).await
     }
 }
 
@@ -1025,10 +1042,10 @@ pub mod mock {
     use std::collections::HashSet;
     use std::sync::LazyLock;
 
+    use base64::prelude::*;
     use p256::ecdsa::SigningKey;
 
     use android_attest::mock_chain::MockCaChain;
-    use android_attest::play_integrity::client::mock::MockPlayIntegrityClient;
     use apple_app_attest::MockAttestationCa;
     use wallet_common::apple::MockAppleAttestedKey;
 
@@ -1056,6 +1073,45 @@ pub mod mock {
     impl GoogleCrlProvider for RevocationStatusList {
         async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
             Ok(self.clone())
+        }
+    }
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("mock play integrity client error to be used in tests")]
+    pub struct MockPlayIntegrityClientError {}
+
+    pub struct MockPlayIntegrityClient {
+        pub package_name: String,
+        pub verify_play_store: VerifyPlayStore,
+        pub has_error: bool,
+    }
+
+    impl MockPlayIntegrityClient {
+        pub fn new(package_name: String, verify_play_store: VerifyPlayStore) -> Self {
+            Self {
+                package_name,
+                verify_play_store,
+                has_error: false,
+            }
+        }
+    }
+
+    impl IntegrityTokenDecoder for MockPlayIntegrityClient {
+        type Error = MockPlayIntegrityClientError;
+
+        async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
+            if self.has_error {
+                return Err(MockPlayIntegrityClientError {});
+            }
+
+            // For testing, assume the integrity token simply contains the Base64 encoded request hash.
+            let request_hash = BASE64_STANDARD_NO_PAD.decode(integrity_token).unwrap();
+
+            let verdict =
+                IntegrityVerdict::new_mock(self.package_name.clone(), request_hash, self.verify_play_store.clone());
+            let json = serde_json::to_string(&verdict).unwrap();
+
+            Ok((verdict, json))
         }
     }
 
@@ -1191,7 +1247,6 @@ mod tests {
 
     use android_attest::attestation_extension::key_description::KeyDescription;
     use android_attest::mock_chain::MockCaChain;
-    use android_attest::play_integrity::client::mock::MockPlayIntegrityClient;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
@@ -1218,6 +1273,7 @@ mod tests {
     use super::mock::AttestationType;
     use super::mock::MockAccountServer;
     use super::mock::MockHardwareKey;
+    use super::mock::MockPlayIntegrityClient;
     use super::mock::MOCK_APPLE_CA;
     use super::mock::MOCK_GOOGLE_CA_CHAIN;
     use super::*;

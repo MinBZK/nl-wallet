@@ -22,7 +22,6 @@ use url::Url;
 use uuid::Uuid;
 
 use android_attest::android_crl::RevocationStatusList;
-use android_attest::play_integrity::client::mock::MockPlayIntegrityClient;
 use android_attest::play_integrity::verification::VerifyPlayStore;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
@@ -67,6 +66,7 @@ use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
+use wallet_provider_service::account_server::mock::MockPlayIntegrityClient;
 use wallet_server::pid::mock::MockAttributesLookup;
 use wallet_server::settings::RequesterAuth;
 use wallet_server::settings::Server;

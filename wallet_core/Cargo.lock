@@ -115,7 +115,6 @@ name = "android_attest"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
- "base64 0.22.1",
  "bitflags 2.6.0",
  "cfg-if",
  "chrono",
@@ -147,7 +146,6 @@ dependencies = [
  "time",
  "tokio",
  "tracing",
- "trait-variant",
  "url",
  "wiremock",
  "x509-parser",

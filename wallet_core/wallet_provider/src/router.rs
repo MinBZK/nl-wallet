@@ -13,7 +13,6 @@ use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
 
-use android_attest::play_integrity::client::IntegrityTokenDecoder;
 use wallet_common::account::messages::auth::Certificate;
 use wallet_common::account::messages::auth::Challenge;
 use wallet_common::account::messages::auth::Registration;
@@ -38,6 +37,7 @@ use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::keys::EcdsaKey;
 use wallet_provider_service::account_server::GoogleCrlProvider;
+use wallet_provider_service::account_server::IntegrityTokenDecoder;
 use wallet_provider_service::wte_issuer::WteIssuer;
 
 use crate::errors::WalletProviderError;

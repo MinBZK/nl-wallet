@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::StatusCode;
@@ -10,13 +8,6 @@ use super::integrity_verdict::IntegrityVerdict;
 
 const URL_PREFIX: &str = "https://playintegrity.googleapis.com/v1/";
 const URL_SUFFIX: &str = ":decodeIntegrityToken";
-
-#[trait_variant::make(Send)]
-pub trait IntegrityTokenDecoder {
-    type Error: Error + Send + Sync + 'static;
-
-    async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error>;
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlayIntegrityClientError {
@@ -62,12 +53,11 @@ impl PlayIntegrityClient {
     pub fn package_name(&self) -> &str {
         &self.url.as_str()[self.package_name_offset..(self.package_name_offset + self.package_name_len)]
     }
-}
 
-impl IntegrityTokenDecoder for PlayIntegrityClient {
-    type Error = PlayIntegrityClientError;
-
-    async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
+    pub async fn decode_token(
+        &self,
+        integrity_token: &str,
+    ) -> Result<(IntegrityVerdict, String), PlayIntegrityClientError> {
         let request_body = IntegrityTokenRequest { integrity_token };
         let json = self
             .client
@@ -174,52 +164,5 @@ mod tests {
             .expect_err("request to decode an unknown integrity token should return a error");
 
         assert_matches!(error, PlayIntegrityClientError::HttpResponse(status, _) if status == StatusCode::NOT_FOUND);
-    }
-}
-
-#[cfg(feature = "mock_play_integrity")]
-pub mod mock {
-    use base64::prelude::*;
-
-    use super::super::verification::VerifyPlayStore;
-    use super::*;
-
-    #[derive(Debug, thiserror::Error)]
-    #[error("mock play integrity client error to be used in tests")]
-    pub struct MockPlayIntegrityClientError {}
-
-    pub struct MockPlayIntegrityClient {
-        pub package_name: String,
-        pub verify_play_store: VerifyPlayStore,
-        pub has_error: bool,
-    }
-
-    impl MockPlayIntegrityClient {
-        pub fn new(package_name: String, verify_play_store: VerifyPlayStore) -> Self {
-            Self {
-                package_name,
-                verify_play_store,
-                has_error: false,
-            }
-        }
-    }
-
-    impl IntegrityTokenDecoder for MockPlayIntegrityClient {
-        type Error = MockPlayIntegrityClientError;
-
-        async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
-            if self.has_error {
-                return Err(MockPlayIntegrityClientError {});
-            }
-
-            // For testing, assume the integrity token simply contains the Base64 encoded request hash.
-            let request_hash = BASE64_STANDARD_NO_PAD.decode(integrity_token).unwrap();
-
-            let verdict =
-                IntegrityVerdict::new_mock(self.package_name.clone(), request_hash, self.verify_play_store.clone());
-            let json = serde_json::to_string(&verdict).unwrap();
-
-            Ok((verdict, json))
-        }
     }
 }

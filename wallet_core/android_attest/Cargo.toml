@@ -15,7 +15,7 @@ required-features = ["mock"]
 [features]
 encode = []
 mock_chain = ["encode", "dep:rand", "dep:rcgen", "dep:time", "derive_more/debug"]
-mock_play_integrity = ["encode", "dep:base64"]
+mock_play_integrity = []
 mock = ["mock_chain", "mock_play_integrity"]
 network_test = []
 # Accept attested keys from the emulator. This allows software security level.
@@ -47,11 +47,9 @@ serde_with = { workspace = true, features = ["chrono", "base64", "hex"] }
 spki = { workspace = true, features = ["std"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-trait-variant.workspace = true
 url.workspace = true
 x509-parser.workspace = true
 
-base64 = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["aws_lc_rs"] }
 time = { workspace = true, optional = true }
