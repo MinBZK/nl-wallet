@@ -86,8 +86,8 @@ impl VerifiedIntegrityVerdict {
             return Err(IntegrityVerdictVerificationError::RequestHashMismatch);
         }
 
-        // Note that this will also reject timestamps that are in the future,
-        // meaning that this is sensitive to clock skews on the host machine.
+        // This is sensitive to clock skews on the host machine. As this will also reject timestamps
+        // that are in the future, we apply some amount of margin here in that direction.
         let request_time_delta = time - integrity_verdict.request_details.timestamp;
         if !request_time_delta
             .to_std()
