@@ -24,12 +24,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         builder.init();
     }
 
-    let google_crl_client = GoogleRevocationListClient::new(default_reqwest_client_builder().build()?);
-
-    let play_integrity_client = PlayIntegrityClient::new(
-        default_reqwest_client_builder().build()?,
-        &settings.android.package_name,
-    )?;
+    let reqwest_client = default_reqwest_client_builder().build()?;
+    let google_crl_client = GoogleRevocationListClient::new(reqwest_client.clone());
+    let play_integrity_client = PlayIntegrityClient::new(reqwest_client, &settings.android.package_name)?;
 
     server::serve(settings, google_crl_client, play_integrity_client).await
 }
