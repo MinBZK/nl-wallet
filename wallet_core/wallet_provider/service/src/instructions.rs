@@ -12,6 +12,7 @@ use serde::Serialize;
 use tracing::warn;
 use uuid::Uuid;
 
+use hsm::model::encrypter::Encrypter;
 use wallet_common::account::messages::instructions::ChangePinCommit;
 use wallet_common::account::messages::instructions::ChangePinRollback;
 use wallet_common::account::messages::instructions::ChangePinStart;
@@ -32,7 +33,6 @@ use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::POA_JWT_TYP;
 use wallet_common::keys::EcdsaKey;
-use wallet_provider_domain::model::encrypter::Encrypter;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
@@ -448,6 +448,7 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
 
+    use hsm::model::hsm::mock::MockPkcs11Client;
     use wallet_common::account::messages::instructions::CheckPin;
     use wallet_common::account::messages::instructions::ConstructPoa;
     use wallet_common::account::messages::instructions::GenerateKey;
@@ -458,7 +459,6 @@ mod tests {
     use wallet_common::keys::poa::PoaPayload;
     use wallet_common::utils::random_bytes;
     use wallet_common::utils::random_string;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wrapped_key::WrappedKey;

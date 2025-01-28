@@ -4,14 +4,14 @@ use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
 
+use hsm::model::encrypted::Encrypted;
+use hsm::model::encrypter::Decrypter;
+use hsm::model::hsm::Hsm;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::jwt::EcdsaDecodingKey;
 use wallet_common::jwt::Jwt;
-use wallet_provider_domain::model::encrypted::Encrypted;
-use wallet_provider_domain::model::encrypter::Decrypter;
-use wallet_provider_domain::model::hsm::Hsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
@@ -204,10 +204,10 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
 
-    use wallet_provider_domain::model::encrypted::Encrypted;
-    use wallet_provider_domain::model::encrypter::Encrypter;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
-    use wallet_provider_domain::model::hsm::Hsm;
+    use hsm::model::encrypted::Encrypted;
+    use hsm::model::encrypter::Encrypter;
+    use hsm::model::hsm::mock::MockPkcs11Client;
+    use hsm::model::hsm::Hsm;
 
     use crate::hsm::HsmError;
 
@@ -268,9 +268,9 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use tokio::sync::OnceCell;
 
+    use hsm::model::encrypter::Encrypter;
+    use hsm::model::hsm::mock::MockPkcs11Client;
     use wallet_common::jwt::EcdsaDecodingKey;
-    use wallet_provider_domain::model::encrypter::Encrypter;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::hsm::HsmError;

@@ -3,9 +3,9 @@ use std::sync::Arc;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
+use hsm::model::hsm::Hsm;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
-use wallet_provider_domain::model::hsm::Hsm;
 
 use crate::hsm::HsmError;
 use crate::hsm::Pkcs11Hsm;

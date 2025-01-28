@@ -2387,6 +2387,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "hsm"
+version = "0.3.0-dev"
+dependencies = [
+ "dashmap 6.0.1",
+ "hmac",
+ "p256",
+ "rand",
+ "sha2",
+ "wallet_common",
+]
+
+[[package]]
 name = "http"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6676,6 +6688,7 @@ dependencies = [
  "config",
  "derive_more",
  "futures",
+ "hsm",
  "http",
  "nutype",
  "p256",
@@ -6715,14 +6728,13 @@ version = "0.3.0-dev"
 dependencies = [
  "apple_app_attest",
  "chrono",
- "dashmap 6.0.1",
  "derive_more",
  "futures",
  "hmac",
+ "hsm",
  "p256",
  "rand",
  "serde",
- "sha2",
  "thiserror",
  "uuid",
  "wallet_common",
@@ -6747,6 +6759,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "ctor",
+ "hsm",
  "mockall",
  "p256",
  "rand_core",
@@ -6776,6 +6789,7 @@ dependencies = [
  "derive_more",
  "futures",
  "hmac",
+ "hsm",
  "indexmap 2.2.6",
  "itertools 0.13.0",
  "jsonwebtoken",

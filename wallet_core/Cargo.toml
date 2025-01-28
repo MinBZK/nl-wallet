@@ -8,6 +8,7 @@ members = [
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "gba_hc_converter",
+    "hsm",
     "mdoc",
     "mock_relying_party",
     "openid4vc",

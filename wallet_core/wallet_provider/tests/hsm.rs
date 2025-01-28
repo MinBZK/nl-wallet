@@ -5,13 +5,13 @@ use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use serial_test::serial;
 
+use hsm::model::encrypted::Encrypted;
+use hsm::model::encrypter::Decrypter;
+use hsm::model::encrypter::Encrypter;
+use hsm::model::hsm::Hsm;
 use wallet_common::utils::random_bytes;
 use wallet_common::utils::random_string;
 use wallet_provider::settings::Settings;
-use wallet_provider_domain::model::encrypted::Encrypted;
-use wallet_provider_domain::model::encrypter::Decrypter;
-use wallet_provider_domain::model::encrypter::Encrypter;
-use wallet_provider_domain::model::hsm::Hsm;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_service::hsm::Pkcs11Hsm;

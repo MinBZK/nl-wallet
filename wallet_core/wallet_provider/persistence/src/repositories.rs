@@ -7,7 +7,7 @@ use uuid;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
-use wallet_provider_domain::model::encrypted::Encrypted;
+use hsm::model::encrypted::Encrypted;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
@@ -184,8 +184,8 @@ pub mod mock {
     use uuid::Uuid;
 
     use apple_app_attest::AssertionCounter;
+    use hsm::model::encrypted::Encrypted;
     use wallet_common::account::serialization::DerVerifyingKey;
-    use wallet_provider_domain::model::encrypted::Encrypted;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;

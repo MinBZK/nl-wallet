@@ -6,8 +6,8 @@ use p256::ecdsa::VerifyingKey;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
+use hsm::model::encrypted::Encrypted;
 
-use crate::model::encrypted::Encrypted;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;

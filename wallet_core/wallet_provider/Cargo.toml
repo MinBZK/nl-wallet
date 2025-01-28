@@ -25,7 +25,7 @@ required-features = ["hsm_test"]
 
 [features]
 # Include and run test that depend on a configured HSM
-hsm_test = ["dep:rand_core", "dep:serial_test"]
+hsm_test = ["dep:rand_core", "dep:serial_test", "dep:hsm"]
 # Allow software key attestations coming from the android emulator
 allow_android_emulator_keys = ["android_attest/allow_emulator_keys"]
 
@@ -70,3 +70,5 @@ wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"
 wallet_provider_persistence.path = "persistence"
 wallet_provider_service.path = "service"
+
+hsm = { path = "../hsm", optional = true }

@@ -3,6 +3,7 @@ use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
+use hsm::model::hsm::mock::MockPkcs11Client;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
@@ -11,7 +12,6 @@ use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::apple::MockAppleAttestedKey;
 use wallet_common::utils;
 use wallet_provider_database_settings::Settings;
-use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
