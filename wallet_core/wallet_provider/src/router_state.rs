@@ -19,6 +19,7 @@ use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
+use wallet_provider_service::account_server::AccountServerKeys;
 use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::hsm::Pkcs11Hsm;
@@ -102,11 +103,14 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         };
 
         let account_server = AccountServer::new(
-            settings.instruction_challenge_timeout,
             "account_server".into(),
-            (&certificate_signing_pubkey).into(),
-            settings.pin_pubkey_encryption_key_identifier,
-            settings.pin_public_disclosure_protection_key_identifier,
+            settings.instruction_challenge_timeout,
+            AccountServerKeys {
+                wallet_certificate_signing_pubkey: (&certificate_signing_pubkey).into(),
+                encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
+                pin_public_disclosure_protection_key_identifier: settings
+                    .pin_public_disclosure_protection_key_identifier,
+            },
             apple_config,
             android_config,
             google_crl_client,

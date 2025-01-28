@@ -323,14 +323,16 @@ pub struct AndroidAttestationConfiguration {
     pub verify_play_store: VerifyPlayStore,
 }
 
+pub struct AccountServerKeys {
+    pub wallet_certificate_signing_pubkey: EcdsaDecodingKey,
+    pub encryption_key_identifier: String,
+    pub pin_public_disclosure_protection_key_identifier: String,
+}
+
 pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityClient> {
-    instruction_challenge_timeout: Duration,
-
     pub name: String,
-
-    wallet_certificate_signing_pubkey: EcdsaDecodingKey,
-    encryption_key_identifier: String,
-    pin_public_disclosure_protection_key_identifier: String,
+    instruction_challenge_timeout: Duration,
+    keys: AccountServerKeys,
     pub apple_config: AppleAttestationConfiguration,
     pub android_config: AndroidAttestationConfiguration,
     google_crl_client: GRC,
@@ -338,13 +340,10 @@ pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityCl
 }
 
 impl<GRC, PIC> AccountServer<GRC, PIC> {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        instruction_challenge_timeout: Duration,
         name: String,
-        wallet_certificate_signing_pubkey: EcdsaDecodingKey,
-        encryption_key_identifier: String,
-        pin_public_disclosure_protection_key_identifier: String,
+        instruction_challenge_timeout: Duration,
+        keys: AccountServerKeys,
         apple_config: AppleAttestationConfiguration,
         android_config: AndroidAttestationConfiguration,
         google_crl_client: GRC,
@@ -353,9 +352,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(AccountServer {
             instruction_challenge_timeout,
             name,
-            wallet_certificate_signing_pubkey,
-            encryption_key_identifier,
-            pin_public_disclosure_protection_key_identifier,
+            keys,
             apple_config,
             android_config,
             google_crl_client,
@@ -411,7 +408,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let challenge = &unverified.challenge;
         let wallet_id =
-            Self::verify_registration_challenge(&self.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
+            Self::verify_registration_challenge(&self.keys.wallet_certificate_signing_pubkey, challenge)?.wallet_id;
 
         debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
 
@@ -529,7 +526,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         debug!("Starting database transaction");
 
-        let encrypted_pin_pubkey = Encrypter::encrypt(hsm, &self.encryption_key_identifier, pin_pubkey).await?;
+        let encrypted_pin_pubkey = Encrypter::encrypt(hsm, &self.keys.encryption_key_identifier, pin_pubkey).await?;
 
         let tx = repositories.begin_transaction().await?;
 
@@ -552,7 +549,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.pin_public_disclosure_protection_key_identifier,
+            &self.keys.pin_public_disclosure_protection_key_identifier,
             certificate_signing_key,
             wallet_id,
             hw_pubkey,
@@ -581,7 +578,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Parse certificate and retrieving wallet user");
         let (user, claims) = parse_claims_and_retrieve_wallet_user(
             &challenge_request.certificate,
-            &self.wallet_certificate_signing_pubkey,
+            &self.keys.wallet_certificate_signing_pubkey,
             repositories,
         )
         .await?;
@@ -610,8 +607,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Verifying wallet certificate");
         verify_wallet_certificate_public_keys(
             claims,
-            &self.pin_public_disclosure_protection_key_identifier,
-            &self.encryption_key_identifier,
+            &self.keys.pin_public_disclosure_protection_key_identifier,
+            &self.keys.encryption_key_identifier,
             &user.hw_pubkey,
             if request.instruction_name == ChangePinRollback::NAME {
                 user.encrypted_previous_pin_pubkey.unwrap_or(user.encrypted_pin_pubkey)
@@ -745,7 +742,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         }
 
         let encrypted_pin_pubkey =
-            Encrypter::encrypt(wallet_user_hsm, &self.encryption_key_identifier, pin_pubkey).await?;
+            Encrypter::encrypt(wallet_user_hsm, &self.keys.encryption_key_identifier, pin_pubkey).await?;
 
         let tx = repositories.begin_transaction().await?;
 
@@ -755,7 +752,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let wallet_certificate = new_wallet_certificate(
             self.name.clone(),
-            &self.pin_public_disclosure_protection_key_identifier,
+            &self.keys.pin_public_disclosure_protection_key_identifier,
             signing_keys.1,
             wallet_user.wallet_id,
             wallet_user.hw_pubkey.0,
@@ -844,9 +841,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let wallet_user = verify_wallet_certificate(
             &instruction.certificate,
-            &self.wallet_certificate_signing_pubkey,
-            &self.pin_public_disclosure_protection_key_identifier,
-            &self.encryption_key_identifier,
+            &self.keys.wallet_certificate_signing_pubkey,
+            &self.keys.pin_public_disclosure_protection_key_identifier,
+            &self.keys.encryption_key_identifier,
             repositories,
             wallet_user_hsm,
             pin_pubkey,
@@ -987,7 +984,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         let pin_pubkey = verifying_key_decrypter
             .decrypt(
-                &self.encryption_key_identifier,
+                &self.keys.encryption_key_identifier,
                 wallet_user.encrypted_pin_pubkey.clone(),
             )
             .await?;
@@ -1126,11 +1123,14 @@ pub mod mock {
         );
 
         AccountServer::new(
-            Duration::from_millis(15000),
             "mock_account_server".into(),
-            certificate_signing_pubkey.into(),
-            wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
-            wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+            Duration::from_millis(15000),
+            AccountServerKeys {
+                wallet_certificate_signing_pubkey: certificate_signing_pubkey.into(),
+                encryption_key_identifier: wallet_certificate::mock::ENCRYPTION_KEY_IDENTIFIER.to_string(),
+                pin_public_disclosure_protection_key_identifier:
+                    wallet_certificate::mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER.to_string(),
+            },
             AppleAttestationConfiguration {
                 app_identifier: AppIdentifier::new_mock(),
                 environment: AttestationEnvironment::Development,
