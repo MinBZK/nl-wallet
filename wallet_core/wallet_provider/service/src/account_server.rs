@@ -519,7 +519,6 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     .parse_and_verify_google(challenge, sequence_number_comparison, &hw_pubkey, &pin_pubkey)
                     .map(|_| WalletUserAttestationCreate::Android {
                         certificate_chain: certificate_chain.into_inner(),
-                        // TODO: Actually exchange integrity token for an integrity verdict using the Google API.
                         integrity_verdict_json,
                     })
                     .map_err(RegistrationError::MessageValidation)?;
