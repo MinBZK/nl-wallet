@@ -1,7 +1,7 @@
 use std::collections::HashSet;
-use std::time::Duration;
 
 use chrono::DateTime;
+use chrono::TimeDelta;
 use chrono::Utc;
 use derive_more::AsRef;
 
@@ -11,11 +11,11 @@ use super::integrity_verdict::DeviceRecognitionVerdict;
 use super::integrity_verdict::IntegrityVerdict;
 
 // The oldest an integrity verdict request can be is 15 minutes.
-const MAX_REQUEST_AGE: Duration = Duration::from_secs(15 * 60);
+const MAX_REQUEST_AGE: TimeDelta = TimeDelta::minutes(15);
 
 // To prevent clocks skew issues to some degree, have some margin
 // when determining that a request timestamp is in the future.
-const FUTURE_SKEW_MARGIN: Duration = Duration::from_secs(5 * 60);
+const FUTURE_SKEW_MARGIN: TimeDelta = TimeDelta::minutes(5);
 
 #[derive(Debug, thiserror::Error)]
 pub enum IntegrityVerdictVerificationError {
@@ -86,15 +86,10 @@ impl VerifiedIntegrityVerdict {
             return Err(IntegrityVerdictVerificationError::RequestHashMismatch);
         }
 
-        // Note that this will also reject timestamps that are in the future,
-        // meaning that this is sensitive to clock skews on the host machine.
-        let request_time_delta = time - integrity_verdict.request_details.timestamp;
-        if !request_time_delta
-            .to_std()
-            .map(|duration| duration <= MAX_REQUEST_AGE)
-            // The time difference is negative. This means we are now in the future.
-            .unwrap_or_else(|_| request_time_delta.abs().to_std().unwrap() <= FUTURE_SKEW_MARGIN)
-        {
+        // This is sensitive to clock skews on the host machine. As this will also reject timestamps
+        // that are in the future, we apply some amount of margin here in that direction.
+        let request_time_delta = time.signed_duration_since(integrity_verdict.request_details.timestamp);
+        if request_time_delta > MAX_REQUEST_AGE || request_time_delta < -FUTURE_SKEW_MARGIN {
             return Err(IntegrityVerdictVerificationError::RequestTimestampInvalid(
                 integrity_verdict.request_details.timestamp,
             ));
@@ -257,51 +252,33 @@ mod tests {
     }
 
     #[rstest]
+    // Too long ago.
+    #[case(NaiveDate::from_ymd_opt(2023, 2, 6).unwrap().and_hms_opt(3, 25, 0).unwrap().and_utc(), false)]
+    // Within the max timestamp age.
+    #[case(NaiveDate::from_ymd_opt(2023, 2, 6).unwrap().and_hms_opt(3, 35, 0).unwrap().and_utc(), true)]
+    // In the future, within the acceptable margin.
+    #[case(NaiveDate::from_ymd_opt(2023, 2, 6).unwrap().and_hms_opt(3, 47, 0).unwrap().and_utc(), true)]
+    // Too far into the future.
+    #[case(NaiveDate::from_ymd_opt(2023, 2, 6).unwrap().and_hms_opt(3, 51, 0).unwrap().and_utc(), false)]
     fn test_verified_integrity_verdict_request_timestamp_inconsistent_error(
         #[values(true, false)] verify_play_store: bool,
+        #[case] verdict_timestamp: DateTime<Utc>,
+        #[case] should_succeed: bool,
     ) {
-        let long_ago = NaiveDate::from_ymd_opt(2023, 2, 6)
-            .unwrap()
-            .and_hms_opt(3, 25, 0)
-            .unwrap()
-            .and_utc();
-        let near_future = NaiveDate::from_ymd_opt(2023, 2, 6)
-            .unwrap()
-            .and_hms_opt(3, 47, 0)
-            .unwrap()
-            .and_utc();
-        let far_future = NaiveDate::from_ymd_opt(2023, 2, 6)
-            .unwrap()
-            .and_hms_opt(3, 51, 0)
-            .unwrap()
-            .and_utc();
-
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.request_details.timestamp = long_ago;
+        verdict.request_details.timestamp = verdict_timestamp;
 
-        let error =
-            verify_example_verdict(verdict, verify_play_store).expect_err("integrity verdict should not verify");
+        // Note that the timestamp is checked against a "current" time of 2024-02-06T03:45:00Z.
+        let result = verify_example_verdict(verdict, verify_play_store);
 
-        assert_matches!(
-            error,
-            IntegrityVerdictVerificationError::RequestTimestampInvalid(date) if date == long_ago
-        );
-
-        let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.request_details.timestamp = near_future;
-
-        verify_example_verdict(verdict, verify_play_store).expect("integrity verdict should verify successfully");
-
-        let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.request_details.timestamp = far_future;
-
-        let error =
-            verify_example_verdict(verdict, verify_play_store).expect_err("integrity verdict should not verify");
-
-        assert_matches!(
-            error,
-            IntegrityVerdictVerificationError::RequestTimestampInvalid(date) if date == far_future
-        )
+        if should_succeed {
+            result.expect("integrity verdict should verify successfully");
+        } else {
+            assert_matches!(
+                result,
+                Err(IntegrityVerdictVerificationError::RequestTimestampInvalid(date)) if date == verdict_timestamp
+            )
+        }
     }
 
     #[test]
