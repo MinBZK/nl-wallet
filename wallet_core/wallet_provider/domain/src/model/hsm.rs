@@ -6,9 +6,9 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
 use hsm::model::encrypted::Encrypted;
+use hsm::model::wrapped_key::WrappedKey;
 
 use crate::model::wallet_user::WalletId;
-use crate::model::wrapped_key::WrappedKey;
 
 pub trait WalletUserHsm {
     type Error: Error + Send + Sync;
@@ -87,10 +87,10 @@ pub mod mock {
     use hsm::model::hsm::key_identifier;
     use hsm::model::hsm::mock::MockPkcs11Client;
     use hsm::model::hsm::Hsm;
+    use hsm::model::wrapped_key::WrappedKey;
 
     use crate::model::hsm::WalletUserHsm;
     use crate::model::wallet_user::WalletId;
-    use crate::model::wrapped_key::WrappedKey;
 
     impl<E: Error + Send + Sync + From<MacError>> WalletUserHsm for MockPkcs11Client<E> {
         type Error = E;

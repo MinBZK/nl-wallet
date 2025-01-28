@@ -29,11 +29,11 @@ use hsm::model::encrypted::InitializationVector;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::hsm::Hsm;
+use hsm::model::wrapped_key::WrappedKey;
 use wallet_common::spawn;
 use wallet_common::utils::sha256;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletId;
-use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HsmError {

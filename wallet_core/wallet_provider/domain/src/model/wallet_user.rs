@@ -7,9 +7,8 @@ use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
+use hsm::model::wrapped_key::WrappedKey;
 use wallet_common::account::serialization::DerVerifyingKey;
-
-use crate::model::wrapped_key::WrappedKey;
 
 pub type WalletId = String;
 

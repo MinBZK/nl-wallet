@@ -7,12 +7,12 @@ use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
+use hsm::model::wrapped_key::WrappedKey;
 
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::WalletUserCreate;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
-use crate::model::wrapped_key::WrappedKey;
 
 use super::errors::PersistenceError;
 use super::transaction::Committable;
