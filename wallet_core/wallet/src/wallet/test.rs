@@ -44,11 +44,11 @@ use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::StorageState;
 use crate::update_policy::MockUpdatePolicyRepository;
+use crate::wallet::attestations::AttestationsError;
 use crate::wte::tests::MockWteIssuanceClient;
-use crate::Document;
+use crate::Attestation;
 use crate::HistoryEvent;
 
-use super::documents::DocumentsError;
 use super::init::RegistrationStatus;
 use super::HistoryError;
 use super::Wallet;
@@ -282,25 +282,25 @@ impl WalletWithMocks {
     }
 }
 
-pub async fn setup_mock_documents_callback(
+pub async fn setup_mock_attestations_callback(
     wallet: &mut WalletWithMocks,
-) -> Result<Arc<Mutex<Vec<Vec<Document>>>>, (Arc<Mutex<Vec<Vec<Document>>>>, DocumentsError)> {
-    // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
+) -> Result<Arc<Mutex<Vec<Vec<Attestation>>>>, (Arc<Mutex<Vec<Vec<Attestation>>>>, AttestationsError)> {
+    // Wrap a `Vec<Attestation>` in both a `Mutex` and `Arc`,
     // so we can write to it from the closure.
-    let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(1)));
-    let callback_documents = Arc::clone(&documents);
+    let attestations = Arc::new(Mutex::new(Vec::<Vec<Attestation>>::with_capacity(1)));
+    let callback_attestations = Arc::clone(&attestations);
 
-    // Set the documents callback on the `Wallet`, which
+    // Set the attestations callback on the `Wallet`, which
     // should immediately be called with an empty `Vec`.
     let result = wallet
-        .set_documents_callback(Box::new(move |documents| {
-            callback_documents.lock().push(documents.clone());
+        .set_attestations_callback(Box::new(move |attestations| {
+            callback_attestations.lock().push(attestations.clone());
         }))
         .await;
 
     match result {
-        Ok(_) => Ok(documents),
-        Err(e) => Err((documents, e)),
+        Ok(_) => Ok(attestations),
+        Err(e) => Err((attestations, e)),
     }
 }
 

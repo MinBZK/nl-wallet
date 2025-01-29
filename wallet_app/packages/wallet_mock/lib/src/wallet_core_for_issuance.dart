@@ -78,14 +78,15 @@ class WalletCoreForIssuance {
     return result;
   }
 
-  Future<List<Card>> proceedIssuance() async {
+  Future<List<Attestation>> proceedIssuance() async {
     assert(_activeIssuanceResponse != null, 'Can not issue when no issuance is active');
-    return _activeIssuanceResponse!.cards;
+    return _activeIssuanceResponse!.attestations;
   }
 
   Future<void> acceptIssuance(List<String> cardDocTypes) async {
     assert(_activeIssuanceResponse != null, 'Can not accept when no issuance is active');
-    final selectedCards = _activeIssuanceResponse!.cards.where((card) => cardDocTypes.contains(card.docType)).toList();
+    final selectedCards =
+        _activeIssuanceResponse!.attestations.where((card) => cardDocTypes.contains(card.attestationType)).toList();
     _wallet.add(selectedCards);
     selectedCards.forEach(_eventLog.logIssuance);
     _activeIssuanceResponse = null;
@@ -110,8 +111,8 @@ class WalletCoreForIssuance {
   }
 
   Future<Organization> getIssuer(String docType) async {
-    final relatedIssuanceResponse =
-        kIssuanceResponses.firstWhere((response) => response.cards.any((card) => card.docType == docType));
+    final relatedIssuanceResponse = kIssuanceResponses
+        .firstWhere((response) => response.attestations.any((card) => card.attestationType == docType));
     return relatedIssuanceResponse.organization;
   }
 }

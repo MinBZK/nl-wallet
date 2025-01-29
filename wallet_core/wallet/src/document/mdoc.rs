@@ -8,13 +8,13 @@ use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
 use nl_wallet_mdoc::identifiers::AttributeIdentifier;
 use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use nl_wallet_mdoc::DataElementIdentifier;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::NameSpace;
+use sd_jwt::metadata::DisplayMetadata;
 
 use super::mapping::AttributeMapping;
 use super::mapping::DataElementValueMapping;
@@ -229,18 +229,6 @@ impl Document {
 
         Ok(document)
     }
-
-    pub(crate) fn from_unsigned_mdoc(
-        mdoc: UnsignedMdoc,
-        issuer_registration: IssuerRegistration,
-    ) -> Result<Self, DocumentMdocError> {
-        Document::from_mdoc_attributes(
-            DocumentPersistence::InMemory,
-            &mdoc.doc_type,
-            mdoc.attributes.into_inner(),
-            issuer_registration,
-        )
-    }
 }
 
 impl TryFrom<(DataElementValue, &DataElementValueMapping)> for Attribute {
@@ -346,6 +334,7 @@ impl MissingDisclosureAttributes {
 impl DisclosureDocument {
     pub(crate) fn from_mdoc_attributes(
         doc_type: &str,
+        display_metadata: Vec<DisplayMetadata>,
         attributes: ProposedDocumentAttributes,
     ) -> Result<Self, DocumentMdocError> {
         let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
@@ -361,6 +350,7 @@ impl DisclosureDocument {
             issuer_registration,
             doc_type,
             attributes: document_attributes,
+            display_metadata,
         };
 
         Ok(document)
@@ -381,6 +371,7 @@ pub mod tests {
 
     use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
     use nl_wallet_mdoc::Tdate;
     use sd_jwt::metadata::TypeMetadata;
 
@@ -392,6 +383,20 @@ pub mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
     });
+
+    impl Document {
+        pub(crate) fn from_unsigned_mdoc(
+            mdoc: UnsignedMdoc,
+            issuer_registration: IssuerRegistration,
+        ) -> Result<Self, DocumentMdocError> {
+            Document::from_mdoc_attributes(
+                DocumentPersistence::InMemory,
+                &mdoc.doc_type,
+                mdoc.attributes.into_inner(),
+                issuer_registration,
+            )
+        }
+    }
 
     /// This creates an `UnsignedMdoc` that only contains a bsn entry.
     pub fn create_bsn_only_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
@@ -768,6 +773,7 @@ pub mod tests {
 
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             &unsigned_mdoc.doc_type,
+            vec![],
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_KEY.certificate().clone(),
@@ -831,6 +837,7 @@ pub mod tests {
         // This should not result in a `DocumentMdocError::MissingAttribute` error.
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
+            vec![],
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
@@ -864,6 +871,7 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             "com.example.foobar",
+            vec![],
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
@@ -888,6 +896,7 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
+            vec![],
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
@@ -919,6 +928,7 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
+            vec![],
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),

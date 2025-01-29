@@ -9,6 +9,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
+use sd_jwt::metadata::TypeMetadata;
 use wallet_common::generator::Generator;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
@@ -63,6 +64,11 @@ impl Mdoc {
 
     pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
+    }
+
+    pub fn type_metadata(&self) -> crate::Result<Vec<TypeMetadata>> {
+        let (metadata, _) = self.issuer_signed.type_metadata()?.verify_and_destructure()?;
+        Ok(metadata)
     }
 
     /// Check that the namespaces, attribute names and attribute values of this instance are equal to to the

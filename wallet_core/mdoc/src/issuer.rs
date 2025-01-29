@@ -1,8 +1,12 @@
+use std::collections::VecDeque;
+
 use chrono::Utc;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use coset::HeaderBuilder;
+use coset::Label;
 
+use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use sd_jwt::metadata::COSE_METADATA_HEADER_LABEL;
@@ -12,10 +16,12 @@ use wallet_common::keys::EcdsaKey;
 use crate::iso::*;
 use crate::server_keys::KeyPair;
 use crate::unsigned::UnsignedMdoc;
+use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
 use crate::utils::serialization::TaggedBytes;
+use crate::Error;
 use crate::Result;
 
 impl IssuerSigned {
@@ -46,8 +52,7 @@ impl IssuerSigned {
         };
 
         // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3808)
-
-        let (chain, integrity) = metadata_chain.into_destructured();
+        let (chain, integrity) = metadata_chain.verify_and_destructure()?;
 
         let headers = HeaderBuilder::new()
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))
@@ -78,6 +83,31 @@ impl IssuerSigned {
         };
 
         Ok(issuer_signed)
+    }
+
+    pub fn type_metadata(&self) -> Result<TypeMetadataChain> {
+        let metadata_label = Label::Text(String::from(COSE_METADATA_HEADER_LABEL));
+
+        let encoded_chain = self
+            .issuer_auth
+            .unprotected_header_item(&metadata_label)?
+            .as_array()
+            .ok_or(CoseError::MissingLabel(metadata_label.clone()))?;
+
+        let mut chain = encoded_chain
+            .iter()
+            .map(|value| {
+                let encoded = value
+                    .as_text()
+                    .ok_or(Error::Cose(CoseError::MissingLabel(metadata_label.clone())))?;
+                let type_metadata = TypeMetadata::try_from_base64(encoded).map_err(Error::TypeMetadata)?;
+                Ok(type_metadata)
+            })
+            .collect::<Result<VecDeque<_>, Error>>()?;
+
+        let root = chain.pop_front().ok_or(CoseError::MissingLabel(metadata_label))?;
+
+        Ok(TypeMetadataChain::create(root, chain.into())?)
     }
 }
 

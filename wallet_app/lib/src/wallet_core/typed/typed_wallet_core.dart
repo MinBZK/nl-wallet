@@ -19,13 +19,13 @@ class TypedWalletCore {
   final BehaviorSubject<core.FlutterConfiguration> _flutterConfig = BehaviorSubject();
   final BehaviorSubject<core.FlutterVersionState> _flutterVersionState = BehaviorSubject();
   final BehaviorSubject<List<core.WalletEvent>> _recentHistory = BehaviorSubject();
-  final BehaviorSubject<List<core.Card>> _cards = BehaviorSubject();
+  final BehaviorSubject<List<core.Attestation>> _attestations = BehaviorSubject();
 
   TypedWalletCore(this._errorMapper) {
     _setupLockedStream();
     _setupConfigurationStream();
     _setupVersionStateStream();
-    _setupCardsStream();
+    _setupAttestationsStream();
     _setupRecentHistoryStream();
   }
 
@@ -50,12 +50,12 @@ class TypedWalletCore {
     _flutterVersionState.onCancel = core.clearVersionStateStream;
   }
 
-  Future<void> _setupCardsStream() async {
+  Future<void> _setupAttestationsStream() async {
     // Ideally we don't set the card stream until we start observing it (i.e. in onListen())
     // but since the cards are not persisted yet that means we might miss events, so observing
     // the wallet_core cards stream through the complete lifecycle of the app for now.
     // NOTE: To reproduce issue: 1. Start clean, 2. Setup Wallet, 3. Kill app, 4. Continue Setup, 5. Cards don't show up on success page
-    core.setCardsStream().listen(_cards.add);
+    core.setAttestationsStream().listen(_attestations.add);
   }
 
   void _setupRecentHistoryStream() {
@@ -94,7 +94,7 @@ class TypedWalletCore {
 
   Future<void> cancelPidIssuance() => call(core.cancelPidIssuance);
 
-  Future<List<core.Card>> continuePidIssuance(String uri) => call(() => core.continuePidIssuance(uri: uri));
+  Future<List<core.Attestation>> continuePidIssuance(String uri) => call(() => core.continuePidIssuance(uri: uri));
 
   Future<core.WalletInstructionResult> acceptOfferedPid(String pin) => call(() => core.acceptPidIssuance(pin: pin));
 
@@ -112,7 +112,7 @@ class TypedWalletCore {
 
   Future<bool> hasActiveDisclosureSession() => call(core.hasActiveDisclosureSession);
 
-  Stream<List<core.Card>> observeCards() => _cards.stream;
+  Stream<List<core.Attestation>> observeCards() => _attestations.stream;
 
   Future<void> resetWallet() => call(core.resetWallet);
 

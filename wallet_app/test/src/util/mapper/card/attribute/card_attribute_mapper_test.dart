@@ -8,8 +8,8 @@ import 'package:wallet_core/core.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 const _kSampleCardAttributeLabels = [LocalizedString(language: '-', value: '-')];
-const _kSampleCardValue = CardValue_String(value: '-');
-const _kSampleCardAttribute = CardAttribute(
+const _kSampleCardValue = AttestationValue_String(value: '-');
+const _kSampleCardAttribute = AttestationAttribute(
   key: 'card.key',
   labels: _kSampleCardAttributeLabels,
   value: _kSampleCardValue,
@@ -17,7 +17,7 @@ const _kSampleCardAttribute = CardAttribute(
 
 void main() {
   late Mapper<List<LocalizedString>, LocalizedText> mockLabelMapper;
-  late Mapper<CardValue, AttributeValue> mockValueMapper;
+  late Mapper<AttestationValue, AttributeValue> mockValueMapper;
 
   late Mapper<CardAttributeWithDocType, DataAttribute> mapper;
 

@@ -4,8 +4,9 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
-import 'card.dart';
+import 'attestation.dart';
 import 'disclosure.dart';
+import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'wallet_event.freezed.dart';
@@ -25,6 +26,6 @@ sealed class WalletEvent with _$WalletEvent {
   }) = WalletEvent_Disclosure;
   const factory WalletEvent.issuance({
     required String dateTime,
-    required Card card,
+    required Attestation attestation,
   }) = WalletEvent_Issuance;
 }

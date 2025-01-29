@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-import 'value/gender.dart';
-
 sealed class AttributeValue extends Equatable {
   /// Dynamic value getter, used to implement [Equatable] once vs in every subclass
   dynamic get value;
@@ -30,16 +28,10 @@ class BooleanValue extends AttributeValue {
   const BooleanValue(this.value);
 }
 
-class DateValue extends AttributeValue {
+class NumberValue extends AttributeValue {
   @override
-  final DateTime value;
+  final BigInt value;
 
-  const DateValue(this.value);
-}
-
-class GenderValue extends AttributeValue {
-  @override
-  final Gender value;
-
-  const GenderValue(this.value);
+  //ignore: avoid_positional_boolean_parameters
+  const NumberValue(this.value);
 }

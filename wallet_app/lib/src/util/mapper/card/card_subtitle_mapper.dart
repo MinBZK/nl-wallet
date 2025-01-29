@@ -6,14 +6,14 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../formatter/attribute_value_formatter.dart';
 import '../mapper.dart';
 
-class CardSubtitleMapper extends Mapper<Card, LocalizedText?> {
-  final Mapper<CardValue, AttributeValue> _attributeValueMapper;
+class CardSubtitleMapper extends Mapper<Attestation, LocalizedText?> {
+  final Mapper<AttestationValue, AttributeValue> _attributeValueMapper;
 
   CardSubtitleMapper(this._attributeValueMapper);
 
   @override
-  LocalizedText? map(Card input) {
-    switch (input.docType) {
+  LocalizedText? map(Attestation input) {
+    switch (input.attestationType) {
       case kPidDocType:
         final nameAttribute =
             input.attributes.firstWhereOrNull((attribute) => attribute.key.toLowerCase().contains('name'));

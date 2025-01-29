@@ -9,26 +9,28 @@ import 'package:wallet_core/core.dart';
 import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
 
-const _kSampleCardAttributeName = CardAttribute(key: 'name', labels: [], value: CardValue_String(value: 'Willeke'));
-const _kSampleCardAttributeCity = CardAttribute(key: 'city', labels: [], value: CardValue_String(value: 'Den Haag'));
+const _kSampleAttributeName = CoreMockData.attestationAttributeName;
+const _kSampleAttributeCity = CoreMockData.attestationAttributeCity;
+
 const _kSampleNameSubtitle = {'en': 'Willeke', 'nl': 'Willeke'};
 const _kSampleCitySubtitle = {'en': 'Den Haag', 'nl': 'Den Haag'};
 const _kSampleIssuer = CoreMockData.organization;
 
 void main() {
-  late Mapper<CardValue, AttributeValue> mockAttributeValueMapper;
+  late Mapper<AttestationValue, AttributeValue> mockAttributeValueMapper;
 
-  late Mapper<Card, LocalizedText?> mapper;
+  late Mapper<Attestation, LocalizedText?> mapper;
 
   setUp(() {
     mockAttributeValueMapper = MockMapper();
     mapper = CardSubtitleMapper(mockAttributeValueMapper);
   });
 
-  Card createSampleCard(String docType, List<CardAttribute> attributes) {
-    return Card(
-      persistence: const CardPersistence_InMemory(),
-      docType: docType,
+  Attestation createSampleCard(String attestationType, List<AttestationAttribute> attributes) {
+    return Attestation(
+      identity: const AttestationIdentity.ephemeral(),
+      attestationType: attestationType,
+      displayMetadata: [CoreMockData.displayMetadata],
       attributes: attributes,
       issuer: _kSampleIssuer,
     );
@@ -36,55 +38,54 @@ void main() {
 
   group('map', () {
     test('card with `com.example.pid` docType should return `name` attribute string', () {
-      when(mockAttributeValueMapper.map(_kSampleCardAttributeName.value)).thenReturn(const StringValue('Willeke'));
+      when(mockAttributeValueMapper.map(_kSampleAttributeName.value)).thenReturn(const StringValue('Willeke'));
 
-      final Card input = createSampleCard('com.example.pid', [_kSampleCardAttributeName, _kSampleCardAttributeCity]);
+      final input = createSampleCard('com.example.pid', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleNameSubtitle);
 
       // Check if every supported locale is mapped to a value
-      verify(mockAttributeValueMapper.map(_kSampleCardAttributeName.value))
+      verify(mockAttributeValueMapper.map(_kSampleAttributeName.value))
           .called(AppLocalizations.supportedLocales.length);
     });
 
     test('card with `com.example.pid` docType should return `name` attribute string', () {
-      when(mockAttributeValueMapper.map(_kSampleCardAttributeName.value)).thenReturn(const StringValue('Willeke'));
+      when(mockAttributeValueMapper.map(_kSampleAttributeName.value)).thenReturn(const StringValue('Willeke'));
 
-      final Card input = createSampleCard('com.example.pid', [_kSampleCardAttributeName, _kSampleCardAttributeCity]);
+      final input = createSampleCard('com.example.pid', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleNameSubtitle);
 
       // Check if every supported locale is mapped to a value
-      verify(mockAttributeValueMapper.map(_kSampleCardAttributeName.value))
+      verify(mockAttributeValueMapper.map(_kSampleAttributeName.value))
           .called(AppLocalizations.supportedLocales.length);
     });
 
     test('`com.example.pid` card without `name` attribute should not return any subtitle', () {
-      final Card input = createSampleCard('com.example.pid', [_kSampleCardAttributeCity]);
+      final input = createSampleCard('com.example.pid', [_kSampleAttributeCity]);
       expect(mapper.map(input), null);
 
-      verifyNever(mockAttributeValueMapper.map(_kSampleCardAttributeName.value));
+      verifyNever(mockAttributeValueMapper.map(_kSampleAttributeName.value));
     });
 
     test('card with `com.example.address` docType should return `city` attribute string', () {
-      when(mockAttributeValueMapper.map(_kSampleCardAttributeCity.value)).thenReturn(const StringValue('Den Haag'));
+      when(mockAttributeValueMapper.map(_kSampleAttributeCity.value)).thenReturn(const StringValue('Den Haag'));
 
-      final Card input =
-          createSampleCard('com.example.address', [_kSampleCardAttributeName, _kSampleCardAttributeCity]);
+      final input = createSampleCard('com.example.address', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleCitySubtitle);
 
       // Check if every supported locale is mapped to a value
-      verify(mockAttributeValueMapper.map(_kSampleCardAttributeCity.value))
+      verify(mockAttributeValueMapper.map(_kSampleAttributeCity.value))
           .called(AppLocalizations.supportedLocales.length);
     });
 
     test('`com.example.address` card without `city` attribute should not return any subtitle', () {
-      final Card input = createSampleCard('com.example.address', [_kSampleCardAttributeName]);
+      final input = createSampleCard('com.example.address', [_kSampleAttributeName]);
       expect(mapper.map(input), null);
 
-      verifyNever(mockAttributeValueMapper.map(_kSampleCardAttributeName.value));
+      verifyNever(mockAttributeValueMapper.map(_kSampleAttributeName.value));
     });
 
     test('card with unknown docType should not return any subtitle', () {
-      final Card input = createSampleCard('invalid_doctype', [_kSampleCardAttributeName, _kSampleCardAttributeCity]);
+      final input = createSampleCard('invalid_doctype', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), null);
     });
   });

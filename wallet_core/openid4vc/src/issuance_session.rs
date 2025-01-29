@@ -810,7 +810,7 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
                 // Verify and parse the type metadata
-                let _metadata = metadata_chain.verify_and_parse_root()?;
+                let (_metadata, _) = metadata_chain.clone().verify_and_destructure()?;
 
                 // TODO: verify JSON representation of mdoc against metadata schema (PVW-3812)
 

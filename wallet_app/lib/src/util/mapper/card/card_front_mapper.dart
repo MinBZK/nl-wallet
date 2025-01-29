@@ -8,15 +8,15 @@ import '../../../wallet_assets.dart';
 import '../../extension/string_extension.dart';
 import '../mapper.dart';
 
-class CardFrontMapper extends Mapper<Card, CardFront> {
-  final Mapper<Card, LocalizedText?> _subtitleMapper;
+class CardFrontMapper extends Mapper<Attestation, CardFront> {
+  final Mapper<Attestation, LocalizedText?> _subtitleMapper;
 
   CardFrontMapper(this._subtitleMapper);
 
   @override
-  CardFront map(Card input) {
+  CardFront map(Attestation input) {
     final l10ns = AppLocalizations.supportedLocales.map(lookupAppLocalizations).toList();
-    switch (input.docType) {
+    switch (input.attestationType) {
       case kPidDocType:
         return _getPidCardFront(l10ns, input);
       case kAddressDocType:
@@ -33,10 +33,10 @@ class CardFrontMapper extends Mapper<Card, CardFront> {
       case 'VOG':
         return _kMockVOGCardFront;
     }
-    throw Exception('Unknown docType: ${input.docType}');
+    throw Exception('Unknown docType: ${input.attestationType}');
   }
 
-  CardFront _getPidCardFront(List<AppLocalizations> l10ns, Card input) {
+  CardFront _getPidCardFront(List<AppLocalizations> l10ns, Attestation input) {
     return CardFront(
       title: l10ns.asMap().map((_, l10n) => MapEntry(l10n.localeName, l10n.pidIdCardTitle)),
       subtitle: _subtitleMapper.map(input),
@@ -47,7 +47,7 @@ class CardFrontMapper extends Mapper<Card, CardFront> {
     );
   }
 
-  CardFront _getAddressCardFront(List<AppLocalizations> l10ns, Card input) {
+  CardFront _getAddressCardFront(List<AppLocalizations> l10ns, Attestation input) {
     return CardFront(
       title: l10ns.asMap().map((_, l10n) => MapEntry(l10n.localeName, l10n.pidAddressCardTitle)),
       subtitle: _subtitleMapper.map(input),
@@ -60,9 +60,9 @@ class CardFrontMapper extends Mapper<Card, CardFront> {
 
   /// Hacky way to figure out if the card is a renewed license, this will be removed once we properly implement
   /// a way to get the [CardFront]s through the core.
-  bool isRenewedLicense(Card input) => input.attributes
+  bool isRenewedLicense(Attestation input) => input.attributes
       .map((attribute) => attribute.value)
-      .whereType<CardValue_String>()
+      .whereType<AttestationValue_String>()
       .any((value) => value.value.contains('C1'));
 }
 

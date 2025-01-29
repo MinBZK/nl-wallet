@@ -1,3 +1,4 @@
+mod attestations;
 mod change_pin;
 mod config;
 mod disclosure;
@@ -32,6 +33,7 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::attestations::AttestationsCallback;
 use crate::wte::WpWteIssuanceClient;
 
 pub use self::disclosure::DisclosureError;
@@ -114,5 +116,6 @@ pub struct Wallet<
     wte_issuance_client: WIC,
     lock: WalletLock,
     documents_callback: Option<DocumentsCallback>,
+    attestations_callback: Option<AttestationsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,
 }

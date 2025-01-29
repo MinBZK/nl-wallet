@@ -150,54 +150,59 @@ void main() {
     });
   });
 
-  group('observeCards', () {
-    test('observeCards should fetch cards through WalletCore', () {
-      final List<Card> mockCards = [
-        const Card(
-          persistence: CardPersistence.stored(id: '0'),
-          docType: 'pid_id',
+  group('observeAttestations', () {
+    test('observeAttestations should fetch cards through WalletCore', () {
+      final List<Attestation> mockAttestations = [
+        const Attestation(
+          identity: AttestationIdentity.fixed(id: '0'),
+          attestationType: 'pid_id',
+          displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
-        const Card(
-          persistence: CardPersistence.stored(id: '0'),
-          docType: 'pid_address',
+        const Attestation(
+          identity: AttestationIdentity.fixed(id: '0'),
+          attestationType: 'pid_address',
+          displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
       ];
-      when(core.crateApiFullSetCardsStream()).thenAnswer((realInvocation) => Stream.value(mockCards));
+      when(core.crateApiFullSetAttestationsStream()).thenAnswer((realInvocation) => Stream.value(mockAttestations));
 
       expect(
         TypedWalletCore(errorMapper).observeCards(),
-        emitsInOrder([hasLength(mockCards.length)]),
+        emitsInOrder([hasLength(mockAttestations.length)]),
       );
     });
 
     test('observeCards should emit a new value when WalletCore exposes new cards', () {
-      final List<Card> initialCards = [
-        const Card(
-          persistence: CardPersistence.stored(id: '0'),
-          docType: 'pid_id',
+      final List<Attestation> initialCards = [
+        const Attestation(
+          identity: AttestationIdentity.fixed(id: '0'),
+          attestationType: 'pid_id',
+          displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
       ];
-      final List<Card> updatedCards = [
-        const Card(
-          persistence: CardPersistence.stored(id: '0'),
-          docType: 'pid_id',
+      final List<Attestation> updatedCards = [
+        const Attestation(
+          identity: AttestationIdentity.fixed(id: '0'),
+          attestationType: 'pid_id',
+          displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
-        const Card(
-          persistence: CardPersistence.stored(id: '0'),
-          docType: 'pid_address',
+        const Attestation(
+          identity: AttestationIdentity.fixed(id: '0'),
+          attestationType: 'pid_address',
+          displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
       ];
-      when(core.crateApiFullSetCardsStream())
+      when(core.crateApiFullSetAttestationsStream())
           .thenAnswer((realInvocation) => Stream.fromIterable([[], initialCards, updatedCards]));
 
       expect(
@@ -207,29 +212,32 @@ void main() {
     });
 
     test('observeCards should emit only the last value on a new subscription', () async {
-      final List<Card> initialCards = [
-        const Card(
-          persistence: CardPersistence.stored(id: '0'),
-          docType: 'pid_id',
+      final List<Attestation> initialCards = [
+        const Attestation(
+          identity: AttestationIdentity.fixed(id: '0'),
+          attestationType: 'pid_id',
+          displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
       ];
-      final List<Card> updatedCards = [
-        const Card(
-          persistence: CardPersistence.stored(id: '0'),
-          docType: 'pid_id',
+      final List<Attestation> updatedCards = [
+        const Attestation(
+          identity: AttestationIdentity.fixed(id: '0'),
+          attestationType: 'pid_id',
+          displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
-        const Card(
-          persistence: CardPersistence.stored(id: '0'),
-          docType: 'pid_address',
+        const Attestation(
+          identity: AttestationIdentity.fixed(id: '0'),
+          attestationType: 'pid_address',
+          displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
       ];
-      when(core.crateApiFullSetCardsStream())
+      when(core.crateApiFullSetAttestationsStream())
           .thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
 
       final typedCore = TypedWalletCore(errorMapper);

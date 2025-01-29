@@ -1,13 +1,12 @@
 import 'package:wallet_core/core.dart';
 
-final _kMockBirthDate = CardValue.date(value: '1997-03-11');
-final _kMockBirthPlace = CardValue.string(value: 'Delft');
-final _kMockFirstNames = CardValue.string(value: 'Willeke Liselotte');
-final _kMockLastName = CardValue.string(value: 'De Bruijn');
-final _kMockGender = CardValue.gender(value: GenderCardValue.Female);
+final _kMockBirthDate = AttestationValue_String(value: '1997-03-11');
+final _kMockBirthPlace = AttestationValue_String(value: 'Delft');
+final _kMockFirstNames = AttestationValue_String(value: 'Willeke Liselotte');
+final _kMockLastName = AttestationValue_String(value: 'De Bruijn');
 
-final kMockPidDataAttributes = [
-  CardAttribute(
+final kMockPidAttestationAttributes = [
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Voornamen'),
       LocalizedString(language: 'en', value: 'First names'),
@@ -15,7 +14,7 @@ final kMockPidDataAttributes = [
     value: _kMockFirstNames,
     key: 'mock.firstNames',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Achternaam'),
       LocalizedString(language: 'en', value: 'Surname'),
@@ -23,23 +22,15 @@ final kMockPidDataAttributes = [
     value: _kMockLastName,
     key: 'mock.lastName',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Naam bij geboorte'),
       LocalizedString(language: 'en', value: 'Birth name'),
     ],
-    value: CardValue.string(value: 'Molenaar'),
+    value: AttestationValue_String(value: 'Molenaar'),
     key: 'mock.birthName',
   ),
-  CardAttribute(
-    labels: [
-      LocalizedString(language: 'nl', value: 'Geslacht'),
-      LocalizedString(language: 'en', value: 'Gender'),
-    ],
-    value: _kMockGender,
-    key: 'mock.gender',
-  ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Geboortedatum'),
       LocalizedString(language: 'en', value: 'Birth date'),
@@ -47,15 +38,15 @@ final kMockPidDataAttributes = [
     value: _kMockBirthDate,
     key: 'mock.birthDate',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Ouder dan 18'),
       LocalizedString(language: 'en', value: 'Older than 18'),
     ],
-    value: CardValue.boolean(value: true),
+    value: AttestationValue_Boolean(value: true),
     key: 'mock.olderThan18',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Geboorteplaats'),
       LocalizedString(language: 'en', value: 'Birthplace'),
@@ -63,71 +54,71 @@ final kMockPidDataAttributes = [
     value: _kMockBirthPlace,
     key: 'mock.birthPlace',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Geboorteland'),
       LocalizedString(language: 'en', value: 'Country of birth'),
     ],
-    value: CardValue.string(value: 'Nederland'),
+    value: AttestationValue_String(value: 'Nederland'),
     key: 'mock.birthCountry',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Getrouwd of geregistreerd partnerschap'),
       LocalizedString(language: 'en', value: 'Married or registered partnership'),
     ],
-    value: CardValue.boolean(value: true),
+    value: AttestationValue_Boolean(value: true),
     key: 'mock.hasSpouseOrPartner',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Burger­service­nummer (BSN)'),
       LocalizedString(language: 'en', value: 'BSN'),
     ],
-    value: CardValue.string(value: '111222333'),
+    value: AttestationValue_String(value: '111222333'),
     key: 'mock.citizenshipNumber',
   ),
 ];
 
-final kMockAddressDataAttributes = [
-  CardAttribute(
+final kMockAddressAttestationAttributes = [
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Land'),
       LocalizedString(language: 'en', value: 'Country'),
     ],
-    value: CardValue.string(value: 'Nederland'),
+    value: AttestationValue_String(value: 'Nederland'),
     key: 'mock.country',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Straatnaam'),
       LocalizedString(language: 'en', value: 'Street'),
     ],
-    value: CardValue.string(value: 'Turfmarkt'),
+    value: AttestationValue_String(value: 'Turfmarkt'),
     key: 'mock.streetName',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Huisnummer'),
       LocalizedString(language: 'en', value: 'House number'),
     ],
-    value: CardValue.string(value: '147'),
+    value: AttestationValue_String(value: '147'),
     key: 'mock.houseNumber',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Postcode'),
       LocalizedString(language: 'en', value: 'Postal code'),
     ],
-    value: CardValue.string(value: '2511 DP'),
+    value: AttestationValue_String(value: '2511 DP'),
     key: 'mock.postalCode',
   ),
-  CardAttribute(
+  AttestationAttribute(
     labels: [
       LocalizedString(language: 'nl', value: 'Woonplaats'),
       LocalizedString(language: 'en', value: 'City, town or village'),
     ],
-    value: CardValue.string(value: 'Den Haag'),
+    value: AttestationValue_String(value: 'Den Haag'),
     key: 'mock.city',
   ),
 ];

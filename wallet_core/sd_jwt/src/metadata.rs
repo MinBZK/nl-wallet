@@ -1,3 +1,6 @@
+use std::fmt::Display;
+use std::fmt::Formatter;
+
 use base64::prelude::*;
 use derive_more::Into;
 use http::Uri;
@@ -31,7 +34,7 @@ pub enum TypeMetadataError {
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
 /// various reasons.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpecOptionalImplRequired<T>(pub T);
 
 impl<T> From<T> for SpecOptionalImplRequired<T> {
@@ -77,17 +80,17 @@ impl TypeMetadataChain {
         Ok(result)
     }
 
-    pub fn into_destructured(self) -> (Vec<TypeMetadata>, ResourceIntegrity) {
+    fn into_destructured(self) -> (Vec<TypeMetadata>, ResourceIntegrity) {
         (
             self.metadata.into_inner().into_iter().map(|m| m.0).collect(),
             self.root_integrity,
         )
     }
 
-    pub fn verify_and_parse_root(&self) -> Result<TypeMetadata, TypeMetadataError> {
+    pub fn verify_and_destructure(self) -> Result<(Vec<TypeMetadata>, ResourceIntegrity), TypeMetadataError> {
         let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?;
         self.root_integrity.verify(&bytes)?;
-        Ok(serde_json::from_slice(&bytes)?)
+        Ok(self.into_destructured())
     }
 }
 
@@ -239,7 +242,7 @@ fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataEr
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct DisplayMetadata {
     pub lang: String,
@@ -248,7 +251,7 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[skip_serializing_none]
 pub enum RenderingMetadata {
@@ -260,7 +263,7 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
     #[serde(with = "http_serde::uri")]
     pub uri: Uri,
@@ -288,6 +291,16 @@ pub enum ClaimPath {
     SelectByKey(String),
     SelectAll,
     SelectByIndex(usize),
+}
+
+impl Display for ClaimPath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClaimPath::SelectByKey(key) => write!(f, "{}", key),
+            ClaimPath::SelectAll => f.write_str("*"),
+            ClaimPath::SelectByIndex(index) => write!(f, "{}", index),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

@@ -241,7 +241,7 @@ where
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents: Vec<DisclosureDocument> = proposed_attributes
             .into_iter()
-            .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
+            .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, vec![], attributes))
             .collect::<Result<_, _>>()
             .map_err(DisclosureError::MdocAttributes)?;
 

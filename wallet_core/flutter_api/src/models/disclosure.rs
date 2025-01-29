@@ -7,10 +7,11 @@ use wallet::DisclosureDocument;
 use wallet::DisclosureProposal;
 use wallet::MissingDisclosureAttributes;
 
-use super::card::into_card_attributes;
-use super::card::CardAttribute;
-use super::card::LocalizedString;
+use crate::models::attestation::AttestationAttribute;
+use crate::models::attestation::DisplayMetadata;
+
 use super::instruction::WalletInstructionError;
+use super::localize::LocalizedString;
 
 #[derive(Clone)]
 pub enum Image {
@@ -49,7 +50,8 @@ pub struct MissingAttribute {
 pub struct DisclosureCard {
     pub issuer: Organization,
     pub doc_type: String,
-    pub attributes: Vec<CardAttribute>,
+    pub attributes: Vec<AttestationAttribute>,
+    pub display_metadata: Vec<DisplayMetadata>,
 }
 
 pub enum DisclosureStatus {
@@ -182,7 +184,8 @@ impl From<DisclosureDocument> for DisclosureCard {
         DisclosureCard {
             issuer: value.issuer_registration.organization.into(),
             doc_type: value.doc_type.to_string(),
-            attributes: into_card_attributes(value.attributes),
+            attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
+            display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
         }
     }
 }

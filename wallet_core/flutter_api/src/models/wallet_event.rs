@@ -1,14 +1,14 @@
 use wallet::EventStatus;
 use wallet::HistoryEvent;
 
-use crate::models::card::Card;
-use crate::models::card::LocalizedString;
+use crate::models::attestation::Attestation;
 use crate::models::disclosure::DisclosureCard;
 use crate::models::disclosure::DisclosureStatus;
 use crate::models::disclosure::DisclosureType;
 use crate::models::disclosure::Organization;
 use crate::models::disclosure::RPLocalizedStrings;
 use crate::models::disclosure::RequestPolicy;
+use crate::models::localize::LocalizedString;
 
 pub enum WalletEvent {
     Disclosure {
@@ -24,7 +24,7 @@ pub enum WalletEvent {
     Issuance {
         // ISO8601
         date_time: String,
-        card: Card,
+        attestation: Attestation,
     },
 }
 
@@ -43,9 +43,9 @@ impl From<HistoryEvent> for WalletEvents {
         let result = match source {
             HistoryEvent::Issuance { timestamp, mdocs } => mdocs
                 .into_iter()
-                .map(|mdoc| WalletEvent::Issuance {
+                .map(|document| WalletEvent::Issuance {
                     date_time: timestamp.to_rfc3339(),
-                    card: mdoc.into(),
+                    attestation: document.into(),
                 })
                 .collect(),
             HistoryEvent::Disclosure {

@@ -1,4 +1,5 @@
 mod account_provider;
+mod attestation;
 mod config;
 mod disclosure;
 mod document;
@@ -14,8 +15,14 @@ mod wte;
 
 pub mod errors;
 
+pub use crate::attestation::Attestation;
+pub use crate::attestation::AttestationAttribute;
+pub use crate::attestation::AttestationIdentity;
+pub use crate::attestation::AttestationValue;
+pub use crate::attestation::LocalizedString;
 pub use crate::disclosure::DisclosureUriSource;
 pub use crate::document::Attribute;
+pub use crate::document::AttributeKey;
 pub use crate::document::AttributeLabel;
 pub use crate::document::AttributeLabelLanguage;
 pub use crate::document::AttributeLabels;
@@ -51,6 +58,12 @@ pub mod mdoc {
 
 pub mod openid4vc {
     pub use openid4vc::verifier::SessionType;
+}
+
+pub mod sd_jwt {
+    pub use sd_jwt::metadata::DisplayMetadata;
+    pub use sd_jwt::metadata::LogoMetadata;
+    pub use sd_jwt::metadata::RenderingMetadata;
 }
 
 pub mod wallet_common {
