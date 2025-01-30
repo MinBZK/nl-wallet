@@ -2,6 +2,7 @@ use std::error::Error;
 
 use p256::ecdsa::VerifyingKey;
 
+use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::hsm::HsmError;
 use wallet_common::jwt::Jwt;
@@ -11,8 +12,6 @@ use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::wte::WteClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
-use crate::keys::WalletProviderEcdsaKey;
-
 pub trait WteIssuer {
     type Error: Error + Send + Sync + 'static;
 
@@ -20,7 +19,7 @@ pub trait WteIssuer {
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
-pub struct HsmWteIssuer<H, K = WalletProviderEcdsaKey> {
+pub struct HsmWteIssuer<H, K = HsmEcdsaKey> {
     private_key: K,
     iss: String,
     hsm: H,
