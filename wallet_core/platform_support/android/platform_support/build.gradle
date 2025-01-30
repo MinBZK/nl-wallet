@@ -84,6 +84,7 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.9.0' // Kotlin nice-to-haves
     implementation 'androidx.startup:startup-runtime:1.1.1' // Auto initialization
     implementation 'com.google.android.play:integrity:1.4.0' // Play Integrity API
+    implementation 'com.google.guava:guava:33.4.0-android' // Google Common
     implementation 'net.java.dev.jna:jna:5.14.0@aar' // Java Native Access, Android Archive version
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1' // Kotlin coroutines
 
