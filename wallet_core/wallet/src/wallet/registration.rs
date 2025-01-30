@@ -231,6 +231,7 @@ where
                     .await
                     .map(|message| (message, AttestedKey::Apple(key)))
             }
+            // TODO: Remove into() from app_attestation_token.into() once we merge wallet_provider stuff.
             KeyWithAttestation::Google {
                 key,
                 certificate_chain,
@@ -240,7 +241,7 @@ where
                 certificate_chain
                     .try_into()
                     .map_err(WalletRegistrationError::AndroidCertificateChain)?,
-                app_attestation_token,
+                app_attestation_token.into(),
                 &pin_key,
                 challenge,
             )
