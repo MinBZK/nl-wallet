@@ -47,12 +47,7 @@ impl<GC> RouterState<GC> {
         google_crl_client: GC,
     ) -> Result<RouterState<GC>, Box<dyn Error>> {
         let hsm = WalletUserPkcs11Hsm::new(
-            Pkcs11Hsm::new(
-                settings.hsm.library_path,
-                settings.hsm.user_pin,
-                settings.hsm.max_sessions,
-                settings.hsm.max_session_lifetime,
-            )?,
+            Pkcs11Hsm::from_settings(settings.hsm)?,
             settings.attestation_wrapping_key_identifier,
         );
 

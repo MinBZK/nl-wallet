@@ -160,6 +160,16 @@ impl Pkcs11Hsm {
         Ok(Self { pool })
     }
 
+    #[cfg(feature = "settings")]
+    pub fn from_settings(settings: crate::settings::Hsm) -> Result<Self> {
+        Pkcs11Hsm::new(
+            settings.library_path,
+            settings.user_pin,
+            settings.max_sessions,
+            settings.max_session_lifetime,
+        )
+    }
+
     async fn get_key_handle(&self, identifier: &str, handle_type: HandleType) -> Result<ObjectHandle> {
         let pool = self.pool.clone();
         let identifier = String::from(identifier);

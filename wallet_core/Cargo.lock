@@ -2398,6 +2398,8 @@ dependencies = [
  "r2d2-cryptoki",
  "rand",
  "sec1",
+ "serde",
+ "serde_with",
  "sha2",
  "thiserror",
  "wallet_common",

@@ -20,13 +20,7 @@ use wallet_provider_service::hsm::WalletUserPkcs11Hsm;
 fn setup_hsm() -> (WalletUserPkcs11Hsm, Settings) {
     let settings = Settings::new().unwrap();
     let hsm = WalletUserPkcs11Hsm::new(
-        Pkcs11Hsm::new(
-            settings.hsm.library_path,
-            settings.hsm.user_pin,
-            settings.hsm.max_sessions,
-            settings.hsm.max_session_lifetime,
-        )
-        .unwrap(),
+        Pkcs11Hsm::from_settings(settings.hsm).unwrap(),
         settings.attestation_wrapping_key_identifier,
     );
     (hsm, Settings::new().unwrap())
