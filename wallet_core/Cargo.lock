@@ -140,6 +140,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "spki",
+ "strum 0.26.3",
  "thiserror",
  "time",
  "tokio",
