@@ -15,17 +15,20 @@ use wallet_provider::settings::Settings;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_service::hsm::Pkcs11Hsm;
+use wallet_provider_service::hsm::WalletUserPkcs11Hsm;
 
-fn setup_hsm() -> (Pkcs11Hsm, Settings) {
+fn setup_hsm() -> (WalletUserPkcs11Hsm, Settings) {
     let settings = Settings::new().unwrap();
-    let hsm = Pkcs11Hsm::new(
-        settings.hsm.library_path,
-        settings.hsm.user_pin,
-        settings.hsm.max_sessions,
-        settings.hsm.max_session_lifetime,
+    let hsm = WalletUserPkcs11Hsm::new(
+        Pkcs11Hsm::new(
+            settings.hsm.library_path,
+            settings.hsm.user_pin,
+            settings.hsm.max_sessions,
+            settings.hsm.max_session_lifetime,
+        )
+        .unwrap(),
         settings.attestation_wrapping_key_identifier,
-    )
-    .unwrap();
+    );
     (hsm, Settings::new().unwrap())
 }
 

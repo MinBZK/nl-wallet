@@ -130,7 +130,6 @@ pub(crate) trait Pkcs11Client {
 #[derive(Clone)]
 pub struct Pkcs11Hsm {
     pool: Pool,
-    wrapping_key_identifier: String,
 }
 
 impl Pkcs11Hsm {
@@ -139,7 +138,6 @@ impl Pkcs11Hsm {
         user_pin: String,
         max_sessions: u8,
         max_session_lifetime: Duration,
-        wrapping_key_identifier: String,
     ) -> Result<Self> {
         let pkcs11_client = Pkcs11::new(library_path)?;
         pkcs11_client.initialize(CInitializeArgs::OsThreads)?;
@@ -160,10 +158,7 @@ impl Pkcs11Hsm {
             .build(manager)
             .unwrap();
 
-        Ok(Self {
-            pool,
-            wrapping_key_identifier,
-        })
+        Ok(Self { pool })
     }
 
     async fn get_key_handle(&self, identifier: &str, handle_type: HandleType) -> Result<ObjectHandle> {
@@ -212,15 +207,95 @@ impl Decrypter<VerifyingKey> for Pkcs11Hsm {
     }
 }
 
-impl WalletUserHsm for Pkcs11Hsm {
+#[derive(Clone)]
+pub struct WalletUserPkcs11Hsm {
+    hsm: Pkcs11Hsm,
+    wrapping_key_identifier: String,
+}
+
+impl WalletUserPkcs11Hsm {
+    pub fn new(hsm: Pkcs11Hsm, wrapping_key_identifier: String) -> Self {
+        Self {
+            hsm,
+            wrapping_key_identifier,
+        }
+    }
+
+    pub fn hsm(&self) -> &Pkcs11Hsm {
+        &self.hsm
+    }
+}
+
+impl Hsm for WalletUserPkcs11Hsm {
+    type Error = HsmError;
+
+    async fn generate_generic_secret_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        Hsm::generate_generic_secret_key(&self.hsm, identifier).await
+    }
+    async fn get_verifying_key(&self, identifier: &str) -> std::result::Result<VerifyingKey, Self::Error> {
+        Hsm::get_verifying_key(&self.hsm, identifier).await
+    }
+    async fn delete_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        Hsm::delete_key(&self.hsm, identifier).await
+    }
+    async fn sign_ecdsa(&self, identifier: &str, data: Arc<Vec<u8>>) -> std::result::Result<Signature, Self::Error> {
+        Hsm::sign_ecdsa(&self.hsm, identifier, data).await
+    }
+    async fn sign_hmac(&self, identifier: &str, data: Arc<Vec<u8>>) -> std::result::Result<Vec<u8>, Self::Error> {
+        Hsm::sign_hmac(&self.hsm, identifier, data).await
+    }
+    async fn verify_hmac(
+        &self,
+        identifier: &str,
+        data: Arc<Vec<u8>>,
+        signature: Vec<u8>,
+    ) -> std::result::Result<(), Self::Error> {
+        Hsm::verify_hmac(&self.hsm, identifier, data, signature).await
+    }
+    async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> std::result::Result<Encrypted<T>, Self::Error> {
+        Hsm::encrypt(&self.hsm, identifier, data).await
+    }
+    async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> std::result::Result<Vec<u8>, Self::Error> {
+        Hsm::decrypt(&self.hsm, identifier, encrypted).await
+    }
+}
+
+impl Encrypter<VerifyingKey> for WalletUserPkcs11Hsm {
+    type Error = HsmError;
+
+    async fn encrypt(
+        &self,
+        key_identifier: &str,
+        data: VerifyingKey,
+    ) -> std::result::Result<Encrypted<VerifyingKey>, Self::Error> {
+        let bytes: Vec<u8> = data.to_sec1_bytes().to_vec();
+        Hsm::encrypt(self, key_identifier, bytes).await
+    }
+}
+
+impl Decrypter<VerifyingKey> for WalletUserPkcs11Hsm {
+    type Error = HsmError;
+
+    async fn decrypt(
+        &self,
+        key_identifier: &str,
+        encrypted: Encrypted<VerifyingKey>,
+    ) -> std::result::Result<VerifyingKey, Self::Error> {
+        let decrypted = Hsm::decrypt(self, key_identifier, encrypted).await?;
+        Ok(VerifyingKey::from_sec1_bytes(&decrypted)?)
+    }
+}
+
+impl WalletUserHsm for WalletUserPkcs11Hsm {
     type Error = HsmError;
 
     async fn generate_wrapped_key(&self) -> Result<(VerifyingKey, WrappedKey)> {
-        let private_wrapping_handle = self.get_private_key_handle(&self.wrapping_key_identifier).await?;
-        let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
-        let verifying_key = Pkcs11Client::get_verifying_key(self, public_handle).await?;
+        let private_wrapping_handle = self.hsm.get_private_key_handle(&self.wrapping_key_identifier).await?;
+        let (public_handle, private_handle) = self.hsm.generate_session_signing_key_pair().await?;
+        let verifying_key = Pkcs11Client::get_verifying_key(&self.hsm, public_handle).await?;
 
         let wrapped = self
+            .hsm
             .wrap_key(private_wrapping_handle, private_handle, verifying_key)
             .await?;
 
@@ -229,21 +304,24 @@ impl WalletUserHsm for Pkcs11Hsm {
 
     async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey> {
         let key_identifier = hsm::model::hsm::key_identifier(wallet_id, identifier);
-        let (public_handle, _private_handle) = self.generate_signing_key_pair(&key_identifier).await?;
-        Pkcs11Client::get_verifying_key(self, public_handle).await
+        let (public_handle, _private_handle) = self.hsm.generate_signing_key_pair(&key_identifier).await?;
+        Pkcs11Client::get_verifying_key(&self.hsm, public_handle).await
     }
 
     async fn sign_wrapped(&self, wrapped_key: WrappedKey, data: Arc<Vec<u8>>) -> Result<Signature> {
-        let private_wrapping_handle = self.get_private_key_handle(&self.wrapping_key_identifier).await?;
-        let private_handle = self.unwrap_signing_key(private_wrapping_handle, wrapped_key).await?;
-        let signature = Pkcs11Client::sign(self, private_handle, SigningMechanism::Ecdsa256, data).await?;
+        let private_wrapping_handle = self.hsm.get_private_key_handle(&self.wrapping_key_identifier).await?;
+        let private_handle = self
+            .hsm
+            .unwrap_signing_key(private_wrapping_handle, wrapped_key)
+            .await?;
+        let signature = Pkcs11Client::sign(&self.hsm, private_handle, SigningMechanism::Ecdsa256, data).await?;
         Ok(Signature::from_slice(&signature)?)
     }
 
     async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
         let key_identifier = hsm::model::hsm::key_identifier(wallet_id, identifier);
-        let handle = self.get_private_key_handle(&key_identifier).await?;
-        let signature = Pkcs11Client::sign(self, handle, SigningMechanism::Ecdsa256, data).await?;
+        let handle = self.hsm.get_private_key_handle(&key_identifier).await?;
+        let signature = Pkcs11Client::sign(&self.hsm, handle, SigningMechanism::Ecdsa256, data).await?;
         Ok(Signature::from_slice(&signature)?)
     }
 }
