@@ -1,0 +1,44 @@
+build-sbom:
+  rules: !reference [.default-branch, rules]
+  script:
+    ## Rust
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
+    - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json --override-filename bom
+    ## NPM
+    - cd wallet_web
+    - cyclonedx-npm --spec-version 1.5 --output-format json --output-file bom.json --package-lock-only
+    # only keep bundled dependencies
+    - jq '.components |= map(select(.properties|any(.name == "cdx:npm:package:bundled")))' bom.json > bom-bundled.json
+    - mv bom-bundled.json bom.json
+    - cd ..
+    ## Flutter
+    - (cd wallet_app && cdxgen --spec-version 1.5 --type dart --output bom.json)
+    ## iOS
+    - bundle install
+    - cd wallet_app
+    - flutter pub get --enforce-lockfile
+    - flutter precache --ios
+    - cd ios
+    - bundle exec pod install --allow-root
+    - cyclonedx-cocoapods # only supports single spec version (currently 1.6)
+    - cyclonedx convert --output-version v1_5 --input-file bom.xml --output-file bom.json
+    - cd ../..
+    ## Android
+    - (cd wallet_app/android && ../gradlew clean cyclonedxBom)
+    - (cd wallet_core/platform_support/android/platform_support && ../gradlew clean cyclonedxBom)
+    # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
+    - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
+    # converting it to xml does work
+    - cyclonedx convert --output-version v1_5 --input-file bom.json --output-file bom.xml
+    - deploy/bin/store-artifact.sh bom.* qt/quality-time/sbom/
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+  artifacts:
+    when: always
+    reports:
+      cyclonedx: bom.json
+    paths:
+      - bom.xml
+      - bom.json
+  allow_failure: true
