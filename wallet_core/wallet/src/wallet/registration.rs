@@ -148,7 +148,8 @@ where
         info!("Validating PIN");
 
         // Make sure the PIN adheres to the requirements.
-        validate_pin(&pin).map_err(WalletRegistrationError::InvalidPin)?; // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
+        // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
+        validate_pin(&pin).map_err(WalletRegistrationError::InvalidPin)?;
 
         info!("Requesting challenge from account server");
 
