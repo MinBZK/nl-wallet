@@ -30,7 +30,7 @@ pub enum AttestationData {
     },
     Google {
         certificate_chain: Vec<Vec<u8>>,
-        app_attestation_token: Vec<u8>,
+        app_attestation_token: String,
     },
 }
 

@@ -117,7 +117,7 @@ pub enum KeyWithAttestation<A, G> {
     Google {
         key: G,
         certificate_chain: Vec<Vec<u8>>,
-        app_attestation_token: Vec<u8>,
+        app_attestation_token: String,
     },
 }
 

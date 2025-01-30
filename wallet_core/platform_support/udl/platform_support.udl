@@ -67,7 +67,7 @@ enum AttestedKeyType {
 [Enum]
 interface AttestationData {
     Apple(sequence<u8> attestation_data);
-    Google(sequence<sequence<u8>> certificate_chain, sequence<u8> app_attestation_token);
+    Google(sequence<sequence<u8>> certificate_chain, string app_attestation_token);
 };
 
 /// Combines a collection of methods that unify working with attested keys on both
