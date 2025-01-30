@@ -2390,11 +2390,16 @@ dependencies = [
 name = "hsm"
 version = "0.3.0-dev"
 dependencies = [
+ "cryptoki",
  "dashmap 6.0.1",
+ "der",
  "hmac",
  "p256",
+ "r2d2-cryptoki",
  "rand",
+ "sec1",
  "sha2",
+ "thiserror",
  "wallet_common",
 ]
 
@@ -6784,7 +6789,6 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
- "cryptoki",
  "der",
  "derive_more",
  "futures",
@@ -6795,13 +6799,11 @@ dependencies = [
  "jsonwebtoken",
  "nl_wallet_mdoc",
  "p256",
- "r2d2-cryptoki",
  "rand",
  "rand_core",
  "rstest",
  "rustls-pki-types",
  "rustls-webpki",
- "sec1",
  "serde",
  "serde_json",
  "serde_with",

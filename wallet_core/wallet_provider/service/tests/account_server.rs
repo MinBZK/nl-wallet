@@ -4,6 +4,7 @@ use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
 use hsm::model::hsm::mock::MockPkcs11Client;
+use hsm::service::hsm::HsmError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
@@ -26,7 +27,6 @@ use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
 use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
-use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
 

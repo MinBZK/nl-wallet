@@ -9,12 +9,12 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::hsm::Hsm;
+use hsm::service::hsm::Pkcs11Hsm;
 use wallet_common::utils::random_bytes;
 use wallet_common::utils::random_string;
 use wallet_provider::settings::Settings;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletId;
-use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::hsm::WalletUserPkcs11Hsm;
 
 fn setup_hsm() -> (WalletUserPkcs11Hsm, Settings) {

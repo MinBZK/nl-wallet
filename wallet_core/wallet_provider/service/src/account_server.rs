@@ -31,6 +31,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::hsm::Hsm;
+use hsm::service::hsm::HsmError;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::RegistrationAttestation;
@@ -68,7 +69,6 @@ use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
-use crate::hsm::HsmError;
 use crate::instructions::HandleInstruction;
 use crate::instructions::ValidateInstruction;
 use crate::keys::InstructionResultSigningKey;

@@ -6,6 +6,7 @@ use derive_more::From;
 use derive_more::FromStr;
 use http::StatusCode;
 
+use hsm::service::hsm::HsmError;
 use wallet_common::account::messages::errors::AccountError;
 use wallet_common::account::messages::errors::AccountErrorType;
 use wallet_common::http_error::HttpJsonError;
@@ -14,7 +15,6 @@ use wallet_provider_service::account_server::ChallengeError;
 use wallet_provider_service::account_server::InstructionError;
 use wallet_provider_service::account_server::RegistrationError;
 use wallet_provider_service::account_server::WalletCertificateError;
-use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::wte_issuer::HsmWteIssuerError;
 
 // Make a newtype to circumvent the orphan rule.

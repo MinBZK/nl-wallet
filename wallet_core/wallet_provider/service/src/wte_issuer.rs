@@ -3,6 +3,7 @@ use std::error::Error;
 use p256::ecdsa::VerifyingKey;
 
 use hsm::model::wrapped_key::WrappedKey;
+use hsm::service::hsm::HsmError;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtCredentialClaims;
 use wallet_common::jwt::JwtError;
@@ -10,7 +11,6 @@ use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::wte::WteClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
-use crate::hsm::HsmError;
 use crate::keys::WalletProviderEcdsaKey;
 
 pub trait WteIssuer {
@@ -112,12 +112,11 @@ mod tests {
     use chrono::Utc;
 
     use hsm::model::hsm::mock::MockPkcs11Client;
+    use hsm::service::hsm::HsmError;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use wallet_common::jwt;
     use wallet_common::jwt::jwk_to_p256;
-
-    use crate::hsm::HsmError;
 
     use super::HsmWteIssuer;
     use super::WteIssuer;

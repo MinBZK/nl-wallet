@@ -4,11 +4,10 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
 use hsm::model::hsm::Hsm;
+use hsm::service::hsm::HsmError;
+use hsm::service::hsm::Pkcs11Hsm;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
-
-use crate::hsm::HsmError;
-use crate::hsm::Pkcs11Hsm;
 
 pub trait WalletCertificateSigningKey: SecureEcdsaKey {}
 pub trait InstructionResultSigningKey: SecureEcdsaKey {}

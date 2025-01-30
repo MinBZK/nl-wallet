@@ -7,6 +7,7 @@ use tracing::debug;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::hsm::Hsm;
+use hsm::service::hsm::HsmError;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
 use wallet_common::account::serialization::DerVerifyingKey;
@@ -19,7 +20,6 @@ use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::account_server::WalletCertificateError;
-use crate::hsm::HsmError;
 use crate::keys::WalletCertificateSigningKey;
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
@@ -208,8 +208,7 @@ pub mod mock {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::hsm::mock::MockPkcs11Client;
     use hsm::model::hsm::Hsm;
-
-    use crate::hsm::HsmError;
+    use hsm::service::hsm::HsmError;
 
     pub const SIGNING_KEY_IDENTIFIER: &str = "certificate_signing_key_1";
     pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
@@ -270,10 +269,10 @@ mod tests {
 
     use hsm::model::encrypter::Encrypter;
     use hsm::model::hsm::mock::MockPkcs11Client;
+    use hsm::service::hsm::HsmError;
     use wallet_common::jwt::EcdsaDecodingKey;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
-    use crate::hsm::HsmError;
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::new_wallet_certificate;
     use crate::wallet_certificate::sign_pin_pubkey;
