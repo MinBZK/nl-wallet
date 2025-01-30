@@ -38,8 +38,7 @@ This framework is for automating the Android and iOS NL-Wallet app in a single c
 ### Preconditions
 
 1. Make sure that you are in the correct directory: `uiautomation` where the Gradle project is located.
-2. Check if you have the Gradle Wrapper script; if the Gradle Wrapper script does not exist, you can generate it by running: `gradle wrapper`.
-3. See "[Customizing the test run](#customizing-test-runs)" for more info on how to customize & run test locally or remote.
+2. See "[Customizing the test run](#customizing-test-runs)" for more info on how to customize & run test locally or remote.
 
 ### Local run
 
