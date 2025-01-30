@@ -95,11 +95,17 @@ class AttestedKeyBridgeInstrumentedTest {
         // Generate a new key using `attest`
         val attestationData = attestedKeyBridge.attest(id, challenge)
 
+        // Note: Below we check the appAttestationToken. The current assumption is that the data is opaque. but
+        // https://developer.android.com/google/play/integrity/standard#protect-requests seems to hint that you
+        // can get at the requestHash verbatim, which would mean that you can validate more meaningfully than
+        // simply checking that the data is not empty. This should also be done in tests we have related to
+        // this, like 'create_and_verify_attested_key' in platform_suport/src/attested_key/test.rs.
+
         // Verify that attestationData is an instance of `Google`
         if (attestationData is AttestationData.Google) {
             // Verify the attestation token is empty
-            // TODO: fix when implementing app attestation
-            assert(attestationData.appAttestationToken.isEmpty())
+            // TODO: See if appAttestationToken can be more meaningfully verified
+            assert(attestationData.appAttestationToken.isNotEmpty())
             // Verify that the certificate chain is not empty
             assert(attestationData.certificateChain.size >= 2) {
                 "expected at least the root certificate and the key's certificate"

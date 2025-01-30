@@ -3,11 +3,19 @@ package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import com.google.android.gms.tasks.Tasks
+import com.google.android.play.core.integrity.IntegrityManagerFactory
+import com.google.android.play.core.integrity.StandardIntegrityManager.PrepareIntegrityTokenRequest
+import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityToken
+import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenProvider
+import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenRequest
+import com.google.common.hash.Hashing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
+import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import uniffi.platform_support.AttestationData
 import uniffi.platform_support.AttestedKeyException
@@ -40,13 +48,52 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
      */
     @Throws(AttestedKeyException::class)
     override suspend fun attest(identifier: String, challenge: List<UByte>): AttestationData = withContext(Dispatchers.IO) {
+
+        Log.d(this::class.qualifiedName, "attest: beginning app and key attestation process")
+
+        // Create a sha256 request hash from the challenge.
+        @Suppress("UnstableApiUsage")
+        val requestHash: String = Hashing.sha256().newHasher().putBytes(challenge.toByteArray()).hash().toString()
+
+        // Configure cloud project number, initialize manager and token provider request.
+        // TODO: Don't hardcode cloud project identifier but obtain it from configuration
+        // TODO: Handle non-existent or erronuous cloud project identifier numbers
+        val cloudProjectId = 12143997365
+        val integrityManager = IntegrityManagerFactory.createStandard(context.applicationContext)
+        val integrityTokenProviderRequest =
+            PrepareIntegrityTokenRequest.builder().setCloudProjectNumber(cloudProjectId).build()
+
+        // Execute integrity token provider request, await result, fill integrityTokenProvider.
+        var integrityTokenProvider: StandardIntegrityTokenProvider = Tasks.await(
+            integrityManager.prepareIntegrityToken(integrityTokenProviderRequest)
+                .addOnSuccessListener { response ->
+                    Log.d(this::class.qualifiedName, "attest: configured integrity token provider")
+                }
+                .addOnFailureListener { exception ->
+                    // TODO: Consider throwing AttestedAppException.SomethingWithProvider equivalent here
+                    Log.e(this::class.qualifiedName, exception.message ?: "there was no exception message")
+                }
+        )
+
+        // Execute integrity token request using provider.
+        val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(requestHash).build()
+        val integrityToken: StandardIntegrityToken = Tasks.await (integrityTokenProvider.request(integrityTokenRequest)
+            .addOnSuccessListener { response ->
+                Log.i(this::class.qualifiedName, "attest: received an integrity token")
+            }
+            .addOnFailureListener { exception ->
+                // TODO: Consider throwing AttestedAppException.SomethingWithToken equivalent here
+                Log.e(this::class.qualifiedName, exception.message ?: "there was no exception message")
+            }
+        )
+
         val signingKey = createKey(identifier, challenge)
         try {
             val certificateChain =
                 signingKey.getCertificateChain()?.asSequence()?.map { it.encoded.toUByteList() }?.toList()
                     ?: throw AttestedKeyException.Other("failed to get certificate chain")
 
-            val appAttestationToken = emptyList<UByte>() // TODO fix when implementing app attestation
+            val appAttestationToken = integrityToken.token()
             AttestationData.Google(certificateChain, appAttestationToken)
         } catch (e: Exception) {
             // Try to undo the creation of the signing key
