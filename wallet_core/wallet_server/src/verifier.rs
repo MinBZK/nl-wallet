@@ -100,8 +100,8 @@ where
     )?);
 
     let mut wallet_web = Router::new()
-        .route("/:session_token", get(status::<S>))
-        .route("/:session_token", delete(cancel::<S>));
+        .route("/{session_token}", get(status::<S>))
+        .route("/{session_token}", delete(cancel::<S>));
 
     if let Some(cors_origin) = allow_origins {
         // The CORS headers should be set for these routes, so that any web browser may call them.
@@ -112,15 +112,15 @@ where
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
     // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
     let wallet_router = Router::new()
-        .route("/:session_token/request_uri", get(retrieve_request::<S>))
-        .route("/:session_token/request_uri", post(retrieve_request::<S>))
-        .route("/:session_token/response_uri", post(post_response::<S>))
+        .route("/{session_token}/request_uri", get(retrieve_request::<S>))
+        .route("/{session_token}/request_uri", post(retrieve_request::<S>))
+        .route("/{session_token}/response_uri", post(post_response::<S>))
         .merge(wallet_web)
         .with_state(Arc::clone(&application_state));
 
     let requester_router = Router::new()
         .route("/", post(start::<S>))
-        .route("/:session_token/disclosed_attributes", get(disclosed_attributes::<S>))
+        .route("/{session_token}/disclosed_attributes", get(disclosed_attributes::<S>))
         .with_state(application_state);
 
     Ok((
@@ -187,13 +187,13 @@ where
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct StatusParams {
-    pub session_type: SessionType,
+    pub session_type: Option<SessionType>,
 }
 
 async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
-    query: Option<Query<StatusParams>>,
+    Query(query): Query<StatusParams>,
 ) -> Result<Json<StatusResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -202,7 +202,7 @@ where
         .verifier
         .status_response(
             &session_token,
-            query.map(|Query(params)| params.session_type),
+            query.session_type,
             &urls::disclosure_base_uri(&state.universal_link_base_url),
             state
                 .public_url
