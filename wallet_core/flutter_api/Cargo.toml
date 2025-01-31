@@ -15,7 +15,7 @@ doctest = false
 [dependencies]
 anyhow.workspace = true
 backtrace.workspace = true
-flutter_rust_bridge = "=2.7.0"
+flutter_rust_bridge = "=2.7.1"
 itertools.workspace = true
 parking_lot.workspace = true
 sentry = { workspace = true, features = ["backtrace", "contexts", "panic", "debug-images", "reqwest", "rustls"] }
