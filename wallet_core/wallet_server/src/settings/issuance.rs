@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::fs;
+use std::num::NonZeroU8;
 
+use chrono::Days;
 use indexmap::IndexMap;
 use serde::de;
 use serde::Deserialize;
@@ -17,7 +19,6 @@ use crate::pid::brp::client::HttpBrpClient;
 
 use super::*;
 
-#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Issuer {
     /// Issuer private keys index per doctype
@@ -38,6 +39,10 @@ pub struct Issuer {
     pub brp_server: BaseUrl,
 
     pub wte_issuer_pubkey: DerVerifyingKey,
+
+    pub valid_days: u64,
+
+    pub copy_count: NonZeroU8,
 }
 
 fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<Vec<TypeMetadata>, D::Error>
@@ -66,13 +71,6 @@ pub struct Digid {
 }
 
 impl Issuer {
-    pub fn certificates(&self) -> IndexMap<String, BorrowingCertificate> {
-        self.private_keys
-            .iter()
-            .map(|(doctype, privkey)| (doctype.clone(), privkey.certificate.clone()))
-            .collect()
-    }
-
     pub fn metadata(&self) -> IndexMap<String, TypeMetadata> {
         self.metadata
             .iter()
@@ -89,8 +87,9 @@ impl TryFrom<&Issuer> for BrpPidAttributeService {
             HttpBrpClient::new(issuer.brp_server.clone()),
             &issuer.digid.bsn_privkey,
             issuer.digid.http_config.clone(),
-            issuer.certificates(),
             issuer.metadata(),
+            Days::new(issuer.valid_days),
+            issuer.copy_count,
         )
     }
 }

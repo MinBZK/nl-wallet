@@ -27,15 +27,16 @@ mock = ["dep:mockall"]
 # Include miscellaneous test utilities
 test = ["wallet_common/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
-integration = ["mock", "test", "dep:ciborium"]
+integration = ["mock", "test"]
 
 [dependencies]
 base64.workspace = true
 biscuit.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
+ciborium.workspace = true
 dashmap.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str", "into"] }
+derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str", "into", "into_iterator"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap.workspace = true
@@ -53,6 +54,7 @@ rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
+serde_valid.workspace = true
 serde_with.workspace = true
 strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
@@ -65,7 +67,6 @@ x509-parser.workspace = true
 
 assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
-ciborium = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 

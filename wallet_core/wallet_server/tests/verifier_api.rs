@@ -24,6 +24,8 @@ use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
+#[cfg(feature = "issuance")]
+use std::num::NonZeroU8;
 use tokio::time;
 use url::Url;
 
@@ -132,6 +134,8 @@ fn fake_issuer_settings() -> Issuer {
         },
         brp_server: url,
         wte_issuer_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
+        valid_days: 1,
+        copy_count: NonZeroU8::new(1).unwrap(),
     }
 }
 

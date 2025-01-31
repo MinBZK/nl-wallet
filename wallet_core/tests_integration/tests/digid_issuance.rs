@@ -1,3 +1,6 @@
+use std::num::NonZeroU8;
+
+use chrono::Days;
 use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
@@ -35,8 +38,9 @@ async fn test_pid_issuance_digid_bridge() {
         HttpBrpClient::new(settings.issuer.brp_server.clone()),
         &settings.issuer.digid.bsn_privkey,
         settings.issuer.digid.http_config.clone(),
-        settings.issuer.certificates(),
         settings.issuer.metadata(),
+        Days::new(1),
+        NonZeroU8::new(2).unwrap(),
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
