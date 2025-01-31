@@ -61,6 +61,7 @@ test_common = [
     "logging",
     "dep:android_attest",
     "dep:apple_app_attest",
+    "dep:chrono",
     "dep:ctor",
     "dep:indexmap",
     "dep:jsonwebtoken",
@@ -162,6 +163,7 @@ gba_pid_test = [
 [dependencies]
 assert_matches = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
 insta = { workspace = true, optional = true, features = ["ron"] }
 jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }

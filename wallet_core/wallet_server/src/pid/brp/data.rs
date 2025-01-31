@@ -1,16 +1,11 @@
-use std::num::NonZeroU8;
-use std::ops::Add;
-
-use chrono::Days;
 use chrono::NaiveDate;
-use chrono::Utc;
-use ciborium::Value;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-use nl_wallet_mdoc::unsigned;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::Tdate;
+use openid4vc::attributes::Attribute;
+use openid4vc::attributes::AttributeValue;
+use openid4vc::attributes::IssuableDocument;
+use openid4vc::attributes::IssuableDocuments;
 
 use crate::pid::constants::*;
 
@@ -50,7 +45,7 @@ impl BrpPerson {
     }
 }
 
-impl From<BrpPerson> for Vec<UnsignedMdoc> {
+impl From<BrpPerson> for IssuableDocuments {
     fn from(value: BrpPerson) -> Self {
         let given_names = value.name.given_names.clone();
         let is_over_18 = value.is_over_18();
@@ -61,99 +56,92 @@ impl From<BrpPerson> for Vec<UnsignedMdoc> {
         let house_number = value.residence.address.locator_designator();
 
         vec![
-            UnsignedMdoc {
-                doc_type: String::from(MOCK_PID_DOCTYPE),
-                copy_count: NonZeroU8::new(2).unwrap(),
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    String::from(MOCK_PID_DOCTYPE),
+            IssuableDocument::try_new(
+                String::from(MOCK_PID_DOCTYPE),
+                IndexMap::from_iter(
                     vec![
-                        unsigned::Entry {
-                            name: String::from(PID_BSN),
-                            value: ciborium::Value::Text(value.bsn),
-                        }
-                        .into(),
-                        unsigned::Entry {
-                            name: String::from(PID_FAMILY_NAME),
-                            value: ciborium::Value::Text(family_name),
-                        }
-                        .into(),
-                        given_names.map(|names| unsigned::Entry {
-                            name: String::from(PID_GIVEN_NAME),
-                            value: ciborium::Value::Text(names),
+                        Some((
+                            String::from(PID_BSN),
+                            Attribute::Single(AttributeValue::Text(value.bsn)),
+                        )),
+                        Some((
+                            String::from(PID_FAMILY_NAME),
+                            Attribute::Single(AttributeValue::Text(family_name)),
+                        )),
+                        given_names.map(|names| {
+                            (
+                                String::from(PID_GIVEN_NAME),
+                                Attribute::Single(AttributeValue::Text(names)),
+                            )
                         }),
-                        unsigned::Entry {
-                            name: String::from(PID_BIRTH_DATE),
-                            value: ciborium::Value::Text(value.birth.date.date.format("%Y-%m-%d").to_string()),
-                        }
-                        .into(),
-                        birth_country.map(|country| unsigned::Entry {
-                            name: String::from(PID_BIRTH_COUNTRY),
-                            value: ciborium::Value::Text(country.description),
+                        Some((
+                            String::from(PID_BIRTH_DATE),
+                            Attribute::Single(AttributeValue::Text(
+                                value.birth.date.date.format("%Y-%m-%d").to_string(),
+                            )),
+                        )),
+                        birth_country.map(|country| {
+                            (
+                                String::from(PID_BIRTH_COUNTRY),
+                                Attribute::Single(AttributeValue::Text(country.description)),
+                            )
                         }),
-                        birth_place.map(|place| unsigned::Entry {
-                            name: String::from(PID_BIRTH_CITY),
-                            value: ciborium::Value::Text(place.description),
+                        birth_place.map(|place| {
+                            (
+                                String::from(PID_BIRTH_CITY),
+                                Attribute::Single(AttributeValue::Text(place.description)),
+                            )
                         }),
-                        unsigned::Entry {
-                            name: String::from(PID_AGE_OVER_18),
-                            value: ciborium::Value::Bool(is_over_18),
-                        }
-                        .into(),
-                        value.gender.map(|gender| unsigned::Entry {
-                            name: String::from(PID_GENDER),
-                            value: gender.code.into(),
-                        }),
+                        Some((
+                            String::from(PID_AGE_OVER_18),
+                            Attribute::Single(AttributeValue::Bool(is_over_18)),
+                        )),
+                        value
+                            .gender
+                            .map(|gender| (String::from(PID_GENDER), gender.code.into())),
                     ]
                     .into_iter()
                     .flatten()
-                    .collect(),
-                )])
-                .try_into()
-                .unwrap(),
-            },
-            UnsignedMdoc {
-                doc_type: String::from(MOCK_ADDRESS_DOCTYPE),
-                copy_count: NonZeroU8::new(2).unwrap(),
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    String::from(MOCK_ADDRESS_DOCTYPE),
+                    .collect::<Vec<(String, Attribute)>>(),
+                ),
+            )
+            .unwrap(),
+            IssuableDocument::try_new(
+                String::from(MOCK_ADDRESS_DOCTYPE),
+                IndexMap::from_iter(
                     vec![
-                        unsigned::Entry {
-                            name: String::from(PID_RESIDENT_COUNTRY),
-                            value: ciborium::Value::Text(value.residence.address.country.description),
-                        }
-                        .into(),
-                        street.map(|street| unsigned::Entry {
-                            name: String::from(PID_RESIDENT_STREET),
-                            value: ciborium::Value::Text(street),
+                        Some((
+                            String::from(PID_RESIDENT_COUNTRY),
+                            Attribute::Single(AttributeValue::Text(value.residence.address.country.description)),
+                        )),
+                        street.map(|street| {
+                            (
+                                String::from(PID_RESIDENT_STREET),
+                                Attribute::Single(AttributeValue::Text(street)),
+                            )
                         }),
-                        unsigned::Entry {
-                            name: String::from(PID_RESIDENT_POSTAL_CODE),
-                            value: ciborium::Value::Text(value.residence.address.postal_code),
-                        }
-                        .into(),
-                        unsigned::Entry {
-                            name: String::from(PID_RESIDENT_HOUSE_NUMBER),
-                            value: ciborium::Value::Text(house_number),
-                        }
-                        .into(),
-                        unsigned::Entry {
-                            name: String::from(PID_RESIDENT_CITY),
-                            value: ciborium::Value::Text(value.residence.address.city),
-                        }
-                        .into(),
+                        Some((
+                            String::from(PID_RESIDENT_POSTAL_CODE),
+                            Attribute::Single(AttributeValue::Text(value.residence.address.postal_code)),
+                        )),
+                        Some((
+                            String::from(PID_RESIDENT_HOUSE_NUMBER),
+                            Attribute::Single(AttributeValue::Text(house_number)),
+                        )),
+                        Some((
+                            String::from(PID_RESIDENT_CITY),
+                            Attribute::Single(AttributeValue::Text(value.residence.address.city)),
+                        )),
                     ]
                     .into_iter()
                     .flatten()
-                    .collect(),
-                )])
-                .try_into()
-                .unwrap(),
-            },
+                    .collect::<Vec<(String, Attribute)>>(),
+                ),
+            )
+            .unwrap(),
         ]
+        .try_into()
+        .unwrap()
     }
 }
 
@@ -170,14 +158,14 @@ pub enum BrpGenderCode {
     O,
 }
 
-impl From<BrpGenderCode> for ciborium::Value {
-    fn from(value: BrpGenderCode) -> Value {
+impl From<BrpGenderCode> for Attribute {
+    fn from(value: BrpGenderCode) -> Attribute {
         let value = match value {
             BrpGenderCode::O => 0,
             BrpGenderCode::M => 1,
             BrpGenderCode::V => 2,
         };
-        Value::Integer(value.into())
+        Attribute::Single(AttributeValue::Number(value))
     }
 }
 
@@ -297,13 +285,11 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
-    use indexmap::IndexMap;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::unsigned::Entry;
-    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-    use nl_wallet_mdoc::DataElementValue;
-    use nl_wallet_mdoc::NameSpace;
+    use serde_json::json;
+
+    use openid4vc::attributes::IssuableDocuments;
 
     use crate::pid::brp::data::BrpPersons;
 
@@ -315,13 +301,6 @@ mod tests {
                 .join(format!("resources/test/haal-centraal-examples/{}.json", name)),
         )
         .unwrap()
-    }
-
-    fn readable_attrs(attrs: &IndexMap<NameSpace, Vec<Entry>>) -> Vec<(&str, DataElementValue)> {
-        attrs
-            .iter()
-            .flat_map(|(_ns, entries)| entries.iter().map(|entry| (entry.name.as_str(), entry.value.clone())))
-            .collect::<Vec<_>>()
     }
 
     #[test]
@@ -363,36 +342,42 @@ mod tests {
     }
 
     #[test]
-    fn should_convert_brp_person_to_mdoc() {
+    fn should_convert_brp_person_to_issuable_attributes() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.remove(0).into();
+        let issuable: IssuableDocuments = brp_persons.persons.remove(0).into();
 
-        assert_eq!(2, unsigned_mdoc.len());
+        assert_eq!(2, issuable.as_ref().len());
 
-        let pid_card = &unsigned_mdoc[0];
-        let address_card = &unsigned_mdoc[1];
+        let pid_card = &issuable.as_ref()[0];
+        let address_card = &issuable.as_ref()[1];
 
         assert_eq!(
-            vec![
-                ("bsn", "999991772".into()),
-                ("family_name", "Jansen".into()),
-                ("given_name", "Frouke".into()),
-                ("birth_date", "2000-03-24".into()),
-                ("age_over_18", true.into()),
-                ("gender", 2.into()),
-            ],
-            readable_attrs(pid_card.attributes.as_ref())
+            json!({
+                "attestation_type": "com.example.pid",
+                "attributes": {
+                    "bsn": "999991772",
+                    "family_name": "Jansen",
+                    "given_name": "Frouke",
+                    "birth_date": "2000-03-24",
+                    "age_over_18": true,
+                    "gender": 2,
+                },
+            }),
+            serde_json::to_value(pid_card).unwrap()
         );
 
         assert_eq!(
-            vec![
-                ("resident_country", "Nederland".into()),
-                ("resident_street", "Van Wijngaerdenstraat".into()),
-                ("resident_postal_code", "2596TW".into()),
-                ("resident_house_number", "1".into()),
-                ("resident_city", "Toetsoog".into()),
-            ],
-            readable_attrs(address_card.attributes.as_ref())
+            json!({
+                "attestation_type": "com.example.address",
+                "attributes": {
+                    "resident_country": "Nederland",
+                    "resident_street": "Van Wijngaerdenstraat",
+                    "resident_postal_code": "2596TW",
+                    "resident_house_number": "1",
+                    "resident_city": "Toetsoog",
+                },
+            }),
+            serde_json::to_value(address_card).unwrap()
         );
     }
 }

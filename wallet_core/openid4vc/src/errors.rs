@@ -148,7 +148,9 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
         ErrorResponse {
             error: match err {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | TokenRequestError::AttributeService(_) => TokenErrorCode::ServerError,
+                | TokenRequestError::AttributeService(_)
+                | TokenRequestError::CredentialTypeNotOffered(_)
+                | TokenRequestError::UnsignedAttributes(_) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
             },

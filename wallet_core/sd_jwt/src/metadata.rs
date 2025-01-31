@@ -34,6 +34,18 @@ pub enum TypeMetadataError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpecOptionalImplRequired<T>(pub T);
 
+impl<T> From<T> for SpecOptionalImplRequired<T> {
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<T> AsRef<T> for SpecOptionalImplRequired<T> {
+    fn as_ref(&self) -> &T {
+        &self.0
+    }
+}
+
 pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
 pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
 

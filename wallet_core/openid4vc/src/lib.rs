@@ -4,6 +4,7 @@ use serde::Serialize;
 // Data structures implemening OAuth/OpenID(4VCI) protocol messages.
 pub mod authorization;
 pub mod credential;
+pub mod credential_formats;
 pub mod token;
 
 // Cryptographic tools.
@@ -12,6 +13,7 @@ pub mod jwt;
 pub mod pkce;
 
 // Issuance code for the server and client.
+pub mod attributes;
 pub mod issuance_session;
 pub mod issuer;
 

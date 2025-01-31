@@ -27,8 +27,9 @@ use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationDetails;
+use crate::credential::CredentialRequestType;
+use crate::credential_formats::CredentialFormats;
 use crate::server_state::SessionToken;
-use crate::Format;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -138,13 +139,13 @@ pub struct TokenResponse {
 }
 
 /// A [`TokenResponse`] with an extra field for the credential previews.
-/// This is an custom field so other implementations might not send it. For now however we assume that it is always
+/// This is a custom field so other implementations might not send it. For now however we assume that it is always
 /// present so it is not an [`Option`].
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
-    pub credential_previews: VecNonEmpty<CredentialPreview>,
+    pub credential_previews: VecNonEmpty<CredentialFormats<CredentialPreview>>,
 }
 
 #[serde_as]
@@ -154,17 +155,9 @@ pub enum CredentialPreview {
     MsoMdoc {
         unsigned_mdoc: UnsignedMdoc,
         #[serde_as(as = "Base64")]
-        issuer: BorrowingCertificate,
+        issuer_certificate: BorrowingCertificate,
         metadata_chain: TypeMetadataChain,
     },
-}
-
-impl From<&CredentialPreview> for Format {
-    fn from(value: &CredentialPreview) -> Self {
-        match value {
-            CredentialPreview::MsoMdoc { .. } => Format::MsoMdoc,
-        }
-    }
 }
 
 impl CredentialPreview {
@@ -174,15 +167,9 @@ impl CredentialPreview {
         }
     }
 
-    pub fn credential_type(&self) -> Option<&str> {
-        match self {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => Some(&unsigned_mdoc.doc_type),
-        }
-    }
-
     pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CertificateError> {
         match self {
-            CredentialPreview::MsoMdoc { issuer, .. } => {
+            CredentialPreview::MsoMdoc { issuer_certificate, .. } => {
                 // Verify the issuer certificates that the issuer presents for each credential to be issued.
                 // NB: this only proves the authenticity of the data inside the certificates (the
                 // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
@@ -192,7 +179,26 @@ impl CredentialPreview {
                 // protocol each mdoc is verified against the corresponding certificate in the
                 // credential preview, which implicitly authenticates the issuer because only it could
                 // have produced an mdoc against that certificate.
-                issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+                issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+            }
+        }
+    }
+
+    pub fn credential_request_type(self) -> CredentialRequestType {
+        match self {
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => CredentialRequestType::MsoMdoc {
+                doctype: unsigned_mdoc.doc_type,
+            },
+        }
+    }
+
+    pub fn issuer_registration(&self) -> Result<Box<IssuerRegistration>, CredentialPreviewError> {
+        match self {
+            CredentialPreview::MsoMdoc { issuer_certificate, .. } => {
+                let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(issuer_certificate)? else {
+                    Err(CredentialPreviewError::NoIssuerRegistration)?
+                };
+                Ok(issuer)
             }
         }
     }
@@ -206,22 +212,6 @@ pub enum CredentialPreviewError {
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
-}
-
-impl TryFrom<CredentialPreview> for (UnsignedMdoc, TypeMetadataChain, Box<IssuerRegistration>) {
-    type Error = CredentialPreviewError;
-
-    fn try_from(value: CredentialPreview) -> Result<Self, Self::Error> {
-        let CredentialPreview::MsoMdoc {
-            unsigned_mdoc,
-            issuer,
-            metadata_chain,
-        } = value;
-        let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&issuer)? else {
-            Err(CredentialPreviewError::NoIssuerRegistration)?
-        };
-        Ok((unsigned_mdoc, metadata_chain, issuer))
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
