@@ -49,6 +49,10 @@ pub enum Attribute {
     Nested(IndexMap<String, Attribute>),
 }
 
+/// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
+/// JSON schema defined in the SD-JWT VC Type Metadata (`TypeMetadata`).
+///
+/// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialPayload {
     #[serde(rename = "vct")]
