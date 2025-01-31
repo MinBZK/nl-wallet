@@ -1,0 +1,8 @@
+pin_pubkey_encryption_key_identifier = "pin_pubkey_encryption_key"
+pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protection_key"
+
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"
+max_sessions = 3
+max_session_lifetime_in_sec = 900

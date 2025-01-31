@@ -20,6 +20,11 @@ settings = [
     "dep:serde_with",
 ]
 
+[[test]]
+name = "hsm"
+path = "tests/hsm.rs"
+required-features = ["settings"]
+
 [dependencies]
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
@@ -36,3 +41,9 @@ serde_with = { workspace = true, optional = true, features = ["base64"] }
 sha2 = { workspace = true, optional = true }
 
 wallet_common = { path = "../wallet_common" }
+
+[dev-dependencies]
+config = { workspace = true, features = ["toml"] }
+rand_core.workspace = true
+serial_test.workspace = true
+tokio = { workspace = true, features = ["macros"] }

@@ -57,7 +57,7 @@ pub enum HsmError {
     #[error("key not found: '{0}'")]
     KeyNotFound(String),
 
-    #[cfg(any(test, feature = "mock"))]
+    #[cfg(feature = "mock")]
     #[error("hmac error: {0}")]
     Hmac(#[from] hmac::digest::MacError),
 }
