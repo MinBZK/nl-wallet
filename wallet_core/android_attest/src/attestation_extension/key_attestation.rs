@@ -32,9 +32,9 @@ macro_rules! integer_int_enum_conversion {
         #[derive(Debug, thiserror::Error)]
         #[cfg_attr(test, derive(PartialEq, Eq))]
         pub enum $error_type {
-            #[error("could not convert Integer to {}: {0}", stringify!($repr))]
+            #[error("could not convert Integer to {}: {}", stringify!($repr), .0)]
             IntegerConversion(Integer),
-            #[error("not a valid {}: {0}", stringify!($type))]
+            #[error("not a valid {}: {}", stringify!($type), .0)]
             $invalid_error($repr),
         }
         impl TryFrom<&Integer> for $type {
