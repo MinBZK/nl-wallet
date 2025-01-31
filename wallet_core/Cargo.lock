@@ -3732,9 +3732,9 @@ dependencies = [
 
 [[package]]
 name = "passkey-types"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b5d3d17d8ad54ba7c7574595f026244ab06ee44f0524379c1575a95aab4c030"
+checksum = "77144664f6aac5f629d7efa815f5098a054beeeca6ccafee5ec453fd2b0c53f9"
 dependencies = [
  "bitflags 2.6.0",
  "ciborium",

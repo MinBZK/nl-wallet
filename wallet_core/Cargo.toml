@@ -114,7 +114,7 @@ num-traits = "0.2.19"
 nutype = "0.5.1"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
-passkey-types = "0.3.0"
+passkey-types = "0.4.0"
 parking_lot = "0.12.1"
 pem = "3.0.2"
 postcard = { version = "1.0.10", default-features = false }
