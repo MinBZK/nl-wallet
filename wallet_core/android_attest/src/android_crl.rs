@@ -50,12 +50,11 @@ impl RevocationStatusList {
     pub fn get_revoked_certificates<'a>(
         &'a self,
         certificate_chain: &'a [X509Certificate<'a>],
-    ) -> Result<Vec<(&'a X509Certificate<'a>, &'a RevocationStatusEntry)>, Error> {
-        let revoked_certificates = certificate_chain
+    ) -> Vec<(&'a X509Certificate<'a>, &'a RevocationStatusEntry)> {
+        certificate_chain
             .iter()
             .flat_map(move |cert| self.entries.get(&cert.serial).map(move |entry| (cert, entry)))
-            .collect();
-        Ok(revoked_certificates)
+            .collect()
     }
 }
 
@@ -244,7 +243,7 @@ mod tests {
         let certificates = [cert];
 
         // verify certificate against the crl
-        let actual = crl.get_revoked_certificates(&certificates)?;
+        let actual = crl.get_revoked_certificates(&certificates);
 
         assert_eq!(actual.len(), 1);
         let (_, status_entry) = &actual[0];

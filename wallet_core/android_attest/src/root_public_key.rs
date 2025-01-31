@@ -65,6 +65,18 @@ impl PartialEq<RootPublicKey> for PublicKey<'_> {
     }
 }
 
+impl TryFrom<&[u8]> for RootPublicKey {
+    type Error = spki::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let public_key = RootPublicKey::rsa_from_der(value)
+            // Choose to return the RSA parsing error here, as this will most likely be used in production.
+            .or_else(|error| RootPublicKey::ecdsa_from_der(value).map_err(|_| error))?;
+
+        Ok(public_key)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use p256::ecdsa::SigningKey;

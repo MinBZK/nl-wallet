@@ -14,6 +14,7 @@ sonar-rust:
     - cd wallet_core
   script:
     - sonar-scanner
+      -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
@@ -35,6 +36,7 @@ sonar-flutter:
   script:
     - flutter pub get --enforce-lockfile
     - sonar-scanner
+      -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
       -Dsonar.sources=.
@@ -56,10 +58,11 @@ sonar-wallet-web:
     - set -euxo pipefail
   script:
     - sonar-scanner
+      -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-web
       -Dsonar.sources=lib/
-      -Dsonar.exclusions=lib/__tests__/**/*
+      -Dsonar.exclusions=lib/__tests__/**/*,lib/util/qrcodegen.ts
       -Dsonar.tests=lib/
       -Dsonar.test.inclusions=lib/__tests__/**/*
       -Dsonar.coverage.exclusions=lib/__tests__
@@ -76,6 +79,7 @@ sonar-ios:
     - cd wallet_core/platform_support/ios
   script:
     - sonar-scanner
+      -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios
       -Dsonar.exclusions="*Tests*/**"
@@ -95,6 +99,7 @@ sonar-android:
     - cd wallet_core/platform_support/android
   script:
     - sonar-scanner
+      -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
       -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**"

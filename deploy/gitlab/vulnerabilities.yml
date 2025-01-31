@@ -1,6 +1,8 @@
 dependency-check:
   extends: .env-ont-k8s
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules:
+    - !reference [.on-schedule, rules]
+    - !reference [.default-or-release-or-merge-request, rules]
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - (cd wallet_web; npm ci)
@@ -17,6 +19,7 @@ dependency-check:
       --suppression $CI_PROJECT_DIR/deploy/dependencies/dependency_check_suppressions.xml
       --nvdApiKey "$NVD_API_KEY"
       --failOnCVSS 0.1
+    - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext qt/quality-time/dependency-check/report.$ext; done
   artifacts:
     when: always
     paths:
@@ -31,59 +34,64 @@ dependency-check:
   allow_failure: true
 
 osv-scanner:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules:
+    - !reference [.on-schedule, rules]
+    - !reference [.default-or-release-or-merge-request, rules]
   script:
     - |
       osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif \
         || osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format table --recursive "$CI_PROJECT_DIR"
+    - deploy/bin/store-artifact.sh osv.sarif qt/quality-time/
   artifacts:
     when: always
     paths:
       - osv.sarif
   allow_failure: true
 
-dependency-check-rust:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+rust-audit:
+  rules:
+    - !reference [.on-schedule, rules]
+    - !reference [.default-or-release-or-merge-request, rules]
   before_script:
     - mkdir -p $CI_PROJECT_DIR/.cargo
     - cp $CI_PROJECT_DIR/deploy/dependencies/cargo-audit.toml $CI_PROJECT_DIR/.cargo/audit.toml
   script:
-    - |
-      cargo audit \
-        --file wallet_core/Cargo.lock \
-        --json | tee audit.json | jq
+    - cargo audit --file wallet_core/Cargo.lock --json | tee audit.json | jq
+    - deploy/bin/store-artifact.sh audit.json qt/quality-time/rust-audit.json
   artifacts:
     when: always
     paths:
       - audit.json
   allow_failure: true
 
-dependency-check-images:
-  rules: !reference [.default-or-release, rules]
+trivy-scan:
+  rules:
+    - !reference [.on-schedule, rules]
+    - !reference [.default-or-release, rules]
   needs:
     - job: build-wallet-provider-image
       artifacts: false
+      optional: true
     - job: build-wp-migrations-image
       artifacts: false
+      optional: true
     - job: build-ws-migrations-image
       artifacts: false
+      optional: true
     - job: build-mock-relying-party-image
       artifacts: false
+      optional: true
     - job: build-wallet-server-image
       artifacts: false
+      optional: true
     - job: build-verification-server-image
       artifacts: false
+      optional: true
     - job: build-pid-issuer-image
       artifacts: false
-  variables:
-    GIT_STRATEGY: none
+      optional: true
   before_script:
-    - IMAGES=(
-      "nl-wallet-app-builder-android-flutter-rust"
-      "nl-wallet-app-builder-flutter"
-      "nl-wallet-app-builder-flutter-rust"
-      "nl-wallet-app-builder-ruby"
-      "nl-wallet-app-builder-rust"
+    - BUILD_IMAGES=(
       "nl-wallet-mock-relying-party"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
@@ -92,19 +100,55 @@ dependency-check-images:
       "nl-verification-server"
       "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
+      )
+      OTHER_IMAGES=(
       "nl-rdo-max"
       "nl-wallet-hsm-simulator"
       )
-    - mkdir -p trivy
+    - mkdir trivy
+    - set -euo pipefail
   script:
     - |
       BASIC_AUTH="${HARBOR_GN2_ROBOT_NAME}:$(base64 --decode <<< ${HARBOR_GN2_ROBOT_SECRET})"
-      for IMAGE in "${IMAGES[@]}"; do
-        ARTIFACTS_URL="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${IMAGE}/artifacts?page_size=1&page=1&sort=-push_time"
-        VULNERABILITIES_HREF=$(curl --user "${BASIC_AUTH}" --url "${ARTIFACTS_URL}" | jq ".[] | .addition_links.vulnerabilities.href" | sed -e 's/^"//' -e 's/"$//')
-        VULNERABILITIES_URL="https://${HARBOR_REGISTRY}${VULNERABILITIES_HREF}"
-        curl --user "${BASIC_AUTH}" -o "trivy/${IMAGE}.json" $VULNERABILITIES_URL
+
+      vulnerability_url_last_push() {
+        local image=$1
+        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${image}/artifacts?page_size=1&page=1&sort=-push_time"
+        local href=$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.[0].addition_links.vulnerabilities.href')
+        [[ -n $href ]] || return 1
+        echo "https://${HARBOR_REGISTRY}${href}"
+      }
+
+      vulnerability_url_from_ref() {
+        local image=$1
+        local reference=$2
+        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${image}/artifacts/${reference}"
+        local href=$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.addition_links.vulnerabilities.href')
+        [[ -n $href ]] || return 1
+        echo "https://${HARBOR_REGISTRY}${href}"
+      }
+
+      declare -A urls
+
+      for image in "${BUILD_IMAGES[@]}"; do
+        urls[$image]="$(vulnerability_url_from_ref $image $CI_COMMIT_SHORT_SHA)"
       done
+
+      for image in "${OTHER_IMAGES[@]}"; do
+        urls[$image]="$(vulnerability_url_last_push $image)"
+      done
+
+      image_tag=$(basename $CI_JOB_IMAGE)
+      image=${image_tag%:*}
+      tag=${image_tag##*:}
+      urls[$image]="$(vulnerability_url_from_ref $image $tag)"
+
+      for image in "${!urls[@]}"; do
+        url="${urls[$image]}"
+        curl -fsS --user "${BASIC_AUTH}" -o "trivy/${image}.json" "$url"
+      done
+    - deploy/bin/store-artifact.sh trivy/* qt/quality-time/trivy/
   artifacts:
     paths:
       - trivy
+  allow_failure: true

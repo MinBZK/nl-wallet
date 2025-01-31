@@ -8,6 +8,8 @@
     paths:
       - uiautomation/build/test-results
       - uiautomation/build/reports
+    reports:
+      junit: uiautomation/build/test-results/**/*.xml
   before_script:
     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
@@ -18,10 +20,8 @@
 .run-automation-tests-default:
   extends: .run-automation-tests-common-setup
   script:
-    - gradle wrapper --gradle-version=8.12
-    - ./gradlew --info --stacktrace test
-      --tests $TESTS
-      -Dtest.config.app.identifier="$APP_IDENTIFIER_$CI_COMMIT_SHA"
+    - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
@@ -34,11 +34,31 @@
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
-    GITLAB_API_URL: "SSSS"
+  needs:
+    - job: build-wallet-provider-image
+      artifacts: false
+      optional: true
+    - job: build-wp-migrations-image
+      artifacts: false
+      optional: true
+    - job: build-ws-migrations-image
+      artifacts: false
+      optional: true
+    - job: build-mock-relying-party-image
+      artifacts: false
+      optional: true
+    - job: build-wallet-server-image
+      artifacts: false
+      optional: true
+    - job: build-verification-server-image
+      artifacts: false
+      optional: true
+    - job: build-pid-issuer-image
+      artifacts: false
+      optional: true
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
+    - !reference [.on-schedule, rules]
+    - !reference [.on-web-trigger, rules]
 
 run-automation-tests-suite-appstart:
   extends: .run-automation-tests-default
@@ -105,7 +125,7 @@ run-automation-tests-publish-results:
     - { job: run-automation-tests-suite-web }
   script:
     - zip e2e.zip uiautomation/build/test-results/test/*.xml
-    - mc put e2e.zip qt/quality-time/junit-results/
+    - deploy/bin/store-artifact.sh e2e.zip qt/quality-time/junit-results/
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
@@ -118,16 +138,14 @@ run-automation-smoke-test-ont:
     - job: deploy-wallet-provider-ont
       artifacts: false
   script:
-    - gradle wrapper --gradle-version=8.12
-    - ./gradlew --info --stacktrace smokeTest
-      -Dtest.config.app.identifier="$APP_IDENTIFIER_$CI_COMMIT_SHA"
+    - ./gradlew --no-daemon --info --stacktrace smokeTest
+      -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
   variables: !reference [.run-automation-tests-default, variables]
-  allow_failure: true # Only meant as a warning indicator.
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]

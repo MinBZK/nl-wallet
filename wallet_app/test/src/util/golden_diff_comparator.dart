@@ -9,7 +9,7 @@ class GoldenDiffComparator extends LocalFileComparator {
 
   GoldenDiffComparator(
     this.testDir, {
-    this.tolerance = 0.005 /* 0.5% */,
+    this.tolerance = 0.0025 /* 0.25% */,
   }) : super(Uri.parse(testDir));
 
   @override

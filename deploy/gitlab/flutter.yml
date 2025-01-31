@@ -1,0 +1,65 @@
+test-flutter:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  before_script:
+    - cd wallet_app
+    - set -euxo pipefail
+  script:
+    - flutter --version
+    - flutter pub get --enforce-lockfile
+    - flutter analyze .
+    - flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
+    - tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
+  after_script:
+    - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
+  artifacts:
+    reports:
+      junit: wallet_app/build/reports/test-results.xml
+    paths:
+      - wallet_app/coverage/lcov.info
+      - wallet_app/build/reports/test-results.json
+      - wallet_app/build/reports/test-results.xml
+
+test-flutter-ui:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  tags:
+    - macos
+  image: sonoma-wallet:0.1.5
+  artifacts:
+    name: "ui-test-failures"
+    when: on_failure
+    paths:
+      - "**/failures/*.png"
+  before_script:
+    - cd wallet_app
+    - set -euxo pipefail
+  script:
+    - fvm flutter --version
+    - http_proxy='' https_proxy='' fvm flutter pub get --enforce-lockfile
+    - defaults -currentHost write -g AppleFontSmoothing -int 0 # Disable font smoothing, should match the generating platform.
+    - fvm flutter test --tags=golden
+
+# Checks .arb files for unused keys, indicating an update to Lokalise might be in order
+verify-flutter-localizations:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  before_script:
+    - cd wallet_app
+    - set -euxo pipefail
+  script:
+    - flutter --version
+    - flutter pub get --enforce-lockfile
+    - dart run translations_cleaner list-unused-terms # List any unused keys
+    - dart run translations_cleaner list-unused-terms --abort-on-unused # Fail if unused keys are found
+  allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
+
+test-codegen:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  before_script:
+    - cd wallet_app
+    - set -euxo pipefail
+  script:
+    - flutter pub get --enforce-lockfile
+    - flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
+    - flutter pub run build_runner build --delete-conflicting-outputs
+    - dart format . --line-length 120
+    - git diff
+    - if [[ $(git diff --shortstat | wc -l) -gt 0 ]]; then echo "Code generation results in different files!"; exit 1; fi

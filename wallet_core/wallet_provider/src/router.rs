@@ -36,6 +36,7 @@ use wallet_common::account::messages::instructions::SignResult;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::keys::EcdsaKey;
+use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::wte_issuer::WteIssuer;
 
 use crate::errors::WalletProviderError;
@@ -54,7 +55,10 @@ use crate::router_state::RouterState;
 /// be able to handle these errors appropriately.
 type Result<T> = std::result::Result<T, WalletProviderError>;
 
-pub fn router(router_state: RouterState) -> Router {
+pub fn router<GC>(router_state: RouterState<GC>) -> Router
+where
+    GC: GoogleCrlProvider + Send + Sync + 'static,
+{
     let state = Arc::new(router_state);
     Router::new()
         .nest("/", health_router())
@@ -97,7 +101,7 @@ fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-async fn enroll(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<Challenge>)> {
+async fn enroll<GC>(State(state): State<Arc<RouterState<GC>>>) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received enroll request, creating registration challenge");
 
     let challenge = state
@@ -113,10 +117,13 @@ async fn enroll(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Js
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn create_wallet(
-    State(state): State<Arc<RouterState>>,
+async fn create_wallet<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<ChallengeResponse<Registration>>,
-) -> Result<(StatusCode, Json<Certificate>)> {
+) -> Result<(StatusCode, Json<Certificate>)>
+where
+    GC: GoogleCrlProvider,
+{
     info!("Received create wallet request, registering with account server");
 
     let cert = state
@@ -132,8 +139,8 @@ async fn create_wallet(
     Ok((StatusCode::CREATED, body.into()))
 }
 
-async fn instruction_challenge(
-    State(state): State<Arc<RouterState>>,
+async fn instruction_challenge<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<InstructionChallengeRequest>,
 ) -> Result<(StatusCode, Json<Challenge>)> {
     info!("Received challenge request, creating challenge");
@@ -151,8 +158,8 @@ async fn instruction_challenge(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn check_pin(
-    State(state): State<Arc<RouterState>>,
+async fn check_pin<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<Instruction<CheckPin>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received check pin request, handling the CheckPin instruction");
@@ -164,8 +171,8 @@ async fn check_pin(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_start(
-    State(state): State<Arc<RouterState>>,
+async fn change_pin_start<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<Instruction<ChangePinStart>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)> {
     info!("Received change pin start request, handling the ChangePinStart instruction");
@@ -187,8 +194,8 @@ async fn change_pin_start(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_commit(
-    State(state): State<Arc<RouterState>>,
+async fn change_pin_commit<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<Instruction<ChangePinCommit>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received change pin commit request, handling the ChangePinCommit instruction");
@@ -200,8 +207,8 @@ async fn change_pin_commit(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_rollback(
-    State(state): State<Arc<RouterState>>,
+async fn change_pin_rollback<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<Instruction<ChangePinRollback>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
     info!("Received change pin rollback request, handling the ChangePinRollback instruction");
@@ -225,8 +232,8 @@ async fn change_pin_rollback(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn generate_key(
-    State(state): State<Arc<RouterState>>,
+async fn generate_key<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<Instruction<GenerateKey>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<GenerateKeyResult>>)> {
     info!("Received generate key request, handling the GenerateKey instruction");
@@ -238,8 +245,8 @@ async fn generate_key(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn sign(
-    State(state): State<Arc<RouterState>>,
+async fn sign<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<Instruction<Sign>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<SignResult>>)> {
     info!("Received sign request, handling the SignRequest instruction");
@@ -251,8 +258,8 @@ async fn sign(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn issue_wte(
-    State(state): State<Arc<RouterState>>,
+async fn issue_wte<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<Instruction<IssueWte>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<IssueWteResult>>)> {
     info!("Received issue WTE request, handling the IssueWte instruction");
@@ -264,8 +271,8 @@ async fn issue_wte(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn construct_poa(
-    State(state): State<Arc<RouterState>>,
+async fn construct_poa<GC>(
+    State(state): State<Arc<RouterState<GC>>>,
     Json(payload): Json<Instruction<ConstructPoa>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<ConstructPoaResult>>)> {
     info!("Received new PoA request, handling the ConstructPoa instruction");
@@ -284,7 +291,7 @@ struct PublicKeys {
     wte_signing_key: DerVerifyingKey,
 }
 
-async fn public_keys(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<PublicKeys>)> {
+async fn public_keys<GC>(State(state): State<Arc<RouterState<GC>>>) -> Result<(StatusCode, Json<PublicKeys>)> {
     let (certificate_public_key, instruction_result_public_key, wte_signing_key) = try_join!(
         state
             .certificate_signing_key

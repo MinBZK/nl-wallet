@@ -159,7 +159,15 @@ flutter pub run rename setBundleId --targets ios --value <BUNDLE ID>
 
 ###### Android
 
-**TBD**
+Any real Android device that has either a TEE as part of its SoC or a separate StrongBox should
+generate attested keys that pass validation. The included setup script will configure the Wallet
+Provider to accept keys that are signed by a CA that uses Google's published public key.
+
+For the Android emulator to work, the following requirements will need to be met:
+* The emulator should be running the Android 34 system images with Play Store support. This is currently the only known version to work, as it includes known pre-generated root CAs.
+* The `wallet_provider` should have the `allow_android_emulator_keys` Cargo feature enabled, which lowers the attested key requirements to allow keys generated in software. Note that this feature should never be used in any production environment.
+
+App attestation using Google Play integrity is not yet implemented.
 
 ## File Structure
 

@@ -1,6 +1,8 @@
 .zap-scan-common-setup:
   extends: .env-ont-k8s
-  rules: !reference [ .default-branch, rules ]
+  rules:
+    - !reference [ .on-schedule, rules ]
+    - !reference [ .default-branch, rules ]
   allow_failure: true
   artifacts:
     when: always
@@ -33,6 +35,7 @@ zap-scan-rp:
   needs:
     - job: deploy-mock-relying-party-ont
       artifacts: false
+      optional: true
   script:
     - !reference [.run-zap-scan, script]
   variables:
@@ -52,6 +55,7 @@ zap-scan-wallet-provider:
   needs:
     - job: deploy-wallet-provider-ont
       artifacts: false
+      optional: true
   script:
     - envsubst < deploy/zap/config/WALLET_PROVIDER_urls.txt > ${ZAP_HOME}/WALLET_PROVIDER_urls.txt
     - !reference [.run-zap-scan, script]
@@ -64,6 +68,7 @@ zap-scan-pid-issuer:
   needs:
     - job: deploy-pid-issuer-ont
       artifacts: false
+      optional: true
   script:
     - envsubst < deploy/zap/config/PID_ISSUER_urls.txt > ${ZAP_HOME}/PID_ISSUER_urls.txt
     - !reference [.run-zap-scan, script]
@@ -76,6 +81,7 @@ zap-scan-internal-wallet-server:
   needs:
     - job: deploy-mock-relying-party-ont
       artifacts: false
+      optional: true
   script:
     - !reference [.get-session-token, script]
     - |
@@ -94,6 +100,7 @@ zap-scan-public-wallet-server:
   needs:
     - job: deploy-mock-relying-party-ont
       artifacts: false
+      optional: true
   script:
     - !reference [.get-session-token, script]
     - |
@@ -108,3 +115,16 @@ zap-scan-public-wallet-server:
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}"
     RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
     SUT: "PUBLIC_WALLET_SERVER"
+
+zap-scan-publish-results:
+  rules: !reference [.zap-scan-common-setup, rules]
+  needs:
+    - { job: zap-scan-rp }
+    - { job: zap-scan-config-server }
+    - { job: zap-scan-wallet-provider }
+    - { job: zap-scan-pid-issuer }
+    - { job: zap-scan-internal-wallet-server }
+    - { job: zap-scan-public-wallet-server }
+  script:
+    - zip zap.zip zapreports/*.xml
+    - deploy/bin/store-artifact.sh zap.zip qt/quality-time/

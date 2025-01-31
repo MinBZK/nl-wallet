@@ -4,8 +4,10 @@ use std::rc::Rc;
 use derive_more::Debug;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
+use rand::Rng;
 use rcgen::BasicConstraints;
 use rcgen::CertificateParams;
+use rcgen::CustomExtension;
 use rcgen::IsCa;
 use rcgen::KeyPair;
 use rcgen::RsaKeySize;
@@ -13,6 +15,9 @@ use rcgen::PKCS_ECDSA_P256_SHA256;
 use rcgen::PKCS_RSA_SHA256;
 use rsa::RsaPublicKey;
 use spki::DecodePublicKey;
+
+use crate::attestation_extension::key_description::KeyDescription;
+use crate::attestation_extension::KEY_ATTESTATION_EXTENSION_OID;
 
 /// Represents a Google CA with a variable number of intermediates. After creation,
 /// this can be used to generate leaf certificates to emulate Android key attestation.
@@ -22,7 +27,7 @@ pub struct MockCaChain {
     certificates_der: Vec<Vec<u8>>,
     pub root_public_key: RsaPublicKey,
     #[debug("{:?}", last_ca_certificate.der())]
-    last_ca_certificate: rcgen::Certificate,
+    pub last_ca_certificate: rcgen::Certificate,
     last_ca_key_pair: rcgen::KeyPair,
 }
 
@@ -30,6 +35,8 @@ impl MockCaChain {
     /// Generate a chain of CAs, with the requested number of intermediates.
     /// If no intermediates are requested, only a root CA is generated.
     pub fn generate(intermediate_count: u8) -> Self {
+        let mut rng = rand::thread_rng();
+
         // Start with an iterator that runs backwards from `intermediate_count` down to and including 0.
         let mut certificates_and_key_pairs = (0..=intermediate_count)
             .rev()
@@ -40,6 +47,7 @@ impl MockCaChain {
                     // using a decrementing intermediate count as constraint.
                     let key_pair = rcgen::KeyPair::generate_rsa_for(&PKCS_RSA_SHA256, RsaKeySize::_2048).unwrap();
                     let mut params = CertificateParams::default();
+                    params.serial_number = Some((rng.gen::<u64>()).into());
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(constrained_count));
 
                     // Get the parent certificate and key pair from the previous iteration and use it to sign
@@ -90,12 +98,10 @@ impl MockCaChain {
         }
     }
 
-    /// Generates a new leaf certificate, returning both the full certificate
-    /// chain containing this leaf and the its corresponding private key.
-    pub fn generate_leaf_certificate(&self) -> (Vec<Vec<u8>>, SigningKey) {
+    fn generate_certificate(&self, params: CertificateParams) -> (Vec<Vec<u8>>, SigningKey) {
         // Generate a leaf certificate and convert it to DER.
         let key_pair = KeyPair::generate_for(&PKCS_ECDSA_P256_SHA256).unwrap();
-        let certificate = CertificateParams::default()
+        let certificate = params
             .signed_by(&key_pair, &self.last_ca_certificate, &self.last_ca_key_pair)
             .unwrap()
             .der()
@@ -109,6 +115,41 @@ impl MockCaChain {
         let signing_key = SigningKey::from_pkcs8_der(key_pair.serialized_der()).unwrap();
 
         (certificate_chain, signing_key)
+    }
+
+    /// Generates a new leaf certificate, returning both the full certificate
+    /// chain containing this leaf and the its corresponding private key.
+    pub fn generate_leaf_certificate(&self) -> (Vec<Vec<u8>>, SigningKey) {
+        self.generate_certificate(CertificateParams::default())
+    }
+
+    /// Generates a new leaf certificate including the android key attestation extension.
+    /// Returns both the full certificate chain containing this leaf and the its corresponding private key.
+    pub fn generate_attested_leaf_certificate(&self, key_description: &KeyDescription) -> (Vec<Vec<u8>>, SigningKey) {
+        let mut certificate_params = CertificateParams::default();
+        certificate_params
+            .custom_extensions
+            .push(CustomExtension::from_oid_content(
+                &KEY_ATTESTATION_EXTENSION_OID.iter().unwrap().collect::<Vec<u64>>(),
+                rasn::der::encode(key_description).unwrap(),
+            ));
+
+        self.generate_certificate(certificate_params)
+    }
+
+    /// Generates a new leaf certificate including the android key attestation extension, that expired yesterday.
+    /// Returns both the full certificate chain containing this leaf and the its corresponding private key.
+    pub fn generate_expired_leaf_certificate(&self, key_description: &KeyDescription) -> (Vec<Vec<u8>>, SigningKey) {
+        let mut certificate_params = CertificateParams::default();
+        certificate_params.not_after = time::OffsetDateTime::now_utc() - time::Duration::days(1);
+        certificate_params
+            .custom_extensions
+            .push(CustomExtension::from_oid_content(
+                &KEY_ATTESTATION_EXTENSION_OID.iter().unwrap().collect::<Vec<u64>>(),
+                rasn::der::encode(key_description).unwrap(),
+            ));
+
+        self.generate_certificate(certificate_params)
     }
 }
 
