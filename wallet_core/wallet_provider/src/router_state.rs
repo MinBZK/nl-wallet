@@ -18,7 +18,7 @@ use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
-use wallet_provider_service::account_server::InstructionState;
+use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::ValidateInstruction;
@@ -36,7 +36,7 @@ pub struct RouterState<GC> {
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub instruction_state: InstructionState<Repositories, Pkcs11Hsm, HsmWteIssuer<Pkcs11Hsm>>,
+    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWteIssuer<Pkcs11Hsm>>,
 }
 
 impl<GC> RouterState<GC> {
@@ -123,7 +123,7 @@ impl<GC> RouterState<GC> {
             instruction_result_signing_key,
             certificate_signing_key,
             pin_policy,
-            instruction_state: InstructionState {
+            user_state: UserState {
                 repositories,
                 wallet_user_hsm: hsm,
                 wte_issuer,
@@ -148,7 +148,7 @@ impl<GC> RouterState<GC> {
                 &self.instruction_result_signing_key,
                 self,
                 &self.pin_policy,
-                &self.instruction_state,
+                &self.user_state,
             )
             .await?;
 

@@ -128,7 +128,7 @@ where
 
     let cert = state
         .account_server
-        .register(&state.certificate_signing_key, payload, &state.instruction_state)
+        .register(&state.certificate_signing_key, payload, &state.user_state)
         .await
         .inspect_err(|error| warn!("wallet registration failed: {}", error))?;
 
@@ -147,7 +147,7 @@ async fn instruction_challenge<GC>(
 
     let challenge = state
         .account_server
-        .instruction_challenge(payload, state.as_ref(), &state.instruction_state)
+        .instruction_challenge(payload, state.as_ref(), &state.user_state)
         .await
         .inspect_err(|error| warn!("generating instruction challenge failed: {}", error))?;
 
@@ -184,7 +184,7 @@ async fn change_pin_start<GC>(
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
             state.as_ref(),
             &state.pin_policy,
-            &state.instruction_state,
+            &state.user_state,
         )
         .await
         .inspect_err(|error| warn!("handling ChangePinStart instruction failed: {}", error))?;
@@ -220,7 +220,7 @@ async fn change_pin_rollback<GC>(
             &state.instruction_result_signing_key,
             state.as_ref(),
             &state.pin_policy,
-            &state.instruction_state,
+            &state.user_state,
         )
         .await
         .inspect_err(|error| warn!("handling ChangePinRollback instruction failed: {}", error))?;
@@ -302,7 +302,7 @@ async fn public_keys<GC>(State(state): State<Arc<RouterState<GC>>>) -> Result<(S
             .verifying_key()
             .map_err(WalletProviderError::Hsm),
         state
-            .instruction_state
+            .user_state
             .wte_issuer
             .public_key()
             .map_err(WalletProviderError::Wte)

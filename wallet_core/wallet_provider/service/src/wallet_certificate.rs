@@ -18,7 +18,7 @@ use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
-use crate::account_server::InstructionState;
+use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
 use crate::hsm::HsmError;
 use crate::keys::WalletCertificateSigningKey;
@@ -136,7 +136,7 @@ pub async fn verify_wallet_certificate<T, R, H, F>(
     pin_public_disclosure_protection_key_identifier: &str,
     encryption_key_identifier: &str,
     pin_pubkey: F,
-    instruction_state: &InstructionState<R, H, impl WteIssuer>,
+    user_state: &UserState<R, H, impl WteIssuer>,
 ) -> Result<WalletUser, WalletCertificateError>
 where
     T: Committable,
@@ -147,7 +147,7 @@ where
     debug!("Parsing and verifying the provided certificate");
 
     let (user, claims) =
-        parse_claims_and_retrieve_wallet_user(certificate, certificate_signing_pubkey, &instruction_state.repositories)
+        parse_claims_and_retrieve_wallet_user(certificate, certificate_signing_pubkey, &user_state.repositories)
             .await?;
 
     verify_wallet_certificate_public_keys(
@@ -156,7 +156,7 @@ where
         encryption_key_identifier,
         &user.hw_pubkey,
         pin_pubkey(&user),
-        &instruction_state.wallet_user_hsm,
+        &user_state.wallet_user_hsm,
     )
     .await?;
     Ok(user)
@@ -274,7 +274,7 @@ mod tests {
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
-    use crate::account_server::mock::instruction_state;
+    use crate::account_server::mock::user_state;
     use crate::hsm::HsmError;
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -315,7 +315,7 @@ mod tests {
         .await
         .unwrap();
 
-        let instruction_state = instruction_state(
+        let user_state = user_state(
             WalletUserTestRepo {
                 hw_pubkey,
                 encrypted_pin_pubkey: setup.encrypted_pin_pubkey,
@@ -333,7 +333,7 @@ mod tests {
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             mock::SIGNING_KEY_IDENTIFIER,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
-            &instruction_state,
+            &user_state,
         )
         .await
         .unwrap();
@@ -357,7 +357,7 @@ mod tests {
         .await
         .unwrap();
 
-        let instruction_state = instruction_state(
+        let user_state = user_state(
             WalletUserTestRepo {
                 hw_pubkey: *SigningKey::random(&mut OsRng).verifying_key(),
                 encrypted_pin_pubkey: setup.encrypted_pin_pubkey,
@@ -374,7 +374,7 @@ mod tests {
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             mock::ENCRYPTION_KEY_IDENTIFIER,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
-            &instruction_state,
+            &user_state,
         )
         .await
         .expect_err("Should not validate");
@@ -406,7 +406,7 @@ mod tests {
         .await
         .unwrap();
 
-        let instruction_state = instruction_state(
+        let user_state = user_state(
             WalletUserTestRepo {
                 hw_pubkey,
                 encrypted_pin_pubkey: other_encrypted_pin_pubkey,
@@ -423,7 +423,7 @@ mod tests {
             mock::PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER,
             mock::ENCRYPTION_KEY_IDENTIFIER,
             |wallet_user| wallet_user.encrypted_pin_pubkey.clone(),
-            &instruction_state,
+            &user_state,
         )
         .await
         .expect_err("Should not validate");
