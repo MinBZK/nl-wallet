@@ -27,6 +27,7 @@ mock_attested_key_google = [
     "dep:base64",
     "dep:rand_core",
     "dep:uuid",
+    "android_attest/mock",
     "wallet_common/mock_apple_attested_key",
 ]
 # Include the MockHardwareAttestedKeyHolder type for both types of test
@@ -90,7 +91,7 @@ wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 rand_core = { workspace = true, optional = true }
 
-android_attest = { path = "../android_attest", optional = true, features = ["mock"] }
+android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
