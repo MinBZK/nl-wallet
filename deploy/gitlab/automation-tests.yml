@@ -137,6 +137,8 @@ run-automation-smoke-test-ont:
       artifacts: false
     - job: deploy-wallet-provider-ont
       artifacts: false
+    - job: deploy-pid-issuer-ont
+      artifacts: false
   script:
     - ./gradlew --no-daemon --info --stacktrace smokeTest
       -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
