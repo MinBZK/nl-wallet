@@ -448,7 +448,7 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
 
-    use hsm::model::hsm::mock::MockPkcs11Client;
+    use hsm::model::mock::MockPkcs11Client;
     use hsm::model::wrapped_key::WrappedKey;
     use wallet_common::account::messages::instructions::CheckPin;
     use wallet_common::account::messages::instructions::ConstructPoa;

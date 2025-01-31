@@ -6,7 +6,7 @@ use p256::ecdsa::VerifyingKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 
-use crate::model::hsm::Hsm;
+use crate::model::Hsm;
 use crate::service::HsmError;
 use crate::service::Pkcs11Hsm;
 

@@ -110,7 +110,7 @@ pub mod mock {
 mod tests {
     use chrono::Utc;
 
-    use hsm::model::hsm::mock::MockPkcs11Client;
+    use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;

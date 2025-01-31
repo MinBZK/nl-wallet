@@ -31,8 +31,8 @@ use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;
 use crate::model::encrypter::Decrypter;
 use crate::model::encrypter::Encrypter;
-use crate::model::hsm::Hsm;
 use crate::model::wrapped_key::WrappedKey;
+use crate::model::Hsm;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HsmError {

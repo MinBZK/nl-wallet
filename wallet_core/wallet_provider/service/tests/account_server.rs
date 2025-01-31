@@ -3,7 +3,7 @@ use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
-use hsm::model::hsm::mock::MockPkcs11Client;
+use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;

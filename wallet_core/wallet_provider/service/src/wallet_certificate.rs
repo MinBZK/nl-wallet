@@ -6,7 +6,7 @@ use tracing::debug;
 
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
-use hsm::model::hsm::Hsm;
+use hsm::model::Hsm;
 use hsm::service::HsmError;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
@@ -206,8 +206,8 @@ pub mod mock {
 
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
-    use hsm::model::hsm::mock::MockPkcs11Client;
-    use hsm::model::hsm::Hsm;
+    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::Hsm;
     use hsm::service::HsmError;
 
     pub const SIGNING_KEY_IDENTIFIER: &str = "certificate_signing_key_1";
@@ -268,7 +268,7 @@ mod tests {
     use tokio::sync::OnceCell;
 
     use hsm::model::encrypter::Encrypter;
-    use hsm::model::hsm::mock::MockPkcs11Client;
+    use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use wallet_common::jwt::EcdsaDecodingKey;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;

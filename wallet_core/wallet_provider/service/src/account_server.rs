@@ -30,7 +30,7 @@ use apple_app_attest::VerifiedAttestation;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
-use hsm::model::hsm::Hsm;
+use hsm::model::Hsm;
 use hsm::service::HsmError;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
@@ -1122,7 +1122,7 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
-    use hsm::model::hsm::mock::MockPkcs11Client;
+    use hsm::model::mock::MockPkcs11Client;
     use wallet_common::account::messages::instructions::ChangePinCommit;
     use wallet_common::account::messages::instructions::CheckPin;
     use wallet_common::apple::MockAppleAttestedKey;

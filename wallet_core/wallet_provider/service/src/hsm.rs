@@ -6,8 +6,8 @@ use p256::ecdsa::VerifyingKey;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
-use hsm::model::hsm::Hsm;
 use hsm::model::wrapped_key::WrappedKey;
+use hsm::model::Hsm;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Client;
 use hsm::service::Pkcs11Hsm;
@@ -113,7 +113,7 @@ impl WalletUserHsm for WalletUserPkcs11Hsm {
     }
 
     async fn generate_key(&self, wallet_id: &WalletId, identifier: &str) -> Result<VerifyingKey> {
-        let key_identifier = hsm::model::hsm::key_identifier(wallet_id, identifier);
+        let key_identifier = hsm::model::key_identifier(wallet_id, identifier);
         let (public_handle, _private_handle) = self.hsm.generate_signing_key_pair(&key_identifier).await?;
         Pkcs11Client::get_verifying_key(&self.hsm, public_handle).await
     }
@@ -129,7 +129,7 @@ impl WalletUserHsm for WalletUserPkcs11Hsm {
     }
 
     async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature> {
-        let key_identifier = hsm::model::hsm::key_identifier(wallet_id, identifier);
+        let key_identifier = hsm::model::key_identifier(wallet_id, identifier);
         let handle = self.hsm.get_private_key_handle(&key_identifier).await?;
         let signature = Pkcs11Client::sign(&self.hsm, handle, SigningMechanism::Ecdsa256, data).await?;
         Ok(Signature::from_slice(&signature)?)

@@ -8,7 +8,7 @@ use serial_test::serial;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
-use hsm::model::hsm::Hsm;
+use hsm::model::Hsm;
 use hsm::service::Pkcs11Hsm;
 use wallet_common::utils::random_bytes;
 use wallet_common::utils::random_string;

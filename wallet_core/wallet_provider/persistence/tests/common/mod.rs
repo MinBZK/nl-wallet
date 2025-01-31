@@ -18,7 +18,7 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Encrypter;
-use hsm::model::hsm::mock::MockPkcs11Client;
+use hsm::model::mock::MockPkcs11Client;
 use wallet_common::utils::random_bytes;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
