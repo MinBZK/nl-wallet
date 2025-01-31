@@ -125,7 +125,7 @@ quote = "1.0.26"
 r2d2-cryptoki = "0.3.0"
 rand = "0.8.5"
 rand_core = "0.6.4"
-rasn = "0.22.0"
+rasn = "0.24.0"
 rcgen = { version = "0.13.1", default-features = false }
 regex = "1.7.0"
 reqwest = { version = "0.12.5", default-features = false }
