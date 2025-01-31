@@ -792,7 +792,8 @@ mod persistent {
     }
 }
 
-#[cfg(test)]
+// Only run these tests when both Apple and Google mock attested keys are enabled.
+#[cfg(all(feature = "mock_attested_key", test))]
 mod tests {
     use android_attest::root_public_key::RootPublicKey;
     use apple_app_attest::AppIdentifier;
