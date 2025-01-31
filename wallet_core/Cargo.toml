@@ -77,7 +77,7 @@ ciborium = "0.2.1"
 clap = "4.4.7"
 clio = "0.3.4"
 config = { version = "0.15.7", default-features = false }
-const-decoder = "0.3.0"
+const-decoder = "0.4.0"
 coset = "0.3.3"
 cryptoki = "0.7.0"
 crypto-common = "0.1.6"
