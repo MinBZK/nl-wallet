@@ -133,7 +133,7 @@ reqwest-middleware = { version = "0.4.0", default-features = false }
 ring = "0.17.8"
 rpassword = "7.3.1"
 rsa = { version = "0.9.6", default-features = false }
-rstest = "0.21.0"
+rstest = "0.24.0"
 rustls-pki-types = "1.10.0"
 rustls-webpki = "0.102.8"
 sanitize-filename = "0.6.0"
