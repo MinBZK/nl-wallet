@@ -2,7 +2,6 @@ plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
     id 'net.razvan.jacoco-to-cobertura' version '1.2.0'
-    id "org.cyclonedx.bom"
 }
 
 android {
