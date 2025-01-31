@@ -16,9 +16,6 @@ use nl_wallet_mdoc::NameSpace;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialPayloadError {
-    #[error("error converting Mdoc to CredentialPaylod")]
-    MdocConversion,
-
     #[error("unable to strip namespace '{namespace}' from key '{key}'")]
     NamespaceStripping { namespace: String, key: String },
 }
