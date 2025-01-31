@@ -1,9 +1,6 @@
 test-ios:
-  extends: .ruby-cache
+  extends: [.env-macos-runner, .ruby-cache-macos]
   rules: !reference [.default-or-release-or-merge-request, rules]
-  tags:
-    - macos
-  image: sonoma-wallet:0.1.6
   artifacts:
     when: always
     reports:
@@ -39,9 +36,6 @@ test-ios:
       artifacts: false
     - job: test-rust-compilation-ios
       artifacts: false
-  tags:
-    - macos
-  image: sonoma-wallet:0.1.6
   artifacts:
     name: "wallet-ios"
     paths:
@@ -51,9 +45,6 @@ test-ios:
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
     APPLE_ATTESTATION_ENVIRONMENT: "production"
     BUNDLE_FROZEN: "true"
-  before_script:
-    - !reference [.env-macos-runner, before_script]
-    - !reference [.ruby-cache-macos, before_script]
   script:
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
@@ -210,15 +201,9 @@ build-ios-app-production:
 ## iOS Deploying
 .deploy-ios-app:
   extends: [.env-macos-runner, .ruby-cache-macos]
-  tags:
-    - macos
-  image: sonoma-wallet:0.1.6
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
     BUNDLE_FROZEN: "true"
-  before_script:
-    - !reference [.env-macos-runner, before_script]
-    - !reference [.ruby-cache-macos, before_script]
   script:
     - APP_STORE_CONNECT_SECRETS_BASE64_JSON="$(kubectl get secret nl-wallet-app-store-api-key -o jsonpath='{.data}')"
     - export APP_STORE_CONNECT_SECRETS_BASE64_JSON
