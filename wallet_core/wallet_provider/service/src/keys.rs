@@ -2,7 +2,7 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
 use hsm::keys::HsmEcdsaKey;
-use hsm::service::hsm::HsmError;
+use hsm::service::HsmError;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 

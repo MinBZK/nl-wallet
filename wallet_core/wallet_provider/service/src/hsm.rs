@@ -8,10 +8,10 @@ use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::hsm::Hsm;
 use hsm::model::wrapped_key::WrappedKey;
-use hsm::service::hsm::HsmError;
-use hsm::service::hsm::Pkcs11Client;
-use hsm::service::hsm::Pkcs11Hsm;
-use hsm::service::hsm::SigningMechanism;
+use hsm::service::HsmError;
+use hsm::service::Pkcs11Client;
+use hsm::service::Pkcs11Hsm;
+use hsm::service::SigningMechanism;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletId;
 

@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
-use hsm::service::hsm::HsmError;
+use hsm::service::HsmError;
 use wallet_common::account::messages::instructions::ChangePinCommit;
 use wallet_common::account::messages::instructions::ChangePinRollback;
 use wallet_common::account::messages::instructions::ChangePinStart;

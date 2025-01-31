@@ -4,7 +4,7 @@ use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
 use hsm::model::hsm::mock::MockPkcs11Client;
-use hsm::service::hsm::HsmError;
+use hsm::service::HsmError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;

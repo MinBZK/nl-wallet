@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use android_attest::root_public_key::RootPublicKey;
 use hsm::keys::HsmEcdsaKey;
-use hsm::service::hsm::Pkcs11Hsm;
+use hsm::service::Pkcs11Hsm;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;

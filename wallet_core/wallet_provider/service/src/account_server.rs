@@ -31,7 +31,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::hsm::Hsm;
-use hsm::service::hsm::HsmError;
+use hsm::service::HsmError;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::RegistrationAttestation;

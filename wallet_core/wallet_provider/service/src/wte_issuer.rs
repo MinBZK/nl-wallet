@@ -4,7 +4,7 @@ use p256::ecdsa::VerifyingKey;
 
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
-use hsm::service::hsm::HsmError;
+use hsm::service::HsmError;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtCredentialClaims;
 use wallet_common::jwt::JwtError;
@@ -111,7 +111,7 @@ mod tests {
     use chrono::Utc;
 
     use hsm::model::hsm::mock::MockPkcs11Client;
-    use hsm::service::hsm::HsmError;
+    use hsm::service::HsmError;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use wallet_common::jwt;
