@@ -96,5 +96,5 @@ rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-android_attest = { path = "../android_attest", features = ["mock_chain"] }
+android_attest = { path = "../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }

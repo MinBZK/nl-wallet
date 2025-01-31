@@ -194,7 +194,7 @@ pub enum PlayProtectVerdict {
     Unevaluated,
 }
 
-#[cfg(feature = "mock_play_integrity")]
+#[cfg(feature = "mock")]
 mod mock {
     use super::super::verification::VerifyPlayStore;
     use super::*;

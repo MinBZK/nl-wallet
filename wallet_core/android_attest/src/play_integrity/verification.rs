@@ -189,7 +189,7 @@ mod tests {
             .expect("integrity verdict should verify successfully");
     }
 
-    #[cfg(feature = "mock_play_integrity")]
+    #[cfg(feature = "mock")]
     #[test]
     fn test_verified_integrity_verdict_mock() {
         let package_name = "com.package.mock";

@@ -14,9 +14,7 @@ required-features = ["mock"]
 
 [features]
 encode = []
-mock_chain = ["encode", "dep:rand", "dep:rcgen", "dep:time", "derive_more/debug"]
-mock_play_integrity = []
-mock = ["mock_chain", "mock_play_integrity"]
+mock = ["encode", "dep:rand", "dep:rcgen", "dep:time", "derive_more/debug"]
 network_test = []
 # Accept attested keys from the emulator. This allows software security level.
 allow_emulator_keys = ["dep:tracing"]

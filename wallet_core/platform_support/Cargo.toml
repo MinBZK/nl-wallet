@@ -90,7 +90,7 @@ wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 rand_core = { workspace = true, optional = true }
 
-android_attest = { path = "../android_attest", optional = true, features = ["mock_chain"] }
+android_attest = { path = "../android_attest", optional = true, features = ["mock"] }
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
