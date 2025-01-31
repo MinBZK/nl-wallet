@@ -6,7 +6,7 @@ class DashboardScreen : MobileActions() {
 
     private val screen = find.byValueKey("dashboardScreen")
 
-    private val menuButton = find.byToolTip(l10n.getString("dashboardScreenTitle"))
+    private val menuButton = find.byText(l10n.getString("dashboardScreenTitle"))
 
     private val pidIdCard = find.byValueKey("com.example.pid")
     private val pidAddressCard = find.byValueKey("com.example.address")

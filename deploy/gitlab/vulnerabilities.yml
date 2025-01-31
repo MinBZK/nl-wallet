@@ -34,7 +34,9 @@ dependency-check:
   allow_failure: true
 
 osv-scanner:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules:
+    - !reference [.on-schedule, rules]
+    - !reference [.default-or-release-or-merge-request, rules]
   script:
     - |
       osv-scanner --config=$CI_PROJECT_DIR/deploy/dependencies/osv-scanner.toml --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif \

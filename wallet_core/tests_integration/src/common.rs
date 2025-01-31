@@ -3,12 +3,15 @@ use std::collections::HashSet;
 use std::io;
 use std::net::IpAddr;
 use std::net::TcpListener;
+use std::num::NonZeroU8;
+use std::ops::Add;
 use std::process;
 use std::str::FromStr;
 use std::time::Duration;
 
+use chrono::Days;
+use chrono::Utc;
 use ctor::ctor;
-use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
@@ -28,15 +31,12 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
-use nl_wallet_mdoc::utils::x509;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::Created;
+use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;
-use openid4vc::server_state::SessionState;
-use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
@@ -204,12 +204,10 @@ pub async fn setup_wallet_and_env(
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
-    let certificates = ws_settings.issuer.certificates();
-
     start_config_server(cs_settings, cs_root_ca).await;
     start_update_policy_server(ups_settings, ups_root_ca).await;
     start_wallet_provider(wp_settings, wp_root_ca).await;
-    start_wallet_server(ws_settings, MockAttributeService(certificates)).await;
+    start_wallet_server(ws_settings, MockAttributeService).await;
 
     let config_repository = HttpConfigurationRepository::new(
         (&config_server_config.signing_public_key.0).into(),
@@ -495,24 +493,23 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
     wallet
 }
 
-pub struct MockAttributeService(pub IndexMap<String, x509::BorrowingCertificate>);
+pub struct MockAttributeService;
 
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
 
-    async fn attributes(
-        &self,
-        _session: &SessionState<Created>,
-        _token_request: TokenRequest,
-    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error> {
+    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Self::Error> {
         let attributes = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()
+            .into_inner()
             .into_iter()
-            .map(|unsigned_mdoc| CredentialPreview::MsoMdoc {
-                issuer: self.0[&unsigned_mdoc.doc_type].clone(),
-                unsigned_mdoc,
+            .map(|document| IssuableCredential {
+                document,
                 metadata_chain: TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap(),
+                valid_from: Utc::now(),
+                valid_until: Utc::now().add(Days::new(1)),
+                copy_count: NonZeroU8::new(1).unwrap(),
             })
             .collect::<Vec<_>>();
         Ok(attributes.try_into().unwrap())

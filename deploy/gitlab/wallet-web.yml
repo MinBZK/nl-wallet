@@ -1,0 +1,38 @@
+build-wallet-web:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  variables:
+    VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
+  script:
+    - set -euxo pipefail
+    - (cd wallet_web; npm ci && npm run type-check && npm run coverage -- --run)
+    - (cd wallet_web; CUSTOM_ELEMENT=false npm run build)
+    - (cd wallet_web; EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build)
+    - WALLET_WEB_SHA256_FILENAME=$(cat wallet_web/dist/nl-wallet-web.iife.js | openssl sha256 -binary | base64 | tr '/+' '_-' | tr -d '=\n') # url safe to prevent '/' to appear in filename
+    - export WALLET_WEB_SHA256_FILENAME
+    - WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
+    - export WALLET_WEB_FILENAME
+    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME}
+    - export WALLET_WEB_SHA256=$(cat wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME} | openssl sha256 -binary | base64)
+    # take the sha256 hash of every JS files and format them accordingly
+    - JS_HASHES=$(find wallet_core/mock_relying_party/assets -regex '.*\.js' -exec bash -c 'echo sha256-`openssl sha256 -binary "$1" | base64`' _ {} \; | tr '\n' ';' | sed "s/;$/'\n/; s/^/'/; s/;/' '/g")
+    - CSP_SCRIPT_SRC_MRP=${JS_HASHES:-\'none\'}
+    - export CSP_SCRIPT_SRC_MRP
+    # take the sha256 hash of the inlined style and add it to the default directive
+    - STYLE_INJECTED_HASH=$(echo \'sha256-`cat wallet_web/dist/style.css | tr -d "\n" | openssl sha256 -binary | base64`\')
+    - CSP_STYLE_SRC_MRP="'self' ${STYLE_INJECTED_HASH}"
+    - export CSP_STYLE_SRC_MRP
+    - mkdir -p wallet_core/mock_relying_party/hashes
+    - echo $CSP_SCRIPT_SRC_MRP | base64 > wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt
+    - echo $CSP_STYLE_SRC_MRP | base64 > wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt
+    - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
+    - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
+  after_script:
+    - deploy/bin/store-artifact.sh wallet_web/coverage/tests.xml qt/quality-time/junit-results/web.xml
+  artifacts:
+    reports:
+      junit: wallet_web/coverage/tests.xml
+    paths:
+      - wallet_web/dist
+      - wallet_web/coverage
+      - wallet_core/mock_relying_party/assets/nl-wallet-web.*
+      - wallet_core/mock_relying_party/hashes/*.txt

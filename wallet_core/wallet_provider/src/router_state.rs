@@ -22,6 +22,7 @@ use wallet_provider_service::account_server::AccountServer;
 use wallet_provider_service::account_server::AccountServerKeys;
 use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
+use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::ValidateInstruction;
@@ -37,11 +38,9 @@ use crate::settings::Settings;
 pub struct RouterState<GRC, PIC> {
     pub account_server: AccountServer<GRC, PIC>,
     pub pin_policy: PinPolicy,
-    pub repositories: Repositories,
-    pub hsm: Pkcs11Hsm,
-    pub certificate_signing_key: WalletCertificateSigning,
     pub instruction_result_signing_key: InstructionResultSigning,
-    pub wte_issuer: HsmWteIssuer<Pkcs11Hsm>,
+    pub certificate_signing_key: WalletCertificateSigning,
+    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWteIssuer<Pkcs11Hsm>>,
 }
 
 impl<GRC, PIC> RouterState<GRC, PIC> {
@@ -143,12 +142,14 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
 
         let state = RouterState {
             account_server,
-            repositories,
-            pin_policy,
-            hsm,
-            certificate_signing_key,
             instruction_result_signing_key,
-            wte_issuer,
+            certificate_signing_key,
+            pin_policy,
+            user_state: UserState {
+                repositories,
+                wallet_user_hsm: hsm,
+                wte_issuer,
+            },
         };
 
         Ok(state)
@@ -168,10 +169,8 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 instruction,
                 &self.instruction_result_signing_key,
                 self,
-                &self.repositories,
                 &self.pin_policy,
-                &self.hsm,
-                &self.wte_issuer,
+                &self.user_state,
             )
             .await?;
 

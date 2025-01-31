@@ -1,5 +1,10 @@
+use std::fmt;
+use std::fmt::Display;
+use std::fmt::Formatter;
+
 use futures::future::try_join_all;
 use nutype::nutype;
+use sd_jwt::metadata::SpecOptionalImplRequired;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -18,8 +23,9 @@ use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
+use crate::credential_formats::CredentialFormat;
+use crate::credential_formats::CredentialType;
 use crate::issuance_session::IssuanceSessionError;
-use crate::token::CredentialPreview;
 use crate::Format;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
@@ -51,40 +57,44 @@ impl WteDisclosure {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequest {
     #[serde(flatten)]
-    pub credential_type: CredentialRequestType,
+    pub credential_type: SpecOptionalImplRequired<CredentialRequestType>,
     pub proof: Option<CredentialRequestProof>,
     pub attestations: Option<WteDisclosure>,
     pub poa: Option<Poa>,
 }
 
-impl CredentialRequest {
-    pub fn credential_type(&self) -> Option<&str> {
-        match &self.credential_type {
-            CredentialRequestType::MsoMdoc { doctype } => doctype.as_ref().map(String::as_str),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialRequestType {
-    MsoMdoc { doctype: Option<String> },
+    MsoMdoc { doctype: String },
 }
 
-impl From<&CredentialPreview> for CredentialRequestType {
-    fn from(value: &CredentialPreview) -> Self {
-        match value {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => CredentialRequestType::MsoMdoc {
-                doctype: Some(unsigned_mdoc.doc_type.clone()),
-            },
+impl Display for CredentialRequestType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            CredentialRequestType::MsoMdoc { doctype } => write!(f, "MsoMdoc({doctype})"),
         }
     }
 }
 
-impl From<&CredentialRequestType> for Format {
-    fn from(value: &CredentialRequestType) -> Self {
-        match value {
+impl CredentialRequestType {
+    pub fn matches<T: CredentialType>(&self, other: &T) -> bool {
+        self.format() == other.format() && self.credential_type() == other.credential_type()
+    }
+}
+
+impl CredentialFormat for CredentialRequestType {
+    fn format(&self) -> Format {
+        match self {
             CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
+        }
+    }
+}
+
+impl CredentialType for CredentialRequestType {
+    fn credential_type(&self) -> String {
+        match self {
+            CredentialRequestType::MsoMdoc { doctype } => doctype.clone(),
         }
     }
 }
@@ -108,9 +118,9 @@ pub enum CredentialResponse {
     MsoMdoc { credential: Box<CborBase64<IssuerSigned>> },
 }
 
-impl From<&CredentialResponse> for Format {
-    fn from(value: &CredentialResponse) -> Self {
-        match value {
+impl CredentialFormat for CredentialResponse {
+    fn format(&self) -> Format {
+        match self {
             CredentialResponse::MsoMdoc { .. } => Format::MsoMdoc,
         }
     }

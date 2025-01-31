@@ -131,7 +131,7 @@ where
 
     let cert = state
         .account_server
-        .register(&state.certificate_signing_key, &state.repositories, &state.hsm, payload)
+        .register(&state.certificate_signing_key, payload, &state.user_state)
         .await
         .inspect_err(|error| warn!("wallet registration failed: {}", error))?;
 
@@ -150,7 +150,7 @@ async fn instruction_challenge<GRC, PIC>(
 
     let challenge = state
         .account_server
-        .instruction_challenge(payload, &state.repositories, state.as_ref(), &state.hsm)
+        .instruction_challenge(payload, state.as_ref(), &state.user_state)
         .await
         .inspect_err(|error| warn!("generating instruction challenge failed: {}", error))?;
 
@@ -186,9 +186,8 @@ async fn change_pin_start<GRC, PIC>(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
             state.as_ref(),
-            &state.repositories,
             &state.pin_policy,
-            &state.hsm,
+            &state.user_state,
         )
         .await
         .inspect_err(|error| warn!("handling ChangePinStart instruction failed: {}", error))?;
@@ -223,9 +222,8 @@ async fn change_pin_rollback<GRC, PIC>(
             payload,
             &state.instruction_result_signing_key,
             state.as_ref(),
-            &state.repositories,
             &state.pin_policy,
-            &state.hsm,
+            &state.user_state,
         )
         .await
         .inspect_err(|error| warn!("handling ChangePinRollback instruction failed: {}", error))?;
@@ -308,7 +306,11 @@ async fn public_keys<GRC, PIC>(
             .instruction_result_signing_key
             .verifying_key()
             .map_err(WalletProviderError::Hsm),
-        state.wte_issuer.public_key().map_err(WalletProviderError::Wte)
+        state
+            .user_state
+            .wte_issuer
+            .public_key()
+            .map_err(WalletProviderError::Wte)
     )
     .inspect_err(|error| warn!("getting wallet provider public keys failed: {}", error))?;
 

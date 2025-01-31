@@ -20,7 +20,7 @@ test-rust:
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:250123-e88295e7"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:250128-0f78cc9d"
       alias: postgres
       variables:
         POSTGRESQL_USER: "postgres"
@@ -74,7 +74,7 @@ test-rust-compilation-ios:
   extends: .test-rust-compilation
   tags:
     - macos
-  image: sonoma-wallet:0.1.5
+  image: sonoma-wallet:0.1.6
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
 

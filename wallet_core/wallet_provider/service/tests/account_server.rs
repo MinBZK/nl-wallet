@@ -27,9 +27,11 @@ use wallet_provider_service::account_server::mock::MockAccountServer;
 use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
 use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
+use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
+use wallet_provider_service::wte_issuer::mock::MockWteIssuer;
 
 async fn db_from_env() -> Result<Db, PersistenceError> {
     let _ = tracing::subscriber::set_global_default(
@@ -45,12 +47,16 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
 
 async fn do_registration(
     account_server: &MockAccountServer,
-    hsm: &MockPkcs11Client<HsmError>,
     certificate_signing_key: &impl WalletCertificateSigningKey,
     pin_privkey: &SigningKey,
-    repos: &Repositories,
+    db: Db,
     attestation_ca: AttestationCa<'_>,
-) -> (WalletCertificate, MockHardwareKey, WalletCertificateClaims) {
+) -> (
+    WalletCertificate,
+    MockHardwareKey,
+    WalletCertificateClaims,
+    UserState<Repositories, MockPkcs11Client<HsmError>, MockWteIssuer>,
+) {
     let challenge = account_server
         .registration_challenge(certificate_signing_key)
         .await
@@ -91,8 +97,9 @@ async fn do_registration(
         }
     };
 
+    let user_state = mock::user_state(Repositories::new(db), wallet_certificate::mock::setup_hsm().await);
     let certificate = account_server
-        .register(certificate_signing_key, repos, hsm, registration_message)
+        .register(certificate_signing_key, registration_message, &user_state)
         .await
         .expect("Could not process registration message at account server");
 
@@ -100,7 +107,7 @@ async fn do_registration(
         .parse_and_verify_with_sub(&(&certificate_signing_key.verifying_key().await.unwrap()).into())
         .expect("Could not parse and verify wallet certificate");
 
-    (certificate, hw_privkey, cert_data)
+    (certificate, hw_privkey, cert_data, user_state)
 }
 
 async fn assert_instruction_data(
@@ -128,12 +135,10 @@ async fn test_instruction_challenge(
     #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
 ) {
     let db = db_from_env().await.expect("Could not connect to database");
-    let repos = Repositories::new(db);
 
     let certificate_signing_key = SigningKey::random(&mut OsRng);
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
 
-    let hsm = wallet_certificate::mock::setup_hsm().await;
     let account_server = mock::setup_account_server(certificate_signing_pubkey, Default::default());
     let pin_privkey = SigningKey::random(&mut OsRng);
 
@@ -142,12 +147,11 @@ async fn test_instruction_challenge(
         AttestationType::Google => AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
     };
 
-    let (certificate, hw_privkey, cert_data) = do_registration(
+    let (certificate, hw_privkey, cert_data, user_state) = do_registration(
         &account_server,
-        &hsm,
         &certificate_signing_key,
         &pin_privkey,
-        &repos,
+        db,
         attestation_ca,
     )
     .await;
@@ -157,28 +161,26 @@ async fn test_instruction_challenge(
             hw_privkey
                 .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone(), 1, certificate.clone())
                 .await,
-            &repos,
             &EpochGenerator,
-            &hsm,
+            &user_state,
         )
         .await
         .unwrap();
 
-    assert_instruction_data(&repos, &cert_data.wallet_id, 1, true).await;
+    assert_instruction_data(&user_state.repositories, &cert_data.wallet_id, 1, true).await;
 
     let challenge2 = account_server
         .instruction_challenge(
             hw_privkey
                 .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone(), 2, certificate)
                 .await,
-            &repos,
             &EpochGenerator,
-            &hsm,
+            &user_state,
         )
         .await
         .unwrap();
 
-    assert_instruction_data(&repos, &cert_data.wallet_id, 2, true).await;
+    assert_instruction_data(&user_state.repositories, &cert_data.wallet_id, 2, true).await;
 
     assert_ne!(challenge1, challenge2);
 }
