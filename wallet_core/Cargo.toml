@@ -120,7 +120,7 @@ pem = "3.0.2"
 postcard = { version = "1.0.10", default-features = false }
 predicates = { version = "3.0.4", default-features = false }
 proc-macro2 = "1.0.66"
-quick-xml = "0.34.0"
+quick-xml = "0.37.2"
 quote = "1.0.26"
 r2d2-cryptoki = "0.3.0"
 rand = "0.8.5"
