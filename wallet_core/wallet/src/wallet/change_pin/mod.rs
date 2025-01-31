@@ -80,9 +80,9 @@ where
             Arc::clone(&self.storage),
             Arc::clone(attested_key),
             Arc::clone(&self.account_provider_client),
-            registration_data,
-            &config.http_config,
-            &instruction_result_public_key,
+            registration_data.clone(),
+            config.http_config.clone(),
+            instruction_result_public_key,
         );
 
         let session = BeginChangePinOperation::new(
@@ -126,9 +126,9 @@ where
             Arc::clone(&self.storage),
             Arc::clone(attested_key),
             Arc::clone(&self.account_provider_client),
-            registration_data,
-            &config.http_config,
-            &instruction_result_public_key,
+            registration_data.clone(),
+            config.http_config.clone(),
+            instruction_result_public_key,
         );
 
         let session = FinishChangePinOperation::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);

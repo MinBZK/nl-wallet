@@ -1,7 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter;
-use std::sync::Arc;
 
 use itertools::Itertools;
 use p256::ecdsa::signature;
@@ -44,13 +43,13 @@ pub enum RemoteEcdsaKeyError {
 }
 
 pub struct RemoteEcdsaKeyFactory<S, AK, GK, A> {
-    instruction_client: Arc<InstructionClient<S, AK, GK, A>>,
+    instruction_client: InstructionClient<S, AK, GK, A>,
 }
 
 pub struct RemoteEcdsaKey<S, AK, GK, A> {
     identifier: String,
     public_key: VerifyingKey,
-    instruction_client: Arc<InstructionClient<S, AK, GK, A>>,
+    instruction_client: InstructionClient<S, AK, GK, A>,
 }
 
 impl<S, AK, GK, A> PartialEq for RemoteEcdsaKey<S, AK, GK, A> {
@@ -69,9 +68,7 @@ impl<S, AK, GK, A> Hash for RemoteEcdsaKey<S, AK, GK, A> {
 
 impl<S, AK, GK, A> RemoteEcdsaKeyFactory<S, AK, GK, A> {
     pub fn new(instruction_client: InstructionClient<S, AK, GK, A>) -> Self {
-        Self {
-            instruction_client: Arc::new(instruction_client),
-        }
+        Self { instruction_client }
     }
 }
 
@@ -95,7 +92,7 @@ where
             .map(|(identifier, public_key)| RemoteEcdsaKey {
                 identifier,
                 public_key: public_key.0,
-                instruction_client: Arc::clone(&self.instruction_client),
+                instruction_client: self.instruction_client.clone(),
             })
             .collect();
 
@@ -106,7 +103,7 @@ where
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
-            instruction_client: Arc::clone(&self.instruction_client),
+            instruction_client: self.instruction_client.clone(),
         }
     }
 
