@@ -100,7 +100,7 @@ hmac = "0.12.1"
 indexmap = "2.0.2"
 insta = { version = "1.42.0", default-features = false }
 int-enum = "1.1.2"
-itertools = "0.13.0"
+itertools = "0.14.0"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonschema = { version = "0.28.1", default-features = false }

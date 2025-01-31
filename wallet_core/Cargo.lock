@@ -1857,7 +1857,7 @@ dependencies = [
  "error_category",
  "flutter_api_macros",
  "flutter_rust_bridge",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "oslog 0.2.0",
  "parking_lot",
  "sentry",
@@ -2862,6 +2862,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3283,7 +3292,7 @@ dependencies = [
  "hex-literal",
  "http",
  "indexmap 2.2.6",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "nutype",
  "p256",
  "rand_core",
@@ -3519,7 +3528,7 @@ dependencies = [
  "hex",
  "http",
  "indexmap 2.2.6",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "josekit",
  "jsonwebtoken",
  "mime",
@@ -6617,7 +6626,7 @@ dependencies = [
  "hex",
  "http",
  "indexmap 2.2.6",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "jsonwebtoken",
  "libsqlite3-sys",
  "migration",
@@ -6667,7 +6676,7 @@ dependencies = [
  "chrono",
  "clap",
  "clio",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "nl_wallet_mdoc",
  "p256",
  "pem",
@@ -6703,7 +6712,7 @@ dependencies = [
  "hex-literal",
  "http",
  "indexmap 2.2.6",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "jsonwebtoken",
  "mime",
  "nutype",
@@ -6845,7 +6854,7 @@ dependencies = [
  "futures",
  "hmac",
  "indexmap 2.2.6",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "jsonwebtoken",
  "nl_wallet_mdoc",
  "p256",
@@ -6890,7 +6899,7 @@ dependencies = [
  "futures",
  "http",
  "indexmap 2.2.6",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "nl_wallet_mdoc",
  "nutype",
  "openid4vc",
