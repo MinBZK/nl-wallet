@@ -2,7 +2,6 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id "org.cyclonedx.bom"
 }
 
 def keystoreProperties = new Properties()
@@ -178,9 +177,12 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
             task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
         }
     }
-    tasks.register("checkFor${taskPostfix}Keys") {
-        if (taskPostfix == "Release" && !keystorePropertiesFile.exists()) {
-            throw new GradleException("Attempting a ${taskPostfix} build and ${keystorePropertiesFile} does not exist, Failing build..")
+    tasks.register("checkFor${taskPostfix}Keys")
+    tasks.named("checkFor${taskPostfix}Keys") {
+        doFirst() {
+            if (taskPostfix == "Release" && !keystorePropertiesFile.exists()) {
+                throw new GradleException("Attempting a ${taskPostfix} build and ${keystorePropertiesFile} does not exist, Failing build..")
+            }
         }
     }
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {

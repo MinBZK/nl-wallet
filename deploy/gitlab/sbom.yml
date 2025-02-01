@@ -1,4 +1,5 @@
 build-sbom:
+  extends: .ruby-cache
   rules: !reference [.default-branch, rules]
   script:
     ## Rust
@@ -12,7 +13,7 @@ build-sbom:
     - mv bom-bundled.json bom.json
     - cd ..
     ## Flutter
-    - (cd wallet_app && cdxgen --spec-version 1.5 --type dart --output bom.json)
+    - (cd wallet_app && cdxgen --fail-on-error --spec-version 1.5 --type dart --output bom.json)
     ## iOS
     - bundle install
     - cd wallet_app
@@ -24,8 +25,8 @@ build-sbom:
     - cyclonedx convert --output-version v1_5 --input-file bom.xml --output-file bom.json
     - cd ../..
     ## Android
-    - (cd wallet_app/android && ../gradlew clean cyclonedxBom)
-    - (cd wallet_core/platform_support/android/platform_support && ../gradlew clean cyclonedxBom)
+    - (cd wallet_app/android/app && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
+    - (cd wallet_core/platform_support/android/platform_support && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
     - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
     # converting it to xml does work

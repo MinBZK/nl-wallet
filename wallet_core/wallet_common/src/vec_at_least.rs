@@ -127,6 +127,15 @@ impl<T, const N: usize, const UNIQUE: bool> From<VecAtLeastN<T, N, UNIQUE>> for 
     }
 }
 
+impl<T, const N: usize, const UNIQUE: bool> IntoIterator for VecAtLeastN<T, N, UNIQUE> {
+    type Item = T;
+    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 // The trait implementations below allow this type to be used in combination
 // with `serde_with` by specifying a `#[serde_as(as = "Vec<T>")]` macro.
 

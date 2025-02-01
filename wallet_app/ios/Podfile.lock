@@ -180,13 +180,13 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/vibration/ios"
 
 SPEC CHECKSUMS:
-  app_links: e7a6750a915a9e161c58d91bc610e8cd1d4d0ad0
-  app_settings: 017320c6a680cdc94c799949d95b84cb69389ebc
-  connectivity_plus: 18382e7311ba19efcaee94442b23b32507b20695
-  country_codes: b0900f46ad686281d5dab438e354e44ad10f5941
-  device_info_plus: 97af1d7e84681a90d0693e63169a5d50e0839a0d
+  app_links: 3da4c36b46cac3bf24eb897f1a6ce80bda109874
+  app_settings: 3507c575c2b18a462c99948f61d5de21d4420999
+  connectivity_plus: 2256d3e20624a7749ed21653aafe291a46446fee
+  country_codes: b534fe92b5dd4d4cfd31a720f2bfa223373d162c
+  device_info_plus: 71ffc6ab7634ade6267c7a93088ed7e4f74e5896
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
-  flutter_native_splash: f71420956eb811e6d310720fee915f1d42852e7a
+  flutter_native_splash: 6cad9122ea0fad137d23137dd14b937f3e90b145
   GoogleDataTransport: 6c09b596d841063d76d4288cc2d2f42cc36e1e2a
   GoogleMLKit: 97ac7af399057e99182ee8edfa8249e3226a4065
   GoogleToolboxForMac: d1a2cbf009c453f4d6ded37c105e2f67a32206d8
@@ -194,26 +194,26 @@ SPEC CHECKSUMS:
   GoogleUtilitiesComponents: 679b2c881db3b615a2777504623df6122dd20afe
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   IOSSecuritySuite: 45e8531b05ffa72b5661cbdb5b5b5648a8de1a84
-  local_auth_darwin: 66e40372f1c29f383a314c738c7446e2f7fdadc3
+  local_auth_darwin: 553ce4f9b16d3fdfeafce9cf042e7c9f77c1c391
   MLImage: 1824212150da33ef225fbd3dc49f184cf611046c
   MLKitBarcodeScanning: 10ca0845a6d15f2f6e911f682a1998b68b973e8b
   MLKitCommon: afec63980417d29ffbb4790529a1b0a2291699e1
   MLKitVision: e858c5f125ecc288e4a31127928301eaba9ae0c1
-  mobile_scanner: 96e91f2e1fb396bb7df8da40429ba8dfad664740
+  mobile_scanner: 92e8812bf22a8f84131e2a7f9d0f44dad1a4742b
   nanopb: 438bc412db1928dac798aa6fd75726007be04262
-  native_device_orientation: 348b10c346a60ebbc62fb235a4fdb5d1b61a8f55
-  package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
-  permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
+  native_device_orientation: e3580675687d5034770da198f6839ebf2122ef94
+  package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
+  permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
-  root_jailbreak_sniffer: 494ed5def74d5a5c46ae784baf182f673b98c52c
-  screen_brightness_ios: 7437207a2a9bc56553aa10f782afecf830b4c4e2
-  sensors_plus: 18a9b346c43e157da17d2c8e99def703f9efb9d8
+  root_jailbreak_sniffer: 5dae1989fb3979d9dcb304924435346488f2c841
+  screen_brightness_ios: 28c5fbdb40634de44f86025d84470158ad4df48c
+  sensors_plus: 3c3bac724a2128c895623e03efd82cf0e94fd8e8
   Sentry: f8374b5415bc38dfb5645941b3ae31230fbeae57
-  sentry_flutter: 0eb93e5279eb41e2392212afe1ccd2fecb4f8cbe
-  shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
-  store_redirect: 2977747cf81689a39bd62c248c2deacb7a0d131e
-  url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
-  vibration: 7d883d141656a1c1a6d8d238616b2042a51a1241
+  sentry_flutter: 0a211008f52553ba5dd81ceb71f48d78f0f1f6ab
+  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
+  store_redirect: 55fd455802ceab09803b2df6e68f19a58815266a
+  url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
+  vibration: 8e2f50fc35bb736f9eecb7dd9f7047fbb6a6e888
 
 PODFILE CHECKSUM: 797dd6e031e623b9782c56cf0796486b9ea05f04
 
