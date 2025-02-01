@@ -22,7 +22,7 @@ test-ios:
 
 ### iOS Building
 .build-ios-app:
-  extends: [.env-macos-runner, .ruby-cache-macos]
+  extends: [.env-ont-k8s, .env-macos-runner, .ruby-cache-macos]
   needs:
     - job: test-flutter
       artifacts: false
@@ -65,7 +65,7 @@ test-ios:
         version:"${RELEASE_VERSION:-}"
 
 .build-ios-app-ont:
-  extends: [.env-ont-k8s, .build-ios-app]
+  extends: .build-ios-app
   rules: !reference [.default-branch, rules]
   needs:
     - !reference [.build-ios-app, needs]
@@ -100,7 +100,6 @@ build-ios-app-ont-profile:
   extends: .build-ios-app
   rules: !reference [.release-tag, rules]
   before_script:
-    - !reference [.build-ios-app, before_script]
     - !reference [.release-tag, before_script]
   variables:
     APP_MOCK: "false"
@@ -200,7 +199,7 @@ build-ios-app-production:
 
 ## iOS Deploying
 .deploy-ios-app:
-  extends: [.env-macos-runner, .ruby-cache-macos]
+  extends: [.env-ont-k8s, .env-macos-runner, .ruby-cache-macos]
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
     BUNDLE_FROZEN: "true"
