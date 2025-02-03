@@ -44,7 +44,7 @@ impl IssuerSigned {
 
 impl Mdoc {
     pub fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.issuer_signed.attribute_identifiers(&self.doc_type)
+        self.issuer_signed.attribute_identifiers(self.doc_type())
     }
 }
 

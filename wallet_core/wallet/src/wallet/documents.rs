@@ -56,7 +56,7 @@ where
                     .ok_or(DocumentsError::MissingIssuerRegistration)?;
                 let document = Document::from_mdoc_attributes(
                     DocumentPersistence::Stored(mdoc_id.to_string()),
-                    &mdoc.doc_type,
+                    mdoc.doc_type(),
                     mdoc.attributes(),
                     issuer_registration,
                 )

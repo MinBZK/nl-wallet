@@ -48,7 +48,7 @@ impl MdocDataSource for MockMdocDataSource {
         let stored_mdocs = self
             .mdocs
             .iter()
-            .filter(|mdoc| doc_types.contains(mdoc.doc_type.as_str()))
+            .filter(|mdoc| doc_types.contains(mdoc.doc_type().as_str()))
             .cloned()
             .enumerate()
             .map(|(index, mdoc)| StoredMdoc {

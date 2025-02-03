@@ -3,6 +3,7 @@ use std::sync::Arc;
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
+use http::Uri;
 use p256::ecdsa::signature;
 use tracing::info;
 use tracing::instrument;
@@ -318,11 +319,12 @@ where
                         // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
                         let credential_payload =
-                            CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, issuer_registration.organization)?;
+                            CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
                         let attestation = Attestation::from_credential_payload(
                             AttestationIdentity::Ephemeral,
                             credential_payload,
                             metadata.first().unwrap().clone(), // TODO: PVW-3812
+                            issuer_registration.organization,
                         )?;
 
                         Ok(attestation)

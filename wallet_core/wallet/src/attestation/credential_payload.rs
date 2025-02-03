@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use indexmap::IndexMap;
 use itertools::Itertools;
-
+use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::credential_payload::Attribute;
 use openid4vc::credential_payload::CredentialPayload;
 use sd_jwt::metadata::ClaimPath;
@@ -19,6 +19,7 @@ impl Attestation {
         identity: AttestationIdentity,
         payload: CredentialPayload,
         metadata: TypeMetadata,
+        issuer_organization: Organization,
     ) -> Result<Self, AttestationError> {
         let attributes = metadata
             .claims
@@ -45,7 +46,7 @@ impl Attestation {
             identity,
             display_metadata: metadata.display,
             attestation_type: payload.attestation_type,
-            issuer: payload.issuer,
+            issuer: issuer_organization,
             attributes,
         };
 
@@ -79,6 +80,7 @@ mod test {
 
     use assert_matches::assert_matches;
     use chrono::Utc;
+    use http::Uri;
     use indexmap::IndexMap;
 
     use nl_wallet_mdoc::utils::auth::Organization;
@@ -141,15 +143,21 @@ mod test {
         ];
 
         let payload = CredentialPayload {
-            attestation_type: String::from("pid"),
-            issuer: Organization::new_mock(),
-            issued_at: Utc::now(),
-            expires: Utc::now(),
+            attestation_type: String::from("pid456"),
+            issuer: Uri::from_static("data://org.example.com/org1"),
+            issued_at: Some(Utc::now()),
+            expires: Some(Utc::now()),
+            not_before: None,
             attributes: attributes.clone(),
         };
 
-        let attestation =
-            Attestation::from_credential_payload(AttestationIdentity::Ephemeral, payload, metadata).unwrap();
+        let attestation = Attestation::from_credential_payload(
+            AttestationIdentity::Ephemeral,
+            payload,
+            metadata,
+            Organization::new_mock(),
+        )
+        .unwrap();
 
         let attrs = attestation
             .attributes
@@ -190,14 +198,20 @@ mod test {
         }];
 
         let payload = CredentialPayload {
-            attestation_type: String::from("pid"),
-            issuer: Organization::new_mock(),
-            issued_at: Utc::now(),
-            expires: Utc::now(),
+            attestation_type: String::from("pid123"),
+            issuer: Uri::from_static("data://org.example.com/org2"),
+            issued_at: Some(Utc::now()),
+            expires: Some(Utc::now()),
+            not_before: None,
             attributes: attributes.clone(),
         };
 
-        let attestation = Attestation::from_credential_payload(AttestationIdentity::Ephemeral, payload, metadata);
+        let attestation = Attestation::from_credential_payload(
+            AttestationIdentity::Ephemeral,
+            payload,
+            metadata,
+            Organization::new_mock(),
+        );
         assert_matches!(attestation, Err(AttestationError::AttributeNotFoundForClaim(_)));
     }
 

@@ -1,3 +1,4 @@
+use http::Uri;
 use tracing::info;
 
 use error_category::sentry_capture_error;
@@ -68,8 +69,9 @@ where
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
                     },
-                    CredentialPayload::from_mdoc(&mdoc, issuer_registration.organization)?,
-                    mdoc.type_metadata().unwrap().first().unwrap().clone(), // TODO: PVW-3812
+                    CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?, // TODO: PVW-3823
+                    mdoc.type_metadata().unwrap().first().unwrap().clone(),            // TODO: PVW-3812
+                    issuer_registration.organization,
                 )?;
                 Ok(attestation)
             })
@@ -147,12 +149,12 @@ mod tests {
 
         // The database contains a single `Mdoc`.
         let mdoc = test::create_full_pid_mdoc();
-        let mdoc_doc_type = mdoc.doc_type.clone();
+        let mdoc_doc_type = mdoc.doc_type().clone();
         wallet
             .storage
             .get_mut()
             .mdocs
-            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].try_into().unwrap()]);
+            .insert(mdoc.doc_type().clone(), vec![vec![mdoc].try_into().unwrap()]);
 
         // Register mock document_callback
         let attestations = test::setup_mock_attestations_callback(&mut wallet)
@@ -193,7 +195,7 @@ mod tests {
             .storage
             .get_mut()
             .mdocs
-            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].try_into().unwrap()]);
+            .insert(mdoc.doc_type().clone(), vec![vec![mdoc].try_into().unwrap()]);
 
         // Register mock attestation_callback
         let (attestations, error) = test::setup_mock_attestations_callback(&mut wallet)

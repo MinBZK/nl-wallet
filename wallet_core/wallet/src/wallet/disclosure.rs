@@ -543,7 +543,7 @@ where
                 |mut mdocs_by_doc_type, StoredMdocCopy { mdoc_copy_id, mdoc, .. }| {
                     // Re-use the `doc_types` string slices, which should contain all `Mdoc` doc types.
                     let doc_type = *doc_types
-                        .get(mdoc.doc_type.as_str())
+                        .get(mdoc.doc_type().as_str())
                         .expect("Storage returned mdoc with unexpected doc_type");
                     mdocs_by_doc_type
                         .entry(doc_type)
@@ -1599,8 +1599,7 @@ mod tests {
         let mdoc2 = {
             let mut mdoc2 = mdoc1.clone();
 
-            mdoc2.doc_type = "com.example.doc_type".to_string();
-
+            mdoc2.mso.doc_type = "com.example.doc_type".to_string();
             mdoc2
         };
 

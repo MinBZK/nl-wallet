@@ -1,16 +1,18 @@
 use std::collections::VecDeque;
 
-use chrono::serde::ts_seconds;
 use chrono::DateTime;
+use chrono::ParseError;
 use chrono::Utc;
+use http::Uri;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::serde_as;
+use serde_with::TimestampSeconds;
 
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::utils::auth::Organization;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::NameSpace;
 
@@ -18,6 +20,9 @@ use nl_wallet_mdoc::NameSpace;
 pub enum CredentialPayloadError {
     #[error("unable to strip namespace '{namespace}' from key '{key}'")]
     NamespaceStripping { namespace: String, key: String },
+
+    #[error("unable to convert mdoc TDate to DateTime<Utc>")]
+    DateConversion(#[from] ParseError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,31 +55,52 @@ pub enum Attribute {
 /// JSON schema defined in the SD-JWT VC Type Metadata (`TypeMetadata`).
 ///
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
 
-    #[serde(rename = "iss")]
-    pub issuer: Organization,
+    #[serde(rename = "iss", with = "http_serde::uri")]
+    pub issuer: Uri,
 
-    #[serde(rename = "iat", with = "ts_seconds")]
-    pub issued_at: DateTime<Utc>,
+    #[serde(rename = "iat")]
+    #[serde_as(as = "Option<TimestampSeconds<i64>>")]
+    pub issued_at: Option<DateTime<Utc>>,
 
-    #[serde(rename = "exp", with = "ts_seconds")]
-    pub expires: DateTime<Utc>,
+    #[serde(rename = "exp")]
+    #[serde_as(as = "Option<TimestampSeconds<i64>>")]
+    pub expires: Option<DateTime<Utc>>,
+
+    #[serde(rename = "nbf")]
+    #[serde_as(as = "Option<TimestampSeconds<i64>>")]
+    pub not_before: Option<DateTime<Utc>>,
 
     #[serde(flatten)]
     pub attributes: IndexMap<String, Attribute>,
 }
 
 impl CredentialPayload {
-    pub fn from_unsigned_mdoc(mdoc: &UnsignedMdoc, issuer: Organization) -> Result<Self, CredentialPayloadError> {
-        Self::from_mdoc_attributes(mdoc.doc_type.to_string(), mdoc.attributes.as_ref(), issuer)
+    pub fn from_unsigned_mdoc(mdoc: &UnsignedMdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
+        Self::from_mdoc_attributes(
+            mdoc.doc_type.to_string(),
+            mdoc.attributes.as_ref(),
+            issuer,
+            None,
+            Some((&mdoc.valid_until).try_into()?),
+            Some((&mdoc.valid_from).try_into()?),
+        )
     }
 
-    pub fn from_mdoc(mdoc: &Mdoc, issuer: Organization) -> Result<Self, CredentialPayloadError> {
-        Self::from_mdoc_attributes(mdoc.doc_type.to_string(), &mdoc.attributes(), issuer)
+    pub fn from_mdoc(mdoc: &Mdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
+        Self::from_mdoc_attributes(
+            mdoc.doc_type().to_string(),
+            &mdoc.attributes(),
+            issuer,
+            Some((&mdoc.validity_info().signed).try_into()?),
+            Some((&mdoc.validity_info().valid_until).try_into()?),
+            Some((&mdoc.validity_info().valid_from).try_into()?),
+        )
     }
 
     /// Convert a map of namespaced entries (`Entry`) to a `CredentialPayload`. The namespace is assumed to consist of
@@ -110,7 +136,10 @@ impl CredentialPayload {
     pub fn from_mdoc_attributes(
         doc_type: String,
         attributes: &IndexMap<NameSpace, Vec<Entry>>,
-        issuer: Organization,
+        issuer: Uri,
+        issued_at: Option<DateTime<Utc>>,
+        expires: Option<DateTime<Utc>>,
+        not_before: Option<DateTime<Utc>>,
     ) -> Result<Self, CredentialPayloadError> {
         let mut attrs = IndexMap::new();
         Self::traverse_attributes(&doc_type, attributes, &mut attrs)?;
@@ -118,8 +147,9 @@ impl CredentialPayload {
         let payload = Self {
             attestation_type: doc_type,
             issuer,
-            issued_at: Utc::now(),
-            expires: Utc::now(),
+            issued_at,
+            expires,
+            not_before,
             attributes: attrs,
         };
 
