@@ -32,6 +32,5 @@ class NumberValue extends AttributeValue {
   @override
   final BigInt value;
 
-  //ignore: avoid_positional_boolean_parameters
   const NumberValue(this.value);
 }

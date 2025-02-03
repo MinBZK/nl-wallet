@@ -151,7 +151,7 @@ void main() {
   });
 
   group('observeAttestations', () {
-    test('observeAttestations should fetch cards through WalletCore', () {
+    test('observeAttestations should fetch attestation through WalletCore', () {
       final List<Attestation> mockAttestations = [
         const Attestation(
           identity: AttestationIdentity.fixed(id: '0'),
@@ -176,7 +176,7 @@ void main() {
       );
     });
 
-    test('observeCards should emit a new value when WalletCore exposes new cards', () {
+    test('observeAttestations should emit a new value when WalletCore exposes new attestations', () {
       final List<Attestation> initialCards = [
         const Attestation(
           identity: AttestationIdentity.fixed(id: '0'),
@@ -211,7 +211,7 @@ void main() {
       );
     });
 
-    test('observeCards should emit only the last value on a new subscription', () async {
+    test('observeAttestations should emit only the last value on a new subscription', () async {
       final List<Attestation> initialCards = [
         const Attestation(
           identity: AttestationIdentity.fixed(id: '0'),

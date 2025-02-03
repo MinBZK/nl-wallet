@@ -27,7 +27,7 @@ void main() {
   });
 
   group('map', () {
-    test('card with `com.example.pid` docType should return light localized card front', () async {
+    test('attestation with `com.example.pid` attestationType should return light localized card front', () async {
       const coreCard = Attestation(
         identity: AttestationIdentity.ephemeral(),
         attestationType: 'com.example.pid',
@@ -56,7 +56,7 @@ void main() {
       verify(mockSubtitleMapper.map(coreCard)).called(1);
     });
 
-    test('card with `com.example.address` docType should return dark localized card front', () {
+    test('attestation with `com.example.address` attestationType should return dark localized card front', () {
       const coreCard = Attestation(
         identity: AttestationIdentity.ephemeral(),
         attestationType: 'com.example.address',
@@ -82,7 +82,7 @@ void main() {
       verify(mockSubtitleMapper.map(coreCard)).called(1);
     });
 
-    test('card with unknown docType should throw exception', () {
+    test('attestation with unknown attestationType should throw exception', () {
       const input = Attestation(
         identity: AttestationIdentity.ephemeral(),
         attestationType: 'unknown',

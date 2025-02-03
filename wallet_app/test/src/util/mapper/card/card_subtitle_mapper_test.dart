@@ -26,7 +26,7 @@ void main() {
     mapper = CardSubtitleMapper(mockAttributeValueMapper);
   });
 
-  Attestation createSampleCard(String attestationType, List<AttestationAttribute> attributes) {
+  Attestation createSampleAttestation(String attestationType, List<AttestationAttribute> attributes) {
     return Attestation(
       identity: const AttestationIdentity.ephemeral(),
       attestationType: attestationType,
@@ -37,10 +37,10 @@ void main() {
   }
 
   group('map', () {
-    test('card with `com.example.pid` docType should return `name` attribute string', () {
+    test('attestation with `com.example.pid` attestationType should return `name` attribute string', () {
       when(mockAttributeValueMapper.map(_kSampleAttributeName.value)).thenReturn(const StringValue('Willeke'));
 
-      final input = createSampleCard('com.example.pid', [_kSampleAttributeName, _kSampleAttributeCity]);
+      final input = createSampleAttestation('com.example.pid', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleNameSubtitle);
 
       // Check if every supported locale is mapped to a value
@@ -48,10 +48,10 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('card with `com.example.pid` docType should return `name` attribute string', () {
+    test('attestation with `com.example.pid` docType should return `name` attribute string', () {
       when(mockAttributeValueMapper.map(_kSampleAttributeName.value)).thenReturn(const StringValue('Willeke'));
 
-      final input = createSampleCard('com.example.pid', [_kSampleAttributeName, _kSampleAttributeCity]);
+      final input = createSampleAttestation('com.example.pid', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleNameSubtitle);
 
       // Check if every supported locale is mapped to a value
@@ -59,17 +59,17 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('`com.example.pid` card without `name` attribute should not return any subtitle', () {
-      final input = createSampleCard('com.example.pid', [_kSampleAttributeCity]);
+    test('`com.example.pid` attestation without `name` attribute should not return any subtitle', () {
+      final input = createSampleAttestation('com.example.pid', [_kSampleAttributeCity]);
       expect(mapper.map(input), null);
 
       verifyNever(mockAttributeValueMapper.map(_kSampleAttributeName.value));
     });
 
-    test('card with `com.example.address` docType should return `city` attribute string', () {
+    test('attestation with `com.example.address` attestationType should return `city` attribute string', () {
       when(mockAttributeValueMapper.map(_kSampleAttributeCity.value)).thenReturn(const StringValue('Den Haag'));
 
-      final input = createSampleCard('com.example.address', [_kSampleAttributeName, _kSampleAttributeCity]);
+      final input = createSampleAttestation('com.example.address', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleCitySubtitle);
 
       // Check if every supported locale is mapped to a value
@@ -77,15 +77,15 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('`com.example.address` card without `city` attribute should not return any subtitle', () {
-      final input = createSampleCard('com.example.address', [_kSampleAttributeName]);
+    test('`com.example.address` attestation without `city` attribute should not return any subtitle', () {
+      final input = createSampleAttestation('com.example.address', [_kSampleAttributeName]);
       expect(mapper.map(input), null);
 
       verifyNever(mockAttributeValueMapper.map(_kSampleAttributeName.value));
     });
 
-    test('card with unknown docType should not return any subtitle', () {
-      final input = createSampleCard('invalid_doctype', [_kSampleAttributeName, _kSampleAttributeCity]);
+    test('attestation with unknown attestationType should not return any subtitle', () {
+      final input = createSampleAttestation('invalid_doctype', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), null);
     });
   });
