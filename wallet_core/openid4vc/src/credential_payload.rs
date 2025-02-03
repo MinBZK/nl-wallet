@@ -10,19 +10,26 @@ use serde::Serialize;
 use serde_with::serde_as;
 use serde_with::TimestampSeconds;
 
+use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::NameSpace;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CredentialPayloadError {
     #[error("unable to strip namespace '{namespace}' from key '{key}'")]
+    #[category(critical)]
     NamespaceStripping { namespace: String, key: String },
 
     #[error("unable to convert mdoc TDate to DateTime<Utc>")]
+    #[category(critical)]
     DateConversion(#[from] ParseError),
+
+    #[error("unable to convert mdoc value to AttributeValue: {0:?}")]
+    #[category(pd)]
+    ValueConversion(DataElementValue),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,13 +40,15 @@ pub enum AttributeValue {
     Bool(bool),
 }
 
-impl From<DataElementValue> for AttributeValue {
-    fn from(value: DataElementValue) -> Self {
+impl TryFrom<DataElementValue> for AttributeValue {
+    type Error = CredentialPayloadError;
+
+    fn try_from(value: DataElementValue) -> Result<Self, Self::Error> {
         match value {
-            DataElementValue::Text(text) => AttributeValue::Text(text),
-            DataElementValue::Bool(bool) => AttributeValue::Bool(bool),
-            DataElementValue::Integer(integer) => AttributeValue::Number(integer.into()),
-            _ => unimplemented!(),
+            DataElementValue::Text(text) => Ok(AttributeValue::Text(text)),
+            DataElementValue::Bool(bool) => Ok(AttributeValue::Bool(bool)),
+            DataElementValue::Integer(integer) => Ok(AttributeValue::Number(integer.into())),
+            _ => Err(CredentialPayloadError::ValueConversion(value)),
         }
     }
 }
@@ -163,7 +172,7 @@ impl CredentialPayload {
     ) -> Result<(), CredentialPayloadError> {
         for (namespace, entries) in attributes {
             if namespace == doc_type {
-                Self::insert_entries(entries, result);
+                Self::insert_entries(entries, result)?;
             } else {
                 let mut groups: VecDeque<String> = Self::split_namespace(namespace, doc_type).into();
                 Self::traverse_groups(entries, &mut groups, result)?;
@@ -186,7 +195,7 @@ impl CredentialPayload {
 
             if let Some(Attribute::Nested(attr_group)) = current_group.get_mut(&group_key) {
                 if groups.is_empty() {
-                    Self::insert_entries(entries, attr_group);
+                    Self::insert_entries(entries, attr_group)?;
                 } else {
                     Self::traverse_groups(entries, groups, attr_group)?;
                 }
@@ -196,17 +205,22 @@ impl CredentialPayload {
         Ok(())
     }
 
-    fn insert_entries(entries: &[Entry], group: &mut IndexMap<String, Attribute>) {
+    fn insert_entries(
+        entries: &[Entry],
+        group: &mut IndexMap<String, Attribute>,
+    ) -> Result<(), CredentialPayloadError> {
         for entry in entries.iter() {
             let key = entry.name.to_string();
             // Check if there already is an existing group to which the new attributes have to be added. Otherwise,
             // add them to the current group.
             if let Some(Attribute::Nested(existing_group)) = group.get_mut(&key) {
-                existing_group.insert(key, Attribute::Single(entry.value.clone().into()));
+                existing_group.insert(key, Attribute::Single(entry.value.clone().try_into()?));
             } else {
-                group.insert(key, Attribute::Single(entry.value.clone().into()));
+                group.insert(key, Attribute::Single(entry.value.clone().try_into()?));
             }
         }
+
+        Ok(())
     }
 
     fn split_namespace(namespace: &str, doc_type: &str) -> Vec<String> {
