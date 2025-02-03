@@ -7,7 +7,9 @@ class PersonalizePidPreviewScreen : MobileActions() {
     private val screen = find.byValueKey("personalizePidPreviewPage")
 
     private val birthText = find.byText("24 maart 2000")
-    private val addressText = find.byText("Groenewoudsedijk 51, 3528BG Utrecht")
+    private val streetNameText = find.byText("Van Wijngaerdenstraat")
+    private val postcodeText = find.byText("2596TW")
+    private val houseNumberText = find.byText("1")
 
     private val acceptButton = find.byValueKey("acceptButton")
     private val rejectButton = find.byValueKey("rejectButton")
@@ -15,13 +17,20 @@ class PersonalizePidPreviewScreen : MobileActions() {
     fun visible() = isElementVisible(screen)
 
     fun humanReadablePidDataVisible() =
-        isElementVisible(birthText) && isElementVisible(addressText)
+        isElementVisible(birthText) && isElementVisible(streetNameText) && isElementVisible(postcodeText) && isElementVisible(houseNumberText)
 
-    fun confirmButtonsVisible() = isElementVisible(acceptButton) && isElementVisible(rejectButton)
+    fun confirmButtonsVisible(): Boolean {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        return isElementVisible(acceptButton) && isElementVisible(rejectButton)
+    }
 
-    fun clickAcceptButton() = clickElement(acceptButton)
+    fun clickAcceptButton() {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        clickElement(acceptButton)
+    }
 
-    fun clickRejectButton() = clickElement(rejectButton)
-
-    fun switchToApp() = switchToAppContext()
+    fun clickRejectButton() {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        clickElement(rejectButton)
+    }
 }

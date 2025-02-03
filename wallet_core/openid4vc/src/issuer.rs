@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use chrono::DateTime;
+use chrono::Utc;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
@@ -15,9 +18,11 @@ use tokio::task::JoinHandle;
 use tracing::info;
 
 use nl_wallet_mdoc::server_keys::KeyRing;
+use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::utils::crypto::CryptoError;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::IssuerSigned;
+use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::jwt::jwk_to_p256;
 use wallet_common::jwt::validations;
 use wallet_common::jwt::EcdsaDecodingKey;
@@ -34,6 +39,7 @@ use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
+use crate::attributes::IssuableDocument;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequests;
@@ -41,6 +47,8 @@ use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::credential::WteDisclosure;
 use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
+use crate::credential_formats::CredentialFormats;
+use crate::credential_formats::CredentialType;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::metadata;
@@ -94,6 +102,10 @@ pub enum TokenRequestError {
     UnsupportedTokenRequestType,
     #[error("failed to get attributes to be issued: {0}")]
     AttributeService(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("credential type not offered: {0}")]
+    CredentialTypeNotOffered(String),
+    #[error("could not convert into unsigned attribuets: {0}")]
+    UnsignedAttributes(#[from] UnsignedAttributesError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -106,7 +118,7 @@ pub enum CredentialRequestError {
     #[error("malformed access token")]
     MalformedToken,
     #[error("credential type not offered")]
-    CredentialTypeNotOffered(Option<String>),
+    CredentialTypeNotOffered(String),
     #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
     #[error("unsupported credential format: {0:?}")]
@@ -155,14 +167,14 @@ pub enum CredentialRequestError {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    pub credential_previews: Option<Vec<CredentialPreview>>,
+    pub credential_previews: Option<Vec<CredentialFormats<CredentialPreview>>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     pub access_token: AccessToken,
     pub c_nonce: String,
-    pub credential_previews: Vec<CredentialPreview>,
+    pub credential_previews: Vec<CredentialFormats<CredentialPreview>>,
     pub dpop_public_key: VerifyingKey,
     pub dpop_nonce: String,
 }
@@ -226,6 +238,15 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
+#[derive(Debug, Clone)]
+pub struct IssuableCredential {
+    pub document: IssuableDocument,
+    pub metadata_chain: TypeMetadataChain,
+    pub valid_from: DateTime<Utc>,
+    pub valid_until: DateTime<Utc>,
+    pub copy_count: NonZeroU8,
+}
+
 /// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
 /// the token request. See for example the [`BrpPidAttributeService`].
 ///
@@ -241,11 +262,7 @@ pub struct Session<S: IssuanceState> {
 pub trait AttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn attributes(
-        &self,
-        session: &SessionState<Created>,
-        token_request: TokenRequest,
-    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error>;
+    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Self::Error>;
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
@@ -261,7 +278,7 @@ pub struct Issuer<A, K, S, W> {
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K, W> {
-    private_keys: K,
+    key_ring: K,
 
     /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
     /// and MUST be used by the wallet as `aud` in its PoP JWTs.
@@ -297,7 +314,7 @@ where
     pub fn new(
         sessions: S,
         attr_service: A,
-        private_keys: K,
+        key_ring: K,
         server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
         wte_issuer_pubkey: VerifyingKey,
@@ -308,7 +325,7 @@ where
 
         let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
-            private_keys,
+            key_ring,
             credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_client_ids,
             wte_issuer_pubkey: (&wte_issuer_pubkey).into(),
@@ -389,6 +406,7 @@ where
                 dpop,
                 &self.attr_service,
                 &self.issuer_data.credential_issuer_identifier,
+                &self.issuer_data.key_ring,
             )
             .await;
 
@@ -527,10 +545,11 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
+        key_ring: &impl KeyRing,
     ) -> Result<(TokenResponseWithPreviews, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)>
     {
         let result = self
-            .process_token_request_inner(token_request, dpop, attr_service, server_url)
+            .process_token_request_inner(token_request, dpop, attr_service, server_url, key_ring)
             .await;
 
         match result {
@@ -557,6 +576,7 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
+        key_ring: &impl KeyRing,
     ) -> Result<(TokenResponseWithPreviews, VerifyingKey, String), TokenRequestError> {
         if !matches!(
             token_request.grant_type,
@@ -571,10 +591,39 @@ impl Session<Created> {
 
         let code = token_request.code().clone();
 
-        let previews = attr_service
-            .attributes(&self.state, token_request)
+        let issuables = attr_service
+            .attributes(token_request)
             .await
             .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
+
+        let previews = issuables
+            .into_inner()
+            .into_iter()
+            .map(|doc| {
+                let issuer_certificate = key_ring
+                    .key_pair(doc.document.attestation_type())
+                    .ok_or_else(|| {
+                        TokenRequestError::CredentialTypeNotOffered(doc.document.attestation_type().to_string())
+                    })?
+                    .certificate()
+                    .to_owned();
+
+                // TODO do this for all formats that we want to issue (PVW-3830)
+                let mdoc = CredentialPreview::MsoMdoc {
+                    unsigned_mdoc: doc.document.to_unsigned_mdoc(
+                        doc.valid_from.into(),
+                        doc.valid_until.into(),
+                        doc.copy_count,
+                    )?,
+                    issuer_certificate,
+                    metadata_chain: doc.metadata_chain,
+                };
+
+                Ok(CredentialFormats::try_new(VecNonEmpty::try_from(vec![mdoc]).unwrap()).unwrap())
+            })
+            .collect::<Result<Vec<_>, TokenRequestError>>()?
+            .try_into()
+            .unwrap();
 
         let c_nonce = random_string(32);
         let dpop_nonce = random_string(32);
@@ -733,23 +782,30 @@ impl Session<WaitingForResponse> {
         // If we have exactly one credential on offer that matches the credential type that the client is
         // requesting, then we issue that credential.
         // NB: the OpenID4VCI specification leaves open how to make this decision, this is our own behaviour.
-        let requested_type = credential_request.credential_type();
-        let offered_creds: Vec<_> = session_data
+        let offered_creds = session_data
             .credential_previews
+            .as_slice()
             .iter()
-            .filter(|preview| preview.credential_type() == requested_type)
-            .collect();
+            .flat_map(|formats| {
+                formats
+                    .as_ref()
+                    .as_slice()
+                    .iter()
+                    .filter(|preview| credential_request.credential_type.as_ref().matches(*preview))
+                    .collect_vec()
+            })
+            .collect_vec();
         let preview = match offered_creds.len() {
             1 => Ok(*offered_creds.first().unwrap()),
             0 => Err(CredentialRequestError::CredentialTypeNotOffered(
-                requested_type.map(str::to_string),
+                credential_request.credential_type.as_ref().to_string(),
             )),
-            // If we have more than one credential on offer of the specified doctype then it is not clear which one
-            // we should issue; abort
+            // If we have more than one credential on offer of the specified credential type then it is not clear which
+            // one we should issue; abort
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
-        let holder_pubkey = credential_request.verify(&session_data.c_nonce, preview.credential_type(), issuer_data)?;
+        let holder_pubkey = credential_request.verify(&session_data.c_nonce, preview, issuer_data)?;
 
         self.verify_wte_and_poa(
             credential_request.attestations,
@@ -808,10 +864,10 @@ impl Session<WaitingForResponse> {
                     session_data
                         .credential_previews
                         .iter()
-                        .flat_map(|preview| itertools::repeat_n(preview.clone(), preview.copy_count().into())),
+                        .flat_map(|preview| preview.flatten_copies()),
                 )
                 .map(|(cred_req, preview)| async move {
-                    let key = cred_req.verify(&session_data.c_nonce, preview.credential_type(), issuer_data)?;
+                    let key = cred_req.verify(&session_data.c_nonce, &preview, issuer_data)?;
 
                     Ok::<_, CredentialRequestError>((preview, key))
                 }),
@@ -883,10 +939,10 @@ impl CredentialRequest {
     pub(crate) fn verify(
         &self,
         c_nonce: &str,
-        expected_credential_type: Option<&str>,
+        expected_credential_type: &impl CredentialType,
         issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        if self.credential_type() != expected_credential_type {
+        if !self.credential_type.as_ref().matches(expected_credential_type) {
             return Err(CredentialRequestError::CredentialTypeMismatch);
         }
 
@@ -912,7 +968,7 @@ impl CredentialResponse {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let key_id = preview.issuer_key_identifier();
         let issuer_privkey = issuer_data
-            .private_keys
+            .key_ring
             .key_pair(key_id)
             .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 

@@ -1,9 +1,6 @@
 test-ios:
-  extends: .ruby-cache
+  extends: [.env-macos-runner, .ruby-cache-macos]
   rules: !reference [.default-or-release-or-merge-request, rules]
-  tags:
-    - macos
-  image: sonoma-wallet:0.1.5
   artifacts:
     when: always
     reports:
@@ -25,7 +22,7 @@ test-ios:
 
 ### iOS Building
 .build-ios-app:
-  extends: [.env-macos-runner, .ruby-cache-macos]
+  extends: [.env-ont-k8s, .env-macos-runner, .ruby-cache-macos]
   needs:
     - job: test-flutter
       artifacts: false
@@ -39,9 +36,6 @@ test-ios:
       artifacts: false
     - job: test-rust-compilation-ios
       artifacts: false
-  tags:
-    - macos
-  image: sonoma-wallet:0.1.5
   artifacts:
     name: "wallet-ios"
     paths:
@@ -51,9 +45,6 @@ test-ios:
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
     APPLE_ATTESTATION_ENVIRONMENT: "production"
     BUNDLE_FROZEN: "true"
-  before_script:
-    - !reference [.env-macos-runner, before_script]
-    - !reference [.ruby-cache-macos, before_script]
   script:
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
@@ -74,7 +65,7 @@ test-ios:
         version:"${RELEASE_VERSION:-}"
 
 .build-ios-app-ont:
-  extends: [.env-ont-k8s, .build-ios-app]
+  extends: .build-ios-app
   rules: !reference [.default-branch, rules]
   needs:
     - !reference [.build-ios-app, needs]
@@ -109,7 +100,6 @@ build-ios-app-ont-profile:
   extends: .build-ios-app
   rules: !reference [.release-tag, rules]
   before_script:
-    - !reference [.build-ios-app, before_script]
     - !reference [.release-tag, before_script]
   variables:
     APP_MOCK: "false"
@@ -209,16 +199,10 @@ build-ios-app-production:
 
 ## iOS Deploying
 .deploy-ios-app:
-  extends: [.env-macos-runner, .ruby-cache-macos]
-  tags:
-    - macos
-  image: sonoma-wallet:0.1.5
+  extends: [.env-ont-k8s, .env-macos-runner, .ruby-cache-macos]
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
     BUNDLE_FROZEN: "true"
-  before_script:
-    - !reference [.env-macos-runner, before_script]
-    - !reference [.ruby-cache-macos, before_script]
   script:
     - APP_STORE_CONNECT_SECRETS_BASE64_JSON="$(kubectl get secret nl-wallet-app-store-api-key -o jsonpath='{.data}')"
     - export APP_STORE_CONNECT_SECRETS_BASE64_JSON

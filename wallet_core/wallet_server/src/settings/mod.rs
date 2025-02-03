@@ -214,7 +214,9 @@ impl Settings {
                 "issuer.wallet_client_ids",
                 vec![wallet_common::jwt::NL_WALLET_CLIENT_ID.to_string()],
             )?
-            .set_default("issuer.brp_server", "http://localhost:3007/")?;
+            .set_default("issuer.brp_server", "http://localhost:3007/")?
+            .set_default("issuer.valid_days", 365)?
+            .set_default("issuer.copy_count", 4)?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.

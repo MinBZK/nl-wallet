@@ -150,6 +150,7 @@ serde_bytes = "0.11.7"
 serde_json = { version = "1.0.92", default-features = false }
 serde_repr = "0.1.16"
 serde_urlencoded = "0.7.1"
+serde_valid = "1.0.5"
 serde_with = "3.3.0"
 serial_test = "3.0.0"
 sha2 = "0.10.6"

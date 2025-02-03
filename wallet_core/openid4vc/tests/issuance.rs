@@ -1,11 +1,12 @@
 use std::num::NonZeroU8;
+use std::num::NonZeroUsize;
 use std::ops::Add;
 
 use assert_matches::assert_matches;
 use chrono::Days;
 use chrono::Utc;
-use ciborium::Value;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use rstest::rstest;
@@ -15,11 +16,10 @@ use url::Url;
 use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::test::SingleKeyRing;
 use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::Tdate;
+use openid4vc::attributes::Attribute;
+use openid4vc::attributes::AttributeValue;
+use openid4vc::attributes::IssuableDocument;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequestProof;
 use openid4vc::credential::CredentialRequests;
@@ -33,14 +33,13 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::VcMessageClient;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::Created;
+use openid4vc::issuer::IssuableCredential;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::MemoryWteTracker;
-use openid4vc::server_state::SessionState;
 use openid4vc::token::AccessToken;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
@@ -58,13 +57,16 @@ use wallet_common::vec_at_least::VecNonEmpty;
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
-fn setup_mdoc(attestation_count: usize, copy_count: u8) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
+fn setup_mock_issuer(
+    attestation_count: NonZeroUsize,
+    copy_count: NonZeroU8,
+) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
     setup(
         MockAttributeService {
-            previews: mock_mdoc_attributes(issuance_keypair.certificate(), attestation_count, copy_count),
+            attestations: mock_issuable_attestation(attestation_count, copy_count),
         },
         &ca,
         issuance_keypair,
@@ -100,8 +102,11 @@ fn setup(
 
 #[rstest]
 #[tokio::test]
-async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2)] copy_count: u8) {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mdoc(attestation_count, copy_count);
+async fn accept_issuance(
+    #[values(NonZeroUsize::new(1).unwrap(), NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
+    #[values(NonZeroU8::new(1).unwrap(), NonZeroU8::new(2).unwrap())] copy_count: NonZeroU8,
+) {
+    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mock_issuer(attestation_count, copy_count);
     let trust_anchors = &[trust_anchor];
     let message_client = MockOpenidMessageClient::new(issuer);
 
@@ -122,12 +127,12 @@ async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2
         .await
         .unwrap();
 
-    assert_eq!(issued_creds.len(), attestation_count);
-    assert_eq!(issued_creds.first().unwrap().len(), copy_count as usize);
+    assert_eq!(issued_creds.len(), attestation_count.get());
+    assert_eq!(issued_creds.first().unwrap().len(), copy_count.get() as usize);
 
     issued_creds
         .into_iter()
-        .zip(previews)
+        .zip(previews.into_iter().flatten().collect_vec())
         .for_each(|(copies, preview)| match copies {
             IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs
                 .first()
@@ -140,7 +145,8 @@ async fn accept_issuance(#[values(1, 2)] attestation_count: usize, #[values(1, 2
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, trust_anchor, server_url, _) = setup_mdoc(1, 1);
+    let (issuer, trust_anchor, server_url, _) =
+        setup_mock_issuer(NonZeroUsize::new(1).unwrap(), NonZeroU8::new(1).unwrap());
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, _previews) =
@@ -178,7 +184,8 @@ async fn start_and_accept_err(
 
 #[tokio::test]
 async fn wrong_access_token() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let (issuer, trust_anchor, server_url, wte_issuer_privkey) =
+        setup_mock_issuer(NonZeroUsize::new(1).unwrap(), NonZeroU8::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         wrong_access_token: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -193,7 +200,8 @@ async fn wrong_access_token() {
 
 #[tokio::test]
 async fn invalid_dpop() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let (issuer, trust_anchor, server_url, wte_issuer_privkey) =
+        setup_mock_issuer(NonZeroUsize::new(1).unwrap(), NonZeroU8::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         invalidate_dpop: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -208,7 +216,8 @@ async fn invalid_dpop() {
 
 #[tokio::test]
 async fn invalid_pop() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let (issuer, trust_anchor, server_url, wte_issuer_privkey) =
+        setup_mock_issuer(NonZeroUsize::new(1).unwrap(), NonZeroU8::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         invalidate_pop: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -223,7 +232,8 @@ async fn invalid_pop() {
 
 #[tokio::test]
 async fn invalid_poa() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let (issuer, trust_anchor, server_url, wte_issuer_privkey) =
+        setup_mock_issuer(NonZeroUsize::new(1).unwrap(), NonZeroU8::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         invalidate_poa: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -238,7 +248,8 @@ async fn invalid_poa() {
 
 #[tokio::test]
 async fn no_poa() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let (issuer, trust_anchor, server_url, wte_issuer_privkey) =
+        setup_mock_issuer(NonZeroUsize::new(1).unwrap(), NonZeroU8::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         strip_poa: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -253,7 +264,8 @@ async fn no_poa() {
 
 #[tokio::test]
 async fn no_wte() {
-    let (issuer, trust_anchor, server_url, wte_issuer_privkey) = setup_mdoc(1, 1);
+    let (issuer, trust_anchor, server_url, wte_issuer_privkey) =
+        setup_mock_issuer(NonZeroUsize::new(1).unwrap(), NonZeroU8::new(1).unwrap());
     let message_client = MockOpenidMessageClient {
         strip_wte: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -463,50 +475,41 @@ impl VcMessageClient for MockOpenidMessageClient {
 const MOCK_DOCTYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
-fn mock_mdoc_attributes(
-    issuer_cert: &BorrowingCertificate,
-    attestation_count: usize,
-    copy_count: u8,
-) -> Vec<CredentialPreview> {
-    (0..attestation_count)
-        .map(|i| CredentialPreview::MsoMdoc {
-            unsigned_mdoc: UnsignedMdoc {
-                doc_type: MOCK_DOCTYPES[i].to_string(),
-                copy_count: NonZeroU8::new(copy_count).unwrap(),
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    MOCK_DOCTYPES[i].to_string(),
-                    MOCK_ATTRS
-                        .iter()
-                        .map(|(key, val)| Entry {
-                            name: key.to_string(),
-                            value: Value::Text(val.to_string()),
-                        })
-                        .collect(),
-                )])
-                .try_into()
-                .unwrap(),
-            },
-            issuer: issuer_cert.clone(),
+fn mock_issuable_attestation(
+    attestation_count: NonZeroUsize,
+    copy_count: NonZeroU8,
+) -> VecNonEmpty<IssuableCredential> {
+    (0..attestation_count.get())
+        .map(|i| IssuableCredential {
+            document: IssuableDocument::try_new(
+                MOCK_DOCTYPES[i].to_string(),
+                IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
+                    (
+                        key.to_string(),
+                        Attribute::Single(AttributeValue::Text(val.to_string())),
+                    )
+                })),
+            )
+            .unwrap(),
+            valid_from: Utc::now(),
+            valid_until: Utc::now().add(Days::new(365)),
+            copy_count,
             metadata_chain: TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap(),
         })
-        .collect()
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap()
 }
 
 struct MockAttributeService {
-    previews: Vec<CredentialPreview>,
+    attestations: VecNonEmpty<IssuableCredential>,
 }
 
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
 
-    async fn attributes(
-        &self,
-        _session: &SessionState<Created>,
-        _token_request: TokenRequest,
-    ) -> Result<VecNonEmpty<CredentialPreview>, Self::Error> {
-        Ok(self.previews.clone().try_into().unwrap())
+    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Self::Error> {
+        Ok(self.attestations.clone())
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
