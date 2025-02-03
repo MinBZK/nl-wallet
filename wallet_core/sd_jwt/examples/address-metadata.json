@@ -137,10 +137,13 @@
         "type": "string"
       },
       "iat": {
-        "type": "string"
+        "type": "number"
       },
       "exp": {
-        "type": "string"
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
       }
     },
     "required": [

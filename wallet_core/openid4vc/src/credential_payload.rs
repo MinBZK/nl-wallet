@@ -16,6 +16,8 @@ use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::NameSpace;
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataError;
 
 use crate::attributes::Attribute;
 use crate::attributes::AttributeError;
@@ -32,6 +34,14 @@ pub enum CredentialPayloadError {
     )]
     #[category(pd)]
     NamespacePreconditionFailed { namespace: String, doc_type: String },
+
+    #[error("error converting to JSON: {0}")]
+    #[category(pd)]
+    JsonConversion(#[from] serde_json::Error),
+
+    #[error("metadata validation error: {0}")]
+    #[category(pd)]
+    Metadata(#[from] TypeMetadataError),
 
     #[error("unable to convert mdoc TDate to DateTime<Utc>")]
     #[category(critical)]
@@ -247,11 +257,18 @@ impl CredentialPayload {
         let parts = namespace[doc_type.len() + 1..].split('.').map(String::from).collect();
         Ok(parts)
     }
+
+    pub fn validate(&self, metadata: &TypeMetadata) -> Result<(), CredentialPayloadError> {
+        metadata.validate(&serde_json::to_value(self)?)?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use chrono::TimeZone;
+    use chrono::Utc;
     use http::Uri;
     use indexmap::IndexMap;
     use rstest::rstest;
@@ -375,16 +392,16 @@ mod test {
     }
 
     #[test]
-    fn test_serialize_deserialize() {
+    fn test_serialize_deserialize_and_validate() {
         let payload = CredentialPayload {
             attestation_type: String::from("com.example.pid"),
             issuer: Uri::from_static("https://com.example.org/pid/issuer"),
-            issued_at: None,
+            issued_at: Some(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap()),
             expires: None,
             not_before: None,
             attributes: IndexMap::from([
                 (
-                    String::from("birthdate"),
+                    String::from("birth_date"),
                     Attribute::Single(AttributeValue::Text(String::from("1963-08-12"))),
                 ),
                 (
@@ -423,7 +440,8 @@ mod test {
         let expected_json = json!({
             "vct": "com.example.pid",
             "iss": "https://com.example.org/pid/issuer",
-            "birthdate": "1963-08-12",
+            "iat": 61,
+            "birth_date": "1963-08-12",
             "place_of_birth": {
                 "locality": "The Hague",
                 "country": {
@@ -443,7 +461,167 @@ mod test {
             expected_json.to_json_string_pretty().unwrap()
         );
 
-        serde_json::from_value::<CredentialPayload>(expected_json).unwrap();
+        let payload = serde_json::from_value::<CredentialPayload>(expected_json).unwrap();
+
+        let metadata = serde_json::from_value(json!(
+            {
+          "vct": "com.example.pid",
+          "name": "NL Wallet PID credential",
+          "description": "Working version of the NL Wallet PID credential",
+          "display": [
+            {
+              "lang": "en-US",
+              "name": "NL Wallet Personal Data",
+              "description": "The Personal Data credential for the NL Wallet"
+            },
+            {
+              "lang": "nl-NL",
+              "name": "NL Wallet persoonsgegevens",
+              "description": "De persoonsgegevensattestatie voor de NL Wallet"
+            }
+          ],
+          "claims": [
+            {
+              "path": ["birth_date"],
+              "display": [
+                {
+                  "lang": "en-US",
+                  "label": "Birth date",
+                  "description": "Birth date of the person"
+                }
+              ],
+              "sd": "always"
+            },
+            {
+              "path": ["place_of_birth", "locality"],
+              "display": [
+                {
+                  "lang": "en-US",
+                  "label": "Locality",
+                }
+              ],
+              "sd": "always"
+            },
+            {
+              "path": ["place_of_birth", "country", "name"],
+              "display": [
+                {
+                  "lang": "en-US",
+                  "label": "Country",
+                }
+              ],
+              "sd": "always"
+            },
+            {
+              "path": ["place_of_birth", "country", "area_code"],
+              "display": [
+                {
+                  "lang": "en-US",
+                  "label": "Country",
+                }
+              ],
+              "sd": "always"
+            },
+            {
+              "path": ["financial", "has_debt"],
+              "display": [
+                {
+                  "lang": "en-US",
+                  "label": "Has debt",
+                }
+              ],
+              "sd": "always"
+            },
+            {
+              "path": ["financial", "has_job"],
+              "display": [
+                {
+                  "lang": "en-US",
+                  "label": "Has job",
+                }
+              ],
+              "sd": "always"
+            },
+            {
+              "path": ["financial", "debt_amount"],
+              "display": [
+                {
+                  "lang": "en-US",
+                  "label": "Debt amount",
+                }
+              ],
+              "sd": "always"
+            },
+          ],
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "NL Wallet PID VCT Schema",
+            "description": "The JSON schema that defines the NL Wallet PID VCT",
+            "type": "object",
+            "properties": {
+              "birth_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "place_of_birth": {
+                "type": "object",
+                    "properties": {
+                        "locality": {
+                            "type": "string",
+                        },
+                        "country": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                },
+                                "area_code": {
+                                    "type": "number",
+                                },
+                            }
+                        }
+                    }
+              },
+              "financial": {
+                "type": "object",
+                    "properties": {
+                        "has_debt": {
+                            "type": "boolean",
+                        },
+                        "has_job": {
+                            "type": "boolean",
+                        },
+                        "debt_amount": {
+                            "type": "number",
+                        }
+                    }
+              },
+              "vct": {
+                "type": "string"
+              },
+              "vct#integrity": {
+                "type": "string"
+              },
+              "iss": {
+                "type": "string"
+              },
+              "iat": {
+                "type": "number"
+              },
+              "exp": {
+                "type": "number"
+              },
+              "nbf": {
+                "type": "number"
+              }
+            },
+            "required": ["vct", "iss", "iat"],
+            "additionalProperties": false
+          }
+        }))
+        .unwrap();
+
+        payload.validate(&metadata).unwrap();
     }
 
     #[test]

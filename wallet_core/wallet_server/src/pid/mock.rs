@@ -289,7 +289,7 @@ pub fn mock_pid_metadata() -> TypeMetadata {
           "family_name": {
             "type": "string"
           },
-          "birthdate": {
+          "birth_date": {
             "type": "string",
             "format": "date"
           },
@@ -312,6 +312,9 @@ pub fn mock_pid_metadata() -> TypeMetadata {
             "type": "number"
           },
           "exp": {
+            "type": "number"
+          },
+          "nbf": {
             "type": "number"
           }
         },
@@ -430,7 +433,7 @@ pub fn mock_address_metadata() -> TypeMetadata {
             "type": "string"
           },
           "resident_city": {
-            "type": "boolean"
+            "type": "string"
           },
           "vct": {
             "type": "string"
@@ -442,10 +445,13 @@ pub fn mock_address_metadata() -> TypeMetadata {
             "type": "string"
           },
           "iat": {
-            "type": "string"
+            "type": "number"
           },
           "exp": {
-            "type": "string"
+            "type": "number"
+          },
+          "nbf": {
+            "type": "number"
           }
         },
         "required": [

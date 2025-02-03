@@ -30,6 +30,8 @@ pub enum TypeMetadataError {
         expected: ResourceIntegrity,
         actual: ResourceIntegrity,
     },
+    #[error("schema option {0:?} is not supported")]
+    UnsupportedSchemaOption(SchemaOption),
 }
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
@@ -82,7 +84,7 @@ impl TypeMetadataChain {
 
     fn into_destructured(self) -> (VecNonEmpty<TypeMetadata>, ResourceIntegrity) {
         (
-            // unwrap is safe here because there is always at least one item (root)
+            // Unwrapping is safe since we're mapping from a `VecNonEmpty` to a `VecNonEmpty`
             VecNonEmpty::try_from(self.metadata.into_inner().into_iter().map(|m| m.0).collect::<Vec<_>>()).unwrap(),
             self.root_integrity,
         )
@@ -177,6 +179,15 @@ impl TypeMetadata {
         let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
         Ok(serde_json::from_slice(&bytes)?)
     }
+
+    pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
+        if let SchemaOption::Embedded { schema } = &self.schema {
+            jsonschema::draft202012::validate(schema.as_ref(), json_claims).map_err(ValidationError::to_owned)?;
+            Ok(())
+        } else {
+            Err(TypeMetadataError::UnsupportedSchemaOption(self.schema.clone()))
+        }
+    }
 }
 
 impl TryFrom<Vec<u8>> for TypeMetadata {
@@ -235,7 +246,10 @@ pub enum SchemaOption {
     },
 }
 
-#[nutype(validate(with = validate_json_schema, error = TypeMetadataError), derive(Debug, Clone, Serialize, Deserialize))]
+#[nutype(
+    validate(with = validate_json_schema, error = TypeMetadataError),
+    derive(Debug, Clone, AsRef, Serialize, Deserialize)
+)]
 pub struct JsonSchema(serde_json::Value);
 
 fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataError> {
@@ -489,14 +503,7 @@ mod test {
             metadata.claims[5].path.clone().into_inner()
         );
 
-        match metadata.schema {
-            SchemaOption::Embedded { schema } => {
-                assert!(jsonschema::draft202012::is_valid(&schema.into_inner(), &claims))
-            }
-            SchemaOption::Remote { .. } => {
-                panic!("Remote schema option is not supported")
-            }
-        }
+        metadata.validate(&claims).unwrap();
     }
 
     #[tokio::test]
@@ -509,14 +516,7 @@ mod test {
           }
         });
 
-        match metadata.schema {
-            SchemaOption::Embedded { schema } => {
-                assert!(jsonschema::draft202012::validate(&schema.into_inner(), &claims).is_err())
-            }
-            SchemaOption::Remote { .. } => {
-                panic!("Remote schema option is not supported")
-            }
-        }
+        assert!(metadata.validate(&claims).is_err());
     }
 
     #[tokio::test]
