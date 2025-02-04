@@ -88,7 +88,7 @@ impl TypeMetadataChain {
     }
 
     pub fn verify_and_destructure(self) -> Result<(Vec<TypeMetadata>, ResourceIntegrity), TypeMetadataError> {
-        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?;
+        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?; // TODO: verify chain in PVW-3824
         self.root_integrity.verify(&bytes)?;
         Ok(self.into_destructured())
     }
