@@ -23,8 +23,8 @@ necessary to do when working on issues and changes.
 ## Things we check every pull- or merge request
 
 We check the following things before considering an issue or change "done". This
-list is also included in our default MR template, so it gets checked every time
-we merge something to main.
+list is also included in our default pull- or merge-template, so it gets checked
+every time we merge something to main.
 
 ### Has a related issue ticket with a correct issue type and description
 
