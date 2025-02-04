@@ -243,13 +243,13 @@ mod test {
     use crate::credential_payload::CredentialPayload;
 
     #[rstest]
-    #[case(vec![], "com.example.pid")]
-    #[case(vec!["place_of_birth"], "com.example.pid.place_of_birth")]
-    #[case(vec!["place_of_birth", "country"], "com.example.pid.place_of_birth.country")]
-    fn test_split_namespace(#[case] expected: Vec<&str>, #[case] namespace: &str) {
+    #[case(vec![], "com.example.pid", "com.example.pid")]
+    #[case(vec!["place_of_birth"], "com.example.pid.place_of_birth", "com.example.pid")]
+    #[case(vec!["place_of_birth", "country"], "com.example.pid.place_of_birth.country", "com.example.pid")]
+    fn test_split_namespace(#[case] expected: Vec<&str>, #[case] namespace: &str, #[case] doc_type: &str) {
         assert_eq!(
             expected.into_iter().map(String::from).collect::<Vec<_>>(),
-            CredentialPayload::split_namespace(namespace, "com.example.pid")
+            CredentialPayload::split_namespace(namespace, doc_type)
         );
     }
 
