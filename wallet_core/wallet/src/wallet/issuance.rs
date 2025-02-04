@@ -55,7 +55,6 @@ use crate::storage::WalletEvent;
 use crate::wallet::attestations::AttestationsError;
 use crate::wte::WteIssuanceClient;
 
-use super::documents::DocumentsError;
 use super::history::EventStorageError;
 use super::Wallet;
 
@@ -110,8 +109,6 @@ pub enum PidIssuanceError {
     #[error("issuer not authenticated")]
     #[category(critical)]
     MissingIssuerRegistration,
-    #[error("could not read documents from storage: {0}")]
-    Document(#[source] DocumentsError),
     #[error("could not read attestations from storage: {0}")]
     Attestations(#[source] AttestationsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]

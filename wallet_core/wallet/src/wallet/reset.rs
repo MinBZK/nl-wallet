@@ -57,11 +57,7 @@ where
             self.issuance_session.take();
             self.disclosure_session.take();
 
-            // Send empty collections to both the documents and recent history callbacks, if present.
-            if let Some(ref mut documents_callback) = self.documents_callback {
-                documents_callback(vec![]);
-            }
-
+            // Send empty collections to both the attestations and recent history callbacks, if present.
             if let Some(ref mut attestations_callback) = self.attestations_callback {
                 attestations_callback(vec![]);
             }
