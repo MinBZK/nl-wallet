@@ -26,8 +26,8 @@ strikethrough instead).*
 - [ ] Does not contain commits with inappropriate contents
 - [ ] Is in compliance with our coding and quality standards
 - [ ] Succesfully passes the relevant Sonar quality gate
-- [ ] Configured any relevant CI/CD pipeline variables
-- [ ] Configured any relevant CI/CD pipeline changes
-- [ ] Configured any relevant Kubernetes objects
+- [ ] Configures any relevant CI/CD pipeline variables
+- [ ] Configures any relevant CI/CD pipeline changes
+- [ ] Configures any relevant Kubernetes objects
 
 *The above items are described in our [definition of done](./documentation/wow/definition-of-done.md).*
