@@ -11,7 +11,7 @@ strikethrough instead).*
 - [ ] Has a related issue ticket with a correct issue type and description
 - [ ] Is implemented as described in the aforementioned issue ticket
 - [ ] Implements any tests as specified in the related issue ticket
-- [ ] Has new or existing unit- and integration tests passing
+- [ ] Has unit- and integration tests which prove its correctness
 - [ ] Implements any screens according to Figma design (if any)
 - [ ] Is featured and described in the upcoming release notes
 - [ ] Has any breaking changes documented in the release notes
