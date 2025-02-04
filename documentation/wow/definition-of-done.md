@@ -1,3 +1,111 @@
+Blah.
+
+[[_TOC_]]
+
+## Rationale
+
+Blah.
+
+## Things we check
+
+Blah.
+
+### Has a related issue ticket with a correct issue type and description
+
+Blah.
+
+### Is implemented as described in the aforementioned issue ticket
+
+Blah.
+
+### Implements any tests as specified in the related issue ticket
+
+Blah.
+
+### Has unit- and integration tests which prove its correctness
+
+Blah.
+
+### Implements any screens according to Figma design (if any)
+
+Blah.
+
+### Is featured and described in the upcoming release notes
+
+Blah.
+
+### Has any breaking changes documented in the release notes
+
+Blah.
+
+### Has any upgrade steps documented in the release notes
+
+Blah.
+
+### Has updated any README.md files related to these changes
+
+Blah.
+
+### Has any API changes reflected in the OpenAPI YAML documention
+
+Blah.
+
+### Has updated any related documentation in the documentation folder
+
+Blah.
+
+### Has any incurred technical debt reflected by a TODO comment in code
+
+Blah.
+
+### Does not contain commits with personally identifiable information
+
+Blah.
+
+### Does not contain commits with secrets or internal identifiers
+
+Blah.
+
+### Does not contain commits with copyrighted files or data
+
+Blah.
+
+### Does not contain commits with other sensitive details
+
+Blah.
+
+### Is in compliance with our coding and quality standards
+
+Blah.
+
+### Succesfully passes the relevant Sonar quality gate
+
+Blah.
+
+### Configured any relevant CI/CD pipeline variables
+
+Blah.
+
+### Configured any relevant CI/CD pipeline changes
+
+Blah.
+
+### Configured any relevant Kubernetes objects
+
+Blah.
+
+
+
+
+
+
+
+
+
+
+
+---------------------- old stuff below ----------------
+
 RATIONALE AND/OR IMPORTANT IMPLEMENTATION DECISIONS FOR THE REVIEWER
 
 ## Review checklist
