@@ -20,7 +20,7 @@ necessary to do when working on issues and changes.
   by at least one colleague which specifically checks the list of items
   described below
 
-## Things we check
+## Things we check every pull- or merge request
 
 We check the following things before considering an issue or change "done". This
 list is also included in our default MR template, so it gets checked every time
