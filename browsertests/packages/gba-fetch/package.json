@@ -1,0 +1,12 @@
+{
+    "name": "gba-fetch-browsertests",
+    "description": "Browsertest for GBA fetch",
+    "scripts": {
+      "test:authenticated": "npx playwright test --config=config/clientcert.config.js",
+      "test:unauthenticated": "npx playwright test --config=config/noclientcert.config.js"
+    },
+    "dependencies": {
+      "@playwright/test": "^1.50.0"
+    }
+  }
+  
