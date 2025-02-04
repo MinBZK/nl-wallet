@@ -1,5 +1,4 @@
-*Give a short description of this change here (a full description should be a
-part of the related issue ticket).*
+*Give a short description of this change here.*
 
 *This change-type should be used for tiny/basic/quick fixes that do not require
 a full review as we do in a default change-type. Note that we do always need to
