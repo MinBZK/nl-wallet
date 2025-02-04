@@ -23,7 +23,7 @@ strikethrough instead).*
 - [ ] Does not contain commits with personally identifiable information
 - [ ] Does not contain commits with secrets or internal identifiers
 - [ ] Does not contain commits with copyrighted files or data
-- [ ] Does not contain commits with other sensitive details
+- [ ] Does not contain commits with inappropriate contents
 - [ ] Is in compliance with our coding and quality standards
 - [ ] Succesfully passes the relevant Sonar quality gate
 - [ ] Configured any relevant CI/CD pipeline variables
