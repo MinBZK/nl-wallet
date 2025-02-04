@@ -115,7 +115,7 @@ impl CredentialPayload {
     /// Convert a map of namespaced entries (`Entry`) to a `CredentialPayload`. The namespace is assumed to consist of
     /// nested group names, joined by a '.' and prefixed with the attestation_type.
     ///
-    /// The JSON representation of the input and output of this function is as follows:
+    /// If the `attributes` input parameter is as follows (denoted here in JSON):
     /// ```json
     /// {
     ///     "com.example.pid": {
@@ -130,6 +130,8 @@ impl CredentialPayload {
     ///     }
     /// }
     /// ```
+    ///
+    /// Then the output is as follows (denoted here in JSON):
     /// ```json
     /// {
     ///     "birthdate": "1963-08-12",
@@ -142,6 +144,9 @@ impl CredentialPayload {
     ///     }
     /// }
     /// ```
+    ///
+    /// Note in particular that attributes in a namespace whose names equals the `doc_type` parameter are mapped to the
+    /// root level of the output.
     pub fn from_mdoc_attributes(
         doc_type: String,
         attributes: &IndexMap<NameSpace, Vec<Entry>>,
