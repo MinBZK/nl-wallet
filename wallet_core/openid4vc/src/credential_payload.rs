@@ -20,7 +20,7 @@ use nl_wallet_mdoc::NameSpace;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CredentialPayloadError {
     #[error("unable to strip namespace '{namespace}' from key '{key}'")]
-    #[category(critical)]
+    #[category(pd)]
     NamespaceStripping { namespace: String, key: String },
 
     #[error("unable to convert mdoc TDate to DateTime<Utc>")]

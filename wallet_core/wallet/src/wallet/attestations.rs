@@ -33,7 +33,7 @@ pub enum AttestationsError {
     #[category(critical)]
     MissingIssuerRegistration,
     #[error("error converting mdoc to credential payload: {0}")]
-    #[category(critical)]
+    #[category(defer)]
     CredentialPayload(#[from] CredentialPayloadError),
     #[error("error converting credential payload to attestation: {0}")]
     #[category(defer)]
