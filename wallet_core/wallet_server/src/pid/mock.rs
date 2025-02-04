@@ -33,7 +33,7 @@ impl From<Gender> for AttributeValue {
             Female => 2,
             NotApplicable => 9,
         };
-        AttributeValue::Number(value as isize)
+        AttributeValue::Number(value.into())
     }
 }
 

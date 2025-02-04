@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use nl_wallet_mdoc::utils::auth::Organization;
-use openid4vc::credential_payload::Attribute;
+use openid4vc::attributes::Attribute;
 use openid4vc::credential_payload::CredentialPayload;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::TypeMetadata;
@@ -84,8 +84,8 @@ mod test {
     use indexmap::IndexMap;
 
     use nl_wallet_mdoc::utils::auth::Organization;
-    use openid4vc::credential_payload::Attribute;
-    use openid4vc::credential_payload::AttributeValue;
+    use openid4vc::attributes::Attribute;
+    use openid4vc::attributes::AttributeValue;
     use openid4vc::credential_payload::CredentialPayload;
     use sd_jwt::metadata::ClaimMetadata;
     use sd_jwt::metadata::ClaimPath;

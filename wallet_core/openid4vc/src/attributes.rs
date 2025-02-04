@@ -1,4 +1,5 @@
 use std::num::NonZeroU8;
+use std::num::TryFromIntError;
 
 use indexmap::IndexMap;
 use serde::Deserialize;
@@ -8,6 +9,7 @@ use serde_valid::Validate;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::Tdate;
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -15,16 +17,45 @@ use wallet_common::vec_at_least::VecNonEmpty;
 #[serde(untagged)]
 pub enum AttributeValue {
     Text(String),
-    Number(isize),
+    Number(i128),
     Bool(bool),
 }
 
-impl From<&AttributeValue> for ciborium::Value {
-    fn from(value: &AttributeValue) -> Self {
+#[derive(Debug, thiserror::Error)]
+pub enum AttributeError {
+    #[error("unable to convert mdoc value: {0:?}")]
+    FromCborConversion(DataElementValue),
+
+    #[error("unable to convert number to cbor: {0}")]
+    NumberToCborConversion(#[from] TryFromIntError),
+
+    #[error("unable instantiate UnsignedAttributes: {0}")]
+    UnsignedAttributes(#[from] UnsignedAttributesError),
+}
+
+impl TryFrom<&AttributeValue> for ciborium::Value {
+    type Error = AttributeError;
+
+    fn try_from(value: &AttributeValue) -> Result<Self, Self::Error> {
         match value {
-            AttributeValue::Text(text) => ciborium::Value::Text(text.to_owned()),
-            AttributeValue::Number(number) => ciborium::Value::Integer((*number).into()),
-            AttributeValue::Bool(boolean) => ciborium::Value::Bool(*boolean),
+            AttributeValue::Text(text) => Ok(ciborium::Value::Text(text.to_owned())),
+            AttributeValue::Number(number) => Ok(ciborium::Value::Integer(
+                (*number).try_into().map_err(AttributeError::NumberToCborConversion)?,
+            )),
+            AttributeValue::Bool(boolean) => Ok(ciborium::Value::Bool(*boolean)),
+        }
+    }
+}
+
+impl TryFrom<DataElementValue> for AttributeValue {
+    type Error = AttributeError;
+
+    fn try_from(value: DataElementValue) -> Result<Self, Self::Error> {
+        match value {
+            DataElementValue::Text(text) => Ok(AttributeValue::Text(text)),
+            DataElementValue::Bool(bool) => Ok(AttributeValue::Bool(bool)),
+            DataElementValue::Integer(integer) => Ok(AttributeValue::Number(integer.into())),
+            _ => Err(AttributeError::FromCborConversion(value)),
         }
     }
 }
@@ -82,24 +113,26 @@ impl IssuableDocument {
         namespace: String,
         attributes: &IndexMap<String, Attribute>,
         result: &mut IndexMap<String, Vec<Entry>>,
-    ) {
+    ) -> Result<(), AttributeError> {
         let mut entries = vec![];
         for (key, value) in attributes {
             match value {
                 Attribute::Single(single) => {
                     entries.push(Entry {
                         name: key.to_owned(),
-                        value: single.into(),
+                        value: single.try_into()?,
                     });
                 }
                 Attribute::Nested(nested) => {
                     let key = format!("{}.{}", namespace, key);
-                    Self::walk_attributes_recursive(key, nested, result);
+                    Self::walk_attributes_recursive(key, nested, result)?;
                 }
             }
         }
 
         result.insert(namespace, entries);
+
+        Ok(())
     }
 
     /// Convert an issuable document into an `UnsignedMdoc`. This is done by walking down the tree of attributes and
@@ -135,9 +168,9 @@ impl IssuableDocument {
         valid_from: Tdate,
         valid_until: Tdate,
         copy_count: NonZeroU8,
-    ) -> Result<UnsignedMdoc, UnsignedAttributesError> {
+    ) -> Result<UnsignedMdoc, AttributeError> {
         let mut flattened = IndexMap::new();
-        Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened);
+        Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened)?;
 
         Ok(UnsignedMdoc {
             doc_type: self.attestation_type.clone(),
@@ -184,9 +217,7 @@ mod test {
             .collect()
     }
 
-    fn issuable_attrs_to_unsigned_mdocs(
-        issuable: &IssuableDocuments,
-    ) -> Result<Vec<UnsignedMdoc>, UnsignedAttributesError> {
+    fn issuable_attrs_to_unsigned_mdocs(issuable: &IssuableDocuments) -> Result<Vec<UnsignedMdoc>, AttributeError> {
         issuable
             .as_ref()
             .iter()

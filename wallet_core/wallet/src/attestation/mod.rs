@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::utils::auth::Organization;
-use openid4vc::credential_payload::AttributeValue;
+use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
 use sd_jwt::metadata::ClaimMetadata;
 use sd_jwt::metadata::DisplayMetadata;

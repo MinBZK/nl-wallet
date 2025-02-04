@@ -1,3 +1,5 @@
+//! module doc
+
 pub mod attestation;
 pub mod config;
 pub mod disclosure;

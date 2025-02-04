@@ -14,8 +14,10 @@ use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::NameSpace;
+
+use crate::attributes::Attribute;
+use crate::attributes::AttributeError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum CredentialPayloadError {
@@ -27,37 +29,9 @@ pub enum CredentialPayloadError {
     #[category(critical)]
     DateConversion(#[from] ParseError),
 
-    #[error("unable to convert mdoc value to AttributeValue: {0:?}")]
+    #[error("attribute error: {0}")]
     #[category(pd)]
-    ValueConversion(DataElementValue),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum AttributeValue {
-    Text(String),
-    Number(i128),
-    Bool(bool),
-}
-
-impl TryFrom<DataElementValue> for AttributeValue {
-    type Error = CredentialPayloadError;
-
-    fn try_from(value: DataElementValue) -> Result<Self, Self::Error> {
-        match value {
-            DataElementValue::Text(text) => Ok(AttributeValue::Text(text)),
-            DataElementValue::Bool(bool) => Ok(AttributeValue::Bool(bool)),
-            DataElementValue::Integer(integer) => Ok(AttributeValue::Number(integer.into())),
-            _ => Err(CredentialPayloadError::ValueConversion(value)),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Attribute {
-    Single(AttributeValue),
-    Nested(IndexMap<String, Attribute>),
+    Attribute(#[from] AttributeError),
 }
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
