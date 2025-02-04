@@ -1,14 +1,14 @@
-Blah.
+This Definition of Done (the DoD) is a mutual agreement between the development
+team and the product owner. It is a effectively a list of things we consider
+necessary to do when working on issues and changes.
 
 [[_TOC_]]
 
-## Rationale
-
-Blah.
-
 ## Things we check
 
-Blah.
+We check the following things before considering an issue or change "done". This
+list is also included in our default MR template, so it gets checked every time
+we merge something to main.
 
 ### Has a related issue ticket with a correct issue type and description
 
@@ -70,7 +70,7 @@ Blah.
 
 Blah.
 
-### Does not contain commits with other sensitive details
+### Does not contain commits with inappropriate contents
 
 Blah.
 
