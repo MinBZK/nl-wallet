@@ -20,10 +20,8 @@ test-flutter:
       - wallet_app/build/reports/test-results.xml
 
 test-flutter-ui:
+  extends: [.env-macos-runner, .ruby-cache-macos]
   rules: !reference [.default-or-release-or-merge-request, rules]
-  tags:
-    - macos
-  image: sonoma-wallet:0.1.6
   artifacts:
     name: "ui-test"
     when: always

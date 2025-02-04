@@ -31,7 +31,6 @@ class LightWalletTheme {
   static const bottomNavigationUnselectedColor = Color(0xFF445581);
   static const focusColor = _Colors.actionPrimaryBgHover;
   static const primaryColorDark = Color(0xFF152A62);
-  static const sheetBackgroundColor = Color(0xFFFFFFFF);
   static const textColor = primaryColorDark;
 
   // TextTheme
@@ -42,7 +41,6 @@ class LightWalletTheme {
 
   // DialogTheme
   static final dialogTheme = DialogTheme(
-    backgroundColor: sheetBackgroundColor,
     titleTextStyle: textTheme.headlineSmall,
     surfaceTintColor: Colors.transparent,
     shape: RoundedRectangleBorder(
@@ -152,7 +150,6 @@ class LightWalletTheme {
   );
 
   static final bottomSheetTheme = BaseWalletTheme.baseBottomSheetTheme.copyWith(
-    backgroundColor: sheetBackgroundColor,
     surfaceTintColor: Colors.transparent,
   );
 
