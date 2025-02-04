@@ -9,9 +9,10 @@ strikethrough instead).*
 ### The reviewer asserts that this change:
 
 - [ ] Has a related issue ticket with a correct issue type and description
-- [ ] Is implemented in accordance with the related issue ticket
+- [ ] Is implemented as described in the aforementioned issue ticket
 - [ ] Implements any tests as specified in the related issue ticket
-- [ ] Implements any screens according to the Figma design (if any)
+- [ ] Has new or existing unit- and integration tests passing
+- [ ] Implements any screens according to Figma design (if any)
 - [ ] Is featured and described in the upcoming release notes
 - [ ] Has any breaking changes documented in the release notes
 - [ ] Has any upgrade steps documented in the release notes
@@ -28,3 +29,5 @@ strikethrough instead).*
 - [ ] Configured any relevant CI/CD pipeline variables
 - [ ] Configured any relevant CI/CD pipeline changes
 - [ ] Configured any relevant Kubernetes objects
+
+*The above items are described in our [definition of done](./documentation/wow/definition-of-done.md).*

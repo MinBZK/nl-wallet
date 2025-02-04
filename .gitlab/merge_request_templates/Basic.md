@@ -9,3 +9,5 @@ identifiers or other sensitive details.*
 - [ ] Does not contain commits with copyrighted files or data
 - [ ] Does not contain commits with secrets or internal identifiers
 - [ ] Does not contain commits with other sensitive details
+
+*The above items are described in our [definition of done](./documentation/wow/definition-of-done.md).*
