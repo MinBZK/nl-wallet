@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250128-0f78cc9d"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250204-3b5b7341"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
