@@ -36,7 +36,7 @@ pub enum AttestationsError {
     #[category(critical)]
     CredentialPayload(#[from] CredentialPayloadError),
     #[error("error converting credential payload to attestation: {0}")]
-    #[category(critical)]
+    #[category(defer)]
     Attestation(#[from] AttestationError),
 }
 
