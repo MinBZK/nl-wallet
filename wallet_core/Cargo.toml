@@ -111,7 +111,7 @@ mime = "0.3.17"
 mockall = "0.13.0"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
-nutype = "0.5.1"
+nutype = "0.6.0"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 passkey-types = "0.4.0"
