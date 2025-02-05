@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::collections::VecDeque;
 
 use indexmap::IndexMap;
@@ -21,7 +22,7 @@ impl Attestation {
         metadata: TypeMetadata,
         issuer_organization: Organization,
     ) -> Result<Self, AttestationError> {
-        let attributes = metadata
+        let attributes: Vec<AttestationAttribute> = metadata
             .claims
             .into_iter()
             .map(|claim| {
@@ -35,12 +36,21 @@ impl Attestation {
 
                 let attribute = AttestationAttribute {
                     key,
-                    value: attribute_value.into(),
+                    value: attribute_value.clone(),
                     labels: claim.display.into_iter().map(LocalizedString::from).collect(),
                 };
                 Ok(attribute)
             })
             .collect::<Result<_, _>>()?;
+
+        let processed_keys = attributes.iter().map(|attr| attr.key.clone()).collect::<HashSet<_>>();
+        let all_keys = payload.collect_keys().into_iter().collect::<HashSet<_>>();
+        let difference = all_keys.difference(&processed_keys).collect::<Vec<_>>();
+        if !difference.is_empty() {
+            return Err(AttestationError::AttributeNotProcessedByClaim(
+                difference.into_iter().map(String::from).collect(),
+            ));
+        }
 
         let attestation = Attestation {
             identity,
@@ -95,7 +105,6 @@ mod test {
     use crate::attestation::AttestationError;
     use crate::Attestation;
     use crate::AttestationIdentity;
-    use crate::AttestationValue;
 
     static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
         IndexMap::from([
@@ -116,40 +125,42 @@ mod test {
         ])
     });
 
-    #[test]
-    fn test_from_credential_payload_happy() {
+    fn example_credential_payload() -> CredentialPayload {
         let attributes = &*ATTRIBUTES;
 
-        let mut metadata = TypeMetadata::new_example();
-        metadata.claims = vec![
-            ClaimMetadata {
-                path: vec![ClaimPath::SelectByKey(String::from("single"))].try_into().unwrap(),
-                display: vec![],
-                sd: ClaimSelectiveDisclosureMetadata::Always,
-                svg_id: None,
-            },
-            ClaimMetadata {
-                path: vec![
-                    ClaimPath::SelectByKey(String::from("nested_1a")),
-                    ClaimPath::SelectByKey(String::from("nested_1b")),
-                    ClaimPath::SelectByKey(String::from("nested_1c")),
-                ]
-                .try_into()
-                .unwrap(),
-                display: vec![],
-                sd: ClaimSelectiveDisclosureMetadata::Always,
-                svg_id: None,
-            },
-        ];
-
-        let payload = CredentialPayload {
-            attestation_type: String::from("pid456"),
-            issuer: Uri::from_static("data://org.example.com/org1"),
+        CredentialPayload {
+            attestation_type: String::from("pid123"),
+            issuer: Uri::from_static("data://org.example.com/org2"),
             issued_at: Some(Utc::now()),
             expires: Some(Utc::now()),
             not_before: None,
             attributes: attributes.clone(),
-        };
+        }
+    }
+
+    fn claim_metadata(keys: &[&str]) -> ClaimMetadata {
+        ClaimMetadata {
+            path: keys
+                .iter()
+                .map(|key| ClaimPath::SelectByKey(String::from(*key)))
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap(),
+            display: vec![],
+            sd: ClaimSelectiveDisclosureMetadata::Always,
+            svg_id: None,
+        }
+    }
+
+    #[test]
+    fn test_from_credential_payload_happy() {
+        let mut metadata = TypeMetadata::bsn_only_example();
+        metadata.claims = vec![
+            claim_metadata(&["single"]),
+            claim_metadata(&["nested_1a", "nested_1b", "nested_1c"]),
+        ];
+
+        let payload = example_credential_payload();
 
         let attestation = Attestation::from_credential_payload(
             AttestationIdentity::Ephemeral,
@@ -166,9 +177,9 @@ mod test {
                 (
                     attr.key.as_str(),
                     match &attr.value {
-                        AttestationValue::String { value } => value.to_string(),
-                        AttestationValue::Boolean { value } => value.to_string(),
-                        AttestationValue::Number { value } => value.to_string(),
+                        AttributeValue::Number(value) => value.to_string(),
+                        AttributeValue::Bool(value) => value.to_string(),
+                        AttributeValue::Text(value) => value.to_string(),
                     },
                 )
             })
@@ -185,26 +196,10 @@ mod test {
 
     #[test]
     fn test_from_credential_payload_attribute_not_found() {
-        let attributes = &*ATTRIBUTES;
+        let mut metadata = TypeMetadata::bsn_only_example();
+        metadata.claims = vec![claim_metadata(&["not_found"])];
 
-        let mut metadata = TypeMetadata::new_example();
-        metadata.claims = vec![ClaimMetadata {
-            path: vec![ClaimPath::SelectByKey(String::from("not_found"))]
-                .try_into()
-                .unwrap(),
-            display: vec![],
-            sd: ClaimSelectiveDisclosureMetadata::Always,
-            svg_id: None,
-        }];
-
-        let payload = CredentialPayload {
-            attestation_type: String::from("pid123"),
-            issuer: Uri::from_static("data://org.example.com/org2"),
-            issued_at: Some(Utc::now()),
-            expires: Some(Utc::now()),
-            not_before: None,
-            attributes: attributes.clone(),
-        };
+        let payload = example_credential_payload();
 
         let attestation = Attestation::from_credential_payload(
             AttestationIdentity::Ephemeral,
@@ -213,6 +208,25 @@ mod test {
             Organization::new_mock(),
         );
         assert_matches!(attestation, Err(AttestationError::AttributeNotFoundForClaim(_)));
+    }
+
+    #[test]
+    fn test_from_credential_payload_attribute_not_processed() {
+        let mut metadata = TypeMetadata::bsn_only_example();
+        metadata.claims = vec![claim_metadata(&["nested_1a", "nested_1b", "nested_1c"])];
+
+        let payload = example_credential_payload();
+
+        let attestation = Attestation::from_credential_payload(
+            AttestationIdentity::Ephemeral,
+            payload,
+            metadata,
+            Organization::new_mock(),
+        );
+        assert_matches!(
+            attestation,
+            Err(AttestationError::AttributeNotProcessedByClaim(keys)) if keys == vec![String::from("single")]
+        );
     }
 
     #[test]

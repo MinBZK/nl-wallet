@@ -245,7 +245,7 @@ pub mod mock {
                 .issuer_auth
                 .unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))
                 .unwrap();
-            let metadata_chain = TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap();
+            let metadata_chain = TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap();
 
             issuer_signed.issuer_auth.0.unprotected =
                 IssuerSigned::create_unprotected_header(x5chain.clone().into_bytes().unwrap(), metadata_chain).unwrap();

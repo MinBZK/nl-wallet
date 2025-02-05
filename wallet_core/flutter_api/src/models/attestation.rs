@@ -1,4 +1,3 @@
-use wallet::AttributeValue;
 use wallet::Document;
 use wallet::DocumentPersistence;
 
@@ -117,7 +116,7 @@ impl From<wallet::sd_jwt::LogoMetadata> for LogoMetadata {
 pub struct AttestationAttribute {
     pub key: String,
     pub labels: Vec<LocalizedString>,
-    pub value: AttestationValue,
+    pub value: AttributeValue,
 }
 
 impl From<wallet::AttestationAttribute> for AttestationAttribute {
@@ -143,9 +142,9 @@ impl From<(wallet::AttributeKey, wallet::Attribute)> for AttestationAttribute {
                 })
                 .collect(),
             value: match value.value {
-                AttributeValue::String(value) => AttestationValue::String { value },
-                AttributeValue::Boolean(value) => AttestationValue::Boolean { value },
-                AttributeValue::Date(value) => AttestationValue::String {
+                wallet::AttributeValue::String(value) => AttributeValue::String { value },
+                wallet::AttributeValue::Boolean(value) => AttributeValue::Boolean { value },
+                wallet::AttributeValue::Date(value) => AttributeValue::String {
                     value: value.to_string(),
                 },
                 _ => unimplemented!(),
@@ -154,18 +153,18 @@ impl From<(wallet::AttributeKey, wallet::Attribute)> for AttestationAttribute {
     }
 }
 
-pub enum AttestationValue {
+pub enum AttributeValue {
     String { value: String },
     Boolean { value: bool },
-    Number { value: i128 },
+    Number { value: i64 },
 }
 
-impl From<wallet::AttestationValue> for AttestationValue {
-    fn from(value: wallet::AttestationValue) -> Self {
+impl From<wallet::openid4vc::AttributeValue> for AttributeValue {
+    fn from(value: wallet::openid4vc::AttributeValue) -> Self {
         match value {
-            wallet::AttestationValue::String { value } => AttestationValue::String { value },
-            wallet::AttestationValue::Boolean { value } => AttestationValue::Boolean { value },
-            wallet::AttestationValue::Number { value } => AttestationValue::Number { value },
+            wallet::openid4vc::AttributeValue::Text(value) => AttributeValue::String { value },
+            wallet::openid4vc::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
+            wallet::openid4vc::AttributeValue::Number(value) => AttributeValue::Number { value },
         }
     }
 }

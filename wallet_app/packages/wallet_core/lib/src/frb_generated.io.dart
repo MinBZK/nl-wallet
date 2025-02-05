@@ -31,9 +31,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
-  BigInt dco_decode_I128(dynamic raw);
-
-  @protected
   RustStreamSink<bool> dco_decode_StreamSink_bool_Dco(dynamic raw);
 
   @protected
@@ -64,7 +61,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AttestationIdentity dco_decode_attestation_identity(dynamic raw);
 
   @protected
-  AttestationValue dco_decode_attestation_value(dynamic raw);
+  AttributeValue dco_decode_attribute_value(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
@@ -116,6 +113,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int dco_decode_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
   IdentifyUriResult dco_decode_identify_uri_result(dynamic raw);
@@ -217,9 +217,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
-  BigInt sse_decode_I128(SseDeserializer deserializer);
-
-  @protected
   RustStreamSink<bool> sse_decode_StreamSink_bool_Dco(SseDeserializer deserializer);
 
   @protected
@@ -250,7 +247,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AttestationIdentity sse_decode_attestation_identity(SseDeserializer deserializer);
 
   @protected
-  AttestationValue sse_decode_attestation_value(SseDeserializer deserializer);
+  AttributeValue sse_decode_attribute_value(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
@@ -302,6 +299,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
   IdentifyUriResult sse_decode_identify_uri_result(SseDeserializer deserializer);
@@ -403,12 +403,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_AnyhowException(AnyhowException raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     throw UnimplementedError();
-  }
-
-  @protected
-  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_I128(BigInt raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_String(raw.toString());
   }
 
   @protected
@@ -532,6 +526,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     final ptr = wire.cst_new_box_autoadd_wallet_instruction_error();
     cst_api_fill_to_wire_wallet_instruction_error(raw, ptr.ref);
     return ptr;
+  }
+
+  @protected
+  int cst_encode_i_64(PlatformInt64 raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return raw.toInt();
   }
 
   @protected
@@ -691,7 +691,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_api_fill_to_wire_attestation_attribute(AttestationAttribute apiObj, wire_cst_attestation_attribute wireObj) {
     wireObj.key = cst_encode_String(apiObj.key);
     wireObj.labels = cst_encode_list_localized_string(apiObj.labels);
-    cst_api_fill_to_wire_attestation_value(apiObj.value, wireObj.value);
+    cst_api_fill_to_wire_attribute_value(apiObj.value, wireObj.value);
   }
 
   @protected
@@ -709,21 +709,21 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_attestation_value(AttestationValue apiObj, wire_cst_attestation_value wireObj) {
-    if (apiObj is AttestationValue_String) {
+  void cst_api_fill_to_wire_attribute_value(AttributeValue apiObj, wire_cst_attribute_value wireObj) {
+    if (apiObj is AttributeValue_String) {
       var pre_value = cst_encode_String(apiObj.value);
       wireObj.tag = 0;
       wireObj.kind.String.value = pre_value;
       return;
     }
-    if (apiObj is AttestationValue_Boolean) {
+    if (apiObj is AttributeValue_Boolean) {
       var pre_value = cst_encode_bool(apiObj.value);
       wireObj.tag = 1;
       wireObj.kind.Boolean.value = pre_value;
       return;
     }
-    if (apiObj is AttestationValue_Number) {
-      var pre_value = cst_encode_I128(apiObj.value);
+    if (apiObj is AttributeValue_Number) {
+      var pre_value = cst_encode_i_64(apiObj.value);
       wireObj.tag = 2;
       wireObj.kind.Number.value = pre_value;
       return;
@@ -1049,9 +1049,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
 
   @protected
-  void sse_encode_I128(BigInt self, SseSerializer serializer);
-
-  @protected
   void sse_encode_StreamSink_bool_Dco(RustStreamSink<bool> self, SseSerializer serializer);
 
   @protected
@@ -1084,7 +1081,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_attestation_identity(AttestationIdentity self, SseSerializer serializer);
 
   @protected
-  void sse_encode_attestation_value(AttestationValue self, SseSerializer serializer);
+  void sse_encode_attribute_value(AttributeValue self, SseSerializer serializer);
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
@@ -1136,6 +1133,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
   void sse_encode_identify_uri_result(IdentifyUriResult self, SseSerializer serializer);
@@ -2160,32 +2160,33 @@ final class wire_cst_organization extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> country_code;
 }
 
-final class wire_cst_AttestationValue_String extends ffi.Struct {
+final class wire_cst_AttributeValue_String extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
 }
 
-final class wire_cst_AttestationValue_Boolean extends ffi.Struct {
+final class wire_cst_AttributeValue_Boolean extends ffi.Struct {
   @ffi.Bool()
   external bool value;
 }
 
-final class wire_cst_AttestationValue_Number extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
+final class wire_cst_AttributeValue_Number extends ffi.Struct {
+  @ffi.Int64()
+  external int value;
 }
 
-final class AttestationValueKind extends ffi.Union {
-  external wire_cst_AttestationValue_String String;
+final class AttributeValueKind extends ffi.Union {
+  external wire_cst_AttributeValue_String String;
 
-  external wire_cst_AttestationValue_Boolean Boolean;
+  external wire_cst_AttributeValue_Boolean Boolean;
 
-  external wire_cst_AttestationValue_Number Number;
+  external wire_cst_AttributeValue_Number Number;
 }
 
-final class wire_cst_attestation_value extends ffi.Struct {
+final class wire_cst_attribute_value extends ffi.Struct {
   @ffi.Int32()
   external int tag;
 
-  external AttestationValueKind kind;
+  external AttributeValueKind kind;
 }
 
 final class wire_cst_attestation_attribute extends ffi.Struct {
@@ -2193,7 +2194,7 @@ final class wire_cst_attestation_attribute extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_localized_string> labels;
 
-  external wire_cst_attestation_value value;
+  external wire_cst_attribute_value value;
 }
 
 final class wire_cst_list_attestation_attribute extends ffi.Struct {

@@ -980,12 +980,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  BigInt dco_decode_I128(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return BigInt.parse(raw);
-  }
-
-  @protected
   RustStreamSink<bool> dco_decode_StreamSink_bool_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
@@ -1060,7 +1054,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     return AttestationAttribute(
       key: dco_decode_String(arr[0]),
       labels: dco_decode_list_localized_string(arr[1]),
-      value: dco_decode_attestation_value(arr[2]),
+      value: dco_decode_attribute_value(arr[2]),
     );
   }
 
@@ -1080,20 +1074,20 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  AttestationValue dco_decode_attestation_value(dynamic raw) {
+  AttributeValue dco_decode_attribute_value(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
       case 0:
-        return AttestationValue_String(
+        return AttributeValue_String(
           value: dco_decode_String(raw[1]),
         );
       case 1:
-        return AttestationValue_Boolean(
+        return AttributeValue_Boolean(
           value: dco_decode_bool(raw[1]),
         );
       case 2:
-        return AttestationValue_Number(
-          value: dco_decode_I128(raw[1]),
+        return AttributeValue_Number(
+          value: dco_decode_i_64(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -1235,6 +1229,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   int dco_decode_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
+  }
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
   }
 
   @protected
@@ -1567,13 +1567,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  BigInt sse_decode_I128(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_String(deserializer);
-    return BigInt.parse(inner);
-  }
-
-  @protected
   RustStreamSink<bool> sse_decode_StreamSink_bool_Dco(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
@@ -1648,7 +1641,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_key = sse_decode_String(deserializer);
     var var_labels = sse_decode_list_localized_string(deserializer);
-    var var_value = sse_decode_attestation_value(deserializer);
+    var var_value = sse_decode_attribute_value(deserializer);
     return AttestationAttribute(key: var_key, labels: var_labels, value: var_value);
   }
 
@@ -1669,20 +1662,20 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  AttestationValue sse_decode_attestation_value(SseDeserializer deserializer) {
+  AttributeValue sse_decode_attribute_value(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
         var var_value = sse_decode_String(deserializer);
-        return AttestationValue_String(value: var_value);
+        return AttributeValue_String(value: var_value);
       case 1:
         var var_value = sse_decode_bool(deserializer);
-        return AttestationValue_Boolean(value: var_value);
+        return AttributeValue_Boolean(value: var_value);
       case 2:
-        var var_value = sse_decode_I128(deserializer);
-        return AttestationValue_Number(value: var_value);
+        var var_value = sse_decode_i_64(deserializer);
+        return AttributeValue_Number(value: var_value);
       default:
         throw UnimplementedError('');
     }
@@ -1822,6 +1815,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   int sse_decode_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getInt32();
+  }
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
   }
 
   @protected
@@ -2314,12 +2313,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_I128(BigInt self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.toString(), serializer);
-  }
-
-  @protected
   void sse_encode_StreamSink_bool_Dco(RustStreamSink<bool> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
@@ -2415,7 +2408,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.key, serializer);
     sse_encode_list_localized_string(self.labels, serializer);
-    sse_encode_attestation_value(self.value, serializer);
+    sse_encode_attribute_value(self.value, serializer);
   }
 
   @protected
@@ -2431,18 +2424,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_attestation_value(AttestationValue self, SseSerializer serializer) {
+  void sse_encode_attribute_value(AttributeValue self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
-      case AttestationValue_String(value: final value):
+      case AttributeValue_String(value: final value):
         sse_encode_i_32(0, serializer);
         sse_encode_String(value, serializer);
-      case AttestationValue_Boolean(value: final value):
+      case AttributeValue_Boolean(value: final value):
         sse_encode_i_32(1, serializer);
         sse_encode_bool(value, serializer);
-      case AttestationValue_Number(value: final value):
+      case AttributeValue_Number(value: final value):
         sse_encode_i_32(2, serializer);
-        sse_encode_I128(value, serializer);
+        sse_encode_i_64(value, serializer);
     }
   }
 
@@ -2566,6 +2559,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putInt32(self);
+  }
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
   }
 
   @protected

@@ -81,8 +81,6 @@ impl From<PersonAttributes> for IssuableDocument {
 #[derive(Default, Deserialize, Clone)]
 pub struct ResidentAttributes {
     address: Option<String>,
-    country: Option<String>,
-    state: Option<String>,
     city: Option<String>,
     postal_code: Option<String>,
     street: Option<String>,
@@ -97,18 +95,6 @@ impl From<ResidentAttributes> for IssuableDocument {
                 value.address.map(|v| {
                     (
                         PID_RESIDENT_ADDRESS.to_string(),
-                        Attribute::Single(AttributeValue::Text(v)),
-                    )
-                }),
-                value.country.map(|v| {
-                    (
-                        PID_RESIDENT_COUNTRY.to_string(),
-                        Attribute::Single(AttributeValue::Text(v)),
-                    )
-                }),
-                value.state.map(|v| {
-                    (
-                        PID_RESIDENT_STATE.to_string(),
                         Attribute::Single(AttributeValue::Text(v)),
                     )
                 }),
@@ -169,8 +155,6 @@ impl Default for MockAttributesLookup {
                     house_number: Some("147".to_owned()),
                     postal_code: Some("2511 DP".to_owned()),
                     city: Some("Den Haag".to_owned()),
-                    state: Some("Zuid-Holland".to_owned()),
-                    country: Some("NL".to_owned()),
                     ..ResidentAttributes::default()
                 }),
             ),

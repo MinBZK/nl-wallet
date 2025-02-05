@@ -922,6 +922,12 @@ impl CstDecode<i32> for i32 {
         self
     }
 }
+impl CstDecode<i64> for i64 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> i64 {
+        self
+    }
+}
 impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::uri::IdentifyUriResult {
@@ -967,14 +973,6 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <String>::sse_decode(deserializer);
         return flutter_rust_bridge::for_generated::anyhow::anyhow!("{}", inner);
-    }
-}
-
-impl SseDecode for i128 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <String>::sse_decode(deserializer);
-        return inner.parse().unwrap();
     }
 }
 
@@ -1079,7 +1077,7 @@ impl SseDecode for crate::models::attestation::AttestationAttribute {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_key = <String>::sse_decode(deserializer);
         let mut var_labels = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-        let mut var_value = <crate::models::attestation::AttestationValue>::sse_decode(deserializer);
+        let mut var_value = <crate::models::attestation::AttributeValue>::sse_decode(deserializer);
         return crate::models::attestation::AttestationAttribute {
             key: var_key,
             labels: var_labels,
@@ -1107,22 +1105,22 @@ impl SseDecode for crate::models::attestation::AttestationIdentity {
     }
 }
 
-impl SseDecode for crate::models::attestation::AttestationValue {
+impl SseDecode for crate::models::attestation::AttributeValue {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
                 let mut var_value = <String>::sse_decode(deserializer);
-                return crate::models::attestation::AttestationValue::String { value: var_value };
+                return crate::models::attestation::AttributeValue::String { value: var_value };
             }
             1 => {
                 let mut var_value = <bool>::sse_decode(deserializer);
-                return crate::models::attestation::AttestationValue::Boolean { value: var_value };
+                return crate::models::attestation::AttributeValue::Boolean { value: var_value };
             }
             2 => {
-                let mut var_value = <i128>::sse_decode(deserializer);
-                return crate::models::attestation::AttestationValue::Number { value: var_value };
+                let mut var_value = <i64>::sse_decode(deserializer);
+                return crate::models::attestation::AttributeValue::Number { value: var_value };
             }
             _ => {
                 unimplemented!("");
@@ -1255,6 +1253,13 @@ impl SseDecode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i32::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for i64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i64::<NativeEndian>().unwrap()
     }
 }
 
@@ -1874,16 +1879,16 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::AttestationId
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationValue {
+impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttributeValue {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            crate::models::attestation::AttestationValue::String { value } => {
+            crate::models::attestation::AttributeValue::String { value } => {
                 [0.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::attestation::AttestationValue::Boolean { value } => {
+            crate::models::attestation::AttributeValue::Boolean { value } => {
                 [1.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::attestation::AttestationValue::Number { value } => {
+            crate::models::attestation::AttributeValue::Number { value } => {
                 [2.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
             _ => {
@@ -1892,11 +1897,11 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationVa
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::AttestationValue {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::AttestationValue>
-    for crate::models::attestation::AttestationValue
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::AttributeValue {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::AttributeValue>
+    for crate::models::attestation::AttributeValue
 {
-    fn into_into_dart(self) -> crate::models::attestation::AttestationValue {
+    fn into_into_dart(self) -> crate::models::attestation::AttributeValue {
         self
     }
 }
@@ -2399,13 +2404,6 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
-impl SseEncode for i128 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.to_string(), serializer);
-    }
-}
-
 impl SseEncode for StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2491,7 +2489,7 @@ impl SseEncode for crate::models::attestation::AttestationAttribute {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.key, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.labels, serializer);
-        <crate::models::attestation::AttestationValue>::sse_encode(self.value, serializer);
+        <crate::models::attestation::AttributeValue>::sse_encode(self.value, serializer);
     }
 }
 
@@ -2513,21 +2511,21 @@ impl SseEncode for crate::models::attestation::AttestationIdentity {
     }
 }
 
-impl SseEncode for crate::models::attestation::AttestationValue {
+impl SseEncode for crate::models::attestation::AttributeValue {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::models::attestation::AttestationValue::String { value } => {
+            crate::models::attestation::AttributeValue::String { value } => {
                 <i32>::sse_encode(0, serializer);
                 <String>::sse_encode(value, serializer);
             }
-            crate::models::attestation::AttestationValue::Boolean { value } => {
+            crate::models::attestation::AttributeValue::Boolean { value } => {
                 <i32>::sse_encode(1, serializer);
                 <bool>::sse_encode(value, serializer);
             }
-            crate::models::attestation::AttestationValue::Number { value } => {
+            crate::models::attestation::AttributeValue::Number { value } => {
                 <i32>::sse_encode(2, serializer);
-                <i128>::sse_encode(value, serializer);
+                <i64>::sse_encode(value, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -2652,6 +2650,13 @@ impl SseEncode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for i64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
     }
 }
 
@@ -3116,12 +3121,6 @@ mod io {
             unimplemented!()
         }
     }
-    impl CstDecode<i128> for *mut wire_cst_list_prim_u_8_strict {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> i128 {
-            CstDecode::<String>::cst_decode(self).parse().unwrap()
-        }
-    }
     impl CstDecode<StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec>> for *mut wire_cst_list_prim_u_8_strict {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec> {
@@ -3248,25 +3247,25 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::attestation::AttestationValue> for wire_cst_attestation_value {
+    impl CstDecode<crate::models::attestation::AttributeValue> for wire_cst_attribute_value {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::attestation::AttestationValue {
+        fn cst_decode(self) -> crate::models::attestation::AttributeValue {
             match self.tag {
                 0 => {
                     let ans = unsafe { self.kind.String };
-                    crate::models::attestation::AttestationValue::String {
+                    crate::models::attestation::AttributeValue::String {
                         value: ans.value.cst_decode(),
                     }
                 }
                 1 => {
                     let ans = unsafe { self.kind.Boolean };
-                    crate::models::attestation::AttestationValue::Boolean {
+                    crate::models::attestation::AttributeValue::Boolean {
                         value: ans.value.cst_decode(),
                     }
                 }
                 2 => {
                     let ans = unsafe { self.kind.Number };
-                    crate::models::attestation::AttestationValue::Number {
+                    crate::models::attestation::AttributeValue::Number {
                         value: ans.value.cst_decode(),
                     }
                 }
@@ -3715,15 +3714,15 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
-    impl NewWithNullPtr for wire_cst_attestation_value {
+    impl NewWithNullPtr for wire_cst_attribute_value {
         fn new_with_null_ptr() -> Self {
             Self {
                 tag: -1,
-                kind: AttestationValueKind { nil__: () },
+                kind: AttributeValueKind { nil__: () },
             }
         }
     }
-    impl Default for wire_cst_attestation_value {
+    impl Default for wire_cst_attribute_value {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -4354,7 +4353,7 @@ mod io {
     pub struct wire_cst_attestation_attribute {
         key: *mut wire_cst_list_prim_u_8_strict,
         labels: *mut wire_cst_list_localized_string,
-        value: wire_cst_attestation_value,
+        value: wire_cst_attribute_value,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -4375,32 +4374,32 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_attestation_value {
+    pub struct wire_cst_attribute_value {
         tag: i32,
-        kind: AttestationValueKind,
+        kind: AttributeValueKind,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub union AttestationValueKind {
-        String: wire_cst_AttestationValue_String,
-        Boolean: wire_cst_AttestationValue_Boolean,
-        Number: wire_cst_AttestationValue_Number,
+    pub union AttributeValueKind {
+        String: wire_cst_AttributeValue_String,
+        Boolean: wire_cst_AttributeValue_Boolean,
+        Number: wire_cst_AttributeValue_Number,
         nil__: (),
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_AttestationValue_String {
+    pub struct wire_cst_AttributeValue_String {
         value: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_AttestationValue_Boolean {
+    pub struct wire_cst_AttributeValue_Boolean {
         value: bool,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_AttestationValue_Number {
-        value: *mut wire_cst_list_prim_u_8_strict,
+    pub struct wire_cst_AttributeValue_Number {
+        value: i64,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

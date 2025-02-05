@@ -15,6 +15,10 @@ pub enum AttestationError {
     #[error("error selecting attribute for claim: {0:?}")]
     #[category(pd)]
     AttributeNotFoundForClaim(ClaimMetadata),
+
+    #[error("some attributes not processed by claim: {0:?}")]
+    #[category(pd)]
+    AttributeNotProcessedByClaim(Vec<String>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,24 +40,7 @@ pub enum AttestationIdentity {
 pub struct AttestationAttribute {
     pub key: String,
     pub labels: Vec<LocalizedString>,
-    pub value: AttestationValue,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AttestationValue {
-    String { value: String },
-    Boolean { value: bool },
-    Number { value: i128 },
-}
-
-impl From<&AttributeValue> for AttestationValue {
-    fn from(value: &AttributeValue) -> Self {
-        match value {
-            AttributeValue::Text(value) => AttestationValue::String { value: value.clone() },
-            AttributeValue::Bool(value) => AttestationValue::Boolean { value: *value },
-            AttributeValue::Number(value) => AttestationValue::Number { value: *value },
-        }
-    }
+    pub value: AttributeValue,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

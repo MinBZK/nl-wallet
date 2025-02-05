@@ -117,33 +117,33 @@ typedef struct wire_cst_organization {
   struct wire_cst_list_prim_u_8_strict *country_code;
 } wire_cst_organization;
 
-typedef struct wire_cst_AttestationValue_String {
+typedef struct wire_cst_AttributeValue_String {
   struct wire_cst_list_prim_u_8_strict *value;
-} wire_cst_AttestationValue_String;
+} wire_cst_AttributeValue_String;
 
-typedef struct wire_cst_AttestationValue_Boolean {
+typedef struct wire_cst_AttributeValue_Boolean {
   bool value;
-} wire_cst_AttestationValue_Boolean;
+} wire_cst_AttributeValue_Boolean;
 
-typedef struct wire_cst_AttestationValue_Number {
-  struct wire_cst_list_prim_u_8_strict *value;
-} wire_cst_AttestationValue_Number;
+typedef struct wire_cst_AttributeValue_Number {
+  int64_t value;
+} wire_cst_AttributeValue_Number;
 
-typedef union AttestationValueKind {
-  struct wire_cst_AttestationValue_String String;
-  struct wire_cst_AttestationValue_Boolean Boolean;
-  struct wire_cst_AttestationValue_Number Number;
-} AttestationValueKind;
+typedef union AttributeValueKind {
+  struct wire_cst_AttributeValue_String String;
+  struct wire_cst_AttributeValue_Boolean Boolean;
+  struct wire_cst_AttributeValue_Number Number;
+} AttributeValueKind;
 
-typedef struct wire_cst_attestation_value {
+typedef struct wire_cst_attribute_value {
   int32_t tag;
-  union AttestationValueKind kind;
-} wire_cst_attestation_value;
+  union AttributeValueKind kind;
+} wire_cst_attribute_value;
 
 typedef struct wire_cst_attestation_attribute {
   struct wire_cst_list_prim_u_8_strict *key;
   struct wire_cst_list_localized_string *labels;
-  struct wire_cst_attestation_value value;
+  struct wire_cst_attribute_value value;
 } wire_cst_attestation_attribute;
 
 typedef struct wire_cst_list_attestation_attribute {

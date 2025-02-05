@@ -589,8 +589,8 @@ mod tests {
     use crate::disclosure::MockMdocDisclosureMissingAttributes;
     use crate::disclosure::MockMdocDisclosureProposal;
     use crate::disclosure::MockMdocDisclosureSession;
-    use crate::Attribute;
-    use crate::AttributeValue;
+    use crate::document::Attribute;
+    use crate::document::AttributeValue;
     use crate::EventStatus;
     use crate::HistoryEvent;
 
@@ -610,7 +610,7 @@ mod tests {
             ProposedDocumentAttributes {
                 attributes: IndexMap::from([("com.example.pid".to_string(), vec![Entry { name, value }])]),
                 issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                display_metadata: TypeMetadata::new_example().display,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         )])
     }

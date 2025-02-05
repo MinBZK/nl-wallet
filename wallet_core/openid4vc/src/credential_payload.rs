@@ -8,6 +8,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
+use serde_with::skip_serializing_none;
 use serde_with::TimestampSeconds;
 
 use error_category::ErrorCategory;
@@ -43,6 +44,7 @@ pub enum CredentialPayloadError {
 ///
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[serde_as]
+#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialPayload {
     #[serde(rename = "vct")]
@@ -165,6 +167,24 @@ impl CredentialPayload {
         Ok(())
     }
 
+    pub fn collect_keys(&self) -> Vec<String> {
+        Self::collect_keys_recursive(&self.attributes, &[])
+    }
+
+    fn collect_keys_recursive(attributes: &IndexMap<String, Attribute>, groups: &[String]) -> Vec<String> {
+        attributes.iter().fold(vec![], |mut acc, (k, v)| {
+            let mut keys = Vec::from(groups);
+            keys.push(k.clone());
+
+            match v {
+                Attribute::Single(_) => acc.push(keys.join(".")),
+                Attribute::Nested(nested) => acc.append(&mut Self::collect_keys_recursive(nested, &keys)),
+            }
+
+            acc
+        })
+    }
+
     fn traverse_groups(
         entries: &[Entry],
         groups: &mut VecDeque<String>,
@@ -217,6 +237,7 @@ impl CredentialPayload {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use http::Uri;
     use indexmap::IndexMap;
     use rstest::rstest;
     use serde_json::json;
@@ -225,6 +246,8 @@ mod test {
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::DataElementValue;
 
+    use crate::attributes::Attribute;
+    use crate::attributes::AttributeValue;
     use crate::credential_payload::CredentialPayload;
     use crate::credential_payload::CredentialPayloadError;
 
@@ -334,5 +357,103 @@ mod test {
 
         let result = CredentialPayload::traverse_attributes("com.example.pid", &mdoc_attributes, &mut IndexMap::new());
         assert_matches!(result, Err(CredentialPayloadError::DuplicateAttribute(key)) if key == *"c");
+    }
+
+    #[test]
+    fn test_serialize_deserialize() {
+        let payload = CredentialPayload {
+            attestation_type: String::from("com.example.pid"),
+            issuer: Uri::from_static("https://com.example.org/pid/issuer"),
+            issued_at: None,
+            expires: None,
+            not_before: None,
+            attributes: IndexMap::from([
+                (
+                    String::from("birthdate"),
+                    Attribute::Single(AttributeValue::Text(String::from("1963-08-12"))),
+                ),
+                (
+                    String::from("place_of_birth"),
+                    Attribute::Nested(IndexMap::from([
+                        (
+                            String::from("locality"),
+                            Attribute::Single(AttributeValue::Text(String::from("The Hague"))),
+                        ),
+                        (
+                            String::from("country"),
+                            Attribute::Nested(IndexMap::from([
+                                (
+                                    String::from("name"),
+                                    Attribute::Single(AttributeValue::Text(String::from("The Netherlands"))),
+                                ),
+                                (String::from("area_code"), Attribute::Single(AttributeValue::Number(33))),
+                            ])),
+                        ),
+                    ])),
+                ),
+                (
+                    String::from("financial"),
+                    Attribute::Nested(IndexMap::from([
+                        (String::from("has_debt"), Attribute::Single(AttributeValue::Bool(true))),
+                        (String::from("has_job"), Attribute::Single(AttributeValue::Bool(false))),
+                        (
+                            String::from("debt_amount"),
+                            Attribute::Single(AttributeValue::Number(-10_000)),
+                        ),
+                    ])),
+                ),
+            ]),
+        };
+
+        let expected_json = json!({
+            "vct": "com.example.pid",
+            "iss": "https://com.example.org/pid/issuer",
+            "birthdate": "1963-08-12",
+            "place_of_birth": {
+                "locality": "The Hague",
+                "country": {
+                    "name": "The Netherlands",
+                    "area_code": 33
+                }
+            },
+            "financial": {
+                "has_debt": true,
+                "has_job": false,
+                "debt_amount": -10000
+            }
+        });
+
+        assert_eq!(
+            serde_json::to_value(payload).unwrap().to_json_string_pretty().unwrap(),
+            expected_json.to_json_string_pretty().unwrap()
+        );
+
+        serde_json::from_value::<CredentialPayload>(expected_json).unwrap();
+    }
+
+    #[test]
+    fn test_collect_keys() {
+        let json = json!({
+            "vct": "com.example.pid",
+            "iss": "https://com.example.org/pid/issuer",
+            "birthdate": "1963-08-12",
+            "place_of_birth": {
+                "locality": "The Hague",
+                "country": {
+                    "name": "The Netherlands",
+                    "area_code": 33
+                }
+            }
+        });
+        let payload: CredentialPayload = serde_json::from_value(json).unwrap();
+        assert_eq!(
+            vec![
+                "birthdate",
+                "place_of_birth.locality",
+                "place_of_birth.country.name",
+                "place_of_birth.country.area_code"
+            ],
+            payload.collect_keys().iter().map(String::as_str).collect::<Vec<_>>()
+        );
     }
 }

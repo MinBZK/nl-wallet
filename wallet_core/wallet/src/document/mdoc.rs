@@ -371,6 +371,10 @@ pub mod tests {
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
     use nl_wallet_mdoc::Tdate;
+    use sd_jwt::metadata::ClaimDisplayMetadata;
+    use sd_jwt::metadata::ClaimMetadata;
+    use sd_jwt::metadata::ClaimPath;
+    use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
     use sd_jwt::metadata::TypeMetadata;
 
     use super::super::ADDRESS_DOCTYPE;
@@ -414,13 +418,13 @@ pub mod tests {
                 .try_into()
                 .unwrap(),
             },
-            TypeMetadata::new_example(),
+            TypeMetadata::bsn_only_example(),
         )
     }
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
     pub fn create_minimal_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
-        let (mut unsigned_mdoc, metadata) = create_bsn_only_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, mut metadata) = create_bsn_only_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
 
         attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![
@@ -444,12 +448,63 @@ pub mod tests {
 
         unsigned_mdoc.attributes = attributes.try_into().unwrap();
 
+        metadata.claims.append(&mut vec![
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("family_name"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Family name"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("given_name"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Given name"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("birth_date"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Birth date"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("age_over_18"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Age over 18"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+        ]);
+
         (unsigned_mdoc, metadata)
     }
 
     /// This creates a full `UnsignedMdoc` that is valid.
     pub fn create_full_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
-        let (mut unsigned_mdoc, metadata) = create_minimal_unsigned_pid_mdoc();
+        let (mut unsigned_mdoc, mut metadata) = create_minimal_unsigned_pid_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
 
         attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![
@@ -483,6 +538,91 @@ pub mod tests {
             },
         ]);
 
+        metadata.claims.append(&mut vec![
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("family_name_birth"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Family name birth"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("given_name_birth"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Given name birth"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("birth_place"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Birth place"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("birth_country"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Birth country"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("birth_state"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Birth state"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("birth_city"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Birth city"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("gender"))].try_into().unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Gender"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+        ]);
+
         unsigned_mdoc.attributes = attributes.try_into().unwrap();
 
         (unsigned_mdoc, metadata)
@@ -490,43 +630,94 @@ pub mod tests {
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
     pub fn create_minimal_unsigned_address_mdoc() -> (UnsignedMdoc, TypeMetadata) {
-        (
-            UnsignedMdoc {
-                doc_type: ADDRESS_DOCTYPE.to_string(),
-                copy_count: NonZeroU8::new(1).unwrap(),
-                valid_from: Tdate::now(),
-                valid_until: (Utc::now() + Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    ADDRESS_DOCTYPE.to_string(),
-                    vec![
-                        Entry {
-                            name: "resident_street".to_string(),
-                            value: DataElementValue::Text("Turfmarkt".to_string()),
-                        },
-                        Entry {
-                            name: "resident_house_number".to_string(),
-                            value: DataElementValue::Text("147".to_string()),
-                        },
-                        Entry {
-                            name: "resident_postal_code".to_string(),
-                            value: DataElementValue::Text("2511 DP".to_string()),
-                        },
-                        Entry {
-                            name: "resident_city".to_string(),
-                            value: DataElementValue::Text("Den Haag".to_string()),
-                        },
-                    ],
-                )])
-                .try_into()
-                .unwrap(),
+        let unsigned_mdoc = UnsignedMdoc {
+            doc_type: ADDRESS_DOCTYPE.to_string(),
+            copy_count: NonZeroU8::new(1).unwrap(),
+            valid_from: Tdate::now(),
+            valid_until: (Utc::now() + Days::new(365)).into(),
+            attributes: IndexMap::from([(
+                ADDRESS_DOCTYPE.to_string(),
+                vec![
+                    Entry {
+                        name: "resident_street".to_string(),
+                        value: DataElementValue::Text("Turfmarkt".to_string()),
+                    },
+                    Entry {
+                        name: "resident_house_number".to_string(),
+                        value: DataElementValue::Text("147".to_string()),
+                    },
+                    Entry {
+                        name: "resident_postal_code".to_string(),
+                        value: DataElementValue::Text("2511 DP".to_string()),
+                    },
+                    Entry {
+                        name: "resident_city".to_string(),
+                        value: DataElementValue::Text("Den Haag".to_string()),
+                    },
+                ],
+            )])
+            .try_into()
+            .unwrap(),
+        };
+
+        let mut metadata = TypeMetadata::empty_example();
+        metadata.claims.append(&mut vec![
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("resident_street"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Street"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
             },
-            TypeMetadata::new_example(),
-        )
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("resident_house_number"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("House number"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("resident_postal_code"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Postal code"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("resident_city"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("City"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+        ]);
+
+        (unsigned_mdoc, metadata)
     }
 
     /// This creates a full `UnsignedMdoc` that is valid.
     pub fn create_full_unsigned_address_mdoc() -> (UnsignedMdoc, TypeMetadata) {
-        let (mut unsigned_mdoc, metadata) = create_minimal_unsigned_address_mdoc();
+        let (mut unsigned_mdoc, mut metadata) = create_minimal_unsigned_address_mdoc();
         let mut attributes = unsigned_mdoc.attributes.into_inner();
 
         attributes.get_mut(ADDRESS_DOCTYPE).unwrap().extend(vec![
@@ -541,6 +732,45 @@ pub mod tests {
             Entry {
                 name: "resident_country".to_string(),
                 value: DataElementValue::Text("NL".to_string()),
+            },
+        ]);
+
+        metadata.claims.append(&mut vec![
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("resident_address"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Address"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("resident_state"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("State"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
+            },
+            ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey(String::from("resident_country"))]
+                    .try_into()
+                    .unwrap(),
+                display: vec![ClaimDisplayMetadata {
+                    lang: String::from("en"),
+                    label: String::from("Country"),
+                    description: None,
+                }],
+                sd: ClaimSelectiveDisclosureMetadata::Always,
+                svg_id: None,
             },
         ]);
 
@@ -774,7 +1004,7 @@ pub mod tests {
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::new_example().display,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         )
         .expect("Could not convert attributes to proposed disclosure document");
@@ -838,7 +1068,7 @@ pub mod tests {
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::new_example().display,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         )
         .expect("Could not convert attributes to proposed disclosure document");
@@ -872,7 +1102,7 @@ pub mod tests {
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::new_example().display,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         );
 
@@ -897,7 +1127,7 @@ pub mod tests {
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::new_example().display,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         );
 
@@ -929,7 +1159,7 @@ pub mod tests {
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::new_example().display,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         );
 
@@ -1016,7 +1246,7 @@ pub mod tests {
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::new_example().display,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         )]);
 

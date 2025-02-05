@@ -890,7 +890,7 @@ async fn prepare_example_holder_mocks(
         copy_count: 1.try_into().unwrap(),
     };
 
-    let metadata = TypeMetadata::new_example();
+    let metadata = TypeMetadata::bsn_only_example();
     let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.

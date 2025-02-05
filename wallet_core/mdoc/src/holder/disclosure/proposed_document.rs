@@ -227,7 +227,7 @@ mod examples {
                 issuer_signed: mdoc.issuer_signed,
                 device_signed_challenge: b"signing_challenge".to_vec(),
                 issuer_certificate,
-                display_metadata: TypeMetadata::new_example().display,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             }
         }
     }

@@ -18,7 +18,6 @@ pub mod errors;
 pub use crate::attestation::Attestation;
 pub use crate::attestation::AttestationAttribute;
 pub use crate::attestation::AttestationIdentity;
-pub use crate::attestation::AttestationValue;
 pub use crate::attestation::LocalizedString;
 pub use crate::disclosure::DisclosureUriSource;
 pub use crate::document::Attribute;
@@ -56,6 +55,8 @@ pub mod mdoc {
 }
 
 pub mod openid4vc {
+    pub use openid4vc::attributes::Attribute;
+    pub use openid4vc::attributes::AttributeValue;
     pub use openid4vc::verifier::SessionType;
 }
 

@@ -323,98 +323,98 @@ abstract class AttestationIdentity_Fixed extends AttestationIdentity {
 }
 
 /// @nodoc
-mixin _$AttestationValue {
+mixin _$AttributeValue {
   Object get value => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String value) string,
     required TResult Function(bool value) boolean,
-    required TResult Function(BigInt value) number,
+    required TResult Function(int value) number,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String value)? string,
     TResult? Function(bool value)? boolean,
-    TResult? Function(BigInt value)? number,
+    TResult? Function(int value)? number,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String value)? string,
     TResult Function(bool value)? boolean,
-    TResult Function(BigInt value)? number,
+    TResult Function(int value)? number,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(AttestationValue_String value) string,
-    required TResult Function(AttestationValue_Boolean value) boolean,
-    required TResult Function(AttestationValue_Number value) number,
+    required TResult Function(AttributeValue_String value) string,
+    required TResult Function(AttributeValue_Boolean value) boolean,
+    required TResult Function(AttributeValue_Number value) number,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttestationValue_String value)? string,
-    TResult? Function(AttestationValue_Boolean value)? boolean,
-    TResult? Function(AttestationValue_Number value)? number,
+    TResult? Function(AttributeValue_String value)? string,
+    TResult? Function(AttributeValue_Boolean value)? boolean,
+    TResult? Function(AttributeValue_Number value)? number,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttestationValue_String value)? string,
-    TResult Function(AttestationValue_Boolean value)? boolean,
-    TResult Function(AttestationValue_Number value)? number,
+    TResult Function(AttributeValue_String value)? string,
+    TResult Function(AttributeValue_Boolean value)? boolean,
+    TResult Function(AttributeValue_Number value)? number,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $AttestationValueCopyWith<$Res> {
-  factory $AttestationValueCopyWith(AttestationValue value, $Res Function(AttestationValue) then) =
-      _$AttestationValueCopyWithImpl<$Res, AttestationValue>;
+abstract class $AttributeValueCopyWith<$Res> {
+  factory $AttributeValueCopyWith(AttributeValue value, $Res Function(AttributeValue) then) =
+      _$AttributeValueCopyWithImpl<$Res, AttributeValue>;
 }
 
 /// @nodoc
-class _$AttestationValueCopyWithImpl<$Res, $Val extends AttestationValue> implements $AttestationValueCopyWith<$Res> {
-  _$AttestationValueCopyWithImpl(this._value, this._then);
+class _$AttributeValueCopyWithImpl<$Res, $Val extends AttributeValue> implements $AttributeValueCopyWith<$Res> {
+  _$AttributeValueCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
-abstract class _$$AttestationValue_StringImplCopyWith<$Res> {
-  factory _$$AttestationValue_StringImplCopyWith(
-          _$AttestationValue_StringImpl value, $Res Function(_$AttestationValue_StringImpl) then) =
-      __$$AttestationValue_StringImplCopyWithImpl<$Res>;
+abstract class _$$AttributeValue_StringImplCopyWith<$Res> {
+  factory _$$AttributeValue_StringImplCopyWith(
+          _$AttributeValue_StringImpl value, $Res Function(_$AttributeValue_StringImpl) then) =
+      __$$AttributeValue_StringImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String value});
 }
 
 /// @nodoc
-class __$$AttestationValue_StringImplCopyWithImpl<$Res>
-    extends _$AttestationValueCopyWithImpl<$Res, _$AttestationValue_StringImpl>
-    implements _$$AttestationValue_StringImplCopyWith<$Res> {
-  __$$AttestationValue_StringImplCopyWithImpl(
-      _$AttestationValue_StringImpl _value, $Res Function(_$AttestationValue_StringImpl) _then)
+class __$$AttributeValue_StringImplCopyWithImpl<$Res>
+    extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_StringImpl>
+    implements _$$AttributeValue_StringImplCopyWith<$Res> {
+  __$$AttributeValue_StringImplCopyWithImpl(
+      _$AttributeValue_StringImpl _value, $Res Function(_$AttributeValue_StringImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$AttestationValue_StringImpl(
+    return _then(_$AttributeValue_StringImpl(
       value: null == value
           ? _value.value
           : value // ignore: cast_nullable_to_non_nullable
@@ -425,42 +425,42 @@ class __$$AttestationValue_StringImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$AttestationValue_StringImpl extends AttestationValue_String {
-  const _$AttestationValue_StringImpl({required this.value}) : super._();
+class _$AttributeValue_StringImpl extends AttributeValue_String {
+  const _$AttributeValue_StringImpl({required this.value}) : super._();
 
   @override
   final String value;
 
   @override
   String toString() {
-    return 'AttestationValue.string(value: $value)';
+    return 'AttributeValue.string(value: $value)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$AttestationValue_StringImpl &&
+            other is _$AttributeValue_StringImpl &&
             (identical(other.value, value) || other.value == value));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$AttestationValue_StringImplCopyWith<_$AttestationValue_StringImpl> get copyWith =>
-      __$$AttestationValue_StringImplCopyWithImpl<_$AttestationValue_StringImpl>(this, _$identity);
+  _$$AttributeValue_StringImplCopyWith<_$AttributeValue_StringImpl> get copyWith =>
+      __$$AttributeValue_StringImplCopyWithImpl<_$AttributeValue_StringImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String value) string,
     required TResult Function(bool value) boolean,
-    required TResult Function(BigInt value) number,
+    required TResult Function(int value) number,
   }) {
     return string(value);
   }
@@ -470,7 +470,7 @@ class _$AttestationValue_StringImpl extends AttestationValue_String {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String value)? string,
     TResult? Function(bool value)? boolean,
-    TResult? Function(BigInt value)? number,
+    TResult? Function(int value)? number,
   }) {
     return string?.call(value);
   }
@@ -480,7 +480,7 @@ class _$AttestationValue_StringImpl extends AttestationValue_String {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String value)? string,
     TResult Function(bool value)? boolean,
-    TResult Function(BigInt value)? number,
+    TResult Function(int value)? number,
     required TResult orElse(),
   }) {
     if (string != null) {
@@ -492,9 +492,9 @@ class _$AttestationValue_StringImpl extends AttestationValue_String {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(AttestationValue_String value) string,
-    required TResult Function(AttestationValue_Boolean value) boolean,
-    required TResult Function(AttestationValue_Number value) number,
+    required TResult Function(AttributeValue_String value) string,
+    required TResult Function(AttributeValue_Boolean value) boolean,
+    required TResult Function(AttributeValue_Number value) number,
   }) {
     return string(this);
   }
@@ -502,9 +502,9 @@ class _$AttestationValue_StringImpl extends AttestationValue_String {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttestationValue_String value)? string,
-    TResult? Function(AttestationValue_Boolean value)? boolean,
-    TResult? Function(AttestationValue_Number value)? number,
+    TResult? Function(AttributeValue_String value)? string,
+    TResult? Function(AttributeValue_Boolean value)? boolean,
+    TResult? Function(AttributeValue_Number value)? number,
   }) {
     return string?.call(this);
   }
@@ -512,9 +512,9 @@ class _$AttestationValue_StringImpl extends AttestationValue_String {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttestationValue_String value)? string,
-    TResult Function(AttestationValue_Boolean value)? boolean,
-    TResult Function(AttestationValue_Number value)? number,
+    TResult Function(AttributeValue_String value)? string,
+    TResult Function(AttributeValue_Boolean value)? boolean,
+    TResult Function(AttributeValue_Number value)? number,
     required TResult orElse(),
   }) {
     if (string != null) {
@@ -524,45 +524,44 @@ class _$AttestationValue_StringImpl extends AttestationValue_String {
   }
 }
 
-abstract class AttestationValue_String extends AttestationValue {
-  const factory AttestationValue_String({required final String value}) = _$AttestationValue_StringImpl;
-  const AttestationValue_String._() : super._();
+abstract class AttributeValue_String extends AttributeValue {
+  const factory AttributeValue_String({required final String value}) = _$AttributeValue_StringImpl;
+  const AttributeValue_String._() : super._();
 
   @override
   String get value;
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttestationValue_StringImplCopyWith<_$AttestationValue_StringImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$AttributeValue_StringImplCopyWith<_$AttributeValue_StringImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$AttestationValue_BooleanImplCopyWith<$Res> {
-  factory _$$AttestationValue_BooleanImplCopyWith(
-          _$AttestationValue_BooleanImpl value, $Res Function(_$AttestationValue_BooleanImpl) then) =
-      __$$AttestationValue_BooleanImplCopyWithImpl<$Res>;
+abstract class _$$AttributeValue_BooleanImplCopyWith<$Res> {
+  factory _$$AttributeValue_BooleanImplCopyWith(
+          _$AttributeValue_BooleanImpl value, $Res Function(_$AttributeValue_BooleanImpl) then) =
+      __$$AttributeValue_BooleanImplCopyWithImpl<$Res>;
   @useResult
   $Res call({bool value});
 }
 
 /// @nodoc
-class __$$AttestationValue_BooleanImplCopyWithImpl<$Res>
-    extends _$AttestationValueCopyWithImpl<$Res, _$AttestationValue_BooleanImpl>
-    implements _$$AttestationValue_BooleanImplCopyWith<$Res> {
-  __$$AttestationValue_BooleanImplCopyWithImpl(
-      _$AttestationValue_BooleanImpl _value, $Res Function(_$AttestationValue_BooleanImpl) _then)
+class __$$AttributeValue_BooleanImplCopyWithImpl<$Res>
+    extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_BooleanImpl>
+    implements _$$AttributeValue_BooleanImplCopyWith<$Res> {
+  __$$AttributeValue_BooleanImplCopyWithImpl(
+      _$AttributeValue_BooleanImpl _value, $Res Function(_$AttributeValue_BooleanImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$AttestationValue_BooleanImpl(
+    return _then(_$AttributeValue_BooleanImpl(
       value: null == value
           ? _value.value
           : value // ignore: cast_nullable_to_non_nullable
@@ -573,42 +572,42 @@ class __$$AttestationValue_BooleanImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$AttestationValue_BooleanImpl extends AttestationValue_Boolean {
-  const _$AttestationValue_BooleanImpl({required this.value}) : super._();
+class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
+  const _$AttributeValue_BooleanImpl({required this.value}) : super._();
 
   @override
   final bool value;
 
   @override
   String toString() {
-    return 'AttestationValue.boolean(value: $value)';
+    return 'AttributeValue.boolean(value: $value)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$AttestationValue_BooleanImpl &&
+            other is _$AttributeValue_BooleanImpl &&
             (identical(other.value, value) || other.value == value));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$AttestationValue_BooleanImplCopyWith<_$AttestationValue_BooleanImpl> get copyWith =>
-      __$$AttestationValue_BooleanImplCopyWithImpl<_$AttestationValue_BooleanImpl>(this, _$identity);
+  _$$AttributeValue_BooleanImplCopyWith<_$AttributeValue_BooleanImpl> get copyWith =>
+      __$$AttributeValue_BooleanImplCopyWithImpl<_$AttributeValue_BooleanImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String value) string,
     required TResult Function(bool value) boolean,
-    required TResult Function(BigInt value) number,
+    required TResult Function(int value) number,
   }) {
     return boolean(value);
   }
@@ -618,7 +617,7 @@ class _$AttestationValue_BooleanImpl extends AttestationValue_Boolean {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String value)? string,
     TResult? Function(bool value)? boolean,
-    TResult? Function(BigInt value)? number,
+    TResult? Function(int value)? number,
   }) {
     return boolean?.call(value);
   }
@@ -628,7 +627,7 @@ class _$AttestationValue_BooleanImpl extends AttestationValue_Boolean {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String value)? string,
     TResult Function(bool value)? boolean,
-    TResult Function(BigInt value)? number,
+    TResult Function(int value)? number,
     required TResult orElse(),
   }) {
     if (boolean != null) {
@@ -640,9 +639,9 @@ class _$AttestationValue_BooleanImpl extends AttestationValue_Boolean {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(AttestationValue_String value) string,
-    required TResult Function(AttestationValue_Boolean value) boolean,
-    required TResult Function(AttestationValue_Number value) number,
+    required TResult Function(AttributeValue_String value) string,
+    required TResult Function(AttributeValue_Boolean value) boolean,
+    required TResult Function(AttributeValue_Number value) number,
   }) {
     return boolean(this);
   }
@@ -650,9 +649,9 @@ class _$AttestationValue_BooleanImpl extends AttestationValue_Boolean {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttestationValue_String value)? string,
-    TResult? Function(AttestationValue_Boolean value)? boolean,
-    TResult? Function(AttestationValue_Number value)? number,
+    TResult? Function(AttributeValue_String value)? string,
+    TResult? Function(AttributeValue_Boolean value)? boolean,
+    TResult? Function(AttributeValue_Number value)? number,
   }) {
     return boolean?.call(this);
   }
@@ -660,9 +659,9 @@ class _$AttestationValue_BooleanImpl extends AttestationValue_Boolean {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttestationValue_String value)? string,
-    TResult Function(AttestationValue_Boolean value)? boolean,
-    TResult Function(AttestationValue_Number value)? number,
+    TResult Function(AttributeValue_String value)? string,
+    TResult Function(AttributeValue_Boolean value)? boolean,
+    TResult Function(AttributeValue_Number value)? number,
     required TResult orElse(),
   }) {
     if (boolean != null) {
@@ -672,91 +671,91 @@ class _$AttestationValue_BooleanImpl extends AttestationValue_Boolean {
   }
 }
 
-abstract class AttestationValue_Boolean extends AttestationValue {
-  const factory AttestationValue_Boolean({required final bool value}) = _$AttestationValue_BooleanImpl;
-  const AttestationValue_Boolean._() : super._();
+abstract class AttributeValue_Boolean extends AttributeValue {
+  const factory AttributeValue_Boolean({required final bool value}) = _$AttributeValue_BooleanImpl;
+  const AttributeValue_Boolean._() : super._();
 
   @override
   bool get value;
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttestationValue_BooleanImplCopyWith<_$AttestationValue_BooleanImpl> get copyWith =>
+  _$$AttributeValue_BooleanImplCopyWith<_$AttributeValue_BooleanImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$AttestationValue_NumberImplCopyWith<$Res> {
-  factory _$$AttestationValue_NumberImplCopyWith(
-          _$AttestationValue_NumberImpl value, $Res Function(_$AttestationValue_NumberImpl) then) =
-      __$$AttestationValue_NumberImplCopyWithImpl<$Res>;
+abstract class _$$AttributeValue_NumberImplCopyWith<$Res> {
+  factory _$$AttributeValue_NumberImplCopyWith(
+          _$AttributeValue_NumberImpl value, $Res Function(_$AttributeValue_NumberImpl) then) =
+      __$$AttributeValue_NumberImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({BigInt value});
+  $Res call({int value});
 }
 
 /// @nodoc
-class __$$AttestationValue_NumberImplCopyWithImpl<$Res>
-    extends _$AttestationValueCopyWithImpl<$Res, _$AttestationValue_NumberImpl>
-    implements _$$AttestationValue_NumberImplCopyWith<$Res> {
-  __$$AttestationValue_NumberImplCopyWithImpl(
-      _$AttestationValue_NumberImpl _value, $Res Function(_$AttestationValue_NumberImpl) _then)
+class __$$AttributeValue_NumberImplCopyWithImpl<$Res>
+    extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_NumberImpl>
+    implements _$$AttributeValue_NumberImplCopyWith<$Res> {
+  __$$AttributeValue_NumberImplCopyWithImpl(
+      _$AttributeValue_NumberImpl _value, $Res Function(_$AttributeValue_NumberImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$AttestationValue_NumberImpl(
+    return _then(_$AttributeValue_NumberImpl(
       value: null == value
           ? _value.value
           : value // ignore: cast_nullable_to_non_nullable
-              as BigInt,
+              as int,
     ));
   }
 }
 
 /// @nodoc
 
-class _$AttestationValue_NumberImpl extends AttestationValue_Number {
-  const _$AttestationValue_NumberImpl({required this.value}) : super._();
+class _$AttributeValue_NumberImpl extends AttributeValue_Number {
+  const _$AttributeValue_NumberImpl({required this.value}) : super._();
 
   @override
-  final BigInt value;
+  final int value;
 
   @override
   String toString() {
-    return 'AttestationValue.number(value: $value)';
+    return 'AttributeValue.number(value: $value)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$AttestationValue_NumberImpl &&
+            other is _$AttributeValue_NumberImpl &&
             (identical(other.value, value) || other.value == value));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$AttestationValue_NumberImplCopyWith<_$AttestationValue_NumberImpl> get copyWith =>
-      __$$AttestationValue_NumberImplCopyWithImpl<_$AttestationValue_NumberImpl>(this, _$identity);
+  _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl> get copyWith =>
+      __$$AttributeValue_NumberImplCopyWithImpl<_$AttributeValue_NumberImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String value) string,
     required TResult Function(bool value) boolean,
-    required TResult Function(BigInt value) number,
+    required TResult Function(int value) number,
   }) {
     return number(value);
   }
@@ -766,7 +765,7 @@ class _$AttestationValue_NumberImpl extends AttestationValue_Number {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String value)? string,
     TResult? Function(bool value)? boolean,
-    TResult? Function(BigInt value)? number,
+    TResult? Function(int value)? number,
   }) {
     return number?.call(value);
   }
@@ -776,7 +775,7 @@ class _$AttestationValue_NumberImpl extends AttestationValue_Number {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String value)? string,
     TResult Function(bool value)? boolean,
-    TResult Function(BigInt value)? number,
+    TResult Function(int value)? number,
     required TResult orElse(),
   }) {
     if (number != null) {
@@ -788,9 +787,9 @@ class _$AttestationValue_NumberImpl extends AttestationValue_Number {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(AttestationValue_String value) string,
-    required TResult Function(AttestationValue_Boolean value) boolean,
-    required TResult Function(AttestationValue_Number value) number,
+    required TResult Function(AttributeValue_String value) string,
+    required TResult Function(AttributeValue_Boolean value) boolean,
+    required TResult Function(AttributeValue_Number value) number,
   }) {
     return number(this);
   }
@@ -798,9 +797,9 @@ class _$AttestationValue_NumberImpl extends AttestationValue_Number {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttestationValue_String value)? string,
-    TResult? Function(AttestationValue_Boolean value)? boolean,
-    TResult? Function(AttestationValue_Number value)? number,
+    TResult? Function(AttributeValue_String value)? string,
+    TResult? Function(AttributeValue_Boolean value)? boolean,
+    TResult? Function(AttributeValue_Number value)? number,
   }) {
     return number?.call(this);
   }
@@ -808,9 +807,9 @@ class _$AttestationValue_NumberImpl extends AttestationValue_Number {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttestationValue_String value)? string,
-    TResult Function(AttestationValue_Boolean value)? boolean,
-    TResult Function(AttestationValue_Number value)? number,
+    TResult Function(AttributeValue_String value)? string,
+    TResult Function(AttributeValue_Boolean value)? boolean,
+    TResult Function(AttributeValue_Number value)? number,
     required TResult orElse(),
   }) {
     if (number != null) {
@@ -820,18 +819,17 @@ class _$AttestationValue_NumberImpl extends AttestationValue_Number {
   }
 }
 
-abstract class AttestationValue_Number extends AttestationValue {
-  const factory AttestationValue_Number({required final BigInt value}) = _$AttestationValue_NumberImpl;
-  const AttestationValue_Number._() : super._();
+abstract class AttributeValue_Number extends AttributeValue {
+  const factory AttributeValue_Number({required final int value}) = _$AttributeValue_NumberImpl;
+  const AttributeValue_Number._() : super._();
 
   @override
-  BigInt get value;
+  int get value;
 
-  /// Create a copy of AttestationValue
+  /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttestationValue_NumberImplCopyWith<_$AttestationValue_NumberImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc

@@ -171,7 +171,7 @@ mod tests {
             .try_into()
             .unwrap(),
         };
-        let metadata = TypeMetadata::new_example();
+        let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();

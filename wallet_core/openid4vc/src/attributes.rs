@@ -13,12 +13,12 @@ use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::Tdate;
 use wallet_common::vec_at_least::VecNonEmpty;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttributeValue {
-    Text(String),
-    Number(i128),
+    Number(i64),
     Bool(bool),
+    Text(String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -33,16 +33,12 @@ pub enum AttributeError {
     UnsignedAttributes(#[from] UnsignedAttributesError),
 }
 
-impl TryFrom<&AttributeValue> for ciborium::Value {
-    type Error = AttributeError;
-
-    fn try_from(value: &AttributeValue) -> Result<Self, Self::Error> {
+impl From<&AttributeValue> for ciborium::Value {
+    fn from(value: &AttributeValue) -> Self {
         match value {
-            AttributeValue::Text(text) => Ok(ciborium::Value::Text(text.to_owned())),
-            AttributeValue::Number(number) => Ok(ciborium::Value::Integer(
-                (*number).try_into().map_err(AttributeError::NumberToCborConversion)?,
-            )),
-            AttributeValue::Bool(boolean) => Ok(ciborium::Value::Bool(*boolean)),
+            AttributeValue::Text(text) => ciborium::Value::Text(text.to_owned()),
+            AttributeValue::Number(number) => ciborium::Value::Integer((*number).into()),
+            AttributeValue::Bool(boolean) => ciborium::Value::Bool(*boolean),
         }
     }
 }
@@ -54,7 +50,7 @@ impl TryFrom<DataElementValue> for AttributeValue {
         match value {
             DataElementValue::Text(text) => Ok(AttributeValue::Text(text)),
             DataElementValue::Bool(bool) => Ok(AttributeValue::Bool(bool)),
-            DataElementValue::Integer(integer) => Ok(AttributeValue::Number(integer.into())),
+            DataElementValue::Integer(integer) => Ok(AttributeValue::Number(integer.try_into()?)),
             _ => Err(AttributeError::FromCborConversion(value)),
         }
     }
@@ -113,26 +109,24 @@ impl IssuableDocument {
         namespace: String,
         attributes: &IndexMap<String, Attribute>,
         result: &mut IndexMap<String, Vec<Entry>>,
-    ) -> Result<(), AttributeError> {
+    ) {
         let mut entries = vec![];
         for (key, value) in attributes {
             match value {
                 Attribute::Single(single) => {
                     entries.push(Entry {
                         name: key.to_owned(),
-                        value: single.try_into()?,
+                        value: single.into(),
                     });
                 }
                 Attribute::Nested(nested) => {
                     let key = format!("{}.{}", namespace, key);
-                    Self::walk_attributes_recursive(key, nested, result)?;
+                    Self::walk_attributes_recursive(key, nested, result);
                 }
             }
         }
 
         result.insert(namespace, entries);
-
-        Ok(())
     }
 
     /// Convert an issuable document into an `UnsignedMdoc`. This is done by walking down the tree of attributes and
@@ -170,7 +164,7 @@ impl IssuableDocument {
         copy_count: NonZeroU8,
     ) -> Result<UnsignedMdoc, AttributeError> {
         let mut flattened = IndexMap::new();
-        Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened)?;
+        Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened);
 
         Ok(UnsignedMdoc {
             doc_type: self.attestation_type.clone(),

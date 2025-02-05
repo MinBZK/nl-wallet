@@ -327,12 +327,16 @@ pub mod mock {
 
     use wallet_common::utils::random_string;
 
+    use crate::metadata::ClaimDisplayMetadata;
+    use crate::metadata::ClaimMetadata;
+    use crate::metadata::ClaimPath;
+    use crate::metadata::ClaimSelectiveDisclosureMetadata;
     use crate::metadata::JsonSchema;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
 
     impl TypeMetadata {
-        pub fn new_example() -> Self {
+        pub fn empty_example() -> Self {
             Self {
                 vct: random_string(16),
                 name: Some(random_string(8)),
@@ -340,6 +344,29 @@ pub mod mock {
                 extends: None,
                 display: vec![],
                 claims: vec![],
+                schema: SchemaOption::Embedded {
+                    schema: JsonSchema::try_new(json!({})).unwrap(),
+                },
+            }
+        }
+
+        pub fn bsn_only_example() -> Self {
+            Self {
+                vct: random_string(16),
+                name: Some(random_string(8)),
+                description: None,
+                extends: None,
+                display: vec![],
+                claims: vec![ClaimMetadata {
+                    path: vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap(),
+                    display: vec![ClaimDisplayMetadata {
+                        lang: String::from("en"),
+                        label: String::from("BSN"),
+                        description: None,
+                    }],
+                    sd: ClaimSelectiveDisclosureMetadata::Always,
+                    svg_id: None,
+                }],
                 schema: SchemaOption::Embedded {
                     schema: JsonSchema::try_new(json!({})).unwrap(),
                 },

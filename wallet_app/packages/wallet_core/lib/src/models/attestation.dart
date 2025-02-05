@@ -44,7 +44,7 @@ class Attestation {
 class AttestationAttribute {
   final String key;
   final List<LocalizedString> labels;
-  final AttestationValue value;
+  final AttributeValue value;
 
   const AttestationAttribute({
     required this.key,
@@ -76,18 +76,18 @@ sealed class AttestationIdentity with _$AttestationIdentity {
 }
 
 @freezed
-sealed class AttestationValue with _$AttestationValue {
-  const AttestationValue._();
+sealed class AttributeValue with _$AttributeValue {
+  const AttributeValue._();
 
-  const factory AttestationValue.string({
+  const factory AttributeValue.string({
     required String value,
-  }) = AttestationValue_String;
-  const factory AttestationValue.boolean({
+  }) = AttributeValue_String;
+  const factory AttributeValue.boolean({
     required bool value,
-  }) = AttestationValue_Boolean;
-  const factory AttestationValue.number({
-    required BigInt value,
-  }) = AttestationValue_Number;
+  }) = AttributeValue_Boolean;
+  const factory AttributeValue.number({
+    required PlatformInt64 value,
+  }) = AttributeValue_Number;
 }
 
 class DisplayMetadata {
