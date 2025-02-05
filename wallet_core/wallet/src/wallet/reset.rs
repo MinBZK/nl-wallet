@@ -1,4 +1,5 @@
 use std::mem;
+use std::sync::Arc;
 
 use tracing::info;
 use tracing::instrument;
@@ -42,7 +43,14 @@ where
             info!("Resetting wallet to inital state and wiping all local data");
 
             // Clear the database and its encryption key.
-            self.storage.get_mut().clear().await;
+            self.storage.write().await.clear().await;
+
+            // This is guaranteed to succeed for the following reasons:
+            // * The reference count for the key is only ever incremented when sending an instruction.
+            // * All instructions are sent and wrapped up within methods that take `&mut self`.
+            // * This method takes `&mut self`, so an instruction can never be in flight at the same time.
+            let attested_key = Arc::into_inner(attested_key)
+                .expect("attested key should have no outstanding outside references to it on wallet reset");
 
             // Delete the hardware attested key if we are on Android, log any potential error.
             match attested_key {
@@ -139,7 +147,7 @@ mod tests {
         // be gone and the `Wallet` should be both unregistered and locked.
         assert!(!wallet.registration.is_registered());
         assert_matches!(
-            wallet.storage.get_mut().state().await.unwrap(),
+            wallet.storage.read().await.state().await.unwrap(),
             StorageState::Uninitialized
         );
         assert!(wallet.is_locked());
@@ -169,7 +177,7 @@ mod tests {
         // The wallet should now be totally cleared, even though the PidIssuerClient returned an error.
         assert!(!wallet.registration.is_registered());
         assert_matches!(
-            wallet.storage.get_mut().state().await.unwrap(),
+            wallet.storage.read().await.state().await.unwrap(),
             StorageState::Uninitialized
         );
         assert!(wallet.issuance_session.is_none());

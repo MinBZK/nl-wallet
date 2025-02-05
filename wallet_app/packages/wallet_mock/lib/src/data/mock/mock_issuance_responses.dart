@@ -5,12 +5,12 @@ import '../model/issuance_response.dart';
 import '../model/requested_attribute.dart';
 import 'mock_organizations.dart';
 
-final _kMockBirthDate = AttestationValue.string(value: '10-03-1997');
-const _kMockBirthPlace = AttestationValue.string(value: 'Delft');
-const _kMockFirstNames = AttestationValue.string(value: 'Willeke Liselotte');
-const _kMockFullName = AttestationValue.string(value: 'Willeke De Bruijn');
-const _kMockLastName = AttestationValue.string(value: 'De Bruijn');
-const _kMockGender = AttestationValue.string(value: 'Vrouw');
+final _kMockBirthDate = AttributeValue.string(value: '10-03-1997');
+const _kMockBirthPlace = AttributeValue.string(value: 'Delft');
+const _kMockFirstNames = AttributeValue.string(value: 'Willeke Liselotte');
+const _kMockFullName = AttributeValue.string(value: 'Willeke De Bruijn');
+const _kMockLastName = AttributeValue.string(value: 'De Bruijn');
+const _kMockGender = AttributeValue.string(value: 'Vrouw');
 const _kMockRequestPurpose = 'Kaart uitgifte';
 
 const _kMockFirstNamesKey = 'mock.firstNames';
@@ -176,7 +176,7 @@ final _kMockPidDataAttributes = [
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Naam bij geboorte')],
-    value: const AttestationValue.string(value: 'Molenaar'),
+    value: const AttributeValue.string(value: 'Molenaar'),
     key: 'mock.birthName',
   ),
   AttestationAttribute(
@@ -191,7 +191,7 @@ final _kMockPidDataAttributes = [
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Ouder dan 18')],
-    value: AttestationValue.boolean(value: true),
+    value: AttributeValue.boolean(value: true),
     key: 'mock.olderThan18',
   ),
   AttestationAttribute(
@@ -201,12 +201,12 @@ final _kMockPidDataAttributes = [
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Geboorteland')],
-    value: const AttestationValue.string(value: 'Nederland'),
+    value: const AttributeValue.string(value: 'Nederland'),
     key: 'mock.birthCountry',
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Burger­service­nummer (BSN)')],
-    value: const AttestationValue.string(value: '111222333'),
+    value: const AttributeValue.string(value: '111222333'),
     key: 'mock.citizenshipNumber',
   ),
 ];
@@ -214,25 +214,25 @@ final _kMockPidDataAttributes = [
 final _kMockAddressDataAttributes = [
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Straatnaam')],
-    value: const AttestationValue.string(value: 'Turfmarkt'),
+    value: const AttributeValue.string(value: 'Turfmarkt'),
     key: 'mock.streetName',
     // sourceCardId: _kAddressId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Huisnummer')],
-    value: const AttestationValue.string(value: '147'),
+    value: const AttributeValue.string(value: '147'),
     key: 'mock.houseNumber',
     // sourceCardId: _kAddressId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Postcode')],
-    value: const AttestationValue.string(value: '2511 DP'),
+    value: const AttributeValue.string(value: '2511 DP'),
     key: 'mock.postalCode',
     // sourceCardId: _kAddressId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Woonplaats')],
-    value: const AttestationValue.string(value: 'Den Haag'),
+    value: const AttributeValue.string(value: 'Den Haag'),
     key: 'mock.city',
     // sourceCardId: _kAddressId,
   ),
@@ -241,31 +241,31 @@ final _kMockAddressDataAttributes = [
 final _kMockDiplomaDataAttributes = [
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Onderwijsinstelling')],
-    value: const AttestationValue.string(value: 'Universiteit X'),
+    value: const AttributeValue.string(value: 'Universiteit X'),
     key: 'mock.university',
     // sourceCardId: _kDiplomaId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Opleiding')],
-    value: const AttestationValue.string(value: 'WO Bachelor Bedrijfskunde'),
+    value: const AttributeValue.string(value: 'WO Bachelor Bedrijfskunde'),
     key: 'mock.education',
     // sourceCardId: _kDiplomaId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Niveau')],
-    value: const AttestationValue.string(value: 'WO'),
+    value: const AttributeValue.string(value: 'WO'),
     key: 'mock.educationLevel',
     // sourceCardId: _kDiplomaId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Type')],
-    value: const AttestationValue.string(value: 'Getuigschrift'),
+    value: const AttributeValue.string(value: 'Getuigschrift'),
     // sourceCardId: _kDiplomaId,
     key: _kMockOtherKey,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Uitgifte datum')],
-    value: AttestationValue.string(value: '01-01-2013'),
+    value: AttributeValue.string(value: '01-01-2013'),
     key: _kMockIssuanceDateKey,
     // sourceCardId: _kDiplomaId,
   ),
@@ -274,31 +274,31 @@ final _kMockDiplomaDataAttributes = [
 final _kMockMasterDiplomaDataAttributes = [
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Onderwijsinstelling')],
-    value: const AttestationValue.string(value: 'Universiteit X'),
+    value: const AttributeValue.string(value: 'Universiteit X'),
     key: 'mock.university',
     // sourceCardId: _kMasterDiplomaId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Opleiding')],
-    value: const AttestationValue.string(value: 'WO Master Bedrijfskunde'),
+    value: const AttributeValue.string(value: 'WO Master Bedrijfskunde'),
     key: 'mock.education',
     // sourceCardId: _kMasterDiplomaId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Niveau')],
-    value: const AttestationValue.string(value: 'WO'),
+    value: const AttributeValue.string(value: 'WO'),
     key: 'mock.educationLevel',
     // sourceCardId: _kMasterDiplomaId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Type')],
-    value: const AttestationValue.string(value: 'Getuigschrift'),
+    value: const AttributeValue.string(value: 'Getuigschrift'),
     // sourceCardId: _kMasterDiplomaId,
     key: _kMockOtherKey,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Uitgifte datum')],
-    value: AttestationValue.string(value: '01-01-2015'),
+    value: AttributeValue.string(value: '01-01-2015'),
     key: _kMockIssuanceDateKey,
     // sourceCardId: _kMasterDiplomaId,
   ),
@@ -335,25 +335,25 @@ List<AttestationAttribute> _buildDrivingLicenseDataAttributes({required String c
     ),
     AttestationAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Afgiftedatum')],
-      value: AttestationValue.string(value: '04-23-2018'),
+      value: AttributeValue.string(value: '04-23-2018'),
       key: _kMockIssuanceDateKey,
       // sourceCardId: _kDrivingLicenseId,
     ),
     AttestationAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Datum geldig tot')],
-      value: AttestationValue.string(value: '23-04-2028'),
+      value: AttributeValue.string(value: '23-04-2028'),
       key: 'mock.expiryDate',
       // sourceCardId: _kDrivingLicenseId,
     ),
     AttestationAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Rijbewijsnummer')],
-      value: const AttestationValue.string(value: '99999999999'),
+      value: const AttributeValue.string(value: '99999999999'),
       // sourceCardId: _kDrivingLicenseId,
       key: _kMockOtherKey,
     ),
     AttestationAttribute(
       labels: [LocalizedString(language: 'nl', value: 'Rijbewijscategorieën')],
-      value: AttestationValue.string(value: category),
+      value: AttributeValue.string(value: category),
       key: 'mock.drivingLicenseCategories',
       // sourceCardId: _kDrivingLicenseId,
     ),
@@ -381,25 +381,25 @@ final _kMockHealthInsuranceDataAttributes = [
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Klantnummer')],
-    value: const AttestationValue.string(value: '12345678'),
+    value: const AttributeValue.string(value: '12345678'),
     key: 'mock.healthIssuerClientId',
     // sourceCardId: _kHealthInsuranceId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Kaartnummer')],
-    value: const AttestationValue.string(value: '9999999999'),
+    value: const AttributeValue.string(value: '9999999999'),
     key: 'mock.documentNr',
     // sourceCardId: _kHealthInsuranceId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'UZOVI')],
-    value: const AttestationValue.string(value: 'XXXX - 9999'),
+    value: const AttributeValue.string(value: 'XXXX - 9999'),
     key: 'mock.healthIssuerId',
     // sourceCardId: _kHealthInsuranceId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Verloopdatum')],
-    value: AttestationValue.string(value: '0-01-2024'),
+    value: AttributeValue.string(value: '0-01-2024'),
     key: 'mock.healthInsuranceExpiryDate',
     // sourceCardId: _kHealthInsuranceId,
   ),
@@ -408,13 +408,13 @@ final _kMockHealthInsuranceDataAttributes = [
 final _kMockVOGDataAttributes = [
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Type')],
-    value: const AttestationValue.string(value: '1'),
+    value: const AttributeValue.string(value: '1'),
     key: 'mock.certificateOfConduct',
     // sourceCardId: _kVOGId,
   ),
   AttestationAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Datum geldig tot')],
-    value: AttestationValue.string(value: '05-02-2023'),
+    value: AttributeValue.string(value: '05-02-2023'),
     key: 'mock.expiryDate',
     // sourceCardId: _kVOGId,
   ),

@@ -4,7 +4,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/util/mapper/card/card_subtitle_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
 import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
@@ -17,18 +17,18 @@ const _kSampleCitySubtitle = {'en': 'Den Haag', 'nl': 'Den Haag'};
 const _kSampleIssuer = CoreMockData.organization;
 
 void main() {
-  late Mapper<AttestationValue, AttributeValue> mockAttributeValueMapper;
+  late Mapper<core.AttributeValue, AttributeValue> mockAttributeValueMapper;
 
-  late Mapper<Attestation, LocalizedText?> mapper;
+  late Mapper<core.Attestation, LocalizedText?> mapper;
 
   setUp(() {
     mockAttributeValueMapper = MockMapper();
     mapper = CardSubtitleMapper(mockAttributeValueMapper);
   });
 
-  Attestation createSampleAttestation(String attestationType, List<AttestationAttribute> attributes) {
-    return Attestation(
-      identity: const AttestationIdentity.ephemeral(),
+  core.Attestation createSampleAttestation(String attestationType, List<core.AttestationAttribute> attributes) {
+    return core.Attestation(
+      identity: const core.AttestationIdentity.ephemeral(),
       attestationType: attestationType,
       displayMetadata: [CoreMockData.displayMetadata],
       attributes: attributes,

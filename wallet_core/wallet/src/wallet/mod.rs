@@ -14,6 +14,8 @@ mod uri;
 #[cfg(test)]
 mod test;
 
+use std::sync::Arc;
+
 use cfg_if::cfg_if;
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -69,7 +71,7 @@ enum WalletRegistration<A, G> {
     Unregistered,
     KeyIdentifierGenerated(String),
     Registered {
-        attested_key: AttestedKey<A, G>,
+        attested_key: Arc<AttestedKey<A, G>>,
         data: RegistrationData,
     },
 }
@@ -82,7 +84,7 @@ impl<A, G> WalletRegistration<A, G> {
         }
     }
 
-    fn as_key_and_registration_data(&self) -> Option<(&AttestedKey<A, G>, &RegistrationData)> {
+    fn as_key_and_registration_data(&self) -> Option<(&Arc<AttestedKey<A, G>>, &RegistrationData)> {
         match self {
             Self::Unregistered | Self::KeyIdentifierGenerated(_) => None,
             Self::Registered { attested_key, data } => Some((attested_key, data)),
@@ -105,10 +107,10 @@ pub struct Wallet<
 {
     config_repository: CR,
     update_policy_repository: UR,
-    storage: RwLock<S>,
+    storage: Arc<RwLock<S>>,
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
-    account_provider_client: APC,
+    account_provider_client: Arc<APC>,
     issuance_session: Option<PidIssuanceSession<DS, IS>>,
     disclosure_session: Option<MDS>,
     wte_issuance_client: WIC,

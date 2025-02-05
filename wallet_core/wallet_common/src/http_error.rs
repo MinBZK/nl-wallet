@@ -64,7 +64,7 @@ where
 /// If the `axum` feature is enabled, `IntoResponse` will also be implemented
 /// for this type.
 #[derive(Debug, thiserror::Error)]
-#[error("({r#type}): {detail}")]
+#[error("({type}): {detail}")]
 pub struct HttpJsonError<T> {
     r#type: T,
     detail: String,

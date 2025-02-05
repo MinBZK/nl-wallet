@@ -167,6 +167,7 @@ impl FlutterApiErrorFields for WalletUnlockError {
             WalletUnlockError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             WalletUnlockError::NotRegistered
             | WalletUnlockError::NotLocked
+            | WalletUnlockError::Locked
             | WalletUnlockError::BiometricsUnlockingNotEnabled => FlutterApiErrorType::WalletState,
             WalletUnlockError::Instruction(e) => FlutterApiErrorType::from(e),
             WalletUnlockError::ChangePin(e) => e.typ(),

@@ -152,7 +152,8 @@ mod tests {
         let mdoc_doc_type = mdoc.doc_type().clone();
         wallet
             .storage
-            .get_mut()
+            .write()
+            .await
             .mdocs
             .insert(mdoc.doc_type().clone(), vec![vec![mdoc].try_into().unwrap()]);
 
@@ -193,7 +194,8 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc_unauthenticated();
         wallet
             .storage
-            .get_mut()
+            .write()
+            .await
             .mdocs
             .insert(mdoc.doc_type().clone(), vec![vec![mdoc].try_into().unwrap()]);
 
@@ -214,7 +216,7 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the database return an error on query.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.write().await.has_query_error = true;
 
         // Confirm that setting the callback returns an error.
         let error = wallet

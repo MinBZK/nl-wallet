@@ -42,44 +42,44 @@ pub enum RemoteEcdsaKeyError {
     KeyNotFound(String),
 }
 
-pub struct RemoteEcdsaKeyFactory<'a, S, AK, GK, A> {
-    instruction_client: &'a InstructionClient<'a, S, AK, GK, A>,
+pub struct RemoteEcdsaKeyFactory<S, AK, GK, A> {
+    instruction_client: InstructionClient<S, AK, GK, A>,
 }
 
-pub struct RemoteEcdsaKey<'a, S, AK, GK, A> {
+pub struct RemoteEcdsaKey<S, AK, GK, A> {
     identifier: String,
     public_key: VerifyingKey,
-    instruction_client: &'a InstructionClient<'a, S, AK, GK, A>,
+    instruction_client: InstructionClient<S, AK, GK, A>,
 }
 
-impl<S, AK, GK, A> PartialEq for RemoteEcdsaKey<'_, S, AK, GK, A> {
+impl<S, AK, GK, A> PartialEq for RemoteEcdsaKey<S, AK, GK, A> {
     fn eq(&self, other: &Self) -> bool {
         self.identifier == other.identifier
     }
 }
 
-impl<S, AK, GK, A> Eq for RemoteEcdsaKey<'_, S, AK, GK, A> {}
+impl<S, AK, GK, A> Eq for RemoteEcdsaKey<S, AK, GK, A> {}
 
-impl<S, AK, GK, A> Hash for RemoteEcdsaKey<'_, S, AK, GK, A> {
+impl<S, AK, GK, A> Hash for RemoteEcdsaKey<S, AK, GK, A> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.identifier.hash(state);
     }
 }
 
-impl<'a, S, AK, GK, A> RemoteEcdsaKeyFactory<'a, S, AK, GK, A> {
-    pub fn new(instruction_client: &'a InstructionClient<'a, S, AK, GK, A>) -> Self {
+impl<S, AK, GK, A> RemoteEcdsaKeyFactory<S, AK, GK, A> {
+    pub fn new(instruction_client: InstructionClient<S, AK, GK, A>) -> Self {
         Self { instruction_client }
     }
 }
 
-impl<'a, S, AK, GK, A> KeyFactory for RemoteEcdsaKeyFactory<'a, S, AK, GK, A>
+impl<S, AK, GK, A> KeyFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
     GK: GoogleAttestedKey,
     A: AccountProviderClient,
 {
-    type Key = RemoteEcdsaKey<'a, S, AK, GK, A>;
+    type Key = RemoteEcdsaKey<S, AK, GK, A>;
     type Error = RemoteEcdsaKeyError;
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
@@ -92,7 +92,7 @@ where
             .map(|(identifier, public_key)| RemoteEcdsaKey {
                 identifier,
                 public_key: public_key.0,
-                instruction_client: self.instruction_client,
+                instruction_client: self.instruction_client.clone(),
             })
             .collect();
 
@@ -103,7 +103,7 @@ where
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
-            instruction_client: self.instruction_client,
+            instruction_client: self.instruction_client.clone(),
         }
     }
 
@@ -183,13 +183,13 @@ where
     }
 }
 
-impl<S, AK, GK, A> WithIdentifier for RemoteEcdsaKey<'_, S, AK, GK, A> {
+impl<S, AK, GK, A> WithIdentifier for RemoteEcdsaKey<S, AK, GK, A> {
     fn identifier(&self) -> &str {
         &self.identifier
     }
 }
 
-impl<S, AK, GK, A> EcdsaKey for RemoteEcdsaKey<'_, S, AK, GK, A>
+impl<S, AK, GK, A> EcdsaKey for RemoteEcdsaKey<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
@@ -222,7 +222,7 @@ where
     }
 }
 
-impl<S, AK, GK, A> SecureEcdsaKey for RemoteEcdsaKey<'_, S, AK, GK, A>
+impl<S, AK, GK, A> SecureEcdsaKey for RemoteEcdsaKey<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
@@ -231,7 +231,7 @@ where
 {
 }
 
-impl<S, AK, GK, A> CredentialEcdsaKey for RemoteEcdsaKey<'_, S, AK, GK, A>
+impl<S, AK, GK, A> CredentialEcdsaKey for RemoteEcdsaKey<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,

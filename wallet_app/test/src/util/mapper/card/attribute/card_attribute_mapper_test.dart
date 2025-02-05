@@ -3,21 +3,21 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
 import '../../../../mocks/wallet_mocks.dart';
 
-const _kSampleCardAttributeLabels = [LocalizedString(language: '-', value: '-')];
-const _kSampleCardValue = AttestationValue_String(value: '-');
-const _kSampleCardAttribute = AttestationAttribute(
+const _kSampleCardAttributeLabels = [core.LocalizedString(language: '-', value: '-')];
+const _kSampleCardValue = core.AttributeValue_String(value: '-');
+const _kSampleCardAttribute = core.AttestationAttribute(
   key: 'card.key',
   labels: _kSampleCardAttributeLabels,
   value: _kSampleCardValue,
 );
 
 void main() {
-  late Mapper<List<LocalizedString>, LocalizedText> mockLabelMapper;
-  late Mapper<AttestationValue, AttributeValue> mockValueMapper;
+  late Mapper<List<core.LocalizedString>, LocalizedText> mockLabelMapper;
+  late Mapper<core.AttributeValue, AttributeValue> mockValueMapper;
 
   late Mapper<CardAttributeWithDocType, DataAttribute> mapper;
 

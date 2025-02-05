@@ -92,7 +92,7 @@ where
 {
     pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), EventStorageError> {
         info!("Storing history event");
-        self.storage.get_mut().log_wallet_event(event).await?;
+        self.storage.write().await.log_wallet_event(event).await?;
 
         info!("Emitting recent history");
         self.emit_recent_history().await
@@ -435,7 +435,7 @@ mod tests {
 
         // The database contains a single Issuance Event
         let event = WalletEvent::new_issuance(Default::default());
-        wallet.storage.get_mut().event_log.push(event);
+        wallet.storage.write().await.event_log.push(event);
 
         // Register mock recent history callback
         let events = test::setup_mock_recent_history_callback(&mut wallet)
@@ -467,7 +467,7 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the database return an error on query.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.write().await.has_query_error = true;
 
         // Confirm that setting the callback returns an error.
         let error = wallet

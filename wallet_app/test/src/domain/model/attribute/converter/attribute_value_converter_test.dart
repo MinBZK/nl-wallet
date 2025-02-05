@@ -20,7 +20,7 @@ void main() {
   });
 
   test('NumberValue', () {
-    final input = NumberValue(BigInt.one);
+    const input = NumberValue(1);
     final json = converter.toJson(input);
     final result = converter.fromJson(json);
     expect(result, equals(input));

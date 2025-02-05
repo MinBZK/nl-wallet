@@ -62,7 +62,7 @@ class CardFrontMapper extends Mapper<Attestation, CardFront> {
   /// a way to get the [CardFront]s through the core.
   bool isRenewedLicense(Attestation input) => input.attributes
       .map((attribute) => attribute.value)
-      .whereType<AttestationValue_String>()
+      .whereType<AttributeValue_String>()
       .any((value) => value.value.contains('C1'));
 }
 

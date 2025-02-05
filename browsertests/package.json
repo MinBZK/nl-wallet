@@ -1,0 +1,7 @@
+{
+    "name": "nl-wallet-browsertests",
+    "private": true,
+    "workspaces": [
+      "packages/*"
+    ]
+  }

@@ -22,7 +22,7 @@ class AttributeValueConverter extends JsonConverter<AttributeValue, Map<String, 
       case _kBooleanValue:
         return BooleanValue(bool.parse(json[_kValueKey]!));
       case _kNumberValue:
-        return NumberValue(BigInt.parse(json[_kValueKey]!));
+        return NumberValue(int.parse(json[_kValueKey]!));
     }
     throw UnsupportedError('Unknown type: ${json[_kTypeKey]}');
   }

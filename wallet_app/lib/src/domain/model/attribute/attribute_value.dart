@@ -30,7 +30,7 @@ class BooleanValue extends AttributeValue {
 
 class NumberValue extends AttributeValue {
   @override
-  final BigInt value;
+  final int value;
 
   const NumberValue(this.value);
 }

@@ -63,7 +63,7 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<List<LocalizedString>, LocalizedText>>(
           create: (context) => LocalizedLabelsMapper(),
         ),
-        RepositoryProvider<Mapper<core.AttestationValue, AttributeValue>>(
+        RepositoryProvider<Mapper<core.AttributeValue, AttributeValue>>(
           create: (context) => CardAttributeValueMapper(),
         ),
         RepositoryProvider<Mapper<CardAttributeWithDocType, DataAttribute>>(

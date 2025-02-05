@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::sync::Arc;
 
 use tokio::sync::RwLock;
 use tokio::sync::RwLockWriteGuard;
@@ -20,38 +21,57 @@ use crate::storage::Storage;
 
 use super::InstructionError;
 
-pub struct InstructionClient<'a, S, AK, GK, A> {
+pub struct InstructionClient<S, AK, GK, A> {
     pin: String,
-    storage: &'a RwLock<S>,
-    attested_key: &'a AttestedKey<AK, GK>,
-    account_provider_client: &'a A,
-    registration: &'a RegistrationData,
-    client_config: &'a TlsPinningConfig,
-    instruction_result_public_key: &'a EcdsaDecodingKey,
+    storage: Arc<RwLock<S>>,
+    attested_key: Arc<AttestedKey<AK, GK>>,
+    account_provider_client: Arc<A>,
+    parameters: Arc<InstructionClientParameters>,
 }
 
-impl<'a, S, AK, GK, A> InstructionClient<'a, S, AK, GK, A> {
+struct InstructionClientParameters {
+    registration: RegistrationData,
+    client_config: TlsPinningConfig,
+    instruction_result_public_key: EcdsaDecodingKey,
+}
+
+// Manually implement clone in order to prevent Clone trait bounds on the generics.
+impl<S, AK, GK, A> Clone for InstructionClient<S, AK, GK, A> {
+    fn clone(&self) -> Self {
+        Self {
+            pin: self.pin.clone(),
+            storage: Arc::clone(&self.storage),
+            attested_key: Arc::clone(&self.attested_key),
+            account_provider_client: Arc::clone(&self.account_provider_client),
+            parameters: Arc::clone(&self.parameters),
+        }
+    }
+}
+
+impl<S, AK, GK, A> InstructionClient<S, AK, GK, A> {
     /// Creates an [`InstructionClient`].
     /// In most cases this function should not be used directly, as the wallet must try to finalize
     /// a PIN change if it is in progress. [`Wallet::new_instruction_client`] will do this before
     /// returning the [`InstructionClient`] and so is the recommended way to obtain an [`InstructionClient`].
     pub fn new(
         pin: String,
-        storage: &'a RwLock<S>,
-        attested_key: &'a AttestedKey<AK, GK>,
-        account_provider_client: &'a A,
-        registration: &'a RegistrationData,
-        client_config: &'a TlsPinningConfig,
-        instruction_result_public_key: &'a EcdsaDecodingKey,
+        storage: Arc<RwLock<S>>,
+        attested_key: Arc<AttestedKey<AK, GK>>,
+        account_provider_client: Arc<A>,
+        registration: RegistrationData,
+        client_config: TlsPinningConfig,
+        instruction_result_public_key: EcdsaDecodingKey,
     ) -> Self {
         Self {
             pin,
             storage,
             attested_key,
             account_provider_client,
-            registration,
-            client_config,
-            instruction_result_public_key,
+            parameters: Arc::new(InstructionClientParameters {
+                registration,
+                client_config,
+                instruction_result_public_key,
+            }),
         }
     }
 
@@ -72,7 +92,7 @@ impl<'a, S, AK, GK, A> InstructionClient<'a, S, AK, GK, A> {
     }
 }
 
-impl<S, AK, GK, A> InstructionClient<'_, S, AK, GK, A>
+impl<S, AK, GK, A> InstructionClient<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,
@@ -83,11 +103,12 @@ where
     where
         I: InstructionAndResult,
     {
-        let wallet_id = self.registration.wallet_id.clone();
-        let wallet_certificate = self.registration.wallet_certificate.clone();
+        let registration = &self.parameters.registration;
+        let wallet_id = registration.wallet_id.clone();
+        let wallet_certificate = registration.wallet_certificate.clone();
 
         let challenge_request = Self::with_sequence_number(storage, |seq_num| async move {
-            match self.attested_key {
+            match self.attested_key.as_ref() {
                 AttestedKey::Apple(key) => {
                     InstructionChallengeRequest::new_apple::<I>(wallet_id, seq_num, key, wallet_certificate).await
                 }
@@ -100,7 +121,7 @@ where
 
         let result = self
             .account_provider_client
-            .instruction_challenge(self.client_config, challenge_request)
+            .instruction_challenge(&self.parameters.client_config, challenge_request)
             .await?;
 
         Ok(result)
@@ -123,14 +144,14 @@ where
 
         let challenge = self.instruction_challenge::<I>(&mut storage).await?;
 
-        let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt);
+        let pin_key = PinKey::new(&self.pin, &self.parameters.registration.pin_salt);
 
         let instruction = construct(challenge.clone()).await?;
 
-        let wallet_certificate = self.registration.wallet_certificate.clone();
+        let wallet_certificate = self.parameters.registration.wallet_certificate.clone();
 
         let instruction = Self::with_sequence_number(&mut storage, |seq_num| async move {
-            match self.attested_key {
+            match self.attested_key.as_ref() {
                 AttestedKey::Apple(key) => {
                     Instruction::new_apple(instruction, challenge, seq_num, key, &pin_key, wallet_certificate).await
                 }
@@ -143,12 +164,12 @@ where
 
         let signed_result = self
             .account_provider_client
-            .instruction(self.client_config, instruction)
+            .instruction(&self.parameters.client_config, instruction)
             .await
             .map_err(InstructionError::from)?;
 
         let result = signed_result
-            .parse_and_verify_with_sub(self.instruction_result_public_key)
+            .parse_and_verify_with_sub(&self.parameters.instruction_result_public_key)
             .map_err(InstructionError::InstructionResultValidation)?
             .result;
 
@@ -156,45 +177,43 @@ where
     }
 }
 
-pub struct InstructionClientFactory<'a, S, AK, GK, A> {
-    storage: &'a RwLock<S>,
-    attested_key: &'a AttestedKey<AK, GK>,
-    account_provider_client: &'a A,
-    registration: &'a RegistrationData,
-    client_config: &'a TlsPinningConfig,
-    instruction_result_public_key: &'a EcdsaDecodingKey,
+pub struct InstructionClientFactory<S, AK, GK, A> {
+    storage: Arc<RwLock<S>>,
+    attested_key: Arc<AttestedKey<AK, GK>>,
+    account_provider_client: Arc<A>,
+    parameters: Arc<InstructionClientParameters>,
 }
 
-impl<'a, S, AK, GK, A> InstructionClientFactory<'a, S, AK, GK, A> {
+impl<S, AK, GK, A> InstructionClientFactory<S, AK, GK, A> {
     pub fn new(
-        storage: &'a RwLock<S>,
-        attested_key: &'a AttestedKey<AK, GK>,
-        account_provider_client: &'a A,
-        registration: &'a RegistrationData,
-        client_config: &'a TlsPinningConfig,
-        instruction_result_public_key: &'a EcdsaDecodingKey,
+        storage: Arc<RwLock<S>>,
+        attested_key: Arc<AttestedKey<AK, GK>>,
+        account_provider_client: Arc<A>,
+        registration: RegistrationData,
+        client_config: TlsPinningConfig,
+        instruction_result_public_key: EcdsaDecodingKey,
     ) -> Self {
         Self {
             storage,
             attested_key,
             account_provider_client,
-            registration,
-            client_config,
-            instruction_result_public_key,
+            parameters: Arc::new(InstructionClientParameters {
+                registration,
+                client_config,
+                instruction_result_public_key,
+            }),
         }
     }
 
     /// Creates an [`InstructionClient`].
     /// See [`InstructionClient::new`].
-    pub fn create(&self, pin: String) -> InstructionClient<'a, S, AK, GK, A> {
-        InstructionClient::new(
+    pub fn create(&self, pin: String) -> InstructionClient<S, AK, GK, A> {
+        InstructionClient {
             pin,
-            self.storage,
-            self.attested_key,
-            self.account_provider_client,
-            self.registration,
-            self.client_config,
-            self.instruction_result_public_key,
-        )
+            storage: Arc::clone(&self.storage),
+            attested_key: Arc::clone(&self.attested_key),
+            account_provider_client: Arc::clone(&self.account_provider_client),
+            parameters: Arc::clone(&self.parameters),
+        }
     }
 }
