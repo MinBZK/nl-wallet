@@ -38,6 +38,9 @@ pub enum WalletUnlockError {
     #[error("wallet is not locked")]
     #[category(expected)]
     NotLocked,
+    #[error("can not update setting while locked")]
+    #[category(expected)]
+    Locked,
     #[error("unlocking with biometrics is not enabled")]
     #[category(expected)]
     BiometricsUnlockingNotEnabled,
@@ -106,8 +109,8 @@ where
         }
 
         info!("Checking if locked");
-        if !self.lock.is_locked() {
-            return Err(WalletUnlockError::NotLocked);
+        if self.lock.is_locked() {
+            return Err(WalletUnlockError::Locked);
         }
 
         let data = UnlockData { method };

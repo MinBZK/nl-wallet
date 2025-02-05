@@ -24,6 +24,8 @@ use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
+#[cfg(feature = "issuance")]
+use std::num::NonZeroU8;
 use tokio::time;
 use url::Url;
 
@@ -132,6 +134,8 @@ fn fake_issuer_settings() -> Issuer {
         },
         brp_server: url,
         wte_issuer_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
+        valid_days: 1,
+        copy_count: NonZeroU8::new(1).unwrap(),
     }
 }
 
@@ -515,7 +519,10 @@ fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session
     let mut status_url = public_url.join(&format!("disclosure/sessions/{session_token}"));
 
     if let Some(session_type) = session_type {
-        let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
+        let status_query = serde_urlencoded::to_string(StatusParams {
+            session_type: Some(session_type),
+        })
+        .unwrap();
         status_url.set_query(status_query.as_str().into());
     }
 

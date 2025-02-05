@@ -1,12 +1,15 @@
+use std::num::NonZeroU8;
+use std::ops::Add;
+
+use chrono::Days;
+use chrono::Utc;
 use indexmap::IndexMap;
 
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
+use openid4vc::attributes::IssuableDocuments;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::Created;
+use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;
-use openid4vc::server_state::SessionState;
-use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::ErrorResponse;
@@ -45,42 +48,18 @@ pub enum Error {
     MissingCertificate(String),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
+    #[error("error parsing unsigned attributes: {0}")]
+    UnsignedAttributes(#[from] UnsignedAttributesError),
     #[error("error signing metadata: {0}")]
     MetadataSigning(#[from] TypeMetadataError),
-}
-
-pub struct AttributeCertificates {
-    certificates: IndexMap<String, BorrowingCertificate>,
-}
-
-impl AttributeCertificates {
-    pub fn new(certificates: IndexMap<String, BorrowingCertificate>) -> Self {
-        Self { certificates }
-    }
-
-    pub fn try_unsigned_mdoc_to_attestion_preview(
-        &self,
-        unsigned_mdoc: UnsignedMdoc,
-        metadata_chain: TypeMetadataChain,
-    ) -> Result<CredentialPreview, Error> {
-        let preview = CredentialPreview::MsoMdoc {
-            issuer: self
-                .certificates
-                .get(&unsigned_mdoc.doc_type)
-                .ok_or(Error::MissingCertificate(unsigned_mdoc.doc_type.clone()))?
-                .clone(),
-            unsigned_mdoc,
-            metadata_chain,
-        };
-        Ok(preview)
-    }
 }
 
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient<TlsPinningConfig>,
-    certificates: AttributeCertificates,
     metadata_by_doctype: IndexMap<String, TypeMetadata>,
+    valid_days: Days,
+    copy_count: NonZeroU8,
 }
 
 impl BrpPidAttributeService {
@@ -88,14 +67,16 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
-        certificates: IndexMap<String, BorrowingCertificate>,
         metadata_by_doctype: IndexMap<String, TypeMetadata>,
+        valid_days: Days,
+        copy_count: NonZeroU8,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
-            certificates: AttributeCertificates::new(certificates),
             metadata_by_doctype,
+            valid_days,
+            copy_count,
         })
     }
 }
@@ -103,11 +84,7 @@ impl BrpPidAttributeService {
 impl AttributeService for BrpPidAttributeService {
     type Error = Error;
 
-    async fn attributes(
-        &self,
-        _session: &SessionState<Created>,
-        token_request: TokenRequest,
-    ) -> Result<VecNonEmpty<CredentialPreview>, Error> {
+    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),
@@ -123,20 +100,28 @@ impl AttributeService for BrpPidAttributeService {
         }
 
         let person = persons.persons.remove(0);
-        let unsigned_mdocs: Vec<UnsignedMdoc> = person.into();
-        let previews = unsigned_mdocs
+        let issuable_attributes: IssuableDocuments = person.into();
+
+        issuable_attributes
+            .into_inner()
             .into_iter()
-            .map(|unsigned| {
+            .map(|document| {
                 let metadata = self
                     .metadata_by_doctype
-                    .get(unsigned.doc_type.as_str())
-                    .ok_or(Error::NoMetadataFound(String::from(unsigned.doc_type.as_str())))?;
+                    .get(document.attestation_type())
+                    .ok_or(Error::NoMetadataFound(document.attestation_type().to_string()))?;
                 let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![])?;
-                self.certificates
-                    .try_unsigned_mdoc_to_attestion_preview(unsigned, metadata_chain)
+
+                Ok(IssuableCredential {
+                    document,
+                    metadata_chain,
+                    valid_from: Utc::now(),
+                    valid_until: Utc::now().add(self.valid_days),
+                    copy_count: self.copy_count,
+                })
             })
-            .collect::<Result<Vec<CredentialPreview>, Error>>()?;
-        previews.try_into().map_err(|_| Error::NoAttributesFound)
+            .collect::<Result<Vec<_>, _>>()
+            .map(|vec| vec.try_into().unwrap()) // safe because issuable_attributes is non-empty
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {

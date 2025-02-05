@@ -7,7 +7,6 @@ use std::sync::Arc;
 use aes_gcm::Aes256Gcm;
 use anyhow::anyhow;
 use askama::Template;
-use axum::async_trait;
 use axum::extract::FromRequestParts;
 use axum::extract::Request;
 use axum::extract::State;
@@ -138,7 +137,6 @@ struct CertSerial(String);
 
 struct ExtractCertSerial(Option<CertSerial>);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for ExtractCertSerial
 where
     S: Send + Sync,

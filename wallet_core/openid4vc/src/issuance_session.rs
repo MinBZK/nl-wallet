@@ -51,6 +51,7 @@ use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::credential::MdocCopies;
 use crate::credential::WteDisclosure;
+use crate::credential_formats::CredentialFormats;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::dpop::DPOP_HEADER_NAME;
@@ -65,7 +66,6 @@ use crate::token::TokenRequest;
 use crate::token::TokenResponseWithPreviews;
 use crate::CredentialErrorCode;
 use crate::ErrorResponse;
-use crate::Format;
 use crate::TokenErrorCode;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -164,14 +164,6 @@ impl TryFrom<IssuedCredential> for Mdoc {
     }
 }
 
-impl From<&IssuedCredential> for Format {
-    fn from(value: &IssuedCredential) -> Self {
-        match value {
-            IssuedCredential::MsoMdoc(_) => Format::MsoMdoc,
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub enum IssuedCredentialCopies {
     MsoMdoc(MdocCopies),
@@ -188,14 +180,6 @@ impl IssuedCredentialCopies {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-}
-
-impl From<&IssuedCredentialCopies> for Format {
-    fn from(value: &IssuedCredentialCopies) -> Self {
-        match value {
-            IssuedCredentialCopies::MsoMdoc(_) => Format::MsoMdoc,
-        }
     }
 }
 
@@ -259,13 +243,13 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         base_url: BaseUrl,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<(Self, Vec<CredentialPreview>), IssuanceSessionError>
+    ) -> Result<(Self, Vec<CredentialFormats<CredentialPreview>>), IssuanceSessionError>
     where
         Self: Sized;
 
     async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
-        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[TrustAnchor<'_>],
         key_factory: &impl KeyFactory<Key = K>,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
@@ -460,7 +444,7 @@ impl HttpVcMessageClient {
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
-    credential_previews: VecNonEmpty<CredentialPreview>,
+    credential_previews: VecNonEmpty<CredentialFormats<CredentialPreview>>,
     issuer_url: BaseUrl,
     #[debug(skip)]
     dpop_private_key: SigningKey,
@@ -518,7 +502,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         base_url: BaseUrl,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<(Self, Vec<CredentialPreview>), IssuanceSessionError> {
+    ) -> Result<(Self, Vec<CredentialFormats<CredentialPreview>>), IssuanceSessionError> {
         let token_endpoint = Self::discover_token_endpoint(&message_client, &base_url).await?;
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
@@ -557,7 +541,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
     async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
-        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[TrustAnchor<'_>],
         key_factory: &impl KeyFactory<Key = K>,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
@@ -567,12 +551,12 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // We implement this below by simply flattening the relevant nested iterators when communicating with the
         // issuer.
 
-        let types = self
+        let credential_previews = self
             .session_state
             .credential_previews
             .as_slice()
             .iter()
-            .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count().into()))
+            .flat_map(|formats| formats.flatten_copies())
             .collect_vec();
 
         // Generate the PoPs to be sent to the issuer, and the private keys with which they were generated
@@ -583,7 +567,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             self.session_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
             credential_issuer_identifier.clone(),
-            types.len().try_into().unwrap(),
+            credential_previews.len().try_into().unwrap(),
             key_factory,
         )
         .await?;
@@ -623,28 +607,26 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
-        let (pubkeys, credential_requests): (Vec<_>, Vec<_>) = try_join_all(
-            keys_and_proofs
-                .into_iter()
-                .zip(types)
-                .map(|((key, response), credential_type)| async move {
+        let (pubkeys, credential_requests): (Vec<_>, Vec<_>) =
+            try_join_all(keys_and_proofs.into_iter().zip(credential_previews).map(
+                |((key, response), credential_preview)| async move {
                     let pubkey = key
                         .verifying_key()
                         .await
                         .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let id = key.identifier().to_string();
                     let cred_request = CredentialRequest {
-                        credential_type,
+                        credential_type: credential_preview.credential_request_type().into(),
                         proof: Some(response),
                         attestations: None, // We set this field below if necessary
                         poa: None,          // We set this field below if necessary
                     };
                     Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
-                }),
-        )
-        .await?
-        .into_iter()
-        .unzip();
+                },
+            ))
+            .await?
+            .into_iter()
+            .unzip();
 
         // The following two unwraps are safe because N > 0, see above.
         let mut credential_requests = credential_requests; // Make it mutable so we can pop() to avoid cloning
@@ -663,30 +645,37 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         };
         let mut responses_and_pubkeys: VecDeque<_> = responses.into_iter().zip(pubkeys).collect();
 
-        let mdocs = self
+        let docs = self
             .session_state
             .credential_previews
             .as_slice()
             .iter()
-            .map(|preview| {
-                let copy_count: usize = preview.copy_count().into();
+            .map(|formats| {
+                formats
+                    .as_ref()
+                    .as_slice()
+                    .iter()
+                    .map(|preview| {
+                        let copy_count: usize = preview.copy_count().into();
 
-                // Consume the amount of copies from the front of `responses_and_keys`.
-                let cred_copies = responses_and_pubkeys
-                    .drain(..copy_count)
-                    .map(|(cred_response, (pubkey, key_id))| {
-                        // Convert the response into an credential, verifying it against both the
-                        // trust anchors and the credential preview we received in the preview.
-                        cred_response.into_credential::<K>(key_id, &pubkey, preview, mdoc_trust_anchors)
+                        // Consume the amount of copies from the front of `responses_and_keys`.
+                        let cred_copies = responses_and_pubkeys
+                            .drain(..copy_count)
+                            .map(|(cred_response, (pubkey, key_id))| {
+                                // Convert the response into a credential, verifying it against both the
+                                // trust anchors and the credential preview we received in the preview.
+                                cred_response.into_credential::<K>(key_id, &pubkey, preview, trust_anchors)
+                            })
+                            .collect::<Result<Vec<IssuedCredential>, _>>()?;
+
+                        cred_copies.try_into()
                     })
-                    .collect::<Result<Vec<IssuedCredential>, _>>()?;
-
-                // For each preview we have an `IssuedCredentialCopies` instance.
-                cred_copies.try_into()
+                    .collect::<Result<Vec<IssuedCredentialCopies>, _>>()
             })
-            .collect::<Result<_, IssuanceSessionError>>()?;
+            // Flatten the results, s.t. we're left with a mixed vector of IssuedCredentialCopies
+            .process_results(|i| i.flatten().collect())?;
 
-        Ok(mdocs)
+        Ok(docs)
     }
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
@@ -774,7 +763,7 @@ impl CredentialResponse {
                 let CborBase64(issuer_signed) = *issuer_signed;
                 let CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
-                    issuer,
+                    issuer_certificate,
                     metadata_chain,
                 } = preview;
 
@@ -808,7 +797,7 @@ impl CredentialResponse {
 
                 // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
                 // in the credential preview.
-                if issuer_signed.issuer_auth.signing_cert()? != *issuer {
+                if issuer_signed.issuer_auth.signing_cert()? != *issuer_certificate {
                     return Err(IssuanceSessionError::IssuerMismatch);
                 }
 
@@ -923,7 +912,7 @@ mod tests {
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         let preview = CredentialPreview::MsoMdoc {
             unsigned_mdoc: unsigned_mdoc.clone(),
-            issuer: issuance_key.certificate().clone(),
+            issuer_certificate: issuance_key.certificate().clone(),
             metadata_chain: metadata_chain.clone(),
         };
 
@@ -967,14 +956,18 @@ mod tests {
 
                 let preview = CredentialPreview::MsoMdoc {
                     unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
-                    issuer: issuance_key.certificate().clone(),
+                    issuer_certificate: issuance_key.certificate().clone(),
                     metadata_chain,
                 };
 
                 Ok((
                     TokenResponseWithPreviews {
                         token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        credential_previews: VecNonEmpty::try_from(vec![preview]).unwrap(),
+                        credential_previews: VecNonEmpty::try_from(vec![CredentialFormats::try_new(
+                            VecNonEmpty::try_from(vec![preview]).unwrap(),
+                        )
+                        .unwrap()])
+                        .unwrap(),
                     },
                     None,
                 ))
@@ -998,7 +991,7 @@ mod tests {
     }
 
     /// Return a new session ready for `accept_issuance()`.
-    fn new_session_state(previews: Vec<CredentialPreview>) -> IssuanceState {
+    fn new_session_state(previews: Vec<CredentialFormats<CredentialPreview>>) -> IssuanceState {
         IssuanceState {
             access_token: "access_token".to_string().into(),
             c_nonce: "c_nonce".to_string(),
@@ -1047,10 +1040,11 @@ mod tests {
         } else {
             None
         };
+        let format = CredentialFormats::try_new(VecNonEmpty::try_from(vec![preview]).unwrap()).unwrap();
         let session_state = new_session_state(if multiple_creds {
-            vec![preview.clone(), preview]
+            vec![format.clone(), format]
         } else {
-            vec![preview]
+            vec![format]
         });
 
         let mut mock_msg_client = mock_openid_message_client();
@@ -1119,9 +1113,10 @@ mod tests {
             },
         );
 
+        let format = CredentialFormats::try_new(VecNonEmpty::try_from(vec![preview]).unwrap()).unwrap();
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec![preview.clone(), preview]),
+            session_state: new_session_state(vec![format.clone(), format]),
         }
         .accept_issuance(
             &[trust_anchor],
@@ -1205,11 +1200,11 @@ mod tests {
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
-                issuer: _,
+                issuer_certificate: _,
                 metadata_chain,
             } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
-                issuer: other_issuance_key.certificate().clone(),
+                issuer_certificate: other_issuance_key.certificate().clone(),
                 metadata_chain,
             },
         };
@@ -1243,11 +1238,11 @@ mod tests {
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc: _,
-                issuer,
+                issuer_certificate,
                 metadata_chain,
             } => CredentialPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
-                issuer,
+                issuer_certificate,
                 metadata_chain,
             },
         };

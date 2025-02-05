@@ -19,6 +19,7 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::jwt::JwtCredentialError;
+use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::metadata::TypeMetadataError;
@@ -291,17 +292,25 @@ where
         .await?;
 
         info!("PID received successfully from issuer, returning preview documents");
-        let mut documents = attestation_previews
+        let documents = attestation_previews
             .into_iter()
+            .flatten()
             .map(|preview| {
-                let (unsigned_mdoc, protected_metadata, issuer) = preview.try_into()?;
-                let _metadata = protected_metadata.verify_and_parse_root()?;
-                // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
+                let issuer_registration = preview.issuer_registration()?;
+                match preview {
+                    CredentialPreview::MsoMdoc {
+                        unsigned_mdoc,
+                        metadata_chain,
+                        ..
+                    } => {
+                        let _metadata = metadata_chain.verify_and_parse_root()?;
+                        // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
-                Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer)?)
+                        Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer_registration)?)
+                    }
+                }
             })
             .collect::<Result<Vec<_>, PidIssuanceError>>()?;
-        documents.sort_by_key(Document::priority);
 
         self.issuance_session
             .replace(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -460,6 +469,7 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
+    use openid4vc::credential_formats::CredentialFormats;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
@@ -473,6 +483,7 @@ mod tests {
     use openid4vc::token::TokenRequestGrantType;
     use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::config::http::TlsPinningConfig;
+    use wallet_common::vec_at_least::VecNonEmpty;
 
     use crate::document;
     use crate::document::DocumentPersistence;
@@ -706,11 +717,15 @@ mod tests {
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
-                vec![CredentialPreview::MsoMdoc {
-                    unsigned_mdoc,
-                    issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    metadata_chain,
-                }],
+                vec![CredentialFormats::try_new(
+                    VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
+                        unsigned_mdoc,
+                        issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
+                        metadata_chain,
+                    }])
+                    .unwrap(),
+                )
+                .unwrap()],
             ))
         });
 
@@ -828,11 +843,15 @@ mod tests {
 
             Ok((
                 MockIssuanceSession::new(),
-                vec![CredentialPreview::MsoMdoc {
-                    unsigned_mdoc,
-                    issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                    metadata_chain,
-                }],
+                vec![CredentialFormats::try_new(
+                    VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
+                        unsigned_mdoc,
+                        issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
+                        metadata_chain,
+                    }])
+                    .unwrap(),
+                )
+                .unwrap()],
             ))
         });
 

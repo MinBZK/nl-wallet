@@ -1,20 +1,13 @@
 /// Mock implementations of the two traits abstracting other components
 use std::collections::HashMap;
-/// Mock implementations of the two traits abstracting other components
-use std::num::NonZeroU8;
-/// Mock implementations of the two traits abstracting other components
-use std::ops::Add;
 
-use chrono::Days;
 use chrono::NaiveDate;
-use chrono::Utc;
-use ciborium::Value;
-use indexmap::IndexMap;
 use serde::Deserialize;
 
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::Tdate;
+use openid4vc::attributes::Attribute;
+use openid4vc::attributes::AttributeValue;
+use openid4vc::attributes::IssuableDocument;
+use openid4vc::attributes::IssuableDocuments;
 
 use crate::pid::constants::*;
 
@@ -28,8 +21,8 @@ enum Gender {
     NotApplicable,
 }
 
-impl From<Gender> for Value {
-    fn from(value: Gender) -> Value {
+impl From<Gender> for AttributeValue {
+    fn from(value: Gender) -> Self {
         use Gender::Female;
         use Gender::Male;
         use Gender::NotApplicable;
@@ -40,7 +33,7 @@ impl From<Gender> for Value {
             Female => 2,
             NotApplicable => 9,
         };
-        Value::Integer(value.into())
+        AttributeValue::Number(value as isize)
     }
 }
 
@@ -60,54 +53,53 @@ pub struct PersonAttributes {
     gender: Option<Gender>,
 }
 
-impl From<PersonAttributes> for Vec<Entry> {
-    fn from(value: PersonAttributes) -> Vec<Entry> {
-        vec![
-            Entry {
-                name: PID_BSN.to_string(),
-                value: Value::Text(value.bsn),
-            }
-            .into(),
-            Entry {
-                name: PID_FAMILY_NAME.to_string(),
-                value: Value::Text(value.family_name),
-            }
-            .into(),
-            Entry {
-                name: PID_GIVEN_NAME.to_string(),
-                value: Value::Text(value.given_name),
-            }
-            .into(),
-            Entry {
-                name: PID_BIRTH_DATE.to_string(),
-                value: Value::Text(value.birth_date.format("%Y-%m-%d").to_string()),
-            }
-            .into(),
-            Entry {
-                name: PID_AGE_OVER_18.to_string(),
-                value: Value::Bool(value.age_over_18),
-            }
-            .into(),
-            value.birth_country.map(|v| Entry {
-                name: PID_BIRTH_COUNTRY.to_string(),
-                value: Value::Text(v),
-            }),
-            value.birth_state.map(|v| Entry {
-                name: PID_BIRTH_STATE.to_string(),
-                value: Value::Text(v),
-            }),
-            value.birth_city.map(|v| Entry {
-                name: PID_BIRTH_CITY.to_string(),
-                value: Value::Text(v),
-            }),
-            value.gender.map(|v| Entry {
-                name: PID_GENDER.to_string(),
-                value: v.into(),
-            }),
-        ]
-        .into_iter()
-        .flatten()
-        .collect()
+impl From<PersonAttributes> for IssuableDocument {
+    fn from(value: PersonAttributes) -> Self {
+        Self::try_new(
+            MOCK_PID_DOCTYPE.to_string(),
+            vec![
+                (PID_BSN.to_string(), Attribute::Single(AttributeValue::Text(value.bsn))).into(),
+                (
+                    PID_FAMILY_NAME.to_string(),
+                    Attribute::Single(AttributeValue::Text(value.family_name)),
+                )
+                    .into(),
+                (
+                    PID_GIVEN_NAME.to_string(),
+                    Attribute::Single(AttributeValue::Text(value.given_name)),
+                )
+                    .into(),
+                (
+                    PID_BIRTH_DATE.to_string(),
+                    Attribute::Single(AttributeValue::Text(value.birth_date.format("%Y-%m-%d").to_string())),
+                )
+                    .into(),
+                (
+                    PID_AGE_OVER_18.to_string(),
+                    Attribute::Single(AttributeValue::Bool(value.age_over_18)),
+                )
+                    .into(),
+                value.birth_country.map(|v| {
+                    (
+                        PID_BIRTH_COUNTRY.to_string(),
+                        Attribute::Single(AttributeValue::Text(v)),
+                    )
+                }),
+                value
+                    .birth_state
+                    .map(|v| (PID_BIRTH_STATE.to_string(), Attribute::Single(AttributeValue::Text(v)))),
+                value
+                    .birth_city
+                    .map(|v| (PID_BIRTH_CITY.to_string(), Attribute::Single(AttributeValue::Text(v)))),
+                value
+                    .gender
+                    .map(|v| (PID_GENDER.to_string(), Attribute::Single(v.into()))),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
+        )
+        .unwrap()
     }
 }
 
@@ -122,41 +114,59 @@ pub struct ResidentAttributes {
     house_number: Option<String>,
 }
 
-impl From<ResidentAttributes> for Vec<Entry> {
-    fn from(value: ResidentAttributes) -> Vec<Entry> {
-        vec![
-            value.address.map(|v| Entry {
-                name: PID_RESIDENT_ADDRESS.to_string(),
-                value: Value::Text(v),
-            }),
-            value.country.map(|v| Entry {
-                name: PID_RESIDENT_COUNTRY.to_string(),
-                value: Value::Text(v),
-            }),
-            value.state.map(|v| Entry {
-                name: PID_RESIDENT_STATE.to_string(),
-                value: Value::Text(v),
-            }),
-            value.city.map(|v| Entry {
-                name: PID_RESIDENT_CITY.to_string(),
-                value: Value::Text(v),
-            }),
-            value.postal_code.map(|v| Entry {
-                name: PID_RESIDENT_POSTAL_CODE.to_string(),
-                value: Value::Text(v),
-            }),
-            value.street.map(|v| Entry {
-                name: PID_RESIDENT_STREET.to_string(),
-                value: Value::Text(v),
-            }),
-            value.house_number.map(|v| Entry {
-                name: PID_RESIDENT_HOUSE_NUMBER.to_string(),
-                value: Value::Text(v),
-            }),
-        ]
-        .into_iter()
-        .flatten()
-        .collect()
+impl From<ResidentAttributes> for IssuableDocument {
+    fn from(value: ResidentAttributes) -> Self {
+        Self::try_new(
+            MOCK_ADDRESS_DOCTYPE.to_string(),
+            vec![
+                value.address.map(|v| {
+                    (
+                        PID_RESIDENT_ADDRESS.to_string(),
+                        Attribute::Single(AttributeValue::Text(v)),
+                    )
+                }),
+                value.country.map(|v| {
+                    (
+                        PID_RESIDENT_COUNTRY.to_string(),
+                        Attribute::Single(AttributeValue::Text(v)),
+                    )
+                }),
+                value.state.map(|v| {
+                    (
+                        PID_RESIDENT_STATE.to_string(),
+                        Attribute::Single(AttributeValue::Text(v)),
+                    )
+                }),
+                value.city.map(|v| {
+                    (
+                        PID_RESIDENT_CITY.to_string(),
+                        Attribute::Single(AttributeValue::Text(v)),
+                    )
+                }),
+                value.postal_code.map(|v| {
+                    (
+                        PID_RESIDENT_POSTAL_CODE.to_string(),
+                        Attribute::Single(AttributeValue::Text(v)),
+                    )
+                }),
+                value.street.map(|v| {
+                    (
+                        PID_RESIDENT_STREET.to_string(),
+                        Attribute::Single(AttributeValue::Text(v)),
+                    )
+                }),
+                value.house_number.map(|v| {
+                    (
+                        PID_RESIDENT_HOUSE_NUMBER.to_string(),
+                        Attribute::Single(AttributeValue::Text(v)),
+                    )
+                }),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
+        )
+        .unwrap()
     }
 }
 
@@ -199,38 +209,15 @@ impl Default for MockAttributesLookup {
 }
 
 impl MockAttributesLookup {
-    pub fn attributes(&self, bsn: &str) -> Option<Vec<UnsignedMdoc>> {
+    pub fn attributes(&self, bsn: &str) -> Option<IssuableDocuments> {
         let (person, residence) = self.0.get(bsn)?;
 
-        let attrs = vec![
-            Some(UnsignedMdoc {
-                doc_type: MOCK_PID_DOCTYPE.to_string(),
-                copy_count: NonZeroU8::new(2).unwrap(),
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())])
-                    .try_into()
-                    .unwrap(),
-            }),
-            residence
-                .as_ref()
-                .and_then(|residence| {
-                    // This will return `None` if the `UnsignedAttributes` is empty.
-                    IndexMap::from([(MOCK_ADDRESS_DOCTYPE.to_string(), residence.clone().into())])
-                        .try_into()
-                        .ok()
-                })
-                .map(|attributes| UnsignedMdoc {
-                    doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                    copy_count: NonZeroU8::new(2).unwrap(),
-                    valid_from: Tdate::now(),
-                    valid_until: Utc::now().add(Days::new(365)).into(),
-                    attributes,
-                }),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
+        let attrs = vec![Some(person.to_owned().into()), residence.to_owned().map(|r| r.into())]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
 
         Some(attrs)
     }

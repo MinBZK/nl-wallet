@@ -20,9 +20,7 @@
 .run-automation-tests-default:
   extends: .run-automation-tests-common-setup
   script:
-    - gradle wrapper --gradle-version=8.12
-    - ./gradlew --info --stacktrace test
-      --tests $TESTS
+    - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS
       -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
@@ -139,9 +137,10 @@ run-automation-smoke-test-ont:
       artifacts: false
     - job: deploy-wallet-provider-ont
       artifacts: false
+    - job: deploy-pid-issuer-ont
+      artifacts: false
   script:
-    - gradle wrapper --gradle-version=8.12
-    - ./gradlew --info --stacktrace smokeTest
+    - ./gradlew --no-daemon --info --stacktrace smokeTest
       -Dtest.config.app.identifier="${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
@@ -149,6 +148,34 @@ run-automation-smoke-test-ont:
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
   variables: !reference [.run-automation-tests-default, variables]
+
+run-gba-fetch-browsertest-test-ont:
+  rules:
+    - !reference [.on-schedule, rules]
+  extends: .env-ont-k8s
+  before_script: |
+    kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath="{.data.gba_fetch_e2e\.p12}" | base64 -d > browsertests/packages/gba-fetch/config/gba_fetch_client_cert_ont.p12
+    export GBA_FETCH_FRONTEND_CLIENT_CERT_PATH="./gba_fetch_client_cert_ont.p12"
+    export GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE=$(kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath='{.data.passphrase}' | base64 --decode)
+  script: |
+    cd browsertests
+    npm ci
+    cd packages/gba-fetch
+    npx playwright install chromium
+    npm run test:authenticated
+    npm run test:unauthenticated
+  after_script: |
+    mkdir -p browsertests-junit
+    cp browsertests/packages/gba-fetch/test-results-authenticated/results_authenticated.xml browsertest-junit/
+    cp browsertests/packages/gba-fetch/test-results-unauthenticated/results_unauthenticated.xml browsertest-junit/
+    zip -r browsertest.zip browsertests-junit
+    deploy/bin/store-artifact.sh browsertest.zip qt/quality-time/junit-results/browsertest.zip
+  artifacts:
+    when: always
+    paths:
+      - browsertests/packages/gba-fetch/test-results*/
+    reports:
+      junit: browsertests/packages/gba-fetch/test-results*/*.xml
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]

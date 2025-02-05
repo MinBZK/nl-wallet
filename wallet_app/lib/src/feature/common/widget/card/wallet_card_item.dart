@@ -338,10 +338,10 @@ class _WalletCardItemState extends State<WalletCardItem> {
           IntrinsicWidth(
             child: ShowDetailsCta(
               brightness: widget.brightness,
-              onPressed: () => {},
               text: Text.rich(
                 context.l10n.showDetailsCta.toTextSpan(context),
               ),
+              onPressed: widget.onPressed,
             ),
           ),
         ],
