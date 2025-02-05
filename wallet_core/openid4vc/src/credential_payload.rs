@@ -32,6 +32,10 @@ pub enum CredentialPayloadError {
     #[error("attribute error: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
+
+    #[error("attribute with name: {0} already exists")]
+    #[category(pd)]
+    DuplicateAttribute(String),
 }
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
@@ -190,13 +194,12 @@ impl CredentialPayload {
     ) -> Result<(), CredentialPayloadError> {
         for entry in entries.iter() {
             let key = entry.name.to_string();
-            // Check if there already is an existing group to which the new attributes have to be added. Otherwise,
-            // add them to the current group.
-            if let Some(Attribute::Nested(existing_group)) = group.get_mut(&key) {
-                existing_group.insert(key, Attribute::Single(entry.value.clone().try_into()?));
-            } else {
-                group.insert(key, Attribute::Single(entry.value.clone().try_into()?));
+
+            if group.contains_key(&key) {
+                return Err(CredentialPayloadError::DuplicateAttribute(key.clone()));
             }
+
+            group.insert(key, Attribute::Single(entry.value.clone().try_into()?));
         }
 
         Ok(())
@@ -213,13 +216,17 @@ impl CredentialPayload {
 
 #[cfg(test)]
 mod test {
+    use assert_matches::assert_matches;
     use indexmap::IndexMap;
-    use nl_wallet_mdoc::unsigned::Entry;
-    use nl_wallet_mdoc::DataElementValue;
     use rstest::rstest;
     use serde_json::json;
+    use serde_valid::json::ToJsonString;
+
+    use nl_wallet_mdoc::unsigned::Entry;
+    use nl_wallet_mdoc::DataElementValue;
 
     use crate::credential_payload::CredentialPayload;
+    use crate::credential_payload::CredentialPayloadError;
 
     #[rstest]
     #[case(vec![], "com.example.pid", "com.example.pid")]
@@ -272,7 +279,7 @@ mod test {
             (
                 String::from("com.example.pid.a.b"),
                 vec![Entry {
-                    name: String::from("c"),
+                    name: String::from("c1"),
                     value: DataElementValue::Text(String::from("abc")),
                 }],
             ),
@@ -295,11 +302,37 @@ mod test {
                         "d":{
                             "e": "abcd"
                         },
-                        "c": "abc"
-                    }
+                    },
+                    "c1": "abc",
                 }
             }
         });
-        assert_eq!(expected_json, serde_json::to_value(result).unwrap());
+        assert_eq!(
+            expected_json.to_json_string_pretty().unwrap(),
+            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap()
+        );
+    }
+
+    #[test]
+    fn test_traverse_groups_should_fail_for_duplicate_attribute() {
+        let mdoc_attributes = IndexMap::from([
+            (
+                String::from("com.example.pid.a.b.c.d"),
+                vec![Entry {
+                    name: String::from("e"),
+                    value: DataElementValue::Text(String::from("abcd")),
+                }],
+            ),
+            (
+                String::from("com.example.pid.a.b"),
+                vec![Entry {
+                    name: String::from("c"),
+                    value: DataElementValue::Text(String::from("abc")),
+                }],
+            ),
+        ]);
+
+        let result = CredentialPayload::traverse_attributes("com.example.pid", &mdoc_attributes, &mut IndexMap::new());
+        assert_matches!(result, Err(CredentialPayloadError::DuplicateAttribute(key)) if key == *"c");
     }
 }
