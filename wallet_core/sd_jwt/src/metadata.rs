@@ -80,14 +80,15 @@ impl TypeMetadataChain {
         Ok(result)
     }
 
-    fn into_destructured(self) -> (Vec<TypeMetadata>, ResourceIntegrity) {
+    fn into_destructured(self) -> (VecNonEmpty<TypeMetadata>, ResourceIntegrity) {
         (
-            self.metadata.into_inner().into_iter().map(|m| m.0).collect(),
+            // unwrap is safe here because there is always at least one item (root)
+            VecNonEmpty::try_from(self.metadata.into_inner().into_iter().map(|m| m.0).collect::<Vec<_>>()).unwrap(),
             self.root_integrity,
         )
     }
 
-    pub fn verify_and_destructure(self) -> Result<(Vec<TypeMetadata>, ResourceIntegrity), TypeMetadataError> {
+    pub fn verify_and_destructure(self) -> Result<(VecNonEmpty<TypeMetadata>, ResourceIntegrity), TypeMetadataError> {
         let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?; // TODO: verify chain in PVW-3824
         self.root_integrity.verify(&bytes)?;
         Ok(self.into_destructured())

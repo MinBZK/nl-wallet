@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use chrono::Utc;
 use ciborium::value::Value;
 use coset::CoseSign1;
+use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
 
@@ -51,11 +52,26 @@ impl IssuerSigned {
             validity_info: validity,
         };
 
+        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata_chain)?;
+
+        let mso_tagged = mso.into();
+        let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
+            MdocCose::sign(&mso_tagged, headers, key, true).await?;
+
+        let issuer_signed = IssuerSigned {
+            name_spaces: attrs.into(),
+            issuer_auth,
+        };
+
+        Ok(issuer_signed)
+    }
+
+    pub(crate) fn create_unprotected_header(x5chain: Vec<u8>, metadata_chain: TypeMetadataChain) -> Result<Header> {
         // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3808)
         let (chain, integrity) = metadata_chain.verify_and_destructure()?;
 
-        let headers = HeaderBuilder::new()
-            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))
+        let header = HeaderBuilder::new()
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(x5chain))
             .text_value(
                 String::from(COSE_METADATA_HEADER_LABEL),
                 Value::Array(
@@ -73,16 +89,8 @@ impl IssuerSigned {
                 Value::Text(integrity.into()),
             )
             .build();
-        let mso_tagged = mso.into();
-        let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
-            MdocCose::sign(&mso_tagged, headers, key, true).await?;
 
-        let issuer_signed = IssuerSigned {
-            name_spaces: attrs.into(),
-            issuer_auth,
-        };
-
-        Ok(issuer_signed)
+        Ok(header)
     }
 
     pub fn type_metadata(&self) -> Result<TypeMetadataChain> {

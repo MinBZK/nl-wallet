@@ -212,11 +212,17 @@ pub fn example_items_requests() -> ItemsRequests {
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
 pub mod mock {
+    use coset::Label;
+
+    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
+    use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
+    use crate::IssuerSigned;
 
     use super::*;
 
@@ -231,9 +237,18 @@ pub mod mock {
         /// Using tests should not rely on all attributes being present.
         pub fn new_example_mock() -> Self {
             let trust_anchors = Examples::iaca_trust_anchors();
-            let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
+            let mut issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
                 .issuer_signed
                 .clone();
+
+            let x5chain = issuer_signed
+                .issuer_auth
+                .unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))
+                .unwrap();
+            let metadata_chain = TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap();
+
+            issuer_signed.issuer_auth.0.unprotected =
+                IssuerSigned::create_unprotected_header(x5chain.clone().into_bytes().unwrap(), metadata_chain).unwrap();
 
             Mdoc::new::<MockRemoteEcdsaKey>(
                 EXAMPLE_KEY_IDENTIFIER.to_string(),

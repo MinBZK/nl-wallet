@@ -241,7 +241,7 @@ where
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents: Vec<DisclosureDocument> = proposed_attributes
             .into_iter()
-            .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, vec![], attributes))
+            .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
             .collect::<Result<_, _>>()
             .map_err(DisclosureError::MdocAttributes)?;
 
@@ -583,6 +583,7 @@ mod tests {
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
+    use sd_jwt::metadata::TypeMetadata;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::disclosure::MockMdocDisclosureMissingAttributes;
@@ -609,6 +610,7 @@ mod tests {
             ProposedDocumentAttributes {
                 attributes: IndexMap::from([("com.example.pid".to_string(), vec![Entry { name, value }])]),
                 issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                display_metadata: TypeMetadata::new_example().display,
             },
         )])
     }

@@ -14,7 +14,6 @@ use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use nl_wallet_mdoc::DataElementIdentifier;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::NameSpace;
-use sd_jwt::metadata::DisplayMetadata;
 
 use super::mapping::AttributeMapping;
 use super::mapping::DataElementValueMapping;
@@ -334,7 +333,6 @@ impl MissingDisclosureAttributes {
 impl DisclosureDocument {
     pub(crate) fn from_mdoc_attributes(
         doc_type: &str,
-        display_metadata: Vec<DisplayMetadata>,
         attributes: ProposedDocumentAttributes,
     ) -> Result<Self, DocumentMdocError> {
         let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
@@ -350,7 +348,7 @@ impl DisclosureDocument {
             issuer_registration,
             doc_type,
             attributes: document_attributes,
-            display_metadata,
+            display_metadata: attributes.display_metadata,
         };
 
         Ok(document)
@@ -773,10 +771,10 @@ pub mod tests {
 
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             &unsigned_mdoc.doc_type,
-            vec![],
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_KEY.certificate().clone(),
+                display_metadata: TypeMetadata::new_example().display,
             },
         )
         .expect("Could not convert attributes to proposed disclosure document");
@@ -837,10 +835,10 @@ pub mod tests {
         // This should not result in a `DocumentMdocError::MissingAttribute` error.
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
-            vec![],
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
+                display_metadata: TypeMetadata::new_example().display,
             },
         )
         .expect("Could not convert attributes to proposed disclosure document");
@@ -871,10 +869,10 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             "com.example.foobar",
-            vec![],
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
+                display_metadata: TypeMetadata::new_example().display,
             },
         );
 
@@ -896,10 +894,10 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
-            vec![],
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
+                display_metadata: TypeMetadata::new_example().display,
             },
         );
 
@@ -928,10 +926,10 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
-            vec![],
             ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
+                display_metadata: TypeMetadata::new_example().display,
             },
         );
 
@@ -1018,6 +1016,7 @@ pub mod tests {
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_KEY.certificate().clone(),
+                display_metadata: TypeMetadata::new_example().display,
             },
         )]);
 

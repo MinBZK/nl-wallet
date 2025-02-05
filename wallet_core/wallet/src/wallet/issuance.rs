@@ -320,7 +320,7 @@ where
                         let attestation = Attestation::from_credential_payload(
                             AttestationIdentity::Ephemeral,
                             credential_payload,
-                            metadata.first().unwrap().clone(), // TODO: PVW-3812
+                            metadata.first().clone(), // TODO: PVW-3812
                             issuer_registration.organization,
                         )?;
 

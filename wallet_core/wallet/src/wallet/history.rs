@@ -252,10 +252,10 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                             .map(|(doc_type, namespaces)| {
                                 DisclosureDocument::from_mdoc_attributes(
                                     &doc_type,
-                                    vec![],
                                     ProposedDocumentAttributes {
                                         issuer: namespaces.issuer.clone(),
                                         attributes: namespaces.into(),
+                                        display_metadata: vec![], // TODO: PVW-4008
                                     },
                                 )
                             })
