@@ -11,13 +11,13 @@ const _kDarkBrightnessTextColor = DarkWalletTheme.textColor;
 
 class ShowDetailsCta extends StatelessWidget {
   final Brightness brightness;
-  final VoidCallback? onPressed;
   final Text text;
+  final VoidCallback? onPressed;
 
   const ShowDetailsCta({
     required this.brightness,
-    this.onPressed,
     required this.text,
+    this.onPressed,
     super.key,
   });
 
@@ -48,8 +48,9 @@ class ShowDetailsCta extends StatelessWidget {
         Size(0, _kButtonHeight),
       ),
       padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+        EdgeInsets.zero,
       ),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       shape: const WidgetStatePropertyAll(
         RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,

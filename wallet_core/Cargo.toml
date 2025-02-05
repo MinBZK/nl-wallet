@@ -52,126 +52,129 @@ unused_async = "warn"
 unused_self = "warn"
 
 [workspace.dependencies]
-bitflags = "2.6.0"
-built = "0.7"
+bitflags = "2.8.0"
+built = "0.7.5"
 accept-language = "3.1.0"
 aes-gcm = "0.10.3"
 android_logger = { version = "0.14.1", default-features = false }
-anyhow = "1.0.66"
-assert_cmd = "2.0.12"
-assert_fs = "1.0.13"
+anyhow = "1.0.95"
+assert_cmd = "2.0.16"
+assert_fs = "1.1.2"
 assert-json-diff = "2.0.2"
 askama = "0.12.1"
-assert_matches = "1"
-async-trait = "0.1.68"
-axum = { version = "0.7.7", default-features = false }
-axum-extra = "0.9.4"
+assert_matches = "1.5.0"
+async-trait = "0.1.86"
+axum = { version = "0.8.1", default-features = false }
+axum-extra = "0.10.0"
 axum-server = "0.7.1"
-axum_csrf = "0.10.0"
-backtrace = "0.3.67"
+axum_csrf = "0.11.0"
+backtrace = "0.3.74"
 base64 = "0.22.1"
 biscuit = "0.7.0"
 cfg-if = "1.0.0"
-chrono = { version = "0.4.38", default-features = false }
-ciborium = "0.2.1"
-clap = "4.4.7"
-clio = "0.3.4"
-config = { version = "0.14.0", default-features = false }
-const-decoder = "0.3.0"
-coset = "0.3.3"
+chrono = { version = "0.4.39", default-features = false }
+ciborium = "0.2.2"
+clap = "4.5.28"
+clio = "0.3.5"
+config = { version = "0.15.7", default-features = false }
+const-decoder = "0.4.0"
+coset = "0.3.8"
+# held back by r2d2-cryptoki
 cryptoki = "0.7.0"
 crypto-common = "0.1.6"
-cstr = "0.2.11"
-csv = "1.3.0"
-ctor = "0.2.5"
-dashmap = "6.0.1"
-der = "0.7.7"
-derive_more = "1.0.0"
+cstr = "0.2.12"
+csv = "1.3.1"
+ctor = "0.2.9"
+dashmap = "6.1.0"
+der = "0.7.9"
+derive_more = "2.0.1"
 dotenvy = "0.15.7"
 etag = "4.0.0"
-flutter_rust_bridge = { version = "2.7.0", default-features = false }
-futures = { version = "0.3.17", default-features = false }
+flutter_rust_bridge = { version = "2.7.1", default-features = false }
+futures = { version = "0.3.31", default-features = false }
 hex = "0.4.3"
 hex-literal = "0.4.1"
-http = "1.1.0"
-http-cache-reqwest = { version = "0.15.0", default-features = false }
+http = "1.2.0"
+http-cache-reqwest = { version = "0.15.1", default-features = false }
 http-serde = "2.1.1"
 hmac = "0.12.1"
-indexmap = "2.0.2"
-insta = { version = "1.42.0", default-features = false }
+indexmap = "2.7.1"
+insta = { version = "1.42.1", default-features = false }
 int-enum = "1.1.2"
-itertools = "0.13.0"
+itertools = "0.14.0"
 jni = "0.21.1"
-josekit = "0.8.3"
-jsonschema = { version = "0.28.1", default-features = false }
+josekit = "0.10.1"
+jsonschema = { version = "0.28.3", default-features = false }
 jsonwebtoken = { version = "9.3.0", default-features = false }
+# held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }
-log = "0.4.22"
+log = "0.4.25"
 mime = "0.3.17"
-mockall = "0.13.0"
+mockall = "0.13.1"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
-nutype = "0.5.1"
+nutype = "0.6.0"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
-passkey-types = "0.3.0"
-parking_lot = "0.12.1"
-pem = "3.0.2"
-postcard = { version = "1.0.10", default-features = false }
-predicates = { version = "3.0.4", default-features = false }
-proc-macro2 = "1.0.66"
-quick-xml = "0.34.0"
-quote = "1.0.26"
+passkey-types = "0.4.0"
+parking_lot = "0.12.3"
+pem = "3.0.4"
+postcard = { version = "1.1.1", default-features = false }
+predicates = { version = "3.1.3", default-features = false }
+proc-macro2 = "1.0.93"
+quick-xml = "0.37.2"
+quote = "1.0.38"
 r2d2-cryptoki = "0.3.0"
+# these two crates are held back by p256
 rand = "0.8.5"
 rand_core = "0.6.4"
-rasn = "0.22.0"
-rcgen = { version = "0.13.1", default-features = false }
-regex = "1.7.0"
-reqwest = { version = "0.12.5", default-features = false }
+rasn = "0.24.0"
+rcgen = { version = "0.13.2", default-features = false }
+regex = "1.11.1"
+reqwest = { version = "0.12.12", default-features = false }
 reqwest-middleware = { version = "0.4.0", default-features = false }
 ring = "0.17.8"
 rpassword = "7.3.1"
-rsa = { version = "0.9.6", default-features = false }
-rstest = "0.21.0"
-rustls-pki-types = "1.10.0"
+rsa = { version = "0.9.7", default-features = false }
+rstest = "0.24.0"
+rustls-pki-types = "1.11.0"
 rustls-webpki = "0.102.8"
 sanitize-filename = "0.6.0"
-sea-orm = { version = "1.1.1", default-features = false }
-sea-orm-migration = { version = "1.1.1", default-features = false }
-sea-query = { version = "0.32.0", default-features = false }
+sea-orm = { version = "1.1.4", default-features = false }
+sea-orm-migration = { version = "1.1.4", default-features = false }
+sea-query = { version = "0.32.1", default-features = false }
 sec1 = "0.7.3"
-semver = "1.0.23"
-sentry = { version = "0.35", default-features = false }
-serde = "1.0.193"
-serde-aux = "4.2.0"
-serde_bytes = "0.11.7"
-serde_json = { version = "1.0.92", default-features = false }
-serde_repr = "0.1.16"
+semver = "1.0.25"
+sentry = { version = "0.36.0", default-features = false }
+serde = "1.0.217"
+serde-aux = "4.5.0"
+serde_bytes = "0.11.15"
+serde_json = { version = "1.0.138", default-features = false }
+serde_repr = "0.1.19"
 serde_urlencoded = "0.7.1"
 serde_valid = "1.0.5"
-serde_with = "3.3.0"
-serial_test = "3.0.0"
-sha2 = "0.10.6"
+serde_with = "3.12.0"
+serial_test = "3.2.0"
+sha2 = "0.10.8"
 spki = "0.7.3"
 strfmt = "0.2.4"
 strum = "0.26.3"
-syn = "2.0"
-tempfile = "3.9.0"
-thiserror = "1.0.39"
-time = "0.3.31"
-tokio = { version = "1.27.0", default-features = false }
+syn = "2.0.98"
+tempfile = "3.16.0"
+thiserror = "2.0.11"
+time = "0.3.37"
+tokio = { version = "1.43.0", default-features = false }
 toml = "0.8.19"
-tower = { version = "0.4.0", default-features = false }
-tower-http = { version = "0.5.2", default-features = false }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", default-features = false }
+tower = { version = "0.5.2", default-features = false }
+tower-http = { version = "0.6.2", default-features = false }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", default-features = false }
 tracing-test = "0.2.5"
 trait-variant = "0.1.2"
-trybuild = "1.0.96"
-uniffi = { version = "0.28.0", default-features = false }
-url = "2.4.0"
-uuid = "1.4.0"
-wiremock = "0.6.0"
-x509-parser = "0.16.0"
-yoke = "0.7.4"
+trybuild = "1.0.103"
+uniffi = { version = "0.28.3", default-features = false }
+url = "2.5.4"
+uuid = "1.12.1"
+wiremock = "0.6.2"
+x509-parser = "0.17.0"
+yoke = "0.7.5"

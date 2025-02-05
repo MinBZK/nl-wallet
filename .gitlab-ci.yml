@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250128-0f78cc9d"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250204-3b5b7341"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
@@ -38,13 +38,9 @@ variables:
       namespace: ${K8S_DEMO_NAMESPACE}
 
 .env-macos-runner:
-  before_script:
-    - set -euo pipefail
-    - kubectl config set-cluster s15m --server="$K8S_CLUSTER_SERVER"
-    - kubectl config set-context s15m --cluster=s15m --namespace="$K8S_NAMESPACE"
-    - kubectl config set-credentials macos-runner-service-account --token="$(echo "$MACOS_RUNNER_SERVICE_ACCOUNT_TOKEN_B64" | base64 -d)"
-    - kubectl config set-context s15m --user=macos-runner-service-account
-    - kubectl config use-context s15m
+  tags:
+    - macos
+  image: sonoma-wallet:0.1.6
 
 .default-branch:
   rules:

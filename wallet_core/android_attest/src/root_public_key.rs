@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use const_decoder::decode;
 use const_decoder::Pem;
 use p256::ecdsa::VerifyingKey;
 use rsa::traits::PublicKeyParts;
@@ -8,13 +9,15 @@ use rsa::RsaPublicKey;
 use spki::DecodePublicKey;
 use x509_parser::public_key::PublicKey;
 
-const GOOGLE_ROOT_PUBKEY_DER: [u8; 550] =
-    Pem::decode(include_bytes!("../assets/google_hardware_attestation_root_pubkey.pem"));
+const GOOGLE_ROOT_PUBKEY_DER: &[u8] = &decode!(
+    Pem,
+    include_bytes!("../assets/google_hardware_attestation_root_pubkey.pem")
+);
 
-const EMULATOR_ROOT_RSA_PUBKEY_DER: [u8; 162] =
-    Pem::decode(include_bytes!("../assets/android_emulator_rsa_root_pubkey.pem"));
-const EMULATOR_ROOT_ECDSA_PUBKEY_DER: [u8; 91] =
-    Pem::decode(include_bytes!("../assets/android_emulator_ec_root_pubkey.pem"));
+const EMULATOR_ROOT_RSA_PUBKEY_DER: &[u8] =
+    &decode!(Pem, include_bytes!("../assets/android_emulator_rsa_root_pubkey.pem"));
+const EMULATOR_ROOT_ECDSA_PUBKEY_DER: &[u8] =
+    &decode!(Pem, include_bytes!("../assets/android_emulator_ec_root_pubkey.pem"));
 
 pub static GOOGLE_ROOT_PUBKEYS: LazyLock<Vec<RootPublicKey>> =
     LazyLock::new(|| vec![RootPublicKey::rsa_from_der(GOOGLE_ROOT_PUBKEY_DER).unwrap()]);

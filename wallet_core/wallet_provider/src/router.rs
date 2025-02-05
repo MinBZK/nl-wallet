@@ -63,7 +63,7 @@ where
 {
     let state = Arc::new(router_state);
     Router::new()
-        .nest("/", health_router())
+        .merge(health_router())
         .nest(
             "/api/v1",
             Router::new()
