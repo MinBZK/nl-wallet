@@ -49,7 +49,7 @@ fn wire__crate__api__full__accept_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "accept_disclosure",
             port: Some(port_),
@@ -57,11 +57,14 @@ fn wire__crate__api__full__accept_disclosure_impl(
         },
         move || {
             let api_pin = pin.cst_decode();
-            move |context| {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
-                    let output_ok = crate::api::full::accept_disclosure(api_pin)?;
-                    Ok(output_ok)
-                })())
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::accept_disclosure(api_pin).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
             }
         },
     )
@@ -70,7 +73,7 @@ fn wire__crate__api__full__accept_pid_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     pin: impl CstDecode<String>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::DcoCodec, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "accept_pid_issuance",
             port: Some(port_),
@@ -78,11 +81,14 @@ fn wire__crate__api__full__accept_pid_issuance_impl(
         },
         move || {
             let api_pin = pin.cst_decode();
-            move |context| {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || {
-                    let output_ok = crate::api::full::accept_pid_issuance(api_pin)?;
-                    Ok(output_ok)
-                })())
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::accept_pid_issuance(api_pin).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
             }
         },
     )

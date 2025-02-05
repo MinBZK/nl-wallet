@@ -54,7 +54,7 @@ impl ChangePinClientError for AccountProviderResponseError {
     }
 }
 
-impl<S, AK, GK, A> ChangePinClient for InstructionClientFactory<'_, S, AK, GK, A>
+impl<S, AK, GK, A> ChangePinClient for InstructionClientFactory<S, AK, GK, A>
 where
     S: Storage,
     AK: AppleAttestedKey,

@@ -1,8 +1,5 @@
-use std::panic::AssertUnwindSafe;
-
 use flutter_rust_bridge::frb;
 use flutter_rust_bridge::setup_default_user_utils;
-use flutter_rust_bridge::SimpleAsyncRuntime;
 use tokio::sync::OnceCell;
 use tokio::sync::RwLock;
 use url::Url;
@@ -15,7 +12,6 @@ use wallet::UnlockMethod;
 use wallet::Wallet;
 
 use crate::frb_generated::StreamSink;
-use crate::frb_generated::FLUTTER_RUST_BRIDGE_HANDLER;
 use crate::logging::init_logging;
 use crate::models::card::Card;
 use crate::models::config::FlutterConfiguration;
@@ -250,16 +246,10 @@ pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Card>> {
 }
 
 #[flutter_api_error]
-pub fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
-    // Unfortunately this function does not work asynchronous natively with Flutter Rust Bridge
-    // because of some trait bound issue. As a workaround we extract the `tokio` runtime from FRB
-    // and call the `Wallet` method is a blocking fashion.
-    let SimpleAsyncRuntime(AssertUnwindSafe(runtime)) = FLUTTER_RUST_BRIDGE_HANDLER.async_runtime();
-    let result = runtime.block_on(async {
-        let mut wallet = wallet().write().await;
+pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
+    let mut wallet = wallet().write().await;
 
-        wallet.accept_pid_issuance(pin).await.try_into()
-    })?;
+    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
 
     Ok(result)
 }
@@ -298,16 +288,10 @@ pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
 }
 
 #[flutter_api_error]
-pub fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureResult> {
-    // Unfortunately this function does not work asynchronous natively with Flutter Rust Bridge
-    // because of some trait bound issue. As a workaround we extract the `tokio` runtime from FRB
-    // and call the `Wallet` method is a blocking fashion.
-    let SimpleAsyncRuntime(AssertUnwindSafe(runtime)) = FLUTTER_RUST_BRIDGE_HANDLER.async_runtime();
-    let result = runtime.block_on(async {
-        let mut wallet = wallet().write().await;
+pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureResult> {
+    let mut wallet = wallet().write().await;
 
-        wallet.accept_disclosure(pin).await.try_into()
-    })?;
+    let result = wallet.accept_disclosure(pin).await.try_into()?;
 
     Ok(result)
 }

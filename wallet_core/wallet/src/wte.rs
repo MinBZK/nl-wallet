@@ -18,7 +18,7 @@ pub trait WteIssuanceClient {
     async fn obtain_wte<S, AK, GK, A>(
         &self,
         wte_issuer_pubkey: &VerifyingKey,
-        remote_instruction: &InstructionClient<'_, S, AK, GK, A>,
+        remote_instruction: InstructionClient<S, AK, GK, A>,
     ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
     where
         S: Storage,
@@ -33,7 +33,7 @@ impl WteIssuanceClient for WpWteIssuanceClient {
     async fn obtain_wte<S, AK, GK, A>(
         &self,
         wte_issuer_pubkey: &VerifyingKey,
-        remote_instruction: &InstructionClient<'_, S, AK, GK, A>,
+        remote_instruction: InstructionClient<S, AK, GK, A>,
     ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
     where
         S: Storage,
@@ -82,7 +82,7 @@ pub(crate) mod tests {
         async fn obtain_wte<S, AK, GK, A>(
             &self,
             _pubkey: &VerifyingKey,
-            _remote_instruction: &InstructionClient<'_, S, AK, GK, A>,
+            _remote_instruction: InstructionClient<S, AK, GK, A>,
         ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
         where
             S: Storage,
