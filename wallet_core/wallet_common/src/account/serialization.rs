@@ -13,7 +13,6 @@ use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
-use p256::SecretKey;
 use serde::de;
 use serde::ser;
 use serde::Deserialize;
@@ -45,35 +44,6 @@ impl<'de> Deserialize<'de> for DerSignature {
         let bytes: Vec<u8> = Base64::<Standard, Padded>::deserialize_as::<D>(deserializer)?;
         let sig = Signature::from_der(&bytes).map_err(de::Error::custom)?;
         Ok(sig.into())
-    }
-}
-
-/// ECDSA secret key that deserializes from base64-encoded DER.
-#[derive(Debug, Clone)]
-pub struct DerSecretKey(pub SecretKey);
-
-impl From<SecretKey> for DerSecretKey {
-    fn from(value: SecretKey) -> Self {
-        DerSecretKey(value)
-    }
-}
-
-// Reuse (de)serializer from DerSigningKey
-impl<'de> Deserialize<'de> for DerSecretKey {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        DerSigningKey::deserialize(deserializer).map(|x| DerSecretKey(x.0.into()))
-    }
-}
-
-impl Serialize for DerSecretKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        DerSigningKey(self.0.clone().into()).serialize(serializer)
     }
 }
 
