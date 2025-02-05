@@ -52,7 +52,7 @@ itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
+p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 rand.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 ring.workspace = true
