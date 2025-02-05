@@ -27,6 +27,8 @@
 ### Android building
 .build-android-app:
   extends: .ruby-cache
+  tags:
+    - wallet-ci
   needs:
     - job: test-flutter
       artifacts: false
