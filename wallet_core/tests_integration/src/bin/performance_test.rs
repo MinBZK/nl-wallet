@@ -169,7 +169,7 @@ async fn main() {
         .join(&format!("disclosure/sessions/{session_token}"))
         .unwrap();
     let status_query = serde_urlencoded::to_string(StatusParams {
-        session_type: SessionType::SameDevice,
+        session_type: Some(SessionType::SameDevice),
     })
     .unwrap();
     status_url.set_query(status_query.as_str().into());

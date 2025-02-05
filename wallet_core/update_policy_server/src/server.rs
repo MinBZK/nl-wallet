@@ -39,7 +39,7 @@ pub async fn serve(settings: Settings) -> Result<()> {
         update_policy: settings.update_policy,
     });
 
-    let app = Router::new().nest("/", health_router()).nest(
+    let app = Router::new().merge(health_router()).nest(
         "/update/v1",
         Router::new()
             .route("/update-policy", get(get_policy))
