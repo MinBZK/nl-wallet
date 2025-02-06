@@ -666,7 +666,10 @@ impl<GC> AccountServer<GC> {
 
         if let Some(challenge) = wallet_user.instruction_challenge {
             pin_pubkey
-                .verify(challenge.bytes.as_slice(), &instruction_payload.pop_pin_pubkey.0)
+                .verify(
+                    challenge.bytes.as_slice(),
+                    instruction_payload.pop_pin_pubkey.as_inner(),
+                )
                 .map_err(|_| InstructionError::Validation(InstructionValidationError::ChallengeMismatch))?;
         } else {
             return Err(InstructionError::Validation(

@@ -21,6 +21,7 @@ use wallet_common::keys::CredentialKeyType;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::keys::WithIdentifier;
+use wallet_common::p256_der::DerSignature;
 use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
@@ -151,7 +152,7 @@ where
         let signatures = sign_result
             .signatures
             .into_iter()
-            .map(|signatures| signatures.into_iter().map(|signature| signature.0).collect())
+            .map(|signatures| signatures.into_iter().map(DerSignature::into_inner).collect())
             .collect();
 
         Ok(signatures)
@@ -212,13 +213,15 @@ where
 
         let signature = result
             .signatures
-            .first()
-            .and_then(|r| r.first())
+            .into_iter()
+            .next()
+            .and_then(|r| r.into_iter().next())
+            .map(DerSignature::into_inner)
             .ok_or(RemoteEcdsaKeyError::KeyNotFound(self.identifier.clone()))?;
 
-        self.public_key.verify(msg, &signature.0)?;
+        self.public_key.verify(msg, &signature)?;
 
-        Ok(signature.0)
+        Ok(signature)
     }
 }
 

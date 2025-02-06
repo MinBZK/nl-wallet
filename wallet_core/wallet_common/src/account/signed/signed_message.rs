@@ -6,6 +6,8 @@ use p256::ecdsa::VerifyingKey;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
@@ -15,10 +17,10 @@ use apple_app_attest::VerifiedAssertion;
 use crate::apple::AppleAssertion;
 use crate::apple::AppleAttestedKey;
 use crate::keys::EcdsaKey;
+use crate::p256_der::DerSignature;
 
 use super::super::errors::Error;
 use super::super::errors::Result;
-use super::super::serialization::DerSignature;
 use super::raw_value::TypedRawValue;
 use super::ContainsChallenge;
 use super::EcdsaSignatureType;
@@ -83,16 +85,25 @@ pub(super) struct SignedMessage<T> {
 
 /// Part of [`SignedMessage`] and represent the type and contents of the signature.
 /// Contains several methods for converting to and from [`SignatureType`].
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub(super) enum MessageSignature {
-    Pin { signature: DerSignature },
-    Google { signature: DerSignature },
-    AppleAssertion { assertion: AppleAssertion },
+    Pin {
+        #[serde_as(as = "Base64")]
+        signature: DerSignature,
+    },
+    Google {
+        #[serde_as(as = "Base64")]
+        signature: DerSignature,
+    },
+    AppleAssertion {
+        assertion: AppleAssertion,
+    },
 }
 
 impl MessageSignature {
-    fn new_ecdsa(r#type: EcdsaSignatureType, signature: impl Into<DerSignature>) -> Self {
+    fn new_ecdsa(r#type: EcdsaSignatureType, signature: Signature) -> Self {
         let signature = signature.into();
 
         match r#type {
@@ -112,7 +123,7 @@ impl MessageSignature {
     fn ecdsa_signature(&self, r#type: EcdsaSignatureType) -> Option<&Signature> {
         match (self, r#type) {
             (Self::Pin { signature }, EcdsaSignatureType::Pin)
-            | (Self::Google { signature }, EcdsaSignatureType::Google) => Some(&signature.0),
+            | (Self::Google { signature }, EcdsaSignatureType::Google) => Some(signature.as_inner()),
             _ => None,
         }
     }

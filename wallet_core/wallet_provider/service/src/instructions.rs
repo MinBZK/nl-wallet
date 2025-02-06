@@ -24,7 +24,6 @@ use wallet_common::account::messages::instructions::IssueWte;
 use wallet_common::account::messages::instructions::IssueWteResult;
 use wallet_common::account::messages::instructions::Sign;
 use wallet_common::account::messages::instructions::SignResult;
-use wallet_common::account::serialization::DerSignature;
 use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::JwtPopClaims;
@@ -32,6 +31,7 @@ use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::POA_JWT_TYP;
 use wallet_common::keys::EcdsaKey;
+use wallet_common::p256_der::DerSignature;
 use wallet_provider_domain::model::encrypter::Encrypter;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -564,15 +564,15 @@ mod tests {
 
         signing_key_1
             .verifying_key()
-            .verify(&random_msg_1, &result.signatures[0][0].0)
+            .verify(&random_msg_1, result.signatures[0][0].as_inner())
             .unwrap();
         signing_key_2
             .verifying_key()
-            .verify(&random_msg_1, &result.signatures[0][1].0)
+            .verify(&random_msg_1, result.signatures[0][1].as_inner())
             .unwrap();
         signing_key_2
             .verifying_key()
-            .verify(&random_msg_2, &result.signatures[1][0].0)
+            .verify(&random_msg_2, result.signatures[1][0].as_inner())
             .unwrap();
     }
 

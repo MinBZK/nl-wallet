@@ -57,6 +57,7 @@ pub trait ClientData {
     fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error>;
 }
 
+// TODO: Use the type of the same name from `wallet_common` instead.
 #[derive(Debug, Clone, AsRef)]
 pub struct DerSignature(Signature);
 

@@ -6,7 +6,6 @@ use std::hash::Hasher;
 
 use base64::prelude::*;
 use config::ValueKind;
-use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
@@ -19,30 +18,6 @@ use serde_with::base64::Standard;
 use serde_with::formats::Padded;
 use serde_with::DeserializeAs;
 use serde_with::SerializeAs;
-
-/// ECDSA signature that (de)serializes from/to base64-encoded DER.
-#[derive(Debug, Clone)]
-pub struct DerSignature(pub Signature);
-
-impl From<Signature> for DerSignature {
-    fn from(val: Signature) -> Self {
-        DerSignature(val)
-    }
-}
-
-impl Serialize for DerSignature {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        Base64::<Standard, Padded>::serialize_as(&self.0.to_der().as_bytes(), serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for DerSignature {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bytes: Vec<u8> = Base64::<Standard, Padded>::deserialize_as::<D>(deserializer)?;
-        let sig = Signature::from_der(&bytes).map_err(de::Error::custom)?;
-        Ok(sig.into())
-    }
-}
 
 impl Display for DerVerifyingKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
