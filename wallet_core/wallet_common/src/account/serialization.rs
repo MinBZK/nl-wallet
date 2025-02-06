@@ -7,11 +7,8 @@ use std::hash::Hasher;
 use base64::prelude::*;
 use config::ValueKind;
 use p256::ecdsa::Signature;
-use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::DecodePublicKey;
-use p256::pkcs8::EncodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
 use serde::de;
 use serde::ser;
@@ -47,46 +44,10 @@ impl<'de> Deserialize<'de> for DerSignature {
     }
 }
 
-/// ECDSA signing key that deserializes from base64-encoded DER.
-#[derive(Debug, Clone)]
-pub struct DerSigningKey(pub SigningKey);
-
-impl From<SigningKey> for DerSigningKey {
-    fn from(val: SigningKey) -> Self {
-        DerSigningKey(val)
-    }
-}
-
-impl From<&DerSigningKey> for DerVerifyingKey {
-    fn from(value: &DerSigningKey) -> Self {
-        (*value.0.verifying_key()).into()
-    }
-}
-
 impl Display for DerVerifyingKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let pubkey = BASE64_STANDARD.encode(self.0.to_public_key_der().unwrap().as_bytes());
         write!(f, "{}", pubkey)
-    }
-}
-
-impl<'de> Deserialize<'de> for DerSigningKey {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bytes: Vec<u8> = Base64::<Standard, Padded>::deserialize_as::<D>(deserializer)?;
-        let key: SigningKey = SigningKey::from_pkcs8_der(&bytes).map_err(de::Error::custom)?;
-        Ok(key.into())
-    }
-}
-
-impl Serialize for DerSigningKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        Base64::<Standard, Padded>::serialize_as(
-            &self.0.to_pkcs8_der().map_err(ser::Error::custom)?.as_bytes().to_vec(),
-            serializer,
-        )
     }
 }
 

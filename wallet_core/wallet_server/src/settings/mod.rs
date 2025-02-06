@@ -21,9 +21,9 @@ use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
-use wallet_common::account::serialization::DerSigningKey;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
+use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
@@ -128,6 +128,7 @@ pub struct Storage {
 pub struct KeyPair {
     #[serde_as(as = "Base64")]
     pub certificate: BorrowingCertificate,
+    #[serde_as(as = "Base64")]
     pub private_key: DerSigningKey,
 }
 
@@ -143,8 +144,10 @@ impl From<&Storage> for SessionStoreTimeouts {
 
 impl KeyPair {
     pub fn try_into_mdoc_key_pair(self) -> Result<nl_wallet_mdoc::server_keys::KeyPair, CertificateError> {
-        let key_pair =
-            nl_wallet_mdoc::server_keys::KeyPair::new_from_signing_key(self.private_key.0, self.certificate)?;
+        let key_pair = nl_wallet_mdoc::server_keys::KeyPair::new_from_signing_key(
+            self.private_key.into_inner(),
+            self.certificate,
+        )?;
 
         Ok(key_pair)
     }
@@ -155,7 +158,7 @@ impl From<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
     fn from(value: nl_wallet_mdoc::server_keys::KeyPair) -> Self {
         Self {
             certificate: value.certificate().clone(),
-            private_key: DerSigningKey(value.private_key().clone()),
+            private_key: DerSigningKey::from(value.private_key().clone()),
         }
     }
 }
