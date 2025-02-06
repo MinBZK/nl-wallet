@@ -1,8 +1,9 @@
-This Definition of Done (the DoD) is a mutual agreement between the development
-team and the product owner. team and the product owner. It is essentially a list of conditions that a
-change to the code should adhere to before being considered ready to be merged
-into the `main` branch.
+TODO: Rewrite everything, but not before there is consensus about the MR template
 
+This Definition of Done (the DoD) is a mutual agreement between the development
+team and the product owner. team and the product owner. It is essentially a list
+of conditions that a change to the code should adhere to before being considered
+ready to be merged into the `main` branch.
 
 [[_TOC_]]
 
@@ -54,8 +55,8 @@ succesfully.
 ### Has unit- and integration tests which prove its correctness
 
 Any additional code needs to be covered by tests which prove the correctness of
-the implementation. In general, we strive for about 80+ percentage coverage. In
-general, we prefer not to lower coverage with any given merge to main.
+the implementation. In general, we strive for reasonable coverage. In general,
+we prefer not to lower coverage with any given merge to main.
 
 ### Implements any screens according to Figma design (if any)
 
