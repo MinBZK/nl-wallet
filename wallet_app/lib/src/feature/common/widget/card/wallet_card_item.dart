@@ -224,10 +224,12 @@ class _WalletCardItemState extends State<WalletCardItem> {
 
   Widget _buildBackground(BuildContext context) {
     return Positioned.fill(
-      child: SvgOrImage(
-        asset: widget.background,
-        fit: BoxFit.cover,
-        alignment: Alignment.topCenter,
+      child: ExcludeSemantics(
+        child: SvgOrImage(
+          asset: widget.background,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+        ),
       ),
     );
   }
@@ -240,9 +242,11 @@ class _WalletCardItemState extends State<WalletCardItem> {
       height: height,
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: CardHolograph(
-          holograph: widget.holograph!,
-          brightness: widget.brightness,
+        child: ExcludeSemantics(
+          child: CardHolograph(
+            holograph: widget.holograph!,
+            brightness: widget.brightness,
+          ),
         ),
       ),
     );
@@ -291,7 +295,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
               ),
             ),
             if (widget.logo != null) const SizedBox(width: 16),
-            if (widget.logo != null) CardLogo(logo: widget.logo!),
+            if (widget.logo != null) ExcludeSemantics(child: CardLogo(logo: widget.logo!)),
           ],
         ),
       ),
@@ -300,14 +304,16 @@ class _WalletCardItemState extends State<WalletCardItem> {
 
   Widget _buildRippleAndFocus(BuildContext context) {
     return Positioned.fill(
-      child: TextButton(
-        style: context.theme.textButtonTheme.style?.copyWith(
-          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+      child: ExcludeSemantics(
+        child: TextButton(
+          style: context.theme.textButtonTheme.style?.copyWith(
+            backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+            padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          ),
+          statesController: _statesController,
+          onPressed: widget.onPressed,
+          child: const SizedBox.shrink(),
         ),
-        statesController: _statesController,
-        onPressed: widget.onPressed,
-        child: const SizedBox.shrink(),
       ),
     );
   }

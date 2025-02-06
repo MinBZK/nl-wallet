@@ -1,3 +1,4 @@
+use std::mem;
 use std::sync::Arc;
 
 use http::header;
@@ -157,7 +158,8 @@ where
         info!("Checking if a pid is already present");
         let has_pid = self
             .storage
-            .get_mut()
+            .write()
+            .await
             .has_any_mdocs_with_doctype(PID_DOCTYPE)
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
@@ -361,19 +363,19 @@ where
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                attested_key,
-                registration_data,
-                &config.account_server.http_config,
-                &instruction_result_public_key,
+                Arc::clone(attested_key),
+                registration_data.clone(),
+                config.account_server.http_config.clone(),
+                instruction_result_public_key,
             )
             .await?;
 
         let wte = self
             .wte_issuance_client
-            .obtain_wte(&config.account_server.wte_public_key.0, &remote_instruction)
+            .obtain_wte(&config.account_server.wte_public_key.0, remote_instruction.clone())
             .await?;
 
-        let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
+        let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
@@ -401,6 +403,9 @@ where
                     _ => PidIssuanceError::PidIssuer(error),
                 }
             });
+
+        // Make sure there are no remaining references to the `AttestedKey` value.
+        mem::drop(remote_key_factory);
 
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
         // wipe the contents of the wallet and return it to its initial state.
@@ -444,7 +449,8 @@ where
 
         info!("PID accepted, storing mdoc in database");
         self.storage
-            .get_mut()
+            .write()
+            .await
             .insert_mdocs(issued_mdocs)
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
@@ -1061,7 +1067,7 @@ mod tests {
         #[case] instruction_error: InstructionError,
         #[case] expect_reset: bool,
     ) {
-        let (mut wallet, error) =
+        let (wallet, error) =
             test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(instruction_error)).await;
 
         // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
@@ -1072,13 +1078,13 @@ mod tests {
             assert!(!wallet.has_registration());
             assert!(wallet.is_locked());
             assert_matches!(
-                wallet.storage.get_mut().state().await.unwrap(),
+                wallet.storage.read().await.state().await.unwrap(),
                 StorageState::Uninitialized
             );
         } else {
             assert!(wallet.has_registration());
             assert!(!wallet.is_locked());
-            assert_matches!(wallet.storage.get_mut().state().await.unwrap(), StorageState::Opened);
+            assert_matches!(wallet.storage.read().await.state().await.unwrap(), StorageState::Opened);
         }
     }
 
@@ -1144,7 +1150,7 @@ mod tests {
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Have the mdoc storage return an error on query.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.write().await.has_query_error = true;
 
         // Accepting PID issuance should result in an error.
         let error = wallet

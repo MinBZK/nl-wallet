@@ -50,7 +50,7 @@ test-ios:
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
     - export MATCH_PASSWORD
     - (git config --global url.https://gitlab-ci-token:$CI_JOB_TOKEN@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST)
-    - http_proxy="" https_proxy="" bundle install
+    - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - |
       bundle exec fastlane ios ci_build \
