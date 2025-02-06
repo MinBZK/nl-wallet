@@ -1,33 +1,14 @@
-*Give a short description of this change here (a full description should be a
-part of the related issue ticket).*
+*Short description here, inc*
 
-*This change-type should be used for regular work. To assist the reviewer, you
-can use ~~strikethrough~~ on a list item below to  indicate that that specific
-item is not relevant to this change (i.e., don't delete the line, but use
-strikethrough instead).*
+### The reviewer has verified that this change:
 
-### The reviewer asserts that this change:
-
-- [ ] Has a related issue ticket with a correct issue type and description
-- [ ] Is implemented as described in the aforementioned issue ticket
-- [ ] Implements any tests as specified in the related issue ticket
-- [ ] Has unit- and integration tests which prove its correctness
-- [ ] Implements any screens according to Figma design (if any)
-- [ ] Is featured and described in the upcoming release notes
-- [ ] Has any breaking changes documented in the release notes
-- [ ] Has any upgrade steps documented in the release notes
-- [ ] Has updated any README.md files related to these changes
-- [ ] Has any API changes reflected in the OpenAPI YAML documention
-- [ ] Has updated any related documentation in the documentation folder
-- [ ] Has any incurred technical debt reflected by a TODO comment in code
-- [ ] Does not contain commits with personally identifiable information
-- [ ] Does not contain commits with secrets or internal identifiers
-- [ ] Does not contain commits with copyrighted files or data
-- [ ] Does not contain commits with inappropriate contents
 - [ ] Is in compliance with our coding and quality standards
-- [ ] Succesfully passes the relevant Sonar quality gate
-- [ ] Configures any relevant CI/CD pipeline variables
-- [ ] Configures any relevant CI/CD pipeline changes
-- [ ] Configures any relevant Kubernetes objects
+- [ ] Implements and tests all acceptance criteria and/or capabilities
+- [ ] Implements any screens according to our Figma designs (if applicable)
+- [ ] Is described in release notes, with any breaking changes or upgrade steps
+- [ ] Is documented (in README.md files, OpenAPI specs, in documentation folder)
+- [ ] Does not contain commits with personal, secret or copyrighted information
+- [ ] Incurred technical debt is has a TODO comment and a related issue ticket
+- [ ] Can be deployed locally and remotely
 
 *The above items are described in our [definition of done](./documentation/wow/definition-of-done.md).*

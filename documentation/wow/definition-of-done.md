@@ -1,6 +1,8 @@
 This Definition of Done (the DoD) is a mutual agreement between the development
-team and the product owner. It is a effectively a list of things we consider
-necessary to do when working on issues and changes.
+team and the product owner. team and the product owner. It is essentially a list of conditions that a
+change to the code should adhere to before being considered ready to be merged
+into the `main` branch.
+
 
 [[_TOC_]]
 
@@ -17,7 +19,7 @@ necessary to do when working on issues and changes.
   at least provide our stakeholders with an impact statement and/or
   resolution time
 * Tasks are done by way of a pull- or merge-request and are reviewed
-  by at least one colleague which specifically checks the list of items
+  by at least one colleague who specifically checks the list of items
   described below
 
 ## Things we check every pull- or merge request
@@ -168,14 +170,14 @@ or Kubernetes objects.
 
 Below are a couple of items that are related to our quality assurance efforts.
 In general we try to adhere to these principals globally. Note that these items
-are ortogonal to the project (a cross-cutting concern) and are not  evaluated
+are ortogonal to the project (a cross-cutting concern) and are not evaluated
 at every pull- or merge-request. they are done continuously in parallel to the
 development effort. In general:
 
 1. The implementation adheres to the design.
 
 2. All test cases should be updated and successfully executed (either automated
-   through CI or manually). Any related  functional tests should be successfully
+   through CI or manually). Any related functional tests should be successfully
    executed.
 
 3. The application user interface adheres to required accesibility guidelines.
