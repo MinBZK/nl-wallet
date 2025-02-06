@@ -9,6 +9,6 @@
 - [ ] Is documented (in README.md files, OpenAPI specs, in documentation folder)
 - [ ] Does not contain commits with personal, secret or copyrighted information
 - [ ] Incurred technical debt is has a TODO comment and a related issue ticket
-- [ ] Can be deployed locally and remotely
+- [ ] Can be deployed locally and remotely (CI/CD related things up-to-date)
 
 *The above items are described in our [definition of done](./documentation/wow/definition-of-done.md).*
