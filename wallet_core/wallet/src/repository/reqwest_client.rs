@@ -3,8 +3,8 @@ use std::marker::PhantomData;
 use std::str::FromStr;
 
 use wallet_common::reqwest::RequestBuilder;
-use wallet_common::urls::Filename;
 
+use super::Filename;
 use super::HttpClient;
 use super::HttpClientError;
 use super::HttpResponse;

@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use cfg_if::cfg_if;
 use http::header::InvalidHeaderValue;
 use http::HeaderValue;
@@ -112,12 +110,6 @@ mod axum {
     }
 }
 
-#[nutype(
-    validate(predicate = |s| sanitize_filename::is_sanitized(s.to_string_lossy())),
-    derive(Debug, Clone, AsRef, FromStr),
-)]
-pub struct Filename(PathBuf);
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,27 +178,5 @@ mod tests {
     #[case(r#"["data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD"]"#)]
     fn deserialize_origin_errors(#[case] input: &str) {
         let _ = serde_json::from_str::<CorsOrigin>(input).expect_err("invalid json");
-    }
-
-    #[rstest]
-    #[case(r#"valid"#, true)]
-    #[case(r#"val-id"#, true)]
-    #[case(r#"val.id"#, true)]
-    #[case(r#"val id"#, true)]
-    #[case(r#"VALID"#, true)]
-    #[case(
-        "invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinva\
-         lidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidi\
-         nvalidinvalidinvalidinvalidinvalidinvalid",
-        false
-    )]
-    #[case(r#"in/valid"#, false)]
-    #[case(
-        r#"in
-        valid"#,
-        false
-    )]
-    fn parse_filename(#[case] input: &str, #[case] is_ok: bool) {
-        assert_eq!(input.parse::<Filename>().is_ok(), is_ok);
     }
 }
