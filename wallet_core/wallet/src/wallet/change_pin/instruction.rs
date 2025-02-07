@@ -1,6 +1,6 @@
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::errors::Error as AccountError;
-use wallet_account::messages::auth::WalletCertificate;
+use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;

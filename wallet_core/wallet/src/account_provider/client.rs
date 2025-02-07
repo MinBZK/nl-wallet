@@ -6,10 +6,10 @@ use reqwest::Request;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use wallet_account::messages::auth::Certificate;
-use wallet_account::messages::auth::Challenge;
-use wallet_account::messages::auth::Registration;
-use wallet_account::messages::auth::WalletCertificate;
+use wallet_account::messages::registration::Certificate;
+use wallet_account::messages::registration::Challenge;
+use wallet_account::messages::registration::Registration;
+use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::Instruction;

@@ -16,7 +16,7 @@ use crate::errors::Error;
 use crate::errors::Result;
 use crate::signed::ChallengeResponse;
 
-// Registration challenge response
+/// Registration challenge, sent by account server to wallet after the latter requests enrollment.
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Challenge {
@@ -24,8 +24,7 @@ pub struct Challenge {
     pub challenge: Vec<u8>,
 }
 
-// Registration request and response
-
+/// Registration request, sent by wallet to account server after receiving challenge.
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Registration {
@@ -34,6 +33,7 @@ pub struct Registration {
     pub pin_pubkey: DerVerifyingKey,
 }
 
+/// App and key attestation data for both platforms.
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "platform", rename_all = "snake_case")]
@@ -51,6 +51,33 @@ pub enum RegistrationAttestation {
     },
 }
 
+/// Wallet certificate provisioning message, sent by account server to wallet after successful registration.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Certificate {
+    pub certificate: WalletCertificate,
+}
+
+pub type WalletCertificate = Jwt<WalletCertificateClaims>;
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WalletCertificateClaims {
+    pub wallet_id: String,
+    #[serde_as(as = "Base64")]
+    pub hw_pubkey: DerVerifyingKey,
+    #[serde_as(as = "Base64")]
+    pub pin_pubkey_hash: Vec<u8>,
+    pub version: u32,
+
+    pub iss: String,
+    pub iat: u64,
+}
+
+impl JwtSubject for WalletCertificateClaims {
+    const SUB: &'static str = "wallet_certificate";
+}
+
+// Constructors for ChallengeResponse<Registration>.
 impl ChallengeResponse<Registration> {
     pub async fn new_apple<AK, PK>(
         attested_key: &AK,
@@ -106,31 +133,6 @@ impl ChallengeResponse<Registration> {
         )
         .await
     }
-}
-
-#[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WalletCertificateClaims {
-    pub wallet_id: String,
-    #[serde_as(as = "Base64")]
-    pub hw_pubkey: DerVerifyingKey,
-    #[serde_as(as = "Base64")]
-    pub pin_pubkey_hash: Vec<u8>,
-    pub version: u32,
-
-    pub iss: String,
-    pub iat: u64,
-}
-
-impl JwtSubject for WalletCertificateClaims {
-    const SUB: &'static str = "wallet_certificate";
-}
-
-pub type WalletCertificate = Jwt<WalletCertificateClaims>;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Certificate {
-    pub certificate: WalletCertificate,
 }
 
 #[cfg(test)]

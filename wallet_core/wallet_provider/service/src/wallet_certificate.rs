@@ -4,8 +4,8 @@ use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
 
-use wallet_account::messages::auth::WalletCertificate;
-use wallet_account::messages::auth::WalletCertificateClaims;
+use wallet_account::messages::registration::WalletCertificate;
+use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_common::jwt::EcdsaDecodingKey;
 use wallet_common::jwt::Jwt;
 use wallet_provider_domain::model::encrypted::Encrypted;

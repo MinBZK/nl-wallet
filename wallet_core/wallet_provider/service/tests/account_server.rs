@@ -3,9 +3,9 @@ use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
-use wallet_account::messages::auth::Registration;
-use wallet_account::messages::auth::WalletCertificate;
-use wallet_account::messages::auth::WalletCertificateClaims;
+use wallet_account::messages::registration::Registration;
+use wallet_account::messages::registration::WalletCertificate;
+use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::signed::ChallengeResponse;
 use wallet_common::apple::MockAppleAttestedKey;

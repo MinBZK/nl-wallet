@@ -20,79 +20,31 @@ use crate::errors::Result;
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
 
-use super::auth::WalletCertificate;
+use super::registration::WalletCertificate;
 
-#[derive(Serialize, Deserialize, Debug)]
+/// Request for a challenge, sent by wallet to account server before sending an instruction.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InstructionChallengeRequest {
+    pub request: ChallengeRequest,
+    pub certificate: WalletCertificate,
+}
+
+/// Request to execute an instruction, sent by wallet to account server after receiving the challenge.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Instruction<T> {
     pub instruction: ChallengeResponse<T>,
     pub certificate: WalletCertificate,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CheckPin;
-
-#[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChangePinStart {
-    #[serde_as(as = "Base64")]
-    pub pin_pubkey: DerVerifyingKey,
-    #[serde_as(as = "Base64")]
-    pub pop_pin_pubkey: DerSignature,
+/// The result of an instruction, sent by account server to wallet after successfully executing the instruction.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InstructionResultMessage<R> {
+    pub result: InstructionResult<R>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChangePinCommit {}
+pub type InstructionResult<R> = Jwt<InstructionResultClaims<R>>;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChangePinRollback {}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GenerateKey {
-    pub identifiers: Vec<String>,
-}
-
-#[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GenerateKeyResult {
-    #[serde_as(as = "Vec<(_, Base64)>")]
-    pub public_keys: Vec<(String, DerVerifyingKey)>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Sign {
-    pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
-}
-
-#[serde_as]
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SignResult {
-    #[serde_as(as = "Vec<Vec<Base64>>")]
-    pub signatures: Vec<Vec<DerSignature>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct IssueWte {
-    pub key_identifier: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct IssueWteResult {
-    pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ConstructPoa {
-    pub key_identifiers: VecAtLeastTwoUnique<String>,
-    pub aud: String,
-    pub nonce: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ConstructPoaResult {
-    pub poa: Poa,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct InstructionResultClaims<R> {
     pub result: R,
 
@@ -100,33 +52,37 @@ pub struct InstructionResultClaims<R> {
     pub iat: u64,
 }
 
-pub type InstructionResult<R> = Jwt<InstructionResultClaims<R>>;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InstructionResultMessage<R> {
-    pub result: InstructionResult<R>,
+impl<R> JwtSubject for InstructionResultClaims<R> {
+    const SUB: &'static str = "instruction_result";
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InstructionChallengeRequest {
-    pub request: ChallengeRequest,
-    pub certificate: WalletCertificate,
-}
-
+/// Links an instruction with its result type and name string.
 pub trait InstructionAndResult: Serialize + DeserializeOwned {
     const NAME: &'static str;
 
     type Result: Serialize + DeserializeOwned;
 }
 
-impl<R> JwtSubject for InstructionResultClaims<R> {
-    const SUB: &'static str = "instruction_result";
-}
+// CheckPin instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CheckPin;
 
 impl InstructionAndResult for CheckPin {
     const NAME: &'static str = "check_pin";
 
     type Result = ();
+}
+
+// ChangePinStart instruction.
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChangePinStart {
+    #[serde_as(as = "Base64")]
+    pub pin_pubkey: DerVerifyingKey,
+    #[serde_as(as = "Base64")]
+    pub pop_pin_pubkey: DerSignature,
 }
 
 impl InstructionAndResult for ChangePinStart {
@@ -135,16 +91,40 @@ impl InstructionAndResult for ChangePinStart {
     type Result = WalletCertificate;
 }
 
+// ChangePinCommit instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChangePinCommit {}
+
 impl InstructionAndResult for ChangePinCommit {
     const NAME: &'static str = "change_pin_commit";
 
     type Result = ();
 }
 
+// ChangePinRollback instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChangePinRollback {}
+
 impl InstructionAndResult for ChangePinRollback {
     const NAME: &'static str = "change_pin_rollback";
 
     type Result = ();
+}
+
+// GenerateKey instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenerateKey {
+    pub identifiers: Vec<String>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GenerateKeyResult {
+    #[serde_as(as = "Vec<(_, Base64)>")]
+    pub public_keys: Vec<(String, DerVerifyingKey)>,
 }
 
 impl InstructionAndResult for GenerateKey {
@@ -153,10 +133,36 @@ impl InstructionAndResult for GenerateKey {
     type Result = GenerateKeyResult;
 }
 
+// Sign instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Sign {
+    pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignResult {
+    #[serde_as(as = "Vec<Vec<Base64>>")]
+    pub signatures: Vec<Vec<DerSignature>>,
+}
+
 impl InstructionAndResult for Sign {
     const NAME: &'static str = "sign";
 
     type Result = SignResult;
+}
+
+// IssueWte instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssueWte {
+    pub key_identifier: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssueWteResult {
+    pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
 }
 
 impl InstructionAndResult for IssueWte {
@@ -165,12 +171,27 @@ impl InstructionAndResult for IssueWte {
     type Result = IssueWteResult;
 }
 
+// ConstructPoa instruction.
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConstructPoa {
+    pub key_identifiers: VecAtLeastTwoUnique<String>,
+    pub aud: String,
+    pub nonce: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConstructPoaResult {
+    pub poa: Poa,
+}
+
 impl InstructionAndResult for ConstructPoa {
     const NAME: &'static str = "construct_poa";
 
     type Result = ConstructPoaResult;
 }
 
+// Constructors for Instruction.
 impl<T> Instruction<T>
 where
     T: Serialize + DeserializeOwned,
