@@ -440,10 +440,11 @@ export FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD="{App-specific password}"
 - Run `bundle install` from the project root folder
 - Run `bundle exec fastlane match appstore --readonly`  to locally install App Store certificate &
   provisioning profile (password protected: "Fastlane Match Passphrase")
+- Place the latest configuration JSON files for the `ont` environment under `wallet_core/wallet/`, these can be downloaded from the CI as an asset
 - Check latest iOS build number
   here: [App Store Connect - iOS Builds](https://appstoreconnect.apple.com/apps/SSSS/testflight/ios),
   next build number needs to be `{latest_build_numer} + 1`
 - Build app with updated build
-  number `UL_HOSTNAME=app.example.com UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
+  number `CONFIG_ENV=ont UL_HOSTNAME=app.example.com UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
 - Upload to TestFlight `bundle exec fastlane ios deploy bundle_id:nl.ictu.edi.wallet.latest`  (login
   with Apple ID + password; app specific password!)
