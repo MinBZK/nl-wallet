@@ -18,12 +18,32 @@ use wallet_common::apple::AppleAttestedKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::p256_der::DerSignature;
 
-use super::super::errors::Error;
-use super::super::errors::Result;
+use crate::errors::Error;
+use crate::errors::Result;
+
 use super::raw_value::TypedRawValue;
-use super::ContainsChallenge;
-use super::EcdsaSignatureType;
-use super::SignatureType;
+
+/// Used internally within this submodule to represent a payload that contains a challenge.
+pub trait ContainsChallenge {
+    fn challenge(&self) -> Result<impl AsRef<[u8]>>;
+}
+
+/// The types of signature a message can be signed with, which
+/// is either an ECDSA signature or an Apple assertion. The
+/// former has a subtype in the form of [`EcdsaSignatureType`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SignatureType {
+    Ecdsa(EcdsaSignatureType),
+    AppleAssertion,
+}
+
+/// An ECDSA signature can either originate from a derived
+/// PIN key or a key stored in hardware on the device.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EcdsaSignatureType {
+    Pin,
+    Google,
+}
 
 /// Wraps both a type and a reference to the JSON data it was parsed from.
 /// This is used internally in order to implement [`ClientData`] without
@@ -76,7 +96,7 @@ where
 /// data can be serialized and deserialized, while maintaining a stable string representation. This is necessary, as
 /// JSON representation is not deterministic.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(super) struct SignedMessage<T> {
+pub struct SignedMessage<T> {
     signed: TypedRawValue<T>,
     #[serde(flatten)]
     signature: MessageSignature,
@@ -87,7 +107,7 @@ pub(super) struct SignedMessage<T> {
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub(super) enum MessageSignature {
+pub enum MessageSignature {
     Pin {
         #[serde_as(as = "Base64")]
         signature: DerSignature,
@@ -231,12 +251,12 @@ impl<T> SignedMessage<T> {
     }
 }
 
-pub(super) trait SubjectPayload {
+pub trait SubjectPayload {
     const SUBJECT: &'static str;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(super) struct PayloadWithSubject<T> {
+pub struct PayloadWithSubject<T> {
     subject: Cow<'static, str>,
     #[serde(flatten)]
     payload: T,
@@ -267,7 +287,7 @@ where
 /// All of the methods on the wrapped type are reproduced and forwarded, with
 /// additional checking when appropriate.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(super) struct SignedSubjectMessage<T>(SignedMessage<PayloadWithSubject<T>>);
+pub struct SignedSubjectMessage<T>(SignedMessage<PayloadWithSubject<T>>);
 
 /// Same as [`SignedMessage`], but adds a subject string to the signed JSON object, the contents of which is verified.
 impl<T> SignedSubjectMessage<T> {

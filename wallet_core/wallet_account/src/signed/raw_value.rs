@@ -11,7 +11,7 @@ use serde_json::value::RawValue;
 /// whitespace.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub(super) struct TypedRawValue<T>(Box<RawValue>, PhantomData<T>);
+pub struct TypedRawValue<T>(Box<RawValue>, PhantomData<T>);
 
 // Implement `Clone` manually, as there would be an unnecessary trait bound `T: Clone` if `Clone` were to be derived.
 impl<T> Clone for TypedRawValue<T> {

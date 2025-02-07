@@ -11,13 +11,14 @@ use wallet_common::apple::AppleAttestedKey;
 use wallet_common::keys::EphemeralEcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 
-use super::super::errors::Error;
-use super::super::errors::Result;
+use super::signed_message::ContainsChallenge;
+use super::signed_message::EcdsaSignatureType;
 use super::signed_message::SignedMessage;
 use super::signed_message::SignedSubjectMessage;
 use super::signed_message::SubjectPayload;
-use super::ContainsChallenge;
-use super::EcdsaSignatureType;
+
+use crate::errors::Error;
+use crate::errors::Result;
 
 #[derive(Debug, Clone, Copy)]
 pub enum SequenceNumberComparison {
