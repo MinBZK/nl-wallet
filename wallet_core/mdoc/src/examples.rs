@@ -246,9 +246,11 @@ pub mod mock {
                 .unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))
                 .unwrap();
             let metadata_chain = TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap();
+            let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
 
             issuer_signed.issuer_auth.0.unprotected =
-                IssuerSigned::create_unprotected_header(x5chain.clone().into_bytes().unwrap(), metadata_chain).unwrap();
+                IssuerSigned::create_unprotected_header(x5chain.clone().into_bytes().unwrap(), chain, integrity)
+                    .unwrap();
 
             Mdoc::new::<MockRemoteEcdsaKey>(
                 EXAMPLE_KEY_IDENTIFIER.to_string(),

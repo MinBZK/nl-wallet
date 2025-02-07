@@ -92,7 +92,7 @@ impl CredentialPayload {
             mdoc.doc_type.to_string(),
             mdoc.attributes.as_ref(),
             issuer,
-            None,
+            Some(Utc::now()),
             Some((&mdoc.valid_until).try_into()?),
             Some((&mdoc.valid_from).try_into()?),
         )

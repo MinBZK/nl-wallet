@@ -916,17 +916,21 @@ mod tests {
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
         let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+
         let preview = CredentialPreview::MsoMdoc {
             unsigned_mdoc: unsigned_mdoc.clone(),
             issuer_certificate: issuance_key.certificate().clone(),
             metadata_chain: metadata_chain.clone(),
         };
 
+        let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
+
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = mdoc_key.verifying_key();
         let issuer_signed = IssuerSigned::sign(
             unsigned_mdoc,
-            metadata_chain,
+            chain,
+            integrity,
             mdoc_public_key.try_into().unwrap(),
             &issuance_key,
         )

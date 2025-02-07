@@ -7,6 +7,7 @@ use std::sync::LazyLock;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::future::try_join_all;
+use http::Uri;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
@@ -22,6 +23,7 @@ use nl_wallet_mdoc::utils::crypto::CryptoError;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::IssuerSigned;
 use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::jwt::jwk_to_p256;
 use wallet_common::jwt::validations;
 use wallet_common::jwt::EcdsaDecodingKey;
@@ -49,6 +51,8 @@ use crate::credential::WteDisclosure;
 use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
 use crate::credential_formats::CredentialFormats;
 use crate::credential_formats::CredentialType;
+use crate::credential_payload::CredentialPayload;
+use crate::credential_payload::CredentialPayloadError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::metadata;
@@ -163,6 +167,10 @@ pub enum CredentialRequestError {
     MissingPoa,
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
+    #[error("error converting unsigned mdoc to credential_payload: {0}")]
+    CredentialPayload(#[from] CredentialPayloadError),
+    #[error("error verifying type metadata integrity: {0}")]
+    TypeMetadata(#[from] TypeMetadataError),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -982,7 +990,12 @@ impl CredentialResponse {
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, cose_pubkey, issuer_privkey)
+                let credential_payload =
+                    CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                let (chain, integrity) = metadata_chain.verify_and_destructure()?;
+                credential_payload.validate(chain.first())?;
+
+                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, chain, integrity, cose_pubkey, issuer_privkey)
                     .await
                     .map_err(CredentialRequestError::CredentialSigning)?;
 

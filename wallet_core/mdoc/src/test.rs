@@ -207,11 +207,12 @@ impl TestDocument {
         };
         let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+        let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned, metadata_chain, mdoc_public_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned, chain, integrity, mdoc_public_key, &issuance_key)
             .await
             .unwrap();
 
