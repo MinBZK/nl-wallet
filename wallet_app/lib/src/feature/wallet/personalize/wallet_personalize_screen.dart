@@ -112,6 +112,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
           WalletPersonalizeGenericError() => _buildGenericError(context),
           WalletPersonalizeSessionExpired() => _buildSessionExpired(context),
+          WalletPersonalizeAddingCards() => _buildAddingCards(context, progress: state.stepperProgress),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -136,6 +137,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
       title: context.l10n.walletPersonalizeScreenLoadingTitle,
       description: context.l10n.walletPersonalizeScreenLoadingSubtitle,
       onCancel: onCancel,
+      appBar: WalletAppBar(progress: progress),
+    );
+  }
+
+  Widget _buildAddingCards(BuildContext context, {FlowProgress? progress}) {
+    return GenericLoadingPage(
+      title: context.l10n.walletPersonalizeScreenLoadingTitle,
+      description: context.l10n.walletPersonalizeScreenAddingCardsSubtitle,
       appBar: WalletAppBar(progress: progress),
     );
   }
