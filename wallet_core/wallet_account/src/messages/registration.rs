@@ -12,8 +12,7 @@ use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::vec_at_least::VecAtLeastTwo;
 
-use crate::errors::Error;
-use crate::errors::Result;
+use crate::error::EncodeError;
 use crate::signed::ChallengeResponse;
 
 /// Registration challenge, sent by account server to wallet after the latter requests enrollment.
@@ -84,14 +83,14 @@ impl ChallengeResponse<Registration> {
         attestation_data: Vec<u8>,
         pin_signing_key: &PK,
         challenge: Vec<u8>,
-    ) -> Result<Self>
+    ) -> Result<Self, EncodeError>
     where
         AK: AppleAttestedKey,
         PK: EphemeralEcdsaKey,
     {
         let pin_pubkey = pin_signing_key
             .verifying_key()
-            .map_err(|e| Error::VerifyingKey(Box::new(e)))
+            .map_err(|e| EncodeError::VerifyingKey(Box::new(e)))
             .await?;
 
         let registration = Registration {
@@ -108,14 +107,14 @@ impl ChallengeResponse<Registration> {
         app_attestation_token: Vec<u8>,
         pin_signing_key: &PK,
         challenge: Vec<u8>,
-    ) -> Result<Self>
+    ) -> Result<Self, EncodeError>
     where
         SK: SecureEcdsaKey,
         PK: EphemeralEcdsaKey,
     {
         let pin_pubkey = pin_signing_key
             .verifying_key()
-            .map_err(|e| Error::VerifyingKey(Box::new(e)))
+            .map_err(|e| EncodeError::VerifyingKey(Box::new(e)))
             .await?;
 
         Self::sign_google(

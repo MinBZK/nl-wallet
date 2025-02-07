@@ -65,7 +65,7 @@ pub enum WalletRegistrationError {
     #[error("could not get attested public key: {0}")]
     AttestedPublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
-    Signing(#[source] wallet_account::errors::Error),
+    Signing(#[source] wallet_account::error::EncodeError),
     #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountProviderError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]

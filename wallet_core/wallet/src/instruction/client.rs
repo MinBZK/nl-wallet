@@ -79,7 +79,7 @@ impl<S, AK, GK, A> InstructionClient<S, AK, GK, A> {
     where
         S: Storage,
         F: FnOnce(u64) -> O,
-        O: Future<Output = Result<R, wallet_account::errors::Error>>,
+        O: Future<Output = Result<R, wallet_account::error::EncodeError>>,
     {
         let mut instruction_data = storage.fetch_data::<InstructionData>().await?.unwrap_or_default();
         instruction_data.instruction_sequence_number += 1;

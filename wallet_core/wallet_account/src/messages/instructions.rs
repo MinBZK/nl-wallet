@@ -16,7 +16,7 @@ use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::wte::WteClaims;
 
-use crate::errors::Result;
+use crate::error::EncodeError;
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
 
@@ -210,7 +210,7 @@ where
         attested_key: &impl AppleAttestedKey,
         pin_privkey: &impl EphemeralEcdsaKey,
         certificate: WalletCertificate,
-    ) -> Result<Self> {
+    ) -> Result<Self, EncodeError> {
         let challenge_response = ChallengeResponse::sign_apple(
             instruction,
             challenge,
@@ -230,7 +230,7 @@ where
         hw_privkey: &impl SecureEcdsaKey,
         pin_privkey: &impl EphemeralEcdsaKey,
         certificate: WalletCertificate,
-    ) -> Result<Self> {
+    ) -> Result<Self, EncodeError> {
         let challenge_response = ChallengeResponse::sign_google(
             instruction,
             challenge,
@@ -254,7 +254,7 @@ impl InstructionChallengeRequest {
         instruction_sequence_number: u64,
         attested_key: &impl AppleAttestedKey,
         certificate: WalletCertificate,
-    ) -> Result<Self>
+    ) -> Result<Self, EncodeError>
     where
         I: InstructionAndResult,
     {
@@ -274,7 +274,7 @@ impl InstructionChallengeRequest {
         instruction_sequence_number: u64,
         hw_privkey: &impl SecureEcdsaKey,
         certificate: WalletCertificate,
-    ) -> Result<Self>
+    ) -> Result<Self, EncodeError>
     where
         I: InstructionAndResult,
     {

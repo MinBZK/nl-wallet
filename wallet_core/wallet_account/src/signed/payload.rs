@@ -17,8 +17,8 @@ use super::signed_message::SignedMessage;
 use super::signed_message::SignedSubjectMessage;
 use super::signed_message::SubjectPayload;
 
-use crate::errors::Error;
-use crate::errors::Result;
+use crate::error::DecodeError;
+use crate::error::EncodeError;
 
 #[derive(Debug, Clone, Copy)]
 pub enum SequenceNumberComparison {
@@ -51,13 +51,17 @@ impl ChallengeRequestPayload {
         }
     }
 
-    pub fn verify(&self, wallet_id: &str, sequence_number_comparison: SequenceNumberComparison) -> Result<()> {
+    pub fn verify(
+        &self,
+        wallet_id: &str,
+        sequence_number_comparison: SequenceNumberComparison,
+    ) -> Result<(), DecodeError> {
         if wallet_id != self.wallet_id {
-            return Err(Error::WalletIdMismatch);
+            return Err(DecodeError::WalletIdMismatch);
         }
 
         if !sequence_number_comparison.verify(self.sequence_number) {
-            return Err(Error::SequenceNumberMismatch);
+            return Err(DecodeError::SequenceNumberMismatch);
         }
 
         Ok(())
@@ -80,7 +84,7 @@ impl SubjectPayload for ChallengeRequestPayload {
 // server generated challenge and this is the message that includes the
 // actual instruction, to be performed by the Wallet Provider.
 impl ContainsChallenge for ChallengeRequestPayload {
-    fn challenge(&self) -> Result<impl AsRef<[u8]>> {
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
         Ok(self.wallet_id.as_bytes())
     }
 }
@@ -96,7 +100,7 @@ impl ChallengeRequest {
         sequence_number: u64,
         instruction_name: String,
         attested_key: &K,
-    ) -> Result<Self>
+    ) -> Result<Self, EncodeError>
     where
         K: AppleAttestedKey,
     {
@@ -111,7 +115,7 @@ impl ChallengeRequest {
         sequence_number: u64,
         instruction_name: String,
         hardware_signing_key: &K,
-    ) -> Result<Self>
+    ) -> Result<Self, EncodeError>
     where
         K: SecureEcdsaKey,
     {
@@ -130,7 +134,7 @@ impl ChallengeRequest {
         verifying_key: &VerifyingKey,
         app_identifier: &AppIdentifier,
         previous_counter: AssertionCounter,
-    ) -> Result<(ChallengeRequestPayload, AssertionCounter)> {
+    ) -> Result<(ChallengeRequestPayload, AssertionCounter), DecodeError> {
         let (request, counter) =
             self.0
                 .parse_and_verify_apple(verifying_key, app_identifier, previous_counter, wallet_id.as_bytes())?;
@@ -144,7 +148,7 @@ impl ChallengeRequest {
         wallet_id: &str,
         sequence_number_comparison: SequenceNumberComparison,
         verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeRequestPayload> {
+    ) -> Result<ChallengeRequestPayload, DecodeError> {
         let request = self
             .0
             .parse_and_verify_ecdsa(EcdsaSignatureType::Google, verifying_key)?;
@@ -168,13 +172,17 @@ impl<T> SubjectPayload for ChallengeResponsePayload<T> {
 }
 
 impl<T> ChallengeResponsePayload<T> {
-    pub fn verify(&self, challenge: &[u8], sequence_number_comparison: SequenceNumberComparison) -> Result<()> {
+    pub fn verify(
+        &self,
+        challenge: &[u8],
+        sequence_number_comparison: SequenceNumberComparison,
+    ) -> Result<(), DecodeError> {
         if challenge != self.challenge {
-            return Err(Error::ChallengeMismatch);
+            return Err(DecodeError::ChallengeMismatch);
         }
 
         if !sequence_number_comparison.verify(self.sequence_number) {
-            return Err(Error::SequenceNumberMismatch);
+            return Err(DecodeError::SequenceNumberMismatch);
         }
 
         Ok(())
@@ -182,7 +190,12 @@ impl<T> ChallengeResponsePayload<T> {
 }
 
 impl<T> SignedSubjectMessage<ChallengeResponsePayload<T>> {
-    async fn sign_pin<K>(payload: T, challenge: Vec<u8>, sequence_number: u64, pin_signing_key: &K) -> Result<Self>
+    async fn sign_pin<K>(
+        payload: T,
+        challenge: Vec<u8>,
+        sequence_number: u64,
+        pin_signing_key: &K,
+    ) -> Result<Self, EncodeError>
     where
         T: Serialize,
         K: EphemeralEcdsaKey,
@@ -202,7 +215,7 @@ impl<T> SignedSubjectMessage<ChallengeResponsePayload<T>> {
         challenge: &[u8],
         sequence_number_comparison: SequenceNumberComparison,
         pin_verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeResponsePayload<T>>
+    ) -> Result<ChallengeResponsePayload<T>, DecodeError>
     where
         T: DeserializeOwned,
     {
@@ -218,7 +231,7 @@ impl<T> ContainsChallenge for SignedSubjectMessage<ChallengeResponsePayload<T>>
 where
     T: DeserializeOwned,
 {
-    fn challenge(&self) -> Result<impl AsRef<[u8]>> {
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
         // We need to parse the inner message to get to the challenge, which unfortunately leads to double parsing.
         let challenge_response = self.dangerous_parse_unverified()?;
 
@@ -239,7 +252,7 @@ impl<T> ChallengeResponse<T> {
         sequence_number: u64,
         attested_key: &AK,
         pin_signing_key: &PK,
-    ) -> Result<Self>
+    ) -> Result<Self, EncodeError>
     where
         T: Serialize,
         AK: AppleAttestedKey,
@@ -257,7 +270,7 @@ impl<T> ChallengeResponse<T> {
         sequence_number: u64,
         hardware_signing_key: &HK,
         pin_signing_key: &PK,
-    ) -> Result<Self>
+    ) -> Result<Self, EncodeError>
     where
         T: Serialize,
         HK: SecureEcdsaKey,
@@ -270,7 +283,7 @@ impl<T> ChallengeResponse<T> {
         Ok(Self(outer_signed))
     }
 
-    pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>>
+    pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>, DecodeError>
     where
         T: DeserializeOwned,
     {
@@ -287,7 +300,7 @@ impl<T> ChallengeResponse<T> {
         app_identifier: &AppIdentifier,
         previous_counter: AssertionCounter,
         pin_verifying_key: &VerifyingKey,
-    ) -> Result<(ChallengeResponsePayload<T>, AssertionCounter)>
+    ) -> Result<(ChallengeResponsePayload<T>, AssertionCounter), DecodeError>
     where
         T: DeserializeOwned,
     {
@@ -306,7 +319,7 @@ impl<T> ChallengeResponse<T> {
         sequence_number_comparison: SequenceNumberComparison,
         hardware_verifying_key: &VerifyingKey,
         pin_verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeResponsePayload<T>>
+    ) -> Result<ChallengeResponsePayload<T>, DecodeError>
     where
         T: DeserializeOwned,
     {
@@ -380,7 +393,7 @@ mod tests {
             )
             .expect_err("verifying SignedChallengeRequest should return an error");
 
-        assert_matches!(error, Error::AssertionVerification(_));
+        assert_matches!(error, DecodeError::Assertion(_));
 
         // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
         let error = signed
@@ -393,7 +406,7 @@ mod tests {
             )
             .expect_err("verifying SignedChallengeRequest should return an error");
 
-        assert_matches!(error, Error::SequenceNumberMismatch);
+        assert_matches!(error, DecodeError::SequenceNumberMismatch);
 
         // Verifying against the correct values should succeed.
         let (request, counter) = signed
@@ -436,7 +449,7 @@ mod tests {
             )
             .expect_err("verifying SignedChallengeRequest should return an error");
 
-        assert_matches!(error, Error::WalletIdMismatch);
+        assert_matches!(error, DecodeError::WalletIdMismatch);
 
         // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
         let error = signed
@@ -447,7 +460,7 @@ mod tests {
             )
             .expect_err("verifying SignedChallengeRequest should return an error");
 
-        assert_matches!(error, Error::SequenceNumberMismatch);
+        assert_matches!(error, DecodeError::SequenceNumberMismatch);
 
         // Verifying against the correct values should succeed.
         let request = signed
@@ -493,7 +506,7 @@ mod tests {
             )
             .expect_err("verifying SignedChallengeResponse should return an error");
 
-        assert_matches!(error, Error::AssertionVerification(_));
+        assert_matches!(error, DecodeError::Assertion(_));
 
         // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
         let error = signed
@@ -507,7 +520,7 @@ mod tests {
             )
             .expect_err("verifying SignedChallengeResponse should return an error");
 
-        assert_matches!(error, Error::SequenceNumberMismatch);
+        assert_matches!(error, DecodeError::SequenceNumberMismatch);
 
         // Verifying against the correct values should succeed.
         let (verified, counter) = signed
@@ -552,7 +565,7 @@ mod tests {
             )
             .expect_err("verifying SignedChallengeResponse should return an error");
 
-        assert_matches!(error, Error::ChallengeMismatch);
+        assert_matches!(error, DecodeError::ChallengeMismatch);
 
         // Verifying against an sequence number that is too low should return a `Error::SequenceNumberMismatch`.
         let error = signed
@@ -564,7 +577,7 @@ mod tests {
             )
             .expect_err("verifying SignedChallengeResponse should return an error");
 
-        assert_matches!(error, Error::SequenceNumberMismatch);
+        assert_matches!(error, DecodeError::SequenceNumberMismatch);
 
         // Verifying against the correct values should succeed.
         let verified = signed

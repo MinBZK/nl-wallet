@@ -27,10 +27,6 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
-use wallet_account::errors::Error as AccountError;
-use wallet_account::messages::registration::Registration;
-use wallet_account::messages::registration::RegistrationAttestation;
-use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -40,6 +36,9 @@ use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResult;
 use wallet_account::messages::instructions::InstructionResultClaims;
+use wallet_account::messages::registration::Registration;
+use wallet_account::messages::registration::RegistrationAttestation;
+use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::ChallengeResponsePayload;
 use wallet_account::signed::SequenceNumberComparison;
@@ -96,7 +95,7 @@ pub enum ChallengeError {
     #[error("could not store challenge: {0}")]
     Storage(#[from] PersistenceError),
     #[error("challenge message validation error: {0}")]
-    Validation(#[from] wallet_account::errors::Error),
+    Validation(#[from] wallet_account::error::DecodeError),
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
     #[error("instruction sequence number validation failed")]
@@ -150,9 +149,9 @@ pub enum RegistrationError {
     #[error("validation of Google key attestation failed: {0}")]
     AndroidAttestation(#[from] AndroidAttestationError),
     #[error("registration message parsing error: {0}")]
-    MessageParsing(#[source] wallet_account::errors::Error),
+    MessageParsing(#[source] wallet_account::error::DecodeError),
     #[error("registration message validation error: {0}")]
-    MessageValidation(#[source] wallet_account::errors::Error),
+    MessageValidation(#[source] wallet_account::error::DecodeError),
     #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
     #[error("could not store certificate: {0}")]
@@ -200,7 +199,7 @@ pub enum InstructionValidationError {
     #[error("instruction challenge timeout")]
     ChallengeTimeout,
     #[error("instruction verification failed: {0}")]
-    VerificationFailed(#[source] AccountError),
+    VerificationFailed(#[source] wallet_account::error::DecodeError),
     #[error("pin change is in progress")]
     PinChangeInProgress,
     #[error("pin change is not in progress")]
@@ -1147,8 +1146,6 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
-    use wallet_account::errors::Error as AccountError;
-    use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
@@ -1156,6 +1153,7 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
     use wallet_common::apple::MockAppleAttestedKey;
     use wallet_common::generator::Generator;
@@ -1564,7 +1562,7 @@ mod tests {
 
         assert_matches!(
             error,
-            ChallengeError::Validation(wallet_account::errors::Error::SignatureTypeMismatch { .. })
+            ChallengeError::Validation(wallet_account::error::DecodeError::SignatureTypeMismatch { .. })
         )
     }
 
@@ -1583,7 +1581,7 @@ mod tests {
 
         assert_matches!(
             error,
-            ChallengeError::Validation(wallet_account::errors::Error::AssertionVerification(
+            ChallengeError::Validation(wallet_account::error::DecodeError::Assertion(
                 AssertionError::Validation(AssertionValidationError::CounterTooLow { .. })
             ))
         )
@@ -1677,7 +1675,7 @@ mod tests {
                 AttestationType::Apple => {
                     assert_matches!(
                         error,
-                        InstructionValidationError::VerificationFailed(AccountError::AssertionVerification(
+                        InstructionValidationError::VerificationFailed(wallet_account::error::DecodeError::Assertion(
                             AssertionError::Validation(AssertionValidationError::ChallengeMismatch)
                         ))
                     );
@@ -1686,7 +1684,7 @@ mod tests {
                     assert_matches!(
                         error,
                         InstructionValidationError::VerificationFailed(
-                            wallet_account::errors::Error::ChallengeMismatch
+                            wallet_account::error::DecodeError::ChallengeMismatch
                         )
                     );
                 }
@@ -1769,7 +1767,7 @@ mod tests {
 
         assert_matches!(
             challenge_error,
-            ChallengeError::Validation(wallet_account::errors::Error::SequenceNumberMismatch)
+            ChallengeError::Validation(wallet_account::error::DecodeError::SequenceNumberMismatch)
         );
 
         let instruction_result = do_check_pin(

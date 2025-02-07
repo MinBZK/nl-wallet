@@ -18,14 +18,14 @@ use wallet_common::apple::AppleAttestedKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::p256_der::DerSignature;
 
-use crate::errors::Error;
-use crate::errors::Result;
+use crate::error::DecodeError;
+use crate::error::EncodeError;
 
 use super::raw_value::TypedRawValue;
 
 /// Used internally within this submodule to represent a payload that contains a challenge.
 pub trait ContainsChallenge {
-    fn challenge(&self) -> Result<impl AsRef<[u8]>>;
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError>;
 }
 
 /// The types of signature a message can be signed with, which
@@ -63,10 +63,10 @@ impl<'a, T> TryFrom<&'a TypedRawValue<T>> for ParsedValueWithSource<'a, T>
 where
     T: DeserializeOwned,
 {
-    type Error = Error;
+    type Error = DecodeError;
 
-    fn try_from(raw_value: &'a TypedRawValue<T>) -> Result<Self> {
-        let value = raw_value.parse().map_err(Error::JsonParsing)?;
+    fn try_from(raw_value: &'a TypedRawValue<T>) -> Result<Self, Self::Error> {
+        let value = raw_value.parse().map_err(DecodeError::Json)?;
 
         let parsed = Self {
             value,
@@ -81,13 +81,13 @@ impl<T> ClientData for ParsedValueWithSource<'_, T>
 where
     T: ContainsChallenge,
 {
-    type Error = Error;
+    type Error = DecodeError;
 
-    fn hash_data(&self) -> Result<impl AsRef<[u8]>> {
+    fn hash_data(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
         Ok(&self.source)
     }
 
-    fn challenge(&self) -> Result<impl AsRef<[u8]>> {
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
         self.value.challenge()
     }
 }
@@ -150,16 +150,16 @@ impl MessageSignature {
 
 impl<T> SignedMessage<T> {
     /// Create a [`SignedMessage`] containing an ECDSA signature, one of two subtypes.
-    pub async fn sign_ecdsa<K>(payload: &T, r#type: EcdsaSignatureType, signing_key: &K) -> Result<Self>
+    pub async fn sign_ecdsa<K>(payload: &T, r#type: EcdsaSignatureType, signing_key: &K) -> Result<Self, EncodeError>
     where
         T: Serialize,
         K: EcdsaKey,
     {
-        let signed = TypedRawValue::try_new(payload).map_err(Error::JsonParsing)?;
+        let signed = TypedRawValue::try_new(payload).map_err(EncodeError::Json)?;
         let ecdsa_signature = signing_key
             .try_sign(signed.as_ref())
             .await
-            .map_err(|err| Error::Signing(Box::new(err)))?;
+            .map_err(|err| EncodeError::Signing(Box::new(err)))?;
         let signature = MessageSignature::new_ecdsa(r#type, ecdsa_signature);
 
         let signed_message = SignedMessage { signed, signature };
@@ -168,16 +168,16 @@ impl<T> SignedMessage<T> {
     }
 
     /// Create a [`SignedMessage`] containing an Apple assertion, using an attested key.
-    pub async fn sign_apple<K>(payload: &T, attested_key: &K) -> Result<Self>
+    pub async fn sign_apple<K>(payload: &T, attested_key: &K) -> Result<Self, EncodeError>
     where
         T: Serialize,
         K: AppleAttestedKey,
     {
-        let signed = TypedRawValue::try_new(payload).map_err(Error::JsonParsing)?;
+        let signed = TypedRawValue::try_new(payload).map_err(EncodeError::Json)?;
         let assertion = attested_key
             .sign(signed.as_ref().to_vec())
             .await
-            .map_err(|err| Error::Signing(Box::new(err)))?;
+            .map_err(|err| EncodeError::Signing(Box::new(err)))?;
 
         let signed_message = SignedMessage {
             signed,
@@ -188,31 +188,35 @@ impl<T> SignedMessage<T> {
     }
 
     /// Parse the payload of this message without verifying the signature.
-    pub fn dangerous_parse_unverified(&self) -> Result<T>
+    pub fn dangerous_parse_unverified(&self) -> Result<T, DecodeError>
     where
         T: DeserializeOwned,
     {
-        let value = self.signed.parse().map_err(Error::JsonParsing)?;
+        let value = self.signed.parse().map_err(DecodeError::Json)?;
 
         Ok(value)
     }
 
     /// Parse the payload of this message and verify its ECDSA signature.
-    pub fn parse_and_verify_ecdsa(&self, r#type: EcdsaSignatureType, verifying_key: &VerifyingKey) -> Result<T>
+    pub fn parse_and_verify_ecdsa(
+        &self,
+        r#type: EcdsaSignatureType,
+        verifying_key: &VerifyingKey,
+    ) -> Result<T, DecodeError>
     where
         T: DeserializeOwned,
     {
         let signature = self
             .signature
             .ecdsa_signature(r#type)
-            .ok_or_else(|| Error::SignatureTypeMismatch {
+            .ok_or_else(|| DecodeError::SignatureTypeMismatch {
                 expected: SignatureType::Ecdsa(r#type),
                 received: self.signature.signature_type(),
             })?;
 
         verifying_key
             .verify(self.signed.as_ref(), signature)
-            .map_err(Error::SignatureVerification)?;
+            .map_err(DecodeError::Signature)?;
 
         self.dangerous_parse_unverified()
     }
@@ -224,14 +228,14 @@ impl<T> SignedMessage<T> {
         app_identifier: &AppIdentifier,
         previous_counter: AssertionCounter,
         expected_challenge: &[u8],
-    ) -> Result<(T, AssertionCounter)>
+    ) -> Result<(T, AssertionCounter), DecodeError>
     where
         T: DeserializeOwned + ContainsChallenge,
     {
         let parsed = ParsedValueWithSource::try_from(&self.signed)?;
 
         let MessageSignature::AppleAssertion { assertion } = &self.signature else {
-            return Err(Error::SignatureTypeMismatch {
+            return Err(DecodeError::SignatureTypeMismatch {
                 expected: SignatureType::AppleAssertion,
                 received: self.signature.signature_type(),
             });
@@ -245,7 +249,7 @@ impl<T> SignedMessage<T> {
             previous_counter,
             expected_challenge,
         )
-        .map_err(Error::AssertionVerification)?;
+        .map_err(DecodeError::Assertion)?;
 
         Ok((parsed.into_value(), counter))
     }
@@ -278,7 +282,7 @@ impl<T> ContainsChallenge for PayloadWithSubject<T>
 where
     T: ContainsChallenge,
 {
-    fn challenge(&self) -> Result<impl AsRef<[u8]>> {
+    fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
         self.payload.challenge()
     }
 }
@@ -291,12 +295,12 @@ pub struct SignedSubjectMessage<T>(SignedMessage<PayloadWithSubject<T>>);
 
 /// Same as [`SignedMessage`], but adds a subject string to the signed JSON object, the contents of which is verified.
 impl<T> SignedSubjectMessage<T> {
-    fn check_subject(payload: &PayloadWithSubject<T>) -> Result<()>
+    fn check_subject(payload: &PayloadWithSubject<T>) -> Result<(), DecodeError>
     where
         T: SubjectPayload,
     {
         if payload.subject.as_ref() != T::SUBJECT {
-            return Err(Error::SubjectMismatch {
+            return Err(DecodeError::SubjectMismatch {
                 expected: T::SUBJECT.to_string(),
                 received: payload.subject.as_ref().to_string(),
             });
@@ -305,7 +309,7 @@ impl<T> SignedSubjectMessage<T> {
         Ok(())
     }
 
-    pub async fn sign_ecdsa<K>(payload: T, r#type: EcdsaSignatureType, signing_key: &K) -> Result<Self>
+    pub async fn sign_ecdsa<K>(payload: T, r#type: EcdsaSignatureType, signing_key: &K) -> Result<Self, EncodeError>
     where
         T: Serialize + SubjectPayload,
         K: EcdsaKey,
@@ -315,7 +319,7 @@ impl<T> SignedSubjectMessage<T> {
         Ok(Self(signed_message))
     }
 
-    pub async fn sign_apple<K>(payload: T, attested_key: &K) -> Result<Self>
+    pub async fn sign_apple<K>(payload: T, attested_key: &K) -> Result<Self, EncodeError>
     where
         T: Serialize + SubjectPayload,
         K: AppleAttestedKey,
@@ -325,7 +329,7 @@ impl<T> SignedSubjectMessage<T> {
         Ok(Self(signed_message))
     }
 
-    pub fn dangerous_parse_unverified(&self) -> Result<T>
+    pub fn dangerous_parse_unverified(&self) -> Result<T, DecodeError>
     where
         T: DeserializeOwned,
     {
@@ -334,7 +338,11 @@ impl<T> SignedSubjectMessage<T> {
         Ok(payload)
     }
 
-    pub fn parse_and_verify_ecdsa(&self, r#type: EcdsaSignatureType, verifying_key: &VerifyingKey) -> Result<T>
+    pub fn parse_and_verify_ecdsa(
+        &self,
+        r#type: EcdsaSignatureType,
+        verifying_key: &VerifyingKey,
+    ) -> Result<T, DecodeError>
     where
         T: DeserializeOwned + SubjectPayload,
     {
@@ -351,7 +359,7 @@ impl<T> SignedSubjectMessage<T> {
         app_identifier: &AppIdentifier,
         previous_counter: AssertionCounter,
         expected_challenge: &[u8],
-    ) -> Result<(T, AssertionCounter)>
+    ) -> Result<(T, AssertionCounter), DecodeError>
     where
         T: DeserializeOwned + ContainsChallenge + SubjectPayload,
     {
@@ -394,7 +402,7 @@ mod tests {
         const SUBJECT: &'static str = "toy_subject";
     }
     impl ContainsChallenge for ToyPayload {
-        fn challenge(&self) -> Result<impl AsRef<[u8]>> {
+        fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
             Ok(&self.challenge)
         }
     }
@@ -453,7 +461,7 @@ mod tests {
             .parse_and_verify_ecdsa(EcdsaSignatureType::Google, other_key.verifying_key())
             .expect_err("verifying SignedMessage should return an error");
 
-        assert_matches!(error, Error::SignatureVerification(_));
+        assert_matches!(error, DecodeError::Signature(_));
     }
 
     #[tokio::test]
@@ -474,7 +482,7 @@ mod tests {
             )
             .expect_err("verifying SignedMessage should return an error");
 
-        assert_matches!(error, Error::AssertionVerification(_));
+        assert_matches!(error, DecodeError::Assertion(_));
     }
 
     #[rstest]
@@ -520,7 +528,7 @@ mod tests {
 
         assert_matches!(
             error,
-            Error::SignatureTypeMismatch {
+            DecodeError::SignatureTypeMismatch {
                 expected,
                 received
             } if expected == verify_signature_type && received == signature_type
@@ -581,7 +589,7 @@ mod tests {
             const SUBJECT: &'static str = "wrong_subject";
         }
         impl ContainsChallenge for WrongToyPayload {
-            fn challenge(&self) -> Result<impl AsRef<[u8]>> {
+            fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
                 Ok(&self.challenge)
             }
         }
@@ -619,7 +627,7 @@ mod tests {
 
         assert_matches!(
             error,
-            Error::SubjectMismatch {
+            DecodeError::SubjectMismatch {
                 expected,
                 received,
             } if expected == "toy_subject" && received == "wrong_subject"

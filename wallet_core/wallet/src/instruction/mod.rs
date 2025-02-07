@@ -39,7 +39,7 @@ pub enum InstructionError {
     #[category(critical)]
     InstructionValidation,
     #[error("could not sign instruction: {0}")]
-    Signing(#[source] wallet_account::errors::Error),
+    Signing(#[source] wallet_account::error::EncodeError),
     #[error("could not validate instruction result received from Wallet Provider: {0}")]
     InstructionResultValidation(#[source] JwtError),
     #[error("could not store instruction sequence number in database: {0}")]
