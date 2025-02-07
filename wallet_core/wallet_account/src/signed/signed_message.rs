@@ -13,11 +13,10 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
-
-use crate::apple::AppleAssertion;
-use crate::apple::AppleAttestedKey;
-use crate::keys::EcdsaKey;
-use crate::p256_der::DerSignature;
+use wallet_common::apple::AppleAssertion;
+use wallet_common::apple::AppleAttestedKey;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::p256_der::DerSignature;
 
 use super::super::errors::Error;
 use super::super::errors::Result;
@@ -353,8 +352,8 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
 
-    use crate::apple::MockAppleAttestedKey;
-    use crate::utils;
+    use wallet_common::apple::MockAppleAttestedKey;
+    use wallet_common::utils;
 
     use super::*;
 

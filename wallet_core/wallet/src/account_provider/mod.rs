@@ -4,15 +4,15 @@ use reqwest::StatusCode;
 use url::ParseError;
 
 use error_category::ErrorCategory;
-use wallet_common::account::messages::auth::Registration;
-use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::account::messages::errors::AccountError;
-use wallet_common::account::messages::errors::AccountErrorType;
-use wallet_common::account::messages::instructions::Instruction;
-use wallet_common::account::messages::instructions::InstructionAndResult;
-use wallet_common::account::messages::instructions::InstructionChallengeRequest;
-use wallet_common::account::messages::instructions::InstructionResult;
-use wallet_common::account::signed::ChallengeResponse;
+use wallet_account::messages::auth::Registration;
+use wallet_account::messages::auth::WalletCertificate;
+use wallet_account::messages::errors::AccountError;
+use wallet_account::messages::errors::AccountErrorType;
+use wallet_account::messages::instructions::Instruction;
+use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::InstructionChallengeRequest;
+use wallet_account::messages::instructions::InstructionResult;
+use wallet_account::signed::ChallengeResponse;
 use wallet_common::config::http::TlsPinningConfig;
 
 pub use self::client::HttpAccountProviderClient;

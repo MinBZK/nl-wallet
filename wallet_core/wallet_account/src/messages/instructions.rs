@@ -4,20 +4,21 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use crate::account::errors::Result;
-use crate::account::signed::ChallengeRequest;
-use crate::account::signed::ChallengeResponse;
-use crate::apple::AppleAttestedKey;
-use crate::jwt::Jwt;
-use crate::jwt::JwtCredentialClaims;
-use crate::jwt::JwtSubject;
-use crate::keys::poa::Poa;
-use crate::keys::EphemeralEcdsaKey;
-use crate::keys::SecureEcdsaKey;
-use crate::p256_der::DerSignature;
-use crate::p256_der::DerVerifyingKey;
-use crate::vec_at_least::VecAtLeastTwoUnique;
-use crate::wte::WteClaims;
+use wallet_common::apple::AppleAttestedKey;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtCredentialClaims;
+use wallet_common::jwt::JwtSubject;
+use wallet_common::keys::poa::Poa;
+use wallet_common::keys::EphemeralEcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::p256_der::DerSignature;
+use wallet_common::p256_der::DerVerifyingKey;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+use wallet_common::wte::WteClaims;
+
+use crate::errors::Result;
+use crate::signed::ChallengeRequest;
+use crate::signed::ChallengeResponse;
 
 use super::auth::WalletCertificate;
 

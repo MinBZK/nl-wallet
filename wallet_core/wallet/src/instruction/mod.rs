@@ -2,7 +2,7 @@ mod client;
 mod keys;
 
 use error_category::ErrorCategory;
-use wallet_common::account::messages::errors::AccountError;
+use wallet_account::messages::errors::AccountError;
 use wallet_common::jwt::JwtError;
 
 use crate::account_provider::AccountProviderError;
@@ -39,7 +39,7 @@ pub enum InstructionError {
     #[category(critical)]
     InstructionValidation,
     #[error("could not sign instruction: {0}")]
-    Signing(#[source] wallet_common::account::errors::Error),
+    Signing(#[source] wallet_account::errors::Error),
     #[error("could not validate instruction result received from Wallet Provider: {0}")]
     InstructionResultValidation(#[source] JwtError),
     #[error("could not store instruction sequence number in database: {0}")]

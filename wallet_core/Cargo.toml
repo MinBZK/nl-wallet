@@ -18,6 +18,7 @@ members = [
     "wallet",
     "wallet/entity",
     "wallet/migrations",
+    "wallet_account",
     "wallet_ca",
     "wallet_common",
     "wallet_provider",

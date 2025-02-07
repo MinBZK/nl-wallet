@@ -1,7 +1,7 @@
 use apple_app_attest::AssertionError;
 use error_category::ErrorCategory;
 
-use crate::account::signed::SignatureType;
+use crate::signed::SignatureType;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

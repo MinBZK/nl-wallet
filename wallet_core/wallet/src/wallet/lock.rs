@@ -6,7 +6,7 @@ use tracing::instrument;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::CheckPin;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::update_policy::VersionState;
@@ -273,13 +273,13 @@ mod tests {
 
     use apple_app_attest::AssertionCounter;
     use platform_support::attested_key::AttestedKey;
-    use wallet_common::account::messages::errors::AccountError;
-    use wallet_common::account::messages::errors::IncorrectPinData;
-    use wallet_common::account::messages::errors::PinTimeoutData;
-    use wallet_common::account::messages::instructions::CheckPin;
-    use wallet_common::account::messages::instructions::Instruction;
-    use wallet_common::account::messages::instructions::InstructionResultClaims;
-    use wallet_common::account::signed::SequenceNumberComparison;
+    use wallet_account::messages::errors::AccountError;
+    use wallet_account::messages::errors::IncorrectPinData;
+    use wallet_account::messages::errors::PinTimeoutData;
+    use wallet_account::messages::instructions::CheckPin;
+    use wallet_account::messages::instructions::Instruction;
+    use wallet_account::messages::instructions::InstructionResultClaims;
+    use wallet_account::signed::SequenceNumberComparison;
     use wallet_common::jwt::Jwt;
     use wallet_common::utils;
 

@@ -3,11 +3,11 @@ use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
-use wallet_common::account::messages::auth::Registration;
-use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::account::messages::auth::WalletCertificateClaims;
-use wallet_common::account::messages::instructions::CheckPin;
-use wallet_common::account::signed::ChallengeResponse;
+use wallet_account::messages::auth::Registration;
+use wallet_account::messages::auth::WalletCertificate;
+use wallet_account::messages::auth::WalletCertificateClaims;
+use wallet_account::messages::instructions::CheckPin;
+use wallet_account::signed::ChallengeResponse;
 use wallet_common::apple::MockAppleAttestedKey;
 use wallet_common::utils;
 use wallet_provider_database_settings::Settings;

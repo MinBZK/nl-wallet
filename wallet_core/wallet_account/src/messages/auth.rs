@@ -4,16 +4,17 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use crate::account::errors::Error;
-use crate::account::errors::Result;
-use crate::account::signed::ChallengeResponse;
-use crate::apple::AppleAttestedKey;
-use crate::jwt::Jwt;
-use crate::jwt::JwtSubject;
-use crate::keys::EphemeralEcdsaKey;
-use crate::keys::SecureEcdsaKey;
-use crate::p256_der::DerVerifyingKey;
-use crate::vec_at_least::VecAtLeastTwo;
+use wallet_common::apple::AppleAttestedKey;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtSubject;
+use wallet_common::keys::EphemeralEcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::p256_der::DerVerifyingKey;
+use wallet_common::vec_at_least::VecAtLeastTwo;
+
+use crate::errors::Error;
+use crate::errors::Result;
+use crate::signed::ChallengeResponse;
 
 // Registration challenge response
 #[serde_as]
@@ -150,11 +151,11 @@ mod tests {
     use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::MockAttestationCa;
     use apple_app_attest::VerifiedAttestation;
+    use wallet_common::apple::MockAppleAttestedKey;
+    use wallet_common::utils;
 
-    use crate::account::signed::ChallengeResponse;
-    use crate::account::signed::SequenceNumberComparison;
-    use crate::apple::MockAppleAttestedKey;
-    use crate::utils;
+    use crate::signed::ChallengeResponse;
+    use crate::signed::SequenceNumberComparison;
 
     use super::Registration;
     use super::RegistrationAttestation;

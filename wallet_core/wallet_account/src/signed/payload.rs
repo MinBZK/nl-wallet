@@ -7,10 +7,9 @@ use serde_with::serde_as;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
-
-use crate::apple::AppleAttestedKey;
-use crate::keys::EphemeralEcdsaKey;
-use crate::keys::SecureEcdsaKey;
+use wallet_common::apple::AppleAttestedKey;
+use wallet_common::keys::EphemeralEcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
 
 use super::super::errors::Error;
 use super::super::errors::Result;
@@ -326,8 +325,8 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use crate::apple::MockAppleAttestedKey;
-    use crate::utils;
+    use wallet_common::apple::MockAppleAttestedKey;
+    use wallet_common::utils;
 
     use super::*;
 

@@ -12,8 +12,8 @@ use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
-use wallet_common::account::messages::auth::Registration;
-use wallet_common::account::signed::ChallengeResponse;
+use wallet_account::messages::auth::Registration;
+use wallet_account::signed::ChallengeResponse;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
@@ -65,7 +65,7 @@ pub enum WalletRegistrationError {
     #[error("could not get attested public key: {0}")]
     AttestedPublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
-    Signing(#[source] wallet_common::account::errors::Error),
+    Signing(#[source] wallet_account::errors::Error),
     #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountProviderError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
@@ -326,9 +326,9 @@ mod tests {
     use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
-    use wallet_common::account::messages::auth::RegistrationAttestation;
-    use wallet_common::account::messages::auth::WalletCertificate;
-    use wallet_common::account::signed::SequenceNumberComparison;
+    use wallet_account::messages::auth::RegistrationAttestation;
+    use wallet_account::messages::auth::WalletCertificate;
+    use wallet_account::signed::SequenceNumberComparison;
     use wallet_common::jwt::Jwt;
     use wallet_common::utils;
 

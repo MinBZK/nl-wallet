@@ -1,0 +1,37 @@
+[package]
+name = "wallet_account"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+futures = { workspace = true, features = ["std", "async-await"] }
+p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
+reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["raw_value"] }
+serde_with = { workspace = true, features = ["base64"] }
+strum = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+
+apple_app_attest.path = "../apple_app_attest"
+error_category.path = "../error_category"
+wallet_common.path = "../wallet_common"
+
+[dev-dependencies]
+anyhow.workspace = true
+assert_matches.workspace = true
+rand_core.workspace = true
+rstest.workspace = true
+rustls-pki-types.workspace = true
+tokio = { workspace = true, features = ["macros", "parking_lot"] }
+
+android_attest = { path = "../android_attest", features = ["mock"] }
+apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
+wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_apple_attested_key"] }

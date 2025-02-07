@@ -652,7 +652,7 @@ pub(crate) mod tests {
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
-    use wallet_common::account::messages::auth::WalletCertificate;
+    use wallet_account::messages::auth::WalletCertificate;
     use wallet_common::keys::mock_hardware::MockHardwareEncryptionKey;
     use wallet_common::utils::random_bytes;
 

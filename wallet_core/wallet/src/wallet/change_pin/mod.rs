@@ -149,10 +149,10 @@ mod tests {
     use serde::Serialize;
 
     use platform_support::attested_key::AttestedKey;
-    use wallet_common::account::messages::instructions::ChangePinCommit;
-    use wallet_common::account::messages::instructions::ChangePinStart;
-    use wallet_common::account::messages::instructions::Instruction;
-    use wallet_common::account::messages::instructions::InstructionResultClaims;
+    use wallet_account::messages::instructions::ChangePinCommit;
+    use wallet_account::messages::instructions::ChangePinStart;
+    use wallet_account::messages::instructions::Instruction;
+    use wallet_account::messages::instructions::InstructionResultClaims;
     use wallet_common::jwt::Jwt;
     use wallet_common::utils;
 

@@ -6719,8 +6719,33 @@ dependencies = [
  "trait-variant",
  "url",
  "uuid",
+ "wallet_account",
  "wallet_common",
  "wiremock",
+]
+
+[[package]]
+name = "wallet_account"
+version = "0.3.0-dev"
+dependencies = [
+ "android_attest",
+ "anyhow",
+ "apple_app_attest",
+ "assert_matches",
+ "error_category",
+ "futures",
+ "p256",
+ "rand_core",
+ "reqwest",
+ "rstest",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.26.3",
+ "thiserror 2.0.11",
+ "tokio",
+ "wallet_common",
 ]
 
 [[package]]
@@ -6749,7 +6774,6 @@ name = "wallet_common"
 version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
- "android_attest",
  "anyhow",
  "apple_app_attest",
  "assert_matches",
@@ -6759,8 +6783,6 @@ dependencies = [
  "built",
  "cfg-if",
  "chrono",
- "ciborium",
- "config",
  "derive_more",
  "error_category",
  "etag",
@@ -6827,6 +6849,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+ "wallet_account",
  "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
@@ -6932,6 +6955,7 @@ dependencies = [
  "tracing-subscriber",
  "trait-variant",
  "uuid",
+ "wallet_account",
  "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",

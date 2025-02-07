@@ -2,8 +2,8 @@ use p256::ecdsa::VerifyingKey;
 
 use openid4vc::jwt::JwtCredential;
 use platform_support::attested_key::GoogleAttestedKey;
-use wallet_common::account::messages::instructions::IssueWte;
-use wallet_common::account::messages::instructions::IssueWteResult;
+use wallet_account::messages::instructions::IssueWte;
+use wallet_account::messages::instructions::IssueWteResult;
 use wallet_common::apple::AppleAttestedKey;
 use wallet_common::utils::random_string;
 use wallet_common::wte::WteClaims;

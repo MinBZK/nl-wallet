@@ -1,9 +1,9 @@
 use platform_support::attested_key::GoogleAttestedKey;
-use wallet_common::account::errors::Error as AccountError;
-use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::account::messages::instructions::ChangePinCommit;
-use wallet_common::account::messages::instructions::ChangePinRollback;
-use wallet_common::account::messages::instructions::ChangePinStart;
+use wallet_account::errors::Error as AccountError;
+use wallet_account::messages::auth::WalletCertificate;
+use wallet_account::messages::instructions::ChangePinCommit;
+use wallet_account::messages::instructions::ChangePinRollback;
+use wallet_account::messages::instructions::ChangePinStart;
 use wallet_common::apple::AppleAttestedKey;
 use wallet_common::keys::EcdsaKey;
 

@@ -9,9 +9,9 @@ use tracing::info;
 use uuid::Uuid;
 
 use android_attest::root_public_key::RootPublicKey;
-use wallet_common::account::messages::instructions::Instruction;
-use wallet_common::account::messages::instructions::InstructionAndResult;
-use wallet_common::account::messages::instructions::InstructionResultMessage;
+use wallet_account::messages::instructions::Instruction;
+use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_common::generator::Generator;
 use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;

@@ -65,6 +65,7 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 
 android_attest.path = "../android_attest"
 apple_app_attest.path = "../apple_app_attest"
+wallet_account.path = "../wallet_account"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"

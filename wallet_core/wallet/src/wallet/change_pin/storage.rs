@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_account::messages::auth::WalletCertificate;
 
 use crate::errors::StorageError;
 use crate::pin::change::ChangePinStorage;

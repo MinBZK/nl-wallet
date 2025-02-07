@@ -34,15 +34,11 @@ integration_test = []
 # Various test related functionality
 insecure_http_client = []
 
-[build-dependencies]
-built = { workspace = true, features = ["chrono", "git2"] }
-
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 base64.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
-config.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
@@ -52,7 +48,7 @@ itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
+p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
 rand.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 ring.workspace = true
@@ -61,7 +57,7 @@ rustls-pki-types.workspace = true
 sanitize-filename.workspace = true
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true, features = ["raw_value"] }
+serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 sha2.workspace = true
 strum = { workspace = true, features = ["derive"] }
@@ -84,17 +80,14 @@ tower-http = { workspace = true, optional = true, features = ["cors"] }
 apple_app_attest.path = "../apple_app_attest"
 error_category.path = "../error_category"
 
+[build-dependencies]
+built = { workspace = true, features = ["chrono", "git2"] }
+
 [dev-dependencies]
-anyhow.workspace = true
 assert_matches.workspace = true
-aes-gcm = { workspace = true, features = ["std"] }
-ciborium.workspace = true
-hex.workspace = true
-hex-literal.workspace = true
 parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-android_attest = { path = "../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
