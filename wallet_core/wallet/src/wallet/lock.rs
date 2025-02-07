@@ -155,7 +155,7 @@ where
             .as_key_and_registration_data()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
 
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self
             .new_instruction_client(

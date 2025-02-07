@@ -5,7 +5,6 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crate::account::errors::Result;
-use crate::account::serialization::DerVerifyingKey;
 use crate::account::signed::ChallengeRequest;
 use crate::account::signed::ChallengeResponse;
 use crate::apple::AppleAttestedKey;
@@ -16,6 +15,7 @@ use crate::keys::poa::Poa;
 use crate::keys::EphemeralEcdsaKey;
 use crate::keys::SecureEcdsaKey;
 use crate::p256_der::DerSignature;
+use crate::p256_der::DerVerifyingKey;
 use crate::vec_at_least::VecAtLeastTwoUnique;
 use crate::wte::WteClaims;
 
@@ -33,6 +33,7 @@ pub struct CheckPin;
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChangePinStart {
+    #[serde_as(as = "Base64")]
     pub pin_pubkey: DerVerifyingKey,
     #[serde_as(as = "Base64")]
     pub pop_pin_pubkey: DerSignature,
@@ -49,8 +50,10 @@ pub struct GenerateKey {
     pub identifiers: Vec<String>,
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GenerateKeyResult {
+    #[serde_as(as = "Vec<(_, Base64)>")]
     pub public_keys: Vec<(String, DerVerifyingKey)>,
 }
 

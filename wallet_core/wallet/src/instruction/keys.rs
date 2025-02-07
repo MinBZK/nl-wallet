@@ -92,7 +92,7 @@ where
             .into_iter()
             .map(|(identifier, public_key)| RemoteEcdsaKey {
                 identifier,
-                public_key: public_key.0,
+                public_key: public_key.into_inner(),
                 instruction_client: self.instruction_client.clone(),
             })
             .collect();

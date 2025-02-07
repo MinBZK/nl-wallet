@@ -184,7 +184,6 @@ pub mod mock {
     use uuid::Uuid;
 
     use apple_app_attest::AssertionCounter;
-    use wallet_common::account::serialization::DerVerifyingKey;
     use wallet_provider_domain::model::encrypted::Encrypted;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -334,7 +333,7 @@ pub mod mock {
             Ok(WalletUserQueryResult::Found(Box::new(WalletUser {
                 id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 wallet_id: wallet_id.to_string(),
-                hw_pubkey: DerVerifyingKey(self.hw_pubkey),
+                hw_pubkey: self.hw_pubkey,
                 encrypted_pin_pubkey: self.encrypted_pin_pubkey.clone(),
                 encrypted_previous_pin_pubkey: self.previous_encrypted_pin_pubkey.clone(),
                 unsuccessful_pin_entries: 0,

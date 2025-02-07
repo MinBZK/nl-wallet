@@ -24,7 +24,6 @@ use wallet_common::account::messages::instructions::IssueWte;
 use wallet_common::account::messages::instructions::IssueWteResult;
 use wallet_common::account::messages::instructions::Sign;
 use wallet_common::account::messages::instructions::SignResult;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
@@ -32,6 +31,7 @@ use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::POA_JWT_TYP;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::p256_der::DerSignature;
+use wallet_common::p256_der::DerVerifyingKey;
 use wallet_provider_domain::model::encrypter::Encrypter;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -191,7 +191,7 @@ impl HandleInstruction for GenerateKey {
         let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
         let keys = user_state.wallet_user_hsm.generate_wrapped_keys(&identifiers).await?;
 
-        let (public_keys, wrapped_keys): (Vec<(String, DerVerifyingKey)>, Vec<WalletUserKey>) = keys
+        let (public_keys, wrapped_keys) = keys
             .into_iter()
             .map(|(identifier, public_key, wrapped_key)| {
                 (

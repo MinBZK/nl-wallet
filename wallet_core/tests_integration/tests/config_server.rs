@@ -49,7 +49,7 @@ async fn test_wallet_config() {
     let _ = fs::remove_file(etag_file.as_path()).await;
 
     let http_config = HttpConfigurationRepository::new(
-        (&config_server_config.signing_public_key.0).into(),
+        config_server_config.signing_public_key.as_inner().into(),
         storage_path.clone(),
         default_wallet_config(),
     )
@@ -95,7 +95,7 @@ async fn test_wallet_config_stale() {
     };
 
     let http_config = HttpConfigurationRepository::new(
-        (&config_server_config.signing_public_key.0).into(),
+        config_server_config.signing_public_key.as_inner().into(),
         env::temp_dir(),
         default_wallet_config(),
     )
@@ -146,7 +146,7 @@ async fn test_wallet_config_signature_verification_failed() {
     };
 
     let http_config = HttpConfigurationRepository::new(
-        (&config_server_config.signing_public_key.0).into(),
+        config_server_config.signing_public_key.as_inner().into(),
         env::temp_dir(),
         default_wallet_config(),
     )

@@ -358,7 +358,7 @@ where
 
         let config = self.config_repository.get();
 
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self
             .new_instruction_client(
@@ -372,7 +372,10 @@ where
 
         let wte = self
             .wte_issuance_client
-            .obtain_wte(&config.account_server.wte_public_key.0, remote_instruction.clone())
+            .obtain_wte(
+                config.account_server.wte_public_key.as_inner(),
+                remote_instruction.clone(),
+            )
             .await?;
 
         let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);

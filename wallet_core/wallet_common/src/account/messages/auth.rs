@@ -6,13 +6,13 @@ use serde_with::serde_as;
 
 use crate::account::errors::Error;
 use crate::account::errors::Result;
-use crate::account::serialization::DerVerifyingKey;
 use crate::account::signed::ChallengeResponse;
 use crate::apple::AppleAttestedKey;
 use crate::jwt::Jwt;
 use crate::jwt::JwtSubject;
 use crate::keys::EphemeralEcdsaKey;
 use crate::keys::SecureEcdsaKey;
+use crate::p256_der::DerVerifyingKey;
 use crate::vec_at_least::VecAtLeastTwo;
 
 // Registration challenge response
@@ -25,9 +25,11 @@ pub struct Challenge {
 
 // Registration request and response
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Registration {
     pub attestation: RegistrationAttestation,
+    #[serde_as(as = "Base64")]
     pub pin_pubkey: DerVerifyingKey,
 }
 
@@ -66,7 +68,7 @@ impl ChallengeResponse<Registration> {
 
         let registration = Registration {
             attestation: RegistrationAttestation::Apple { data: attestation_data },
-            pin_pubkey: pin_pubkey.into(),
+            pin_pubkey: DerVerifyingKey::from(pin_pubkey),
         };
 
         Self::sign_apple(registration, challenge, 0, attested_key, pin_signing_key).await
@@ -94,7 +96,7 @@ impl ChallengeResponse<Registration> {
                     certificate_chain,
                     app_attestation_token,
                 },
-                pin_pubkey: pin_pubkey.into(),
+                pin_pubkey: DerVerifyingKey::from(pin_pubkey),
             },
             challenge,
             0,
@@ -109,6 +111,7 @@ impl ChallengeResponse<Registration> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletCertificateClaims {
     pub wallet_id: String,
+    #[serde_as(as = "Base64")]
     pub hw_pubkey: DerVerifyingKey,
     #[serde_as(as = "Base64")]
     pub pin_pubkey_hash: Vec<u8>,
@@ -202,7 +205,7 @@ mod tests {
             &public_key,
             &app_identifier,
             AssertionCounter::default(),
-            &unverified.payload.pin_pubkey.0,
+            unverified.payload.pin_pubkey.as_inner(),
         )
         .expect("apple registration should verify successfully");
     }
@@ -260,7 +263,7 @@ mod tests {
             challenge,
             SequenceNumberComparison::EqualTo(0),
             &attested_public_key,
-            &unverified.payload.pin_pubkey.0,
+            unverified.payload.pin_pubkey.as_inner(),
         )
         .expect("google registration should verify successfully");
     }

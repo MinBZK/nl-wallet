@@ -23,7 +23,6 @@ use sea_orm::RelationTrait;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider_domain::model::encrypted::Encrypted;
 use wallet_provider_domain::model::encrypted::InitializationVector;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
@@ -211,7 +210,7 @@ where
                     wallet_id: joined_model.wallet_id,
                     encrypted_pin_pubkey,
                     encrypted_previous_pin_pubkey,
-                    hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&joined_model.hw_pubkey_der).unwrap()),
+                    hw_pubkey: VerifyingKey::from_public_key_der(&joined_model.hw_pubkey_der).unwrap(),
                     unsuccessful_pin_entries: joined_model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
                     last_unsuccessful_pin_entry: joined_model.last_unsuccessful_pin.map(DateTime::<Utc>::from),
                     instruction_challenge,

@@ -22,10 +22,10 @@ use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 
@@ -249,7 +249,7 @@ impl WalletWithMocks {
 
         WalletCertificateClaims {
             wallet_id,
-            hw_pubkey: DerVerifyingKey(hw_pubkey),
+            hw_pubkey: DerVerifyingKey::from(hw_pubkey),
             pin_pubkey_hash: utils::random_bytes(32),
             version: 0,
             iss: "wallet_unit_test".to_string(),

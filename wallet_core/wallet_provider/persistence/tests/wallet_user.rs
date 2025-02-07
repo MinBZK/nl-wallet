@@ -63,7 +63,7 @@ async fn test_find_wallet_user_by_wallet_id() {
     assert_eq!(wallet_user.id, wallet_user_id);
     assert_eq!(wallet_user.wallet_id, wallet_id);
     assert_eq!(
-        wallet_user.hw_pubkey.0.to_public_key_der().unwrap().as_bytes(),
+        wallet_user.hw_pubkey.to_public_key_der().unwrap().as_bytes(),
         &wallet_user_model.hw_pubkey_der
     );
     assert!(wallet_user.instruction_challenge.is_none());

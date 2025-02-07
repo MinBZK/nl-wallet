@@ -262,7 +262,7 @@ where
         // Double check that the public key returned in the wallet certificate matches that of our hardware key.
         // Note that this public key is only available on Android, on iOS all we have is opaque attestation data.
         let cert_claims = wallet_certificate
-            .parse_and_verify_with_sub(&certificate_public_key.into())
+            .parse_and_verify_with_sub(&certificate_public_key.as_inner().into())
             .map_err(WalletRegistrationError::CertificateValidation)?;
 
         if let AttestedKey::Google(key) = &attested_key {
@@ -271,7 +271,7 @@ where
                 .await
                 .map_err(|error| WalletRegistrationError::AttestedPublicKey(Box::new(error)))?;
 
-            if cert_claims.hw_pubkey.0 != attested_pub_key {
+            if cert_claims.hw_pubkey.as_inner() != &attested_pub_key {
                 return Err(WalletRegistrationError::PublicKeyMismatch);
             }
         }
@@ -406,7 +406,7 @@ mod tests {
                                 &attested_public_key,
                                 &app_identifier,
                                 AssertionCounter::default(),
-                                &registration.payload.pin_pubkey.0,
+                                registration.payload.pin_pubkey.as_inner(),
                             )
                             .expect("registration message should verify");
 

@@ -40,7 +40,6 @@ use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionChallengeRequest;
 use wallet_common::account::messages::instructions::InstructionResult;
 use wallet_common::account::messages::instructions::InstructionResultClaims;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::account::signed::ChallengeResponsePayload;
 use wallet_common::account::signed::SequenceNumberComparison;
@@ -386,7 +385,7 @@ impl<GC> AccountServer<GC> {
 
         let attestation_timestamp = Utc::now();
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
-        let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
+        let pin_pubkey = unverified.payload.pin_pubkey.into_inner();
 
         let challenge_hash = utils::sha256(challenge);
         let (hw_pubkey, attestation) = match unverified.payload.attestation {
@@ -531,21 +530,20 @@ impl<GC> AccountServer<GC> {
         debug!("Parsing and verifying challenge request for user {}", user.id);
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(user.instruction_sequence_number);
-        let DerVerifyingKey(hw_pubkey) = &user.hw_pubkey;
         let (request, assertion_counter) = match user.attestation {
             WalletUserAttestation::Apple { assertion_counter } => challenge_request
                 .request
                 .parse_and_verify_apple(
                     &claims.wallet_id,
                     sequence_number_comparison,
-                    hw_pubkey,
+                    &user.hw_pubkey,
                     &self.apple_config.app_identifier,
                     assertion_counter,
                 )
                 .map(|(request, assertion_counter)| (request, Some(assertion_counter))),
             WalletUserAttestation::Android => challenge_request
                 .request
-                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
+                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, &user.hw_pubkey)
                 .map(|request| (request, None)),
         }?;
 
@@ -662,7 +660,7 @@ impl<GC> AccountServer<GC> {
             })
             .await?;
 
-        let pin_pubkey = instruction_payload.pin_pubkey.0;
+        let pin_pubkey = instruction_payload.pin_pubkey.into_inner();
 
         if let Some(challenge) = wallet_user.instruction_challenge {
             pin_pubkey
@@ -692,7 +690,7 @@ impl<GC> AccountServer<GC> {
             &self.pin_public_disclosure_protection_key_identifier,
             signing_keys.1,
             wallet_user.wallet_id,
-            wallet_user.hw_pubkey.0,
+            wallet_user.hw_pubkey,
             &pin_pubkey,
             &user_state.wallet_user_hsm,
         )
@@ -925,14 +923,13 @@ impl<GC> AccountServer<GC> {
             .await?;
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
-        let DerVerifyingKey(hw_pubkey) = &wallet_user.hw_pubkey;
         let (parsed, assertion_counter) = match wallet_user.attestation {
             WalletUserAttestation::Apple { assertion_counter } => instruction
                 .instruction
                 .parse_and_verify_apple(
                     &challenge.bytes,
                     sequence_number_comparison,
-                    hw_pubkey,
+                    &wallet_user.hw_pubkey,
                     &self.apple_config.app_identifier,
                     assertion_counter,
                     &pin_pubkey,
@@ -940,7 +937,12 @@ impl<GC> AccountServer<GC> {
                 .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
             WalletUserAttestation::Android => instruction
                 .instruction
-                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
+                .parse_and_verify_google(
+                    &challenge.bytes,
+                    sequence_number_comparison,
+                    &wallet_user.hw_pubkey,
+                    &pin_pubkey,
+                )
                 .map(|parsed| (parsed, None)),
         }
         .map_err(InstructionValidationError::VerificationFailed)?;
@@ -1481,7 +1483,7 @@ mod tests {
             .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
-        assert_eq!(&cert_data.hw_pubkey.0, hw_privkey.verifying_key());
+        assert_eq!(cert_data.hw_pubkey.as_inner(), hw_privkey.verifying_key());
 
         verify_wallet_certificate(
             &cert,

@@ -6,7 +6,6 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
-use wallet_common::account::serialization::DerVerifyingKey;
 
 use crate::model::encrypted::Encrypted;
 use crate::model::wrapped_key::WrappedKey;
@@ -17,7 +16,7 @@ pub type WalletId = String;
 pub struct WalletUser {
     pub id: Uuid,
     pub wallet_id: WalletId,
-    pub hw_pubkey: DerVerifyingKey,
+    pub hw_pubkey: VerifyingKey,
     #[debug(skip)]
     pub encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     #[debug(skip)]
@@ -96,7 +95,6 @@ pub mod mock {
     use p256::ecdsa::VerifyingKey;
     use uuid::uuid;
 
-    use wallet_common::account::serialization::DerVerifyingKey;
     use wallet_common::utils::random_bytes;
 
     use crate::model::encrypted::Encrypted;
@@ -107,16 +105,14 @@ pub mod mock {
         WalletUser {
             id: uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
             wallet_id: "wallet_123".to_string(),
-            hw_pubkey: DerVerifyingKey(
-                VerifyingKey::from_str(
-                    r#"-----BEGIN PUBLIC KEY-----
+            hw_pubkey: VerifyingKey::from_str(
+                r#"-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhaPRcKTAS30m0409bpOzQLfLNOh5
 SssTb0eI53lvfdvG/xkNcktwsXEIPL1y3lUKn1u1ZhFTnQn4QKmnvaN4uQ==
 -----END PUBLIC KEY-----
 "#,
-                )
-                .unwrap(),
-            ),
+            )
+            .unwrap(),
             encrypted_pin_pubkey: Encrypted::new(random_bytes(32), InitializationVector(random_bytes(32))),
             encrypted_previous_pin_pubkey: None,
             unsuccessful_pin_entries: 0,

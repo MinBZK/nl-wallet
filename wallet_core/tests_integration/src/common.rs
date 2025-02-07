@@ -210,7 +210,7 @@ pub async fn setup_wallet_and_env(
     start_wallet_server(ws_settings, MockAttributeService).await;
 
     let config_repository = HttpConfigurationRepository::new(
-        (&config_server_config.signing_public_key.0).into(),
+        config_server_config.signing_public_key.as_inner().into(),
         tempfile::tempdir().unwrap().into_path(),
         wallet_config,
     )

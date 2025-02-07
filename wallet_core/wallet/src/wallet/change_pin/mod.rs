@@ -6,7 +6,6 @@ use std::sync::Arc;
 use tracing::info;
 
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::update_policy::VersionState;
@@ -65,16 +64,16 @@ where
         }
 
         let config = &self.config_repository.get().account_server;
-        let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
-        let instruction_result_public_key = instruction_result_public_key.into();
-        let DerVerifyingKey(certificate_public_key) = &config.certificate_public_key;
+        let instruction_result_public_key = config.instruction_result_public_key.as_inner().into();
+        let certificate_public_key = config.certificate_public_key.as_inner();
 
         // Extract the public key belonging to the hardware attested key from the current certificate.
-        let DerVerifyingKey(hw_pubkey) = registration_data
+        let hw_pubkey = registration_data
             .wallet_certificate
             .parse_and_verify_with_sub(&certificate_public_key.into())
             .expect("stored wallet certificate should be valid")
-            .hw_pubkey;
+            .hw_pubkey
+            .into_inner();
 
         let instruction_client = InstructionClientFactory::new(
             Arc::clone(&self.storage),
@@ -119,8 +118,7 @@ where
         // Wallet does not need to be unlocked, see [`Wallet::unlock`].
 
         let config = &self.config_repository.get().account_server;
-        let DerVerifyingKey(instruction_result_public_key) = &config.instruction_result_public_key;
-        let instruction_result_public_key = instruction_result_public_key.into();
+        let instruction_result_public_key = config.instruction_result_public_key.as_inner().into();
 
         let instruction_client = InstructionClientFactory::new(
             Arc::clone(&self.storage),
