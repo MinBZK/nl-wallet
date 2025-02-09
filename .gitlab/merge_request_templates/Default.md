@@ -1,4 +1,6 @@
-*Short description here, inc*
+[ABC-1234](https://link)
+
+*Short description here (a full description is part of the above issue ticket)*
 
 ### The reviewer has verified that this change:
 
