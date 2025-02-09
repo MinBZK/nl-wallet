@@ -12,13 +12,16 @@ ready to be merged into the `main` branch.
   this document
 * A task is done when all acceptance criteria have been met and the
   work is verified by way of tests
+* The implementation of the task adheres to the design
+* User interface changes adhere to required accesibility guidelines
 * A done task can be demonstrated during Sprint Review
 * We keep our documentation up-to-date and in-sync with the current
   implementation
 * We create use-cases for our functional design purposes
 * When we have a security finding, we aim to resolve it quickly. We
   provide our stakeholders with an impact statement and/or resolution
-  time
+  time. In general we expect to be audited, pen-tested, etc
+* Required performance is validated
 
 ## Things we check every pull- or merge request
 
@@ -125,20 +128,3 @@ Sometimes we have changes that also require changes in our target environments
 which can be local or Kubernetes namespaces. When that is the case, make sure
 that those required changes are done in those target environments. For example:
 needed ConfigMaps or Secrets, or other types or Kubernetes objects.
-
-## Quality Assurance
-
-Below are a couple of items that are related to our quality assurance efforts.
-In general we try to adhere to these principals globally. Note that these items
-are ortogonal to the project (a cross-cutting concern) and are not evaluated
-at every pull- or merge-request. they are done continuously in parallel to the
-development effort. In general:
-
-1. The implementation adheres to the design.
-2. All test cases should be updated and successfully executed (either automated
-   through CI or manually). Any related functional tests should be successfully
-   executed.
-3. The application user interface adheres to required accesibility guidelines.
-4. The code is in compliance (i.e., adhering to constraints or coverage).
-5. The application is security-checked (i.e., audited, pen-tested, etc).
-6. Required performance is validated.
