@@ -95,7 +95,7 @@ void main() {
       const WalletPersonalizeConnectDigid('pid_issuance_url'),
       WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
-      const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 8, totalSteps: 9)),
+      const WalletPersonalizeAddingCards(FlowProgress(currentStep: 8, totalSteps: 9)),
       WalletPersonalizeSuccess([WalletMockData.card]),
     ],
   );
@@ -147,7 +147,7 @@ void main() {
       const WalletPersonalizeAuthenticating(),
       const WalletPersonalizeCheckData(availableAttributes: []),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
-      const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 8, totalSteps: 9)),
+      const WalletPersonalizeAddingCards(FlowProgress(currentStep: 8, totalSteps: 9)),
       WalletPersonalizeSuccess([WalletMockData.card]),
     ],
   );

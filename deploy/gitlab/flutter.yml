@@ -34,10 +34,10 @@ test-flutter-ui:
     - cd wallet_app
     - set -euxo pipefail
   script:
-    - fvm flutter --version
-    - http_proxy='' https_proxy='' fvm flutter pub get --enforce-lockfile
+    - flutter --version
+    - flutter pub get --enforce-lockfile
     - defaults -currentHost write -g AppleFontSmoothing -int 0 # Disable font smoothing, should match the generating platform.
-    - fvm flutter test --tags=golden --file-reporter "json:build/reports/test-results-ui.json"
+    - flutter test --tags=golden --file-reporter "json:build/reports/test-results-ui.json"
     - $HOME/.pub-cache/bin/tojunit -i build/reports/test-results-ui.json -o build/reports/test-results-ui.xml -b $PWD/test/src
   after_script:
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results-ui.xml qt/quality-time/junit-results/flutter-ui.xml

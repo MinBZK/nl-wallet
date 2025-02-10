@@ -18,12 +18,29 @@ void main() {
           StackedWalletCards(
             cards: [
               WalletMockData.card,
-              WalletMockData.card,
+              WalletMockData.altCard,
             ],
           ),
           surfaceSize: kGoldenSize,
         );
         await screenMatchesGolden(tester, 'stacked_wallet_cards/light');
+      },
+    );
+
+    testGoldens(
+      'light stacked wallet cards with large (3x) font',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          StackedWalletCards(
+            cards: [
+              WalletMockData.card,
+              WalletMockData.altCard,
+            ],
+          ),
+          textScaleSize: 3,
+          surfaceSize: const Size(300, 567),
+        );
+        await screenMatchesGolden(tester, 'stacked_wallet_cards/light.3x_font');
       },
     );
   });

@@ -149,14 +149,45 @@ run-automation-smoke-test-ont:
       -Dfile.encoding=UTF-8
   variables: !reference [.run-automation-tests-default, variables]
 
+run-mrp-browsertest-test-ont:
+  extends: .env-ont-k8s
+  rules:
+    - !reference [.default-branch, rules]
+  needs:
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
+  script: |
+    cd browsertests
+    npm ci
+    cd packages/mock-relying-party
+    npx playwright install chromium webkit
+    npm run test:ci
+  variables:
+    MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: "${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}"
+  after_script:
+    - deploy/bin/store-artifact.sh browsertests/packages/mock-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-mrp.xml
+  artifacts:
+    when: always
+    paths:
+      - browsertests/packages/mock-relying-party/test-results/
+    reports:
+      junit: browsertests/packages/mock-relying-party/test-results/*.xml
+  allow_failure: false
+
 run-gba-fetch-browsertest-test-ont:
+  extends: .env-ont-k8s
   rules:
     - !reference [.on-schedule, rules]
-  extends: .env-ont-k8s
+    - !reference [.on-web-trigger, rules]
+  needs:
+    - job: deploy-gba-fetch-frontend-ont
+      artifacts: false
+      optional: true
   before_script: |
     kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath="{.data.gba_fetch_e2e\.p12}" | base64 -d > browsertests/packages/gba-fetch/config/gba_fetch_client_cert_ont.p12
     export GBA_FETCH_FRONTEND_CLIENT_CERT_PATH="./gba_fetch_client_cert_ont.p12"
     export GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE=$(kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath='{.data.passphrase}' | base64 --decode)
+    export GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME="${GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME_ONT}"
   script: |
     cd browsertests
     npm ci
@@ -165,17 +196,15 @@ run-gba-fetch-browsertest-test-ont:
     npm run test:authenticated
     npm run test:unauthenticated
   after_script: |
-    mkdir -p browsertests-junit
-    cp browsertests/packages/gba-fetch/test-results-authenticated/results_authenticated.xml browsertest-junit/
-    cp browsertests/packages/gba-fetch/test-results-unauthenticated/results_unauthenticated.xml browsertest-junit/
-    zip -r browsertest.zip browsertests-junit
-    deploy/bin/store-artifact.sh browsertest.zip qt/quality-time/junit-results/browsertest.zip
+    zip -r -i "*.xml" browsertest.zip browsertests/packages/gba-fetch/
+    deploy/bin/store-artifact.sh browsertest-gbafetch.zip qt/quality-time/junit-results/browsertest-gbafetch.zip
   artifacts:
     when: always
     paths:
       - browsertests/packages/gba-fetch/test-results*/
     reports:
       junit: browsertests/packages/gba-fetch/test-results*/*.xml
+  allow_failure: false
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]

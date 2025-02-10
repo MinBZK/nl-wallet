@@ -123,6 +123,18 @@ class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {
   List<Object?> get props => [progress, ...super.props];
 }
 
+class WalletPersonalizeAddingCards extends WalletPersonalizeState {
+  final FlowProgress progress;
+
+  const WalletPersonalizeAddingCards(this.progress);
+
+  @override
+  FlowProgress get stepperProgress => progress;
+
+  @override
+  List<Object?> get props => [progress, ...super.props];
+}
+
 class WalletPersonalizeNetworkError extends WalletPersonalizeState implements NetworkErrorState {
   @override
   final Object error;
