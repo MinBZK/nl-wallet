@@ -92,7 +92,7 @@ impl CredentialPayload {
         )
     }
 
-    /// Convert a map of namespaced entries (`Entry`) to a `CredentialPayload`. The namespace is assumed to consist of
+    /// Convert a map of namespaced entries (`Entry`) to a `CredentialPayload`. The namespace is required to consist of
     /// nested group names, joined by a '.' and prefixed with the attestation_type.
     ///
     /// If the `attributes` input parameter is as follows (denoted here in JSON):
@@ -226,6 +226,12 @@ impl CredentialPayload {
     }
 
     fn split_namespace(namespace: &str, doc_type: &str) -> Vec<String> {
+        assert!(
+            namespace.starts_with(doc_type),
+            "The namespace is required to consist of nested group names, joined by a '.' and prefixed with the \
+             attestation_type"
+        );
+
         if namespace.len() == doc_type.len() {
             return vec![];
         }
