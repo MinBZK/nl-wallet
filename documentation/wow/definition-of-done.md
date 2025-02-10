@@ -1,7 +1,7 @@
 This Definition of Done (the DoD) is a mutual agreement between the development
-team and the product owner. team and the product owner. It is essentially a list
-of conditions that a change to the code should adhere to before being considered
-ready to be merged into the `main` branch.
+team and the product owner. It is essentially a list of conditions that a change
+to the code should adhere to before being considered ready to be merged into the
+`main` branch.
 
 [[_TOC_]]
 
@@ -13,7 +13,7 @@ ready to be merged into the `main` branch.
 * A task is done when all acceptance criteria have been met and the
   work is verified by way of tests
 * The implementation of the task adheres to the design
-* User interface changes adhere to required accesibility guidelines
+* User interface changes adhere to required accessibility guidelines
 * A done task can be demonstrated during Sprint Review
 * We keep our documentation up-to-date and in-sync with the current
   implementation
@@ -114,7 +114,7 @@ later on. The comment should include the related issue ticket.
 ### Can be deployed locally and remotely (CI/CD related setup up-to-date)
 
 A change should maintain a healthy running state. Specifically, the code needs
-to be able to run locally through our dev-env,  and remotely through our CI/CD
+to be able to run locally through our dev-env, and remotely through our CI/CD
 pipeline.
 
 If the change involves any CI/CD pipeline changes, make sure they're implemented

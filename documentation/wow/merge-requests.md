@@ -1,4 +1,4 @@
-As pat of our software delivery process, we do pull- or merge requests. These
+As part of our software delivery process, we do pull- or merge requests. These
 are reviewed before being merged to the main branch and checked for compliance
 with our [definition of done](./documentation/wow/definition-of-done.md).
 
