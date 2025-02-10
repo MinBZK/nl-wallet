@@ -17,6 +17,7 @@
     - /kaniko/executor
       --context wallet_core
       --dockerfile $DOCKER_FILE_TO_BUILD
+      --build-arg BUILD_TAG=$BUILD_TAG
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
