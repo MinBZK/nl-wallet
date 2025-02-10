@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 
 use indexmap::IndexMap;
 use itertools::Itertools;
+
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::credential_payload::CredentialPayload;
