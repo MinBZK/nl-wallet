@@ -258,6 +258,12 @@ pub mod mock {
             )
             .unwrap()
         }
+
+        pub fn new_example_mock_with_doctype(doc_type: &str) -> Self {
+            let mut mdoc = Self::new_example_mock();
+            mdoc.mso.doc_type = String::from(doc_type);
+            mdoc
+        }
     }
 }
 

@@ -1603,12 +1603,7 @@ mod tests {
 
         // Create some fake `Mdoc` entries to place into wallet storage.
         let mdoc1 = Mdoc::new_example_mock();
-        let mdoc2 = {
-            let mut mdoc2 = mdoc1.clone();
-
-            mdoc2.mso.doc_type = "com.example.doc_type".to_string();
-            mdoc2
-        };
+        let mdoc2 = Mdoc::new_example_mock_with_doctype("com.example.doc_type");
 
         // Place 3 copies of each `Mdoc` into `MockStorage`.
         wallet
