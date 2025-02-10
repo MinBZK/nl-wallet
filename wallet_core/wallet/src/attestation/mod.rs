@@ -38,7 +38,7 @@ pub enum AttestationIdentity {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationAttribute {
-    pub key: String,
+    pub key: Vec<String>,
     pub labels: Vec<LocalizedString>,
     pub value: AttributeValue,
 }

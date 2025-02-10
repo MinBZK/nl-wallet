@@ -167,17 +167,17 @@ impl CredentialPayload {
         Ok(())
     }
 
-    pub fn collect_keys(&self) -> Vec<String> {
+    pub fn collect_keys(&self) -> Vec<Vec<String>> {
         Self::collect_keys_recursive(&self.attributes, &[])
     }
 
-    fn collect_keys_recursive(attributes: &IndexMap<String, Attribute>, groups: &[String]) -> Vec<String> {
+    fn collect_keys_recursive(attributes: &IndexMap<String, Attribute>, groups: &[String]) -> Vec<Vec<String>> {
         attributes.iter().fold(vec![], |mut acc, (k, v)| {
             let mut keys = Vec::from(groups);
             keys.push(k.clone());
 
             match v {
-                Attribute::Single(_) => acc.push(keys.join(".")),
+                Attribute::Single(_) => acc.push(keys),
                 Attribute::Nested(nested) => acc.append(&mut Self::collect_keys_recursive(nested, &keys)),
             }
 
@@ -448,12 +448,16 @@ mod test {
         let payload: CredentialPayload = serde_json::from_value(json).unwrap();
         assert_eq!(
             vec![
-                "birthdate",
-                "place_of_birth.locality",
-                "place_of_birth.country.name",
-                "place_of_birth.country.area_code"
+                vec!["birthdate"],
+                vec!["place_of_birth", "locality"],
+                vec!["place_of_birth", "country", "name"],
+                vec!["place_of_birth", "country", "area_code"],
             ],
-            payload.collect_keys().iter().map(String::as_str).collect::<Vec<_>>()
+            payload
+                .collect_keys()
+                .iter()
+                .map(|keys| keys.iter().map(String::as_str).collect::<Vec<_>>())
+                .collect::<Vec<_>>()
         );
     }
 }

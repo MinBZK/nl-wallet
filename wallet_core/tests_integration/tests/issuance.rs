@@ -30,7 +30,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Verify that the first mdoc contains the bsn
     let attestations = attestations.lock().unwrap();
     let pid_attestation = attestations.first().unwrap();
-    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key.as_str() == "bsn");
+    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec!["bsn"]);
 
     match bsn_attr {
         Some(bsn_attr) => assert_eq!(bsn_attr.value, AttributeValue::Text("999991772".to_string())),

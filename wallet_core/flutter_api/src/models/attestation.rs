@@ -122,7 +122,7 @@ pub struct AttestationAttribute {
 impl From<wallet::AttestationAttribute> for AttestationAttribute {
     fn from(value: wallet::AttestationAttribute) -> Self {
         Self {
-            key: value.key,
+            key: value.key.join("__"),
             labels: value.labels.into_iter().map(LocalizedString::from).collect(),
             value: value.value.into(),
         }

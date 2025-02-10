@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 
 use indexmap::IndexMap;
-use itertools::Itertools;
 
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
@@ -27,7 +26,7 @@ impl Attestation {
             .claims
             .into_iter()
             .map(|claim| {
-                let key = claim.path.iter().join(".");
+                let key = claim.path.iter().map(|cp| cp.to_string()).collect();
                 let mut paths = claim.path.iter().collect::<VecDeque<_>>();
                 let attribute = Self::select_attribute(&mut paths, &payload.attributes);
                 let attribute_value = match attribute {
@@ -49,7 +48,10 @@ impl Attestation {
         let difference = all_keys.difference(&processed_keys).collect::<Vec<_>>();
         if !difference.is_empty() {
             return Err(AttestationError::AttributeNotProcessedByClaim(
-                difference.into_iter().map(String::from).collect(),
+                difference
+                    .into_iter()
+                    .map(|attr| attr.iter().map(String::from).collect())
+                    .collect(),
             ));
         }
 
@@ -176,7 +178,7 @@ mod test {
             .iter()
             .map(|attr| {
                 (
-                    attr.key.as_str(),
+                    attr.key.clone(),
                     match &attr.value {
                         AttributeValue::Number(value) => value.to_string(),
                         AttributeValue::Bool(value) => value.to_string(),
@@ -188,8 +190,14 @@ mod test {
 
         assert_eq!(
             [
-                ("single", String::from("single")),
-                ("nested_1a.nested_1b.nested_1c", String::from("nested_value"))
+                (vec![String::from("single")], String::from("single")),
+                (
+                    vec!["nested_1a", "nested_1b", "nested_1c"]
+                        .into_iter()
+                        .map(String::from)
+                        .collect(),
+                    String::from("nested_value")
+                )
             ],
             attrs.as_slice()
         );
