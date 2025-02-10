@@ -1,19 +1,12 @@
-use futures::TryFutureExt;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use wallet_common::apple::AppleAttestedKey;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtSubject;
-use wallet_common::keys::EphemeralEcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::vec_at_least::VecAtLeastTwo;
-
-use crate::error::EncodeError;
-use crate::signed::ChallengeResponse;
 
 /// Registration challenge, sent by account server to wallet after the latter requests enrollment.
 #[serde_as]
@@ -76,65 +69,82 @@ impl JwtSubject for WalletCertificateClaims {
     const SUB: &'static str = "wallet_certificate";
 }
 
-// Constructors for ChallengeResponse<Registration>.
-impl ChallengeResponse<Registration> {
-    pub async fn new_apple<AK, PK>(
-        attested_key: &AK,
-        attestation_data: Vec<u8>,
-        pin_signing_key: &PK,
-        challenge: Vec<u8>,
-    ) -> Result<Self, EncodeError>
-    where
-        AK: AppleAttestedKey,
-        PK: EphemeralEcdsaKey,
-    {
-        let pin_pubkey = pin_signing_key
-            .verifying_key()
-            .map_err(|e| EncodeError::VerifyingKey(Box::new(e)))
-            .await?;
+#[cfg(feature = "client")]
+mod client {
+    use futures::TryFutureExt;
 
-        let registration = Registration {
-            attestation: RegistrationAttestation::Apple { data: attestation_data },
-            pin_pubkey: DerVerifyingKey::from(pin_pubkey),
-        };
+    use wallet_common::apple::AppleAttestedKey;
+    use wallet_common::keys::EphemeralEcdsaKey;
+    use wallet_common::keys::SecureEcdsaKey;
+    use wallet_common::p256_der::DerVerifyingKey;
+    use wallet_common::vec_at_least::VecAtLeastTwo;
 
-        Self::sign_apple(registration, challenge, 0, attested_key, pin_signing_key).await
-    }
+    use crate::error::EncodeError;
+    use crate::signed::ChallengeResponse;
 
-    pub async fn new_google<SK, PK>(
-        secure_key: &SK,
-        certificate_chain: VecAtLeastTwo<Vec<u8>>,
-        app_attestation_token: Vec<u8>,
-        pin_signing_key: &PK,
-        challenge: Vec<u8>,
-    ) -> Result<Self, EncodeError>
-    where
-        SK: SecureEcdsaKey,
-        PK: EphemeralEcdsaKey,
-    {
-        let pin_pubkey = pin_signing_key
-            .verifying_key()
-            .map_err(|e| EncodeError::VerifyingKey(Box::new(e)))
-            .await?;
+    use super::Registration;
+    use super::RegistrationAttestation;
 
-        Self::sign_google(
-            Registration {
-                attestation: RegistrationAttestation::Google {
-                    certificate_chain,
-                    app_attestation_token,
-                },
+    // Constructors for ChallengeResponse<Registration>.
+    impl ChallengeResponse<Registration> {
+        pub async fn new_apple<AK, PK>(
+            attested_key: &AK,
+            attestation_data: Vec<u8>,
+            pin_signing_key: &PK,
+            challenge: Vec<u8>,
+        ) -> Result<Self, EncodeError>
+        where
+            AK: AppleAttestedKey,
+            PK: EphemeralEcdsaKey,
+        {
+            let pin_pubkey = pin_signing_key
+                .verifying_key()
+                .map_err(|e| EncodeError::VerifyingKey(Box::new(e)))
+                .await?;
+
+            let registration = Registration {
+                attestation: RegistrationAttestation::Apple { data: attestation_data },
                 pin_pubkey: DerVerifyingKey::from(pin_pubkey),
-            },
-            challenge,
-            0,
-            secure_key,
-            pin_signing_key,
-        )
-        .await
+            };
+
+            Self::sign_apple(registration, challenge, 0, attested_key, pin_signing_key).await
+        }
+
+        pub async fn new_google<SK, PK>(
+            secure_key: &SK,
+            certificate_chain: VecAtLeastTwo<Vec<u8>>,
+            app_attestation_token: Vec<u8>,
+            pin_signing_key: &PK,
+            challenge: Vec<u8>,
+        ) -> Result<Self, EncodeError>
+        where
+            SK: SecureEcdsaKey,
+            PK: EphemeralEcdsaKey,
+        {
+            let pin_pubkey = pin_signing_key
+                .verifying_key()
+                .map_err(|e| EncodeError::VerifyingKey(Box::new(e)))
+                .await?;
+
+            Self::sign_google(
+                Registration {
+                    attestation: RegistrationAttestation::Google {
+                        certificate_chain,
+                        app_attestation_token,
+                    },
+                    pin_pubkey: DerVerifyingKey::from(pin_pubkey),
+                },
+                challenge,
+                0,
+                secure_key,
+                pin_signing_key,
+            )
+            .await
+        }
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "client", feature = "server"))]
 mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;

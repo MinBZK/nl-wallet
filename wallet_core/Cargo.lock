@@ -6737,7 +6737,6 @@ dependencies = [
  "futures",
  "p256",
  "rand_core",
- "reqwest",
  "rstest",
  "rustls-pki-types",
  "serde",

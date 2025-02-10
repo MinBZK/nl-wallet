@@ -1,39 +1,11 @@
-use p256::ecdsa::VerifyingKey;
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use apple_app_attest::AppIdentifier;
-use apple_app_attest::AssertionCounter;
-use wallet_common::apple::AppleAttestedKey;
-use wallet_common::keys::EphemeralEcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
-
-use super::signed_message::ContainsChallenge;
-use super::signed_message::EcdsaSignatureType;
-use super::signed_message::SignedMessage;
-use super::signed_message::SignedSubjectMessage;
-use super::signed_message::SubjectPayload;
-
-use crate::error::DecodeError;
-use crate::error::EncodeError;
-
-#[derive(Debug, Clone, Copy)]
-pub enum SequenceNumberComparison {
-    EqualTo(u64),
-    LargerThan(u64),
-}
-
-impl SequenceNumberComparison {
-    pub fn verify(&self, expected_sequence_number: u64) -> bool {
-        match self {
-            SequenceNumberComparison::EqualTo(sequence_number) => expected_sequence_number == *sequence_number,
-            SequenceNumberComparison::LargerThan(sequence_number) => expected_sequence_number > *sequence_number,
-        }
-    }
-}
+use super::SignedMessage;
+use super::SignedSubjectMessage;
+use super::SubjectPayload;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChallengeRequestPayload {
@@ -42,121 +14,14 @@ pub struct ChallengeRequestPayload {
     pub instruction_name: String,
 }
 
-impl ChallengeRequestPayload {
-    pub fn new(wallet_id: String, sequence_number: u64, instruction_name: String) -> Self {
-        ChallengeRequestPayload {
-            wallet_id,
-            sequence_number,
-            instruction_name,
-        }
-    }
-
-    pub fn verify(
-        &self,
-        wallet_id: &str,
-        sequence_number_comparison: SequenceNumberComparison,
-    ) -> Result<(), DecodeError> {
-        if wallet_id != self.wallet_id {
-            return Err(DecodeError::WalletIdMismatch);
-        }
-
-        if !sequence_number_comparison.verify(self.sequence_number) {
-            return Err(DecodeError::SequenceNumberMismatch);
-        }
-
-        Ok(())
-    }
-}
-
 impl SubjectPayload for ChallengeRequestPayload {
     const SUBJECT: &'static str = "instruction_challenge_request";
-}
-
-// When signing and validating a `ChallengeRequest` using Apple assertions,
-// we need this type to contain a challenge. However, as this is the actual
-// message that requests a challenge from the Wallet Provider, we have a
-// bootstrap problem and cannot use a server generated random challenge. In
-// its place we use the `wallet_id` field to act as a predictable byte string.
-//
-// As the `wallet_id` is sent in `InstructionChallengeRequest` along with the
-// `ChallengeRequest`, this in itself does not provide any sort of replay
-// protection. This is not an issue, as `ChallengeResponse` does include a
-// server generated challenge and this is the message that includes the
-// actual instruction, to be performed by the Wallet Provider.
-impl ContainsChallenge for ChallengeRequestPayload {
-    fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
-        Ok(self.wallet_id.as_bytes())
-    }
 }
 
 /// Sent to the Wallet Provider to request an instruction challenge. This
 /// is signed with either the device's hardware key or Apple attested key.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChallengeRequest(SignedSubjectMessage<ChallengeRequestPayload>);
-
-impl ChallengeRequest {
-    pub async fn sign_apple<K>(
-        wallet_id: String,
-        sequence_number: u64,
-        instruction_name: String,
-        attested_key: &K,
-    ) -> Result<Self, EncodeError>
-    where
-        K: AppleAttestedKey,
-    {
-        let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
-        let signed = SignedSubjectMessage::sign_apple(challenge_request, attested_key).await?;
-
-        Ok(Self(signed))
-    }
-
-    pub async fn sign_google<K>(
-        wallet_id: String,
-        sequence_number: u64,
-        instruction_name: String,
-        hardware_signing_key: &K,
-    ) -> Result<Self, EncodeError>
-    where
-        K: SecureEcdsaKey,
-    {
-        let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
-        let signed =
-            SignedSubjectMessage::sign_ecdsa(challenge_request, EcdsaSignatureType::Google, hardware_signing_key)
-                .await?;
-
-        Ok(Self(signed))
-    }
-
-    pub fn parse_and_verify_apple(
-        &self,
-        wallet_id: &str,
-        sequence_number_comparison: SequenceNumberComparison,
-        verifying_key: &VerifyingKey,
-        app_identifier: &AppIdentifier,
-        previous_counter: AssertionCounter,
-    ) -> Result<(ChallengeRequestPayload, AssertionCounter), DecodeError> {
-        let (request, counter) =
-            self.0
-                .parse_and_verify_apple(verifying_key, app_identifier, previous_counter, wallet_id.as_bytes())?;
-        request.verify(wallet_id, sequence_number_comparison)?;
-
-        Ok((request, counter))
-    }
-
-    pub fn parse_and_verify_google(
-        &self,
-        wallet_id: &str,
-        sequence_number_comparison: SequenceNumberComparison,
-        verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeRequestPayload, DecodeError> {
-        let request = self
-            .0
-            .parse_and_verify_ecdsa(EcdsaSignatureType::Google, verifying_key)?;
-        request.verify(wallet_id, sequence_number_comparison)?;
-
-        Ok(request)
-    }
-}
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -171,178 +36,356 @@ impl<T> SubjectPayload for ChallengeResponsePayload<T> {
     const SUBJECT: &'static str = "instruction_challenge_response";
 }
 
-impl<T> ChallengeResponsePayload<T> {
-    pub fn verify(
-        &self,
-        challenge: &[u8],
-        sequence_number_comparison: SequenceNumberComparison,
-    ) -> Result<(), DecodeError> {
-        if challenge != self.challenge {
-            return Err(DecodeError::ChallengeMismatch);
-        }
-
-        if !sequence_number_comparison.verify(self.sequence_number) {
-            return Err(DecodeError::SequenceNumberMismatch);
-        }
-
-        Ok(())
-    }
-}
-
-impl<T> SignedSubjectMessage<ChallengeResponsePayload<T>> {
-    async fn sign_pin<K>(
-        payload: T,
-        challenge: Vec<u8>,
-        sequence_number: u64,
-        pin_signing_key: &K,
-    ) -> Result<Self, EncodeError>
-    where
-        T: Serialize,
-        K: EphemeralEcdsaKey,
-    {
-        let challenge_response = ChallengeResponsePayload {
-            payload,
-            challenge,
-            sequence_number,
-        };
-        let signed = Self::sign_ecdsa(challenge_response, EcdsaSignatureType::Pin, pin_signing_key).await?;
-
-        Ok(signed)
-    }
-
-    fn parse_and_verify_pin(
-        &self,
-        challenge: &[u8],
-        sequence_number_comparison: SequenceNumberComparison,
-        pin_verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeResponsePayload<T>, DecodeError>
-    where
-        T: DeserializeOwned,
-    {
-        let challenge_response = self.parse_and_verify_ecdsa(EcdsaSignatureType::Pin, pin_verifying_key)?;
-
-        challenge_response.verify(challenge, sequence_number_comparison)?;
-
-        Ok(challenge_response)
-    }
-}
-
-impl<T> ContainsChallenge for SignedSubjectMessage<ChallengeResponsePayload<T>>
-where
-    T: DeserializeOwned,
-{
-    fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
-        // We need to parse the inner message to get to the challenge, which unfortunately leads to double parsing.
-        let challenge_response = self.dangerous_parse_unverified()?;
-
-        Ok(challenge_response.challenge)
-    }
-}
-
 /// Wraps a [`ChallengeResponsePayload`], which contains an arbitrary payload and the challenge received in response
 /// to [`ChallengeRequest`]. The Wallet signs it with two keys. For the inner signing the PIN key is used, while the
 /// outer signing is done with either the device's hardware key or Apple attested key.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChallengeResponse<T>(SignedMessage<SignedSubjectMessage<ChallengeResponsePayload<T>>>);
 
-impl<T> ChallengeResponse<T> {
-    pub async fn sign_apple<AK, PK>(
-        payload: T,
-        challenge: Vec<u8>,
-        sequence_number: u64,
-        attested_key: &AK,
-        pin_signing_key: &PK,
-    ) -> Result<Self, EncodeError>
-    where
-        T: Serialize,
-        AK: AppleAttestedKey,
-        PK: EphemeralEcdsaKey,
-    {
-        let inner_signed = SignedSubjectMessage::sign_pin(payload, challenge, sequence_number, pin_signing_key).await?;
-        let outer_signed = SignedMessage::sign_apple(&inner_signed, attested_key).await?;
+#[cfg(feature = "client")]
+pub mod client {
+    use serde::Serialize;
 
-        Ok(Self(outer_signed))
+    use wallet_common::apple::AppleAttestedKey;
+    use wallet_common::keys::EphemeralEcdsaKey;
+    use wallet_common::keys::SecureEcdsaKey;
+
+    use crate::error::EncodeError;
+
+    use super::super::EcdsaSignatureType;
+    use super::super::SignedMessage;
+    use super::ChallengeRequest;
+    use super::ChallengeRequestPayload;
+    use super::ChallengeResponse;
+    use super::ChallengeResponsePayload;
+    use super::SignedSubjectMessage;
+
+    impl ChallengeRequestPayload {
+        pub fn new(wallet_id: String, sequence_number: u64, instruction_name: String) -> Self {
+            ChallengeRequestPayload {
+                wallet_id,
+                sequence_number,
+                instruction_name,
+            }
+        }
     }
 
-    pub async fn sign_google<HK, PK>(
-        payload: T,
-        challenge: Vec<u8>,
-        sequence_number: u64,
-        hardware_signing_key: &HK,
-        pin_signing_key: &PK,
-    ) -> Result<Self, EncodeError>
-    where
-        T: Serialize,
-        HK: SecureEcdsaKey,
-        PK: EphemeralEcdsaKey,
-    {
-        let inner_signed = SignedSubjectMessage::sign_pin(payload, challenge, sequence_number, pin_signing_key).await?;
-        let outer_signed =
-            SignedMessage::sign_ecdsa(&inner_signed, EcdsaSignatureType::Google, hardware_signing_key).await?;
+    impl ChallengeRequest {
+        pub async fn sign_apple<K>(
+            wallet_id: String,
+            sequence_number: u64,
+            instruction_name: String,
+            attested_key: &K,
+        ) -> Result<Self, EncodeError>
+        where
+            K: AppleAttestedKey,
+        {
+            let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
+            let signed = SignedSubjectMessage::sign_apple(challenge_request, attested_key).await?;
 
-        Ok(Self(outer_signed))
+            Ok(Self(signed))
+        }
+
+        pub async fn sign_google<K>(
+            wallet_id: String,
+            sequence_number: u64,
+            instruction_name: String,
+            hardware_signing_key: &K,
+        ) -> Result<Self, EncodeError>
+        where
+            K: SecureEcdsaKey,
+        {
+            let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
+            let signed =
+                SignedSubjectMessage::sign_ecdsa(challenge_request, EcdsaSignatureType::Google, hardware_signing_key)
+                    .await?;
+
+            Ok(Self(signed))
+        }
     }
 
-    pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>, DecodeError>
-    where
-        T: DeserializeOwned,
-    {
-        let challenge_response = self.0.dangerous_parse_unverified()?.dangerous_parse_unverified()?;
+    impl<T> SignedSubjectMessage<ChallengeResponsePayload<T>> {
+        async fn sign_pin<K>(
+            payload: T,
+            challenge: Vec<u8>,
+            sequence_number: u64,
+            pin_signing_key: &K,
+        ) -> Result<Self, EncodeError>
+        where
+            T: Serialize,
+            K: EphemeralEcdsaKey,
+        {
+            let challenge_response = ChallengeResponsePayload {
+                payload,
+                challenge,
+                sequence_number,
+            };
+            let signed = Self::sign_ecdsa(challenge_response, EcdsaSignatureType::Pin, pin_signing_key).await?;
 
-        Ok(challenge_response)
+            Ok(signed)
+        }
     }
 
-    pub fn parse_and_verify_apple(
-        &self,
-        challenge: &[u8],
-        sequence_number_comparison: SequenceNumberComparison,
-        apple_verifying_key: &VerifyingKey,
-        app_identifier: &AppIdentifier,
-        previous_counter: AssertionCounter,
-        pin_verifying_key: &VerifyingKey,
-    ) -> Result<(ChallengeResponsePayload<T>, AssertionCounter), DecodeError>
-    where
-        T: DeserializeOwned,
-    {
-        let (inner_signed, counter) =
-            self.0
-                .parse_and_verify_apple(apple_verifying_key, app_identifier, previous_counter, challenge)?;
-        let challenge_response =
-            inner_signed.parse_and_verify_pin(challenge, sequence_number_comparison, pin_verifying_key)?;
+    impl<T> ChallengeResponse<T> {
+        pub async fn sign_apple<AK, PK>(
+            payload: T,
+            challenge: Vec<u8>,
+            sequence_number: u64,
+            attested_key: &AK,
+            pin_signing_key: &PK,
+        ) -> Result<Self, EncodeError>
+        where
+            T: Serialize,
+            AK: AppleAttestedKey,
+            PK: EphemeralEcdsaKey,
+        {
+            let inner_signed =
+                SignedSubjectMessage::sign_pin(payload, challenge, sequence_number, pin_signing_key).await?;
+            let outer_signed = SignedMessage::sign_apple(&inner_signed, attested_key).await?;
 
-        Ok((challenge_response, counter))
-    }
+            Ok(Self(outer_signed))
+        }
 
-    pub fn parse_and_verify_google(
-        &self,
-        challenge: &[u8],
-        sequence_number_comparison: SequenceNumberComparison,
-        hardware_verifying_key: &VerifyingKey,
-        pin_verifying_key: &VerifyingKey,
-    ) -> Result<ChallengeResponsePayload<T>, DecodeError>
-    where
-        T: DeserializeOwned,
-    {
-        let inner_signed = self
-            .0
-            .parse_and_verify_ecdsa(EcdsaSignatureType::Google, hardware_verifying_key)?;
-        let challenge_response =
-            inner_signed.parse_and_verify_pin(challenge, sequence_number_comparison, pin_verifying_key)?;
+        pub async fn sign_google<HK, PK>(
+            payload: T,
+            challenge: Vec<u8>,
+            sequence_number: u64,
+            hardware_signing_key: &HK,
+            pin_signing_key: &PK,
+        ) -> Result<Self, EncodeError>
+        where
+            T: Serialize,
+            HK: SecureEcdsaKey,
+            PK: EphemeralEcdsaKey,
+        {
+            let inner_signed =
+                SignedSubjectMessage::sign_pin(payload, challenge, sequence_number, pin_signing_key).await?;
+            let outer_signed =
+                SignedMessage::sign_ecdsa(&inner_signed, EcdsaSignatureType::Google, hardware_signing_key).await?;
 
-        Ok(challenge_response)
+            Ok(Self(outer_signed))
+        }
     }
 }
 
-#[cfg(test)]
+#[cfg(feature = "server")]
+pub mod server {
+    use p256::ecdsa::VerifyingKey;
+    use serde::de::DeserializeOwned;
+
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AssertionCounter;
+
+    use crate::error::DecodeError;
+
+    use super::super::ContainsChallenge;
+    use super::super::EcdsaSignatureType;
+    use super::ChallengeRequest;
+    use super::ChallengeRequestPayload;
+    use super::ChallengeResponse;
+    use super::ChallengeResponsePayload;
+    use super::SignedSubjectMessage;
+
+    #[derive(Debug, Clone, Copy)]
+    pub enum SequenceNumberComparison {
+        EqualTo(u64),
+        LargerThan(u64),
+    }
+
+    impl SequenceNumberComparison {
+        pub fn verify(&self, expected_sequence_number: u64) -> bool {
+            match self {
+                SequenceNumberComparison::EqualTo(sequence_number) => expected_sequence_number == *sequence_number,
+                SequenceNumberComparison::LargerThan(sequence_number) => expected_sequence_number > *sequence_number,
+            }
+        }
+    }
+
+    impl ChallengeRequestPayload {
+        pub fn verify(
+            &self,
+            wallet_id: &str,
+            sequence_number_comparison: SequenceNumberComparison,
+        ) -> Result<(), DecodeError> {
+            if wallet_id != self.wallet_id {
+                return Err(DecodeError::WalletIdMismatch);
+            }
+
+            if !sequence_number_comparison.verify(self.sequence_number) {
+                return Err(DecodeError::SequenceNumberMismatch);
+            }
+
+            Ok(())
+        }
+    }
+
+    // When signing and validating a `ChallengeRequest` using Apple assertions,
+    // we need this type to contain a challenge. However, as this is the actual
+    // message that requests a challenge from the Wallet Provider, we have a
+    // bootstrap problem and cannot use a server generated random challenge. In
+    // its place we use the `wallet_id` field to act as a predictable byte string.
+    //
+    // As the `wallet_id` is sent in `InstructionChallengeRequest` along with the
+    // `ChallengeRequest`, this in itself does not provide any sort of replay
+    // protection. This is not an issue, as `ChallengeResponse` does include a
+    // server generated challenge and this is the message that includes the
+    // actual instruction, to be performed by the Wallet Provider.
+    impl ContainsChallenge for ChallengeRequestPayload {
+        fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
+            Ok(self.wallet_id.as_bytes())
+        }
+    }
+
+    impl ChallengeRequest {
+        pub fn parse_and_verify_apple(
+            &self,
+            wallet_id: &str,
+            sequence_number_comparison: SequenceNumberComparison,
+            verifying_key: &VerifyingKey,
+            app_identifier: &AppIdentifier,
+            previous_counter: AssertionCounter,
+        ) -> Result<(ChallengeRequestPayload, AssertionCounter), DecodeError> {
+            let (request, counter) =
+                self.0
+                    .parse_and_verify_apple(verifying_key, app_identifier, previous_counter, wallet_id.as_bytes())?;
+            request.verify(wallet_id, sequence_number_comparison)?;
+
+            Ok((request, counter))
+        }
+
+        pub fn parse_and_verify_google(
+            &self,
+            wallet_id: &str,
+            sequence_number_comparison: SequenceNumberComparison,
+            verifying_key: &VerifyingKey,
+        ) -> Result<ChallengeRequestPayload, DecodeError> {
+            let request = self
+                .0
+                .parse_and_verify_ecdsa(EcdsaSignatureType::Google, verifying_key)?;
+            request.verify(wallet_id, sequence_number_comparison)?;
+
+            Ok(request)
+        }
+    }
+
+    impl<T> ChallengeResponsePayload<T> {
+        pub fn verify(
+            &self,
+            challenge: &[u8],
+            sequence_number_comparison: SequenceNumberComparison,
+        ) -> Result<(), DecodeError> {
+            if challenge != self.challenge {
+                return Err(DecodeError::ChallengeMismatch);
+            }
+
+            if !sequence_number_comparison.verify(self.sequence_number) {
+                return Err(DecodeError::SequenceNumberMismatch);
+            }
+
+            Ok(())
+        }
+    }
+
+    impl<T> SignedSubjectMessage<ChallengeResponsePayload<T>> {
+        fn parse_and_verify_pin(
+            &self,
+            challenge: &[u8],
+            sequence_number_comparison: SequenceNumberComparison,
+            pin_verifying_key: &VerifyingKey,
+        ) -> Result<ChallengeResponsePayload<T>, DecodeError>
+        where
+            T: DeserializeOwned,
+        {
+            let challenge_response = self.parse_and_verify_ecdsa(EcdsaSignatureType::Pin, pin_verifying_key)?;
+
+            challenge_response.verify(challenge, sequence_number_comparison)?;
+
+            Ok(challenge_response)
+        }
+    }
+
+    impl<T> ContainsChallenge for SignedSubjectMessage<ChallengeResponsePayload<T>>
+    where
+        T: DeserializeOwned,
+    {
+        fn challenge(&self) -> Result<impl AsRef<[u8]>, DecodeError> {
+            // We need to parse the inner message to get to the challenge, which unfortunately leads to double parsing.
+            let challenge_response = self.dangerous_parse_unverified()?;
+
+            Ok(challenge_response.challenge)
+        }
+    }
+
+    impl<T> ChallengeResponse<T> {
+        pub fn dangerous_parse_unverified(&self) -> Result<ChallengeResponsePayload<T>, DecodeError>
+        where
+            T: DeserializeOwned,
+        {
+            let challenge_response = self.0.dangerous_parse_unverified()?.dangerous_parse_unverified()?;
+
+            Ok(challenge_response)
+        }
+
+        pub fn parse_and_verify_apple(
+            &self,
+            challenge: &[u8],
+            sequence_number_comparison: SequenceNumberComparison,
+            apple_verifying_key: &VerifyingKey,
+            app_identifier: &AppIdentifier,
+            previous_counter: AssertionCounter,
+            pin_verifying_key: &VerifyingKey,
+        ) -> Result<(ChallengeResponsePayload<T>, AssertionCounter), DecodeError>
+        where
+            T: DeserializeOwned,
+        {
+            let (inner_signed, counter) =
+                self.0
+                    .parse_and_verify_apple(apple_verifying_key, app_identifier, previous_counter, challenge)?;
+            let challenge_response =
+                inner_signed.parse_and_verify_pin(challenge, sequence_number_comparison, pin_verifying_key)?;
+
+            Ok((challenge_response, counter))
+        }
+
+        pub fn parse_and_verify_google(
+            &self,
+            challenge: &[u8],
+            sequence_number_comparison: SequenceNumberComparison,
+            hardware_verifying_key: &VerifyingKey,
+            pin_verifying_key: &VerifyingKey,
+        ) -> Result<ChallengeResponsePayload<T>, DecodeError>
+        where
+            T: DeserializeOwned,
+        {
+            let inner_signed = self
+                .0
+                .parse_and_verify_ecdsa(EcdsaSignatureType::Google, hardware_verifying_key)?;
+            let challenge_response =
+                inner_signed.parse_and_verify_pin(challenge, sequence_number_comparison, pin_verifying_key)?;
+
+            Ok(challenge_response)
+        }
+    }
+}
+
+#[cfg(all(test, feature = "client", feature = "server"))]
 mod tests {
     use assert_matches::assert_matches;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use serde::Deserialize;
+    use serde::Serialize;
 
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AssertionCounter;
     use wallet_common::apple::MockAppleAttestedKey;
     use wallet_common::utils;
 
-    use super::*;
+    use crate::error::DecodeError;
+
+    use super::server::SequenceNumberComparison;
+    use super::ChallengeRequest;
+    use super::ChallengeResponse;
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {

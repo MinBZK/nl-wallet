@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+#[cfg(feature = "server")]
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
@@ -31,6 +32,7 @@ impl<T> AsRef<[u8]> for TypedRawValue<T> {
 }
 
 impl<T> TypedRawValue<T> {
+    #[cfg(feature = "client")]
     pub fn try_new(value: &T) -> Result<Self, serde_json::Error>
     where
         T: Serialize,
@@ -41,6 +43,7 @@ impl<T> TypedRawValue<T> {
         Ok(Self(raw_value, PhantomData))
     }
 
+    #[cfg(feature = "server")]
     pub fn parse(&self) -> Result<T, serde_json::Error>
     where
         T: DeserializeOwned,

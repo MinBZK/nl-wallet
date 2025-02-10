@@ -10,19 +10,24 @@ workspace = true
 [lib]
 doctest = false
 
+[features]
+client = ["dep:futures", "dep:p256", "dep:thiserror", "dep:error_category"]
+server = ["dep:p256", "dep:thiserror", "dep:apple_app_attest"]
+
 [dependencies]
-futures = { workspace = true, features = ["std", "async-await"] }
-p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
-reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true, features = ["raw_value"] }
+serde_json = { workspace = true, features = ["std", "raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
-thiserror.workspace = true
 
-apple_app_attest.path = "../apple_app_attest"
-error_category.path = "../error_category"
 wallet_common.path = "../wallet_common"
+
+futures = { workspace = true, optional = true, features = ["std"] }
+p256 = { workspace = true, optional = true, features = ["ecdsa", "pem", "std"] }
+thiserror = { workspace = true, optional = true }
+
+apple_app_attest = { path = "../apple_app_attest", optional = true }
+error_category = { path = "../error_category", optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true

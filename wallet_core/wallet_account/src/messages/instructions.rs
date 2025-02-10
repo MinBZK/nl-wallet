@@ -4,19 +4,15 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use wallet_common::apple::AppleAttestedKey;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtCredentialClaims;
 use wallet_common::jwt::JwtSubject;
 use wallet_common::keys::poa::Poa;
-use wallet_common::keys::EphemeralEcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::p256_der::DerSignature;
 use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::wte::WteClaims;
 
-use crate::error::EncodeError;
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
 
@@ -191,97 +187,116 @@ impl InstructionAndResult for ConstructPoa {
     type Result = ConstructPoaResult;
 }
 
-// Constructors for Instruction.
-impl<T> Instruction<T>
-where
-    T: Serialize + DeserializeOwned,
-{
-    fn new(instruction: ChallengeResponse<T>, certificate: WalletCertificate) -> Self {
-        Self {
-            instruction,
-            certificate,
+#[cfg(feature = "client")]
+mod client {
+    use serde::de::DeserializeOwned;
+    use serde::Serialize;
+
+    use wallet_common::apple::AppleAttestedKey;
+    use wallet_common::keys::EphemeralEcdsaKey;
+    use wallet_common::keys::SecureEcdsaKey;
+
+    use crate::error::EncodeError;
+    use crate::messages::registration::WalletCertificate;
+    use crate::signed::ChallengeRequest;
+    use crate::signed::ChallengeResponse;
+
+    use super::Instruction;
+    use super::InstructionAndResult;
+    use super::InstructionChallengeRequest;
+
+    // Constructors for Instruction.
+    impl<T> Instruction<T>
+    where
+        T: Serialize + DeserializeOwned,
+    {
+        fn new(instruction: ChallengeResponse<T>, certificate: WalletCertificate) -> Self {
+            Self {
+                instruction,
+                certificate,
+            }
+        }
+
+        pub async fn new_apple(
+            instruction: T,
+            challenge: Vec<u8>,
+            instruction_sequence_number: u64,
+            attested_key: &impl AppleAttestedKey,
+            pin_privkey: &impl EphemeralEcdsaKey,
+            certificate: WalletCertificate,
+        ) -> Result<Self, EncodeError> {
+            let challenge_response = ChallengeResponse::sign_apple(
+                instruction,
+                challenge,
+                instruction_sequence_number,
+                attested_key,
+                pin_privkey,
+            )
+            .await?;
+
+            Ok(Self::new(challenge_response, certificate))
+        }
+
+        pub async fn new_google(
+            instruction: T,
+            challenge: Vec<u8>,
+            instruction_sequence_number: u64,
+            hw_privkey: &impl SecureEcdsaKey,
+            pin_privkey: &impl EphemeralEcdsaKey,
+            certificate: WalletCertificate,
+        ) -> Result<Self, EncodeError> {
+            let challenge_response = ChallengeResponse::sign_google(
+                instruction,
+                challenge,
+                instruction_sequence_number,
+                hw_privkey,
+                pin_privkey,
+            )
+            .await?;
+
+            Ok(Self::new(challenge_response, certificate))
         }
     }
 
-    pub async fn new_apple(
-        instruction: T,
-        challenge: Vec<u8>,
-        instruction_sequence_number: u64,
-        attested_key: &impl AppleAttestedKey,
-        pin_privkey: &impl EphemeralEcdsaKey,
-        certificate: WalletCertificate,
-    ) -> Result<Self, EncodeError> {
-        let challenge_response = ChallengeResponse::sign_apple(
-            instruction,
-            challenge,
-            instruction_sequence_number,
-            attested_key,
-            pin_privkey,
-        )
-        .await?;
+    impl InstructionChallengeRequest {
+        fn new(request: ChallengeRequest, certificate: WalletCertificate) -> Self {
+            Self { request, certificate }
+        }
 
-        Ok(Self::new(challenge_response, certificate))
-    }
+        pub async fn new_apple<I>(
+            wallet_id: String,
+            instruction_sequence_number: u64,
+            attested_key: &impl AppleAttestedKey,
+            certificate: WalletCertificate,
+        ) -> Result<Self, EncodeError>
+        where
+            I: InstructionAndResult,
+        {
+            let challenge_request = ChallengeRequest::sign_apple(
+                wallet_id,
+                instruction_sequence_number,
+                I::NAME.to_string(),
+                attested_key,
+            )
+            .await?;
 
-    pub async fn new_google(
-        instruction: T,
-        challenge: Vec<u8>,
-        instruction_sequence_number: u64,
-        hw_privkey: &impl SecureEcdsaKey,
-        pin_privkey: &impl EphemeralEcdsaKey,
-        certificate: WalletCertificate,
-    ) -> Result<Self, EncodeError> {
-        let challenge_response = ChallengeResponse::sign_google(
-            instruction,
-            challenge,
-            instruction_sequence_number,
-            hw_privkey,
-            pin_privkey,
-        )
-        .await?;
+            Ok(Self::new(challenge_request, certificate))
+        }
 
-        Ok(Self::new(challenge_response, certificate))
-    }
-}
+        pub async fn new_google<I>(
+            wallet_id: String,
+            instruction_sequence_number: u64,
+            hw_privkey: &impl SecureEcdsaKey,
+            certificate: WalletCertificate,
+        ) -> Result<Self, EncodeError>
+        where
+            I: InstructionAndResult,
+        {
+            let challenge_request =
+                ChallengeRequest::sign_google(wallet_id, instruction_sequence_number, I::NAME.to_string(), hw_privkey)
+                    .await?;
 
-impl InstructionChallengeRequest {
-    fn new(request: ChallengeRequest, certificate: WalletCertificate) -> Self {
-        Self { request, certificate }
-    }
-
-    pub async fn new_apple<I>(
-        wallet_id: String,
-        instruction_sequence_number: u64,
-        attested_key: &impl AppleAttestedKey,
-        certificate: WalletCertificate,
-    ) -> Result<Self, EncodeError>
-    where
-        I: InstructionAndResult,
-    {
-        let challenge_request = ChallengeRequest::sign_apple(
-            wallet_id,
-            instruction_sequence_number,
-            I::NAME.to_string(),
-            attested_key,
-        )
-        .await?;
-
-        Ok(Self::new(challenge_request, certificate))
-    }
-
-    pub async fn new_google<I>(
-        wallet_id: String,
-        instruction_sequence_number: u64,
-        hw_privkey: &impl SecureEcdsaKey,
-        certificate: WalletCertificate,
-    ) -> Result<Self, EncodeError>
-    where
-        I: InstructionAndResult,
-    {
-        let challenge_request =
-            ChallengeRequest::sign_google(wallet_id, instruction_sequence_number, I::NAME.to_string(), hw_privkey)
-                .await?;
-
-        Ok(Self::new(challenge_request, certificate))
+            Ok(Self::new(challenge_request, certificate))
+        }
     }
 }
