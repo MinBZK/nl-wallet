@@ -217,13 +217,14 @@ impl WalletWithMocks {
 
         // Store the registration in `Storage`, populate the field
         // on `Wallet` and set the wallet to unlocked.
-        wallet.storage.get_mut().state = StorageState::Opened;
-        wallet.storage.get_mut().data.insert(
+        let storage = Arc::get_mut(&mut wallet.storage).unwrap().get_mut();
+        storage.state = StorageState::Opened;
+        storage.data.insert(
             <RegistrationData as KeyedData>::KEY,
             KeyedDataResult::Data(serde_json::to_string(&registration_data).unwrap()),
         );
         wallet.registration = WalletRegistration::Registered {
-            attested_key,
+            attested_key: Arc::new(attested_key),
             data: registration_data,
         };
         wallet.lock.unlock();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/wallet_card.dart';
+import '../../../util/extension/build_context_extension.dart';
 import 'card/wallet_card_item.dart';
 
 const _kCardOverlap = 56.0;
@@ -17,9 +18,11 @@ class StackedWalletCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Take the textScaling into account when offsetting the stacked cards (to account for larger titles)
+    final cardOffsetY = context.mediaQuery.textScaler.scale(_kCardOverlap);
     final List<Widget> children = List<Widget>.generate(cards.length, (index) {
       return Padding(
-        padding: EdgeInsets.fromLTRB(0, index * _kCardOverlap, 0, 0),
+        padding: EdgeInsets.fromLTRB(0, index * cardOffsetY, 0, 0),
         child: Hero(
           tag: cards[index].id,
           flightShuttleBuilder: (

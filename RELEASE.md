@@ -148,48 +148,7 @@ After you've set the development version, merge the MR. It is best if this is
 done quickly so people don't accidentally start doing work under the older
 version tags.
 
-### Step 8: Do commit review
-
-Before we publish our code, we do a commit review to make sure a couple of
-things are in order. To be more specific, we don't want:
-
-  * Personally identifiable information
-  * Non-open source copyrighted files or data
-  * Secrets or possibly sensitive internal identifiers such as hostnames,
-    project IDs, etc
-  * Other unexpected, strange or inappropriate things (..)
-
-To do so, we review the commits between this new release we just tagged and the
-previous release. Reviewing in this case means going through the commits one
-by one to ascertain that they do not include one of the above mentioned items.
-
-Tip: We've found it helpful to use a  GUI tool to assist with this review
-     process. We've had good experiences with GitHub Desktop (Linux, macOS
-     and Windows compatible) and GitUp (macOS-only).
-
-If you don't find any commits to contain any of the unwanted items on the list,
-you are ready to run our `publication-guard` utility.
-
-If, on the other hand, you *did* have findings, you need to do a few things:
-
-  1. Discuss the finding(s) with a colleague to confirm the issue (4-eyes
-     principle);
-  2. Determine how to address the finding:
-     - It's so serious it shouldn't even exist in the private repo,
-       so `git-filter-branch` the private repo to fix, or
-     - It's fine, but shouldn't exist in the public repo,
-       so pick it up as a new item-to-filter in `publication-guard`
-
-### Step 9: Run publication guard
-
-After you've reviewed all the commits and taken any appropriate steps, i.e.,
-
-  * you made sure the private repository does not contain any of the items
-    mentioned in the previous step, or
-  * you have fixed any items by undoing commits (by using something like
-    `git-filter-branch` for example) in the private repository, or
-  * you are going to create new item filters in `publication-guard` for
-    any findings you had;
+### Step 8: Run publication guard
 
 You should now be ready to run `publication-guard`, which assists us with
 filtering the repository. It takes into account various things like who opted
@@ -208,7 +167,7 @@ previous release and this one, you have followed the procedure documented in the
 have their name and e-mail address publicly available (or explicit denial and
 relevant anonymized e-mail address and/or name).
 
-### Step 10: Publish source code to GitHub
+### Step 9: Publish source code to GitHub
 
 After executing the publication-guard filtering steps, you are ready to publish
 the filtered repository that `publication-guard` created.
@@ -217,7 +176,7 @@ To do that, you need to access the filtered repository directory, rename the
 `filtered-repository` branch to `main`, add GitHub as a remote and then
 `git push --tags` (i.e., to the remote `main` on GitHub).
 
-### Step 11: Collect build artifacts for release
+### Step 10: Collect build artifacts for release
 
 We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:
 
@@ -245,8 +204,8 @@ for zip in *.zip; do sha256sum $zip > $(echo $zip | sed 's|.zip$|.sha256sum.txt|
 ```
 
 When you have these zip files and sha256sum texts, and you made sure they're
-named correctly, you are ready to create the release notes. We will upload the
-zip files and sha256sum texts as artifacts of the release.
+named correctly, you are ready to create the release description. We will upload
+the zip files and sha256sum texts as artifacts of the release.
 
 Note on other binaries like `wallet_server_migrations` and schema changes in
 general: When any of our binaries that use a database backend require schema
@@ -267,10 +226,11 @@ triggered by a `git push --tags` that results in new version tags being pushed)
 can invoke this utility and create or update a release with relevant binary
 artifacts.
 
-### Step 12: Create release notes
+### Step 11: Create a release description
 
-Here is a template/example for the release notes. Make sure you replace `DAY`,
-`MONTH`, `YEAR`, `A.B.C`, `X.Y.Z`, `CONDITIONAL_PRE_RELEASE_WARNING`,
+Here is a template for the release description (this is a large body field which
+contains markdown describing a given release on GitHub). Make sure you replace
+`DAY`, `MONTH`, `YEAR`, `A.B.C`, `X.Y.Z`, `CONDITIONAL_PRE_RELEASE_WARNING`,
 `OPTIONAL_RELEASE_STORY`.
 
 ```
@@ -309,13 +269,10 @@ knows, like config-file-format changes, schema changes, etc.
 
 Note about `CHANGE`: Ensure that this file exists with the proper filename.
 
-After you've created the above release notes for this release, save it somewhere
-so we can use it in the next step where we're going to create the actual GitHub
-release. It is also a good idea (if time and logistics allow) to have a
-colleague have a look at the release notes (not a hard requirement, just a
-recommendation).
+After you've created the above release description, save it somewhere so we can
+use it in the next step where we're going to create the actual GitHub release.
 
-### Step 13: Create GitHub release from tag
+### Step 12: Create GitHub release from tag
 
 When you visit our GitHub page, you should now see all the additional commits
 and the version tag you've previously set to indicate the release. This version
@@ -329,8 +286,8 @@ release yet.
   3. As title, write: `Wallet X.Y.Z`, where `X.Y.Z` is the version number you're
      releasing (i.e., should match tag without the `v` prefix);
   4. Add the previously collected/created zip files and sha256 text files;
-  5. Insert the previously created release notes markdown in the body text of
-     this release;
+  5. Insert the previously created release description markdown in the body text
+     of this release;
   6. Enable the *Set as a pre-release* flag;
   7. Click on *Publish release*;
 
@@ -343,11 +300,11 @@ asynchronous process and never blocks the release itself (i.e., don't wait, just
 leave the release marked as pre-release until someone comes around later on to
 tell you/us that a specific release can have the pre-release flag removed)
 
-Note on removing a pre-release flag: This only happens when the software is
-fully vetted by our operations team and deemed ready to run on our production
-backend. When the flag is removed (and so becomes a fully stable release), don't
-forget to remove the `CONDITIONAL_PRE_RELEASE_WARNING` paragraph from the
-release notes.
+Note on removing a pre-release flag: This usually only happens when the software
+is fully vetted by the operations team and deemed ready to run on our production
+backend. When the flag is removed (and so becomes a considered-stable release),
+don't forget to remove the `CONDITIONAL_PRE_RELEASE_WARNING` paragraph from the
+release description.
 
 ## References
 

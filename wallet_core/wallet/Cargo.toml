@@ -42,6 +42,7 @@ indexmap.workspace = true
 itertools.workspace = true
 libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
 mime.workspace = true
+nutype.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 parking_lot.workspace = true
 regex.workspace = true

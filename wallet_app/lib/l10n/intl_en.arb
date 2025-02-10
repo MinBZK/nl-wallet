@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-01-27T11:54:19+01:00",
+    "@@last_modified": "2025-02-06T11:35:55+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1112,6 +1112,7 @@
     "walletPersonalizeNoDigidPageDescription": "Right now, you can only use the NL Wallet by getting your details through the DigiD app.\n\nDo you live in the Netherlands and do you have a Dutch identity document? Then you can apply for a DigiD.",
     "walletPersonalizeNoDigidPageHeadline": "No DigiD?",
     "walletPersonalizeNoDigidPageRequestDigidCta": "Request DigiD",
+    "walletPersonalizeScreenAddingCardsSubtitle": "Cards are being added",
     "walletPersonalizeScreenAwaitingUserAuthDescription": "Here's how you can get your data",
     "walletPersonalizeScreenAwaitingUserAuthTitle": "Continue in your DigiD app",
     "walletPersonalizeScreenDigidLoadingStopCta": "Stop",
@@ -1124,8 +1125,8 @@
     "walletPersonalizeScreenExitSheetTitle": "Exit",
     "walletPersonalizeScreenLoadingDigiDUrlDescription": "DigiD app is being opened",
     "walletPersonalizeScreenLoadingDigiDUrlTitle": "Please wait",
-    "walletPersonalizeScreenLoadingSubtitle": "Please wait...",
-    "walletPersonalizeScreenLoadingTitle": "Loading",
+    "walletPersonalizeScreenLoadingSubtitle": "Data is being retrieved",
+    "walletPersonalizeScreenLoadingTitle": "Please wait",
     "walletPersonalizeScreenProcessingDigiDResultDescription": "Data is being retrieved",
     "walletPersonalizeScreenProcessingDigiDResultTitle": "Please wait",
     "walletPersonalizeScreenStopDigidDialogNegativeCta": "Back",

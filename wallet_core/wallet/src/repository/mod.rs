@@ -2,9 +2,11 @@ mod etag_client;
 mod reqwest_client;
 
 use std::error::Error;
+use std::path::PathBuf;
 
 use error_category::ErrorCategory;
 pub use etag_client::EtagHttpClient;
+use nutype::nutype;
 pub use reqwest_client::ReqwestHttpClient;
 
 #[derive(Debug)]
@@ -56,6 +58,12 @@ pub enum FileStorageError {
     Serialization(#[from] serde_json::Error),
 }
 
+#[nutype(
+    validate(predicate = |s| sanitize_filename::is_sanitized(s.to_string_lossy())),
+    derive(Debug, Clone, AsRef, FromStr),
+)]
+struct Filename(PathBuf);
+
 pub enum HttpResponse<T> {
     Parsed(T),
     NotModified,
@@ -85,4 +93,33 @@ pub trait ObservableRepository<T>: Repository<T> {
 
 pub trait BackgroundUpdateableRepository<T, B>: Repository<T> {
     fn fetch_in_background(&self, client_builder: B);
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::Filename;
+
+    #[rstest]
+    #[case(r#"valid"#, true)]
+    #[case(r#"val-id"#, true)]
+    #[case(r#"val.id"#, true)]
+    #[case(r#"val id"#, true)]
+    #[case(r#"VALID"#, true)]
+    #[case(
+        "invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinva\
+         lidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidi\
+         nvalidinvalidinvalidinvalidinvalidinvalid",
+        false
+    )]
+    #[case(r#"in/valid"#, false)]
+    #[case(
+        r#"in
+        valid"#,
+        false
+    )]
+    fn parse_filename(#[case] input: &str, #[case] is_ok: bool) {
+        assert_eq!(input.parse::<Filename>().is_ok(), is_ok);
+    }
 }
