@@ -371,6 +371,7 @@ pub mod server {
 #[cfg(all(test, feature = "client", feature = "server"))]
 mod tests {
     use assert_matches::assert_matches;
+    use futures::FutureExt;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde::Deserialize;
@@ -407,8 +408,8 @@ mod tests {
         MockAppleAttestedKey::new_random(app_identifier)
     }
 
-    #[tokio::test]
-    async fn test_apple_challenge_request() {
+    #[test]
+    fn test_apple_challenge_request() {
         let wallet_id = utils::random_string(32);
         let sequence_number = 42;
         let instruction_name = "jump";
@@ -420,7 +421,8 @@ mod tests {
             instruction_name.to_string(),
             &attested_key,
         )
-        .await
+        .now_or_never()
+        .unwrap()
         .expect("should sign SignedChallengeRequest successfully");
 
         // Verifying against an incorrect wallet_id should return a `Error::AssertionVerification`.
@@ -467,8 +469,8 @@ mod tests {
         assert_eq!(*counter, 1);
     }
 
-    #[tokio::test]
-    async fn test_google_challenge_request() {
+    #[test]
+    fn test_google_challenge_request() {
         let wallet_id = utils::random_string(32);
         let sequence_number = 42;
         let instruction_name = "jump";
@@ -480,7 +482,8 @@ mod tests {
             instruction_name.to_string(),
             &hw_privkey,
         )
-        .await
+        .now_or_never()
+        .unwrap()
         .expect("should sign SignedChallengeRequest successfully");
 
         // Verifying against an incorrect wallet_id should return a `Error::WalletIdMismatch`.
@@ -518,8 +521,8 @@ mod tests {
         assert_eq!(request.instruction_name, instruction_name);
     }
 
-    #[tokio::test]
-    async fn test_apple_challenge_response() {
+    #[test]
+    fn test_apple_challenge_response() {
         let sequence_number = 1337;
         let challenge = b"challenge";
         let attested_key = create_mock_apple_attested_key();
@@ -532,7 +535,8 @@ mod tests {
             &attested_key,
             &pin_privkey,
         )
-        .await
+        .now_or_never()
+        .unwrap()
         .expect("should sign ChallengeResponse successfully");
 
         // Verifying against an incorrect challenge should return a `Error::AssertionVerification`.
@@ -581,8 +585,8 @@ mod tests {
         assert_eq!(*counter, 1)
     }
 
-    #[tokio::test]
-    async fn test_google_challenge_response() {
+    #[test]
+    fn test_google_challenge_response() {
         let sequence_number = 1337;
         let challenge = b"challenge";
         let hw_privkey = SigningKey::random(&mut OsRng);
@@ -595,7 +599,8 @@ mod tests {
             &hw_privkey,
             &pin_privkey,
         )
-        .await
+        .now_or_never()
+        .unwrap()
         .expect("should sign ChallengeResponse successfully");
 
         // Verifying against an incorrect challenge should return a `Error::ChallengeMismatch`.

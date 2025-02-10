@@ -417,6 +417,7 @@ pub mod server {
 #[cfg(all(test, feature = "client", feature = "server"))]
 mod tests {
     use assert_matches::assert_matches;
+    use futures::FutureExt;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
@@ -465,11 +466,12 @@ mod tests {
         MockAppleAttestedKey::new_random(app_identifier)
     }
 
-    #[tokio::test]
-    async fn test_ecdsa_signed_message() {
+    #[test]
+    fn test_ecdsa_signed_message() {
         let key = SigningKey::random(&mut OsRng);
         let signed_message = SignedMessage::sign_ecdsa(&ToyPayload::default(), EcdsaSignatureType::Google, &key)
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("should sign message with ECDSA key");
 
         let payload = signed_message
@@ -479,12 +481,13 @@ mod tests {
         assert_eq!(payload.string, "Some payload.");
     }
 
-    #[tokio::test]
-    async fn test_apple_signed_message() {
+    #[test]
+    fn test_apple_signed_message() {
         let key = create_mock_apple_attested_key();
         let input_payload = ToyPayload::default();
         let signed_message = SignedMessage::sign_apple(&input_payload, &key)
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("should sign message with Apple attested key");
 
         let (output_payload, counter) = signed_message
@@ -500,11 +503,12 @@ mod tests {
         assert_eq!(*counter, 1);
     }
 
-    #[tokio::test]
-    async fn test_signed_message_signature_verification_error() {
+    #[test]
+    fn test_signed_message_signature_verification_error() {
         let key = SigningKey::random(&mut OsRng);
         let signed_message = SignedMessage::sign_ecdsa(&ToyPayload::default(), EcdsaSignatureType::Google, &key)
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("should sign message with ECDSA key");
 
         // Verifying with a wrong public key should return a `Error::SignatureVerification`.
@@ -516,12 +520,13 @@ mod tests {
         assert_matches!(error, DecodeError::Signature(_));
     }
 
-    #[tokio::test]
-    async fn test_apple_signed_message_assertion_verification_error() {
+    #[test]
+    fn test_apple_signed_message_assertion_verification_error() {
         let key = create_mock_apple_attested_key();
         let input_payload = ToyPayload::default();
         let signed_message = SignedMessage::sign_apple(&input_payload, &key)
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("should sign message with Apple attested key");
 
         // Verifying with a wrong challenge should return a `Error::AssertionVerification`.
@@ -538,8 +543,7 @@ mod tests {
     }
 
     #[rstest]
-    #[tokio::test]
-    async fn test_signed_message_error_type_mismatch(
+    fn test_signed_message_error_type_mismatch(
         #[values(
             SignatureType::Ecdsa(EcdsaSignatureType::Pin),
             SignatureType::Ecdsa(EcdsaSignatureType::Google),
@@ -559,9 +563,10 @@ mod tests {
         let payload = ToyPayload::default();
 
         let signed_message = match signature_type {
-            SignatureType::Ecdsa(r#type) => SignedMessage::sign_ecdsa(&payload, r#type, &ecdsa_key).await,
-            SignatureType::AppleAssertion => SignedMessage::sign_apple(&payload, &attested_key).await,
+            SignatureType::Ecdsa(r#type) => SignedMessage::sign_ecdsa(&payload, r#type, &ecdsa_key).now_or_never(),
+            SignatureType::AppleAssertion => SignedMessage::sign_apple(&payload, &attested_key).now_or_never(),
         }
+        .unwrap()
         .expect("should sign message successfully");
 
         // Verifying with the wrong signature type should return a `Error::TypeMismatch`.
@@ -587,11 +592,12 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_subject_ecdsa_signed_message() {
+    #[test]
+    fn test_subject_ecdsa_signed_message() {
         let key = SigningKey::random(&mut OsRng);
         let signed_message = SignedSubjectMessage::sign_ecdsa(ToyPayload::default(), EcdsaSignatureType::Google, &key)
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("should sign message successfully");
 
         let payload = signed_message
@@ -601,12 +607,13 @@ mod tests {
         assert_eq!(payload.string, "Some payload.");
     }
 
-    #[tokio::test]
-    async fn test_subject_apple_signed_message() {
+    #[test]
+    fn test_subject_apple_signed_message() {
         let key = create_mock_apple_attested_key();
         let input_payload = ToyPayload::default();
         let signed_message = SignedSubjectMessage::sign_apple(input_payload.clone(), &key)
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("should sign message successfully");
 
         let (output_payload, counter) = signed_message
@@ -623,8 +630,7 @@ mod tests {
     }
 
     #[rstest]
-    #[tokio::test]
-    async fn test_subject_signed_message_error_subject_mismatch(
+    fn test_subject_signed_message_error_subject_mismatch(
         #[values(
             SignatureType::Ecdsa(EcdsaSignatureType::Pin),
             SignatureType::Ecdsa(EcdsaSignatureType::Google),
@@ -654,9 +660,14 @@ mod tests {
         };
 
         let signed_message = match signature_type {
-            SignatureType::Ecdsa(r#type) => SignedSubjectMessage::sign_ecdsa(payload.clone(), r#type, &ecdsa_key).await,
-            SignatureType::AppleAssertion => SignedSubjectMessage::sign_apple(payload.clone(), &attested_key).await,
+            SignatureType::Ecdsa(r#type) => {
+                SignedSubjectMessage::sign_ecdsa(payload.clone(), r#type, &ecdsa_key).now_or_never()
+            }
+            SignatureType::AppleAssertion => {
+                SignedSubjectMessage::sign_apple(payload.clone(), &attested_key).now_or_never()
+            }
         }
+        .unwrap()
         .expect("should sign message successfully");
 
         let decoded_message =

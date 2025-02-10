@@ -1,3 +1,4 @@
+use futures::FutureExt;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
@@ -22,8 +23,8 @@ use wallet_account::messages::registration::RegistrationAttestation;
 use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::SequenceNumberComparison;
 
-#[tokio::test]
-async fn test_apple_registration() {
+#[test]
+fn test_apple_registration() {
     // The Wallet Provider generates a challenge.
     let challenge = b"challenge";
 
@@ -38,7 +39,8 @@ async fn test_apple_registration() {
     // The Wallet generates a registration message.
     let msg =
         ChallengeResponse::<Registration>::new_apple(&attested_key, attestation, &pin_signing_key, challenge.to_vec())
-            .await
+            .now_or_never()
+            .unwrap()
             .expect("challenge response with apple registration should be created successfully");
 
     let unverified = msg
@@ -69,8 +71,8 @@ async fn test_apple_registration() {
     .expect("apple registration should verify successfully");
 }
 
-#[tokio::test]
-async fn test_google_registration() {
+#[test]
+fn test_google_registration() {
     // The Wallet Provider generates a challenge.
     let challenge = b"challenge";
 
@@ -89,7 +91,8 @@ async fn test_google_registration() {
         &pin_signing_key,
         challenge.to_vec(),
     )
-    .await
+    .now_or_never()
+    .unwrap()
     .expect("challenge response with google registration should be created successfully");
 
     let unverified = msg

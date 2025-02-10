@@ -39,9 +39,9 @@ error_category = { path = "../error_category", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
+futures = { workspace = true, features = ["std"] }
 rand_core.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = ["macros", "parking_lot"] }
 
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
 wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_apple_attested_key"] }
