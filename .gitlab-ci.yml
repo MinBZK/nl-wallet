@@ -6,7 +6,6 @@ default:
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
-  FASTLANE_OPT_OUT_USAGE: "YES"
   FF_USE_FASTZIP: "true"
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   CARGO_INCREMENTAL: 0
