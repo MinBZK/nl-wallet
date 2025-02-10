@@ -150,9 +150,12 @@ run-automation-smoke-test-ont:
   variables: !reference [.run-automation-tests-default, variables]
 
 run-mrp-browsertest-test-ont:
+  extends: .env-ont-k8s
   rules:
     - !reference [.default-branch, rules]
-  extends: .env-ont-k8s
+  needs:
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
   script: |
     cd browsertests
     npm ci
@@ -172,9 +175,14 @@ run-mrp-browsertest-test-ont:
   allow_failure: false
 
 run-gba-fetch-browsertest-test-ont:
+  extends: .env-ont-k8s
   rules:
     - !reference [.on-schedule, rules]
-  extends: .env-ont-k8s
+    - !reference [.on-web-trigger, rules]
+  needs:
+    - job: deploy-gba-fetch-frontend-ont
+      artifacts: false
+      optional: true
   before_script: |
     kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath="{.data.gba_fetch_e2e\.p12}" | base64 -d > browsertests/packages/gba-fetch/config/gba_fetch_client_cert_ont.p12
     export GBA_FETCH_FRONTEND_CLIENT_CERT_PATH="./gba_fetch_client_cert_ont.p12"
