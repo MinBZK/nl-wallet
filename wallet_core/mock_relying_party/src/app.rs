@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use askama::Template;
-use axum::async_trait;
 use axum::extract::FromRequestParts;
 use axum::extract::Path;
 use axum::extract::Query;
@@ -112,8 +111,11 @@ pub fn create_router(settings: Settings) -> Router {
     let mut app = Router::new()
         .route("/", get(index))
         .route("/sessions", post(create_session))
-        .route("/:usecase/", get(usecase))
-        .route(&format!("/:usecase/{}", RETURN_URL_SEGMENT), get(disclosed_attributes))
+        .route("/{usecase}/", get(usecase))
+        .route(
+            &format!("/{{usecase}}/{}", RETURN_URL_SEGMENT),
+            get(disclosed_attributes),
+        )
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -176,7 +178,6 @@ pub struct LanguageParam {
     pub lang: Language,
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for Language
 where
     S: Send + Sync,

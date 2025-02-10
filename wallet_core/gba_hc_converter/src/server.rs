@@ -37,7 +37,7 @@ where
     let app_state = Arc::new(ApplicationState { gbav_client });
 
     let app = Router::new()
-        .nest("/", health_router())
+        .merge(health_router())
         .nest(
             "/haalcentraal/api/brp",
             Router::new()

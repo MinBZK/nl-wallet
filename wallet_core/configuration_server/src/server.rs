@@ -24,7 +24,7 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     info!("{}", version_string());
     info!("listening on {}", socket);
 
-    let app = Router::new().nest("/", health_router()).nest(
+    let app = Router::new().merge(health_router()).nest(
         "/config/v1",
         Router::new()
             .route("/wallet-config", get(configuration))

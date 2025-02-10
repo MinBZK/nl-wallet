@@ -115,7 +115,8 @@ where
 
         let data = UnlockData { method };
         self.storage
-            .get_mut()
+            .write()
+            .await
             .upsert_data(&data)
             .await
             .map_err(WalletUnlockError::UnlockMethodStorage)?;
@@ -159,10 +160,10 @@ where
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                attested_key,
-                registration_data,
-                &config.account_server.http_config,
-                &instruction_result_public_key,
+                Arc::clone(attested_key),
+                registration_data.clone(),
+                config.account_server.http_config.clone(),
+                instruction_result_public_key,
             )
             .await?;
 
@@ -325,7 +326,7 @@ mod tests {
         let wallet_cert = registration_data.wallet_certificate.clone();
         let wallet_id = registration_data.wallet_id.clone();
 
-        let (attested_public_key, app_identifier_and_next_counter) = match attested_key {
+        let (attested_public_key, app_identifier_and_next_counter) = match attested_key.as_ref() {
             AttestedKey::Apple(key) => (
                 *key.verifying_key(),
                 Some((key.app_identifier.clone(), key.next_counter())),
@@ -333,8 +334,8 @@ mod tests {
             AttestedKey::Google(key) => (*key.verifying_key(), None),
         };
 
-        wallet
-            .account_provider_client
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
             .expect_instruction_challenge()
             .with(
                 eq(wallet.config_repository.get().account_server.http_config.clone()),
@@ -374,7 +375,7 @@ mod tests {
         // Set up the instruction.
         let wallet_cert = registration_data.wallet_certificate.clone();
 
-        let app_identifier_and_next_counter = match attested_key {
+        let app_identifier_and_next_counter = match attested_key.as_ref() {
             AttestedKey::Apple(key) => Some((key.app_identifier.clone(), key.next_counter())),
             AttestedKey::Google(_) => None,
         };
@@ -391,8 +392,8 @@ mod tests {
             .await
             .unwrap();
 
-        wallet
-            .account_provider_client
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
             .expect_instruction()
             .with(
                 eq(wallet.config_repository.get().account_server.http_config.clone()),
@@ -492,8 +493,8 @@ mod tests {
 
         // A 404 response from the account server when requesting the instruction
         // challenge for unlocking should result in an `InstructionError::ServerError`.
-        wallet
-            .account_provider_client
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
             .expect_instruction_challenge()
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::NOT_FOUND).into()));
 
@@ -514,13 +515,13 @@ mod tests {
 
         wallet.lock();
 
-        wallet
-            .account_provider_client
+        let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
+
+        account_provider_client
             .expect_instruction_challenge()
             .return_once(|_, _| Ok(utils::random_bytes(32)));
 
-        wallet
-            .account_provider_client
+        account_provider_client
             .expect_instruction()
             .return_once(move |_, _: Instruction<CheckPin>| Err(response_error.into()));
 
@@ -608,10 +609,10 @@ mod tests {
 
         // Have the hardware key signing fail.
         match &mut wallet.registration {
-            WalletRegistration::Registered {
-                attested_key: AttestedKey::Apple(attested_key),
-                ..
-            } => attested_key.has_error = true,
+            WalletRegistration::Registered { attested_key, .. } => match Arc::get_mut(attested_key).unwrap() {
+                AttestedKey::Apple(attested_key) => attested_key.has_error = true,
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         }
 
@@ -629,8 +630,8 @@ mod tests {
 
         wallet.lock();
 
-        wallet
-            .account_provider_client
+        let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
+        account_provider_client
             .expect_instruction_challenge()
             .return_once(|_, _| Ok(utils::random_bytes(32)));
 
@@ -644,8 +645,7 @@ mod tests {
         let other_key = SigningKey::random(&mut OsRng);
         let result = Jwt::sign_with_sub(&result_claims, &other_key).await.unwrap();
 
-        wallet
-            .account_provider_client
+        account_provider_client
             .expect_instruction()
             .return_once(move |_, _: Instruction<CheckPin>| Ok(result));
 
@@ -669,7 +669,7 @@ mod tests {
         wallet.lock();
 
         // Have the database return an error when fetching the sequence number.
-        wallet.storage.get_mut().set_keyed_data_error(InstructionData::KEY);
+        wallet.storage.write().await.set_keyed_data_error(InstructionData::KEY);
 
         // Unlocking the wallet should now result in an
         // `InstructionError::StoreInstructionSequenceNumber` error.

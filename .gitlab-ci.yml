@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250131-b9d82215"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250204-3b5b7341"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
@@ -40,7 +40,7 @@ variables:
 .env-macos-runner:
   tags:
     - macos
-  image: sonoma-wallet:0.1.6
+  image: sonoma-wallet:0.1.8
 
 .default-branch:
   rules:

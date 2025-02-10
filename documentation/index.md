@@ -77,6 +77,12 @@ fetch and add some attestations.
 
 See: [issuance.md](./diagrams/issuance_flow.md)
 
+## API Documentation
+
+We have API documentation in OpenAPI v3 format:
+
+See: [README.md](./api/README.md)
+
 ## Relying Party Step-by-Step
 
 A Relying Party (also known as a verifier, a party that needs to verify
@@ -85,9 +91,26 @@ idea of what has to be done to integrate with the wallet environment.
 
 See: [relying-party.md](./relying-party.md)
 
-
 ## Localisation
 
 We use a commercial service called "Lokalise" to manage translations.
 
 See: [lokalise.md](./lokalise.md)
+
+## Release notes
+
+We have a release note template: [release-notes.md](./templates/release-notes.md)
+
+We have release notes for various releases [here](./release-notes).
+
+## Way of working
+
+We have documents about how we do certain things. For now just one:
+
+See: [definition-of-done.md](./wow/definition-of-done.md)
+
+## Chores
+
+We have various re-occuring chores, but currently just one documented:
+
+See: [update-rust.md](./chores/update-rust.md)
