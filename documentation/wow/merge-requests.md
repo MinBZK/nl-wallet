@@ -25,7 +25,7 @@ and how we do a so-called MR review.
    items is not applicable to this MR. To assist the reviewer, you can
    use ~~strikethrough~~ on a list item below to indicate that that
    specific item is not relevant to this MR (i.e., don't delete the
-   line, but use strikethrough instead).*
+   line, but use strikethrough instead).
 
 4. As the assignee of the MR, you implement the work in accordance
    with the definition of done; as a reviewer of the MR, you verify
