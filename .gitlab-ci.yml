@@ -2,15 +2,17 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci:250204-3b5b7341"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-base:${BUILD_TAG}"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
+  FASTLANE_OPT_OUT_USAGE: "YES"
   FF_USE_FASTZIP: "true"
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
+  BUILD_TAG: 250210-7e6e8178
 
 .env-ont:
   environment:
