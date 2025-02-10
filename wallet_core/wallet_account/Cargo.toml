@@ -10,9 +10,15 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "registration"
+path = "tests/registration.rs"
+required-features = ["integration_test"]
+
 [features]
 client = ["dep:futures", "dep:p256", "dep:thiserror", "dep:error_category"]
 server = ["dep:p256", "dep:thiserror", "dep:apple_app_attest"]
+integration_test = ["client", "server", "dep:rustls-pki-types", "dep:android_attest"]
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
@@ -25,18 +31,17 @@ wallet_common.path = "../wallet_common"
 futures = { workspace = true, optional = true, features = ["std"] }
 p256 = { workspace = true, optional = true, features = ["ecdsa", "pem", "std"] }
 thiserror = { workspace = true, optional = true }
+rustls-pki-types = { workspace = true, optional = true }
 
+android_attest = { path = "../android_attest", optional = true, features = ["mock"] }
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 error_category = { path = "../error_category", optional = true }
 
 [dev-dependencies]
-anyhow.workspace = true
 assert_matches.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
-rustls-pki-types.workspace = true
 tokio = { workspace = true, features = ["macros", "parking_lot"] }
 
-android_attest = { path = "../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
 wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_apple_attested_key"] }

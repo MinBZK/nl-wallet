@@ -5867,6 +5867,7 @@ dependencies = [
  "url",
  "uuid",
  "wallet",
+ "wallet_account",
  "wallet_common",
  "wallet_provider",
  "wallet_provider_persistence",
@@ -6730,7 +6731,6 @@ name = "wallet_account"
 version = "0.3.0-dev"
 dependencies = [
  "android_attest",
- "anyhow",
  "apple_app_attest",
  "assert_matches",
  "error_category",
