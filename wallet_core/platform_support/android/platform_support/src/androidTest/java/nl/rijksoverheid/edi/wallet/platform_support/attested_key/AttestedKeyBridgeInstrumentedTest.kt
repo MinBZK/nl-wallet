@@ -1,7 +1,6 @@
 package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 
 import android.security.keystore.KeyProperties
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -40,6 +39,7 @@ import java.security.spec.X509EncodedKeySpec
 class AttestedKeyBridgeInstrumentedTest {
     companion object {
         const val CHALLENGE: String = "test-challenge"
+        const val GOOGLE_CLOUD_PROJECT_ID: ULong = 0u
 
         @JvmStatic
         external fun attested_key_test()
@@ -93,7 +93,7 @@ class AttestedKeyBridgeInstrumentedTest {
         val challenge = CHALLENGE.toByteArray().toUByteList()
 
         // Generate a new key using `attest`
-        val attestationData = attestedKeyBridge.attest(id, challenge)
+        val attestationData = attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
 
         // Note: Below we check the appAttestationToken. The current assumption is that the data is opaque. but
         // https://developer.android.com/google/play/integrity/standard#protect-requests seems to hint that you
@@ -124,11 +124,11 @@ class AttestedKeyBridgeInstrumentedTest {
         val id = "id"
         val challenge = CHALLENGE.toByteArray().toUByteList()
 
-        attestedKeyBridge.attest(id, challenge)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
         assertFails<AttestedKeyException.Other>(
             "reason=precondition failed: A key already exists with alias: `ecdsa_id`"
         ) {
-            attestedKeyBridge.attest(id, challenge)
+            attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
         }
     }
 
@@ -143,7 +143,7 @@ class AttestedKeyBridgeInstrumentedTest {
         }
 
         // Generate new key via `attest`
-        attestedKeyBridge.attest(id, challenge)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
 
         // Verify public key for 'id' does exist
         val publicKeyBytes = attestedKeyBridge.publicKey(id).toByteArray()
@@ -182,7 +182,7 @@ class AttestedKeyBridgeInstrumentedTest {
         val valueToSign = "value to sign".toByteArray().toUByteList()
 
         // Generate a new key
-        attestedKeyBridge.attest(id, challenge)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
 
         // Sign the valueToSign
         val signature = attestedKeyBridge.sign(id, valueToSign)
@@ -235,7 +235,7 @@ class AttestedKeyBridgeInstrumentedTest {
 }
 
 
-private suspend inline fun <reified T> assertFails(
+private inline fun <reified T> assertFails(
     expectedMessage: String? = null,
     crossinline block: suspend () -> Unit
 ) {

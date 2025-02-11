@@ -143,6 +143,7 @@ pub trait AttestedKeyHolder {
         &self,
         key_identifier: String,
         challenge: Vec<u8>,
+        google_cloud_project_id: u64,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>>;
 
     /// This returns an instance of a key. It is meant to be used after the key has been attested, but

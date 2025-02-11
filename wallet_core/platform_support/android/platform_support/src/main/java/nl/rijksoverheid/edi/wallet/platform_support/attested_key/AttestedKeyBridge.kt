@@ -46,27 +46,29 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
      */
     @OptIn(ExperimentalUnsignedTypes::class)
     @Throws(AttestedKeyException::class)
-    override suspend fun attest(identifier: String, challenge: List<UByte>): AttestationData = withContext(Dispatchers.IO) {
+    override suspend fun attest(identifier: String, challenge: List<UByte>, googleCloudProjectId: ULong): AttestationData = withContext(Dispatchers.IO) {
 
-        Log.d(this::class.qualifiedName, "attest: beginning app and key attestation process")
+        Log.d("attest", "beginning app and key attestation process")
 
         // Configure cloud project number, initialize manager and token provider request.
-        // TODO: Don't hardcode cloud project identifier but obtain it from configuration
         // TODO: Handle non-existent or erronuous cloud project identifier numbers
-        val cloudProjectId = 12143997365
+
+
+        Log.d("attest", "initializing using google cloud project id: $googleCloudProjectId")
+
         val integrityManager = IntegrityManagerFactory.createStandard(context.applicationContext)
         val integrityTokenProviderRequest =
-            PrepareIntegrityTokenRequest.builder().setCloudProjectNumber(cloudProjectId).build()
+            PrepareIntegrityTokenRequest.builder().setCloudProjectNumber(googleCloudProjectId.toLong()).build()
 
         // Execute integrity token provider request, await result, fill integrityTokenProvider.
         var integrityTokenProvider: StandardIntegrityTokenProvider = Tasks.await(
             integrityManager.prepareIntegrityToken(integrityTokenProviderRequest)
                 .addOnSuccessListener { response ->
-                    Log.d(this::class.qualifiedName, "attest: configured integrity token provider")
+                    Log.d("attest", "configured integrity token provider")
                 }
                 .addOnFailureListener { exception ->
                     // TODO: Consider throwing AttestedAppException.SomethingWithProvider equivalent here
-                    Log.e(this::class.qualifiedName, exception.message ?: "there was no exception message")
+                    Log.e("attest", exception.message ?: "there was no exception message")
                 }
         )
 
@@ -74,11 +76,11 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(challenge.toUByteArray().contentToString()).build()
         val integrityToken: StandardIntegrityToken = Tasks.await (integrityTokenProvider.request(integrityTokenRequest)
             .addOnSuccessListener { response ->
-                Log.i(this::class.qualifiedName, "attest: received an integrity token")
+                Log.i("attest", "received an integrity token")
             }
             .addOnFailureListener { exception ->
                 // TODO: Consider throwing AttestedAppException.SomethingWithToken equivalent here
-                Log.e(this::class.qualifiedName, exception.message ?: "there was no exception message")
+                Log.e("attest", exception.message ?: "there was no exception message")
             }
         )
 
@@ -95,7 +97,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             try {
                 delete(identifier)
             } catch (ex: Exception) {
-                Log.w(this::class.qualifiedName, "attest: failed to delete key with id '$identifier'", ex)
+                Log.w("attest", "failed to delete key with id '$identifier'", ex)
             }
             when (e) {
                 is AttestedKeyException -> throw e
