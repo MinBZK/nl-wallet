@@ -179,8 +179,7 @@ impl MockAttributesLookup {
 }
 
 pub fn mock_pid_metadata() -> TypeMetadata {
-    let json = json!(
-        {
+    let json = json!({
       "vct": "com.example.pid",
       "name": "NL Wallet PID credential",
       "description": "Working version of the NL Wallet PID credential",
