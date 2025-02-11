@@ -57,7 +57,7 @@ impl VerifiedIntegrityVerdict {
     pub fn verify(
         integrity_verdict: IntegrityVerdict,
         package_name: &str,
-        request_hash: &[u8],
+        request_hash: &str,
         verify_play_store: &VerifyPlayStore,
     ) -> Result<Self, IntegrityVerdictVerificationError> {
         Self::verify_with_time(
@@ -72,7 +72,7 @@ impl VerifiedIntegrityVerdict {
     pub fn verify_with_time(
         integrity_verdict: IntegrityVerdict,
         package_name: &str,
-        request_hash: &[u8],
+        request_hash: &str,
         verify_play_store: &VerifyPlayStore,
         time: DateTime<Utc>,
     ) -> Result<Self, IntegrityVerdictVerificationError> {
@@ -165,7 +165,7 @@ mod tests {
         VerifiedIntegrityVerdict::verify_with_time(
             integrity_verdict,
             "com.package.name",
-            b"hello wolrd there",
+            "aGVsbG8gd29scmQgdGhlcmU",
             &match verify_play_store {
                 false => VerifyPlayStore::NoVerify,
                 true => VerifyPlayStore::Verify {
@@ -193,12 +193,12 @@ mod tests {
     #[test]
     fn test_verified_integrity_verdict_mock() {
         let package_name = "com.package.mock";
-        let request_hash = b"request_hash";
+        let request_hash = "request_hash";
 
         VerifiedIntegrityVerdict::verify(
             IntegrityVerdict::new_mock(
                 package_name.to_string(),
-                request_hash.to_vec(),
+                request_hash.to_string(),
                 VerifyPlayStore::NoVerify,
             ),
             package_name,
@@ -214,7 +214,7 @@ mod tests {
         VerifiedIntegrityVerdict::verify(
             IntegrityVerdict::new_mock(
                 package_name.to_string(),
-                request_hash.to_vec(),
+                request_hash.to_string(),
                 verify_play_store.clone(),
             ),
             package_name,
@@ -243,7 +243,7 @@ mod tests {
     #[rstest]
     fn test_verified_integrity_verdict_request_hash_mismatch_error(#[values(true, false)] verify_play_store: bool) {
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.request_details.request_hash = b"different_hash".to_vec();
+        verdict.request_details.request_hash = "different_hash".to_string();
 
         let error =
             verify_example_verdict(verdict, verify_play_store).expect_err("integrity verdict should not verify");

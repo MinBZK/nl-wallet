@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 
+use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::try_join;
@@ -519,7 +520,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 let _ = VerifiedIntegrityVerdict::verify_with_time(
                     integrity_verdict,
                     &self.android_config.package_name,
-                    &challenge_hash,
+                    &BASE64_STANDARD.encode(&challenge_hash),
                     &self.android_config.verify_play_store,
                     attestation_timestamp,
                 )
@@ -1049,7 +1050,6 @@ pub mod mock {
     use std::collections::HashSet;
     use std::sync::LazyLock;
 
-    use base64::prelude::*;
     use p256::ecdsa::SigningKey;
 
     use android_attest::mock_chain::MockCaChain;
@@ -1114,11 +1114,12 @@ pub mod mock {
                 return Err(MockPlayIntegrityClientError {});
             }
 
-            // For testing, assume the integrity token simply contains the Base64 encoded request hash.
-            let request_hash = BASE64_STANDARD_NO_PAD.decode(integrity_token).unwrap();
-
-            let verdict =
-                IntegrityVerdict::new_mock(self.package_name.clone(), request_hash, self.verify_play_store.clone());
+            // For testing, assume that the mock integrity token simply equals the request hash.
+            let verdict = IntegrityVerdict::new_mock(
+                self.package_name.clone(),
+                integrity_token.to_string(),
+                self.verify_play_store.clone(),
+            );
             let json = serde_json::to_string(&verdict).unwrap();
 
             Ok((verdict, json))
@@ -1363,7 +1364,7 @@ mod tests {
                 (registration_message, MockHardwareKey::Apple(attested_key))
             }
             AttestationCa::Google(android_mock_ca_chain) => {
-                let integrity_token = BASE64_STANDARD_NO_PAD.encode(&challenge_hash);
+                let integrity_token = BASE64_STANDARD.encode(&challenge_hash);
                 let key_description = KeyDescription::new_valid_mock(challenge_hash);
 
                 let (attested_certificate_chain, attested_private_key) =

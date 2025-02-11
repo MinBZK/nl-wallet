@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
-use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::TimestampMilliSeconds;
@@ -30,8 +29,7 @@ pub struct IntegrityVerdict {
 #[serde(rename_all = "camelCase")]
 pub struct RequestDetails {
     pub request_package_name: String,
-    #[serde_as(as = "Base64")]
-    pub request_hash: Vec<u8>,
+    pub request_hash: String,
     #[serde(rename = "timestampMillis")]
     #[serde_as(as = "TimestampMilliSeconds<String>")]
     pub timestamp: DateTime<Utc>,
@@ -200,7 +198,7 @@ mod mock {
     use super::*;
 
     impl IntegrityVerdict {
-        pub fn new_mock(package_name: String, request_hash: Vec<u8>, verify_play_store: VerifyPlayStore) -> Self {
+        pub fn new_mock(package_name: String, request_hash: String, verify_play_store: VerifyPlayStore) -> Self {
             let (app_integrity, account_details) = match verify_play_store {
                 VerifyPlayStore::NoVerify => (
                     AppIntegrity {

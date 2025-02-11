@@ -323,9 +323,9 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
             }
             #[cfg(feature = "mock_attested_key_google")]
             KeyHolderType::Google { ca_chain } => {
-                // The token is simply the Base64 encoded challenge hash, which can then be decoded by
+                // The token is simply the Base64 encoded challenge hash, which can then be used by
                 // a mock Play Integrity implementation in order to generate an integrity verdict.
-                let app_attestation_token = BASE64_STANDARD_NO_PAD.encode(&challenge).into_bytes();
+                let app_attestation_token = BASE64_STANDARD.encode(&challenge).into_bytes();
 
                 let key_description = KeyDescription::new_valid_mock(challenge);
 

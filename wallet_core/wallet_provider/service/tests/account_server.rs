@@ -79,7 +79,7 @@ async fn do_registration(
             (registration_message, MockHardwareKey::Apple(attested_key))
         }
         AttestationCa::Google(android_mock_ca_chain) => {
-            let integrity_token = BASE64_STANDARD_NO_PAD.encode(&challenge_hash);
+            let integrity_token = BASE64_STANDARD.encode(&challenge_hash);
             let key_description = KeyDescription::new_valid_mock(challenge_hash);
             let (attested_certificate_chain, attested_private_key) =
                 android_mock_ca_chain.generate_attested_leaf_certificate(&key_description);
