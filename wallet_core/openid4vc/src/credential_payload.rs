@@ -26,6 +26,13 @@ pub enum CredentialPayloadError {
     #[category(pd)]
     NamespaceStripping { namespace: String, key: String },
 
+    #[error(
+        "The namespace is required to consist of nested group names, joined by a '.' and prefixed with the \
+         attestation_type. Actual namespace: '{namespace}' and doc_type: '{doc_type}'"
+    )]
+    #[category(pd)]
+    NamespacePreconditionFailed { namespace: String, doc_type: String },
+
     #[error("unable to convert mdoc TDate to DateTime<Utc>")]
     #[category(critical)]
     DateConversion(#[from] ParseError),
@@ -159,7 +166,7 @@ impl CredentialPayload {
             if namespace == doc_type {
                 Self::insert_entries(entries, result)?;
             } else {
-                let mut groups: VecDeque<String> = Self::split_namespace(namespace, doc_type).into();
+                let mut groups: VecDeque<String> = Self::split_namespace(namespace, doc_type)?.into();
                 Self::traverse_groups(entries, &mut groups, result)?;
             }
         }
@@ -225,18 +232,20 @@ impl CredentialPayload {
         Ok(())
     }
 
-    fn split_namespace(namespace: &str, doc_type: &str) -> Vec<String> {
-        assert!(
-            namespace.starts_with(doc_type),
-            "The namespace is required to consist of nested group names, joined by a '.' and prefixed with the \
-             attestation_type"
-        );
-
-        if namespace.len() == doc_type.len() {
-            return vec![];
+    fn split_namespace(namespace: &str, doc_type: &str) -> Result<Vec<String>, CredentialPayloadError> {
+        if !namespace.starts_with(doc_type) {
+            return Err(CredentialPayloadError::NamespacePreconditionFailed {
+                namespace: String::from(namespace),
+                doc_type: String::from(doc_type),
+            });
         }
 
-        namespace[doc_type.len() + 1..].split('.').map(String::from).collect()
+        if namespace.len() == doc_type.len() {
+            return Ok(vec![]);
+        }
+
+        let parts = namespace[doc_type.len() + 1..].split('.').map(String::from).collect();
+        Ok(parts)
     }
 }
 
@@ -264,7 +273,7 @@ mod test {
     fn test_split_namespace(#[case] expected: Vec<&str>, #[case] namespace: &str, #[case] doc_type: &str) {
         assert_eq!(
             expected.into_iter().map(String::from).collect::<Vec<_>>(),
-            CredentialPayload::split_namespace(namespace, doc_type)
+            CredentialPayload::split_namespace(namespace, doc_type).unwrap()
         );
     }
 
