@@ -2,9 +2,11 @@ use std::mem;
 use std::sync::Arc;
 
 use http::header;
+use http::uri::InvalidUri;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Uri;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use p256::ecdsa::signature;
 use tracing::info;
 use tracing::instrument;
@@ -128,6 +130,12 @@ pub enum PidIssuanceError {
     #[error("error converting credential payload to attestation: {0}")]
     #[category(critical)]
     Attestation(#[from] AttestationError),
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
+    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
+    UnexpectedIssuerCommonNameCount(usize),
+    #[error("invalid common name: {0}")]
+    InvalidCommonName(InvalidUri),
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -311,13 +319,24 @@ where
                     CredentialPreview::MsoMdoc {
                         unsigned_mdoc,
                         metadata_chain,
+                        issuer_certificate,
                         ..
                     } => {
                         let (metadata, _) = metadata_chain.verify_and_destructure()?;
                         // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
+                        let issuer_common_names = issuer_certificate.common_names()?;
+                        let issuer_common_name = match issuer_common_names.len() {
+                            1 => issuer_common_names
+                                .first()
+                                .unwrap()
+                                .parse()
+                                .map_err(PidIssuanceError::InvalidCommonName)?,
+                            n => return Err(PidIssuanceError::UnexpectedIssuerCommonNameCount(n).into()),
+                        };
+
                         let credential_payload =
-                            CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                            CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, issuer_common_name)?;
                         let attestation = Attestation::from_credential_payload(
                             AttestationIdentity::Ephemeral,
                             credential_payload,
