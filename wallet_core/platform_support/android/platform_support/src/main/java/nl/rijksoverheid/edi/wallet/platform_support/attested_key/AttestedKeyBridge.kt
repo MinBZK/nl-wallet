@@ -14,12 +14,15 @@ import kotlinx.coroutines.withContext
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
+import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import uniffi.platform_support.AttestationData
 import uniffi.platform_support.AttestedKeyException
 import uniffi.platform_support.AttestedKeyType
 import uniffi.platform_support.KeyStoreException
 import java.util.UUID
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import uniffi.platform_support.AttestedKeyBridge as RustAttestedKeyBridge
 
 // Note this prefix is almost the same as [SigningKeyBridge.SIGN_KEY_PREFIX], however this one ends with a hyphen '-'.
@@ -44,7 +47,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
      * to re-invoke this method with the same [identifier], which will fail. This behavior however is implemented specifically for
      * Apple app/key attestation.
      */
-    @OptIn(ExperimentalUnsignedTypes::class)
+    @OptIn(ExperimentalUnsignedTypes::class, ExperimentalEncodingApi::class)
     @Throws(AttestedKeyException::class)
     override suspend fun attest(identifier: String, challenge: List<UByte>, googleCloudProjectId: ULong): AttestationData = withContext(Dispatchers.IO) {
 
@@ -73,7 +76,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         )
 
         // Execute integrity token request using provider.
-        val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(challenge.toUByteArray().contentToString()).build()
+        val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(Base64.Default.encode(challenge.toByteArray())).build()
         val integrityToken: StandardIntegrityToken = Tasks.await (integrityTokenProvider.request(integrityTokenRequest)
             .addOnSuccessListener { response ->
                 Log.i("attest", "received an integrity token")
