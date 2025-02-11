@@ -46,6 +46,11 @@ export GBA_HC_CONV_ENCRYPTION_KEY
 GBA_HC_CONV_HMAC_KEY=$(openssl rand -hex 64)
 export GBA_HC_CONV_HMAC_KEY
 
+# Google Cloud Project ID for Play Integrity. This number is not secret, it's a
+# test throw-away project on one of our Google Cloud accounts. Note that this
+# project is for testing purposes only, not production use.
+GOOGLE_CLOUD_PROJECT_ID=12143997365
+
 # Database properties for the wallet_provider, with defaults.
 # The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.
 # Set these properties before executing this script
