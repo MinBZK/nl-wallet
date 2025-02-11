@@ -49,6 +49,11 @@
     "vue": "^3.2.25",
     "vue-tsc": "^2.0.16"
   },
+  "overrides": {
+    "vite": {
+      "esbuild": "^0.25.0"
+    }
+  },
   "bundleDependencies": [
     "axios",
     "vue"

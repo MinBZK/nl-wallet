@@ -149,8 +149,12 @@ run-automation-smoke-test-ont:
       -Dfile.encoding=UTF-8
   variables: !reference [.run-automation-tests-default, variables]
 
-run-mrp-browsertest-test-ont:
+.run-browsertest-common:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
   extends: .env-ont-k8s
+
+run-mrp-browsertest-test-ont:
+  extends: .run-browsertest-common
   rules:
     - !reference [.default-branch, rules]
   needs:
@@ -175,7 +179,7 @@ run-mrp-browsertest-test-ont:
   allow_failure: false
 
 run-gba-fetch-browsertest-test-ont:
-  extends: .env-ont-k8s
+  extends: .run-browsertest-common
   rules:
     - !reference [.on-schedule, rules]
     - !reference [.on-web-trigger, rules]
@@ -208,7 +212,7 @@ run-gba-fetch-browsertest-test-ont:
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
-  extends: .env-ont-k8s
+  extends: [.rust, .env-ont-k8s]
   needs:
     - job: deploy-mock-relying-party-ont
       artifacts: false
