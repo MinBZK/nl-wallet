@@ -650,10 +650,10 @@ pub(crate) mod tests {
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+    use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
     use wallet_account::messages::registration::WalletCertificate;
-    use wallet_common::keys::mock_hardware::MockHardwareEncryptionKey;
     use wallet_common::utils::random_bytes;
 
     use crate::storage::data::RegistrationData;

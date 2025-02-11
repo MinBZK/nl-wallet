@@ -12,7 +12,6 @@ use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::EncryptionKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::keys::SecureEncryptionKey;
-use wallet_common::keys::StoredByIdentifier;
 use wallet_common::keys::WithIdentifier;
 use wallet_common::spawn;
 
@@ -23,6 +22,7 @@ use super::HardwareKeyStoreError;
 use super::KeyStoreError;
 use super::PlatformEcdsaKey;
 use super::PlatformEncryptionKey;
+use super::StoredByIdentifier;
 
 /// A static hash map of sets that contains all the identifiers for which an instance
 /// of that type currently exists within the application, keyed by the type's `TypeId`.

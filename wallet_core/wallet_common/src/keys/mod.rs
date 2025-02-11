@@ -15,12 +15,8 @@ pub mod poa;
 
 #[cfg(feature = "examples")]
 pub mod examples;
-#[cfg(feature = "mock_hardware_keys")]
-pub mod mock_hardware;
 #[cfg(any(test, feature = "mock_remote_key"))]
 pub mod mock_remote;
-#[cfg(any(test, feature = "integration_test"))]
-pub mod test;
 
 #[trait_variant::make(EcdsaKeySend: Send)]
 pub trait EcdsaKey {
@@ -97,35 +93,6 @@ impl EncryptionKey for Aes256Gcm {
 /// This trait is included with keys that are uniquely identified by a string.
 pub trait WithIdentifier {
     fn identifier(&self) -> &str;
-}
-
-/// This trait is implemented on keys that are stored in a particular backing store,
-/// such as Android's TEE/StrongBox or Apple's SE. These keys can be constructed by
-/// an identifier, with the guarantee that only one instance can exist per identifier
-/// in the entire process. If the key exists within the backing store, it will be
-/// retrieved on first use, otherwise a random key will be created.
-///
-/// The key can be deleted from the backing store by a method that consumes the type.
-/// If the type is simply dropped, it will remain in the backing store.
-///
-/// The limitation of having only one instance per identifier codifies that there is
-/// only ever one owner of this key. If multiple instances with the same identifier
-/// could be created, this could lead to undefined behaviour when the owner of one
-/// of the types deletes the backing store key.
-///
-/// NB: Any type that implements `StoredByIdentifier` should probably not implement
-///     `Clone`, as this would circumvent the uniqueness of the instance.
-pub trait StoredByIdentifier: WithIdentifier {
-    type Error: Error + Send + Sync + 'static;
-
-    /// Creates a unique instance with the specified identifier. If an instance
-    /// already exist with this identifier, `None` will be returned.
-    fn new_unique(identifier: &str) -> Option<Self>
-    where
-        Self: Sized;
-
-    /// Delete the key from the backing store and consume the type.
-    async fn delete(self) -> Result<(), Self::Error>;
 }
 
 /// Contract for ECDSA private keys suitable for credentials.

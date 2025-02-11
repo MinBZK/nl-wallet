@@ -3974,6 +3974,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.3.0-dev"
 dependencies = [
+ "aes-gcm",
  "android_attest",
  "android_logger 0.14.1",
  "apple_app_attest",

@@ -1,7 +1,6 @@
-use wallet_common::keys::test;
-
 use crate::hw_keystore::hardware::HardwareEcdsaKey;
 use crate::hw_keystore::hardware::HardwareEncryptionKey;
+use crate::hw_keystore::test;
 
 // this is the starting point for the ECDSA key integration test performed from Android / iOS.
 #[no_mangle]

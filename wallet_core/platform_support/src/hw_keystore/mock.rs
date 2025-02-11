@@ -13,12 +13,14 @@ use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use crate::keys::WithIdentifier;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::EncryptionKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::SecureEncryptionKey;
+use wallet_common::keys::WithIdentifier;
 
-use super::EcdsaKey;
-use super::EncryptionKey;
-use super::SecureEcdsaKey;
-use super::SecureEncryptionKey;
+use super::PlatformEcdsaKey;
+use super::PlatformEncryptionKey;
 use super::StoredByIdentifier;
 
 // Static for storing identifier to signing key mapping.
@@ -106,6 +108,8 @@ impl StoredByIdentifier for MockHardwareEcdsaKey {
     }
 }
 
+impl PlatformEcdsaKey for MockHardwareEcdsaKey {}
+
 /// To be used in tests in place of `HardwareEncryptionKey`. It implements the [`EncryptionKey`],
 /// [`SecureEncryptionKey`], [`WithIdentifier`] and [`StoredByIdentifier`] traits, mocking
 /// the behaviour of keys that are stored in secure hardware on a device.
@@ -191,11 +195,13 @@ impl StoredByIdentifier for MockHardwareEncryptionKey {
     }
 }
 
+impl PlatformEncryptionKey for MockHardwareEncryptionKey {}
+
 #[cfg(test)]
 mod tests {
-    use crate::keys::mock_hardware::MockHardwareEcdsaKey;
-    use crate::keys::mock_hardware::MockHardwareEncryptionKey;
-    use crate::keys::test;
+    use super::super::test;
+    use super::MockHardwareEcdsaKey;
+    use super::MockHardwareEncryptionKey;
 
     #[tokio::test]
     async fn test_mock_hardware_signature() {

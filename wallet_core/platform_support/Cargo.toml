@@ -12,8 +12,8 @@ crate-type = ["staticlib", "cdylib", "lib"]
 doctest = false
 
 [features]
-# Implement the platform key traits on mock hardware key types from `wallet_common`
-mock_hw_keystore = ["wallet_common/mock_hardware_keys"]
+# Implement the mock hardware key types
+mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
 # Include the MockHardwareAttestedKeyHolder type for use in Apple tests
 mock_attested_key_apple = [
     "dep:apple_app_attest",
@@ -63,7 +63,6 @@ hardware_integration_test = [
     "tokio/rt",
     "android_attest/allow_emulator_keys",
     "apple_app_attest/xcode_env",
-    "wallet_common/integration_test",
 ]
 
 [dependencies]
@@ -74,6 +73,7 @@ parking_lot.workspace = true
 thiserror.workspace = true
 uniffi.workspace = true
 
+aes-gcm = { workspace = true, optional = true, features = ["std"] }
 cfg-if = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std"] }
 log = { workspace = true, optional = true }

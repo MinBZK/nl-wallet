@@ -2,8 +2,9 @@ use std::mem;
 
 use p256::ecdsa::signature::Verifier;
 
-use super::SecureEcdsaKey;
-use super::SecureEncryptionKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::keys::SecureEncryptionKey;
+
 use super::StoredByIdentifier;
 
 // This utility function is used both by the Rust unit tests for the "mock_hardware_keys" feature

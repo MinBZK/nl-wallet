@@ -25,12 +25,8 @@ mock_secure_keys = []
 mock_time = ["dep:parking_lot"]
 # Include MockAppleAttestedKey for generating Apple assertions in tests.
 mock_apple_attested_key = ["apple_app_attest/mock", "dep:rand_core"]
-# Include MockHardwareEcdsaKey and MockHardwareEncryptionKey for use in tests
-mock_hardware_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
 mock_remote_key = ["dep:parking_lot", "dep:rand_core"]
-# Enable helper code for integration tests
-integration_test = []
 # Various test related functionality
 insecure_http_client = []
 

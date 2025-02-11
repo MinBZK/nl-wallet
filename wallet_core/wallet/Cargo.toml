@@ -100,7 +100,6 @@ sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_account", features = ["client", "server"] }
 wallet_common = { path = "../wallet_common", features = [
     "mock_secure_keys",
-    "mock_hardware_keys",
     "mock_remote_key",
     "insecure_http_client",
 ] }
