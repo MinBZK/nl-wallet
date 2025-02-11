@@ -35,7 +35,6 @@ pub enum RegistrationAttestation {
         data: Vec<u8>,
     },
     Google {
-        // TODO: Consider using `BorrowingCertificate` here when it becomes available.
         #[serde_as(as = "Vec<Base64>")]
         certificate_chain: VecAtLeastTwo<Vec<u8>>,
         #[serde_as(as = "Base64")]
