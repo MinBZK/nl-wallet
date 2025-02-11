@@ -4,14 +4,14 @@ use reqwest::StatusCode;
 use url::ParseError;
 
 use error_category::ErrorCategory;
-use wallet_account::messages::registration::Registration;
-use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResult;
+use wallet_account::messages::registration::Registration;
+use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 use wallet_common::config::http::TlsPinningConfig;
 
