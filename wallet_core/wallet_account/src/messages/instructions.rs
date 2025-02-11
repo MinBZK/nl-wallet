@@ -192,7 +192,7 @@ mod client {
     use serde::de::DeserializeOwned;
     use serde::Serialize;
 
-    use wallet_common::apple::AppleAttestedKey;
+    use platform_support::attested_key::AppleAttestedKey;
     use wallet_common::keys::EphemeralEcdsaKey;
     use wallet_common::keys::SecureEcdsaKey;
 

@@ -68,7 +68,7 @@ pub mod test;
 
 use std::error::Error;
 
-use wallet_common::apple::AppleAttestedKey;
+use wallet_common::keys::AppleAssertion;
 use wallet_common::keys::SecureEcdsaKey;
 
 /// Wrapper for errors encountered during attestation that includes a boolean to indicate
@@ -151,6 +151,15 @@ pub trait AttestedKeyHolder {
     /// Only one instance can exist within the process, an error is returned if a second one is created.
     fn attested_key(&self, key_identifier: String)
         -> Result<AttestedKey<Self::AppleKey, Self::GoogleKey>, Self::Error>;
+}
+
+/// Trait for an Apple attested key. Note that [`SecureEcdsaKey`] is not
+/// a supertrait, since signing does not produce an ECDSA signature.
+pub trait AppleAttestedKey {
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    /// Generate an Apple assertion using the attested key, which returns the [`AppleAssertion`] newtype.
+    async fn sign(&self, payload: Vec<u8>) -> Result<AppleAssertion, Self::Error>;
 }
 
 /// Trait for a Google attested key, which includes all methods contained in [`SecureEcdsaKey`].

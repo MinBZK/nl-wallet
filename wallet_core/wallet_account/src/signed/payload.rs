@@ -46,7 +46,7 @@ pub struct ChallengeResponse<T>(SignedMessage<SignedSubjectMessage<ChallengeResp
 pub mod client {
     use serde::Serialize;
 
-    use wallet_common::apple::AppleAttestedKey;
+    use platform_support::attested_key::AppleAttestedKey;
     use wallet_common::keys::EphemeralEcdsaKey;
     use wallet_common::keys::SecureEcdsaKey;
 
@@ -379,7 +379,7 @@ mod tests {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
-    use wallet_common::apple::MockAppleAttestedKey;
+    use platform_support::attested_key::mock::MockAppleAttestedKey;
     use wallet_common::utils;
 
     use crate::error::DecodeError;

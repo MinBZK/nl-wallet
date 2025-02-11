@@ -16,7 +16,7 @@ path = "tests/registration.rs"
 required-features = ["integration_test"]
 
 [features]
-client = ["dep:futures", "dep:p256", "dep:thiserror", "dep:error_category"]
+client = ["dep:futures", "dep:p256", "dep:thiserror", "dep:platform_support", "dep:error_category"]
 server = ["dep:p256", "dep:thiserror", "dep:apple_app_attest"]
 integration_test = ["client", "server", "dep:rustls-pki-types", "dep:android_attest"]
 
@@ -35,6 +35,7 @@ rustls-pki-types = { workspace = true, optional = true }
 
 android_attest = { path = "../android_attest", optional = true, features = ["mock"] }
 apple_app_attest = { path = "../apple_app_attest", optional = true }
+platform_support = { path = "../platform_support", optional = true }
 error_category = { path = "../error_category", optional = true }
 
 [dev-dependencies]
@@ -44,4 +45,5 @@ rand_core.workspace = true
 rstest.workspace = true
 
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
-wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_apple_attested_key"] }
+platform_support = { path = "../platform_support", features = ["mock_attested_key_apple"] }
+wallet_common = { path = "../wallet_common", features = ["mock_secure_keys"] }

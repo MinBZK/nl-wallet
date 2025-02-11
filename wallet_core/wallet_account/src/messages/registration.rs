@@ -72,7 +72,7 @@ impl JwtSubject for WalletCertificateClaims {
 mod client {
     use futures::TryFutureExt;
 
-    use wallet_common::apple::AppleAttestedKey;
+    use platform_support::attested_key::AppleAttestedKey;
     use wallet_common::keys::EphemeralEcdsaKey;
     use wallet_common::keys::SecureEcdsaKey;
     use wallet_common::p256_der::DerVerifyingKey;

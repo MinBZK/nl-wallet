@@ -976,7 +976,7 @@ pub mod mock {
     use std::sync::LazyLock;
 
     use apple_app_attest::MockAttestationCa;
-    use wallet_common::apple::MockAppleAttestedKey;
+    use platform_support::attested_key::mock::MockAppleAttestedKey;
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -1146,6 +1146,7 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
+    use platform_support::attested_key::mock::MockAppleAttestedKey;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
@@ -1155,7 +1156,6 @@ mod tests {
     use wallet_account::messages::instructions::InstructionResult;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
-    use wallet_common::apple::MockAppleAttestedKey;
     use wallet_common::generator::Generator;
     use wallet_common::jwt::EcdsaDecodingKey;
     use wallet_common::keys::EcdsaKey;

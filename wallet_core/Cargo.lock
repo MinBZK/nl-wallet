@@ -6737,6 +6737,7 @@ dependencies = [
  "error_category",
  "futures",
  "p256",
+ "platform_support",
  "rand_core",
  "rstest",
  "rustls-pki-types",
@@ -6775,7 +6776,6 @@ version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
- "apple_app_attest",
  "assert_matches",
  "axum",
  "axum-server",
@@ -6937,6 +6937,7 @@ dependencies = [
  "jsonwebtoken",
  "nl_wallet_mdoc",
  "p256",
+ "platform_support",
  "r2d2-cryptoki",
  "rand",
  "rand_core",

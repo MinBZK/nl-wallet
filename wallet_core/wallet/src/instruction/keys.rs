@@ -8,12 +8,12 @@ use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
+use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Sign;
-use wallet_common::apple::AppleAttestedKey;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::CredentialEcdsaKey;

@@ -23,8 +23,6 @@ examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
 mock_secure_keys = []
 # Include MockTimeGenerator
 mock_time = ["dep:parking_lot"]
-# Include MockAppleAttestedKey for generating Apple assertions in tests.
-mock_apple_attested_key = ["apple_app_attest/mock", "dep:rand_core"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
 mock_remote_key = ["dep:parking_lot", "dep:rand_core"]
 # Various test related functionality
@@ -39,7 +37,7 @@ derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"]
 etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
-indexmap.workspace = true
+indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true
@@ -72,7 +70,6 @@ parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = ["cors"] }
 
-apple_app_attest.path = "../apple_app_attest"
 error_category.path = "../error_category"
 
 [build-dependencies]
@@ -84,5 +81,3 @@ parking_lot.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
-
-apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
