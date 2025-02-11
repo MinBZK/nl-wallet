@@ -9,13 +9,11 @@ import com.google.android.play.core.integrity.StandardIntegrityManager.PrepareIn
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityToken
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenProvider
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenRequest
-import com.google.common.hash.Hashing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
-import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
 import uniffi.platform_support.AttestationData
 import uniffi.platform_support.AttestedKeyException
@@ -46,14 +44,11 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
      * to re-invoke this method with the same [identifier], which will fail. This behavior however is implemented specifically for
      * Apple app/key attestation.
      */
+    @OptIn(ExperimentalUnsignedTypes::class)
     @Throws(AttestedKeyException::class)
     override suspend fun attest(identifier: String, challenge: List<UByte>): AttestationData = withContext(Dispatchers.IO) {
 
         Log.d(this::class.qualifiedName, "attest: beginning app and key attestation process")
-
-        // Create a sha256 request hash from the challenge.
-        @Suppress("UnstableApiUsage")
-        val requestHash: String = Hashing.sha256().newHasher().putBytes(challenge.toByteArray()).hash().toString()
 
         // Configure cloud project number, initialize manager and token provider request.
         // TODO: Don't hardcode cloud project identifier but obtain it from configuration
@@ -76,7 +71,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         )
 
         // Execute integrity token request using provider.
-        val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(requestHash).build()
+        val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(challenge.toUByteArray().contentToString()).build()
         val integrityToken: StandardIntegrityToken = Tasks.await (integrityTokenProvider.request(integrityTokenRequest)
             .addOnSuccessListener { response ->
                 Log.i(this::class.qualifiedName, "attest: received an integrity token")
