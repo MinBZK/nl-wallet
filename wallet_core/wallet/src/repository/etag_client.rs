@@ -11,9 +11,9 @@ use parking_lot::Mutex;
 use tokio::fs;
 
 use wallet_common::reqwest::RequestBuilder;
-use wallet_common::urls::Filename;
 
 use super::FileStorageError;
+use super::Filename;
 use super::HttpClient;
 use super::HttpClientError;
 use super::HttpResponse;

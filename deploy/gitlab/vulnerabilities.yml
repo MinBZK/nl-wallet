@@ -1,4 +1,5 @@
 dependency-check:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .env-ont-k8s
   rules:
     - !reference [.on-schedule, rules]
@@ -34,6 +35,7 @@ dependency-check:
   allow_failure: true
 
 osv-scanner:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules:
     - !reference [.on-schedule, rules]
     - !reference [.default-or-release-or-merge-request, rules]
@@ -49,6 +51,7 @@ osv-scanner:
   allow_failure: true
 
 rust-audit:
+  extends: .rust
   rules:
     - !reference [.on-schedule, rules]
     - !reference [.default-or-release-or-merge-request, rules]
@@ -65,6 +68,7 @@ rust-audit:
   allow_failure: true
 
 trivy-scan:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules:
     - !reference [.on-schedule, rules]
     - !reference [.default-or-release, rules]
@@ -101,6 +105,15 @@ trivy-scan:
       "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
       )
+      CI_IMAGES=(
+      "nl-wallet-app-builder-ci-base"
+      "nl-wallet-app-builder-ci-web"
+      "nl-wallet-app-builder-ci-rust"
+      "nl-wallet-app-builder-ci-flutter"
+      "nl-wallet-app-builder-ci-android"
+      "nl-wallet-app-builder-ci-playwright"
+      "nl-wallet-app-builder-ci-quality"
+      )
       OTHER_IMAGES=(
       "nl-rdo-max"
       "nl-wallet-hsm-simulator"
@@ -134,14 +147,13 @@ trivy-scan:
         urls[$image]="$(vulnerability_url_from_ref $image $CI_COMMIT_SHORT_SHA)"
       done
 
+      for image in "${CI_IMAGES[@]}"; do
+        urls[$image]="$(vulnerability_url_from_ref $image $BUILD_TAG)"
+      done
+
       for image in "${OTHER_IMAGES[@]}"; do
         urls[$image]="$(vulnerability_url_last_push $image)"
       done
-
-      image_tag=$(basename $CI_JOB_IMAGE)
-      image=${image_tag%:*}
-      tag=${image_tag##*:}
-      urls[$image]="$(vulnerability_url_from_ref $image $tag)"
 
       for image in "${!urls[@]}"; do
         url="${urls[$image]}"

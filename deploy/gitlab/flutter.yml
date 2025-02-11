@@ -1,8 +1,12 @@
-test-flutter:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+.flutter:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-flutter:${BUILD_TAG}"
   before_script:
     - cd wallet_app
     - set -euxo pipefail
+
+test-flutter:
+  extends: .flutter
+  rules: !reference [.default-or-release-or-merge-request, rules]
   script:
     - flutter --version
     - flutter pub get --enforce-lockfile
@@ -30,24 +34,21 @@ test-flutter-ui:
       - wallet_app/build/reports/test-results-ui.xml
     reports:
       junit: wallet_app/build/reports/test-results-ui.xml
-  before_script:
+  script:
     - cd wallet_app
     - set -euxo pipefail
-  script:
-    - fvm flutter --version
-    - fvm flutter pub get --enforce-lockfile
+    - flutter --version
+    - flutter pub get --enforce-lockfile
     - defaults -currentHost write -g AppleFontSmoothing -int 0 # Disable font smoothing, should match the generating platform.
-    - fvm flutter test --tags=golden --file-reporter "json:build/reports/test-results-ui.json"
+    - flutter test --tags=golden --file-reporter "json:build/reports/test-results-ui.json"
     - $HOME/.pub-cache/bin/tojunit -i build/reports/test-results-ui.json -o build/reports/test-results-ui.xml -b $PWD/test/src
   after_script:
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results-ui.xml qt/quality-time/junit-results/flutter-ui.xml
 
 # Checks .arb files for unused keys, indicating an update to Lokalise might be in order
 verify-flutter-localizations:
+  extends: .flutter
   rules: !reference [.default-or-release-or-merge-request, rules]
-  before_script:
-    - cd wallet_app
-    - set -euxo pipefail
   script:
     - flutter --version
     - flutter pub get --enforce-lockfile
@@ -56,10 +57,8 @@ verify-flutter-localizations:
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
 
 test-codegen:
+  extends: [.rust, .flutter]
   rules: !reference [.default-or-release-or-merge-request, rules]
-  before_script:
-    - cd wallet_app
-    - set -euxo pipefail
   script:
     - flutter pub get --enforce-lockfile
     - flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml
