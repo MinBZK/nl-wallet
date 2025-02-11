@@ -52,10 +52,6 @@ where
 
         let storage = self.storage.read().await;
 
-        // Note that this currently panics whenever conversion from Mdoc to Documents fails,
-        // as we assume that the (hardcoded) mapping will always be backwards compatible.
-        // This is particularly important when this mapping comes from a trusted registry
-        // in the near future!
         let attestations = storage
             .fetch_unique_mdocs()
             .await?
