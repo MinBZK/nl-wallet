@@ -1,7 +1,8 @@
 use itertools::Itertools;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
+
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::token::CredentialPreview;

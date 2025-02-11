@@ -6,7 +6,6 @@ use http::uri::InvalidUri;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Uri;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use p256::ecdsa::signature;
 use tracing::info;
 use tracing::instrument;
@@ -16,6 +15,7 @@ use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
 use openid4vc::credential_payload::CredentialPayload;
@@ -133,9 +133,16 @@ pub enum PidIssuanceError {
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
     #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
+    #[category(critical)]
     UnexpectedIssuerCommonNameCount(usize),
     #[error("invalid common name: {0}")]
+    #[category(critical)]
     InvalidCommonName(InvalidUri),
+    #[error(
+        "issuer_common_name field in mdoc does not match Common Name in issuer certificate: expected {0}, found {1}"
+    )]
+    #[category(critical)]
+    UnexpectedCommonName(Uri, Uri),
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -332,7 +339,7 @@ where
                                 .unwrap()
                                 .parse()
                                 .map_err(PidIssuanceError::InvalidCommonName)?,
-                            n => return Err(PidIssuanceError::UnexpectedIssuerCommonNameCount(n).into()),
+                            n => return Err(PidIssuanceError::UnexpectedIssuerCommonNameCount(n)),
                         };
 
                         let credential_payload =
@@ -367,10 +374,12 @@ where
     {
         info!("Accepting PID issuance");
 
-        let config = &self.config_repository.get().update_policy_server;
+        let config = &self.config_repository.get();
 
         info!("Fetching update policy");
-        self.update_policy_repository.fetch(&config.http_config).await?;
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await?;
 
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -484,6 +493,25 @@ where
                 if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
                     return Err(PidIssuanceError::MissingIssuerRegistration);
                 }
+
+                // Verify that the issuer_common_name matches with the issuer_registration
+                let issuer_common_names = certificate.common_names()?;
+                match issuer_common_names.len() {
+                    1 => {
+                        let issuer_common_name = issuer_common_names
+                            .first()
+                            .unwrap()
+                            .parse::<Uri>()
+                            .map_err(PidIssuanceError::InvalidCommonName)?;
+                        if issuer_common_name != mdoc.mso.issuer_common_name {
+                            return Err(PidIssuanceError::UnexpectedCommonName(
+                                mdoc.mso.issuer_common_name.clone(),
+                                issuer_common_name,
+                            ));
+                        }
+                    }
+                    n => return Err(PidIssuanceError::UnexpectedIssuerCommonNameCount(n)),
+                };
             }
             WalletEvent::new_issuance(mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?)
         };
