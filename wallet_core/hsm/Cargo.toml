@@ -43,6 +43,8 @@ sha2 = { workspace = true, optional = true }
 wallet_common = { path = "../wallet_common" }
 
 [dev-dependencies]
+async-dropper = { workspace = true, features = ["simple", "tokio"] }
+async-trait.workspace = true
 config = { workspace = true, features = ["toml"] }
 rand_core.workspace = true
 serial_test.workspace = true

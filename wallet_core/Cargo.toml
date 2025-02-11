@@ -53,6 +53,7 @@ unused_async = "warn"
 unused_self = "warn"
 
 [workspace.dependencies]
+async-dropper = "0.3.1"
 bitflags = "2.6.0"
 built = "0.7"
 accept-language = "3.1.0"
