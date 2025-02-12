@@ -64,7 +64,7 @@ package_name = "com.example.wallet-app"
 # to retrieve integrity verdicts for Android devices from Google's API.
 # Below is the default file name.
 # credentials_file = "google-cloud-service-account.json"
-# If this array contains any values, extra checks against the app integrity verdict
-# will be performed that confirm that the app was downloaded from the Play Store.
+# If this array contains any values, the integrity verdict is checked for the
+# hash of the certificate that was used to submit the app to the Play Store.
 # By default, this array is empty. The values should be in hexadecimal format.
 # play_store_certificate_hashes = ["01020304050607081010101010101010ABABABABABABABAB1234567890ABCDEF"]

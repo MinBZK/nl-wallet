@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::env;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -103,8 +104,8 @@ pub struct Android {
     pub root_public_keys: Vec<AndroidRootPublicKey>,
     pub package_name: String,
     pub credentials_file: PathBuf,
-    #[serde_as(as = "Vec<Hex>")]
-    pub play_store_certificate_hashes: Vec<Vec<u8>>,
+    #[serde_as(as = "HashSet<Hex>")]
+    pub play_store_certificate_hashes: HashSet<Vec<u8>>,
 }
 
 #[derive(Clone, From, Into)]

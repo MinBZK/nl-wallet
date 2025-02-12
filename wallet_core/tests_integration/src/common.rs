@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::collections::HashSet;
 use std::io;
 use std::net::IpAddr;
 use std::net::TcpListener;
@@ -25,7 +24,6 @@ use url::Url;
 use uuid::Uuid;
 
 use android_attest::android_crl::RevocationStatusList;
-use android_attest::play_integrity::verification::VerifyPlayStore;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -329,15 +327,10 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_wp_base_url(&settings.webserver.port);
 
-    let verify_play_store = match settings.android.play_store_certificate_hashes.is_empty() {
-        true => VerifyPlayStore::NoVerify,
-        false => VerifyPlayStore::Verify {
-            play_store_certificate_hashes: HashSet::from_iter(
-                settings.android.play_store_certificate_hashes.iter().cloned(),
-            ),
-        },
-    };
-    let play_integrity_client = MockPlayIntegrityClient::new(settings.android.package_name.clone(), verify_play_store);
+    let play_integrity_client = MockPlayIntegrityClient::new(
+        settings.android.package_name.clone(),
+        settings.android.play_store_certificate_hashes.clone(),
+    );
 
     tokio::spawn(async {
         if let Err(error) =

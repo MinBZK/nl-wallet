@@ -195,51 +195,32 @@ pub enum PlayProtectVerdict {
 
 #[cfg(feature = "mock")]
 mod mock {
-    use super::super::verification::VerifyPlayStore;
     use super::*;
 
     impl IntegrityVerdict {
-        pub fn new_mock(package_name: String, request_hash: String, verify_play_store: VerifyPlayStore) -> Self {
-            let (app_integrity, account_details) = match verify_play_store {
-                VerifyPlayStore::NoVerify => (
-                    AppIntegrity {
-                        app_recognition_verdict: AppRecognitionVerdict::Unevaluated,
-                        details: None,
-                    },
-                    AccountDetails {
-                        app_licensing_verdict: AppLicensingVerdict::Unlicensed,
-                    },
-                ),
-                VerifyPlayStore::Verify {
-                    play_store_certificate_hashes,
-                } => (
-                    AppIntegrity {
-                        app_recognition_verdict: AppRecognitionVerdict::PlayRecognized,
-                        details: Some(AppIntegrityDetails {
-                            package_name: package_name.clone(),
-                            certificate_sha256_digest: play_store_certificate_hashes,
-                            version_code: "42".to_string(),
-                        }),
-                    },
-                    AccountDetails {
-                        app_licensing_verdict: AppLicensingVerdict::Licensed,
-                    },
-                ),
-            };
-
+        pub fn new_mock(package_name: String, request_hash: String, certificate_hashes: HashSet<Vec<u8>>) -> Self {
             Self {
                 request_details: RequestDetails {
-                    request_package_name: package_name,
+                    request_package_name: package_name.clone(),
                     request_hash,
                     timestamp: Utc::now(),
                 },
-                app_integrity,
+                app_integrity: AppIntegrity {
+                    app_recognition_verdict: AppRecognitionVerdict::PlayRecognized,
+                    details: Some(AppIntegrityDetails {
+                        package_name,
+                        certificate_sha256_digest: certificate_hashes,
+                        version_code: "42".to_string(),
+                    }),
+                },
                 device_integrity: DeviceIntegrity {
                     device_recognition_verdict: HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity]),
                     recent_device_activity: None,
                     device_attributes: None,
                 },
-                account_details,
+                account_details: AccountDetails {
+                    app_licensing_verdict: AppLicensingVerdict::Licensed,
+                },
                 environment_details: None,
             }
         }

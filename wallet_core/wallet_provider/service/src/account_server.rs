@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::error::Error;
 use std::time::Duration;
 
@@ -29,7 +30,6 @@ use android_attest::play_integrity::client::PlayIntegrityError;
 use android_attest::play_integrity::integrity_verdict::IntegrityVerdict;
 use android_attest::play_integrity::verification::IntegrityVerdictVerificationError;
 use android_attest::play_integrity::verification::VerifiedIntegrityVerdict;
-use android_attest::play_integrity::verification::VerifyPlayStore;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
@@ -321,7 +321,7 @@ impl IntegrityTokenDecoder for PlayIntegrityClient {
 pub struct AndroidAttestationConfiguration {
     pub root_public_keys: Vec<RootPublicKey>,
     pub package_name: String,
-    pub verify_play_store: VerifyPlayStore,
+    pub certificate_hashes: HashSet<Vec<u8>>,
 }
 
 pub struct AccountServerKeys {
@@ -521,7 +521,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     integrity_verdict,
                     &self.android_config.package_name,
                     &BASE64_STANDARD.encode(&challenge_hash),
-                    &self.android_config.verify_play_store,
+                    &self.android_config.certificate_hashes,
                     attestation_timestamp,
                 )
                 .map_err(AndroidAppAttestationError::IntegrityVerdict)?;
@@ -1092,15 +1092,15 @@ pub mod mock {
 
     pub struct MockPlayIntegrityClient {
         pub package_name: String,
-        pub verify_play_store: VerifyPlayStore,
+        pub certificate_hashes: HashSet<Vec<u8>>,
         pub has_error: bool,
     }
 
     impl MockPlayIntegrityClient {
-        pub fn new(package_name: String, verify_play_store: VerifyPlayStore) -> Self {
+        pub fn new(package_name: String, certificate_hashes: HashSet<Vec<u8>>) -> Self {
             Self {
                 package_name,
-                verify_play_store,
+                certificate_hashes,
                 has_error: false,
             }
         }
@@ -1118,7 +1118,7 @@ pub mod mock {
             let verdict = IntegrityVerdict::new_mock(
                 self.package_name.clone(),
                 integrity_token.to_string(),
-                self.verify_play_store.clone(),
+                self.certificate_hashes.clone(),
             );
             let json = serde_json::to_string(&verdict).unwrap();
 
@@ -1130,12 +1130,8 @@ pub mod mock {
         certificate_signing_pubkey: &VerifyingKey,
         crl: RevocationStatusList,
     ) -> MockAccountServer {
-        let integrity_client = MockPlayIntegrityClient::new(
-            "com.example.app".to_string(),
-            VerifyPlayStore::Verify {
-                play_store_certificate_hashes: HashSet::from([utils::random_bytes(16)]),
-            },
-        );
+        let integrity_client =
+            MockPlayIntegrityClient::new("com.example.app".to_string(), HashSet::from([utils::random_bytes(16)]));
 
         AccountServer::new(
             "mock_account_server".into(),
@@ -1154,7 +1150,7 @@ pub mod mock {
             AndroidAttestationConfiguration {
                 root_public_keys: vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
                 package_name: integrity_client.package_name.clone(),
-                verify_play_store: integrity_client.verify_play_store.clone(),
+                certificate_hashes: integrity_client.certificate_hashes.clone(),
             },
             crl,
             integrity_client,
@@ -1276,7 +1272,6 @@ mod tests {
 
     use android_attest::attestation_extension::key_description::KeyDescription;
     use android_attest::mock_chain::MockCaChain;
-    use android_attest::play_integrity::verification::VerifyPlayStore;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
@@ -1709,8 +1704,10 @@ mod tests {
         let mut account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
         // Have the Play Integrity API expect a different package name.
-        account_server.play_integrity_client =
-            MockPlayIntegrityClient::new("com.example.other".to_string(), VerifyPlayStore::NoVerify);
+        account_server.play_integrity_client = MockPlayIntegrityClient::new(
+            "com.example.other".to_string(),
+            account_server.play_integrity_client.certificate_hashes,
+        );
 
         let error = do_registration(
             &account_server,

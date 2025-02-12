@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::error::Error;
 
 use chrono::DateTime;
@@ -9,7 +8,6 @@ use serde::Serialize;
 use tracing::info;
 use uuid::Uuid;
 
-use android_attest::play_integrity::verification::VerifyPlayStore;
 use android_attest::root_public_key::RootPublicKey;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
@@ -87,18 +85,10 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             .into_iter()
             .map(RootPublicKey::from)
             .collect();
-        let android_verify_play_store = match settings.android.play_store_certificate_hashes.is_empty() {
-            true => VerifyPlayStore::NoVerify,
-            false => VerifyPlayStore::Verify {
-                play_store_certificate_hashes: HashSet::from_iter(
-                    settings.android.play_store_certificate_hashes.into_iter(),
-                ),
-            },
-        };
         let android_config = AndroidAttestationConfiguration {
             root_public_keys: android_root_public_keys,
             package_name: settings.android.package_name,
-            verify_play_store: android_verify_play_store,
+            certificate_hashes: settings.android.play_store_certificate_hashes,
         };
 
         let account_server = AccountServer::new(
