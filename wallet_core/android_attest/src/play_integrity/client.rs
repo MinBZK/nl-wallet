@@ -1,6 +1,7 @@
 use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::StatusCode;
+use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
@@ -21,9 +22,15 @@ pub enum PlayIntegrityClientError {
     DecodeIntegrityVerdict(#[from] serde_json::Error),
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Serialize)]
 struct IntegrityTokenRequest<'a> {
     pub integrity_token: &'a str,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct IntegrityVerdictResponse {
+    token_payload_external: IntegrityVerdict,
 }
 
 #[derive(Debug, Clone)]
@@ -61,7 +68,7 @@ impl PlayIntegrityClient {
         let request_body = IntegrityTokenRequest { integrity_token };
         let json = self
             .client
-            .get(self.url.clone())
+            .post(self.url.clone())
             .json(&request_body)
             .send()
             .map_err(PlayIntegrityClientError::Http)
@@ -77,9 +84,9 @@ impl PlayIntegrityClient {
             })
             .await?;
 
-        let integrity_verdict = serde_json::from_str(&json)?;
+        let response = serde_json::from_str::<IntegrityVerdictResponse>(&json)?;
 
-        Ok((integrity_verdict, json))
+        Ok((response.token_payload_external, json))
     }
 }
 
@@ -108,12 +115,14 @@ mod tests {
         let server = MockServer::start().await;
 
         // Set up a response for INTEGRITY_TOKEN, based on the parameters of the client.
-        Mock::given(method("GET"))
+        Mock::given(method("POST"))
             .and(path(client.url.path()))
             .and(body_partial_json(json!({
                 "integrity_token": INTEGRITY_TOKEN
             })))
-            .respond_with(ResponseTemplate::new(200).set_body_json(&*EXAMPLE_VERDICT_JSON))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(json!({"tokenPayloadExternal": *EXAMPLE_VERDICT_JSON})),
+            )
             .mount(&server)
             .await;
 
@@ -149,7 +158,7 @@ mod tests {
 
         let parsed_json = serde_json::from_str::<Value>(&json).expect("source should parse as json");
 
-        assert_eq!(parsed_json, *EXAMPLE_VERDICT_JSON);
+        assert_eq!(parsed_json.get("tokenPayloadExternal"), Some(&*EXAMPLE_VERDICT_JSON));
     }
 
     #[tokio::test]
