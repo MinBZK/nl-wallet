@@ -4,8 +4,8 @@ use serde::Deserialize;
 
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use openid4vc::attributes::IssuableDocument;
-use openid4vc::attributes::IssuableDocuments;
+use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuable_document::IssuableDocuments;
 
 use crate::pid::constants::*;
 
@@ -289,7 +289,7 @@ mod tests {
 
     use serde_json::json;
 
-    use openid4vc::attributes::IssuableDocuments;
+    use openid4vc::issuable_document::IssuableDocuments;
 
     use crate::pid::brp::data::BrpPersons;
 

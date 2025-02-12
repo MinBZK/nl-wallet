@@ -61,7 +61,8 @@ impl From<HistoryEvent> for WalletEvents {
                     request_policy: RequestPolicy::from(&reader_registration),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
-                    requested_cards: attributes.map(|mdocs| mdocs.into_iter().map(DisclosureCard::from).collect()),
+                    requested_cards: attributes
+                        .map(|attestations| attestations.into_iter().map(DisclosureCard::from).collect()),
                     status: status.into(),
                     typ: r#type.into(),
                 }]

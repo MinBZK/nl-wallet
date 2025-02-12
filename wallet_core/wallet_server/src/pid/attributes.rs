@@ -6,7 +6,7 @@ use chrono::Utc;
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
-use openid4vc::attributes::IssuableDocuments;
+use openid4vc::issuable_document::IssuableDocuments;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;

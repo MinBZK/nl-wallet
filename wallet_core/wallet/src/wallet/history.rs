@@ -5,7 +5,6 @@ use tracing::instrument;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -19,10 +18,9 @@ use crate::document::DisclosureType;
 use crate::document::DocumentMdocError;
 use crate::errors::StorageError;
 use crate::repository::Repository;
-use crate::storage::EventDocuments;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
-use crate::DisclosureDocument;
+use crate::Attestation;
 use crate::Document;
 use crate::DocumentPersistence;
 
@@ -202,7 +200,7 @@ pub enum HistoryEvent {
         r#type: DisclosureType,
         timestamp: DateTime<Utc>,
         reader_registration: Box<ReaderRegistration>,
-        attributes: Option<Vec<DisclosureDocument>>,
+        attributes: Option<Vec<Attestation>>,
     },
 }
 
@@ -238,30 +236,14 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 id: _,
                 reader_certificate,
                 timestamp,
-                documents,
+                documents: _,
                 status,
                 r#type,
             } => Self::Disclosure {
                 status,
                 r#type,
                 timestamp,
-                attributes: documents
-                    .map(|EventDocuments(mdocs)| {
-                        mdocs
-                            .into_iter()
-                            .map(|(doc_type, namespaces)| {
-                                DisclosureDocument::from_mdoc_attributes(
-                                    &doc_type,
-                                    ProposedDocumentAttributes {
-                                        issuer: namespaces.issuer.clone(),
-                                        attributes: namespaces.into(),
-                                        display_metadata: vec![], // TODO: PVW-4008
-                                    },
-                                )
-                            })
-                            .collect::<Result<Vec<_>, _>>()
-                    })
-                    .transpose()?,
+                attributes: None, // TODO: PVW-?
                 reader_registration: {
                     let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)?
                         .ok_or(EventConversionError::NoReaderRegistrationFound)?;

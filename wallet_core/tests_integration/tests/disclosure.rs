@@ -92,7 +92,8 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     SessionType::SameDevice,
     None,
     "multiple_cards",
-    pid_given_name() + addr_street(), pid_given_name() + addr_street()
+    pid_given_name() + addr_street(),
+    pid_given_name() + addr_street()
 )]
 #[tokio::test]
 #[serial(hsm)]
@@ -173,7 +174,7 @@ async fn test_disclosure_usecases_ok(
         .start_disclosure(&ul.unwrap().into_inner(), source)
         .await
         .expect("should start disclosure");
-    assert_eq!(proposal.documents.len(), expected_documents.len());
+    assert_eq!(proposal.attestations.len(), expected_documents.len());
 
     // after the first wallet interaction it should have status "Waiting"
     assert_matches!(

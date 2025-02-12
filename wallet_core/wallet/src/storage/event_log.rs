@@ -8,8 +8,6 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use uuid::Uuid;
 
-pub use entity::disclosure_history_event;
-pub use entity::issuance_history_event;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
@@ -22,6 +20,9 @@ use nl_wallet_mdoc::DocType;
 use nl_wallet_mdoc::NameSpace;
 
 use crate::document::DisclosureType;
+
+pub use entity::disclosure_history_event;
+pub use entity::issuance_history_event;
 
 // TODO: Think about refactoring/renaming EventStatus.
 // For rationale, see comment for DisclosureType in mdoc.rs.

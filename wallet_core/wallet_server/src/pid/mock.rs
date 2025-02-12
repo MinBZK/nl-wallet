@@ -6,8 +6,8 @@ use serde::Deserialize;
 
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use openid4vc::attributes::IssuableDocument;
-use openid4vc::attributes::IssuableDocuments;
+use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuable_document::IssuableDocuments;
 
 use crate::pid::constants::*;
 

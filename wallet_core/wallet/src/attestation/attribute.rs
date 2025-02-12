@@ -2,68 +2,123 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 
 use indexmap::IndexMap;
-
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
-use openid4vc::credential_payload::CredentialPayload;
+use openid4vc::attributes::AttributeValue;
+use sd_jwt::metadata::ClaimMetadata;
 use sd_jwt::metadata::ClaimPath;
+use sd_jwt::metadata::DisplayMetadata;
 use sd_jwt::metadata::TypeMetadata;
 
 use crate::attestation::AttestationError;
-use crate::attestation::AttestationIdentity;
+use crate::attestation::AttributeSelectionMode;
 use crate::Attestation;
 use crate::AttestationAttribute;
+use crate::AttestationIdentity;
 use crate::LocalizedString;
 
 impl Attestation {
-    pub(crate) fn from_credential_payload(
+    pub(crate) fn create_from_attributes(
         identity: AttestationIdentity,
-        payload: CredentialPayload,
-        metadata: TypeMetadata,
-        issuer_organization: Organization,
+        attestation_type: String,
+        display_metadata: Vec<DisplayMetadata>,
+        issuer: Organization,
+        attributes: Vec<AttestationAttribute>,
+        nested_attributes: &IndexMap<String, Attribute>,
     ) -> Result<Self, AttestationError> {
-        let attributes: Vec<AttestationAttribute> = metadata
-            .claims
-            .into_iter()
-            .map(|claim| {
-                let key = claim.path.iter().map(|cp| cp.to_string()).collect();
-                let mut paths = claim.path.iter().collect::<VecDeque<_>>();
-                let attribute = Self::select_attribute(&mut paths, &payload.attributes);
-                let attribute_value = match attribute {
-                    Some(Attribute::Single(value)) => Ok(value),
-                    _ => Err(AttestationError::AttributeNotFoundForClaim(claim.clone())),
-                }?;
-
-                let attribute = AttestationAttribute {
-                    key,
-                    value: attribute_value.clone(),
-                    labels: claim.display.into_iter().map(LocalizedString::from).collect(),
-                };
-                Ok(attribute)
-            })
-            .collect::<Result<_, _>>()?;
-
+        // Check that all attributes have been processed by the metadata claims.
         let processed_keys = attributes.iter().map(|attr| attr.key.clone()).collect::<HashSet<_>>();
-        let all_keys = payload.collect_keys().into_iter().collect::<HashSet<_>>();
-        let difference = all_keys.difference(&processed_keys).collect::<Vec<_>>();
+        let original_keys = collect_keys(nested_attributes).into_iter().collect::<HashSet<_>>();
+        let difference = original_keys.difference(&processed_keys).collect::<Vec<_>>();
         if !difference.is_empty() {
             return Err(AttestationError::AttributeNotProcessedByClaim(
-                difference
-                    .into_iter()
-                    .map(|attr| attr.iter().map(String::from).collect())
-                    .collect(),
+                difference.into_iter().cloned().collect(),
             ));
         }
 
         let attestation = Attestation {
             identity,
-            display_metadata: metadata.display,
-            attestation_type: payload.attestation_type,
-            issuer: issuer_organization,
+            display_metadata,
+            attestation_type,
+            issuer,
             attributes,
         };
 
         Ok(attestation)
+    }
+}
+
+enum AttributeSelectionResult<'a> {
+    Found(Vec<String>, &'a AttributeValue, &'a ClaimMetadata),
+    NotFound(&'a ClaimMetadata),
+}
+
+impl<'a> AttributeSelectionResult<'a> {
+    fn into_attribute(self) -> Option<AttestationAttribute> {
+        match self {
+            AttributeSelectionResult::Found(key, attribute_value, claim) => {
+                Some(Self::to_attribute(key, attribute_value, claim))
+            }
+            AttributeSelectionResult::NotFound(_) => None,
+        }
+    }
+
+    fn try_into_attribute(self) -> Result<AttestationAttribute, AttestationError> {
+        match self {
+            AttributeSelectionResult::Found(key, attribute_value, claim) => {
+                Ok(Self::to_attribute(key, attribute_value, claim))
+            }
+            AttributeSelectionResult::NotFound(claim) => {
+                Err(AttestationError::AttributeNotFoundForClaim(claim.clone()))
+            }
+        }
+    }
+
+    fn to_attribute(
+        key: Vec<String>,
+        attribute_value: &'a AttributeValue,
+        claim: &'a ClaimMetadata,
+    ) -> AttestationAttribute {
+        AttestationAttribute {
+            key,
+            value: attribute_value.clone(),
+            labels: claim.display.clone().into_iter().map(LocalizedString::from).collect(),
+        }
+    }
+}
+
+impl AttestationAttribute {
+    pub(crate) fn from_attributes(
+        attributes: &IndexMap<String, Attribute>,
+        metadata: &TypeMetadata,
+        selection_mode: &AttributeSelectionMode,
+    ) -> Result<Vec<Self>, AttestationError> {
+        let selection = metadata
+            .claims
+            .iter()
+            .map(|claim| {
+                let key = claim.path.iter().map(|cp| cp.to_string()).collect();
+                let mut paths = claim.path.iter().collect::<VecDeque<_>>();
+                let attribute = Self::select_attribute(&mut paths, attributes);
+                match attribute {
+                    Some(Attribute::Single(value)) => AttributeSelectionResult::Found(key, value, claim),
+                    _ => AttributeSelectionResult::NotFound(claim),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let attributes = match selection_mode {
+            AttributeSelectionMode::Issuance => selection
+                .into_iter()
+                .map(|selection| selection.try_into_attribute())
+                .collect::<Result<_, _>>()?,
+            AttributeSelectionMode::Disclosure => selection
+                .into_iter()
+                .filter_map(|selection| selection.into_attribute())
+                .collect(),
+        };
+
+        Ok(attributes)
     }
 
     fn select_attribute<'a>(
@@ -87,29 +142,42 @@ impl Attestation {
     }
 }
 
+fn collect_keys(attributes: &IndexMap<String, Attribute>) -> Vec<Vec<String>> {
+    collect_keys_recursive(attributes, &[])
+}
+
+fn collect_keys_recursive(attributes: &IndexMap<String, Attribute>, groups: &[String]) -> Vec<Vec<String>> {
+    attributes.iter().fold(vec![], |mut acc, (k, v)| {
+        let mut keys = Vec::from(groups);
+        keys.push(k.clone());
+
+        match v {
+            Attribute::Single(_) => acc.push(keys),
+            Attribute::Nested(nested) => acc.append(&mut collect_keys_recursive(nested, &keys)),
+        }
+
+        acc
+    })
+}
+
 #[cfg(test)]
-mod test {
+pub mod test {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use chrono::Utc;
-    use http::Uri;
     use indexmap::IndexMap;
+    use serde_json::json;
 
-    use nl_wallet_mdoc::utils::auth::Organization;
     use openid4vc::attributes::Attribute;
     use openid4vc::attributes::AttributeValue;
-    use openid4vc::credential_payload::CredentialPayload;
     use sd_jwt::metadata::ClaimMetadata;
     use sd_jwt::metadata::ClaimPath;
     use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
-    use sd_jwt::metadata::TypeMetadata;
 
-    use crate::attestation::AttestationError;
-    use crate::Attestation;
-    use crate::AttestationIdentity;
+    use crate::attestation::attribute::collect_keys;
+    use crate::AttestationAttribute;
 
-    static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
+    pub static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
         IndexMap::from([
             (
                 String::from("single"),
@@ -128,20 +196,7 @@ mod test {
         ])
     });
 
-    fn example_credential_payload() -> CredentialPayload {
-        let attributes = &*ATTRIBUTES;
-
-        CredentialPayload {
-            attestation_type: String::from("pid123"),
-            issuer: Uri::from_static("data://org.example.com/org2"),
-            issued_at: Some(Utc::now()),
-            expires: Some(Utc::now()),
-            not_before: None,
-            attributes: attributes.clone(),
-        }
-    }
-
-    fn claim_metadata(keys: &[&str]) -> ClaimMetadata {
+    pub fn claim_metadata(keys: &[&str]) -> ClaimMetadata {
         ClaimMetadata {
             path: keys
                 .iter()
@@ -156,93 +211,10 @@ mod test {
     }
 
     #[test]
-    fn test_from_credential_payload_happy() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![
-            claim_metadata(&["single"]),
-            claim_metadata(&["nested_1a", "nested_1b", "nested_1c"]),
-        ];
-
-        let payload = example_credential_payload();
-
-        let attestation = Attestation::from_credential_payload(
-            AttestationIdentity::Ephemeral,
-            payload,
-            metadata,
-            Organization::new_mock(),
-        )
-        .unwrap();
-
-        let attrs = attestation
-            .attributes
-            .iter()
-            .map(|attr| {
-                (
-                    attr.key.clone(),
-                    match &attr.value {
-                        AttributeValue::Number(value) => value.to_string(),
-                        AttributeValue::Bool(value) => value.to_string(),
-                        AttributeValue::Text(value) => value.to_string(),
-                    },
-                )
-            })
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            [
-                (vec![String::from("single")], String::from("single")),
-                (
-                    vec!["nested_1a", "nested_1b", "nested_1c"]
-                        .into_iter()
-                        .map(String::from)
-                        .collect(),
-                    String::from("nested_value")
-                )
-            ],
-            attrs.as_slice()
-        );
-    }
-
-    #[test]
-    fn test_from_credential_payload_attribute_not_found() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![claim_metadata(&["not_found"])];
-
-        let payload = example_credential_payload();
-
-        let attestation = Attestation::from_credential_payload(
-            AttestationIdentity::Ephemeral,
-            payload,
-            metadata,
-            Organization::new_mock(),
-        );
-        assert_matches!(attestation, Err(AttestationError::AttributeNotFoundForClaim(_)));
-    }
-
-    #[test]
-    fn test_from_credential_payload_attribute_not_processed() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![claim_metadata(&["nested_1a", "nested_1b", "nested_1c"])];
-
-        let payload = example_credential_payload();
-
-        let attestation = Attestation::from_credential_payload(
-            AttestationIdentity::Ephemeral,
-            payload,
-            metadata,
-            Organization::new_mock(),
-        );
-        assert_matches!(
-            attestation,
-            Err(AttestationError::AttributeNotProcessedByClaim(keys)) if keys == vec![String::from("single")]
-        );
-    }
-
-    #[test]
     fn test_select_single_attribute_happy() {
         let attributes = &*ATTRIBUTES;
 
-        let result = Attestation::select_attribute(
+        let result = AttestationAttribute::select_attribute(
             &mut vec![&ClaimPath::SelectByKey(String::from("single"))].into(),
             attributes,
         );
@@ -257,7 +229,7 @@ mod test {
     fn test_select_nested_attribute_for_single() {
         let attributes = &*ATTRIBUTES;
 
-        let result = Attestation::select_attribute(
+        let result = AttestationAttribute::select_attribute(
             &mut vec![
                 &ClaimPath::SelectByKey(String::from("single")),
                 &ClaimPath::SelectByKey(String::from("not_found")),
@@ -276,7 +248,7 @@ mod test {
     fn test_select_nested_attribute_happy() {
         let attributes = &*ATTRIBUTES;
 
-        let result = Attestation::select_attribute(
+        let result = AttestationAttribute::select_attribute(
             &mut vec![
                 &ClaimPath::SelectByKey(String::from("nested_1a")),
                 &ClaimPath::SelectByKey(String::from("nested_1b")),
@@ -296,7 +268,7 @@ mod test {
     fn test_select_nested_attribute_unknown_key() {
         let attributes = &*ATTRIBUTES;
 
-        let result = Attestation::select_attribute(
+        let result = AttestationAttribute::select_attribute(
             &mut vec![
                 &ClaimPath::SelectByKey(String::from("nested_1a")),
                 &ClaimPath::SelectByKey(String::from("nested_1b")),
@@ -316,7 +288,7 @@ mod test {
     fn test_select_nested_attribute_too_deep() {
         let attributes = &*ATTRIBUTES;
 
-        let result = Attestation::select_attribute(
+        let result = AttestationAttribute::select_attribute(
             &mut vec![
                 &ClaimPath::SelectByKey(String::from("nested_1a")),
                 &ClaimPath::SelectByKey(String::from("nested_1b")),
@@ -337,7 +309,34 @@ mod test {
     fn test_select_attribute_with_empty_paths() {
         let attributes = &*ATTRIBUTES;
 
-        let result = Attestation::select_attribute(&mut vec![].into(), attributes);
+        let result = AttestationAttribute::select_attribute(&mut vec![].into(), attributes);
         assert_matches!(result, None, "selecting nothing should find nothing");
+    }
+
+    #[test]
+    fn test_collect_keys() {
+        let json = json!({
+            "birthdate": "1963-08-12",
+            "place_of_birth": {
+                "locality": "The Hague",
+                "country": {
+                    "name": "The Netherlands",
+                    "area_code": 33
+                }
+            }
+        });
+        let attributes: IndexMap<String, Attribute> = serde_json::from_value(json).unwrap();
+        assert_eq!(
+            vec![
+                vec!["birthdate"],
+                vec!["place_of_birth", "locality"],
+                vec!["place_of_birth", "country", "name"],
+                vec!["place_of_birth", "country", "area_code"],
+            ],
+            collect_keys(&attributes)
+                .iter()
+                .map(|keys| keys.iter().map(String::as_str).collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        );
     }
 }

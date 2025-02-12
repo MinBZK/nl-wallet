@@ -318,7 +318,7 @@ where
 
                         let credential_payload =
                             CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
-                        let attestation = Attestation::from_credential_payload(
+                        let attestation = Attestation::create_for_issuance(
                             AttestationIdentity::Ephemeral,
                             credential_payload,
                             metadata.first().clone(), // TODO: PVW-3812

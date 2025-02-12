@@ -3,7 +3,7 @@ use url::Url;
 use wallet::errors::DisclosureError;
 use wallet::mdoc::ReaderRegistration;
 use wallet::openid4vc::SessionType;
-use wallet::DisclosureDocument;
+use wallet::Attestation;
 use wallet::DisclosureProposal;
 use wallet::MissingDisclosureAttributes;
 
@@ -174,16 +174,16 @@ impl From<&ReaderRegistration> for RequestPolicy {
 }
 
 impl DisclosureCard {
-    fn from_disclosure_documents(documents: Vec<DisclosureDocument>) -> Vec<Self> {
-        documents.into_iter().map(DisclosureCard::from).collect()
+    fn from_disclosure_documents(attestations: Vec<Attestation>) -> Vec<Self> {
+        attestations.into_iter().map(DisclosureCard::from).collect()
     }
 }
 
-impl From<DisclosureDocument> for DisclosureCard {
-    fn from(value: DisclosureDocument) -> Self {
+impl From<Attestation> for DisclosureCard {
+    fn from(value: Attestation) -> Self {
         DisclosureCard {
-            issuer: value.issuer_registration.organization.into(),
-            doc_type: value.doc_type.to_string(),
+            issuer: value.issuer.into(),
+            doc_type: value.attestation_type.clone(),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
             display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
         }
@@ -232,7 +232,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
-                    requested_cards: DisclosureCard::from_disclosure_documents(proposal.documents),
+                    requested_cards: DisclosureCard::from_disclosure_documents(proposal.attestations),
                     shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
                     session_type: proposal.session_type.into(),
                     request_purpose,

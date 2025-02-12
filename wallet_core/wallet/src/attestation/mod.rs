@@ -1,10 +1,13 @@
-mod credential_payload;
+mod attribute;
+mod disclosure;
+mod issuance;
 
 use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::utils::auth::Organization;
+use openid4vc::attributes::AttributeError;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
 use sd_jwt::metadata::ClaimMetadata;
@@ -18,7 +21,16 @@ pub enum AttestationError {
 
     #[error("some attributes not processed by claim: {0:?}")]
     #[category(pd)]
-    AttributeNotProcessedByClaim(Vec<String>),
+    AttributeNotProcessedByClaim(Vec<Vec<String>>),
+
+    #[error("error converting from mdoc attribute: {0}")]
+    #[category(pd)]
+    Attribute(#[from] AttributeError),
+}
+
+pub enum AttributeSelectionMode {
+    Issuance,
+    Disclosure,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

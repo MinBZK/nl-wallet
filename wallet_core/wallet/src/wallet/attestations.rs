@@ -25,16 +25,21 @@ use super::Wallet;
 pub enum AttestationsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
+
     #[error("could not extract Mdl extension from X.509 certificate: {0}")]
     Certificate(#[from] CertificateError),
+
     #[error("could not interpret X.509 certificate: {0}")]
     Cose(#[from] CoseError),
+
     #[error("X.509 certificate does not contain IssuerRegistration")]
     #[category(critical)]
     MissingIssuerRegistration,
+
     #[error("error converting mdoc to credential payload: {0}")]
     #[category(defer)]
     CredentialPayload(#[from] CredentialPayloadError),
+
     #[error("error converting credential payload to attestation: {0}")]
     #[category(defer)]
     Attestation(#[from] AttestationError),
@@ -61,7 +66,7 @@ where
                 let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
                     .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                let attestation = Attestation::from_credential_payload(
+                let attestation = Attestation::create_for_issuance(
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
                     },

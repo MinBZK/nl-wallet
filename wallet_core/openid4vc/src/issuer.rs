@@ -41,7 +41,6 @@ use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
 use crate::attributes::AttributeError;
-use crate::attributes::IssuableDocument;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequests;
@@ -55,6 +54,7 @@ use crate::credential_payload::CredentialPayload;
 use crate::credential_payload::CredentialPayloadError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::issuable_document::IssuableDocument;
 use crate::metadata;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerMetadata;
