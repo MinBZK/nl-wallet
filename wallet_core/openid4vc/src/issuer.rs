@@ -7,6 +7,7 @@ use std::sync::LazyLock;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::future::try_join_all;
+use http::uri::InvalidUri;
 use http::Uri;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
@@ -114,6 +115,10 @@ pub enum TokenRequestError {
     CredentialPayload(#[from] CredentialPayloadError),
     #[error("error verifying type metadata integrity: {0}")]
     TypeMetadata(#[from] TypeMetadataError),
+    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
+    UnexpectedIssuerCommonNameCount(usize),
+    #[error("invalid common name: {0}")]
+    InvalidCommonName(InvalidUri),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -620,11 +625,24 @@ impl Session<Created> {
                     .certificate()
                     .to_owned();
 
-                let unsigned_mdoc =
-                    doc.document
-                        .to_unsigned_mdoc(doc.valid_from.into(), doc.valid_until.into(), doc.copy_count)?;
+                let issuer_common_names = issuer_certificate.common_names().unwrap(); // TODO
+                let issuer_common_name = match issuer_common_names.len() {
+                    1 => issuer_common_names
+                        .first()
+                        .unwrap()
+                        .parse()
+                        .map_err(TokenRequestError::InvalidCommonName)?,
+                    n => return Err(TokenRequestError::UnexpectedIssuerCommonNameCount(n)),
+                };
+
+                let unsigned_mdoc = doc.document.to_unsigned_mdoc(
+                    doc.valid_from.into(),
+                    doc.valid_until.into(),
+                    doc.copy_count,
+                    issuer_common_name,
+                )?;
                 let credential_payload =
-                    CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                    CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, unsigned_mdoc.issuer_common_name)?;
                 credential_payload.validate(&doc.metadata_chain)?;
 
                 // TODO do this for all formats that we want to issue (PVW-3830)

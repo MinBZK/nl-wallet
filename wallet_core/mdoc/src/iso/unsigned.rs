@@ -1,5 +1,6 @@
 use std::num::NonZeroU8;
 
+use http::Uri;
 use indexmap::IndexMap;
 use nutype::nutype;
 use serde::Deserialize;
@@ -37,6 +38,10 @@ pub struct UnsignedMdoc {
 
     /// The amount of copies of this mdoc that the holder will receive.
     pub copy_count: NonZeroU8,
+
+    /// The common name of the issuer certificate.
+    #[serde(with = "http_serde::uri")]
+    pub issuer_common_name: Uri,
 }
 
 /// An attribute name and value.

@@ -245,6 +245,7 @@ impl From<TestDocument> for UnsignedMdoc {
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
             attributes: value.namespaces.try_into().unwrap(),
+            issuer_common_name: "pid.example.com".parse().unwrap(),
         }
     }
 }
