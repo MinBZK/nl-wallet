@@ -417,6 +417,7 @@ pub mod tests {
                 )])
                 .try_into()
                 .unwrap(),
+                issuer_common_name: "https://pid.example.com".parse().unwrap(),
             },
             TypeMetadata::bsn_only_example(),
         )
@@ -658,6 +659,7 @@ pub mod tests {
             )])
             .try_into()
             .unwrap(),
+            issuer_common_name: "https://pid.example.com".parse().unwrap(),
         };
 
         let mut metadata = TypeMetadata::empty_example();

@@ -2,7 +2,6 @@ use std::mem;
 use std::sync::Arc;
 
 use http::header;
-use http::uri::InvalidUri;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Uri;
@@ -132,12 +131,6 @@ pub enum PidIssuanceError {
     Attestation(#[from] AttestationError),
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
-    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
-    #[category(critical)]
-    UnexpectedIssuerCommonNameCount(usize),
-    #[error("invalid common name: {0}")]
-    #[category(critical)]
-    InvalidCommonName(InvalidUri),
     #[error(
         "issuer_common_name field in mdoc does not match Common Name in issuer certificate: expected {0}, found {1}"
     )]
@@ -326,24 +319,12 @@ where
                     CredentialPreview::MsoMdoc {
                         unsigned_mdoc,
                         metadata_chain,
-                        issuer_certificate,
                         ..
                     } => {
                         let (metadata, _) = metadata_chain.verify_and_destructure()?;
                         // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
-                        let issuer_common_names = issuer_certificate.common_names()?;
-                        let issuer_common_name = match issuer_common_names.len() {
-                            1 => issuer_common_names
-                                .first()
-                                .unwrap()
-                                .parse()
-                                .map_err(PidIssuanceError::InvalidCommonName)?,
-                            n => return Err(PidIssuanceError::UnexpectedIssuerCommonNameCount(n)),
-                        };
-
-                        let credential_payload =
-                            CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, issuer_common_name)?;
+                        let credential_payload = CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc)?;
                         let attestation = Attestation::from_credential_payload(
                             AttestationIdentity::Ephemeral,
                             credential_payload,
@@ -495,23 +476,13 @@ where
                 }
 
                 // Verify that the issuer_common_name matches with the issuer_registration
-                let issuer_common_names = certificate.common_names()?;
-                match issuer_common_names.len() {
-                    1 => {
-                        let issuer_common_name = issuer_common_names
-                            .first()
-                            .unwrap()
-                            .parse::<Uri>()
-                            .map_err(PidIssuanceError::InvalidCommonName)?;
-                        if issuer_common_name != mdoc.mso.issuer_common_name {
-                            return Err(PidIssuanceError::UnexpectedCommonName(
-                                mdoc.mso.issuer_common_name.clone(),
-                                issuer_common_name,
-                            ));
-                        }
-                    }
-                    n => return Err(PidIssuanceError::UnexpectedIssuerCommonNameCount(n)),
-                };
+                let issuer_common_name = certificate.common_name_uri()?;
+                if issuer_common_name != *mdoc.issuer_common_name() {
+                    return Err(PidIssuanceError::UnexpectedCommonName(
+                        mdoc.issuer_common_name().clone(),
+                        issuer_common_name,
+                    ));
+                }
             }
             WalletEvent::new_issuance(mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?)
         };

@@ -87,11 +87,11 @@ pub struct CredentialPayload {
 }
 
 impl CredentialPayload {
-    pub fn from_unsigned_mdoc(mdoc: &UnsignedMdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
+    pub fn from_unsigned_mdoc(mdoc: &UnsignedMdoc) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
             mdoc.doc_type.to_string(),
             mdoc.attributes.as_ref(),
-            issuer,
+            mdoc.issuer_common_name.clone(),
             Some(Utc::now()),
             Some((&mdoc.valid_until).try_into()?),
             Some((&mdoc.valid_from).try_into()?),

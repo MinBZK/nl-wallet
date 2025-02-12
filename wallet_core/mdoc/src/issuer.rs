@@ -6,8 +6,6 @@ use coset::CoseSign1;
 use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
-use http::uri::InvalidUri;
-use http::Uri;
 
 use sd_jwt::metadata::ResourceIntegrity;
 use sd_jwt::metadata::TypeMetadata;
@@ -29,14 +27,6 @@ use crate::utils::serialization::TaggedBytes;
 use crate::Error;
 use crate::Result;
 
-#[derive(thiserror::Error, Debug)]
-pub enum IssuanceError {
-    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
-    UnexpectedIssuerCommonNameCount(usize),
-    #[error("invalid common name: {0}")]
-    InvalidCommonName(InvalidUri),
-}
-
 impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
@@ -55,16 +45,6 @@ impl IssuerSigned {
         let doc_type = unsigned_mdoc.doc_type;
         let attrs = IssuerNameSpaces::from(unsigned_mdoc.attributes);
 
-        let issuer_common_names = key.certificate().common_names()?;
-        let issuer_common_name: Uri = match issuer_common_names.len() {
-            1 => issuer_common_names
-                .first()
-                .unwrap()
-                .parse()
-                .map_err(IssuanceError::InvalidCommonName)?,
-            n => return Err(IssuanceError::UnexpectedIssuerCommonNameCount(n).into()),
-        };
-
         let mso = MobileSecurityObject {
             version: MobileSecurityObjectVersion::V1_0,
             digest_algorithm: DigestAlgorithm::SHA256,
@@ -72,7 +52,7 @@ impl IssuerSigned {
             value_digests: (&attrs).try_into()?,
             device_key_info: device_public_key.into(),
             validity_info: validity,
-            issuer_common_name,
+            issuer_common_name: key.certificate().common_name_uri()?,
         };
 
         let (metadata, integrity) = type_metadata.verify_and_destructure()?;

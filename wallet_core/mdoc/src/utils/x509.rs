@@ -4,6 +4,8 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
+use http::uri::InvalidUri;
+use http::Uri;
 use indexmap::IndexMap;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
@@ -89,6 +91,10 @@ pub enum CertificateError {
     KeyMismatch,
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("invalid common name: {0}")]
+    InvalidCommonName(InvalidUri),
+    #[error("unexpected amount of Common Names in certificate: expected 1, found {0}")]
+    UnexpectedCommonNameCount(usize),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
@@ -210,6 +216,18 @@ impl BorrowingCertificate {
 
     pub fn common_names(&self) -> Result<Vec<&str>, CertificateError> {
         x509_common_names(&self.x509_certificate().subject)
+    }
+
+    pub fn common_name_uri(&self) -> Result<Uri, CertificateError> {
+        let common_names = self.common_names()?;
+        match common_names.len() {
+            1 => common_names
+                .first()
+                .unwrap()
+                .parse()
+                .map_err(CertificateError::InvalidCommonName),
+            n => Err(CertificateError::UnexpectedCommonNameCount(n)),
+        }
     }
 
     /// Returns the first DNS SAN, if any, from the certificate.

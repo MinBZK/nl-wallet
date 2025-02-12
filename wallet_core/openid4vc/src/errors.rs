@@ -159,7 +159,9 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                 | TokenRequestError::Attribute(_)
                 | TokenRequestError::CredentialPayload(_)
                 | TokenRequestError::TypeMetadata(_) => TokenErrorCode::ServerError,
-                TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+                TokenRequestError::IssuanceError(_) | TokenRequestError::Certificate(_) => {
+                    TokenErrorCode::InvalidRequest
+                }
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
                 TokenRequestError::UnexpectedIssuerCommonNameCount(_) | TokenRequestError::InvalidCommonName(_) => {
                     todo!()

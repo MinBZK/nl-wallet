@@ -8,7 +8,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use futures::future::try_join_all;
 use http::uri::InvalidUri;
-use http::Uri;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
@@ -22,6 +21,7 @@ use tracing::info;
 use nl_wallet_mdoc::server_keys::KeyRing;
 use nl_wallet_mdoc::utils::crypto::CryptoError;
 use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::IssuerSigned;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
@@ -119,6 +119,8 @@ pub enum TokenRequestError {
     UnexpectedIssuerCommonNameCount(usize),
     #[error("invalid common name: {0}")]
     InvalidCommonName(InvalidUri),
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -625,15 +627,7 @@ impl Session<Created> {
                     .certificate()
                     .to_owned();
 
-                let issuer_common_names = issuer_certificate.common_names().unwrap(); // TODO
-                let issuer_common_name = match issuer_common_names.len() {
-                    1 => issuer_common_names
-                        .first()
-                        .unwrap()
-                        .parse()
-                        .map_err(TokenRequestError::InvalidCommonName)?,
-                    n => return Err(TokenRequestError::UnexpectedIssuerCommonNameCount(n)),
-                };
+                let issuer_common_name = issuer_certificate.common_name_uri()?;
 
                 let unsigned_mdoc = doc.document.to_unsigned_mdoc(
                     doc.valid_from.into(),
@@ -641,8 +635,7 @@ impl Session<Created> {
                     doc.copy_count,
                     issuer_common_name,
                 )?;
-                let credential_payload =
-                    CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, unsigned_mdoc.issuer_common_name)?;
+                let credential_payload = CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc)?;
                 credential_payload.validate(&doc.metadata_chain)?;
 
                 // TODO do this for all formats that we want to issue (PVW-3830)
@@ -1015,8 +1008,7 @@ impl CredentialResponse {
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-                let credential_payload =
-                    CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                let credential_payload = CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc)?;
                 credential_payload.validate(&metadata_chain)?;
 
                 let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, cose_pubkey, issuer_privkey)
