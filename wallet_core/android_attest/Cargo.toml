@@ -14,7 +14,7 @@ required-features = ["mock"]
 
 [features]
 encode = []
-mock = ["encode", "dep:rand", "dep:rcgen", "dep:time", "derive_more/debug"]
+mock = ["encode", "dep:rand", "dep:rcgen", "dep:time"]
 network_test = []
 # Accept attested keys from the emulator. This allows software security level.
 allow_emulator_keys = ["dep:tracing"]
@@ -24,8 +24,10 @@ bitflags.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["serde", "now"] }
 const-decoder.workspace = true
-derive_more = { workspace = true, features = ["as_ref"] }
+derive_more = { workspace = true, features = ["debug", "as_ref"] }
 futures.workspace = true
+gcloud-auth = { workspace = true, features = ["rustls-tls"] }
+http.workspace = true
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
 int-enum.workspace = true
 num-bigint.workspace = true
@@ -45,6 +47,7 @@ serde_with = { workspace = true, features = ["chrono", "hex"] }
 spki = { workspace = true, features = ["std"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
+tokio = { workspace = true, features = ["fs", "sync", "parking_lot"] }
 url.workspace = true
 x509-parser.workspace = true
 

@@ -25,7 +25,7 @@ use android_attest::android_crl::RevocationStatusList;
 use android_attest::certificate_chain::verify_google_key_attestation_with_time;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::play_integrity::client::PlayIntegrityClient;
-use android_attest::play_integrity::client::PlayIntegrityClientError;
+use android_attest::play_integrity::client::PlayIntegrityError;
 use android_attest::play_integrity::integrity_verdict::IntegrityVerdict;
 use android_attest::play_integrity::verification::IntegrityVerdictVerificationError;
 use android_attest::play_integrity::verification::VerifiedIntegrityVerdict;
@@ -311,7 +311,7 @@ pub trait IntegrityTokenDecoder {
 }
 
 impl IntegrityTokenDecoder for PlayIntegrityClient {
-    type Error = PlayIntegrityClientError;
+    type Error = PlayIntegrityError;
 
     async fn decode_token(&self, integrity_token: &str) -> Result<(IntegrityVerdict, String), Self::Error> {
         self.decode_token(integrity_token).await
