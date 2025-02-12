@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
-use serde_with::hex::Hex;
+use serde_with::base64::Base64;
+use serde_with::base64::UrlSafe;
 use serde_with::serde_as;
 use serde_with::TimestampMilliSeconds;
 
@@ -52,7 +53,7 @@ pub struct AppIntegrity {
 #[serde(rename_all = "camelCase")]
 pub struct AppIntegrityDetails {
     pub package_name: String,
-    #[serde_as(as = "HashSet<Hex>")]
+    #[serde_as(as = "HashSet<Base64<UrlSafe>>")]
     pub certificate_sha256_digest: HashSet<Vec<u8>>,
     pub version_code: String,
 }

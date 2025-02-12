@@ -23,7 +23,7 @@ mod tests {
             "appIntegrity": {
                 "appRecognitionVerdict": "PLAY_RECOGNIZED",
                 "packageName": "com.package.name",
-                "certificateSha256Digest": ["6a6a1474b5cbbb2b1aa57e0bc3"],
+                "certificateSha256Digest": ["amoUdLXLuysapX4Lww"],
                 "versionCode": "42"
             },
             "deviceIntegrity": {
