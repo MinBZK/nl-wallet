@@ -82,7 +82,7 @@ pub async fn create_and_verify_attested_key<'a, H>(
 
     // Perform key / app attestation. Note that this requires a network connection.
     let key_with_attestation = holder
-        .attest(identifier.clone(), challenge.clone())
+        .attest(identifier.clone(), challenge.clone(), 123456789)
         .await
         .expect("could not perform key/app attestation");
 

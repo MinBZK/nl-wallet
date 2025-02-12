@@ -277,6 +277,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
         &self,
         key_identifier: String,
         challenge: Vec<u8>,
+        _google_cloud_project_id: u64,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
         match self.error_scenario {
             KeyHolderErrorScenario::UnretryableAttestationError => {
@@ -325,7 +326,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
             KeyHolderType::Google { ca_chain } => {
                 // The token is simply the Base64 encoded challenge hash, which can then be used by
                 // a mock Play Integrity implementation in order to generate an integrity verdict.
-                let app_attestation_token = BASE64_STANDARD.encode(&challenge).into_bytes();
+                let app_attestation_token = BASE64_STANDARD.encode(&challenge);
 
                 let key_description = KeyDescription::new_valid_mock(challenge);
 
@@ -628,10 +629,11 @@ mod persistent {
             &self,
             key_identifier: String,
             challenge: Vec<u8>,
+            google_cloud_project_id: u64,
         ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
             // Map the output from `KeyWithAttestation<MockAppleAttestedKey, MockGoogleAttestedKey>`
             // to `KeyWithAttestation<PersistentMockAppleAttestedKey, MockGoogleAttestedKey>`.
-            Self::with_key_state_write(self.0.attest(key_identifier, challenge))
+            Self::with_key_state_write(self.0.attest(key_identifier, challenge, google_cloud_project_id))
                 .await
                 .map(|key_with_attestation| match key_with_attestation {
                     KeyWithAttestation::Apple { key, attestation_data } => KeyWithAttestation::Apple {
