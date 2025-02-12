@@ -66,5 +66,5 @@ package_name = "com.example.wallet-app"
 # credentials_file = "google-cloud-service-account.json"
 # If this array contains any values, extra checks against the app integrity verdict
 # will be performed that confirm that the app was downloaded from the Play Store.
-# By default, this array is empty.
-# play_store_certificate_hashes = ["amoUdLXLuysapX4Lww=="]
+# By default, this array is empty. The values should be in hexadecimal format.
+# play_store_certificate_hashes = ["01020304050607081010101010101010ABABABABABABABAB1234567890ABCDEF"]

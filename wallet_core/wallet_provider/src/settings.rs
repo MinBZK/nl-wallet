@@ -12,6 +12,7 @@ use derive_more::From;
 use derive_more::Into;
 use serde::Deserialize;
 use serde_with::base64::Base64;
+use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
@@ -102,7 +103,7 @@ pub struct Android {
     pub root_public_keys: Vec<AndroidRootPublicKey>,
     pub package_name: String,
     pub credentials_file: PathBuf,
-    #[serde_as(as = "Vec<Base64>")]
+    #[serde_as(as = "Vec<Hex>")]
     pub play_store_certificate_hashes: Vec<Vec<u8>>,
 }
 
