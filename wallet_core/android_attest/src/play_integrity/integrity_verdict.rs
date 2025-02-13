@@ -68,12 +68,14 @@ pub enum AppRecognitionVerdict {
     Unevaluated,
 }
 
+#[serde_as]
 #[cfg_attr(feature = "encode", serde_with::skip_serializing_none)]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceIntegrity {
-    pub device_recognition_verdict: HashSet<DeviceRecognitionVerdict>,
+    // This field is not present on verdicts generated for the emulator.
+    pub device_recognition_verdict: Option<HashSet<DeviceRecognitionVerdict>>,
     // Opt-in field.
     pub recent_device_activity: Option<RecentDeviceActivity>,
     // Opt-in field.
@@ -214,7 +216,7 @@ mod mock {
                     }),
                 },
                 device_integrity: DeviceIntegrity {
-                    device_recognition_verdict: HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity]),
+                    device_recognition_verdict: Some(HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity])),
                     recent_device_activity: None,
                     device_attributes: None,
                 },

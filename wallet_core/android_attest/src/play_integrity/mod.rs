@@ -68,7 +68,7 @@ mod tests {
             }),
         },
         device_integrity: DeviceIntegrity {
-            device_recognition_verdict: HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity]),
+            device_recognition_verdict: Some(HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity])),
             recent_device_activity: Some(RecentDeviceActivity {
                 device_activity_level: DeviceActivityLevel::Level2,
             }),

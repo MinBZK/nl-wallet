@@ -115,6 +115,8 @@ impl VerifiedIntegrityVerdict {
         if !integrity_verdict
             .device_integrity
             .device_recognition_verdict
+            .as_ref()
+            .ok_or(IntegrityVerdictVerificationError::DeviceIntegrityNotMet)?
             .contains(&DeviceRecognitionVerdict::MeetsDeviceIntegrity)
         {
             return Err(IntegrityVerdictVerificationError::DeviceIntegrityNotMet);
@@ -283,7 +285,7 @@ mod tests {
     #[test]
     fn test_verified_integrity_verdict_device_integrity_not_met_error() {
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.device_integrity.device_recognition_verdict.clear();
+        verdict.device_integrity.device_recognition_verdict.take();
 
         let error = verify_example_verdict(verdict).expect_err("integrity verdict should not verify");
 
