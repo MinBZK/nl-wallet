@@ -110,6 +110,10 @@ pub enum TokenRequestError {
     CredentialTypeNotOffered(String),
     #[error("could not convert attributes: {0}")]
     Attribute(#[from] AttributeError),
+    #[error("error converting unsigned mdoc to credential_payload: {0}")]
+    CredentialPayload(#[from] CredentialPayloadError),
+    #[error("error verifying type metadata integrity: {0}")]
+    TypeMetadata(#[from] TypeMetadataError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -616,13 +620,17 @@ impl Session<Created> {
                     .certificate()
                     .to_owned();
 
+                let unsigned_mdoc =
+                    doc.document
+                        .to_unsigned_mdoc(doc.valid_from.into(), doc.valid_until.into(), doc.copy_count)?;
+                let credential_payload =
+                    CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                let (metadata, _) = doc.metadata_chain.clone().verify_and_destructure()?;
+                credential_payload.validate(metadata.first())?;
+
                 // TODO do this for all formats that we want to issue (PVW-3830)
                 let mdoc = CredentialPreview::MsoMdoc {
-                    unsigned_mdoc: doc.document.to_unsigned_mdoc(
-                        doc.valid_from.into(),
-                        doc.valid_until.into(),
-                        doc.copy_count,
-                    )?,
+                    unsigned_mdoc,
                     issuer_certificate,
                     metadata_chain: doc.metadata_chain,
                 };
