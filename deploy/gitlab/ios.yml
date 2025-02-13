@@ -25,6 +25,8 @@ test-ios:
   needs:
     - job: test-flutter
       artifacts: false
+    - job: test-flutter-ui
+      artifacts: false
     - job: test-codegen
       artifacts: false
     - job: test-rust
@@ -104,8 +106,9 @@ build-ios-app-ont-profile:
 
 build-ios-app-mock:
   extends: .build-ios-app-release-tag
-  needs:
-    - !reference [.build-ios-app, needs]
+  rules:
+    - !reference [.on-mock-build, rules]
+  needs: []
   variables:
     APP_MOCK: "true" # override .build-ios-app-release-tag
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
@@ -222,6 +225,8 @@ deploy-ios-app-ont:
 
 deploy-ios-app-mock:
   extends: .deploy-ios-app-release-tag
+  rules:
+    - !reference [.on-mock-build, rules]
   needs:
     - job: build-ios-app-mock
       artifacts: true

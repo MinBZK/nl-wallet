@@ -71,7 +71,7 @@ test-rust-doctest:
     RUSTFLAGS: "-D warnings"
     CONFIG_ENV: "dev"
 
-test-rust-compilation-android-linux:
+test-rust-compilation-android:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
   extends: [.test-rust-compilation]
   script:

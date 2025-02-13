@@ -33,13 +33,15 @@
   needs:
     - job: test-flutter
       artifacts: false
+    - job: test-flutter-ui
+      artifacts: false
     - job: test-codegen
       artifacts: false
     - job: test-rust
       artifacts: false
     - job: test-rust-doctest
       artifacts: false
-    - job: test-rust-compilation-android-linux
+    - job: test-rust-compilation-android
       artifacts: false
   artifacts:
     name: "wallet-android"
@@ -114,12 +116,14 @@ build-android-app-ont-profile:
 
 build-android-app-mock:
   extends: .build-android-app-release-tag
-  needs:
-    - !reference [.build-android-app, needs]
+  rules:
+    - !reference [.on-mock-build, rules]
+  needs: []
   variables:
     APP_MOCK: "true" # override .build-android-app-release-tag
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
+    CONFIG_ENV: "dev"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
@@ -244,6 +248,8 @@ deploy-android-app-ont:
 
 deploy-android-app-mock:
   extends: .deploy-android-app-release-tag
+  rules:
+    - !reference [.on-mock-build, rules]
   needs:
     - job: build-android-app-mock
       artifacts: true
