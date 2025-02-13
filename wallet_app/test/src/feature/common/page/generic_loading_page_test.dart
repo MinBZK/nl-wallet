@@ -40,7 +40,7 @@ void main() {
 
   group('widgets', () {
     testWidgets('GenericLoadingPage renders expected widgets without cancelButton', (tester) async {
-      await tester.pumpWidget(
+      await tester.pumpWidgetWithAppWrapper(
         const WalletAppTestWidget(
           child: GenericLoadingPage(
             title: 'T',
@@ -62,7 +62,7 @@ void main() {
     });
 
     testWidgets('GenericLoadingPage renders expected widgets with cancelButton', (tester) async {
-      await tester.pumpWidget(
+      await tester.pumpWidgetWithAppWrapper(
         WalletAppTestWidget(
           child: GenericLoadingPage(
             title: 'T',
@@ -86,7 +86,7 @@ void main() {
 
     testWidgets('when cancel button is pressed the onCancel callback is triggered', (tester) async {
       bool isCalled = false;
-      await tester.pumpWidget(
+      await tester.pumpWidgetWithAppWrapper(
         WalletAppTestWidget(
           child: GenericLoadingPage(
             title: 'T',
