@@ -101,7 +101,7 @@ mod tests {
         .unwrap();
 
         let document = Document {
-            doc_type: mdoc.doc_type.clone(),
+            doc_type: mdoc.doc_type().clone(),
             issuer_signed: mdoc.issuer_signed.clone(),
             device_signed: mac_device_signed,
             errors: None,

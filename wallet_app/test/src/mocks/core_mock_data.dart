@@ -1,24 +1,22 @@
 import 'package:wallet_core/core.dart';
 
 abstract class CoreMockData {
-  static const Card card = Card(
-    persistence: CardPersistence.stored(id: '0'),
-    docType: 'docType',
-    attributes: [cardAttributeName, cardAttributeCity],
+  static const Attestation attestation = Attestation(
+    identity: AttestationIdentity_Ephemeral(),
+    attestationType: kPidDocType,
+    displayMetadata: [displayMetadata],
     issuer: organization,
+    attributes: [attestationAttributeName],
   );
 
-  static const CardAttribute cardAttributeName = CardAttribute(
-    key: 'name',
-    labels: [],
-    value: CardValue_String(value: 'Willeke'),
-  );
+  static const displayMetadata =
+      DisplayMetadata(lang: 'en', name: 'PID attestation', rendering: RenderingMetadata_Simple());
 
-  static const CardAttribute cardAttributeCity = CardAttribute(
-    key: 'city',
-    labels: [],
-    value: CardValue_String(value: 'Den Haag'),
-  );
+  static const AttestationAttribute attestationAttributeName =
+      AttestationAttribute(key: 'name', labels: [], value: AttributeValue_String(value: 'Willeke'));
+
+  static const AttestationAttribute attestationAttributeCity =
+      AttestationAttribute(key: 'city', labels: [], value: AttributeValue_String(value: 'Den Haag'));
 
   static const Organization organization = Organization(
     legalName: [LocalizedString(language: 'en', value: 'legalName')],

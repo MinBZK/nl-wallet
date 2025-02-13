@@ -116,7 +116,7 @@ impl<I> DisclosureRequestMatch<I> {
                 // First, remove the `IndexSet` of attributes that are required for this
                 // `doc_type` from the global `HashSet`. If this cannot be found, then
                 // `MdocDataSource` did not obey the contract as noted in the comment above.
-                let first_doc_type = doc_type_stored_mdocs.first().unwrap().mdoc.doc_type.as_str();
+                let first_doc_type = doc_type_stored_mdocs.first().unwrap().mdoc.doc_type().as_str();
                 let (doc_type, requested_attributes) = requested_attributes_by_doc_type
                     .remove_entry(first_doc_type)
                     .expect("Received mdoc candidate with unexpected doc_type from storage");
@@ -124,7 +124,7 @@ impl<I> DisclosureRequestMatch<I> {
                 // Do another sanity check, all of the remaining `Mdoc`s
                 // in the `Vec` should have the same `doc_type`.
                 for stored_mdoc in &doc_type_stored_mdocs {
-                    if stored_mdoc.mdoc.doc_type != doc_type {
+                    if stored_mdoc.mdoc.doc_type() != doc_type {
                         panic!("Received mdoc candidate with inconsistent doc_type from storage");
                     }
                 }

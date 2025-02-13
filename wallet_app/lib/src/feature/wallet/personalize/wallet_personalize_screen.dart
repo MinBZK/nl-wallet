@@ -252,9 +252,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
     final loginSucceeded = (await MockDigidScreen.mockLogin(context)) ?? false;
     await Future.delayed(kDefaultMockDelay);
     if (loginSucceeded) {
-      final cards = await walletCore.continuePidIssuance(kMockPidIssuanceRedirectUri);
-      final mockPidCardAttributes =
-          cards.map((card) => card.attributes.map((e) => CardAttributeWithDocType(card.docType, e))).flattened.toList();
+      final attestations = await walletCore.continuePidIssuance(kMockPidIssuanceRedirectUri);
+      final mockPidCardAttributes = attestations
+          .map(
+            (attestation) =>
+                attestation.attributes.map((e) => CardAttributeWithDocType(attestation.attestationType, e)),
+          )
+          .flattened
+          .toList();
       bloc.add(WalletPersonalizeLoginWithDigidSucceeded(attributeMapper.mapList(mockPidCardAttributes)));
     } else {
       bloc.add(const WalletPersonalizeLoginWithDigidFailed());

@@ -28,7 +28,7 @@ mixin _$WalletEvent {
             DisclosureStatus status,
             DisclosureType typ)
         disclosure,
-    required TResult Function(String dateTime, Card card) issuance,
+    required TResult Function(String dateTime, Attestation attestation) issuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -42,7 +42,7 @@ mixin _$WalletEvent {
             DisclosureStatus status,
             DisclosureType typ)?
         disclosure,
-    TResult? Function(String dateTime, Card card)? issuance,
+    TResult? Function(String dateTime, Attestation attestation)? issuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -56,7 +56,7 @@ mixin _$WalletEvent {
             DisclosureStatus status,
             DisclosureType typ)?
         disclosure,
-    TResult Function(String dateTime, Card card)? issuance,
+    TResult Function(String dateTime, Attestation attestation)? issuance,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -277,7 +277,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             DisclosureStatus status,
             DisclosureType typ)
         disclosure,
-    required TResult Function(String dateTime, Card card) issuance,
+    required TResult Function(String dateTime, Attestation attestation) issuance,
   }) {
     return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
   }
@@ -294,7 +294,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             DisclosureStatus status,
             DisclosureType typ)?
         disclosure,
-    TResult? Function(String dateTime, Card card)? issuance,
+    TResult? Function(String dateTime, Attestation attestation)? issuance,
   }) {
     return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
   }
@@ -311,7 +311,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             DisclosureStatus status,
             DisclosureType typ)?
         disclosure,
-    TResult Function(String dateTime, Card card)? issuance,
+    TResult Function(String dateTime, Attestation attestation)? issuance,
     required TResult orElse(),
   }) {
     if (disclosure != null) {
@@ -387,7 +387,7 @@ abstract class _$$WalletEvent_IssuanceImplCopyWith<$Res> implements $WalletEvent
       __$$WalletEvent_IssuanceImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String dateTime, Card card});
+  $Res call({String dateTime, Attestation attestation});
 }
 
 /// @nodoc
@@ -403,17 +403,17 @@ class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWi
   @override
   $Res call({
     Object? dateTime = null,
-    Object? card = null,
+    Object? attestation = null,
   }) {
     return _then(_$WalletEvent_IssuanceImpl(
       dateTime: null == dateTime
           ? _value.dateTime
           : dateTime // ignore: cast_nullable_to_non_nullable
               as String,
-      card: null == card
-          ? _value.card
-          : card // ignore: cast_nullable_to_non_nullable
-              as Card,
+      attestation: null == attestation
+          ? _value.attestation
+          : attestation // ignore: cast_nullable_to_non_nullable
+              as Attestation,
     ));
   }
 }
@@ -421,16 +421,16 @@ class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWi
 /// @nodoc
 
 class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
-  const _$WalletEvent_IssuanceImpl({required this.dateTime, required this.card}) : super._();
+  const _$WalletEvent_IssuanceImpl({required this.dateTime, required this.attestation}) : super._();
 
   @override
   final String dateTime;
   @override
-  final Card card;
+  final Attestation attestation;
 
   @override
   String toString() {
-    return 'WalletEvent.issuance(dateTime: $dateTime, card: $card)';
+    return 'WalletEvent.issuance(dateTime: $dateTime, attestation: $attestation)';
   }
 
   @override
@@ -439,11 +439,11 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
         (other.runtimeType == runtimeType &&
             other is _$WalletEvent_IssuanceImpl &&
             (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
-            (identical(other.card, card) || other.card == card));
+            (identical(other.attestation, attestation) || other.attestation == attestation));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, dateTime, card);
+  int get hashCode => Object.hash(runtimeType, dateTime, attestation);
 
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -465,9 +465,9 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             DisclosureStatus status,
             DisclosureType typ)
         disclosure,
-    required TResult Function(String dateTime, Card card) issuance,
+    required TResult Function(String dateTime, Attestation attestation) issuance,
   }) {
-    return issuance(dateTime, card);
+    return issuance(dateTime, attestation);
   }
 
   @override
@@ -482,9 +482,9 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             DisclosureStatus status,
             DisclosureType typ)?
         disclosure,
-    TResult? Function(String dateTime, Card card)? issuance,
+    TResult? Function(String dateTime, Attestation attestation)? issuance,
   }) {
-    return issuance?.call(dateTime, card);
+    return issuance?.call(dateTime, attestation);
   }
 
   @override
@@ -499,11 +499,11 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             DisclosureStatus status,
             DisclosureType typ)?
         disclosure,
-    TResult Function(String dateTime, Card card)? issuance,
+    TResult Function(String dateTime, Attestation attestation)? issuance,
     required TResult orElse(),
   }) {
     if (issuance != null) {
-      return issuance(dateTime, card);
+      return issuance(dateTime, attestation);
     }
     return orElse();
   }
@@ -541,13 +541,13 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
 }
 
 abstract class WalletEvent_Issuance extends WalletEvent {
-  const factory WalletEvent_Issuance({required final String dateTime, required final Card card}) =
+  const factory WalletEvent_Issuance({required final String dateTime, required final Attestation attestation}) =
       _$WalletEvent_IssuanceImpl;
   const WalletEvent_Issuance._() : super._();
 
   @override
   String get dateTime;
-  Card get card;
+  Attestation get attestation;
 
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.

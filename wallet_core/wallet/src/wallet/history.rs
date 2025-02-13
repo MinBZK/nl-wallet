@@ -255,6 +255,7 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                                     ProposedDocumentAttributes {
                                         issuer: namespaces.issuer.clone(),
                                         attributes: namespaces.into(),
+                                        display_metadata: vec![], // TODO: PVW-4008
                                     },
                                 )
                             })
