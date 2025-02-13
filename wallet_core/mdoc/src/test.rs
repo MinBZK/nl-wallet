@@ -3,6 +3,7 @@ use std::num::NonZeroU8;
 
 use ciborium::Value;
 use coset::CoseSign1;
+use http::Uri;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
@@ -150,12 +151,17 @@ impl DeviceRequest {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TestDocument {
     pub doc_type: String,
+    pub issuer_common_name: Uri,
     pub namespaces: IndexMap<String, Vec<Entry>>,
 }
 
 impl TestDocument {
-    fn new(doc_type: String, namespaces: IndexMap<String, Vec<Entry>>) -> Self {
-        Self { doc_type, namespaces }
+    fn new(doc_type: String, issuer_common_name: Uri, namespaces: IndexMap<String, Vec<Entry>>) -> Self {
+        Self {
+            doc_type,
+            issuer_common_name,
+            namespaces,
+        }
     }
 
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
@@ -219,24 +225,6 @@ impl TestDocument {
     }
 }
 
-impl From<(&'static str, &'static str, Vec<(&'static str, Value)>)> for TestDocument {
-    fn from((doc_type, namespace, attributes): (&'static str, &'static str, Vec<(&'static str, Value)>)) -> Self {
-        Self::new(
-            doc_type.to_string(),
-            IndexMap::from_iter(vec![(
-                namespace.to_string(),
-                attributes
-                    .into_iter()
-                    .map(|(name, value)| Entry {
-                        name: name.into(),
-                        value,
-                    })
-                    .collect(),
-            )]),
-        )
-    }
-}
-
 impl From<TestDocument> for UnsignedMdoc {
     fn from(value: TestDocument) -> Self {
         Self {
@@ -245,7 +233,7 @@ impl From<TestDocument> for UnsignedMdoc {
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
             attributes: value.namespaces.try_into().unwrap(),
-            issuer_common_name: "pid.example.com".parse().unwrap(),
+            issuer_common_name: value.issuer_common_name,
         }
     }
 }
@@ -286,12 +274,15 @@ impl TestDocuments {
         for TestDocument {
             doc_type: expected_doc_type,
             namespaces: expected_namespaces,
+            issuer_common_name: expected_issuer,
         } in self.0.iter()
         {
             // verify the disclosed attributes
             let disclosed_namespaces = disclosed_documents
                 .get(expected_doc_type)
                 .expect("expected doc_type not received");
+            // verify the issuer
+            assert_eq!(disclosed_namespaces.issuer, expected_issuer.to_string());
             // verify the number of namespaces in this document
             assert_eq!(disclosed_namespaces.attributes.len(), expected_namespaces.len());
             for (expected_namespace, expected_attributes) in expected_namespaces {
@@ -384,27 +375,68 @@ pub mod data {
     }
 
     pub fn pid_given_name() -> TestDocuments {
-        vec![(PID, PID, vec![("given_name", "Willeke Liselotte".into())]).into()].into()
+        vec![TestDocument::new(
+            PID.to_owned(),
+            "cert.issuer.example.com".parse().unwrap(),
+            IndexMap::from_iter(vec![(
+                PID.to_string(),
+                vec![Entry {
+                    name: "given_name".to_string(),
+                    value: Value::Text("Willeke Liselotte".to_string()),
+                }],
+            )]),
+        )]
+        .into()
     }
 
     pub fn pid_family_name() -> TestDocuments {
-        vec![(PID, PID, vec![("family_name", "De Bruijn".into())]).into()].into()
+        vec![TestDocument::new(
+            PID.to_owned(),
+            "cert.issuer.example.com".parse().unwrap(),
+            IndexMap::from_iter(vec![(
+                PID.to_string(),
+                vec![Entry {
+                    name: "family_name".to_string(),
+                    value: Value::Text("De Bruijn".to_string()),
+                }],
+            )]),
+        )]
+        .into()
     }
 
     pub fn pid_full_name() -> TestDocuments {
-        vec![(
-            PID,
-            PID,
-            vec![
-                ("given_name", "Willeke Liselotte".into()),
-                ("family_name", "De Bruijn".into()),
-            ],
-        )
-            .into()]
+        vec![TestDocument::new(
+            PID.to_owned(),
+            "cert.issuer.example.com".parse().unwrap(),
+            IndexMap::from_iter(vec![(
+                PID.to_string(),
+                vec![
+                    Entry {
+                        name: "given_name".to_string(),
+                        value: Value::Text("Willeke Liselotte".to_string()),
+                    },
+                    Entry {
+                        name: "family_name".to_string(),
+                        value: Value::Text("De Bruijn".to_string()),
+                    },
+                ],
+            )]),
+        )]
         .into()
     }
 
     pub fn addr_street() -> TestDocuments {
-        vec![(ADDR, ADDR, vec![("resident_street", "Turfmarkt".into())]).into()].into()
+        vec![TestDocument::new(
+            ADDR.to_owned(),
+            "cert.issuer.example.com".parse().unwrap(),
+            IndexMap::from_iter(vec![(
+                ADDR.to_string(),
+                vec![Entry {
+                    name: "resident_street".to_string(),
+                    value: Value::Text("Turfmarkt".to_string()),
+                }],
+            )]),
+        )]
+        .into()
     }
 }

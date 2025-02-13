@@ -300,6 +300,7 @@ mod tests {
         ProposedDocument {
             doc_type,
             issuer_signed,
+            issuer_certificate,
             ..
         }: ProposedDocument<I>,
     ) -> TestDocument {
@@ -307,6 +308,7 @@ mod tests {
 
         TestDocument {
             doc_type,
+            issuer_common_name: issuer_certificate.common_name_uri().unwrap(),
             namespaces: convert_namespaces(name_spaces),
         }
     }
