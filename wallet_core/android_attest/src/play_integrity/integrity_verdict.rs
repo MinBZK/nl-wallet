@@ -52,14 +52,15 @@ pub struct AppIntegrity {
     pub version_code: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, strum::Display)]
+// Note that the order of this enum is relevant, as we derive Ord.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, strum::Display)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AppRecognitionVerdict {
-    PlayRecognized,
-    UnrecognizedVersion,
     Unevaluated,
+    UnrecognizedVersion,
+    PlayRecognized,
 }
 
 #[serde_as]
@@ -127,14 +128,15 @@ pub struct AccountDetails {
     pub app_licensing_verdict: AppLicensingVerdict,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, strum::Display)]
+// Note that the order of this enum is relevant, as we derive Ord.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, strum::Display)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AppLicensingVerdict {
-    Licensed,
-    Unlicensed,
     Unevaluated,
+    Unlicensed,
+    Licensed,
 }
 
 #[cfg(feature = "encode")]

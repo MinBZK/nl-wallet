@@ -28,6 +28,7 @@ use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::play_integrity::client::PlayIntegrityClient;
 use android_attest::play_integrity::client::PlayIntegrityError;
 use android_attest::play_integrity::integrity_verdict::IntegrityVerdict;
+use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::play_integrity::verification::IntegrityVerdictVerificationError;
 use android_attest::play_integrity::verification::VerifiedIntegrityVerdict;
 use android_attest::root_public_key::RootPublicKey;
@@ -321,6 +322,7 @@ impl IntegrityTokenDecoder for PlayIntegrityClient {
 pub struct AndroidAttestationConfiguration {
     pub root_public_keys: Vec<RootPublicKey>,
     pub package_name: String,
+    pub installation_method: InstallationMethod,
     pub certificate_hashes: HashSet<Vec<u8>>,
 }
 
@@ -522,6 +524,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     &self.android_config.package_name,
                     &BASE64_STANDARD.encode(&challenge_hash),
                     &self.android_config.certificate_hashes,
+                    self.android_config.installation_method,
                     attestation_timestamp,
                 )
                 .map_err(AndroidAppAttestationError::IntegrityVerdict)?;
@@ -1151,6 +1154,7 @@ pub mod mock {
                 root_public_keys: vec![RootPublicKey::Rsa(MOCK_GOOGLE_CA_CHAIN.root_public_key.clone())],
                 package_name: integrity_client.package_name.clone(),
                 certificate_hashes: integrity_client.certificate_hashes.clone(),
+                installation_method: InstallationMethod::default(),
             },
             crl,
             integrity_client,

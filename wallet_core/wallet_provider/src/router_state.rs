@@ -79,6 +79,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             apple_trust_anchors,
         );
 
+        let android_installation_method = settings.android.installation_method();
         let android_root_public_keys = settings
             .android
             .root_public_keys
@@ -88,6 +89,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let android_config = AndroidAttestationConfiguration {
             root_public_keys: android_root_public_keys,
             package_name: settings.android.package_name,
+            installation_method: android_installation_method,
             certificate_hashes: settings.android.play_store_certificate_hashes,
         };
 

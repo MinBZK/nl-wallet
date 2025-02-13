@@ -18,6 +18,7 @@ use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
 
+use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use wallet_common::config::http::TlsServerConfig;
@@ -103,6 +104,7 @@ pub struct Android {
     #[serde_as(as = "Vec<Base64>")]
     pub root_public_keys: Vec<AndroidRootPublicKey>,
     pub package_name: String,
+    pub allow_sideloading: bool,
     pub credentials_file: PathBuf,
     #[serde_as(as = "HashSet<Hex>")]
     pub play_store_certificate_hashes: HashSet<Vec<u8>>,
@@ -140,6 +142,7 @@ impl Settings {
             .set_default("instruction_challenge_timeout_in_ms", 15_000)?
             .set_default("hsm.max_sessions", 10)?
             .set_default("hsm.max_session_lifetime_in_sec", 900)?
+            .set_default("android.allow_sideloading", false)?
             .set_default("android.credentials_file", "google-cloud-service-account.json")?
             .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
             .add_source(File::from(config_path.join("wallet_provider.toml")).required(false))
@@ -168,6 +171,14 @@ impl From<AppleEnvironment> for AttestationEnvironment {
 }
 
 impl Android {
+    pub fn installation_method(&self) -> InstallationMethod {
+        if self.allow_sideloading {
+            InstallationMethod::SideloadOrPlayStore
+        } else {
+            InstallationMethod::PlayStore
+        }
+    }
+
     pub fn credentials_file_absolute(&self) -> Cow<'_, PathBuf> {
         if self.credentials_file.is_absolute() {
             return Cow::Borrowed(&self.credentials_file);
