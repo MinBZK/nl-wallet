@@ -16,7 +16,7 @@ use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::NameSpace;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 
 use crate::attributes::Attribute;
@@ -258,7 +258,8 @@ impl CredentialPayload {
         Ok(parts)
     }
 
-    pub fn validate(&self, metadata: &TypeMetadata) -> Result<(), CredentialPayloadError> {
+    pub fn validate(&self, metadata_chain: &TypeMetadataChain) -> Result<(), CredentialPayloadError> {
+        let metadata = metadata_chain.verify()?;
         metadata.validate(&serde_json::to_value(self)?)?;
         Ok(())
     }
@@ -277,6 +278,7 @@ mod test {
 
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::DataElementValue;
+    use sd_jwt::metadata::TypeMetadataChain;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -463,8 +465,7 @@ mod test {
 
         let payload = serde_json::from_value::<CredentialPayload>(expected_json).unwrap();
 
-        let metadata = serde_json::from_value(json!(
-            {
+        let metadata = serde_json::from_value(json!({
           "vct": "com.example.pid",
           "name": "NL Wallet PID credential",
           "description": "Working version of the NL Wallet PID credential",
@@ -620,8 +621,9 @@ mod test {
           }
         }))
         .unwrap();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
-        payload.validate(&metadata).unwrap();
+        payload.validate(&metadata_chain).unwrap();
     }
 
     #[test]

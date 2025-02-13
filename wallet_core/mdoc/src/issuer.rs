@@ -30,8 +30,7 @@ use crate::Result;
 impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
-        metadata_chain: VecNonEmpty<TypeMetadata>,
-        metadata_integrity: ResourceIntegrity,
+        type_metadata: TypeMetadataChain,
         device_public_key: CoseKey,
         key: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self> {
@@ -55,7 +54,8 @@ impl IssuerSigned {
             validity_info: validity,
         };
 
-        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata_chain, metadata_integrity)?;
+        let (metadata, integrity) = type_metadata.verify_and_destructure()?;
+        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata, integrity)?;
 
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
@@ -177,10 +177,9 @@ mod tests {
         };
         let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
-        let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned.clone(), chain, integrity, device_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned.clone(), metadata_chain, device_key, &issuance_key)
             .await
             .unwrap();
 

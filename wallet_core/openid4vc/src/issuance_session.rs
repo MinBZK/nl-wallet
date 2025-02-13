@@ -816,9 +816,8 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
                 // Verify and parse the type metadata
-                let (metadata, _) = metadata_chain.clone().verify_and_destructure()?;
                 let credential_payload = CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
-                credential_payload.validate(metadata.first())?;
+                credential_payload.validate(metadata_chain)?;
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
@@ -923,14 +922,11 @@ mod tests {
             metadata_chain: metadata_chain.clone(),
         };
 
-        let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
-
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = mdoc_key.verifying_key();
         let issuer_signed = IssuerSigned::sign(
             unsigned_mdoc,
-            chain,
-            integrity,
+            metadata_chain,
             mdoc_public_key.try_into().unwrap(),
             &issuance_key,
         )

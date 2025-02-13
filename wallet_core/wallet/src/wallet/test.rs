@@ -136,17 +136,10 @@ pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: &TypeMetadata, 
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key().try_into().unwrap();
     let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![]).unwrap();
-    let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
-    let issuer_signed = IssuerSigned::sign(
-        unsigned_mdoc,
-        chain,
-        integrity,
-        mdoc_public_key,
-        &issuer_key.issuance_key,
-    )
-    .now_or_never()
-    .unwrap()
-    .unwrap();
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, &issuer_key.issuance_key)
+        .now_or_never()
+        .unwrap()
+        .unwrap();
 
     Mdoc::new::<MockRemoteEcdsaKey>(
         private_key_id,

@@ -95,6 +95,13 @@ impl TypeMetadataChain {
         self.root_integrity.verify(&bytes)?;
         Ok(self.into_destructured())
     }
+
+    pub fn verify(&self) -> Result<TypeMetadata, TypeMetadataError> {
+        let root = self.metadata.first().0.clone();
+        let bytes: Vec<u8> = (&root).try_into()?; // TODO: verify chain in PVW-3824
+        self.root_integrity.verify(&bytes)?;
+        Ok(root)
+    }
 }
 
 #[derive(Clone, Debug)]
