@@ -91,23 +91,21 @@ impl VerifiedIntegrityVerdict {
             ));
         }
 
-        let app_integrity_details = integrity_verdict
-            .app_integrity
-            .details
-            .as_ref()
-            .ok_or(IntegrityVerdictVerificationError::PlayStorePackageNameMismatch(None))?;
-
-        if app_integrity_details.package_name != package_name {
-            return Err(IntegrityVerdictVerificationError::PlayStorePackageNameMismatch(Some(
-                integrity_verdict.app_integrity.details.unwrap().package_name,
-            )));
+        if integrity_verdict.app_integrity.package_name.as_deref() != Some(package_name) {
+            return Err(IntegrityVerdictVerificationError::PlayStorePackageNameMismatch(
+                integrity_verdict.app_integrity.package_name,
+            ));
         }
 
         // The set of certificate hashes in the verdict must contain at least all of the required hashes.
         // Note that this effectively renders the check pointless when certificate_hashes is empty.
-        if !app_integrity_details
+        if !integrity_verdict
+            .app_integrity
             .certificate_sha256_digest
-            .is_superset(certificate_hashes)
+            .as_ref()
+            .map(|certificate_sha256_digest| certificate_sha256_digest.is_superset(certificate_hashes))
+            // If the verdict contains no hashes, it can only be verified if there are no required hashes.
+            .unwrap_or_else(|| certificate_hashes.is_empty())
         {
             return Err(IntegrityVerdictVerificationError::PlayStoreCertificateMismatch);
         }
@@ -255,7 +253,10 @@ mod tests {
     #[test]
     fn test_verified_integrity_verdict_play_store_package_name_mismatch_error() {
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.app_integrity.details.as_mut().unwrap().package_name = "com.package.different".to_string();
+        verdict
+            .app_integrity
+            .package_name
+            .replace("com.package.different".to_string());
 
         let error = verify_example_verdict(verdict).expect_err("integrity verdict should not verify");
 
@@ -269,13 +270,7 @@ mod tests {
     #[test]
     fn test_verified_integrity_verdict_play_store_certificate_mismatch_error() {
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict
-            .app_integrity
-            .details
-            .as_mut()
-            .unwrap()
-            .certificate_sha256_digest
-            .clear();
+        verdict.app_integrity.certificate_sha256_digest.take();
 
         let error = verify_example_verdict(verdict).expect_err("integrity verdict should not verify");
 

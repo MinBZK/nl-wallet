@@ -36,26 +36,20 @@ pub struct RequestDetails {
     pub timestamp: DateTime<Utc>,
 }
 
+#[serde_as]
 #[cfg_attr(feature = "encode", serde_with::skip_serializing_none)]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct AppIntegrity {
     pub app_recognition_verdict: AppRecognitionVerdict,
-    // These fields are not set when `app_recognition_verdict` is `AppRecognitionVerdict::Unevaluated`.
-    #[serde(flatten)]
-    pub details: Option<AppIntegrityDetails>,
-}
-
-#[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(feature = "encode", derive(serde::Serialize))]
-#[serde(rename_all = "camelCase")]
-pub struct AppIntegrityDetails {
-    pub package_name: String,
-    #[serde_as(as = "HashSet<Base64<UrlSafe>>")]
-    pub certificate_sha256_digest: HashSet<Vec<u8>>,
-    pub version_code: String,
+    // These field is not present when `app_recognition_verdict` is `AppRecognitionVerdict::Unevaluated`.
+    pub package_name: Option<String>,
+    // These field is not present when `app_recognition_verdict` is `AppRecognitionVerdict::Unevaluated`.
+    #[serde_as(as = "Option<HashSet<Base64<UrlSafe>>>")]
+    pub certificate_sha256_digest: Option<HashSet<Vec<u8>>>,
+    // These field is not present when `app_recognition_verdict` is `AppRecognitionVerdict::Unevaluated`.
+    pub version_code: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, strum::Display)]
@@ -209,11 +203,9 @@ mod mock {
                 },
                 app_integrity: AppIntegrity {
                     app_recognition_verdict: AppRecognitionVerdict::PlayRecognized,
-                    details: Some(AppIntegrityDetails {
-                        package_name,
-                        certificate_sha256_digest: certificate_hashes,
-                        version_code: "42".to_string(),
-                    }),
+                    package_name: Some(package_name),
+                    certificate_sha256_digest: Some(certificate_hashes),
+                    version_code: Some("42".to_string()),
                 },
                 device_integrity: DeviceIntegrity {
                     device_recognition_verdict: Some(HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity])),

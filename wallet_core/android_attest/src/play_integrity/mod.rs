@@ -59,13 +59,11 @@ mod tests {
         },
         app_integrity: AppIntegrity {
             app_recognition_verdict: AppRecognitionVerdict::PlayRecognized,
-            details: Some(AppIntegrityDetails {
-                package_name: "com.package.name".to_string(),
-                certificate_sha256_digest: HashSet::from([
-                    b"\x6a\x6a\x14\x74\xb5\xcb\xbb\x2b\x1a\xa5\x7e\x0b\xc3".to_vec()
-                ]),
-                version_code: 42.to_string(),
-            }),
+            package_name: Some("com.package.name".to_string()),
+            certificate_sha256_digest: Some(HashSet::from([
+                b"\x6a\x6a\x14\x74\xb5\xcb\xbb\x2b\x1a\xa5\x7e\x0b\xc3".to_vec()
+            ])),
+            version_code: Some(42.to_string()),
         },
         device_integrity: DeviceIntegrity {
             device_recognition_verdict: Some(HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity])),
