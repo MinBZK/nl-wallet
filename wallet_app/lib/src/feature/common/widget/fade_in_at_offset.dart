@@ -64,11 +64,16 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
     final startAppearingAt = min(widget.appearOffset, maxScrollExtent - 1);
     final completelyVisibleAt = min(widget.visibleOffset, maxScrollExtent);
 
-    return IgnorePointer(
-      ignoring: offset <= startAppearingAt,
-      child: Opacity(
-        opacity: offset.normalize(startAppearingAt, completelyVisibleAt).toDouble(),
-        child: widget.child,
+    // Exclude the widget from focus and pointer events when it's not visible.
+    final completelyInvisible = offset <= startAppearingAt;
+    return ExcludeFocus(
+      excluding: completelyInvisible,
+      child: IgnorePointer(
+        ignoring: completelyInvisible,
+        child: Opacity(
+          opacity: offset.normalize(startAppearingAt, completelyVisibleAt).toDouble(),
+          child: widget.child,
+        ),
       ),
     );
   }
