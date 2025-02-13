@@ -86,7 +86,6 @@ tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 
 android_attest = { path = "../../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
-# hsm = { path = "../../hsm", features = ["mock"] }
 wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys", "mock_apple_attested_key"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }
