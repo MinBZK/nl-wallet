@@ -50,10 +50,7 @@ class ConfirmActionSheet extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TitleText(
-                    title,
-                    textAlign: TextAlign.start,
-                  ),
+                  child: TitleText(title),
                 ),
                 const SizedBox(height: 16),
                 Padding(
