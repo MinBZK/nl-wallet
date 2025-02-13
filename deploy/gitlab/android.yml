@@ -67,7 +67,7 @@
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${RELEASE_VERSION:-}"
+        version:"${CI_COMMIT_TAG:-}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -107,8 +107,6 @@ build-android-app-ont-profile:
 .build-android-app-release-tag:
   extends: [.env-ont-k8s, .build-android-app]
   rules: !reference [.release-tag, rules]
-  before_script:
-    - !reference [.release-tag, before_script]
   variables:
     APP_MOCK: "false"
     APP_FILE_FORMAT: "aab"
@@ -229,7 +227,7 @@ build-android-app-production:
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"${RELEASE_VERSION}"
+        version:"${CI_COMMIT_TAG}"
 
 deploy-android-app-ont:
   extends: .deploy-android-app
@@ -243,8 +241,6 @@ deploy-android-app-ont:
 .deploy-android-app-release-tag:
   extends: .deploy-android-app
   rules: !reference [.release-tag, rules]
-  before_script:
-    - !reference [.release-tag, before_script]
 
 deploy-android-app-mock:
   extends: .deploy-android-app-release-tag
