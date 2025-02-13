@@ -3,7 +3,6 @@
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
-    FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER

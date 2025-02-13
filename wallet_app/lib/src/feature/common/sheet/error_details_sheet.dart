@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/bottom_close_button.dart';
+import '../widget/text/title_text.dart';
 import '../widget/version/config_version_text.dart';
 import '../widget/version/os_version_text.dart';
 import '../widget/version/string_version_text.dart';
@@ -25,11 +26,7 @@ class ErrorDetailsSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  context.l10n.errorDetailsSheetTitle,
-                  style: context.textTheme.displayMedium,
-                  textAlign: TextAlign.start,
-                ),
+                TitleText(context.l10n.errorDetailsSheetTitle),
                 const SizedBox(height: 8),
                 _buildInfoSection(context),
               ],

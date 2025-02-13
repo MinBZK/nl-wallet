@@ -546,7 +546,7 @@ where
                 |mut mdocs_by_doc_type, StoredMdocCopy { mdoc_copy_id, mdoc, .. }| {
                     // Re-use the `doc_types` string slices, which should contain all `Mdoc` doc types.
                     let doc_type = *doc_types
-                        .get(mdoc.doc_type.as_str())
+                        .get(mdoc.doc_type().as_str())
                         .expect("Storage returned mdoc with unexpected doc_type");
                     mdocs_by_doc_type
                         .entry(doc_type)
@@ -586,13 +586,14 @@ mod tests {
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
+    use sd_jwt::metadata::TypeMetadata;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::disclosure::MockMdocDisclosureMissingAttributes;
     use crate::disclosure::MockMdocDisclosureProposal;
     use crate::disclosure::MockMdocDisclosureSession;
-    use crate::Attribute;
-    use crate::AttributeValue;
+    use crate::document::Attribute;
+    use crate::document::AttributeValue;
     use crate::EventStatus;
     use crate::HistoryEvent;
 
@@ -612,6 +613,7 @@ mod tests {
             ProposedDocumentAttributes {
                 attributes: IndexMap::from([("com.example.pid".to_string(), vec![Entry { name, value }])]),
                 issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         )])
     }
@@ -1601,13 +1603,7 @@ mod tests {
 
         // Create some fake `Mdoc` entries to place into wallet storage.
         let mdoc1 = Mdoc::new_example_mock();
-        let mdoc2 = {
-            let mut mdoc2 = mdoc1.clone();
-
-            mdoc2.doc_type = "com.example.doc_type".to_string();
-
-            mdoc2
-        };
+        let mdoc2 = Mdoc::new_example_mock_with_doctype("com.example.doc_type");
 
         // Place 3 copies of each `Mdoc` into `MockStorage`.
         wallet

@@ -13,7 +13,7 @@ use wallet::Wallet;
 
 use crate::frb_generated::StreamSink;
 use crate::logging::init_logging;
-use crate::models::card::Card;
+use crate::models::attestation::Attestation;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::StartDisclosureResult;
@@ -112,23 +112,20 @@ pub async fn clear_version_state_stream() {
     wallet().read().await.clear_version_state_callback();
 }
 
-#[flutter_api_error]
-pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) -> anyhow::Result<()> {
+pub async fn set_attestations_stream(sink: StreamSink<Vec<Attestation>>) -> anyhow::Result<()> {
     wallet()
         .write()
         .await
-        .set_documents_callback(Box::new(move |documents| {
-            let cards = documents.into_iter().map(|document| document.into()).collect();
-
-            let _ = sink.add(cards);
+        .set_attestations_callback(Box::new(move |attestations| {
+            let _ = sink.add(attestations.into_iter().map(Attestation::from).collect());
         }))
         .await?;
 
     Ok(())
 }
 
-pub async fn clear_cards_stream() {
-    wallet().write().await.clear_documents_callback();
+pub async fn clear_attestations_stream() {
+    wallet().write().await.clear_attestations_callback();
 }
 
 #[flutter_api_error]
@@ -233,16 +230,15 @@ pub async fn cancel_pid_issuance() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
-pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Card>> {
+pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Attestation>> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;
 
-    let documents = wallet.continue_pid_issuance(url).await?;
+    let wallet_attestations = wallet.continue_pid_issuance(url).await?;
+    let attestations = wallet_attestations.into_iter().map(Attestation::from).collect();
 
-    let cards = documents.into_iter().map(Card::from).collect();
-
-    Ok(cards)
+    Ok(attestations)
 }
 
 #[flutter_api_error]
@@ -354,7 +350,7 @@ pub async fn get_history_for_card(doc_type: String) -> anyhow::Result<Vec<Wallet
         .flat_map(WalletEvents::from)
         .filter(|e| match e {
             WalletEvent::Disclosure { .. } => true,
-            WalletEvent::Issuance { card, .. } => card.doc_type == doc_type,
+            WalletEvent::Issuance { attestation, .. } => attestation.attestation_type == doc_type,
         })
         .collect();
     Ok(history)

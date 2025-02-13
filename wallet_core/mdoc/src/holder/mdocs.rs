@@ -8,11 +8,6 @@ use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 
-use error_category::ErrorCategory;
-use wallet_common::generator::Generator;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::CredentialKeyType;
-
 use crate::identifiers::AttributeIdentifier;
 use crate::iso::*;
 use crate::unsigned::Entry;
@@ -20,13 +15,19 @@ use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
 use crate::utils::x509::BorrowingCertificate;
 use crate::verifier::ValidityRequirement;
+use error_category::ErrorCategory;
+use sd_jwt::metadata::TypeMetadata;
+use wallet_common::generator::Generator;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::CredentialKeyType;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Mdoc {
-    /// Doctype of the mdoc. This is also present inside the `issuer_signed`; we include it here for
+    /// Mobile Security Object of the mdoc. This is also present inside the `issuer_signed`; we include it here for
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
-    pub doc_type: String,
+    pub(crate) mso: MobileSecurityObject,
 
     /// Identifier of the mdoc's private key. Obtain a reference to it with [`Keyfactory::generate(private_key_id)`].
     // Note that even though these fields are not `pub`, to users of this package their data is still accessible
@@ -48,7 +49,7 @@ impl Mdoc {
     ) -> crate::Result<Mdoc> {
         let (_, mso) = issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
         let mdoc = Mdoc {
-            doc_type: mso.doc_type,
+            mso,
             private_key_id,
             issuer_signed,
             key_type: K::KEY_TYPE,
@@ -65,11 +66,24 @@ impl Mdoc {
         self.issuer_signed.issuer_auth.signing_cert()
     }
 
+    pub fn doc_type(&self) -> &String {
+        &self.mso.doc_type
+    }
+
+    pub fn validity_info(&self) -> &ValidityInfo {
+        &self.mso.validity_info
+    }
+
+    pub fn type_metadata(&self) -> crate::Result<VecNonEmpty<TypeMetadata>> {
+        let (metadata, _) = self.issuer_signed.type_metadata()?.verify_and_destructure()?;
+        Ok(metadata)
+    }
+
     /// Check that the namespaces, attribute names and attribute values of this instance are equal to to the
     /// provided unsigned value.
     pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedAttributesMismatch> {
         let our_attrs = self.attributes();
-        let our_attrs = &flatten_attributes(&self.doc_type, &our_attrs);
+        let our_attrs = &flatten_attributes(self.doc_type(), &our_attrs);
         let expected_attrs = &flatten_attributes(&unsigned.doc_type, unsigned.attributes.as_ref());
 
         let missing = map_difference(expected_attrs, our_attrs);

@@ -319,7 +319,7 @@ impl From<Vec<Mdoc>> for MockMdocDataSource {
         MockMdocDataSource(
             value
                 .into_iter()
-                .map(|mdoc| (mdoc.doc_type.clone(), vec![mdoc].try_into().unwrap()))
+                .map(|mdoc| (mdoc.doc_type().clone(), vec![mdoc].try_into().unwrap()))
                 .collect(),
         )
     }

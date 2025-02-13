@@ -1,3 +1,6 @@
+use std::fmt::Display;
+use std::fmt::Formatter;
+
 use base64::prelude::*;
 use derive_more::Into;
 use http::Uri;
@@ -31,7 +34,7 @@ pub enum TypeMetadataError {
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
 /// various reasons.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpecOptionalImplRequired<T>(pub T);
 
 impl<T> From<T> for SpecOptionalImplRequired<T> {
@@ -77,17 +80,18 @@ impl TypeMetadataChain {
         Ok(result)
     }
 
-    pub fn into_destructured(self) -> (Vec<TypeMetadata>, ResourceIntegrity) {
+    fn into_destructured(self) -> (VecNonEmpty<TypeMetadata>, ResourceIntegrity) {
         (
-            self.metadata.into_inner().into_iter().map(|m| m.0).collect(),
+            // unwrap is safe here because there is always at least one item (root)
+            VecNonEmpty::try_from(self.metadata.into_inner().into_iter().map(|m| m.0).collect::<Vec<_>>()).unwrap(),
             self.root_integrity,
         )
     }
 
-    pub fn verify_and_parse_root(&self) -> Result<TypeMetadata, TypeMetadataError> {
-        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?;
+    pub fn verify_and_destructure(self) -> Result<(VecNonEmpty<TypeMetadata>, ResourceIntegrity), TypeMetadataError> {
+        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?; // TODO: verify chain in PVW-3824
         self.root_integrity.verify(&bytes)?;
-        Ok(serde_json::from_slice(&bytes)?)
+        Ok(self.into_destructured())
     }
 }
 
@@ -239,7 +243,7 @@ fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataEr
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct DisplayMetadata {
     pub lang: String,
@@ -248,7 +252,7 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[skip_serializing_none]
 pub enum RenderingMetadata {
@@ -260,7 +264,7 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
     #[serde(with = "http_serde::uri")]
     pub uri: Uri,
@@ -290,6 +294,16 @@ pub enum ClaimPath {
     SelectByIndex(usize),
 }
 
+impl Display for ClaimPath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClaimPath::SelectByKey(key) => write!(f, "{}", key),
+            ClaimPath::SelectAll => f.write_str("*"),
+            ClaimPath::SelectByIndex(index) => write!(f, "{}", index),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ClaimSelectiveDisclosureMetadata {
@@ -313,12 +327,16 @@ pub mod mock {
 
     use wallet_common::utils::random_string;
 
+    use crate::metadata::ClaimDisplayMetadata;
+    use crate::metadata::ClaimMetadata;
+    use crate::metadata::ClaimPath;
+    use crate::metadata::ClaimSelectiveDisclosureMetadata;
     use crate::metadata::JsonSchema;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
 
     impl TypeMetadata {
-        pub fn new_example() -> Self {
+        pub fn empty_example() -> Self {
             Self {
                 vct: random_string(16),
                 name: Some(random_string(8)),
@@ -326,6 +344,29 @@ pub mod mock {
                 extends: None,
                 display: vec![],
                 claims: vec![],
+                schema: SchemaOption::Embedded {
+                    schema: JsonSchema::try_new(json!({})).unwrap(),
+                },
+            }
+        }
+
+        pub fn bsn_only_example() -> Self {
+            Self {
+                vct: random_string(16),
+                name: Some(random_string(8)),
+                description: None,
+                extends: None,
+                display: vec![],
+                claims: vec![ClaimMetadata {
+                    path: vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap(),
+                    display: vec![ClaimDisplayMetadata {
+                        lang: String::from("en"),
+                        label: String::from("BSN"),
+                        description: None,
+                    }],
+                    sd: ClaimSelectiveDisclosureMetadata::Always,
+                    svg_id: None,
+                }],
                 schema: SchemaOption::Embedded {
                     schema: JsonSchema::try_new(json!({})).unwrap(),
                 },

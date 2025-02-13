@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use tests_integration::common::*;
-use wallet::AttributeValue;
-use wallet::Document;
+use wallet::openid4vc::AttributeValue;
+use wallet::Attestation;
 
 #[tokio::test]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -14,26 +14,26 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
-    // Emit documents into this local variable
-    let documents: Arc<std::sync::Mutex<Vec<Document>>> = Arc::new(std::sync::Mutex::new(vec![]));
+    // Emit attestations into this local variable
+    let attestations: Arc<std::sync::Mutex<Vec<Attestation>>> = Arc::new(std::sync::Mutex::new(vec![]));
     {
-        let documents = documents.clone();
+        let attestations = attestations.clone();
         wallet
-            .set_documents_callback(Box::new(move |mut d| {
-                let mut documents = documents.lock().unwrap();
-                documents.append(&mut d);
+            .set_attestations_callback(Box::new(move |mut a| {
+                let mut attestations = attestations.lock().unwrap();
+                attestations.append(&mut a);
             }))
             .await
             .unwrap();
     }
 
     // Verify that the first mdoc contains the bsn
-    let documents = documents.lock().unwrap();
-    let pid_mdoc = documents.first().unwrap();
-    let bsn_attr = pid_mdoc.attributes.iter().find(|a| *a.0 == "bsn");
+    let attestations = attestations.lock().unwrap();
+    let pid_attestation = attestations.first().unwrap();
+    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec!["bsn"]);
 
     match bsn_attr {
-        Some(bsn_attr) => assert_eq!(bsn_attr.1.value, AttributeValue::String("999991772".to_string())),
+        Some(bsn_attr) => assert_eq!(bsn_attr.value, AttributeValue::Text("999991772".to_string())),
         None => panic!("BSN attribute not found"),
     }
 

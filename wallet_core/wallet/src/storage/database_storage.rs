@@ -435,7 +435,7 @@ where
                     .collect::<Result<Vec<_>, CborError>>()?;
 
                 // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the filter() above.
-                let doc_type = mdoc_copies.into_iter().next().unwrap().doc_type;
+                let doc_type = mdoc_copies.into_iter().next().unwrap().doc_type().clone();
                 let mdoc_model = mdoc::ActiveModel {
                     id: Set(mdoc_id),
                     doc_type: Set(doc_type),

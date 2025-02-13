@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:wallet_core/core.dart';
 
 import '../mock.dart';
-import 'data/mock/mock_cards.dart';
+import 'data/mock/mock_attestations.dart';
 import 'data/mock/mock_disclosure_requests.dart';
 import 'log/wallet_event_log.dart';
 import 'pin/pin_manager.dart';
@@ -108,9 +108,9 @@ class WalletCoreMock implements WalletCoreApi {
 
     assert(_wallet.isEmpty, 'We can only accept the pid if the wallet was previously empty');
     // Add the PID cards to the user's wallet
-    _wallet.add(kPidCards);
+    _wallet.add(kPidAttestations);
     // Log the issuance events
-    kPidCards.forEach(_eventLog.logIssuance);
+    kPidAttestations.forEach(_eventLog.logIssuance);
     return result;
   }
 
@@ -120,7 +120,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<void> crateApiFullClearCardsStream({hint}) async {
+  Future<void> crateApiFullClearAttestationsStream({hint}) async {
     // Stub only, no need to clear it on the mock
   }
 
@@ -145,7 +145,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<List<Card>> crateApiFullContinuePidIssuance({required String uri, hint}) async => kPidCards;
+  Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri, hint}) async => kPidAttestations;
 
   @override
   Future<String> crateApiFullCreatePidIssuanceRedirectUri({hint}) async => kMockPidIssuanceRedirectUri;
@@ -209,7 +209,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Stream<List<Card>> crateApiFullSetCardsStream({hint}) => _wallet.cardsStream;
+  Stream<List<Attestation>> crateApiFullSetAttestationsStream({hint}) => _wallet.attestationsStream;
 
   @override
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream({hint}) {

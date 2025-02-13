@@ -1,7 +1,7 @@
+mod attestations;
 mod change_pin;
 mod config;
 mod disclosure;
-mod documents;
 mod history;
 mod init;
 mod instruction_client;
@@ -34,11 +34,11 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::attestations::AttestationsCallback;
 use crate::wte::WpWteIssuanceClient;
 
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposal;
-pub use self::documents::DocumentsCallback;
 pub use self::history::EventConversionError;
 pub use self::history::EventStatus;
 pub use self::history::EventStorageError;
@@ -115,6 +115,6 @@ pub struct Wallet<
     disclosure_session: Option<MDS>,
     wte_issuance_client: WIC,
     lock: WalletLock,
-    documents_callback: Option<DocumentsCallback>,
+    attestations_callback: Option<AttestationsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,
 }

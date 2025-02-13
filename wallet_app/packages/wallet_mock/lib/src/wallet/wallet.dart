@@ -6,37 +6,40 @@ import '../data/mock/mock_organizations.dart';
 
 class Wallet {
   final BehaviorSubject<bool> _isLockedSubject = BehaviorSubject.seeded(true);
-  final BehaviorSubject<List<Card>> _cardsSubject = BehaviorSubject.seeded([]);
+  final BehaviorSubject<List<Attestation>> _attestationsSubject = BehaviorSubject.seeded([]);
 
   Wallet();
 
   Stream<bool> get lockedStream => _isLockedSubject.stream;
 
-  Stream<List<Card>> get cardsStream => _cardsSubject.stream;
+  Stream<List<Attestation>> get attestationsStream => _attestationsSubject.stream;
 
-  List<Card> get _cards => _cardsSubject.value;
+  List<Attestation> get _attestations => _attestationsSubject.value;
 
-  List<CardAttribute> get _allAttributes => _cards.map((card) => card.attributes).flattened.toList();
+  List<AttestationAttribute> get _allAttributes =>
+      _attestations.map((attestation) => attestation.attributes).flattened.toList();
 
-  bool get isEmpty => _cards.isEmpty;
+  bool get isEmpty => _attestations.isEmpty;
 
   bool containsAttributes(Iterable<String> keys) => keys.every(containsAttribute);
 
   bool containsAttribute(String attributeKey) {
-    return _cards.any((element) => element.attributes.any((element) => element.key == attributeKey));
+    return _attestations.any((element) => element.attributes.any((element) => element.key == attributeKey));
   }
 
-  CardAttribute? findAttribute(String key) => _allAttributes.firstWhereOrNull((attribute) => attribute.key == key);
+  AttestationAttribute? findAttribute(String key) =>
+      _allAttributes.firstWhereOrNull((attribute) => attribute.key == key);
 
   List<DisclosureCard> getDisclosureCards(Iterable<String> keys) {
     final allRequestedAttributes = keys.map(findAttribute).nonNulls;
     final cardToAttributes = allRequestedAttributes
-        .groupListsBy((attribute) => _cards.firstWhere((card) => card.attributes.contains(attribute)));
+        .groupListsBy((attribute) => _attestations.firstWhere((card) => card.attributes.contains(attribute)));
     return cardToAttributes.entries
         .map(
           (e) => DisclosureCard(
-            docType: e.key.docType,
+            docType: e.key.attestationType,
             attributes: e.value,
+            displayMetadata: e.key.displayMetadata,
             issuer: kOrganizations[kRvigId]!,
           ),
         )
@@ -51,7 +54,7 @@ class Wallet {
   }
 
   void reset() {
-    _cardsSubject.add([]);
+    _attestationsSubject.add([]);
     _isLockedSubject.add(true);
   }
 
@@ -60,11 +63,12 @@ class Wallet {
   unlock() => _isLockedSubject.add(false);
 
   /// Adds the cards to the wallet, if a card with the same docType already exists, it is replaced with the new card.
-  void add(List<Card> cards) {
-    final currentCards = List.of(_cards);
-    final newDocTypes = cards.map((e) => e.docType);
-    final cardsToKeep = currentCards.whereNot((card) => newDocTypes.contains(card.docType));
-    final newCardList = List.of(cardsToKeep)..addAll(cards);
-    _cardsSubject.add(newCardList);
+  void add(List<Attestation> attestations) {
+    final currentCards = List.of(_attestations);
+    final newAttestationTypes = attestations.map((e) => e.attestationType);
+    final cardsToKeep =
+        currentCards.whereNot((attestation) => newAttestationTypes.contains(attestation.attestationType));
+    final newCardList = List.of(cardsToKeep)..addAll(attestations);
+    _attestationsSubject.add(newCardList);
   }
 }

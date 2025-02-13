@@ -33,6 +33,9 @@ import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.security.spec.X509EncodedKeySpec
 
+
+// TODO: PVW-4070: Handle play integrity enablement/disablement here (also google_cloud_project_id)
+
 @RunWith(AndroidJUnit4::class)
 @DelicateCoroutinesApi // Needed for `newSingleThreadContext`
 @ExperimentalCoroutinesApi // Needed for `newSingleThreadContext`, `Dispatchers.setMain` and `Dispatchers.resetMain`
@@ -104,7 +107,7 @@ class AttestedKeyBridgeInstrumentedTest {
         // Verify that attestationData is an instance of `Google`
         if (attestationData is AttestationData.Google) {
             // Verify the attestation token is empty
-            // TODO: See if appAttestationToken can be more meaningfully verified
+            // TODO: PVW-4071: See if appAttestationToken can be more meaningfully verified
             assert(attestationData.appAttestationToken.isNotEmpty())
             // Verify that the certificate chain is not empty
             assert(attestationData.certificateChain.size >= 2) {

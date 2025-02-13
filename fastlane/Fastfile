@@ -24,7 +24,7 @@ private_lane :get_local_version_and_build do
 
   # If building locally, and 2nd part of version is nil or "dev", rewrite to 0.
   if version_parts[1].nil? || version_parts[1] == "dev"
-    puts  "App version_part[1] is \"#{version_parts[1]}\", rewriting to \"0\""
+    UI.message("App version_part[1] is \"#{version_parts[1]}\", rewriting to \"0\"")
     version_parts[1] = "0"
   end
   version_parts
@@ -41,15 +41,14 @@ private_lane :ci_get_basic_auth do
 end
 
 private_lane :flutter_cmd do
-  begin
-    sh("which", "fvm")
-    ["fvm", "flutter"]
-  rescue
-    begin
-      sh("which", "flutter")
+  sh "which", "fvm" do |status|
+    if status.success?
+      ["fvm", "flutter"]
+    else
+      sh "which", "flutter", error_callback: Proc.new {
+        UI.user_error!('Neither "fvm" nor "flutter" command found')
+      }
       ["flutter"]
-    rescue
-      UI.user_error!('Neither "fvm" nor "flutter" command found')
     end
   end
 end
@@ -98,11 +97,6 @@ private_lane :upload_to_browserstack do |options|
       log: false
     )
   end
-end
-
-lane :disable_flutter_analytics do
-  sh("dart", "--disable-analytics")
-  sh(*flutter_cmd, "config", "--no-analytics")
 end
 
 platform :android do

@@ -5,6 +5,7 @@ use serde::Serialize;
 pub mod authorization;
 pub mod credential;
 pub mod credential_formats;
+pub mod credential_payload;
 pub mod token;
 
 // Cryptographic tools.

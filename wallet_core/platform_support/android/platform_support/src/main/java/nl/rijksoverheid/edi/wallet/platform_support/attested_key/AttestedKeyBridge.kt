@@ -53,10 +53,9 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
 
         Log.d("attest", "beginning app and key attestation process")
 
+        // TODO: PVW-4069: Handle non-existent or erronuous cloud project identifier numbers
+
         // Configure cloud project number, initialize manager and token provider request.
-        // TODO: Handle non-existent or erronuous cloud project identifier numbers
-
-
         Log.d("attest", "initializing using google cloud project id: $googleCloudProjectId")
 
         val integrityManager = IntegrityManagerFactory.createStandard(context.applicationContext)
@@ -70,7 +69,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
                     Log.d("attest", "configured integrity token provider")
                 }
                 .addOnFailureListener { exception ->
-                    // TODO: Consider throwing AttestedAppException.SomethingWithProvider equivalent here
+                    // TODO: PVW-4069: Consider throwing AttestedAppException.SomethingWithProvider equivalent here
                     Log.e("attest", exception.message ?: "there was no exception message")
                 }
         )
@@ -82,7 +81,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
                 Log.i("attest", "received an integrity token")
             }
             .addOnFailureListener { exception ->
-                // TODO: Consider throwing AttestedAppException.SomethingWithToken equivalent here
+                // TODO: PVW-4069: Consider throwing AttestedAppException.SomethingWithToken equivalent here
                 Log.e("attest", exception.message ?: "there was no exception message")
             }
         )

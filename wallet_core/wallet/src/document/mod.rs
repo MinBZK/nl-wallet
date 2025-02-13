@@ -7,6 +7,7 @@ use chrono::NaiveDate;
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use sd_jwt::metadata::DisplayMetadata;
 
 #[cfg(feature = "snapshot_test")]
 use serde::Serialize;
@@ -84,6 +85,7 @@ pub struct DisclosureDocument {
     pub issuer_registration: IssuerRegistration,
     pub doc_type: DocumentType,
     pub attributes: DocumentAttributes,
+    pub display_metadata: Vec<DisplayMetadata>,
 }
 
 /// A lower priority means that this `doc_type` should be displayed above others.

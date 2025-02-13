@@ -83,6 +83,10 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
     pub fn into_inner(self) -> Vec<T> {
         self.0
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.0.iter()
+    }
 }
 
 /// Should be used as the constructor for types where the uniqueness constraint is set.

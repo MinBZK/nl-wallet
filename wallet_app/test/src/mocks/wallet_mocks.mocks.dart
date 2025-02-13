@@ -1497,13 +1497,15 @@ class MockTypedWalletCore extends _i1.Mock implements _i32.TypedWalletCore {
       ) as _i8.Future<void>);
 
   @override
-  _i8.Future<List<_i19.Card>> continuePidIssuance(String? uri) => (super.noSuchMethod(
+  _i8.Future<List<_i19.Attestation>> continuePidIssuance(String? uri) => (super.noSuchMethod(
         Invocation.method(#continuePidIssuance, [uri]),
-        returnValue: _i8.Future<List<_i19.Card>>.value(<_i19.Card>[]),
-        returnValueForMissingStub: _i8.Future<List<_i19.Card>>.value(
-          <_i19.Card>[],
+        returnValue: _i8.Future<List<_i19.Attestation>>.value(
+          <_i19.Attestation>[],
         ),
-      ) as _i8.Future<List<_i19.Card>>);
+        returnValueForMissingStub: _i8.Future<List<_i19.Attestation>>.value(
+          <_i19.Attestation>[],
+        ),
+      ) as _i8.Future<List<_i19.Attestation>>);
 
   @override
   _i8.Future<_i19.WalletInstructionResult> acceptOfferedPid(String? pin) => (super.noSuchMethod(
@@ -1590,11 +1592,11 @@ class MockTypedWalletCore extends _i1.Mock implements _i32.TypedWalletCore {
       ) as _i8.Future<bool>);
 
   @override
-  _i8.Stream<List<_i19.Card>> observeCards() => (super.noSuchMethod(
+  _i8.Stream<List<_i19.Attestation>> observeCards() => (super.noSuchMethod(
         Invocation.method(#observeCards, []),
-        returnValue: _i8.Stream<List<_i19.Card>>.empty(),
-        returnValueForMissingStub: _i8.Stream<List<_i19.Card>>.empty(),
-      ) as _i8.Stream<List<_i19.Card>>);
+        returnValue: _i8.Stream<List<_i19.Attestation>>.empty(),
+        returnValueForMissingStub: _i8.Stream<List<_i19.Attestation>>.empty(),
+      ) as _i8.Stream<List<_i19.Attestation>>);
 
   @override
   _i8.Future<void> resetWallet() => (super.noSuchMethod(
@@ -2685,8 +2687,8 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<_i19.WalletInstructionResult>);
 
   @override
-  _i8.Future<void> crateApiFullClearCardsStream() => (super.noSuchMethod(
-        Invocation.method(#crateApiFullClearCardsStream, []),
+  _i8.Future<void> crateApiFullClearAttestationsStream() => (super.noSuchMethod(
+        Invocation.method(#crateApiFullClearAttestationsStream, []),
         returnValue: _i8.Future<void>.value(),
         returnValueForMissingStub: _i8.Future<void>.value(),
       ) as _i8.Future<void>);
@@ -2744,18 +2746,20 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<_i19.WalletInstructionResult>);
 
   @override
-  _i8.Future<List<_i19.Card>> crateApiFullContinuePidIssuance({
+  _i8.Future<List<_i19.Attestation>> crateApiFullContinuePidIssuance({
     required String? uri,
   }) =>
       (super.noSuchMethod(
         Invocation.method(#crateApiFullContinuePidIssuance, [], {
           #uri: uri,
         }),
-        returnValue: _i8.Future<List<_i19.Card>>.value(<_i19.Card>[]),
-        returnValueForMissingStub: _i8.Future<List<_i19.Card>>.value(
-          <_i19.Card>[],
+        returnValue: _i8.Future<List<_i19.Attestation>>.value(
+          <_i19.Attestation>[],
         ),
-      ) as _i8.Future<List<_i19.Card>>);
+        returnValueForMissingStub: _i8.Future<List<_i19.Attestation>>.value(
+          <_i19.Attestation>[],
+        ),
+      ) as _i8.Future<List<_i19.Attestation>>);
 
   @override
   _i8.Future<String> crateApiFullCreatePidIssuanceRedirectUri() => (super.noSuchMethod(
@@ -2916,6 +2920,13 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<void>);
 
   @override
+  _i8.Stream<List<_i19.Attestation>> crateApiFullSetAttestationsStream() => (super.noSuchMethod(
+        Invocation.method(#crateApiFullSetAttestationsStream, []),
+        returnValue: _i8.Stream<List<_i19.Attestation>>.empty(),
+        returnValueForMissingStub: _i8.Stream<List<_i19.Attestation>>.empty(),
+      ) as _i8.Stream<List<_i19.Attestation>>);
+
+  @override
   _i8.Future<void> crateApiFullSetBiometricUnlock({required bool? enable}) => (super.noSuchMethod(
         Invocation.method(#crateApiFullSetBiometricUnlock, [], {
           #enable: enable,
@@ -2923,13 +2934,6 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
         returnValue: _i8.Future<void>.value(),
         returnValueForMissingStub: _i8.Future<void>.value(),
       ) as _i8.Future<void>);
-
-  @override
-  _i8.Stream<List<_i19.Card>> crateApiFullSetCardsStream() => (super.noSuchMethod(
-        Invocation.method(#crateApiFullSetCardsStream, []),
-        returnValue: _i8.Stream<List<_i19.Card>>.empty(),
-        returnValueForMissingStub: _i8.Stream<List<_i19.Card>>.empty(),
-      ) as _i8.Stream<List<_i19.Card>>);
 
   @override
   _i8.Stream<_i19.FlutterConfiguration> crateApiFullSetConfigurationStream() => (super.noSuchMethod(

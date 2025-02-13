@@ -18,7 +18,6 @@ use tokio::task::JoinHandle;
 use tracing::info;
 
 use nl_wallet_mdoc::server_keys::KeyRing;
-use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::utils::crypto::CryptoError;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::IssuerSigned;
@@ -39,6 +38,7 @@ use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
+use crate::attributes::AttributeError;
 use crate::attributes::IssuableDocument;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -104,8 +104,8 @@ pub enum TokenRequestError {
     AttributeService(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("credential type not offered: {0}")]
     CredentialTypeNotOffered(String),
-    #[error("could not convert into unsigned attribuets: {0}")]
-    UnsignedAttributes(#[from] UnsignedAttributesError),
+    #[error("could not convert attributes: {0}")]
+    Attribute(#[from] AttributeError),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
