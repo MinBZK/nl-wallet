@@ -23,11 +23,17 @@ pub struct HsmWteIssuer<H, K = HsmEcdsaKey> {
     private_key: K,
     iss: String,
     hsm: H,
+    wrapping_key_identifier: String,
 }
 
 impl<H, K> HsmWteIssuer<H, K> {
-    pub fn new(private_key: K, iss: String, hsm: H) -> Self {
-        Self { private_key, iss, hsm }
+    pub fn new(private_key: K, iss: String, hsm: H, wrapping_key_identifier: String) -> Self {
+        Self {
+            private_key,
+            iss,
+            hsm,
+            wrapping_key_identifier,
+        }
     }
 }
 
@@ -51,7 +57,7 @@ where
     type Error = HsmWteIssuerError;
 
     async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
-        let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key().await?;
+        let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
 
         let jwt = JwtCredentialClaims::new_signed(
             &pubkey,
@@ -126,11 +132,13 @@ mod tests {
         let wte_signing_key = SigningKey::random(&mut OsRng);
         let wte_verifying_key = wte_signing_key.verifying_key();
         let iss = "iss";
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wte_issuer = HsmWteIssuer {
             private_key: wte_signing_key.clone(),
             iss: iss.to_string(),
             hsm,
+            wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 
         let (wte_privkey, wte) = wte_issuer.issue_wte().await.unwrap();

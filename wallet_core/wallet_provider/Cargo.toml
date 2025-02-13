@@ -25,7 +25,7 @@ required-features = ["hsm_test"]
 
 [features]
 # Include and run test that depend on a configured HSM
-hsm_test = ["dep:rand_core", "dep:serial_test"]
+hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test"]
 # Allow software key attestations coming from the android emulator
 allow_android_emulator_keys = ["android_attest/allow_emulator_keys"]
 

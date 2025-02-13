@@ -50,6 +50,7 @@ async fn do_registration(
     pin_privkey: &SigningKey,
     db: Db,
     attestation_ca: AttestationCa<'_>,
+    wrapping_key_identifier: &str,
 ) -> (
     WalletCertificate,
     MockHardwareKey,
@@ -96,7 +97,11 @@ async fn do_registration(
         }
     };
 
-    let user_state = mock::user_state(Repositories::new(db), wallet_certificate::mock::setup_hsm().await);
+    let user_state = mock::user_state(
+        Repositories::new(db),
+        wallet_certificate::mock::setup_hsm().await,
+        wrapping_key_identifier.to_string(),
+    );
     let certificate = account_server
         .register(certificate_signing_key, registration_message, &user_state)
         .await
@@ -134,6 +139,7 @@ async fn test_instruction_challenge(
     #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
 ) {
     let db = db_from_env().await.expect("Could not connect to database");
+    let wrapping_key_identifier = "my-wrapping-key-identifier";
 
     let certificate_signing_key = SigningKey::random(&mut OsRng);
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
@@ -152,6 +158,7 @@ async fn test_instruction_challenge(
         &pin_privkey,
         db,
         attestation_ca,
+        wrapping_key_identifier,
     )
     .await;
 

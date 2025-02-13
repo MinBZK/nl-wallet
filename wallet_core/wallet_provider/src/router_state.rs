@@ -21,7 +21,6 @@ use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::account_server::UserState;
-use wallet_provider_service::hsm::WalletUserPkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
@@ -37,7 +36,7 @@ pub struct RouterState<GC> {
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
-    pub user_state: UserState<Repositories, WalletUserPkcs11Hsm, HsmWteIssuer<WalletUserPkcs11Hsm>>,
+    pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWteIssuer<Pkcs11Hsm>>,
 }
 
 impl<GC> RouterState<GC> {
@@ -45,18 +44,15 @@ impl<GC> RouterState<GC> {
         settings: Settings,
         google_crl_client: GC,
     ) -> Result<RouterState<GC>, Box<dyn Error>> {
-        let hsm = WalletUserPkcs11Hsm::new(
-            Pkcs11Hsm::from_settings(settings.hsm)?,
-            settings.attestation_wrapping_key_identifier,
-        );
+        let hsm = Pkcs11Hsm::from_settings(settings.hsm)?;
 
         let certificate_signing_key = WalletCertificateSigning(HsmEcdsaKey::new(
             settings.certificate_signing_key_identifier,
-            hsm.hsm().clone(),
+            hsm.clone(),
         ));
         let instruction_result_signing_key = InstructionResultSigning(HsmEcdsaKey::new(
             settings.instruction_result_signing_key_identifier,
-            hsm.hsm().clone(),
+            hsm.clone(),
         ));
 
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
@@ -111,9 +107,10 @@ impl<GC> RouterState<GC> {
 
         let repositories = Repositories::new(db);
         let wte_issuer = HsmWteIssuer::new(
-            HsmEcdsaKey::new(settings.wte_signing_key_identifier, hsm.hsm().clone()),
+            HsmEcdsaKey::new(settings.wte_signing_key_identifier, hsm.clone()),
             settings.wte_issuer_identifier,
             hsm.clone(),
+            settings.attestation_wrapping_key_identifier.clone(),
         );
 
         let state = RouterState {
@@ -125,6 +122,7 @@ impl<GC> RouterState<GC> {
                 repositories,
                 wallet_user_hsm: hsm,
                 wte_issuer,
+                wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
             },
         };
 

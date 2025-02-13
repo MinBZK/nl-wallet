@@ -10,10 +10,6 @@ use p256::ecdsa::VerifyingKey;
 
 use crate::model::encrypted::Encrypted;
 
-pub fn key_identifier(prefix: &str, identifier: &str) -> String {
-    format!("{prefix}_{identifier}")
-}
-
 pub trait Hsm {
     type Error: Error + Send + Sync;
 
@@ -49,7 +45,6 @@ pub mod mock {
     use crate::model::encrypted::InitializationVector;
     use crate::model::encrypter::Decrypter;
     use crate::model::encrypter::Encrypter;
-    use crate::model::key_identifier;
     use crate::model::Hsm;
 
     type HmacSha256 = Hmac<Sha256>;
@@ -58,7 +53,8 @@ pub mod mock {
 
     impl<E> MockPkcs11Client<E> {
         pub fn get_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey, E> {
-            let entry = self.0.get(&key_identifier(key_prefix, identifier)).unwrap();
+            let key_identifier = format!("{key_prefix}_{identifier}");
+            let entry = self.0.get(&key_identifier).unwrap();
             let key = entry.value().clone();
             Ok(key)
         }

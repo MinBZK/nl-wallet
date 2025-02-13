@@ -301,6 +301,7 @@ mod tests {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
         let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -324,6 +325,7 @@ mod tests {
                 apple_assertion_counter: None,
             },
             hsm,
+            wrapping_key_identifier.to_string(),
         );
 
         verify_wallet_certificate(
@@ -343,6 +345,7 @@ mod tests {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
         let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -366,6 +369,7 @@ mod tests {
                 apple_assertion_counter: None,
             },
             setup_hsm().await,
+            wrapping_key_identifier.to_string(),
         );
         verify_wallet_certificate(
             &wallet_certificate,
@@ -384,6 +388,7 @@ mod tests {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
         let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -415,6 +420,7 @@ mod tests {
                 apple_assertion_counter: None,
             },
             hsm,
+            wrapping_key_identifier.to_string(),
         );
         verify_wallet_certificate(
             &wallet_certificate,

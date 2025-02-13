@@ -29,8 +29,6 @@ use wallet_common::utils::sha256;
 
 use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;
-use crate::model::encrypter::Decrypter;
-use crate::model::encrypter::Encrypter;
 use crate::model::wrapped_key::WrappedKey;
 use crate::model::Hsm;
 
@@ -188,32 +186,6 @@ impl Pkcs11Hsm {
             Ok(object_handle)
         })
         .await
-    }
-}
-
-impl Encrypter<VerifyingKey> for Pkcs11Hsm {
-    type Error = HsmError;
-
-    async fn encrypt(
-        &self,
-        key_identifier: &str,
-        data: VerifyingKey,
-    ) -> std::result::Result<Encrypted<VerifyingKey>, Self::Error> {
-        let bytes: Vec<u8> = data.to_sec1_bytes().to_vec();
-        Hsm::encrypt(self, key_identifier, bytes).await
-    }
-}
-
-impl Decrypter<VerifyingKey> for Pkcs11Hsm {
-    type Error = HsmError;
-
-    async fn decrypt(
-        &self,
-        key_identifier: &str,
-        encrypted: Encrypted<VerifyingKey>,
-    ) -> std::result::Result<VerifyingKey, Self::Error> {
-        let decrypted = Hsm::decrypt(self, key_identifier, encrypted).await?;
-        Ok(VerifyingKey::from_sec1_bytes(&decrypted)?)
     }
 }
 
