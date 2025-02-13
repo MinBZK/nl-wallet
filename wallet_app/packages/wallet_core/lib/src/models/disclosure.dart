@@ -4,8 +4,9 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
-import 'card.dart';
+import 'attestation.dart';
 import 'instruction.dart';
+import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'disclosure.freezed.dart';
@@ -25,16 +26,18 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
 class DisclosureCard {
   final Organization issuer;
   final String docType;
-  final List<CardAttribute> attributes;
+  final List<AttestationAttribute> attributes;
+  final List<DisplayMetadata> displayMetadata;
 
   const DisclosureCard({
     required this.issuer,
     required this.docType,
     required this.attributes,
+    required this.displayMetadata,
   });
 
   @override
-  int get hashCode => issuer.hashCode ^ docType.hashCode ^ attributes.hashCode;
+  int get hashCode => issuer.hashCode ^ docType.hashCode ^ attributes.hashCode ^ displayMetadata.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -43,7 +46,8 @@ class DisclosureCard {
           runtimeType == other.runtimeType &&
           issuer == other.issuer &&
           docType == other.docType &&
-          attributes == other.attributes;
+          attributes == other.attributes &&
+          displayMetadata == other.displayMetadata;
 }
 
 enum DisclosureSessionType {

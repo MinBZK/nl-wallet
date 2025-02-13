@@ -26,6 +26,7 @@
 
 ### Android building
 .build-android-app:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
   extends: .ruby-cache
   tags:
     - wallet-ci
@@ -48,9 +49,9 @@
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
-    FASTLANE_OPT_OUT_USAGE: "YES"
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
+    - set -euo pipefail
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.keystore}' | base64 --decode > wallet_app/android/upload-keystore.jks
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.key-properties}' | base64 --decode > wallet_app/android/key.properties
     - bundle install
@@ -218,7 +219,6 @@ build-android-app-production:
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
-    FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
     - export JSON_KEY_DATA

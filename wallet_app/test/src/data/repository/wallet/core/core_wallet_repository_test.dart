@@ -150,9 +150,10 @@ void main() {
 
   group('contains pid', () {
     test('when wallet contains pid the method returns true', () async {
-      const cardWithPidDocType = Card(
-        persistence: CardPersistence.stored(id: '0'),
-        docType: kPidDocType,
+      const cardWithPidDocType = Attestation(
+        identity: AttestationIdentity.fixed(id: '0'),
+        attestationType: kPidDocType,
+        displayMetadata: [DisplayMetadata(lang: 'nl', name: 'card name')],
         attributes: [],
         issuer: CoreMockData.organization,
       );

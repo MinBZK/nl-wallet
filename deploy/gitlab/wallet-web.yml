@@ -1,4 +1,5 @@
 build-wallet-web:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-web:${BUILD_TAG}"
   rules: !reference [.default-or-release-or-merge-request, rules]
   variables:
     VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD

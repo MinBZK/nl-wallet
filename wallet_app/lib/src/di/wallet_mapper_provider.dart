@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wallet_core/core.dart' as core;
-import 'package:wallet_core/core.dart' show Card, CardValue, DisclosureCard, LocalizedString, PinValidationResult;
+import 'package:wallet_core/core.dart' show DisclosureCard, LocalizedString, PinValidationResult;
 import 'package:wallet_mock/mock.dart' as core show Document;
 
 import '../domain/model/app_image_data.dart';
@@ -63,7 +63,7 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<List<LocalizedString>, LocalizedText>>(
           create: (context) => LocalizedLabelsMapper(),
         ),
-        RepositoryProvider<Mapper<CardValue, AttributeValue>>(
+        RepositoryProvider<Mapper<core.AttributeValue, AttributeValue>>(
           create: (context) => CardAttributeValueMapper(),
         ),
         RepositoryProvider<Mapper<CardAttributeWithDocType, DataAttribute>>(
@@ -79,16 +79,16 @@ class WalletMapperProvider extends StatelessWidget {
         ),
 
         /// Card mappers
-        RepositoryProvider<Mapper<Card, LocalizedText?>>(
+        RepositoryProvider<Mapper<core.Attestation, LocalizedText?>>(
           create: (context) => CardSubtitleMapper(context.read()),
         ),
-        RepositoryProvider<Mapper<Card, CardFront>>(
+        RepositoryProvider<Mapper<core.Attestation, CardFront>>(
           create: (context) => CardFrontMapper(context.read()),
         ),
         RepositoryProvider<Mapper<String, CardConfig>>(
           create: (context) => CardConfigMapper(),
         ),
-        RepositoryProvider<Mapper<Card, WalletCard>>(
+        RepositoryProvider<Mapper<core.Attestation, WalletCard>>(
           create: (context) => CardMapper(context.read(), context.read(), context.read(), context.read()),
         ),
         RepositoryProvider<Mapper<DisclosureCard, WalletCard>>(

@@ -16,9 +16,9 @@ import '../../test_utils.dart';
 const _kSampleIssuer = CoreMockData.organization;
 
 void main() {
-  late Mapper<Card, LocalizedText?> mockSubtitleMapper;
+  late Mapper<Attestation, LocalizedText?> mockSubtitleMapper;
 
-  late Mapper<Card, CardFront> mapper;
+  late Mapper<Attestation, CardFront> mapper;
 
   setUp(() {
     mockSubtitleMapper = MockMapper();
@@ -27,10 +27,11 @@ void main() {
   });
 
   group('map', () {
-    test('card with `com.example.pid` docType should return light localized card front', () async {
-      const coreCard = Card(
-        persistence: CardPersistence.inMemory(),
-        docType: 'com.example.pid',
+    test('attestation with `com.example.pid` attestationType should return light localized card front', () async {
+      const coreCard = Attestation(
+        identity: AttestationIdentity.ephemeral(),
+        attestationType: 'com.example.pid',
+        displayMetadata: [CoreMockData.displayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
       );
@@ -55,10 +56,11 @@ void main() {
       verify(mockSubtitleMapper.map(coreCard)).called(1);
     });
 
-    test('card with `com.example.address` docType should return dark localized card front', () {
-      const coreCard = Card(
-        persistence: CardPersistence.inMemory(),
-        docType: 'com.example.address',
+    test('attestation with `com.example.address` attestationType should return dark localized card front', () {
+      const coreCard = Attestation(
+        identity: AttestationIdentity.ephemeral(),
+        attestationType: 'com.example.address',
+        displayMetadata: [CoreMockData.displayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
       );
@@ -80,9 +82,14 @@ void main() {
       verify(mockSubtitleMapper.map(coreCard)).called(1);
     });
 
-    test('card with unknown docType should throw exception', () {
-      const input =
-          Card(persistence: CardPersistence.inMemory(), docType: 'unknown', attributes: [], issuer: _kSampleIssuer);
+    test('attestation with unknown attestationType should throw exception', () {
+      const input = Attestation(
+        identity: AttestationIdentity.ephemeral(),
+        attestationType: 'unknown',
+        displayMetadata: [CoreMockData.displayMetadata],
+        attributes: [],
+        issuer: _kSampleIssuer,
+      );
 
       expect(() => mapper.map(input), throwsException);
     });

@@ -6,6 +6,7 @@ import io.appium.java_client.android.AndroidDriver
 import io.appium.java_client.ios.IOSDriver
 import io.github.ashwith.flutter.FlutterElement
 import io.github.ashwith.flutter.FlutterFinder
+import org.openqa.selenium.interactions.PointerInput
 import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.WebElement
@@ -114,7 +115,7 @@ open class MobileActions {
         }
     }
 
-    protected fun switchToWebViewContext() {
+    fun switchToWebViewContext() {
         val platform = platformName()
         if (platform == "ANDROID") {
             val androidDriver = driver as AndroidDriver
@@ -163,7 +164,7 @@ open class MobileActions {
         }
     }
 
-    protected fun switchToAppContext() {
+    fun switchToAppContext() {
         val platform = platformName()
         if (platform == "ANDROID") {
             val androidDriver = driver as AndroidDriver
@@ -209,7 +210,29 @@ open class MobileActions {
         }
     }
 
-    private fun platformName() = driver.capabilities.platformName.name
+    fun tapCoordinates(x: Int, y: Int) {
+        Thread.sleep(PAGE_LOAD_TIMEOUT)
+        try {
+            // Create a PointerInput instance for touch gestures
+            val finger = PointerInput(PointerInput.Kind.TOUCH, "finger")
+
+            // Define the action sequence for a tap
+            val tap = org.openqa.selenium.interactions.Sequence(finger, 0)
+            tap.addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), x, y))
+            tap.addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
+            tap.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()))
+
+            // Perform the action sequence
+            driver.perform(listOf(tap))
+
+            println("Tapped at coordinates ($x, $y)")
+        } catch (e: Exception) {
+            println("Failed to tap at coordinates ($x, $y): ${e.message}")
+            throw e
+        }
+    }
+
+    fun platformName() = driver.capabilities.platformName.name
 
     companion object {
         private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L

@@ -38,7 +38,6 @@ use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use update_policy_server::settings::Settings as UpsSettings;
 use wallet::mock::MockDigidSession;
@@ -65,6 +64,8 @@ use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
+use wallet_server::pid::mock::mock_address_metadata;
+use wallet_server::pid::mock::mock_pid_metadata;
 use wallet_server::pid::mock::MockAttributesLookup;
 use wallet_server::settings::RequesterAuth;
 use wallet_server::settings::Server;
@@ -487,19 +488,25 @@ impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
 
     async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Self::Error> {
-        let attributes = MockAttributesLookup::default()
+        let issuable_documents = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()
-            .into_inner()
+            .into_inner();
+
+        let metadata = vec![mock_pid_metadata(), mock_address_metadata()];
+
+        let attributes = issuable_documents
             .into_iter()
-            .map(|document| IssuableCredential {
+            .zip(metadata.into_iter())
+            .map(|(document, metadata)| IssuableCredential {
                 document,
-                metadata_chain: TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap(),
+                metadata_chain: TypeMetadataChain::create(metadata, vec![]).unwrap(),
                 valid_from: Utc::now(),
                 valid_until: Utc::now().add(Days::new(1)),
                 copy_count: NonZeroU8::new(1).unwrap(),
             })
             .collect::<Vec<_>>();
+
         Ok(attributes.try_into().unwrap())
     }
 

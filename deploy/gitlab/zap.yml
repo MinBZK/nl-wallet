@@ -1,4 +1,5 @@
 .zap-scan-common-setup:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .env-ont-k8s
   rules:
     - !reference [ .on-schedule, rules ]

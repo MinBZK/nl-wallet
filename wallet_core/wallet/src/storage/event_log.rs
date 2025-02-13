@@ -255,7 +255,7 @@ impl TryFrom<Vec<Mdoc>> for EventDocuments {
         let doc_type_map = source
             .into_iter()
             .map(|mdoc| {
-                let doc_type = mdoc.doc_type.clone();
+                let doc_type = mdoc.doc_type().clone();
                 let issuer = mdoc.issuer_certificate()?;
                 let attributes = mdoc.attributes();
                 Ok((doc_type, (issuer, attributes).into()))

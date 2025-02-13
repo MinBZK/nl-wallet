@@ -476,7 +476,6 @@ pub use persistent::*;
 #[cfg(feature = "persistent_mock_attested_key")]
 mod persistent {
     use std::future::Future;
-    use std::ops::Deref;
     use std::path::Path;
     use std::path::PathBuf;
     use std::sync::LazyLock;
@@ -596,7 +595,7 @@ mod persistent {
 
             future
                 .and_then(|key_identifier| async {
-                    let json = serde_json::to_string_pretty(KEY_STATES.read().deref())
+                    let json = serde_json::to_string_pretty(&*KEY_STATES.read())
                         .expect("could not encode mock Apple attested keys JSON file");
                     fs::write(file_path, json)
                         .await

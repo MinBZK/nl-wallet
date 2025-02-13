@@ -176,7 +176,7 @@ where
             disclosure_session: None,
             wte_issuance_client: WIC::default(),
             lock: WalletLock::new(true),
-            documents_callback: None,
+            attestations_callback: None,
             recent_history_callback: None,
         }
     }
