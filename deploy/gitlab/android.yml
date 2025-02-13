@@ -55,7 +55,6 @@
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.keystore}' | base64 --decode > wallet_app/android/upload-keystore.jks
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.key-properties}' | base64 --decode > wallet_app/android/key.properties
     - bundle install
-    - bundle exec fastlane disable_flutter_analytics
     - |
       bundle exec fastlane android build \
         package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
