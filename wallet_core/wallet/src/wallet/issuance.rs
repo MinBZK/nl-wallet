@@ -734,7 +734,8 @@ mod tests {
     async fn test_continue_pid_issuance() {
         let mut wallet = setup_wallet_with_digid_session();
 
-        let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
+        let (unsigned_mdoc, metadata) =
+            document::create_full_unsigned_pid_mdoc("https://pid.example.com".parse().unwrap());
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();

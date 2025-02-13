@@ -85,9 +85,35 @@ impl Mdoc {
         Ok(metadata)
     }
 
-    /// Check that the namespaces, attribute names and attribute values of this instance are equal to to the
-    /// provided unsigned value.
-    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedAttributesMismatch> {
+    /// Check that the doctype, issuer, validity_info, namespaces, attribute names and attribute values of this
+    /// instance are equal to to the provided unsigned value.
+    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedDocumentMismatchError> {
+        if self.mso.doc_type != unsigned.doc_type {
+            return Err(IssuedDocumentMismatchError::IssuedDoctypeMismatch(
+                unsigned.doc_type.clone(),
+                self.mso.doc_type.clone(),
+            ));
+        }
+
+        if self.mso.issuer_common_name != unsigned.issuer_common_name {
+            return Err(IssuedDocumentMismatchError::IssuedIssuerMismatch(
+                unsigned.issuer_common_name.clone(),
+                self.mso.issuer_common_name.clone(),
+            ));
+        }
+
+        if self.mso.validity_info.valid_from != unsigned.valid_from
+            || self.mso.validity_info.valid_until != unsigned.valid_until
+        {
+            return Err(IssuedDocumentMismatchError::IssuedValidityInfoMismatch(
+                (unsigned.valid_from.clone(), unsigned.valid_until.clone()),
+                (
+                    self.mso.validity_info.valid_from.clone(),
+                    self.mso.validity_info.valid_until.clone(),
+                ),
+            ));
+        }
+
         let our_attrs = self.attributes();
         let our_attrs = &flatten_attributes(self.doc_type(), &our_attrs);
         let expected_attrs = &flatten_attributes(&unsigned.doc_type, unsigned.attributes.as_ref());
@@ -96,7 +122,9 @@ impl Mdoc {
         let unexpected = map_difference(our_attrs, expected_attrs);
 
         if !missing.is_empty() || !unexpected.is_empty() {
-            return Err(IssuedAttributesMismatch { missing, unexpected });
+            return Err(IssuedDocumentMismatchError::IssuedAttributesMismatch(
+                missing, unexpected,
+            ));
         }
 
         Ok(())
@@ -104,11 +132,19 @@ impl Mdoc {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-#[error("missing attributes: {missing:?}; unexpected attributes: {unexpected:?}")]
-#[category(pd)]
-pub struct IssuedAttributesMismatch<T = AttributeIdentifier> {
-    pub missing: Vec<T>,
-    pub unexpected: Vec<T>,
+pub enum IssuedDocumentMismatchError<T = AttributeIdentifier> {
+    #[error("issued doc_type mismatch: expected {0}, found {1}")]
+    #[category(critical)]
+    IssuedDoctypeMismatch(String, String),
+    #[error("issued issuer mismatch: expected {0}, found {1}")]
+    #[category(critical)]
+    IssuedIssuerMismatch(http::Uri, http::Uri),
+    #[error("issued validity info mismatch: expected {0:?}, found {1:?}")]
+    #[category(critical)]
+    IssuedValidityInfoMismatch((Tdate, Tdate), (Tdate, Tdate)),
+    #[error("issued attributes mismatch: missing {0}, unexpected {1}")]
+    #[category(pd)]
+    IssuedAttributesMismatch(Vec<T>, Vec<T>),
 }
 
 pub fn map_difference<K, T>(left: &IndexMap<K, T>, right: &IndexMap<K, T>) -> Vec<K>

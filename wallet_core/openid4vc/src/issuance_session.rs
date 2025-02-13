@@ -20,8 +20,9 @@ use serde::Serialize;
 use url::Url;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::IssuedAttributesMismatch;
+use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;
 use nl_wallet_mdoc::holder::Mdoc;
+use nl_wallet_mdoc::identifiers::AttributeIdentifier;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
 use nl_wallet_mdoc::utils::serialization::CborError;
@@ -93,10 +94,8 @@ pub enum IssuanceSessionError {
     #[error("base64 decoding failed: {0}")]
     #[category(pd)]
     Base64Error(#[from] base64::DecodeError),
-    #[error("mismatch between issued and expected attributes in mdoc: {0}")]
-    IssuedMdocAttributesMismatch(#[source] IssuedAttributesMismatch),
-    #[error("mismatch between issued and expected attributes in JWT: {0}")]
-    IssuedJwtAttributesMismatch(#[source] IssuedAttributesMismatch<String>),
+    #[error("mismatch between issued and expected attributes: {0:?}")]
+    IssuedMdocMismatch(IssuedDocumentMismatchError<AttributeIdentifier>),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("jwt credential verification failed: {0}")]
@@ -811,7 +810,7 @@ impl CredentialResponse {
 
                 // Check that our mdoc contains exactly the attributes the issuer said it would have
                 mdoc.compare_unsigned(unsigned_mdoc)
-                    .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
+                    .map_err(IssuanceSessionError::IssuedMdocMismatch)?;
 
                 // Verify and parse the type metadata
                 let credential_payload = CredentialPayload::from_mdoc(&mdoc)?;
@@ -867,9 +866,11 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use chrono::Utc;
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
+    use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;
     use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::test::data;
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
@@ -1257,8 +1258,101 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceSessionError::IssuedMdocAttributesMismatch(IssuedAttributesMismatch { missing, unexpected })
+            IssuanceSessionError::IssuedMdocMismatch(IssuedDocumentMismatchError::IssuedAttributesMismatch(missing, unexpected))
                 if missing.len() == 1 && unexpected.is_empty()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_issued_issuer_mismatch_error() {
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` with different attributes
+        // in the preview than are contained within the response should fail.
+        let preview = match preview {
+            CredentialPreview::MsoMdoc {
+                mut unsigned_mdoc,
+                issuer_certificate,
+                metadata_chain,
+            } => {
+                unsigned_mdoc.issuer_common_name = "https://other-issuer.example.com".parse().unwrap();
+                CredentialPreview::MsoMdoc {
+                    unsigned_mdoc,
+                    issuer_certificate,
+                    metadata_chain,
+                }
+            }
+        };
+
+        let error = credential_response
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::IssuedMdocMismatch(IssuedDocumentMismatchError::IssuedIssuerMismatch(_, _))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_issued_doctype_mismatch_error() {
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` with different attributes
+        // in the preview than are contained within the response should fail.
+        let preview = match preview {
+            CredentialPreview::MsoMdoc {
+                mut unsigned_mdoc,
+                issuer_certificate,
+                metadata_chain,
+            } => {
+                unsigned_mdoc.doc_type = String::from("other.doc_type");
+                CredentialPreview::MsoMdoc {
+                    unsigned_mdoc,
+                    issuer_certificate,
+                    metadata_chain,
+                }
+            }
+        };
+
+        let error = credential_response
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::IssuedMdocMismatch(IssuedDocumentMismatchError::IssuedDoctypeMismatch(_, _))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_issued_validity_info_mismatch_error() {
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` with different attributes
+        // in the preview than are contained within the response should fail.
+        let preview = match preview {
+            CredentialPreview::MsoMdoc {
+                mut unsigned_mdoc,
+                issuer_certificate,
+                metadata_chain,
+            } => {
+                unsigned_mdoc.valid_from = (Utc::now() + chrono::Duration::days(1)).into();
+                CredentialPreview::MsoMdoc {
+                    unsigned_mdoc,
+                    issuer_certificate,
+                    metadata_chain,
+                }
+            }
+        };
+
+        let error = credential_response
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::IssuedMdocMismatch(IssuedDocumentMismatchError::IssuedValidityInfoMismatch(_, _))
         );
     }
 }
