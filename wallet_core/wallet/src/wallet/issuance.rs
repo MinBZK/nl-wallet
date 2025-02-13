@@ -4,7 +4,6 @@ use std::sync::Arc;
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
-use http::Uri;
 use p256::ecdsa::signature;
 use tracing::info;
 use tracing::instrument;
@@ -131,11 +130,6 @@ pub enum PidIssuanceError {
     Attestation(#[from] AttestationError),
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
-    #[error(
-        "issuer_common_name field in mdoc does not match Common Name in issuer certificate: expected {0}, found {1}"
-    )]
-    #[category(critical)]
-    UnexpectedCommonName(Uri, Uri),
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -473,15 +467,6 @@ where
                 // Verify that the certificate contains IssuerRegistration
                 if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
                     return Err(PidIssuanceError::MissingIssuerRegistration);
-                }
-
-                // Verify that the issuer_common_name matches with the issuer_registration
-                let issuer_common_name = certificate.common_name_uri()?;
-                if issuer_common_name != *mdoc.issuer_common_name() {
-                    return Err(PidIssuanceError::UnexpectedCommonName(
-                        mdoc.issuer_common_name().clone(),
-                        issuer_common_name,
-                    ));
                 }
             }
             WalletEvent::new_issuance(mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?)

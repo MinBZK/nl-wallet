@@ -169,7 +169,11 @@ impl CredentialPreview {
 
     pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CertificateError> {
         match self {
-            CredentialPreview::MsoMdoc { issuer_certificate, .. } => {
+            CredentialPreview::MsoMdoc {
+                issuer_certificate,
+                unsigned_mdoc,
+                ..
+            } => {
                 // Verify the issuer certificates that the issuer presents for each credential to be issued.
                 // NB: this only proves the authenticity of the data inside the certificates (the
                 // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
@@ -179,7 +183,17 @@ impl CredentialPreview {
                 // protocol each mdoc is verified against the corresponding certificate in the
                 // credential preview, which implicitly authenticates the issuer because only it could
                 // have produced an mdoc against that certificate.
-                issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+                issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
+
+                // Verify that the issuer_common_name matches the common_name in the issuer_certificate
+                if unsigned_mdoc.issuer_common_name != issuer_certificate.common_name_uri()? {
+                    return Err(CertificateError::CommonNameMismatch(
+                        unsigned_mdoc.issuer_common_name.clone(),
+                        issuer_certificate.common_name_uri()?,
+                    ));
+                }
+
+                Ok(())
             }
         }
     }

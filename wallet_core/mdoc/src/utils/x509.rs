@@ -95,6 +95,8 @@ pub enum CertificateError {
     InvalidCommonName(InvalidUri),
     #[error("unexpected amount of Common Names in certificate: expected 1, found {0}")]
     UnexpectedCommonNameCount(usize),
+    #[error("common name mismatch: expected {0}, found {1}")]
+    CommonNameMismatch(http::Uri, http::Uri),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
