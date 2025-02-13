@@ -54,7 +54,8 @@ type PerformanceTestWallet = Wallet<
 #[instrument(name = "", fields(pid = std::process::id()))]
 #[tokio::main]
 async fn main() {
-    let temp_path = tempfile::tempdir().unwrap().into_path();
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
@@ -85,7 +86,7 @@ async fn main() {
 
     let config_repository = HttpConfigurationRepository::new(
         (&config_server_config.signing_public_key.0).into(),
-        temp_path.clone(),
+        temp_path.to_path_buf(),
         wallet_config,
     )
     .await
@@ -196,4 +197,7 @@ async fn main() {
         .expect("Could not accept disclosure");
 
     assert!(return_url.unwrap().to_string().starts_with(relying_party_url));
+
+    // Explicit drop to ensure temp dir is not moved earlier
+    drop(temp_dir)
 }

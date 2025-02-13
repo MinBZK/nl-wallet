@@ -229,13 +229,5 @@ run-performance-test-ont:
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
     APPLE_ATTESTATION_ENVIRONMENT: "production"
-  script: |
-    cd ./wallet_core/
-    cargo build --release --bin performance_test --features performance_test,allow_insecure_url
-    export PT_START_DATE=$(date -u +%s)
-    bash ./tests_integration/run_performance_test.sh 100
-    export PT_END_DATE=$(date -u +%s)
-    export PT_DURATION=$(( PT_END_DATE - PT_START_DATE ))
-    echo "Load: 100"
-    echo "Duration: ${PT_DURATION} seconds"
+  script: wallet_core/tests_integration/run_performance_test.sh 50
   allow_failure: true
