@@ -30,7 +30,7 @@ pub enum AttestationData {
     },
     Google {
         certificate_chain: Vec<Vec<u8>>,
-        app_attestation_token: Vec<u8>,
+        app_attestation_token: String,
     },
 }
 
@@ -41,7 +41,12 @@ pub enum AttestationData {
 pub trait AttestedKeyBridge: Send + Sync + Debug {
     fn key_type(&self) -> AttestedKeyType;
     async fn generate(&self) -> Result<String, AttestedKeyError>;
-    async fn attest(&self, identifier: String, challenge: Vec<u8>) -> Result<AttestationData, AttestedKeyError>;
+    async fn attest(
+        &self,
+        identifier: String,
+        challenge: Vec<u8>,
+        google_cloud_project_id: u64,
+    ) -> Result<AttestationData, AttestedKeyError>;
     async fn sign(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, AttestedKeyError>;
 
     // Only supported on Android
