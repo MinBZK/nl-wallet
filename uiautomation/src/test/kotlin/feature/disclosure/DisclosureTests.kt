@@ -52,6 +52,10 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         xyzBankWebPage.openSameDeviceWalletFlow(platform)
         xyzBankWebPage.switchToAppContext()
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible("XYZ Bank"))
+        disclosureScreen.viewDisclosureDetails()
+        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible("De toegankelijke bank voor betalen, sparen en beleggen."))
+        disclosureScreen.goBack();
         disclosureScreen.proceed()
         disclosureScreen.share()
         pinScreen.enterPin(OnboardingNavigator.PIN)
@@ -70,6 +74,9 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         amsterdamWebPage.openSameDeviceWalletFlow(platform)
         amsterdamWebPage.switchToAppContext()
+        assertTrue(disclosureScreen.organizationNameForLoginFlowVisible("Gemeente Amsterdam"))
+        disclosureScreen.viewLoginDisclosureDetails()
+        disclosureScreen.goBack();
         disclosureScreen.login()
         pinScreen.enterPin(OnboardingNavigator.PIN)
         disclosureScreen.goToWebsite()
@@ -86,6 +93,10 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         marketPlaceWebPage.openSameDeviceWalletFlow(platform)
         marketPlaceWebPage.switchToAppContext()
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible("Marktplek"))
+        disclosureScreen.viewDisclosureDetails()
+        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible("Verkoop eenvoudig jouw tweedehands spullen online op Marktplek."))
+        disclosureScreen.goBack();
         disclosureScreen.proceed()
         disclosureScreen.share()
         pinScreen.enterPin(OnboardingNavigator.PIN)
@@ -103,6 +114,10 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         monkeyBikeWebPage.openSameDeviceWalletFlow(platform)
         monkeyBikeWebPage.switchToAppContext()
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible("MonkeyBike"))
+        disclosureScreen.viewDisclosureDetails()
+        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible("Jouw boodschappen binnen 10 minuten thuisbezorgd."))
+        disclosureScreen.goBack();
         disclosureScreen.proceed()
         assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
     }

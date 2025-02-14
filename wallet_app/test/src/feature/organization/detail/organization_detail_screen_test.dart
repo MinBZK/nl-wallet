@@ -89,6 +89,12 @@ void main() {
       final title = l10n.organizationDetailScreenTitle(WalletMockData.organization.displayName.testValue);
       expect(find.text(title), findsNWidgets(2) /* expanded and collapsed title */);
       expect(find.text(WalletMockData.organization.description!.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.legalName.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.category!.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.privacyPolicyUrl.toString()), findsOneWidget);
+      expect(find.text(WalletMockData.organization.city!.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.organization.kvk.toString()), findsOneWidget);
+      expect(find.text(l10n.organizationDetailScreenWebsiteInfo), findsNothing);
     });
 
     testWidgets('onReportIssuePressed callback is triggered when button is clicked', (tester) async {
