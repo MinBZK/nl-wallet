@@ -55,4 +55,5 @@ futures.workspace = true
 
 [dev-dependencies]
 serial_test.workspace = true
+rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

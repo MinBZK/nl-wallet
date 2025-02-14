@@ -24,13 +24,14 @@ struct TestSettings {
     pub(crate) hsm: settings::Hsm,
 }
 
+// Default is needed for AsyncDrop
 pub struct TestCase<H> {
     identifier: String,
     hsm: Option<H>,
 }
 
 // Default is needed for AsyncDrop
-impl Default for TestCase<Pkcs11Hsm> {
+impl<H> Default for TestCase<H> {
     fn default() -> Self {
         Self {
             identifier: String::new(),

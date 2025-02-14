@@ -1148,7 +1148,7 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7328b20597b53c2454f0b1919720c25c7339051c02b72b7e05409e00b14132be"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "lazy_static",
  "nom",
  "pathdiff",
@@ -2158,7 +2158,7 @@ dependencies = [
  "hex",
  "hmac",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "nutype",
  "pem",
  "quick-xml",
@@ -2300,7 +2300,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "slab",
  "tokio",
  "tokio-util",
@@ -2332,6 +2332,12 @@ dependencies = [
  "ahash",
  "allocator-api2",
 ]
+
+[[package]]
+name = "hashbrown"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 
 [[package]]
 name = "hashlink"
@@ -2453,6 +2459,7 @@ dependencies = [
  "r2d2-cryptoki",
  "rand",
  "rand_core",
+ "rstest",
  "sec1",
  "serde",
  "serde_with",
@@ -2835,12 +2842,12 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.2.6"
+version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
+checksum = "8c9c992b02b5b4c94ea26e32fe5bccb7aa7d9f390ab5c1221ff895bc7ea8b652"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.5",
+ "hashbrown 0.15.2",
  "serde",
 ]
 
@@ -3265,7 +3272,7 @@ dependencies = [
  "config",
  "futures",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "nl_wallet_mdoc",
  "nutype",
  "openid4vc",
@@ -3352,7 +3359,7 @@ dependencies = [
  "hex",
  "hex-literal",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "itertools 0.13.0",
  "nutype",
  "p256",
@@ -3588,7 +3595,7 @@ dependencies = [
  "futures",
  "hex",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "itertools 0.13.0",
  "josekit",
  "jsonwebtoken",
@@ -3803,7 +3810,7 @@ dependencies = [
  "data-encoding",
  "getrandom",
  "hmac",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "rand",
  "serde",
  "serde_json",
@@ -4035,11 +4042,11 @@ dependencies = [
 
 [[package]]
 name = "proc-macro-crate"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d37c51ca738a55da99dc0c4a34860fd675453b8b36209178c2249bb13651284"
+checksum = "8ecf48c7ca261d60b74ab1a7b20da18bede46776b2e55535cb958eb595c5fa7b"
 dependencies = [
- "toml_edit 0.21.1",
+ "toml_edit",
 ]
 
 [[package]]
@@ -4499,7 +4506,7 @@ checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
 dependencies = [
  "base64 0.21.7",
  "bitflags 2.6.0",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "serde",
  "serde_derive",
 ]
@@ -4537,21 +4544,21 @@ dependencies = [
 
 [[package]]
 name = "rstest"
-version = "0.21.0"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9afd55a67069d6e434a95161415f5beeada95a01c7b815508a82dcb0e1593682"
+checksum = "03e905296805ab93e13c1ec3a03f4b6c4f35e9498a3d5fa96dc626d22c03cd89"
 dependencies = [
- "futures",
  "futures-timer",
+ "futures-util",
  "rstest_macros",
  "rustc_version",
 ]
 
 [[package]]
 name = "rstest_macros"
-version = "0.21.0"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4165dfae59a39dd41d8dec720d3cbfbc71f69744efb480a3920f5d4e0cc6798d"
+checksum = "ef0053bbffce09062bee4bcc499b0fbe7a57b879f1efe088d6d8d4c7adcdef9b"
 dependencies = [
  "cfg-if",
  "glob",
@@ -5120,7 +5127,7 @@ version = "1.0.118"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d947f6b3163d8857ea16c4fa0dd4840d52f3041039a85decd46867eb1abef2e4"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "itoa",
  "ryu",
  "serde",
@@ -5149,9 +5156,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "0.6.6"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79e674e01f999af37c49f70a6ede167a8a60b2503e56c5599532a65baa5969a0"
+checksum = "87607cb1398ed59d48732e575a4c28a7a8ebf2454b964fe3f224f2afc07909e1"
 dependencies = [
  "serde",
 ]
@@ -5174,7 +5181,7 @@ version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b615bed66931a7a9809b273937adc8a402d038b1e509d027fcaf62f084d33d1"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "itertools 0.13.0",
  "num-traits",
  "once_cell",
@@ -5223,7 +5230,7 @@ dependencies = [
  "chrono",
  "hex",
  "indexmap 1.9.3",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "serde",
  "serde_derive",
  "serde_json",
@@ -5468,7 +5475,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "hashlink",
  "hex",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "log",
  "memchr",
  "once_cell",
@@ -5814,7 +5821,7 @@ dependencies = [
  "ctor",
  "dotenvy",
  "gba_hc_converter",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "insta",
  "jsonwebtoken",
  "nl_wallet_mdoc",
@@ -6030,44 +6037,33 @@ version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f49eb2ab21d2f26bd6db7bf383edc527a7ebaee412d17af4d40fdccd442f335"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "serde",
  "serde_spanned",
  "toml_datetime",
- "toml_edit 0.22.14",
+ "toml_edit",
 ]
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.6"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4badfd56924ae69bcc9039335b2e017639ce3f9b001c393c1b2d1ef846ce2cbf"
+checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "toml_edit"
-version = "0.21.1"
+version = "0.22.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a8534fd7f78b5405e860340ad6575217ce99f38d4d5c8f2442cb5ecb50090e1"
+checksum = "17b4795ff5edd201c7cd6dca065ae59972ce77d1b80fa0a84d94950ece7d1474"
 dependencies = [
- "indexmap 2.2.6",
- "toml_datetime",
- "winnow 0.5.40",
-]
-
-[[package]]
-name = "toml_edit"
-version = "0.22.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f21c7aaf97f1bd9ca9d4f9e73b0a6c74bd5afef56f2bc931943a6e1c37e04e38"
-dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow 0.6.13",
+ "winnow",
 ]
 
 [[package]]
@@ -6328,9 +6324,9 @@ checksum = "08f95100a766bf4f8f28f90d77e0a5461bbdb219042e7679bebe79004fed8d75"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.12"
+version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+checksum = "a210d160f08b701c8721ba1c726c11662f877ea6b7094007e1ca9a1041945034"
 
 [[package]]
 name = "unicode-normalization"
@@ -6526,7 +6522,7 @@ dependencies = [
  "config",
  "etag",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "postcard",
  "rstest",
  "semver",
@@ -6672,7 +6668,7 @@ dependencies = [
  "futures",
  "hex",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "itertools 0.13.0",
  "jsonwebtoken",
  "libsqlite3-sys",
@@ -6758,7 +6754,7 @@ dependencies = [
  "hex",
  "hex-literal",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "itertools 0.13.0",
  "jsonwebtoken",
  "mime",
@@ -6901,7 +6897,7 @@ dependencies = [
  "futures",
  "hmac",
  "hsm",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "itertools 0.13.0",
  "jsonwebtoken",
  "nl_wallet_mdoc",
@@ -6944,7 +6940,7 @@ dependencies = [
  "derive_more",
  "futures",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.7.1",
  "itertools 0.13.0",
  "nl_wallet_mdoc",
  "nutype",
@@ -7390,18 +7386,9 @@ checksum = "bec47e5bfd1bff0eeaf6d8b485cc1074891a197ab4225d504cb7a1ab88b02bf0"
 
 [[package]]
 name = "winnow"
-version = "0.5.40"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f593a95398737aeed53e489c785df13f3618e41dbcd6718c6addbf1395aa6876"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "winnow"
-version = "0.6.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59b5e5f6c299a3c7890b876a2a587f3115162487e704907d9b6cd29473052ba1"
+checksum = "59690dea168f2198d1a3b0cac23b8063efcd11012f10ae4698f284808c8ef603"
 dependencies = [
  "memchr",
 ]
