@@ -7,7 +7,6 @@ use std::sync::LazyLock;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::future::try_join_all;
-use http::uri::InvalidUri;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
@@ -115,10 +114,6 @@ pub enum TokenRequestError {
     CredentialPayload(#[from] CredentialPayloadError),
     #[error("error verifying type metadata integrity: {0}")]
     TypeMetadata(#[from] TypeMetadataError),
-    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
-    UnexpectedIssuerCommonNameCount(usize),
-    #[error("invalid common name: {0}")]
-    InvalidCommonName(InvalidUri),
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
 }

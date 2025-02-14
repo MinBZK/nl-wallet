@@ -163,9 +163,6 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                     TokenErrorCode::InvalidRequest
                 }
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
-                TokenRequestError::UnexpectedIssuerCommonNameCount(_) | TokenRequestError::InvalidCommonName(_) => {
-                    todo!()
-                }
             },
             error_description: Some(description),
             error_uri: None,
