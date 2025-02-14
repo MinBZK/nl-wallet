@@ -4,16 +4,18 @@
 //!
 //! The design of this functionality is divided into three groups of related types:
 //!
-//! 1. The bridging types defined in the private submodule `bridge::attested_keys` of this crate. These are simply the
-//!    Rust versions of the types defined in the `platform_support.udl` and are designed to unify the behaviour of both
-//!    Android and iOS key and app attestation. See the documenting comments in the UDL file mentioned for additional
-//!    information.
-//! 2. The traits and types in this crate, that provide a generic interface wrapping the functionality provided by the
-//!    bridging types. This allows switching between the real hardware backed implementation and a fake "mock"
-//!    implementation, which is used during testing. It also makes the interface of the bridged types a bit more rusty,
-//!    as the types described in UDL have certain restrictions.
-//! 3. The concrete implementations of the traits, both the ones wrapping the bridging types in the [`hardware`]
-//!    submodule and the mock ones in `software`. Note that the latter is not currently implemented.
+//! 1. The bridging types defined in the private submodule `bridge::attested_keys` of this crate.
+//!    These are simply the Rust versions of the types defined in the `platform_support.udl` and
+//!    are designed to unify the behaviour of both Android and iOS key and app attestation.
+//!    See the documenting comments in the UDL file mentioned for additional information.
+//! 2. The traits and types in this crate, that provide a generic interface wrapping the functionality
+//!    provided by the bridging types. This allows switching between the real hardware backed
+//!    implementation and a fake "mock" implementation, which is used during testing.
+//!    It also makes the interface of the bridged types a bit more rusty, as the types described in
+//!    UDL have certain restrictions.
+//! 3. The concrete implementations of the traits, both the ones wrapping the bridging types in the
+//!    [`hardware`] submodule and the mock ones in `software`. Note that the latter is not currently
+//!    implemented.
 //!
 //! ## Traits and supporting types
 //!
@@ -44,13 +46,14 @@
 //! The concrete implementation of the attested key traits provide a thin wrapper around the bridging
 //! code, implementing the uniqueness checking mentioned above.
 //!
-//! * The [`hardware::HardwareAttestedKeyHolder`] type implements the [`AttestedKeyHolder`] trait and can be created
-//!   through its implementation of [`Default`].
+//! * The [`hardware::HardwareAttestedKeyHolder`] type implements the [`AttestedKeyHolder`] trait and
+//!   can be created through its implementation of [`Default`].
 //! * The [`hardware::AppleHardwareAttestedKey`] type implements the [`AppleAttestedKey`] trait.
 //! * The [`hardware::GoogleHardwareAttestedKey`] type implements the [`GoogleAttestedKey`] trait.
-//! * The concrete error type for all of these implementations is the [`hardware::HardwareAttestedKeyError`] enum.
-//! * The key types make use of an internal helper type `HardwareAttestedKey`, which encapsulates shared functionality
-//!   between these types.
+//! * The concrete error type for all of these implementations is the
+//!   [`hardware::HardwareAttestedKeyError`] enum.
+//! * The key types make use of an internal helper type `HardwareAttestedKey`, which encapsulates
+//!   shared functionality between these types.
 //!
 //! ## Mock implementation
 //!
