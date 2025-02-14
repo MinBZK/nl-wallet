@@ -176,15 +176,21 @@ mod tests {
         .map(|_| ())
     }
 
-    #[test]
-    fn test_verified_integrity_verdict() {
-        verify_example_verdict(EXAMPLE_VERDICT.clone(), InstallationMethod::PlayStore)
+    #[rstest]
+    fn test_verified_integrity_verdict(
+        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
+        installation_method: InstallationMethod,
+    ) {
+        verify_example_verdict(EXAMPLE_VERDICT.clone(), installation_method)
             .expect("integrity verdict should verify successfully");
     }
 
     #[cfg(feature = "mock")]
-    #[test]
-    fn test_verified_integrity_verdict_mock() {
+    #[rstest]
+    fn test_verified_integrity_verdict_mock(
+        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
+        installation_method: InstallationMethod,
+    ) {
         let package_name = "com.package.mock";
         let request_hash = "request_hash";
 
@@ -199,7 +205,7 @@ mod tests {
             package_name,
             request_hash,
             &HashSet::from([b"hash_hash_hash".to_vec()]),
-            InstallationMethod::PlayStore,
+            installation_method,
         )
         .expect("integrity verdict should verify successfully");
 
@@ -209,18 +215,21 @@ mod tests {
             package_name,
             request_hash,
             &HashSet::new(),
-            InstallationMethod::PlayStore,
+            installation_method,
         )
         .expect("integrity verdict should verify successfully");
     }
 
-    #[test]
-    fn test_verified_integrity_verdict_request_package_name_mismatch_error() {
+    #[rstest]
+    fn test_verified_integrity_verdict_request_package_name_mismatch_error(
+        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
+        installation_method: InstallationMethod,
+    ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
         verdict.request_details.request_package_name = "com.package.different".to_string();
 
-        let error = verify_example_verdict(verdict, InstallationMethod::PlayStore)
-            .expect_err("integrity verdict should not verify");
+        let error =
+            verify_example_verdict(verdict, installation_method).expect_err("integrity verdict should not verify");
 
         assert_matches!(
             error,
@@ -228,13 +237,16 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_verified_integrity_verdict_request_hash_mismatch_error() {
+    #[rstest]
+    fn test_verified_integrity_verdict_request_hash_mismatch_error(
+        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
+        installation_method: InstallationMethod,
+    ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
         verdict.request_details.request_hash = "different_hash".to_string();
 
-        let error = verify_example_verdict(verdict, InstallationMethod::PlayStore)
-            .expect_err("integrity verdict should not verify");
+        let error =
+            verify_example_verdict(verdict, installation_method).expect_err("integrity verdict should not verify");
 
         assert_matches!(error, IntegrityVerdictVerificationError::RequestHashMismatch)
     }
@@ -251,12 +263,14 @@ mod tests {
     fn test_verified_integrity_verdict_request_timestamp_inconsistent_error(
         #[case] verdict_timestamp: DateTime<Utc>,
         #[case] should_succeed: bool,
+        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
+        installation_method: InstallationMethod,
     ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
         verdict.request_details.timestamp = verdict_timestamp;
 
         // Note that the timestamp is checked against a "current" time of 2024-02-06T03:45:00Z.
-        let result = verify_example_verdict(verdict, InstallationMethod::PlayStore);
+        let result = verify_example_verdict(verdict, installation_method);
 
         if should_succeed {
             result.expect("integrity verdict should verify successfully");
@@ -268,34 +282,51 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_verified_integrity_verdict_not_play_recognized_error() {
+    #[rstest]
+    #[case(AppRecognitionVerdict::UnrecognizedVersion, InstallationMethod::PlayStore, false)]
+    #[case(
+        AppRecognitionVerdict::UnrecognizedVersion,
+        InstallationMethod::SideloadOrPlayStore,
+        true
+    )]
+    #[case(AppRecognitionVerdict::Unevaluated, InstallationMethod::PlayStore, false)]
+    #[case(AppRecognitionVerdict::Unevaluated, InstallationMethod::SideloadOrPlayStore, false)]
+    fn test_verified_integrity_verdict_not_play_recognized_error(
+        #[case] app_recognition_verdict: AppRecognitionVerdict,
+        #[case] installation_method: InstallationMethod,
+        #[case] should_succeed: bool,
+    ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.app_integrity.app_recognition_verdict = AppRecognitionVerdict::UnrecognizedVersion;
+        verdict.app_integrity.app_recognition_verdict = app_recognition_verdict;
 
-        verify_example_verdict(verdict.clone(), InstallationMethod::SideloadOrPlayStore)
-            .expect("integrity verdict should verify successfully");
+        let result = verify_example_verdict(verdict, installation_method);
 
-        let error = verify_example_verdict(verdict, InstallationMethod::PlayStore)
-            .expect_err("integrity verdict should not verify");
+        if should_succeed {
+            result.expect("integrity verdict should verify successfully");
+        } else {
+            let error = result.expect_err("integrity verdict should not verify");
 
-        assert_matches!(
-            error,
-            IntegrityVerdictVerificationError::NotPlayRecognized(recognition_verdict)
-                if recognition_verdict == AppRecognitionVerdict::UnrecognizedVersion
-        )
+            assert_matches!(
+                error,
+                IntegrityVerdictVerificationError::NotPlayRecognized(recognition_verdict)
+                    if recognition_verdict == app_recognition_verdict
+            )
+        }
     }
 
-    #[test]
-    fn test_verified_integrity_verdict_play_store_package_name_mismatch_error() {
+    #[rstest]
+    fn test_verified_integrity_verdict_play_store_package_name_mismatch_error(
+        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
+        installation_method: InstallationMethod,
+    ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
         verdict
             .app_integrity
             .package_name
             .replace("com.package.different".to_string());
 
-        let error = verify_example_verdict(verdict, InstallationMethod::PlayStore)
-            .expect_err("integrity verdict should not verify");
+        let error =
+            verify_example_verdict(verdict, installation_method).expect_err("integrity verdict should not verify");
 
         assert_matches!(
             error,
@@ -304,43 +335,59 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_verified_integrity_verdict_play_store_certificate_mismatch_error() {
+    #[rstest]
+    fn test_verified_integrity_verdict_play_store_certificate_mismatch_error(
+        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
+        installation_method: InstallationMethod,
+    ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
         verdict.app_integrity.certificate_sha256_digest.take();
 
-        let error = verify_example_verdict(verdict, InstallationMethod::PlayStore)
-            .expect_err("integrity verdict should not verify");
+        let error =
+            verify_example_verdict(verdict, installation_method).expect_err("integrity verdict should not verify");
 
         assert_matches!(error, IntegrityVerdictVerificationError::PlayStoreCertificateMismatch)
     }
 
-    #[test]
-    fn test_verified_integrity_verdict_device_integrity_not_met_error() {
+    #[rstest]
+    fn test_verified_integrity_verdict_device_integrity_not_met_error(
+        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
+        installation_method: InstallationMethod,
+    ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
         verdict.device_integrity.device_recognition_verdict.take();
 
-        let error = verify_example_verdict(verdict, InstallationMethod::PlayStore)
-            .expect_err("integrity verdict should not verify");
+        let error =
+            verify_example_verdict(verdict, installation_method).expect_err("integrity verdict should not verify");
 
         assert_matches!(error, IntegrityVerdictVerificationError::DeviceIntegrityNotMet)
     }
 
-    #[test]
-    fn test_verified_integrity_verdict_no_app_entitlement_error() {
+    #[rstest]
+    #[case(AppLicensingVerdict::Unlicensed, InstallationMethod::PlayStore, false)]
+    #[case(AppLicensingVerdict::Unlicensed, InstallationMethod::SideloadOrPlayStore, true)]
+    #[case(AppLicensingVerdict::Unevaluated, InstallationMethod::PlayStore, false)]
+    #[case(AppLicensingVerdict::Unevaluated, InstallationMethod::SideloadOrPlayStore, true)]
+    fn test_verified_integrity_verdict_no_app_entitlement_error(
+        #[case] app_licensing_verdict: AppLicensingVerdict,
+        #[case] installation_method: InstallationMethod,
+        #[case] should_succeed: bool,
+    ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.account_details.app_licensing_verdict = AppLicensingVerdict::Unlicensed;
+        verdict.account_details.app_licensing_verdict = app_licensing_verdict;
 
-        verify_example_verdict(verdict.clone(), InstallationMethod::SideloadOrPlayStore)
-            .expect("integrity verdict should verify successfully");
+        let result = verify_example_verdict(verdict, installation_method);
 
-        let error = verify_example_verdict(verdict, InstallationMethod::PlayStore)
-            .expect_err("integrity verdict should not verify");
+        if should_succeed {
+            result.expect("integrity verdict should verify successfully");
+        } else {
+            let error = result.expect_err("integrity verdict should not verify");
 
-        assert_matches!(
-            error,
-            IntegrityVerdictVerificationError::NoAppEntitlement(license_verdict)
-                if license_verdict == AppLicensingVerdict::Unlicensed
-        )
+            assert_matches!(
+                error,
+                IntegrityVerdictVerificationError::NoAppEntitlement(license_verdict)
+                    if license_verdict == app_licensing_verdict
+            )
+        }
     }
 }
