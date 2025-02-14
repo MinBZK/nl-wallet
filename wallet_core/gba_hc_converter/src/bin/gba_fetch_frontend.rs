@@ -115,17 +115,13 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
     });
 
     let app = Router::new()
-        .nest("/health", Router::new().route("/", get(|| async {})))
-        .nest(
-            "/",
-            Router::new()
-                .route("/", get(index).post(fetch))
-                .route("/clear", post(clear))
-                .with_state(app_state)
-                .layer(CsrfLayer::new(csrf_config))
-                .layer(middleware::from_fn(check_auth))
-                .layer(TraceLayer::new_for_http()),
-        );
+        .route("/", get(index).post(fetch))
+        .route("/clear", post(clear))
+        .with_state(app_state)
+        .layer(CsrfLayer::new(csrf_config))
+        .layer(middleware::from_fn(check_auth))
+        .layer(TraceLayer::new_for_http())
+        .route("/health", get(|| async {}));
 
     axum::serve(listener, app).await?;
 

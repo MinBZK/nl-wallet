@@ -306,6 +306,7 @@ run-encrypt-gba-v-testdata-job-demo:
     - envsubst '$GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME $K8S_NAMESPACE' < deploy/kubernetes/gba-fetch-frontend-ingress.yaml | kubectl apply -f -
     - kubectl apply -f deploy/kubernetes/gba-fetch-frontend-service.yaml
     - envsubst < deploy/kubernetes/${ENV}/gba-fetch-frontend-deployment.yaml | kubectl apply -f -
+    - kubectl rollout status deployment/gba-fetch-frontend
 
 deploy-gba-fetch-frontend-ont:
   extends: [.env-ont-k8s, .deploy-gba-fetch-frontend]
