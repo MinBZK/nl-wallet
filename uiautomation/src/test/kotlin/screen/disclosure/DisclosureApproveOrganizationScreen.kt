@@ -10,8 +10,10 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val shareButton = find.byText(l10n.getString("disclosureConfirmDataAttributesPageApproveCta"))
     private val closeButton = find.byText(l10n.getString("disclosureSuccessPageCloseCta"))
     private val attributesMissingMessage = find.byText(l10n.getString("disclosureMissingAttributesPageTitle"))
+    private val viewLoginDisclosureDetailsButton = find.byText(l10n.getString("organizationApprovePageMoreInfoLoginCta"))
+    private val viewDisclosureDetailsButton = find.byText(l10n.getString("organizationApprovePageMoreInfoCta"))
+    private val goBackButton = find.byText(l10n.getString("generalBottomBackCta"))
 
-    fun loginButtonVisible() = isElementVisible(loginButton)
 
     fun login() = clickElement(loginButton)
 
@@ -33,4 +35,33 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     }
 
     fun attributesMissingMessageVisible() = isElementVisible(attributesMissingMessage, false)
+
+    fun organizationNameForSharingFlowVisible(organizationName: String): Boolean {
+        val selector = l10n.getString("organizationApprovePageGenericTitle").replace("{organization}", organizationName)
+        val element = find.byText(selector)
+        return isElementVisible(element);
+    }
+
+    fun organizationNameForLoginFlowVisible(organizationName: String): Boolean {
+        val selector = l10n.getString("organizationApprovePageLoginTitle").replace("{organization}", organizationName)
+        val element = find.byText(selector)
+        return isElementVisible(element);
+    }
+
+    fun viewDisclosureDetails() {
+        clickElement(viewDisclosureDetailsButton)
+    }
+
+    fun viewLoginDisclosureDetails() {
+        clickElement(viewLoginDisclosureDetailsButton)
+    }
+
+    fun organizationDescriptionOnDetailsVisible(description: String): Boolean {
+        val element = find.byText(description)
+        return isElementVisible(element);
+    }
+
+    fun goBack() {
+        clickElement(goBackButton)
+    }
 }
