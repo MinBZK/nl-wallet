@@ -217,6 +217,18 @@ impl Hsm for Pkcs11Hsm {
             .map(|_| ())
     }
 
+    async fn generate_aes_encryption_key(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        Pkcs11Client::generate_aes_encryption_key(self, identifier)
+            .await
+            .map(|_| ())
+    }
+
+    async fn generate_signing_key_pair(&self, identifier: &str) -> std::result::Result<(), Self::Error> {
+        Pkcs11Client::generate_signing_key_pair(self, identifier)
+            .await
+            .map(|_| ())
+    }
+
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
         let handle = self.get_public_key_handle(identifier).await?;
         Pkcs11Client::get_verifying_key(self, handle).await

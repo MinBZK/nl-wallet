@@ -14,6 +14,8 @@ pub trait Hsm {
     type Error: Error + Send + Sync;
 
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error>;
+    async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<(), Self::Error>;
+    async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(), Self::Error>;
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey, Self::Error>;
     async fn delete_key(&self, identifier: &str) -> Result<(), Self::Error>;
     async fn sign_ecdsa(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error>;
@@ -108,6 +110,17 @@ pub mod mock {
             Ok(())
         }
 
+        async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<(), Self::Error> {
+            self.1.insert(String::from(identifier), random_bytes(32));
+            Ok(())
+        }
+
+        async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(), Self::Error> {
+            let key = SigningKey::random(&mut OsRng);
+            self.0.insert(String::from(identifier), key);
+            Ok(())
+        }
+
         async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey, Self::Error> {
             let entry = self.0.get(identifier).unwrap();
             let key = entry.value();
@@ -153,12 +166,17 @@ pub mod mock {
             Ok(mac.verify_slice(&signature)?)
         }
 
-        async fn encrypt<T>(&self, _identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>, Self::Error> {
+        async fn encrypt<T>(&self, _identifier: &str, mut data: Vec<u8>) -> Result<Encrypted<T>, Self::Error> {
+            // add byte to data, so that the encrypted representation is different from the original
+            data.push(0);
             Ok(Encrypted::new(data, InitializationVector(random_bytes(32))))
         }
 
         async fn decrypt<T>(&self, _identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error> {
-            Ok(encrypted.data)
+            // strip added byte to get the original back
+            let mut data = encrypted.data;
+            data.pop();
+            Ok(data)
         }
     }
 

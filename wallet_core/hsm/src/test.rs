@@ -24,14 +24,45 @@ struct TestSettings {
     pub(crate) hsm: settings::Hsm,
 }
 
-// Default is needed for AsyncDrop
-#[derive(Default)]
-pub struct TestCase {
+pub struct TestCase<H> {
     identifier: String,
-    hsm: Option<Pkcs11Hsm>,
+    hsm: Option<H>,
 }
 
-impl TestCase {
+// Default is needed for AsyncDrop
+impl Default for TestCase<Pkcs11Hsm> {
+    fn default() -> Self {
+        Self {
+            identifier: String::new(),
+            hsm: None,
+        }
+    }
+}
+
+impl<H> TestCase<H> {
+    pub fn test_params(&self) -> (&H, &str) {
+        (self.hsm.as_ref().unwrap(), &self.identifier)
+    }
+}
+
+#[cfg(feature = "mock")]
+mod mock {
+    use crate::model::mock::MockPkcs11Client;
+    use crate::service::HsmError;
+
+    use super::TestCase;
+
+    impl TestCase<MockPkcs11Client<HsmError>> {
+        pub fn mock(identifier_prefix: &str) -> Self {
+            Self {
+                identifier: identifier_prefix.to_string(),
+                hsm: Some(MockPkcs11Client::default()),
+            }
+        }
+    }
+}
+
+impl TestCase<Pkcs11Hsm> {
     pub fn new(config_file: &str, identifier_prefix: &str) -> Self {
         // let (hsm, settings) = setup_hsm();
         let settings = TestSettings::new(config_file).unwrap();
@@ -41,14 +72,10 @@ impl TestCase {
             hsm: Some(hsm),
         }
     }
-
-    pub fn test_params(&self) -> (&Pkcs11Hsm, &str) {
-        (self.hsm.as_ref().unwrap(), &self.identifier)
-    }
 }
 
 #[async_trait]
-impl AsyncDrop for TestCase {
+impl AsyncDrop for TestCase<Pkcs11Hsm> {
     async fn async_drop(&mut self) -> () {
         let (hsm, identifier) = self.test_params();
         let _ = Hsm::delete_key(hsm, identifier).await;
