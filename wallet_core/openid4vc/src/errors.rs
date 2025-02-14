@@ -78,15 +78,22 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::CborSerialization(_)
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JsonSerialization(_)
-                | CredentialRequestError::WteTracking(_) => CredentialErrorCode::ServerError,
+                | CredentialRequestError::WteTracking(_)
+                | CredentialRequestError::CredentialPayload(_)
+                | CredentialRequestError::TypeMetadata(_) => CredentialErrorCode::ServerError,
+
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance
                 | CredentialRequestError::MissingWte
                 | CredentialRequestError::WteAlreadyUsed
-                | CredentialRequestError::MissingPoa => CredentialErrorCode::InvalidCredentialRequest,
+                | CredentialRequestError::MissingPoa
+                | CredentialRequestError::CredentialTypeMismatch
+                | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
+
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
                     CredentialErrorCode::InvalidToken
                 }
+
                 CredentialRequestError::UnsupportedJwtAlgorithm { .. }
                 | CredentialRequestError::MissingJwk
                 | CredentialRequestError::IncorrectNonce
@@ -94,8 +101,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MissingCredentialRequestPoP
                 | CredentialRequestError::PoaVerification(_) => CredentialErrorCode::InvalidProof,
-                CredentialRequestError::CredentialTypeMismatch
-                | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
+
                 CredentialRequestError::UnsupportedCredentialFormat(_) => {
                     CredentialErrorCode::UnsupportedCredentialFormat
                 }
@@ -150,7 +156,9 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | TokenRequestError::AttributeService(_)
                 | TokenRequestError::CredentialTypeNotOffered(_)
-                | TokenRequestError::UnsignedAttributes(_) => TokenErrorCode::ServerError,
+                | TokenRequestError::Attribute(_)
+                | TokenRequestError::CredentialPayload(_)
+                | TokenRequestError::TypeMetadata(_) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
             },

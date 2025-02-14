@@ -129,10 +129,12 @@ where
         S: Storage,
         APC: AccountProviderClient,
     {
-        let config = &self.config_repository.get().update_policy_server;
+        let config = &self.config_repository.get();
 
         info!("Fetching update policy");
-        self.update_policy_repository.fetch(&config.http_config).await?;
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await?;
 
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -148,17 +150,15 @@ where
         info!("Validating PIN");
 
         // Make sure the PIN adheres to the requirements.
-        validate_pin(&pin).map_err(WalletRegistrationError::InvalidPin)?; // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
+        // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
+        validate_pin(&pin).map_err(WalletRegistrationError::InvalidPin)?;
 
         info!("Requesting challenge from account server");
-
-        let config = &self.config_repository.get().account_server;
-        let certificate_public_key = config.certificate_public_key.clone();
 
         // Retrieve a challenge from the account server
         let challenge = self
             .account_provider_client
-            .registration_challenge(&config.http_config)
+            .registration_challenge(&config.account_server.http_config)
             .await
             .map_err(WalletRegistrationError::ChallengeRequest)?;
 
@@ -180,7 +180,11 @@ where
 
         let key_with_attestation_result = self
             .key_holder
-            .attest(key_identifier.clone(), utils::sha256(&challenge))
+            .attest(
+                key_identifier.clone(),
+                utils::sha256(&challenge),
+                config.google_cloud_project_id,
+            )
             .await;
 
         let key_with_attestation = match key_with_attestation_result {
@@ -232,6 +236,7 @@ where
                     .await
                     .map(|message| (message, AttestedKey::Apple(key)))
             }
+            // TODO: Remove into() from app_attestation_token.into() once we merge wallet_provider stuff.
             KeyWithAttestation::Google {
                 key,
                 certificate_chain,
@@ -241,7 +246,7 @@ where
                 certificate_chain
                     .try_into()
                     .map_err(WalletRegistrationError::AndroidCertificateChain)?,
-                app_attestation_token,
+                app_attestation_token.into(),
                 &pin_key,
                 challenge,
             )
@@ -253,7 +258,7 @@ where
         // Send the registration message to the account server and receive the wallet certificate in response.
         let wallet_certificate = self
             .account_provider_client
-            .register(&config.http_config, registration_message)
+            .register(&config.account_server.http_config, registration_message)
             .await
             .map_err(WalletRegistrationError::RegistrationRequest)?;
 
@@ -262,7 +267,7 @@ where
         // Double check that the public key returned in the wallet certificate matches that of our hardware key.
         // Note that this public key is only available on Android, on iOS all we have is opaque attestation data.
         let cert_claims = wallet_certificate
-            .parse_and_verify_with_sub(&certificate_public_key.as_inner().into())
+            .parse_and_verify_with_sub(&config.account_server.certificate_public_key.as_inner().into())
             .map_err(WalletRegistrationError::CertificateValidation)?;
 
         if let AttestedKey::Google(key) = &attested_key {

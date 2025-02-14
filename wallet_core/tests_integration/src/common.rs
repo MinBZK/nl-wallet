@@ -487,19 +487,25 @@ impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
 
     async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Self::Error> {
-        let attributes = MockAttributesLookup::default()
+        let issuable_documents = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()
-            .into_inner()
+            .into_inner();
+
+        let metadata = vec![TypeMetadata::pid_example(), TypeMetadata::address_example()];
+
+        let attributes = issuable_documents
             .into_iter()
-            .map(|document| IssuableCredential {
+            .zip(metadata.into_iter())
+            .map(|(document, metadata)| IssuableCredential {
                 document,
-                metadata_chain: TypeMetadataChain::create(TypeMetadata::new_example(), vec![]).unwrap(),
+                metadata_chain: TypeMetadataChain::create(metadata, vec![]).unwrap(),
                 valid_from: Utc::now(),
                 valid_until: Utc::now().add(Days::new(1)),
                 copy_count: NonZeroU8::new(1).unwrap(),
             })
             .collect::<Vec<_>>();
+
         Ok(attributes.try_into().unwrap())
     }
 

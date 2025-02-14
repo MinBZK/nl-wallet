@@ -1,3 +1,6 @@
+use std::fmt::Display;
+use std::fmt::Formatter;
+
 use base64::prelude::*;
 use derive_more::Into;
 use http::Uri;
@@ -27,11 +30,13 @@ pub enum TypeMetadataError {
         expected: ResourceIntegrity,
         actual: ResourceIntegrity,
     },
+    #[error("schema option {0:?} is not supported")]
+    UnsupportedSchemaOption(SchemaOption),
 }
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
 /// various reasons.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpecOptionalImplRequired<T>(pub T);
 
 impl<T> From<T> for SpecOptionalImplRequired<T> {
@@ -77,17 +82,25 @@ impl TypeMetadataChain {
         Ok(result)
     }
 
-    pub fn into_destructured(self) -> (Vec<TypeMetadata>, ResourceIntegrity) {
+    fn into_destructured(self) -> (VecNonEmpty<TypeMetadata>, ResourceIntegrity) {
         (
-            self.metadata.into_inner().into_iter().map(|m| m.0).collect(),
+            // Unwrapping is safe since we're mapping from a `VecNonEmpty` to a `VecNonEmpty`
+            VecNonEmpty::try_from(self.metadata.into_inner().into_iter().map(|m| m.0).collect::<Vec<_>>()).unwrap(),
             self.root_integrity,
         )
     }
 
-    pub fn verify_and_parse_root(&self) -> Result<TypeMetadata, TypeMetadataError> {
-        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?;
+    pub fn verify_and_destructure(self) -> Result<(VecNonEmpty<TypeMetadata>, ResourceIntegrity), TypeMetadataError> {
+        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?; // TODO: verify chain in PVW-3824
         self.root_integrity.verify(&bytes)?;
-        Ok(serde_json::from_slice(&bytes)?)
+        Ok(self.into_destructured())
+    }
+
+    pub fn verify(&self) -> Result<TypeMetadata, TypeMetadataError> {
+        let root = self.metadata.first().0.clone();
+        let bytes: Vec<u8> = (&root).try_into()?; // TODO: verify chain in PVW-3824
+        self.root_integrity.verify(&bytes)?;
+        Ok(root)
     }
 }
 
@@ -173,6 +186,15 @@ impl TypeMetadata {
         let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
         Ok(serde_json::from_slice(&bytes)?)
     }
+
+    pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
+        if let SchemaOption::Embedded { schema } = &self.schema {
+            jsonschema::draft202012::validate(schema.as_ref(), json_claims).map_err(ValidationError::to_owned)?;
+            Ok(())
+        } else {
+            Err(TypeMetadataError::UnsupportedSchemaOption(self.schema.clone()))
+        }
+    }
 }
 
 impl TryFrom<Vec<u8>> for TypeMetadata {
@@ -231,7 +253,10 @@ pub enum SchemaOption {
     },
 }
 
-#[nutype(validate(with = validate_json_schema, error = TypeMetadataError), derive(Debug, Clone, Serialize, Deserialize))]
+#[nutype(
+    validate(with = validate_json_schema, error = TypeMetadataError),
+    derive(Debug, Clone, AsRef, Serialize, Deserialize)
+)]
 pub struct JsonSchema(serde_json::Value);
 
 fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataError> {
@@ -239,7 +264,7 @@ fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataEr
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct DisplayMetadata {
     pub lang: String,
@@ -248,7 +273,7 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[skip_serializing_none]
 pub enum RenderingMetadata {
@@ -260,7 +285,7 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
     #[serde(with = "http_serde::uri")]
     pub uri: Uri,
@@ -290,6 +315,16 @@ pub enum ClaimPath {
     SelectByIndex(usize),
 }
 
+impl Display for ClaimPath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClaimPath::SelectByKey(key) => write!(f, "{}", key),
+            ClaimPath::SelectAll => f.write_str("*"),
+            ClaimPath::SelectByIndex(index) => write!(f, "{}", index),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ClaimSelectiveDisclosureMetadata {
@@ -313,12 +348,20 @@ pub mod mock {
 
     use wallet_common::utils::random_string;
 
+    use crate::metadata::ClaimDisplayMetadata;
+    use crate::metadata::ClaimMetadata;
+    use crate::metadata::ClaimPath;
+    use crate::metadata::ClaimSelectiveDisclosureMetadata;
     use crate::metadata::JsonSchema;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
 
+    const ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/address-metadata.json");
+    const EXAMPLE_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-metadata.json");
+    const PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/pid-metadata.json");
+
     impl TypeMetadata {
-        pub fn new_example() -> Self {
+        pub fn empty_example() -> Self {
             Self {
                 vct: random_string(16),
                 name: Some(random_string(8)),
@@ -331,14 +374,46 @@ pub mod mock {
                 },
             }
         }
+
+        pub fn bsn_only_example() -> Self {
+            Self {
+                vct: random_string(16),
+                name: Some(random_string(8)),
+                description: None,
+                extends: None,
+                display: vec![],
+                claims: vec![ClaimMetadata {
+                    path: vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap(),
+                    display: vec![ClaimDisplayMetadata {
+                        lang: String::from("en"),
+                        label: String::from("BSN"),
+                        description: None,
+                    }],
+                    sd: ClaimSelectiveDisclosureMetadata::Always,
+                    svg_id: None,
+                }],
+                schema: SchemaOption::Embedded {
+                    schema: JsonSchema::try_new(json!({})).unwrap(),
+                },
+            }
+        }
+
+        pub fn address_example() -> Self {
+            serde_json::from_slice(ADDRESS_METADATA_BYTES).unwrap()
+        }
+
+        pub fn example() -> Self {
+            serde_json::from_slice(EXAMPLE_METADATA_BYTES).unwrap()
+        }
+
+        pub fn pid_example() -> Self {
+            serde_json::from_slice(PID_METADATA_BYTES).unwrap()
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::env;
-    use std::path::PathBuf;
-
     use assert_matches::assert_matches;
     use serde_json::json;
 
@@ -348,20 +423,9 @@ mod test {
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
 
-    async fn read_and_parse_metadata(filename: &str) -> TypeMetadata {
-        let base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap();
-
-        let metadata_file = tokio::fs::read(base_path.join("examples").join(filename))
-            .await
-            .unwrap();
-
-        serde_json::from_slice(metadata_file.as_slice()).unwrap()
-    }
-
     #[tokio::test]
     async fn test_deserialize() {
-        let metadata = read_and_parse_metadata("example-metadata.json").await;
-
+        let metadata = TypeMetadata::example();
         assert_eq!(
             "https://sd_jwt_vc_metadata.example.com/example_credential",
             metadata.vct
@@ -418,49 +482,36 @@ mod test {
         .is_err());
     }
 
-    #[tokio::test]
-    async fn test_schema_validation_success() {
-        let metadata = read_and_parse_metadata("example-metadata.json").await;
+    #[test]
+    fn test_schema_validation_success() {
+        let metadata = TypeMetadata::example();
 
         let claims = json!({
           "vct":"https://credentials.example.com/identity_credential",
           "iss":"https://example.com/issuer",
           "nbf":1683000000,
+          "iat":1683000000,
           "exp":1883000000,
-          "address":{
-            "country":"DE"
-          },
-          "cnf":{
-            "jwk":{
-              "kty":"EC",
-              "crv":"P-256",
-              "x":"TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
-              "y":"ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
-            }
+          "place_of_birth":{
+            "locality":"DE"
           }
         });
 
         assert_eq!(
             vec![
-                ClaimPath::SelectByKey(String::from("nationalities")),
-                ClaimPath::SelectAll
+                ClaimPath::SelectByKey(String::from("place_of_birth")),
+                ClaimPath::SelectByKey(String::from("country")),
+                ClaimPath::SelectByKey(String::from("area_code")),
             ],
-            metadata.claims[5].path.clone().into_inner()
+            metadata.claims[3].path.clone().into_inner()
         );
 
-        match metadata.schema {
-            SchemaOption::Embedded { schema } => {
-                assert!(jsonschema::draft202012::is_valid(&schema.into_inner(), &claims))
-            }
-            SchemaOption::Remote { .. } => {
-                panic!("Remote schema option is not supported")
-            }
-        }
+        metadata.validate(&claims).unwrap();
     }
 
-    #[tokio::test]
-    async fn test_schema_validation_failure() {
-        let metadata = read_and_parse_metadata("example-metadata.json").await;
+    #[test]
+    fn test_schema_validation_failure() {
+        let metadata = TypeMetadata::example();
 
         let claims = json!({
           "address":{
@@ -468,19 +519,12 @@ mod test {
           }
         });
 
-        match metadata.schema {
-            SchemaOption::Embedded { schema } => {
-                assert!(jsonschema::draft202012::validate(&schema.into_inner(), &claims).is_err())
-            }
-            SchemaOption::Remote { .. } => {
-                panic!("Remote schema option is not supported")
-            }
-        }
+        assert!(metadata.validate(&claims).is_err());
     }
 
-    #[tokio::test]
-    async fn test_protect_verify() {
-        let metadata = read_and_parse_metadata("example-metadata.json").await;
+    #[test]
+    fn test_protect_verify() {
+        let metadata = TypeMetadata::example();
         let bytes = serde_json::to_vec(&metadata).unwrap();
         let integrity = ResourceIntegrity::from_bytes(&bytes);
         integrity.verify(&bytes).unwrap();

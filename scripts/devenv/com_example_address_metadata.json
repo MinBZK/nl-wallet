@@ -86,6 +86,24 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": [
+        "resident_country"
+      ],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Land",
+          "description": "Land van het adres"
+        },
+        {
+          "lang": "en-US",
+          "label": "Country",
+          "description": "Country of the address"
+        }
+      ],
+      "sd": "always"
     }
   ],
   "schema": {

@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use rstest::rstest;
 use uuid::Uuid;
 
@@ -151,8 +150,8 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
 
     let redirect_url = fake_digid_auth(&authorization_url, &pid_issuance_config.digid_http_config, bsn).await;
 
-    let unsigned_mdocs_result = wallet.continue_pid_issuance(redirect_url).await;
-    let unsigned_mdocs = match unsigned_mdocs_result {
+    let attestations_result = wallet.continue_pid_issuance(redirect_url).await;
+    let attestations = match attestations_result {
         Ok(mdocs) => mdocs,
         Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
             error: TokenErrorCode::ServerError,
@@ -172,19 +171,12 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         }
     };
 
-    let attributes = unsigned_mdocs.into_iter().fold(IndexMap::new(), |mut attrs, mdoc| {
-        mdoc.attributes.into_iter().for_each(|(key, attr)| {
-            attrs.insert(format!("{}__{}", mdoc.doc_type, key), attr.value);
-        });
-        attrs
-    });
-
     insta::with_settings!({
         description => format!("BSN: {}", bsn),
         snapshot_suffix => bsn,
         prepend_module_to_snapshot => false,
     }, {
-        insta::assert_ron_snapshot!(attributes);
+        insta::assert_ron_snapshot!(attestations);
     });
 
     Ok(())

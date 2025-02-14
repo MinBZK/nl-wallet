@@ -41,15 +41,16 @@ void main() {
 
     test('continue pid issuance should be propagated to the core', () async {
       const mockContinueUri = 'mock_continue_issuance_url';
-      final testCard = Card(
-        issuer: CoreMockData.card.issuer,
-        persistence: CoreMockData.card.persistence,
-        docType: kPidDocType,
-        attributes: CoreMockData.card.attributes,
+      final testAttestation = Attestation(
+        identity: const AttestationIdentity_Ephemeral(),
+        attestationType: kPidDocType,
+        displayMetadata: [CoreMockData.displayMetadata],
+        issuer: CoreMockData.organization,
+        attributes: CoreMockData.attestation.attributes,
       );
-      final expectedAttributes = cardMapper.map(testCard).attributes;
+      final expectedAttributes = cardMapper.map(testAttestation).attributes;
 
-      when(core.continuePidIssuance(mockContinueUri)).thenAnswer((realInvocation) async => [testCard]);
+      when(core.continuePidIssuance(mockContinueUri)).thenAnswer((realInvocation) async => [testAttestation]);
       expect(await pidRepository.continuePidIssuance(mockContinueUri), expectedAttributes);
       verify(core.continuePidIssuance(mockContinueUri));
     });

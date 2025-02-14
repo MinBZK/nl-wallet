@@ -8,7 +8,7 @@ class IssuanceResponse {
   final List<RequestedAttribute> requestedAttributes;
   final List<LocalizedString> requestPurpose;
   final RequestPolicy policy;
-  final List<Card> cards;
+  final List<Attestation> attestations;
 
   const IssuanceResponse({
     required this.id,
@@ -16,6 +16,6 @@ class IssuanceResponse {
     required this.requestedAttributes,
     required this.requestPurpose,
     required this.policy,
-    required this.cards,
+    required this.attestations,
   });
 }

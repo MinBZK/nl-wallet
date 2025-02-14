@@ -65,9 +65,9 @@ where
             self.issuance_session.take();
             self.disclosure_session.take();
 
-            // Send empty collections to both the documents and recent history callbacks, if present.
-            if let Some(ref mut documents_callback) = self.documents_callback {
-                documents_callback(vec![]);
+            // Send empty collections to both the attestations and recent history callbacks, if present.
+            if let Some(ref mut attestations_callback) = self.attestations_callback {
+                attestations_callback(vec![]);
             }
 
             if let Some(ref mut recent_history_callback) = self.recent_history_callback {
@@ -127,14 +127,14 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Register callbacks for both documents and history events and clear anything received on them.
-        let documents = test::setup_mock_documents_callback(&mut wallet)
+        let attestations = test::setup_mock_attestations_callback(&mut wallet)
             .await
-            .expect("Failed to set mock documents callback");
+            .expect("Failed to set mock attestations callback");
         let events = test::setup_mock_recent_history_callback(&mut wallet)
             .await
             .expect("Failed to set mock recent history callback");
 
-        documents.lock().clear();
+        attestations.lock().clear();
         events.lock().clear();
 
         // Check that the hardware key exists.
@@ -152,10 +152,10 @@ mod tests {
         );
         assert!(wallet.is_locked());
 
-        // We should have received both an empty documents and history events callback during the reset.
-        let documents = documents.lock();
-        assert_eq!(documents.len(), 1);
-        assert!(documents.first().unwrap().is_empty());
+        // We should have received both an empty attestations and history events callback during the reset.
+        let attestations = attestations.lock();
+        assert_eq!(attestations.len(), 1);
+        assert!(attestations.first().unwrap().is_empty());
 
         let events = events.lock();
         assert_eq!(events.len(), 1);

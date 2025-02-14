@@ -49,7 +49,6 @@ test-ios:
     - export MATCH_PASSWORD
     - (git config --global url.https://gitlab-ci-token:$CI_JOB_TOKEN@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST)
     - bundle install
-    - bundle exec fastlane disable_flutter_analytics
     - |
       bundle exec fastlane ios ci_build \
         bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \

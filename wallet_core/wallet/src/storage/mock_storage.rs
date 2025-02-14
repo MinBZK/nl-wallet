@@ -139,7 +139,7 @@ impl Storage for MockStorage {
 
         for mdoc_copies in mdocs {
             self.mdocs
-                .entry(mdoc_copies.first().doc_type.clone())
+                .entry(mdoc_copies.first().doc_type().clone())
                 .or_default()
                 .push(mdoc_copies);
         }
@@ -182,7 +182,7 @@ impl Storage for MockStorage {
 
         let mdocs = mdoc_copies
             .into_iter()
-            .filter(|mdoc_copy| doc_types.contains(mdoc_copy.mdoc.doc_type.as_str()))
+            .filter(|mdoc_copy| doc_types.contains(mdoc_copy.mdoc.doc_type().as_str()))
             .collect();
 
         Ok(mdocs)
@@ -193,7 +193,7 @@ impl Storage for MockStorage {
 
         let result = mdoc_copies
             .into_iter()
-            .any(|mdoc_copy| doc_type == mdoc_copy.mdoc.doc_type.as_str());
+            .any(|mdoc_copy| doc_type == mdoc_copy.mdoc.doc_type().as_str());
 
         Ok(result)
     }

@@ -56,6 +56,10 @@ abstract class WalletMockData {
     category: 'Category'.untranslated,
     description: 'Organization description'.untranslated,
     logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
+    privacyPolicyUrl: 'https://example.org/privacy',
+    city: 'Den Haag'.untranslated,
+    department: 'department abc'.untranslated,
+    kvk: '12345678',
   );
 
   static final DataAttribute textDataAttribute = DataAttribute.untranslated(

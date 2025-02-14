@@ -21,7 +21,7 @@ class TitleText extends StatelessWidget {
         child: Text.rich(
           TextSpan(text: data, locale: context.read<ActiveLocaleProvider>().activeLocale),
           style: style ?? context.textTheme.displayMedium,
-          textAlign: textAlign,
+          textAlign: textAlign ?? TextAlign.start,
         ),
       ),
     );

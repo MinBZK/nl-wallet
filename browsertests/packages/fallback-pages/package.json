@@ -1,0 +1,11 @@
+{
+  "name": "fallback-pages-browsertests",
+  "description": "Browsertest for fall back pages",
+  "scripts": {
+    "test:ci": "UNIVERSAL_LINK_BASE='https://app.example.com/deeplink/' npx playwright test --config=config/ci.config.js",
+    "test:local": "UNIVERSAL_LINK_BASE='https://app.example.com/deeplink/' npx playwright test --config=config/local.config.js"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}

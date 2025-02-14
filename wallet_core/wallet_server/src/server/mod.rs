@@ -41,8 +41,6 @@ fn health_router() -> Router {
 }
 
 pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
-    router = router.merge(health_router());
-
     router = router.layer(SetResponseHeaderLayer::overriding(
         header::CACHE_CONTROL,
         HeaderValue::from_static("no-store"),
@@ -52,7 +50,7 @@ pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
         router = router.layer(axum::middleware::from_fn(log_request_response));
     }
 
-    router.layer(TraceLayer::new_for_http())
+    router.layer(TraceLayer::new_for_http()).merge(health_router())
 }
 
 /// Create Wallet listener from [settings].

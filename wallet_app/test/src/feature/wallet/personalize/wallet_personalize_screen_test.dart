@@ -56,7 +56,7 @@ void main() {
     ),
     DataAttribute.untranslated(
       label: 'Geboortedatum',
-      value: DateValue(DateTime(2023, 1, 1)),
+      value: const StringValue('01-01-2023'),
       key: 'mock.birthDate',
       sourceCardDocType: kPidId,
     ),
