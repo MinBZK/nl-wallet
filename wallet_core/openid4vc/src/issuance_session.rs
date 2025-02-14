@@ -151,7 +151,6 @@ pub enum IssuanceSessionError {
     #[category(pd)]
     Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("error converting to a CredentialPayload: {0}")]
-    #[category(critical)]
     CredentialPayload(#[from] CredentialPayloadError),
 }
 
