@@ -52,7 +52,7 @@ impl IssuerSigned {
             value_digests: (&attrs).try_into()?,
             device_key_info: device_public_key.into(),
             validity_info: validity,
-            issuer_common_name: key.certificate().common_name_uri()?,
+            issuer_common_name: Some(key.certificate().common_name_uri()?),
         };
 
         let (metadata, integrity) = type_metadata.verify_and_destructure()?;

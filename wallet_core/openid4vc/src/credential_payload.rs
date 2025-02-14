@@ -47,6 +47,10 @@ pub enum CredentialPayloadError {
     #[category(critical)]
     DateConversion(#[from] ParseError),
 
+    #[error("missing issuer common name in mdoc")]
+    #[category(critical)]
+    MissingIssuerCommonName,
+
     #[error("attribute error: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
@@ -102,7 +106,9 @@ impl CredentialPayload {
         Self::from_mdoc_attributes(
             mdoc.doc_type().to_string(),
             &mdoc.attributes(),
-            mdoc.issuer_common_name().clone(),
+            mdoc.issuer_common_name()
+                .ok_or(CredentialPayloadError::MissingIssuerCommonName)?
+                .clone(),
             Some((&mdoc.validity_info().signed).try_into()?),
             Some((&mdoc.validity_info().valid_until).try_into()?),
             Some((&mdoc.validity_info().valid_from).try_into()?),

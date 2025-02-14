@@ -68,8 +68,8 @@ impl Mdoc {
         self.issuer_signed.issuer_auth.signing_cert()
     }
 
-    pub fn issuer_common_name(&self) -> &Uri {
-        &self.mso.issuer_common_name
+    pub fn issuer_common_name(&self) -> Option<&Uri> {
+        self.mso.issuer_common_name.as_ref()
     }
 
     pub fn doc_type(&self) -> &String {
@@ -95,12 +95,16 @@ impl Mdoc {
             ));
         }
 
-        if self.mso.issuer_common_name != unsigned.issuer_common_name {
-            return Err(IssuedDocumentMismatchError::IssuedIssuerMismatch(
-                unsigned.issuer_common_name.clone(),
-                self.mso.issuer_common_name.clone(),
-            ));
-        }
+        match self.mso.issuer_common_name.as_ref() {
+            None => Err(IssuedDocumentMismatchError::IssuedIssuerMissing),
+            Some(issuer_common_name) if *issuer_common_name != unsigned.issuer_common_name => {
+                Err(IssuedDocumentMismatchError::IssuedIssuerMismatch(
+                    unsigned.issuer_common_name.clone(),
+                    issuer_common_name.clone(),
+                ))
+            }
+            Some(_) => Ok(()),
+        }?;
 
         if self.mso.validity_info.valid_from != unsigned.valid_from
             || self.mso.validity_info.valid_until != unsigned.valid_until
@@ -136,6 +140,9 @@ pub enum IssuedDocumentMismatchError<T = AttributeIdentifier> {
     #[error("issued doc_type mismatch: expected {0}, found {1}")]
     #[category(critical)]
     IssuedDoctypeMismatch(String, String),
+    #[error("issued issuer common name missing")]
+    #[category(critical)]
+    IssuedIssuerMissing,
     #[error("issued issuer mismatch: expected {0}, found {1}")]
     #[category(critical)]
     IssuedIssuerMismatch(http::Uri, http::Uri),

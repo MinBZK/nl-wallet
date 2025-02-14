@@ -163,9 +163,10 @@ pub struct MobileSecurityObject {
     pub doc_type: String,
     pub validity_info: ValidityInfo,
 
-    /// The common name of the issuer, as it appears in the issuer's certificate
-    #[serde(with = "http_serde::uri")]
-    pub issuer_common_name: Uri,
+    /// The common name of the issuer, as it appears in the issuer's certificate. Optional because it is not in the
+    /// spec.
+    #[serde(default, with = "http_serde::option::uri")]
+    pub issuer_common_name: Option<Uri>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
