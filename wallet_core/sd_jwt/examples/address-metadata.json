@@ -122,7 +122,7 @@
         "type": "string"
       },
       "resident_city": {
-        "type": "boolean"
+        "type": "string"
       },
       "resident_country": {
         "type": "string"

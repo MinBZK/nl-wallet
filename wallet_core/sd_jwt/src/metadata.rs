@@ -356,6 +356,10 @@ pub mod mock {
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
 
+    const ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/address-metadata.json");
+    const EXAMPLE_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-metadata.json");
+    const PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/pid-metadata.json");
+
     impl TypeMetadata {
         pub fn empty_example() -> Self {
             Self {
@@ -393,14 +397,23 @@ pub mod mock {
                 },
             }
         }
+
+        pub fn address_example() -> Self {
+            serde_json::from_slice(ADDRESS_METADATA_BYTES).unwrap()
+        }
+
+        pub fn example() -> Self {
+            serde_json::from_slice(EXAMPLE_METADATA_BYTES).unwrap()
+        }
+
+        pub fn pid_example() -> Self {
+            serde_json::from_slice(PID_METADATA_BYTES).unwrap()
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::env;
-    use std::path::PathBuf;
-
     use assert_matches::assert_matches;
     use serde_json::json;
 
@@ -410,20 +423,9 @@ mod test {
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
 
-    async fn read_and_parse_metadata(filename: &str) -> TypeMetadata {
-        let base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap();
-
-        let metadata_file = tokio::fs::read(base_path.join("examples").join(filename))
-            .await
-            .unwrap();
-
-        serde_json::from_slice(metadata_file.as_slice()).unwrap()
-    }
-
     #[tokio::test]
     async fn test_deserialize() {
-        let metadata = read_and_parse_metadata("example-metadata.json").await;
-
+        let metadata = TypeMetadata::example();
         assert_eq!(
             "https://sd_jwt_vc_metadata.example.com/example_credential",
             metadata.vct
@@ -480,42 +482,36 @@ mod test {
         .is_err());
     }
 
-    #[tokio::test]
-    async fn test_schema_validation_success() {
-        let metadata = read_and_parse_metadata("example-metadata.json").await;
+    #[test]
+    fn test_schema_validation_success() {
+        let metadata = TypeMetadata::example();
 
         let claims = json!({
           "vct":"https://credentials.example.com/identity_credential",
           "iss":"https://example.com/issuer",
           "nbf":1683000000,
+          "iat":1683000000,
           "exp":1883000000,
-          "address":{
-            "country":"DE"
-          },
-          "cnf":{
-            "jwk":{
-              "kty":"EC",
-              "crv":"P-256",
-              "x":"TCAER19Zvu3OHF4j4W4vfSVoHIP1ILilDls7vCeGemc",
-              "y":"ZxjiWWbZMQGHVWKVQ4hbSIirsVfuecCE6t4jT9F2HZQ"
-            }
+          "place_of_birth":{
+            "locality":"DE"
           }
         });
 
         assert_eq!(
             vec![
-                ClaimPath::SelectByKey(String::from("nationalities")),
-                ClaimPath::SelectAll
+                ClaimPath::SelectByKey(String::from("place_of_birth")),
+                ClaimPath::SelectByKey(String::from("country")),
+                ClaimPath::SelectByKey(String::from("area_code")),
             ],
-            metadata.claims[5].path.clone().into_inner()
+            metadata.claims[3].path.clone().into_inner()
         );
 
         metadata.validate(&claims).unwrap();
     }
 
-    #[tokio::test]
-    async fn test_schema_validation_failure() {
-        let metadata = read_and_parse_metadata("example-metadata.json").await;
+    #[test]
+    fn test_schema_validation_failure() {
+        let metadata = TypeMetadata::example();
 
         let claims = json!({
           "address":{
@@ -526,9 +522,9 @@ mod test {
         assert!(metadata.validate(&claims).is_err());
     }
 
-    #[tokio::test]
-    async fn test_protect_verify() {
-        let metadata = read_and_parse_metadata("example-metadata.json").await;
+    #[test]
+    fn test_protect_verify() {
+        let metadata = TypeMetadata::example();
         let bytes = serde_json::to_vec(&metadata).unwrap();
         let integrity = ResourceIntegrity::from_bytes(&bytes);
         integrity.verify(&bytes).unwrap();
