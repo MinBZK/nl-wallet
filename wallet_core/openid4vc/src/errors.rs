@@ -458,7 +458,7 @@ pub enum AuthBearerErrorCode {
 }
 
 /// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
     VpFormatsNotSupported,
@@ -471,7 +471,7 @@ pub enum VpAuthorizationErrorCode {
 }
 
 /// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthorizationErrorCode {
     InvalidRequest,
@@ -481,6 +481,8 @@ pub enum AuthorizationErrorCode {
     InvalidScope,
     ServerError,
     TemporarilyUnavailable,
+    #[serde(untagged)]
+    Other(String),
 }
 
 #[cfg(feature = "axum")]

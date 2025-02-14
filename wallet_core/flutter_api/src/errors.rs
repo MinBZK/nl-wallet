@@ -223,7 +223,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
     fn data(&self) -> serde_json::Value {
         match self {
             Self::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(err))) => {
-                let auth_error_code = serde_json::to_value(err.error)
+                let auth_error_code = serde_json::to_value(err.error.clone())
                     .expect("a value of type AuthorizationErrorCode should always serialize");
                 [("redirect_error", auth_error_code)]
                     .into_iter()
