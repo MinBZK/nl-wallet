@@ -178,6 +178,31 @@ run-mrp-browsertest-test-ont:
       junit: browsertests/packages/mock-relying-party/test-results/*.xml
   allow_failure: false
 
+run-fallback-page-browsertest-test-ont:
+  extends: .run-browsertest-common
+  rules:
+    - !reference [.default-branch, rules]
+  needs:
+    - job: deploy-update-policy-server-ont
+      artifacts: false
+  script: |
+    cd browsertests
+    npm ci
+    cd packages/fallback-pages
+    npx playwright install chromium webkit
+    npm run test:ci
+  variables:
+    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
+  after_script:
+    - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-fallback-pages.xml
+  artifacts:
+    when: always
+    paths:
+      - browsertests/packages/fallback-pages/test-results/
+    reports:
+      junit: browsertests/packages/fallback-pages/test-results/*.xml
+  allow_failure: false
+
 run-gba-fetch-browsertest-test-ont:
   extends: .run-browsertest-common
   rules:
