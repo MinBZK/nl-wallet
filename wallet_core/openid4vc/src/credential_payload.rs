@@ -16,6 +16,8 @@ use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::NameSpace;
+use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt::metadata::TypeMetadataError;
 
 use crate::attributes::Attribute;
 use crate::attributes::AttributeError;
@@ -32,6 +34,14 @@ pub enum CredentialPayloadError {
     )]
     #[category(pd)]
     NamespacePreconditionFailed { namespace: String, doc_type: String },
+
+    #[error("error converting to JSON: {0}")]
+    #[category(pd)]
+    JsonConversion(#[from] serde_json::Error),
+
+    #[error("metadata validation error: {0}")]
+    #[category(pd)]
+    Metadata(#[from] TypeMetadataError),
 
     #[error("unable to convert mdoc TDate to DateTime<Utc>")]
     #[category(critical)]
@@ -82,7 +92,7 @@ impl CredentialPayload {
             mdoc.doc_type.to_string(),
             mdoc.attributes.as_ref(),
             issuer,
-            None,
+            Some(Utc::now()),
             Some((&mdoc.valid_until).try_into()?),
             Some((&mdoc.valid_from).try_into()?),
         )
@@ -247,11 +257,19 @@ impl CredentialPayload {
         let parts = namespace[doc_type.len() + 1..].split('.').map(String::from).collect();
         Ok(parts)
     }
+
+    pub fn validate(&self, metadata_chain: &TypeMetadataChain) -> Result<(), CredentialPayloadError> {
+        let metadata = metadata_chain.verify()?;
+        metadata.validate(&serde_json::to_value(self)?)?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use chrono::TimeZone;
+    use chrono::Utc;
     use http::Uri;
     use indexmap::IndexMap;
     use rstest::rstest;
@@ -260,6 +278,8 @@ mod test {
 
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::DataElementValue;
+    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt::metadata::TypeMetadataChain;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -375,16 +395,16 @@ mod test {
     }
 
     #[test]
-    fn test_serialize_deserialize() {
+    fn test_serialize_deserialize_and_validate() {
         let payload = CredentialPayload {
             attestation_type: String::from("com.example.pid"),
             issuer: Uri::from_static("https://com.example.org/pid/issuer"),
-            issued_at: None,
+            issued_at: Some(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap()),
             expires: None,
             not_before: None,
             attributes: IndexMap::from([
                 (
-                    String::from("birthdate"),
+                    String::from("birth_date"),
                     Attribute::Single(AttributeValue::Text(String::from("1963-08-12"))),
                 ),
                 (
@@ -423,7 +443,8 @@ mod test {
         let expected_json = json!({
             "vct": "com.example.pid",
             "iss": "https://com.example.org/pid/issuer",
-            "birthdate": "1963-08-12",
+            "iat": 61,
+            "birth_date": "1963-08-12",
             "place_of_birth": {
                 "locality": "The Hague",
                 "country": {
@@ -443,7 +464,12 @@ mod test {
             expected_json.to_json_string_pretty().unwrap()
         );
 
-        serde_json::from_value::<CredentialPayload>(expected_json).unwrap();
+        let payload = serde_json::from_value::<CredentialPayload>(expected_json).unwrap();
+
+        let metadata = TypeMetadata::example();
+        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+
+        payload.validate(&metadata_chain).unwrap();
     }
 
     #[test]

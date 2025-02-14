@@ -124,7 +124,6 @@ pub enum PidIssuanceError {
     #[category(critical)]
     TypeMetadataVerification(#[from] TypeMetadataError),
     #[error("error converting mdoc to credential payload: {0}")]
-    #[category(critical)]
     CredentialPayload(#[from] CredentialPayloadError),
     #[error("error converting credential payload to attestation: {0}")]
     #[category(critical)]

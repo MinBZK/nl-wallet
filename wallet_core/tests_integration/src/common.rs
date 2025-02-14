@@ -38,6 +38,7 @@ use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use update_policy_server::settings::Settings as UpsSettings;
 use wallet::mock::MockDigidSession;
@@ -64,8 +65,6 @@ use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
-use wallet_server::pid::mock::mock_address_metadata;
-use wallet_server::pid::mock::mock_pid_metadata;
 use wallet_server::pid::mock::MockAttributesLookup;
 use wallet_server::settings::RequesterAuth;
 use wallet_server::settings::Server;
@@ -493,7 +492,7 @@ impl AttributeService for MockAttributeService {
             .unwrap()
             .into_inner();
 
-        let metadata = vec![mock_pid_metadata(), mock_address_metadata()];
+        let metadata = vec![TypeMetadata::pid_example(), TypeMetadata::address_example()];
 
         let attributes = issuable_documents
             .into_iter()
