@@ -24,14 +24,25 @@ path = "tests/settings.rs"
 required-features = ["hsm_test"]
 
 [features]
+# Allow software key attestations coming from the android emulator.
+# This is DANGEROUS and should not be used in any production environment.
+allow_android_emulator_keys = ["android_attest/allow_emulator_keys"]
+# Mocks responses from the Google Integrity Verdict API and spoofs the request hash in these responses.
+# This is DANGEROUS and should not be used in any production environment.
+mock_android_integrity_verdict = [
+    "wallet_provider_service/spoof_integrity_verdict_hash",
+    "wallet_provider_service/mock_play_integrity",
+]
+# Convenience feature to make the Wallet Provider work with the Android emulator during local development.
+# This is DANGEROUS and should not be used in any production environment.
+android_emulator = ["allow_android_emulator_keys", "mock_android_integrity_verdict"]
 # Include and run test that depend on a configured HSM
 hsm_test = ["dep:rand_core", "dep:serial_test"]
-# Allow software key attestations coming from the android emulator
-allow_android_emulator_keys = ["android_attest/allow_emulator_keys"]
 
 [dependencies]
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
 axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
+cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }

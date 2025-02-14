@@ -514,15 +514,32 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     .decode_token(&integrity_token)
                     .await
                     .map_err(|error| {
-                        warn!("could not decode integrity token using Play Integrity API: {0}", error);
+                        warn!("Could not decode integrity token using Play Integrity API: {0}", error);
 
                         AndroidAppAttestationError::DecodeIntegrityToken
                     })?;
 
+                let request_hash = BASE64_STANDARD.encode(&challenge_hash);
+
+                #[cfg(feature = "spoof_integrity_verdict_hash")]
+                let integrity_verdict = {
+                    use android_attest::play_integrity::integrity_verdict::RequestDetails;
+
+                    warn!("Spoofing Android integrity verdict request hash");
+
+                    IntegrityVerdict {
+                        request_details: RequestDetails {
+                            request_hash: request_hash.clone(),
+                            ..integrity_verdict.request_details
+                        },
+                        ..integrity_verdict
+                    }
+                };
+
                 let _ = VerifiedIntegrityVerdict::verify_with_time(
                     integrity_verdict,
                     &self.android_config.package_name,
-                    &BASE64_STANDARD.encode(&challenge_hash),
+                    &request_hash,
                     &self.android_config.certificate_hashes,
                     self.android_config.installation_method,
                     attestation_timestamp,
@@ -1048,46 +1065,13 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
-pub mod mock {
+#[cfg(any(test, feature = "mock_play_integrity"))]
+pub mod mock_play_integrity {
     use std::collections::HashSet;
-    use std::sync::LazyLock;
 
-    use p256::ecdsa::SigningKey;
+    use android_attest::play_integrity::integrity_verdict::IntegrityVerdict;
 
-    use android_attest::mock_chain::MockCaChain;
-    use apple_app_attest::MockAttestationCa;
-    use wallet_common::apple::MockAppleAttestedKey;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
-    use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
-
-    use crate::wallet_certificate;
-    use crate::wte_issuer::mock::MockWteIssuer;
-
-    use super::*;
-
-    pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
-    pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
-
-    pub type MockAccountServer = AccountServer<RevocationStatusList, MockPlayIntegrityClient>;
-
-    #[derive(Clone, Copy)]
-    pub enum AttestationType {
-        Apple,
-        Google,
-    }
-
-    #[derive(Clone, Copy)]
-    pub enum AttestationCa<'a> {
-        Apple(&'a MockAttestationCa),
-        Google(&'a MockCaChain),
-    }
-
-    impl GoogleCrlProvider for RevocationStatusList {
-        async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
-            Ok(self.clone())
-        }
-    }
+    use super::IntegrityTokenDecoder;
 
     #[derive(Debug, thiserror::Error)]
     #[error("mock play integrity client error to be used in tests")]
@@ -1126,6 +1110,49 @@ pub mod mock {
             let json = serde_json::to_string(&verdict).unwrap();
 
             Ok((verdict, json))
+        }
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use std::collections::HashSet;
+    use std::sync::LazyLock;
+
+    use p256::ecdsa::SigningKey;
+
+    use android_attest::mock_chain::MockCaChain;
+    use apple_app_attest::MockAttestationCa;
+    use wallet_common::apple::MockAppleAttestedKey;
+    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
+    use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
+
+    use crate::wallet_certificate;
+    use crate::wte_issuer::mock::MockWteIssuer;
+
+    use super::mock_play_integrity::MockPlayIntegrityClient;
+    use super::*;
+
+    pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
+    pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
+
+    pub type MockAccountServer = AccountServer<RevocationStatusList, MockPlayIntegrityClient>;
+
+    #[derive(Clone, Copy)]
+    pub enum AttestationType {
+        Apple,
+        Google,
+    }
+
+    #[derive(Clone, Copy)]
+    pub enum AttestationCa<'a> {
+        Apple(&'a MockAttestationCa),
+        Google(&'a MockCaChain),
+    }
+
+    impl GoogleCrlProvider for RevocationStatusList {
+        async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
+            Ok(self.clone())
         }
     }
 
@@ -1324,10 +1351,10 @@ mod tests {
     use super::mock::AttestationType;
     use super::mock::MockAccountServer;
     use super::mock::MockHardwareKey;
-    use super::mock::MockPlayIntegrityClient;
     use super::mock::MockUserState;
     use super::mock::MOCK_APPLE_CA;
     use super::mock::MOCK_GOOGLE_CA_CHAIN;
+    use super::mock_play_integrity::MockPlayIntegrityClient;
     use super::AndroidAppAttestationError;
     use super::ChallengeError;
     use super::InstructionError;

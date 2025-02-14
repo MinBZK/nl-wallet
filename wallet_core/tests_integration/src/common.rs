@@ -63,7 +63,7 @@ use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
-use wallet_provider_service::account_server::mock::MockPlayIntegrityClient;
+use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
 use wallet_server::pid::mock::mock_address_metadata;
 use wallet_server::pid::mock::mock_pid_metadata;
 use wallet_server::pid::mock::MockAttributesLookup;
