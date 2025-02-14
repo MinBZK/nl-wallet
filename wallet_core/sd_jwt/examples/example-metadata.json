@@ -1,188 +1,181 @@
 {
   "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "name": "SD-JWT VC - Metadata example",
-  "description": "This is an example of SD-JWT VC Type Metadata",
+  "name": "NL Wallet PID credential",
+  "description": "Working version of the NL Wallet PID credential",
   "display": [
     {
       "lang": "en-US",
-      "name": "SD-JWT example credential",
-      "description": "An example credential",
-      "rendering": {
-        "simple": {
-          "logo": {
-            "uri": "https://sd_jwt_vc_metadata.example.com/public/education-logo.png",
-            "uri#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
-            "alt_text": "SD-JWT examples logo"
-          },
-          "background_color": "#12107c",
-          "text_color": "#ffffff"
-        }
-      }
+      "name": "NL Wallet Personal Data",
+      "description": "The Personal Data credential for the NL Wallet"
     },
     {
       "lang": "nl-NL",
-      "name": "SD-JWT voorbeeld credential",
-      "description": "Een voorbeeld credential",
-      "rendering": {
-        "simple": {
-          "logo": {
-            "uri": "https://sd_jwt_vc_metadata.example.com/public/education-logo.png",
-            "uri#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
-            "alt_text": "SD-JWT voorbeelden logo"
-          },
-          "background_color": "#cccccc",
-          "text_color": "#ffffff"
-        }
-      }
+      "name": "NL Wallet persoonsgegevens",
+      "description": "De persoonsgegevensattestatie voor de NL Wallet"
     }
   ],
   "claims": [
     {
-      "path": ["given_name"],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Given name",
-          "description": "The given name"
-        },
-        {
-          "lang": "nl-NL",
-          "label": "Voornaam",
-          "description": "De voornaam"
-        }
+      "path": [
+        "birth_date"
       ],
-      "sd": "allowed"
-    },
-    {
-      "path": ["family_name"],
       "display": [
         {
           "lang": "en-US",
-          "label": "Family name",
-          "description": "The family name"
-        },
-        {
-          "lang": "nl-NL",
-          "label": "Achternaam",
-          "description": "De achternaam"
+          "label": "Birth date",
+          "description": "Birth date of the person"
         }
       ],
       "sd": "always"
     },
     {
-      "path": ["address", "street_address"],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Street address",
-          "description": "The street address"
-        },
-        {
-          "lang": "nl-NL",
-          "label": "Straatnaam",
-          "description": "De straatnaam"
-        }
+      "path": [
+        "place_of_birth",
+        "locality"
       ],
-      "sd": "allowed"
-    },
-    {
-      "path": ["address", "country"],
       "display": [
         {
           "lang": "en-US",
-          "label": "Country",
-          "description": "The country"
-        },
-        {
-          "lang": "nl-NL",
-          "label": "Land",
-          "description": "Het land"
-        }
-      ],
-      "sd": "allowed"
-    },
-    {
-      "path": ["is_over_18"],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Is over 18",
-          "description": "Is over 18"
-        },
-        {
-          "lang": "nl-NL",
-          "label": "Is 18 of ouder",
-          "description": "Is 18 of ouder"
+          "label": "Locality"
         }
       ],
       "sd": "always"
     },
     {
-      "path": ["nationalities", null],
+      "path": [
+        "place_of_birth",
+        "country",
+        "name"
+      ],
       "display": [
         {
           "lang": "en-US",
-          "label": "Nationalities",
-          "description": "Nationalities"
-        },
-        {
-          "lang": "nl-NL",
-          "label": "Nationaliteiten",
-          "description": "Nationaliteiten"
+          "label": "Country"
         }
-      ]
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "place_of_birth",
+        "country",
+        "area_code"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "financial",
+        "has_debt"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Has debt"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "financial",
+        "has_job"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Has job"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "financial",
+        "debt_amount"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Debt amount"
+        }
+      ],
+      "sd": "always"
     }
   ],
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "NL Wallet PID VCT Schema",
+    "description": "The JSON schema that defines the NL Wallet PID VCT",
     "type": "object",
     "properties": {
+      "birth_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "place_of_birth": {
+        "type": "object",
+        "properties": {
+          "locality": {
+            "type": "string"
+          },
+          "country": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "area_code": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "financial": {
+        "type": "object",
+        "properties": {
+          "has_debt": {
+            "type": "boolean"
+          },
+          "has_job": {
+            "type": "boolean"
+          },
+          "debt_amount": {
+            "type": "number"
+          }
+        }
+      },
       "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
         "type": "string"
       },
       "iss": {
         "type": "string"
       },
-      "nbf": {
+      "iat": {
         "type": "number"
       },
       "exp": {
         "type": "number"
       },
-      "cnf": {
-        "type": "object"
-      },
-      "status": {
-        "type": "object"
-      },
-      "given_name": {
-        "type": "string"
-      },
-      "family_name": {
-        "type": "string"
-      },
-      "address": {
-        "type": "object",
-        "properties": {
-          "street_address": {
-            "type": "string"
-          },
-          "country": {
-            "type": "string"
-          }
-        }
-      },
-      "is_over_18": {
-        "type": "boolean"
-      },
-      "nationalities": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
+      "nbf": {
+        "type": "number"
       }
     },
-    "required": ["iss", "vct", "cnf"],
+    "required": [
+      "vct",
+      "iss",
+      "iat"
+    ],
     "additionalProperties": false
   }
 }

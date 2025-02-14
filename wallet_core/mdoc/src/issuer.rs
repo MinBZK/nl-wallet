@@ -7,12 +7,14 @@ use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
 
+use sd_jwt::metadata::ResourceIntegrity;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use sd_jwt::metadata::COSE_METADATA_HEADER_LABEL;
 use sd_jwt::metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
 use wallet_common::keys::EcdsaKey;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::iso::*;
 use crate::server_keys::KeyPair;
@@ -28,7 +30,7 @@ use crate::Result;
 impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
-        metadata_chain: TypeMetadataChain,
+        type_metadata: TypeMetadataChain,
         device_public_key: CoseKey,
         key: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self> {
@@ -52,7 +54,8 @@ impl IssuerSigned {
             validity_info: validity,
         };
 
-        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata_chain)?;
+        let (metadata, integrity) = type_metadata.verify_and_destructure()?;
+        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata, integrity)?;
 
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
@@ -66,16 +69,17 @@ impl IssuerSigned {
         Ok(issuer_signed)
     }
 
-    pub(crate) fn create_unprotected_header(x5chain: Vec<u8>, metadata_chain: TypeMetadataChain) -> Result<Header> {
-        // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3808)
-        let (chain, integrity) = metadata_chain.verify_and_destructure()?;
-
+    pub(crate) fn create_unprotected_header(
+        x5chain: Vec<u8>,
+        metadata_chain: VecNonEmpty<TypeMetadata>,
+        metadata_integrity: ResourceIntegrity,
+    ) -> Result<Header> {
         let header = HeaderBuilder::new()
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(x5chain))
             .text_value(
                 String::from(COSE_METADATA_HEADER_LABEL),
                 Value::Array(
-                    chain
+                    metadata_chain
                         .into_iter()
                         .map(|m| {
                             let encoded = m.try_as_base64()?;
@@ -86,7 +90,7 @@ impl IssuerSigned {
             )
             .text_value(
                 String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL),
-                Value::Text(integrity.into()),
+                Value::Text(metadata_integrity.into()),
             )
             .build();
 

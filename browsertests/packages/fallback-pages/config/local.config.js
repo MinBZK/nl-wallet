@@ -15,12 +15,7 @@ export default defineConfig({
     },
   ],
   use: {
-    baseURL:
-      "https://" +
-      process.env.MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME +
-      "/" +
-      process.env.MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH +
-      "/",
+    baseURL: process.env.UNIVERSAL_LINK_BASE,
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     trace: "retain-on-failure",

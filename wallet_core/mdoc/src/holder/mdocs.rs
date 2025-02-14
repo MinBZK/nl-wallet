@@ -8,6 +8,13 @@ use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 
+use error_category::ErrorCategory;
+use sd_jwt::metadata::TypeMetadata;
+use wallet_common::generator::Generator;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::CredentialKeyType;
+use wallet_common::vec_at_least::VecNonEmpty;
+
 use crate::identifiers::AttributeIdentifier;
 use crate::iso::*;
 use crate::unsigned::Entry;
@@ -15,12 +22,6 @@ use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
 use crate::utils::x509::BorrowingCertificate;
 use crate::verifier::ValidityRequirement;
-use error_category::ErrorCategory;
-use sd_jwt::metadata::TypeMetadata;
-use wallet_common::generator::Generator;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::CredentialKeyType;
-use wallet_common::vec_at_least::VecNonEmpty;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

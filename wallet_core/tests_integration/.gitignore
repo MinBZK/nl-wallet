@@ -10,4 +10,4 @@
 /*.pem
 /*.der
 *.snap.new
-*_metadata.json
+*metadata.json

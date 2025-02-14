@@ -5,6 +5,7 @@ use derive_more::Debug;
 use futures::future::try_join_all;
 use futures::future::OptionFuture;
 use futures::TryFutureExt;
+use http::Uri;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -52,6 +53,8 @@ use crate::credential::CredentialResponses;
 use crate::credential::MdocCopies;
 use crate::credential::WteDisclosure;
 use crate::credential_formats::CredentialFormats;
+use crate::credential_payload::CredentialPayload;
+use crate::credential_payload::CredentialPayloadError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::dpop::DPOP_HEADER_NAME;
@@ -147,6 +150,8 @@ pub enum IssuanceSessionError {
     #[error("error constructing PoA: {0}")]
     #[category(pd)]
     Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("error converting to a CredentialPayload: {0}")]
+    CredentialPayload(#[from] CredentialPayloadError),
 }
 
 #[derive(Clone, Debug)]
@@ -810,9 +815,8 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
                 // Verify and parse the type metadata
-                let (_metadata, _) = metadata_chain.clone().verify_and_destructure()?;
-
-                // TODO: verify JSON representation of mdoc against metadata schema (PVW-3812)
+                let credential_payload = CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                credential_payload.validate(metadata_chain)?;
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
@@ -910,6 +914,7 @@ mod tests {
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
         let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+
         let preview = CredentialPreview::MsoMdoc {
             unsigned_mdoc: unsigned_mdoc.clone(),
             issuer_certificate: issuance_key.certificate().clone(),
