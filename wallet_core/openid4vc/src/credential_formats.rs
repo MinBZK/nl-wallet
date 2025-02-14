@@ -2,10 +2,10 @@ use itertools::Itertools;
 use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::token::CredentialPreview;
+use crate::token::CredentialPreviewError;
 use crate::Format;
 
 pub trait CredentialFormat {
@@ -91,12 +91,12 @@ impl<T: CredentialType> CredentialFormats<T> {
 }
 
 impl CredentialFormats<CredentialPreview> {
-    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CertificateError> {
+    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CredentialPreviewError> {
         self.as_ref()
             .as_slice()
             .iter()
             .map(|preview| preview.verify(trust_anchors))
-            .collect::<Result<Vec<()>, CertificateError>>()?;
+            .collect::<Result<Vec<()>, CredentialPreviewError>>()?;
 
         Ok(())
     }

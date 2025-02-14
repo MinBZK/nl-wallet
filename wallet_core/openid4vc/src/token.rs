@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use derive_more::From;
+use http::Uri;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -167,7 +168,7 @@ impl CredentialPreview {
         }
     }
 
-    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CertificateError> {
+    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CredentialPreviewError> {
         match self {
             CredentialPreview::MsoMdoc {
                 issuer_certificate,
@@ -187,7 +188,7 @@ impl CredentialPreview {
 
                 // Verify that the issuer_common_name matches the common_name in the issuer_certificate
                 if unsigned_mdoc.issuer_common_name != issuer_certificate.common_name_uri()? {
-                    return Err(CertificateError::CommonNameMismatch(
+                    return Err(CredentialPreviewError::CommonNameMismatch(
                         unsigned_mdoc.issuer_common_name.clone(),
                         issuer_certificate.common_name_uri()?,
                     ));
@@ -226,6 +227,9 @@ pub enum CredentialPreviewError {
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
+    #[error("common name mismatch: expected {0}, found {1}")]
+    #[category(critical)]
+    CommonNameMismatch(Uri, Uri),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]

@@ -85,7 +85,7 @@ impl Mdoc {
         Ok(metadata)
     }
 
-    /// Check that the doctype, issuer, validity_info, namespaces, attribute names and attribute values of this
+    /// Check that the doc_type, issuer, validity_info, namespaces, attribute names and attribute values of this
     /// instance are equal to to the provided unsigned value.
     pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedDocumentMismatchError> {
         if self.mso.doc_type != unsigned.doc_type {

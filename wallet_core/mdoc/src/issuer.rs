@@ -173,14 +173,7 @@ mod tests {
             )])
             .try_into()
             .unwrap(),
-            issuer_common_name: issuance_key
-                .certificate()
-                .common_names()
-                .unwrap()
-                .first()
-                .unwrap()
-                .parse()
-                .unwrap(),
+            issuer_common_name: issuance_key.certificate().common_name_uri().unwrap(),
         };
         let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();

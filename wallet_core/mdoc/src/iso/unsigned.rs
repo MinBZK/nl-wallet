@@ -39,7 +39,7 @@ pub struct UnsignedMdoc {
     /// The amount of copies of this mdoc that the holder will receive.
     pub copy_count: NonZeroU8,
 
-    /// The common name of the issuer certificate.
+    /// The common name of the issuer, as it appears in the issuer's certificate.
     #[serde(with = "http_serde::uri")]
     pub issuer_common_name: Uri,
 }

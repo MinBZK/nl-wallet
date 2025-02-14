@@ -214,10 +214,7 @@ mod test {
             .collect()
     }
 
-    fn issuable_attrs_to_unsigned_mdocs(
-        issuable: &IssuableDocuments,
-        issuer_common_name: &Uri,
-    ) -> Result<Vec<UnsignedMdoc>, AttributeError> {
+    fn issuable_attrs_to_unsigned_mdocs(issuable: &IssuableDocuments) -> Result<Vec<UnsignedMdoc>, AttributeError> {
         issuable
             .as_ref()
             .iter()
@@ -226,7 +223,7 @@ mod test {
                     Tdate::now(),
                     Utc::now().add(Days::new(1)).into(),
                     NonZeroU8::new(1).unwrap(),
-                    issuer_common_name.clone(),
+                    "https://pid.example.com".parse().unwrap(),
                 )
             })
             .collect::<Result<Vec<_>, _>>()
@@ -282,9 +279,7 @@ mod test {
     #[test]
     fn test_issuable_attributes_to_unsigned_mdoc() {
         let attributes = setup_issuable_attributes();
-        let unsigned_mdoc = issuable_attrs_to_unsigned_mdocs(&attributes, &"https://pid.example.com".parse().unwrap())
-            .unwrap()
-            .remove(0);
+        let unsigned_mdoc = issuable_attrs_to_unsigned_mdocs(&attributes).unwrap().remove(0);
         assert_eq!(
             serde_json::to_value(readable_attrs(unsigned_mdoc.attributes.as_ref())).unwrap(),
             json!({

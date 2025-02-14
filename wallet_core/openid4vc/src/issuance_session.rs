@@ -27,7 +27,6 @@ use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::ATTR_RANDOM_LENGTH;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::generator::TimeGenerator;
@@ -65,6 +64,7 @@ use crate::metadata::IssuerMetadata;
 use crate::oidc;
 use crate::token::AccessToken;
 use crate::token::CredentialPreview;
+use crate::token::CredentialPreviewError;
 use crate::token::TokenRequest;
 use crate::token::TokenResponseWithPreviews;
 use crate::CredentialErrorCode;
@@ -123,8 +123,8 @@ pub enum IssuanceSessionError {
     #[error("error reading HTTP error: {0}")]
     #[category(pd)]
     HeaderToStr(#[from] ToStrError),
-    #[error("error verifying certificate of credential preview: {0}")]
-    Certificate(#[from] CertificateError),
+    #[error("error verifying credential preview: {0}")]
+    CredentialPreview(#[from] CredentialPreviewError),
     #[error("issuer contained in credential not equal to expected value")]
     #[category(critical)]
     IssuerMismatch,
@@ -877,6 +877,7 @@ mod tests {
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::serialization::CborBase64;
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
+    use nl_wallet_mdoc::utils::x509::CertificateError;
     use nl_wallet_mdoc::IssuerSigned;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
@@ -993,7 +994,9 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceSessionError::Certificate(CertificateError::Verification(_))
+            IssuanceSessionError::CredentialPreview(CredentialPreviewError::Certificate(
+                CertificateError::Verification(_)
+            ))
         );
     }
 
