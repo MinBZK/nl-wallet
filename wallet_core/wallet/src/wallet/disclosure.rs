@@ -93,13 +93,10 @@ pub enum DisclosureError {
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
-
     #[error("could not interpret (missing) mdoc attributes: {0}")]
-    MdocAttributes(#[source] DocumentMdocError), // TODO: still necessary?
-
+    MdocAttributes(#[source] DocumentMdocError),
     #[error("could not interpret (missing) attestation attributes: {0}")]
     AttestationAttributes(#[source] AttestationsError),
-
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
@@ -1162,7 +1159,7 @@ mod tests {
 
         // Verify a single Disclosure Success event is logged, and documents are shared
         assert_eq!(events.len(), 1);
-        // TODO: fix test
+        // TODO: fix test after document has been removed from history: PVW-4096
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
@@ -1604,7 +1601,7 @@ mod tests {
         let events = events.lock().pop().unwrap();
         // Verify a Disclosure error event is logged, and documents are shared
         assert_eq!(events.len(), 1);
-        // TODO: fix test
+        // TODO: fix test after document has been removed from history: PVW-4096
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {

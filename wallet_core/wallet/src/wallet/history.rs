@@ -243,7 +243,7 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 status,
                 r#type,
                 timestamp,
-                attributes: None, // TODO: PVW-?
+                attributes: None, // TODO: fix history in PVW-4096
                 reader_registration: {
                     let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)?
                         .ok_or(EventConversionError::NoReaderRegistrationFound)?;

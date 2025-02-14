@@ -26,7 +26,6 @@ pub use crate::document::AttributeLabel;
 pub use crate::document::AttributeLabelLanguage;
 pub use crate::document::AttributeLabels;
 pub use crate::document::AttributeValue;
-pub use crate::document::DisclosureDocument;
 pub use crate::document::DisclosureType;
 pub use crate::document::Document;
 pub use crate::document::DocumentAttributes;
