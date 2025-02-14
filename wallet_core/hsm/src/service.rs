@@ -15,6 +15,7 @@ use cryptoki::types::AuthPin;
 use der::asn1::OctetString;
 use der::Decode;
 use der::Encode;
+use futures::future;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::AssociatedOid;
@@ -85,17 +86,6 @@ pub trait Pkcs11Client {
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle>;
     async fn get_verifying_key(&self, public_key_handle: PublicKeyHandle) -> Result<VerifyingKey>;
-    async fn wrap_key(
-        &self,
-        wrapping_key: PrivateKeyHandle,
-        key: PrivateKeyHandle,
-        public_key: VerifyingKey,
-    ) -> Result<WrappedKey>;
-    async fn unwrap_signing_key(
-        &self,
-        unwrapping_key: PrivateKeyHandle,
-        wrapped_key: WrappedKey,
-    ) -> Result<PrivateKeyHandle>;
     async fn delete_key(&self, private_key_handle: PrivateKeyHandle) -> Result<()>;
     async fn sign(
         &self,
@@ -123,6 +113,35 @@ pub trait Pkcs11Client {
         iv: InitializationVector,
         encrypted_data: Vec<u8>,
     ) -> Result<Vec<u8>>;
+    async fn wrap_key(
+        &self,
+        wrapping_key: PrivateKeyHandle,
+        key: PrivateKeyHandle,
+        public_key: VerifyingKey,
+    ) -> Result<WrappedKey>;
+    async fn unwrap_signing_key(
+        &self,
+        unwrapping_key: PrivateKeyHandle,
+        wrapped_key: WrappedKey,
+    ) -> Result<PrivateKeyHandle>;
+    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<(VerifyingKey, WrappedKey)>;
+    async fn generate_wrapped_keys(
+        &self,
+        wrapping_key_identifier: &str,
+        identifiers: &[&str],
+    ) -> Result<Vec<(String, VerifyingKey, WrappedKey)>> {
+        future::try_join_all(identifiers.iter().map(|identifier| async move {
+            let result = self.generate_wrapped_key(wrapping_key_identifier).await;
+            result.map(|(pub_key, wrapped)| (String::from(*identifier), pub_key, wrapped))
+        }))
+        .await
+    }
+    async fn sign_wrapped(
+        &self,
+        wrapping_key_identifier: &str,
+        wrapped_key: WrappedKey,
+        data: Arc<Vec<u8>>,
+    ) -> Result<Signature>;
 }
 
 #[derive(Clone)]
@@ -385,49 +404,6 @@ impl Pkcs11Client for Pkcs11Hsm {
         .await
     }
 
-    async fn wrap_key(
-        &self,
-        wrapping_key: PrivateKeyHandle,
-        key: PrivateKeyHandle,
-        public_key: VerifyingKey,
-    ) -> Result<WrappedKey> {
-        let pool = self.pool.clone();
-
-        spawn::blocking(move || {
-            let session = pool.get()?;
-            let wrapped_key_bytes = session.wrap_key(&Mechanism::AesKeyWrapPad, wrapping_key.0, key.0)?;
-            Ok(WrappedKey::new(wrapped_key_bytes, public_key))
-        })
-        .await
-    }
-
-    async fn unwrap_signing_key(
-        &self,
-        unwrapping_key: PrivateKeyHandle,
-        wrapped_key: WrappedKey,
-    ) -> Result<PrivateKeyHandle> {
-        let pool = self.pool.clone();
-
-        spawn::blocking(move || {
-            let session = pool.get()?;
-
-            let result = session.unwrap_key(
-                &Mechanism::AesKeyWrapPad,
-                unwrapping_key.0,
-                wrapped_key.wrapped_private_key(),
-                &[
-                    Attribute::KeyType(KeyType::EC),
-                    Attribute::Token(false),
-                    Attribute::Private(true),
-                    Attribute::Class(ObjectClass::PRIVATE_KEY),
-                ],
-            )?;
-            Ok(result)
-        })
-        .await
-        .map(PrivateKeyHandle)
-    }
-
     async fn delete_key(&self, private_key_handle: PrivateKeyHandle) -> Result<()> {
         let pool = self.pool.clone();
 
@@ -526,5 +502,72 @@ impl Pkcs11Client for Pkcs11Hsm {
             Ok(data)
         })
         .await
+    }
+
+    async fn wrap_key(
+        &self,
+        wrapping_key: PrivateKeyHandle,
+        key: PrivateKeyHandle,
+        public_key: VerifyingKey,
+    ) -> Result<WrappedKey> {
+        let pool = self.pool.clone();
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+            let wrapped_key_bytes = session.wrap_key(&Mechanism::AesKeyWrapPad, wrapping_key.0, key.0)?;
+            Ok(WrappedKey::new(wrapped_key_bytes, public_key))
+        })
+        .await
+    }
+
+    async fn unwrap_signing_key(
+        &self,
+        unwrapping_key: PrivateKeyHandle,
+        wrapped_key: WrappedKey,
+    ) -> Result<PrivateKeyHandle> {
+        let pool = self.pool.clone();
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+
+            let result = session.unwrap_key(
+                &Mechanism::AesKeyWrapPad,
+                unwrapping_key.0,
+                wrapped_key.wrapped_private_key(),
+                &[
+                    Attribute::KeyType(KeyType::EC),
+                    Attribute::Token(false),
+                    Attribute::Private(true),
+                    Attribute::Class(ObjectClass::PRIVATE_KEY),
+                ],
+            )?;
+            Ok(result)
+        })
+        .await
+        .map(PrivateKeyHandle)
+    }
+
+    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<(VerifyingKey, WrappedKey)> {
+        let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
+        let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
+        let verifying_key = Pkcs11Client::get_verifying_key(self, public_handle).await?;
+
+        let wrapped = self
+            .wrap_key(private_wrapping_handle, private_handle, verifying_key)
+            .await?;
+
+        Ok((verifying_key, wrapped))
+    }
+
+    async fn sign_wrapped(
+        &self,
+        wrapping_key_identifier: &str,
+        wrapped_key: WrappedKey,
+        data: Arc<Vec<u8>>,
+    ) -> Result<Signature> {
+        let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
+        let private_handle = self.unwrap_signing_key(private_wrapping_handle, wrapped_key).await?;
+        let signature = Pkcs11Client::sign(self, private_handle, SigningMechanism::Ecdsa256, data).await?;
+        Ok(Signature::from_slice(&signature)?)
     }
 }

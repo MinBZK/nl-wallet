@@ -37,6 +37,7 @@ pub mod mock {
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
+    use rand::rngs::OsRng;
     use sha2::Sha256;
 
     use wallet_common::utils::random_bytes;
@@ -45,7 +46,11 @@ pub mod mock {
     use crate::model::encrypted::InitializationVector;
     use crate::model::encrypter::Decrypter;
     use crate::model::encrypter::Encrypter;
+    use crate::model::wrapped_key::WrappedKey;
     use crate::model::Hsm;
+    use crate::service::HsmError;
+    use crate::service::Pkcs11Client;
+    use crate::service::PrivateKeyHandle;
 
     type HmacSha256 = Hmac<Sha256>;
 
@@ -154,6 +159,126 @@ pub mod mock {
 
         async fn decrypt<T>(&self, _identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error> {
             Ok(encrypted.data)
+        }
+    }
+
+    impl<E> Pkcs11Client for MockPkcs11Client<E> {
+        async fn generate_aes_encryption_key(&self, _identifier: &str) -> Result<PrivateKeyHandle, HsmError> {
+            todo!()
+        }
+
+        async fn generate_generic_secret_key(&self, _identifier: &str) -> Result<PrivateKeyHandle, HsmError> {
+            todo!()
+        }
+
+        async fn generate_session_signing_key_pair(
+            &self,
+        ) -> Result<(crate::service::PublicKeyHandle, PrivateKeyHandle), HsmError> {
+            todo!()
+        }
+
+        async fn generate_signing_key_pair(
+            &self,
+            _identifier: &str,
+        ) -> Result<(crate::service::PublicKeyHandle, PrivateKeyHandle), HsmError> {
+            todo!()
+        }
+
+        async fn get_private_key_handle(&self, _identifier: &str) -> Result<PrivateKeyHandle, HsmError> {
+            todo!()
+        }
+
+        async fn get_public_key_handle(&self, _identifier: &str) -> Result<crate::service::PublicKeyHandle, HsmError> {
+            todo!()
+        }
+
+        async fn get_verifying_key(
+            &self,
+            _public_key_handle: crate::service::PublicKeyHandle,
+        ) -> Result<VerifyingKey, HsmError> {
+            todo!()
+        }
+
+        async fn delete_key(&self, _private_key_handle: PrivateKeyHandle) -> Result<(), HsmError> {
+            todo!()
+        }
+
+        async fn sign(
+            &self,
+            _private_key_handle: PrivateKeyHandle,
+            _mechanism: crate::service::SigningMechanism,
+            _data: Arc<Vec<u8>>,
+        ) -> Result<Vec<u8>, HsmError> {
+            todo!()
+        }
+
+        async fn verify(
+            &self,
+            _private_key_handle: PrivateKeyHandle,
+            _mechanism: crate::service::SigningMechanism,
+            _data: Arc<Vec<u8>>,
+            _signature: Vec<u8>,
+        ) -> Result<(), HsmError> {
+            todo!()
+        }
+
+        async fn random_bytes(&self, _length: u32) -> Result<Vec<u8>, HsmError> {
+            todo!()
+        }
+
+        async fn encrypt(
+            &self,
+            _key_handle: PrivateKeyHandle,
+            _iv: InitializationVector,
+            _data: Vec<u8>,
+        ) -> Result<(Vec<u8>, InitializationVector), HsmError> {
+            todo!()
+        }
+
+        async fn decrypt(
+            &self,
+            _key_handle: PrivateKeyHandle,
+            _iv: InitializationVector,
+            _encrypted_data: Vec<u8>,
+        ) -> Result<Vec<u8>, HsmError> {
+            todo!()
+        }
+
+        async fn wrap_key(
+            &self,
+            _wrapping_key: PrivateKeyHandle,
+            _key: PrivateKeyHandle,
+            _public_key: VerifyingKey,
+        ) -> Result<WrappedKey, HsmError> {
+            todo!()
+        }
+
+        async fn unwrap_signing_key(
+            &self,
+            _unwrapping_key: PrivateKeyHandle,
+            _wrapped_key: WrappedKey,
+        ) -> Result<PrivateKeyHandle, HsmError> {
+            todo!()
+        }
+
+        async fn generate_wrapped_key(
+            &self,
+            _wrapping_key_identifier: &str,
+        ) -> Result<(VerifyingKey, WrappedKey), HsmError> {
+            let key = SigningKey::random(&mut OsRng);
+            let verifying_key = *key.verifying_key();
+            Ok((verifying_key, WrappedKey::new(key.to_bytes().to_vec(), verifying_key)))
+        }
+
+        async fn sign_wrapped(
+            &self,
+            _wrapping_key_identifier: &str,
+            wrapped_key: WrappedKey,
+            data: Arc<Vec<u8>>,
+        ) -> Result<Signature, HsmError> {
+            let key = SigningKey::from_slice(wrapped_key.wrapped_private_key()).unwrap();
+            let signature = Signer::sign(&key, data.as_ref());
+            Ok(signature)
         }
     }
 }

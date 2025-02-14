@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_dropper::AsyncDropper;
+use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use serial_test::serial;
@@ -85,6 +86,31 @@ async fn encrypt_decrypt_verifying_key() {
     let decrypted = Decrypter::decrypt(hsm, identifier, encrypted).await.unwrap();
 
     assert_eq!(verifying_key, decrypted);
+
+    // Explicitly drop, to capture possible errors.
+    drop(AsyncDropper::new(test_case));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn wrap_key_and_sign() {
+    let test_case = TestCase::new("hsm.toml", "generate_key_and_sign");
+    let (hsm, identifier) = test_case.test_params();
+
+    let _ = Pkcs11Client::generate_aes_encryption_key(hsm, identifier)
+        .await
+        .unwrap();
+
+    let (public_key, wrapped) = hsm.generate_wrapped_key(identifier).await.unwrap();
+
+    assert_eq!(public_key, *wrapped.public_key());
+
+    let data = Arc::new(random_bytes(32));
+    let signature = Pkcs11Client::sign_wrapped(hsm, identifier, wrapped, Arc::clone(&data))
+        .await
+        .unwrap();
+
+    public_key.verify(data.as_ref(), &signature).unwrap();
 
     // Explicitly drop, to capture possible errors.
     drop(AsyncDropper::new(test_case));
