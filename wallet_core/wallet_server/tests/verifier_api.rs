@@ -210,6 +210,7 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'stat
             ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
             allow_origins: None,
         },
+        hsm: None,
         #[cfg(feature = "disclosure")]
         reader_trust_anchors,
     };

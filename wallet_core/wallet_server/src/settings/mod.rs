@@ -16,6 +16,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
+use hsm::settings::Hsm;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
@@ -80,6 +81,8 @@ pub struct Settings {
 
     #[cfg(feature = "disclosure")]
     pub verifier: Verifier,
+
+    pub hsm: Option<Hsm>,
 
     /// Reader trust anchors are used to verify the keys and certificates in the `verifier.usecases` configuration on
     /// application startup.

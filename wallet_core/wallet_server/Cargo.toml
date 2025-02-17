@@ -113,6 +113,7 @@ serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 strum = { workspace = true, optional = true, features = ["derive"] }
 
+hsm = { path = "../hsm", features = ["settings"] }
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 sd_jwt.path = "../sd_jwt"
