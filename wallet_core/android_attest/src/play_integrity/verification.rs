@@ -53,36 +53,36 @@ pub struct VerifiedIntegrityVerdict(IntegrityVerdict);
 impl VerifiedIntegrityVerdict {
     pub fn verify(
         integrity_verdict: IntegrityVerdict,
-        package_name: &str,
-        request_hash: &str,
-        certificate_hashes: &HashSet<Vec<u8>>,
-        installation_method: InstallationMethod,
+        expected_package_name: &str,
+        expected_request_hash: &str,
+        expected_certificate_hashes: &HashSet<Vec<u8>>,
+        allowed_installation_method: InstallationMethod,
     ) -> Result<Self, IntegrityVerdictVerificationError> {
         Self::verify_with_time(
             integrity_verdict,
-            package_name,
-            request_hash,
-            certificate_hashes,
-            installation_method,
+            expected_package_name,
+            expected_request_hash,
+            expected_certificate_hashes,
+            allowed_installation_method,
             Utc::now(),
         )
     }
 
     pub fn verify_with_time(
         integrity_verdict: IntegrityVerdict,
-        package_name: &str,
-        request_hash: &str,
-        certificate_hashes: &HashSet<Vec<u8>>,
-        installation_method: InstallationMethod,
+        expected_package_name: &str,
+        expected_request_hash: &str,
+        expected_certificate_hashes: &HashSet<Vec<u8>>,
+        allowed_installation_method: InstallationMethod,
         time: DateTime<Utc>,
     ) -> Result<Self, IntegrityVerdictVerificationError> {
-        if integrity_verdict.request_details.request_package_name != package_name {
+        if integrity_verdict.request_details.request_package_name != expected_package_name {
             return Err(IntegrityVerdictVerificationError::RequestPackageNameMismatch(
                 integrity_verdict.request_details.request_package_name,
             ));
         }
 
-        if integrity_verdict.request_details.request_hash != request_hash {
+        if integrity_verdict.request_details.request_hash != expected_request_hash {
             return Err(IntegrityVerdictVerificationError::RequestHashMismatch);
         }
 
@@ -95,7 +95,7 @@ impl VerifiedIntegrityVerdict {
             ));
         }
 
-        let min_recognition_verdict = match installation_method {
+        let min_recognition_verdict = match allowed_installation_method {
             InstallationMethod::SideloadOrPlayStore => AppRecognitionVerdict::UnrecognizedVersion,
             InstallationMethod::PlayStore => AppRecognitionVerdict::PlayRecognized,
         };
@@ -105,7 +105,7 @@ impl VerifiedIntegrityVerdict {
             ));
         }
 
-        if integrity_verdict.app_integrity.package_name.as_deref() != Some(package_name) {
+        if integrity_verdict.app_integrity.package_name.as_deref() != Some(expected_package_name) {
             return Err(IntegrityVerdictVerificationError::PlayStorePackageNameMismatch(
                 integrity_verdict.app_integrity.package_name,
             ));
@@ -117,9 +117,9 @@ impl VerifiedIntegrityVerdict {
             .app_integrity
             .certificate_sha256_digest
             .as_ref()
-            .map(|certificate_sha256_digest| certificate_sha256_digest.is_superset(certificate_hashes))
+            .map(|certificate_sha256_digest| certificate_sha256_digest.is_superset(expected_certificate_hashes))
             // If the verdict contains no hashes, it can only be verified if there are no required hashes.
-            .unwrap_or_else(|| certificate_hashes.is_empty())
+            .unwrap_or_else(|| expected_certificate_hashes.is_empty())
         {
             return Err(IntegrityVerdictVerificationError::PlayStoreCertificateMismatch);
         }
@@ -134,7 +134,7 @@ impl VerifiedIntegrityVerdict {
             return Err(IntegrityVerdictVerificationError::DeviceIntegrityNotMet);
         }
 
-        let min_licensing_verdict = match installation_method {
+        let min_licensing_verdict = match allowed_installation_method {
             InstallationMethod::SideloadOrPlayStore => AppLicensingVerdict::Unevaluated,
             InstallationMethod::PlayStore => AppLicensingVerdict::Licensed,
         };
