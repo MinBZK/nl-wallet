@@ -15,6 +15,7 @@ use http::HeaderValue;
 use http::Method;
 use http::StatusCode;
 use http::Uri;
+use p256::ecdsa::SigningKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -49,7 +50,7 @@ use crate::settings;
 use crate::settings::Urls;
 
 struct ApplicationState<S> {
-    verifier: Verifier<S>,
+    verifier: Verifier<S, SigningKey>,
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
 }

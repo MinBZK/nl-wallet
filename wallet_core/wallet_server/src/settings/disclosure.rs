@@ -4,6 +4,7 @@ use derive_more::AsRef;
 use derive_more::From;
 use derive_more::IntoIterator;
 use nutype::nutype;
+use p256::ecdsa::SigningKey;
 use ring::hmac;
 use serde::Deserialize;
 use serde_with::hex::Hex;
@@ -41,7 +42,7 @@ pub struct VerifierUseCase {
     pub key_pair: KeyPair,
 }
 
-impl TryFrom<VerifierUseCases> for UseCases {
+impl TryFrom<VerifierUseCases> for UseCases<SigningKey> {
     type Error = anyhow::Error;
 
     fn try_from(value: VerifierUseCases) -> Result<Self, Self::Error> {
@@ -59,7 +60,7 @@ impl TryFrom<VerifierUseCases> for UseCases {
     }
 }
 
-impl TryFrom<VerifierUseCase> for UseCase {
+impl TryFrom<VerifierUseCase> for UseCase<SigningKey> {
     type Error = anyhow::Error;
 
     fn try_from(value: VerifierUseCase) -> Result<Self, Self::Error> {

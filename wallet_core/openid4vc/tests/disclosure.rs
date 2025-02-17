@@ -12,6 +12,7 @@ use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use ring::hmac;
 use ring::rand;
@@ -865,7 +866,7 @@ async fn request_status_endpoint(
         .unwrap()
 }
 
-type MockVerifier = Verifier<MemorySessionStore<DisclosureData>>;
+type MockVerifier = Verifier<MemorySessionStore<DisclosureData>, SigningKey>;
 
 #[derive(Debug)]
 struct VerifierMockVpMessageClient {

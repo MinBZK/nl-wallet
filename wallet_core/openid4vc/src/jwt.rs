@@ -37,6 +37,7 @@ use wallet_common::jwt::JwtError;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
+use wallet_common::keys::EcdsaKey;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential<T> {
@@ -172,7 +173,10 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
 
 /// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
 /// The resulting JWS can be verified using [`verify_against_trust_anchors()`].
-pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair) -> Result<Jwt<T>, JwtError> {
+pub async fn sign_with_certificate<T: Serialize, K: EcdsaKey>(
+    payload: &T,
+    keypair: &KeyPair<K>,
+) -> Result<Jwt<T>, JwtError> {
     // The `x5c` header supports certificate chains, but ISO 18013-5 doesn't: it requires that issuer
     // and RP certificates are signed directly by the trust anchor. So we don't support certificate chains
     // here (yet).
