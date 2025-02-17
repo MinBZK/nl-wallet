@@ -4,6 +4,7 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use rustls_pki_types::CertificateDer;
+use rustls_pki_types::SignatureVerificationAlgorithm;
 use rustls_pki_types::UnixTime;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::ECDSA_P256_SHA384;
@@ -24,6 +25,7 @@ use crate::attestation_extension::key_attestation::KeyAttestationVerificationErr
 use crate::attestation_extension::KeyAttestationExtension;
 use crate::attestation_extension::KeyAttestationExtensionError;
 use crate::root_public_key::RootPublicKey;
+use crate::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GoogleKeyAttestationError {
@@ -55,11 +57,24 @@ pub fn verify_google_key_attestation<'a>(
     revocation_list: &RevocationStatusList,
     attestation_challenge: &[u8],
 ) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
-    verify_google_key_attestation_with_time(
+    let supported_sig_algs = vec![
+        ECDSA_P256_SHA256,
+        ECDSA_P256_SHA256_WITH_NULL_PARAMETERS,
+        ECDSA_P256_SHA384,
+        ECDSA_P384_SHA256,
+        ECDSA_P384_SHA384,
+        RSA_PKCS1_2048_8192_SHA256,
+        RSA_PKCS1_2048_8192_SHA384,
+        RSA_PKCS1_2048_8192_SHA512,
+        RSA_PKCS1_3072_8192_SHA384,
+    ];
+
+    verify_google_key_attestation_with_params(
         certificate_chain,
         root_public_keys,
         revocation_list,
         attestation_challenge,
+        &supported_sig_algs,
         Utc::now(),
     )
 }
@@ -77,11 +92,12 @@ pub fn verify_google_key_attestation<'a>(
 //    associated with the hardware-backed keystore.
 //
 // 2. Send the certificates to a separate server that you trust for validation.
-pub fn verify_google_key_attestation_with_time<'a>(
+pub fn verify_google_key_attestation_with_params<'a>(
     certificate_chain: &'a [CertificateDer],
     root_public_keys: &[RootPublicKey],
     revocation_list: &RevocationStatusList,
     attestation_challenge: &[u8],
+    supported_sig_algs: &[&'a dyn SignatureVerificationAlgorithm],
     time: DateTime<Utc>,
 ) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
     assert!(certificate_chain.len() >= 2);
@@ -95,7 +111,12 @@ pub fn verify_google_key_attestation_with_time<'a>(
     // 3. Obtain a reference to the X.509 certificate chain parsing and validation library that is most appropriate for
     //    your toolset. Verify that the root public certificate is trustworthy and that each certificate signs the next
     //    certificate in the chain.
-    let root_certificate = verify_google_attestation_certificate_chain(certificate_chain, root_public_keys, unix_time)?;
+    let root_certificate = verify_google_attestation_certificate_chain(
+        certificate_chain,
+        root_public_keys,
+        supported_sig_algs,
+        unix_time,
+    )?;
 
     // 4. Check each certificate's revocation status to ensure that none of the certificates have been revoked.
 
@@ -155,6 +176,7 @@ pub fn verify_google_key_attestation_with_time<'a>(
 fn verify_google_attestation_certificate_chain<'a>(
     certificate_chain: &'a [CertificateDer],
     root_public_keys: &[RootPublicKey],
+    supported_sig_algs: &[&'a dyn SignatureVerificationAlgorithm],
     unix_time: UnixTime,
 ) -> Result<X509Certificate<'a>, GoogleKeyAttestationError> {
     let root_index = certificate_chain.len() - 1;
@@ -188,16 +210,7 @@ fn verify_google_attestation_certificate_chain<'a>(
     // Verify that each certificate signs the next certificate in the chain.
     let _verified_path = end_certificate
         .verify_for_usage(
-            &[
-                ECDSA_P256_SHA256,
-                ECDSA_P256_SHA384,
-                ECDSA_P384_SHA256,
-                ECDSA_P384_SHA384,
-                RSA_PKCS1_2048_8192_SHA256,
-                RSA_PKCS1_2048_8192_SHA384,
-                RSA_PKCS1_2048_8192_SHA512,
-                RSA_PKCS1_3072_8192_SHA384,
-            ],
+            supported_sig_algs,
             &trust_anchors,
             &certificate_chain[1..root_index],
             unix_time,
