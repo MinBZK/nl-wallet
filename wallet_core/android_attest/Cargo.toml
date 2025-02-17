@@ -14,7 +14,7 @@ required-features = ["mock"]
 
 [features]
 encode = []
-mock = ["encode", "dep:rand", "dep:rcgen", "dep:time"]
+mock = ["encode", "dep:der", "dep:rand", "dep:rcgen", "dep:time", "dep:x509-cert"]
 network_test = []
 # Accept attested keys from the emulator. This allows software security level.
 allow_emulator_keys = ["dep:tracing"]
@@ -51,10 +51,12 @@ tokio = { workspace = true, features = ["fs", "sync", "parking_lot"] }
 url.workspace = true
 x509-parser.workspace = true
 
+der = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["aws_lc_rs"] }
 time = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
+x509-cert = { workspace = true, optional = true, features = ["std"] }
 
 [dev-dependencies]
 assert_matches.workspace = true
